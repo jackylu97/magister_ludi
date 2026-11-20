@@ -1,6 +1,7 @@
 import { foundCityAt } from '../sim/cities';
 import { improvementErrorAt } from '../sim/improvements';
 import { createMap, getTileAt, type Tile } from '../sim/map';
+import { markMountainAdjacency } from '../sim/mapgen';
 import { bumpRevision, createUnit, newGame } from '../sim/state';
 import { resetVisibility, VISIBLE } from '../sim/visibility';
 
@@ -45,10 +46,11 @@ export function createWorksFixture() {
       if (t.col >= 3 && t.col <= 5 && t.row === 2) t.terrain = 'mountain';
     }
   }
-  Object.assign(tile(7, 6), { hills: true, feature: 'none', improvement: 'terraces' });
+  Object.assign(tile(7, 6), { hills: true, feature: 'none' });
   Object.assign(tile(4, 4), { resource: 'camels', terrain: 'desert', feature: 'none' });
   Object.assign(tile(7, 2), { resource: 'obsidian', terrain: 'desert', hills: true, feature: 'none' });
-  tile(7, 5).hills = true; tile(6, 6).hills = true;
+  Object.assign(tile(7, 5), { terrain: 'mountain', feature: 'none' });
+  tile(6, 6).hills = true;
   tile(4, 6).resource = 'wine';
   Object.assign(tile(5, 8), { resource: 'tea', hills: true });
   Object.assign(tile(4, 10), { resource: 'reeds', terrain: 'plains', feature: 'none' });
@@ -60,6 +62,7 @@ export function createWorksFixture() {
   tile(9, 13).feature = 'forest'; tile(10, 12).feature = 'forest';
   for (const [col, row] of [[4, 16], [4, 18], [7, 18], [5, 18], [8, 18]]) tile(col!, row!).hills = true;
   tile(7, 16).resource = 'wine';
+  markMountainAdjacency(state.map);
 
   const town = foundCityAt(state, 0, tile(8, 10));
   town.population = 4;
@@ -68,7 +71,7 @@ export function createWorksFixture() {
   // The fixture edits the board by hand, so it announces before the next ask, as a command would.
   bumpRevision(state);
   for (const [col, row, id] of [
-    [4, 4, 'camp'], [7, 2, 'mine'],
+    [4, 4, 'camp'], [7, 2, 'mine'], [7, 6, 'terraces'],
     [4, 6, 'plantation'], [5, 8, 'plantation'], [4, 10, 'plantation'],
     [9, 6, 'lumbermill'], [10, 8, 'lumbermill'],
     [13, 6, 'fishingBoats'], [13, 8, 'fishingBoats'], [15, 7, 'fishingBoats'], [6, 10, 'farm'],

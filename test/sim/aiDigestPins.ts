@@ -1328,9 +1328,10 @@ import { digestOfState, type Played } from './aiDigestHelpers';
  * Both six-seat games reached turn 120 without a rejected order or a stalled turn.
  */
 /** Version 250 changes the set of draftable Orders, purchase prices, lumber mills and terrace sites. */
+/** Version 251 changes research income and the prices bots pay for soldiers, workers and settlers. */
 const DIGESTS = {
-  duel: 'e2f6d1e8:382793',
-  standard: 'ddcaf1f1:1080107',
+  duel: 'c9cfa786:361311',
+  standard: '3d5e6a4a:1046763',
 };
 
 /** Check driver errors before comparing the state digest. */

@@ -133,78 +133,78 @@ column, which is carried through every regeneration.
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Warrior | melee | 20 | — | — | 2 | 100 | 2 | light | 15 | — | Agriculture | Swordsman | — |  |
-| Scout | scout | 10 | — | — | 2 | 100 | 3 | light | 15 | — | Agriculture | — | ignores terrain |  |
-| Archer | ranged | 15 | 20 | 2 | 2 | 100 | 2 | light | 15 | — | Fletching | Bowman | — |  |
-| Bowman | ranged | 20 | 28 | 2 | 2 | 100 | 2 | line | 61 | — | Siegecraft | Composite Bowman | — |  |
-| Spearman | melee | 25 | — | — | 2 | 100 | 2 | line | 27 | — | Bronzeworking | Phalanx | — |  |
-| Horseman | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 151 | — | The Saddle | Knight | needs improved Horses or Camels |  |
-| War Chariot | mounted | 33 | — | — | 4 | 100 | 2 | heavy | 51 | — | The Wheel | Horseman | needs improved Horses or Camels |  |
-| Chariot Archer | mountedRanged | 20 | 26 | 2 | 3 | 100 | 2 | heavy | 51 | — | The Wheel | Horse Archer | needs improved Horses or Camels |  |
-| Swordsman | melee | 35 | — | — | 2 | 100 | 2 | line | 46 | — | Bronze Panoply | Legionary | needs improved Obsidian or Copper |  |
-| Catapult | siege | 35 | 42 | 2 | 1 | 100 | 2 | engine | 174 | — | Mathematics | Trebuchet | — |  |
-| Composite Bowman | ranged | 30 | 39 | 2 | 2 | 100 | 2 | line | 105 | — | Mathematics | Crossbowman | — |  |
-| Pikeman | melee | 52 | — | — | 2 | 120 | 2 | line | 181 | — | Castellany | — | — |  |
-| Crossbowman | ranged | 45 | 50 | 2 | 2 | 110 | 2 | line | 181 | — | Machinery | — | — |  |
-| Knight | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 445 | — | Militant Orders | — | needs improved Horses or Camels |  |
-| Longswordsman | melee | 55 | — | — | 2 | 120 | 2 | heavy | 340 | — | Steel | — | needs improved Iron |  |
-| Trebuchet | siege | 40 | 48 | 2 | 1 | 110 | 2 | engine | 391 | — | Natural Philosophy | — | — |  |
-| Phalanx | melee | 30 | — | — | 2 | 110 | 2 | line | 46 | — | Bronze Panoply | Spear Wall | needs improved Obsidian or Copper |  |
-| Legionary | melee | 45 | — | — | 2 | 110 | 2 | line | 81 | — | Iron Working | Longswordsman | needs improved Iron |  |
-| Horse Archer | mountedRanged | 32 | 42 | 2 | 4 | 100 | 2 | heavy | 151 | — | The Saddle | — | needs improved Horses or Camels |  |
-| Cataphract | mounted | 42 | — | — | 4 | 120 | 2 | heavy | 151 | — | — | Knight | — |  |
-| Spear Wall | melee | 42 | — | — | 2 | 110 | 2 | line | 81 | — | Iron Working | Pikeman | — |  |
-| War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 151 | — | The Saddle | — | needs improved Ivory |  |
-| The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 583 | — | Alchemy | — | needs improved Niter |  |
-| Knights Templar | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 445 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
-| Numidian Cavalry | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 151 | — | — | Knight | opened by a card |  |
-| Company Guard | melee | 66 | — | — | 2 | 120 | 2 | heavy | 445 | — | — | — | opened by a card · bought with gold only |  |
-| Slinger | ranged | 20 | 30 | 2 | 2 | 100 | 2 | line | 61 | — | — | Composite Bowman | unslowed by hills |  |
-| Fubing | melee | 27 | — | — | 2 | 110 | 2 | light | 19 | — | — | Spear Wall | — |  |
-| Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | — |  |
-| The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 51 | — | — | Horse Archer | — |  |
-| Keshig | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 151 | — | — | — | — |  |
-| The Chanyu's Guard | mounted | 66 | — | — | 5 | 130 | 2 | heavy | 445 | — | — | — | — |  |
-| The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 46 | — | — | Legionary | — |  |
-| Camel Archer | mountedRanged | 32 | 46 | 2 | 4 | 100 | 2 | heavy | 151 | — | — | — | — |  |
-| The Pontic Peltast | melee | 26 | — | — | 2 | 110 | 2 | line | 27 | — | — | Spear Wall | — |  |
-| The Scythed Chariot | mounted | 46 | — | — | 4 | 110 | 2 | heavy | 198 | — | — | — | — |  |
-| The Gendarme | mounted | 66 | — | — | 4 | 130 | 2 | heavy | 445 | — | — | — | — |  |
-| The Mandekalu | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | — |  |
-| The Eagle Warrior | melee | 36 | — | — | 2 | 110 | 2 | line | 61 | — | — | Longswordsman | — |  |
-| Hypaspist | melee | 35 | — | — | 3 | 100 | 2 | line | 46 | — | — | Legionary | — |  |
-| Janissary | melee | 55 | — | — | 2 | 120 | 2 | heavy | 340 | — | — | — | — |  |
-| Qin Crossbowman | ranged | 20 | 31 | 2 | 2 | 100 | 2 | light | 33 | — | — | Composite Bowman | — |  |
-| Ballista Elephant | mounted | 50 | 50 | 2 | 3 | 130 | 2 | heavy | 151 | — | — | — | — |  |
-| Sparabara | melee | 30 | — | — | 2 | 110 | 2 | line | 46 | — | — | Spear Wall | — |  |
-| Condottiere | melee | 55 | — | — | 2 | 120 | 2 | heavy | 340 | — | — | — | — |  |
-| Hwacha | siege | 40 | 48 | 2 | 1 | 110 | 2 | engine | 391 | — | — | — | — |  |
+| Warrior | melee | 20 | — | — | 2 | 100 | 2 | light | 18 | — | Agriculture | Swordsman | — |  |
+| Scout | scout | 10 | — | — | 2 | 100 | 3 | light | 18 | — | Agriculture | — | ignores terrain |  |
+| Archer | ranged | 15 | 20 | 2 | 2 | 100 | 2 | light | 18 | — | Fletching | Bowman | — |  |
+| Bowman | ranged | 20 | 28 | 2 | 2 | 100 | 2 | line | 73 | — | Siegecraft | Composite Bowman | — |  |
+| Spearman | melee | 25 | — | — | 2 | 100 | 2 | line | 32 | — | Bronzeworking | Phalanx | — |  |
+| Horseman | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 181 | — | The Saddle | Knight | needs improved Horses or Camels |  |
+| War Chariot | mounted | 33 | — | — | 4 | 100 | 2 | heavy | 61 | — | The Wheel | Horseman | needs improved Horses or Camels |  |
+| Chariot Archer | mountedRanged | 20 | 26 | 2 | 3 | 100 | 2 | heavy | 61 | — | The Wheel | Horse Archer | needs improved Horses or Camels |  |
+| Swordsman | melee | 35 | — | — | 2 | 100 | 2 | line | 55 | — | Bronze Panoply | Legionary | needs improved Obsidian or Copper |  |
+| Catapult | siege | 35 | 42 | 2 | 1 | 100 | 2 | engine | 208 | — | Mathematics | Trebuchet | — |  |
+| Composite Bowman | ranged | 30 | 39 | 2 | 2 | 100 | 2 | line | 126 | — | Mathematics | Crossbowman | — |  |
+| Pikeman | melee | 52 | — | — | 2 | 120 | 2 | line | 217 | — | Castellany | — | — |  |
+| Crossbowman | ranged | 45 | 50 | 2 | 2 | 110 | 2 | line | 217 | — | Machinery | — | — |  |
+| Knight | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 534 | — | Militant Orders | — | needs improved Horses or Camels |  |
+| Longswordsman | melee | 55 | — | — | 2 | 120 | 2 | heavy | 408 | — | Steel | — | needs improved Iron |  |
+| Trebuchet | siege | 40 | 48 | 2 | 1 | 110 | 2 | engine | 469 | — | Natural Philosophy | — | — |  |
+| Phalanx | melee | 30 | — | — | 2 | 110 | 2 | line | 55 | — | Bronze Panoply | Spear Wall | needs improved Obsidian or Copper |  |
+| Legionary | melee | 45 | — | — | 2 | 110 | 2 | line | 97 | — | Iron Working | Longswordsman | needs improved Iron |  |
+| Horse Archer | mountedRanged | 32 | 42 | 2 | 4 | 100 | 2 | heavy | 181 | — | The Saddle | — | needs improved Horses or Camels |  |
+| Cataphract | mounted | 42 | — | — | 4 | 120 | 2 | heavy | 181 | — | — | Knight | — |  |
+| Spear Wall | melee | 42 | — | — | 2 | 110 | 2 | line | 97 | — | Iron Working | Pikeman | — |  |
+| War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 181 | — | The Saddle | — | needs improved Ivory |  |
+| The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 700 | — | Alchemy | — | needs improved Niter |  |
+| Knights Templar | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 534 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
+| Numidian Cavalry | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 181 | — | — | Knight | opened by a card |  |
+| Company Guard | melee | 66 | — | — | 2 | 120 | 2 | heavy | 534 | — | — | — | opened by a card · bought with gold only |  |
+| Slinger | ranged | 20 | 30 | 2 | 2 | 100 | 2 | line | 73 | — | — | Composite Bowman | unslowed by hills |  |
+| Fubing | melee | 27 | — | — | 2 | 110 | 2 | light | 23 | — | — | Spear Wall | — |  |
+| Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 181 | — | — | Knight | — |  |
+| The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 61 | — | — | Horse Archer | — |  |
+| Keshig | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 181 | — | — | — | — |  |
+| The Chanyu's Guard | mounted | 66 | — | — | 5 | 130 | 2 | heavy | 534 | — | — | — | — |  |
+| The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 55 | — | — | Legionary | — |  |
+| Camel Archer | mountedRanged | 32 | 46 | 2 | 4 | 100 | 2 | heavy | 181 | — | — | — | — |  |
+| The Pontic Peltast | melee | 26 | — | — | 2 | 110 | 2 | line | 32 | — | — | Spear Wall | — |  |
+| The Scythed Chariot | mounted | 46 | — | — | 4 | 110 | 2 | heavy | 237 | — | — | — | — |  |
+| The Gendarme | mounted | 66 | — | — | 4 | 130 | 2 | heavy | 534 | — | — | — | — |  |
+| The Mandekalu | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 181 | — | — | Knight | — |  |
+| The Eagle Warrior | melee | 36 | — | — | 2 | 110 | 2 | line | 73 | — | — | Longswordsman | — |  |
+| Hypaspist | melee | 35 | — | — | 3 | 100 | 2 | line | 55 | — | — | Legionary | — |  |
+| Janissary | melee | 55 | — | — | 2 | 120 | 2 | heavy | 408 | — | — | — | — |  |
+| Qin Crossbowman | ranged | 20 | 31 | 2 | 2 | 100 | 2 | light | 39 | — | — | Composite Bowman | — |  |
+| Ballista Elephant | mounted | 50 | 50 | 2 | 3 | 130 | 2 | heavy | 181 | — | — | — | — |  |
+| Sparabara | melee | 30 | — | — | 2 | 110 | 2 | line | 55 | — | — | Spear Wall | — |  |
+| Condottiere | melee | 55 | — | — | 2 | 120 | 2 | heavy | 408 | — | — | — | — |  |
+| Hwacha | siege | 40 | 48 | 2 | 1 | 110 | 2 | engine | 469 | — | — | — | — |  |
 
 ### Naval — 14 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Trireme | navalLight | 36 | — | — | 4 | 100 | 2 | line | 27 | — | Sailing | Bireme | hit and run |  |
-| Bireme | navalLight | 40 | — | — | 5 | 100 | 2 | line | 61 | — | Wayfinding | Galley | hit and run |  |
-| Galley | navalLight | 52 | — | — | 5 | 100 | 2 | line | 105 | — | Shipwrights | Caravel | hit and run |  |
-| Caravel | navalLight | 65 | — | — | 6 | 100 | 2 | heavy | 445 | — | The Astrolabe | Corvette | hit and run |  |
-| Corvette | navalLight | 78 | — | — | 6 | 100 | 2 | heavy | 445 | — | — | — | awaits its node · hit and run |  |
-| War Galley | navalHeavy | 45 | — | — | 3 | 100 | 2 | heavy | 87 | — | Wayfinding | Tower Ship | blockades |  |
-| Tower Ship | navalHeavy | 58 | — | — | 3 | 100 | 2 | engine | 174 | — | Shipwrights | Carrack | blockades |  |
-| Carrack | navalHeavy | 72 | — | — | 3 | 100 | 2 | engine | 513 | — | The Astrolabe | Ship of the Line | blockades |  |
-| Ship of the Line | navalHeavy | 88 | — | — | 3 | 100 | 2 | engine | 672 | — | — | — | awaits its node · blockades |  |
-| Fire Ship | navalRanged | 40 | 50 | 2 | 4 | 100 | 2 | heavy | 151 | — | Shipwrights | Gun Galley | — |  |
-| Gun Galley | navalRanged | 52 | 62 | 2 | 4 | 100 | 2 | engine | 513 | — | The Astrolabe | Frigate | — |  |
-| Frigate | navalRanged | 66 | 80 | 2 | 4 | 100 | 2 | engine | 672 | — | — | — | awaits its node · bombards |  |
-| The Treasure Ship | navalHeavy | 76 | — | — | 4 | 120 | 3 | engine | 228 | — | — | — | blockades |  |
-| The Alexandrian Galley | navalLight | 54 | — | — | 5 | 100 | 3 | line | 61 | — | — | Caravel | hit and run |  |
+| Trireme | navalLight | 36 | — | — | 4 | 100 | 2 | line | 32 | — | Sailing | Bireme | hit and run |  |
+| Bireme | navalLight | 40 | — | — | 5 | 100 | 2 | line | 73 | — | Wayfinding | Galley | hit and run |  |
+| Galley | navalLight | 52 | — | — | 5 | 100 | 2 | line | 126 | — | Shipwrights | Caravel | hit and run |  |
+| Caravel | navalLight | 65 | — | — | 6 | 100 | 2 | heavy | 534 | — | The Astrolabe | Corvette | hit and run |  |
+| Corvette | navalLight | 78 | — | — | 6 | 100 | 2 | heavy | 534 | — | — | — | awaits its node · hit and run |  |
+| War Galley | navalHeavy | 45 | — | — | 3 | 100 | 2 | heavy | 104 | — | Wayfinding | Tower Ship | blockades |  |
+| Tower Ship | navalHeavy | 58 | — | — | 3 | 100 | 2 | engine | 208 | — | Shipwrights | Carrack | blockades |  |
+| Carrack | navalHeavy | 72 | — | — | 3 | 100 | 2 | engine | 615 | — | The Astrolabe | Ship of the Line | blockades |  |
+| Ship of the Line | navalHeavy | 88 | — | — | 3 | 100 | 2 | engine | 806 | — | — | — | awaits its node · blockades |  |
+| Fire Ship | navalRanged | 40 | 50 | 2 | 4 | 100 | 2 | heavy | 181 | — | Shipwrights | Gun Galley | — |  |
+| Gun Galley | navalRanged | 52 | 62 | 2 | 4 | 100 | 2 | engine | 615 | — | The Astrolabe | Frigate | — |  |
+| Frigate | navalRanged | 66 | 80 | 2 | 4 | 100 | 2 | engine | 806 | — | — | — | awaits its node · bombards |  |
+| The Treasure Ship | navalHeavy | 76 | — | — | 4 | 120 | 3 | engine | 273 | — | — | — | blockades |  |
+| The Alexandrian Galley | navalLight | 54 | — | — | 5 | 100 | 3 | line | 73 | — | — | Caravel | hit and run |  |
 
 ### Civilian — 7 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Settler | settler | 0 | — | — | 2 | 100 | 2 | settler | 28 | 7 | Agriculture | — | founds cities · halts growth · needs 2 citizens |  |
-| Worker | worker | 0 | — | — | 2 | 100 | 2 | light | 10 | 2 | Agriculture | — | 3 charges |  |
+| Settler | settler | 0 | — | — | 2 | 100 | 2 | settler | 36 | 9 | Agriculture | — | founds cities · halts growth · needs 2 citizens |  |
+| Worker | worker | 0 | — | — | 2 | 100 | 2 | line | 14 | 4 | Agriculture | — | 3 charges |  |
 | Prophet | worker | 0 | — | — | 2 | 100 | 2 | free | 0 | — | The High Temple | — | bought with faith only · 2 charges |  |
 | Apostle | worker | 0 | — | — | 4 | 100 | 2 | free | 0 | — | Theology | — | bought with faith only · 2 charges |  |
 | Inquisitor | worker | 0 | — | — | 2 | 100 | 2 | free | 0 | — | The Holy Office | — | bought with faith only · 1 charge |  |
