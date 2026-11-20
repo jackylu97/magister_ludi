@@ -100,6 +100,35 @@ describe('the painted city recipes', () => {
     expect(meshesOf(f.layer)).toEqual(meshes);
   });
 
+  it('shares instance data within each set of map copies and disposes the copies together', () => {
+    const f = fixture();
+    f.build();
+    const pieces = f.layer.group.children.filter((mesh): mesh is InstancedMesh => mesh instanceof InstancedMesh);
+    const geometries = new Set(pieces.map(mesh => mesh.geometry));
+    const period = wrapWidth(f.state.map);
+    expect(geometries.size).toBeGreaterThan(0);
+    for (const geometry of geometries) {
+      const copies = pieces.filter(mesh => mesh.geometry === geometry);
+      expect(copies.map(mesh => mesh.position.x)).toEqual([-period, 0, period]);
+      const first = copies[0]!;
+      expect(first.boundingSphere).not.toBeNull();
+      for (const copy of copies) {
+        expect(copy.instanceMatrix).toBe(first.instanceMatrix);
+        expect(copy.instanceColor).toBe(first.instanceColor);
+        expect(copy.count).toBe(first.count);
+        expect(copy.boundingSphere).toBe(first.boundingSphere);
+      }
+    }
+
+    const disposed: InstancedMesh[] = [];
+    for (const mesh of pieces) mesh.addEventListener('dispose', () => disposed.push(mesh));
+    f.state.visibility[0]!.fill(EXPLORED);
+    f.build();
+    expect(disposed).toHaveLength(pieces.length);
+    expect(new Set(disposed)).toEqual(new Set(pieces));
+    expect(pieces.every(mesh => mesh.parent === null)).toBe(true);
+  });
+
   /**
    * A stale key is a visible bug, so every field the cut reads is walked here
    * and asserted to move it. `sculptKey` derives the look's half by walking the

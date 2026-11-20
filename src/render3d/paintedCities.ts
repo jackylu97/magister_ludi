@@ -288,19 +288,23 @@ export class PaintedCityLayer {
       const id = `pieces:${geometry.id}`;
       if (reuse(id, matrices)) continue;
       const meshes: Mesh[] = [];
+      // Only the world positions differ. All three meshes leave the batch together.
+      const primary = new InstancedMesh(geometry, this.assets.material, matrices.length);
+      matrices.forEach((matrix, i) => primary.setMatrixAt(i, matrix));
+      // White lets towns use the same shader as the coloured improvement instances.
+      primary.instanceColor = new InstancedBufferAttribute(new Float32Array(matrices.length * 3).fill(1), 3);
+      primary.computeBoundingSphere();
       for (const offset of [-period, 0, period]) {
-        const mesh = new InstancedMesh(geometry, this.assets.material, matrices.length);
-        matrices.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
-        // A white colour for each instance. The works share this material and
-        // their instances carry colours. three needs a different program for an
-        // instanced mesh with colours than for one without, and it draws the
-        // material's meshes sorted by depth, so towns and works mixed in one
-        // view made it change program about ten times a frame. A colour of one
-        // multiplies nothing, so the picture is the same (`paintedCities.test.ts`).
-        mesh.instanceColor = new InstancedBufferAttribute(new Float32Array(matrices.length * 3).fill(1), 3);
+        const mesh = offset === -period ? primary : new InstancedMesh(geometry, this.assets.material, 0);
+        if (mesh !== primary) {
+          mesh.instanceMatrix = primary.instanceMatrix;
+          mesh.instanceColor = primary.instanceColor;
+          mesh.count = primary.count;
+          mesh.boundingSphere = primary.boundingSphere;
+        }
         mesh.position.x = offset; mesh.castShadow = shadows; mesh.receiveShadow = true;
         mesh.userData.paintedCityCells = cells;
-        mesh.computeBoundingSphere(); this.group.add(mesh); meshes.push(mesh);
+        this.group.add(mesh); meshes.push(mesh);
       }
       this.batches.set(id, { inputs: [...matrices], meshes });
     }
