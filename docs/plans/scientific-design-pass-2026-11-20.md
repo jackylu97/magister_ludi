@@ -1539,3 +1539,86 @@ Five questions change the build. Each has my recommended answer.
 3. **Do the Opus cards move to Tier III, and may Tier IV hold five cards?** Recommended: yes to both. In three bot games the median seat held 18 to 24 drafts when the game ended, and Tier IV opens at 26. Changes 40 to 45 and change 31 move seven cards down, and the Doctrines of changes 58 and 61 follow. If your own games reach Tier IV early, say so and I will keep the commissions there.
 4. **Should a charter technology cost half, and should a charter be dealt in two tiers?** Recommended: yes to both (changes 53 and 54). You made charter technologies the ordinary price on 2026-11-10. A charter is dealt when its column is the most expensive on the chart, so its technology still costs one and a half ordinary ones. If you want one of the two and not the other, take the two tiers: a seat that is offered three charters cannot use a lower price.
 5. **Should the science cards be sized for today's rates, or for the cut?** Recommended: today's rates, and retune when the figure is ruled. Section 3 shows which cards grow and which shrink. If you already know the cut is deep, tell me, and I will raise the flat sums on buildings and works by about a third in the next round.
+
+## The user's rulings on round one (2026-11-20, comments on the page)
+
+The user: "ok i commented on the scientific deck". A row with no comment is
+approved (the user's standing rule). On the notes: "your analysis is good, my
+immediate reaction is that we need to also add science to this deck." Later,
+on change 53: "this deck seems to have plenty of science now."
+
+| # | Card | The user's words | Result |
+|---|---|---|---|
+| 01 | The Herbalists' Charter | "great"; on the shape: "should this be a shared card with expansionist?" | Approved. **A question to answer:** whether it is shared with Expansionist. |
+| 02 | The Apprentices | "great" | Approved. |
+| 03 | The War Manuals | "great" | Approved. |
+| 04 | The Royal Tutors | "great" | Approved. |
+| 05 | The Clay Map | "too similar to other cards in the game. I like the idea of having unique abilities for units. how about we rework: scouts gain +1 sight and receive double bonuses from discoveries." | The user's line. |
+| 06 | The House of Life | "good" | Approved. |
+| 07 | The Astronomers' Charter (the star tower) | "i think this is quite a steep penalty, cut" | Cut. |
+| 08 | The Surveyors' Charter (the qanat) | "Rework: give the qanat yields and change to a single hex. this is easier to read and reason about." | Rework: the qanat is one hex with its own yields. |
+| 09 | The Glassmakers' Charter | "great" and "can we rename this to greenhouses, or something more in line with what the specularium does." | Approved; rename the building (and the charter if needed) to fit what it does. |
+| 10 | The Scribes' Hall | "good" | Approved. |
+| 11 | The Royal Estates | "Additional buff: +50% production towards empire buildings." | Approved, with +50% production toward empire buildings added. |
+| 12 | The Sky Watchers | "good" | Approved. |
+| 13 | The Dedications | "good" | Approved. |
+| 14 | Learned Foundations | "great" | Cut, as proposed. |
+| 15 | The Common Tables | "great" | Cut, as proposed. |
+| 16 | The Reform of the Calendar | "great" | Approved. |
+| 17 | Commission: The Old Learning | "great" | Approved. |
+| 18 | The Charter Rolls | "the wording of this is confusing. I'm not sure how useful this is. Let's add it in for now, with some clearer text: 'your drafts contain an additional charter if one is available' or something along those lines" | Approved with clearer text. |
+| 19 | Tier I rarities | "sure" | Approved. |
+| 20 | The Old Academy | "sure" | Approved. |
+| 21 | The Lecture Halls | "great" | Approved. |
+| 22 | The Latin Quarter | "sure" | Approved. |
+| 23 | The Quiet Faculties | "great" | Cut, as proposed. |
+| 24 | Enduring Institutions | "this one feels not very impactful. How about we add a charter that unlocks a new type of science based empire building." | Replace with a charter that opens a new science empire building. |
+| 25 | The Translation Movement | "that's interesting, i like it" | Approved. |
+| 26 | The Armoury Patterns | "Hmm interesting. This could be really good for timing attacks, which should be a play pattern for the scientific player. lets rephrase it: units of your current age gain +3 strength. (+4 is probably too strong)." | Units of your current age gain +3 strength. **Timing attacks are a play pattern for the Scientific seat.** |
+| 27 | The City Architects | "lets rephrase: '30% production towards buildings and wonders of your current age'" | The user's line. |
+| 28 | The Printers' Charter | "great" | Approved. |
+| 29 | The Alfonsine Tables | "i don't like this. How about: complete the technology you are researching, -30% _gold_ for fifteen turns." | On draft: complete the technology you are researching. −30% gold for fifteen turns. |
+| 30 | The Summa | "not very fun, cut" | Cut. |
+| 31 | The Prototype Works | "not very useful. you can pre-build units that are cheaper that are automatically upgraded when you finish the tech. cut" | Cut. |
+| 32 | Tier II rarities | "sure" | Approved. |
+| 33 | The Age of Reason | "cut" | Cut. |
+| 34 | The Humanists | "sure" | Approved. |
+| 35 | The Model Army | "Ok sure" | Approved. |
+| 36 | The Gunfounders' Charter | "+6 strength is massive, revise: It's town builds military units 50% faster, with +4 strength" | +4 strength. |
+| 37 | The Second Seat | "lets just remove the library requirement altogether."; "rephrase: you may build a second copy of all empire buildings, while this is active."; "make sure: if this is unslotted while an empire building is in queue, it should remove it from the queue." | You may build a second copy of every empire building while this is seated. Unseating it removes a second copy from the queue. |
+| 38 | The Proving Ground | "great" | Cut, as proposed. |
+| 39 | The Collected Works | "wow thats crazy powerful, ok add it." | Approved. |
+| 40 | The Foundation Stone | "remove, not very useful." | Cut. |
+| 41 | The Closed Book | "wouldn't this show up way too early? lets keep it as is." then "OR: make it a charter so it doesn't need to be slotted, keep at tier 3" | Two readings offered; the pass recommends one. |
+| 42 | The Great Instrument | "Cut, not impactful enough" | Cut. |
+| 43 | Commission: The Lynx-Eyed Academy | "great" | Approved. |
+| 44 | The Republic of Letters | "i think we have too many academy synergies. lets cut this one." | Cut. |
+| 45 | The Military Engineers' Charter | "sure" | Approved. |
+| 46 | The Naval Gunners' Charter | "cut" | Cut, as proposed. |
+| 47 | Tier III rarities | "sure" | Approved. |
+| 48 | The Sum of Knowledge | "great" | Approved. |
+| 49 | The Walls of Learning | "cut", "great" | Cut, as proposed. |
+| 50 | The Laboratories | "this is too small for a tier 4. Science buildings give +10% production" | Science buildings give +10% production. |
+| 51 | The Invisible College | "great" | Approved. |
+| 52 | The Great Catalogue | "great" | Approved. |
+| 53 | A charter technology costs half | "lets have it cost the same as an ordinary technology. half feels too powerful. this deck seems to have plenty of science now." | A charter technology costs what an ordinary technology of its column costs. |
+| 54 | A charter is dealt in two tiers | "cut, lets just add more charters" | Cut. Add more charters. (On question 4 the user wrote "two tiers sure": the later, specific comment on the change stands.) |
+| 55 | The Natural Histories | "i don't like that this doesn't scale well, cut" | Cut. |
+| 56 | The Peripatetic School | "sure" | Approved. |
+| 57 | The Jixian Academy | "great" | Approved. |
+| 58 | The Nassau Reforms | "Seems not very good, as you tend to build soldiers later in the game. cut" | Cut. |
+| 59 | The Volley Fire | "revise: your archer line may attack twice a turn, they lose 4 combat strength when defending against a melee attack (non-ranged attack)" | The user's line. |
+| 60 | The Mustansiriya | "sure" | Approved. |
+| 61 | The Platonic Academy | "that's cool, great" | Approved. |
+| 62 | The Court of Rudolf II | "great" | Approved. |
+| 63 | The Trace Italienne | "great" | Approved. |
+| 64 | The Founders' Schools | "sure" | Approved. |
+| 65 | The Lodge Books | "cool" | Approved. |
+| 66 | Carried-Off Scholars | "Cool, lets make this tier 3" | Approved, at Tier III. |
+| 67 | Field Academies | "cool" | Approved. |
+| 68 | The Blessed Forges | "let's move this to tier 1" | Kept, at Tier I. The Devotion pass's cut of it (its change 58) is overruled. |
+
+Questions: Q1 "yes" (the technology lead stays a quantity cards read). Q2
+"yes" (a card may complete a technology). Q3 "sure" (the Opus cards move to
+Tier III; Tier IV may hold five). Q4 "two tiers sure, charter technology
+should cost the same, not half" (see 53 and 54). Q5 "they're fine as is."
