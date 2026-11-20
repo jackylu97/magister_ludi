@@ -19,6 +19,7 @@ import { createOrganicRivers, organicRiversFrom } from './organicRivers';
 import { createFreeCoast } from './freeCoast';
 import { createGroundPaint } from './groundPaint';
 import { canopyBatchBox } from './copyCulling';
+import { createCanopyBatch } from './paintedCanopies.js';
 
 const axis = new T.Vector3(0, 1, 0);
 const NEVER = 0, CLUTTER = 1, DECOR = 2;
@@ -97,7 +98,15 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const copies = [-period, 0, period].map(offset => {
     const copy = new T.Group(); copy.position.x = offset; group.add(copy); return copy;
   });
-  const fog = createPaintedFog(map.width, map.height);
+  const canopiesByCell = new Map(), dirtyCanopies = new Set();
+  const fog = createPaintedFog(map.width, map.height, cell => {
+    const batches = canopiesByCell.get(cell);
+    if (batches) for (const canopy of batches) dirtyCanopies.add(canopy);
+  });
+  function refreshCanopies() {
+    for (const canopy of dirtyCanopies) canopy.refresh(fog);
+    dirtyCanopies.clear();
+  }
   const relief = new PaintedRelief();
   // The plain land wears this material, which reads the paint from the texture. `groundPaintLands` are the cut
   // land's meshes of the middle copy, which the bake draws. A worker builds the plain land's geometry and never draws
@@ -370,6 +379,17 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     // Include both banks of shared river sectors, even across chunk/wrap edges.
     const batch = { cells: preparedCells || [...cells], meshes, detail, surface, charted: false,
       casts: !!mesh.userData.paintedCasts, order: [orderStep, orderRank, orderCount++] };
+    if (mesh.isInstancedMesh && mesh.material.userData.canopySway) {
+      batch.canopy = createCanopyBatch(meshes);
+      if (batch.canopy) {
+        ownedGeometry.add(batch.canopy.geometry);
+        for (const cell of batch.cells) {
+          const batches = canopiesByCell.get(cell);
+          if (batches) batches.push(batch.canopy);
+          else canopiesByCell.set(cell, [batch.canopy]);
+        }
+      }
+    }
     visibilityBatches.push(batch); showBatch(batch);
   }
   function normalize(geometry, cell, grade, turfStrength, material) {
@@ -721,10 +741,16 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (geometry.index) buffers.add(geometry.index.array);
   }
   const geometryBytes = [...buffers].reduce((bytes, array) => bytes + array.byteLength, 0);
-  let instanceBytes = 0;
+  const instanceBuffers = new Set();
+  function countInstances(matrix, color) {
+    instanceBuffers.add(matrix.array);
+    if (color) instanceBuffers.add(color.array);
+  }
   group.traverse(object => {
-    if (object.isInstancedMesh) instanceBytes += object.instanceMatrix.array.byteLength + (object.instanceColor?.array.byteLength || 0);
+    if (object.isInstancedMesh) countInstances(object.instanceMatrix, object.instanceColor);
   });
+  for (const {canopy} of visibilityBatches) if (canopy) countInstances(canopy.source.matrix, canopy.source.color);
+  const instanceBytes = [...instanceBuffers].reduce((bytes, array) => bytes + array.byteLength, 0);
   return {
     group, renderMap, pickMeshes, fogTexture: fog.texture, fogUniforms: fog.uniforms,
     // The three wrap copies, so a pass whose camera cannot see one can leave it out (`copyCulling.ts`).
@@ -781,15 +807,17 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     // Canonical batches only. Wrapping, shader hooks and fog callbacks are
     // rebound by the consumer, never serialized as Three.js scene objects.
     exportBatches() {
-      return visibilityBatches.map(({meshes, detail, surface, cells, casts, order}) => {
+      return visibilityBatches.map(({meshes, detail, surface, cells, casts, order, canopy}) => {
         const mesh = meshes[1];
+        const data = canopy?.source ?? {
+          geometry: mesh.geometry, count: mesh.count, matrix: mesh.instanceMatrix, color: mesh.instanceColor,
+        };
         // The batch's own cast fact, not the live flag: a board prepared while
         // shadows were off would otherwise hydrate into a world that throws
         // none, whatever the consumer asks for.
-        return {geometry: mesh.geometry, source: sources.get(mesh.material), detail, surface, cells, order,
+        return {...data, source: sources.get(mesh.material), detail, surface, cells, order,
           mountainPick: !!mesh.userData.paintedPickOnly, castShadow: casts,
-          base: instanceBases.get(mesh.geometry), count: mesh.count,
-          matrix: mesh.instanceMatrix, color: mesh.instanceColor};
+          base: instanceBases.get(data.geometry)};
       });
     },
     get shadowRevision() { return fog.shadowRevision; },
@@ -878,7 +906,10 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     applyFog(levels, at) {
       if (disposed) return 0;
       const revision = fog.shadowRevision, changed = fog.apply(levels, at);
-      if (revision !== fog.shadowRevision) refreshVisibility();
+      if (revision !== fog.shadowRevision) {
+        refreshCanopies();
+        refreshVisibility();
+      }
       return changed;
     },
     advanceReveal(now) { return disposed ? 0 : fog.advanceReveal(now); },
@@ -886,12 +917,21 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     set revealMs(value) { fog.revealMs = value; },
     get revealStamps() { return fog.revealStamps; },
     get revealing() { return disposed ? 0 : fog.revealing; },
-    suppressTile(cell, scope) { return !disposed && fog.suppress(cell, scope); },
-    unsuppressTile(cell) { return !disposed && fog.unsuppress(cell); },
+    suppressTile(cell, scope) {
+      if (disposed || !fog.suppress(cell, scope)) return false;
+      refreshCanopies();
+      return true;
+    },
+    unsuppressTile(cell) {
+      if (disposed || !fog.unsuppress(cell)) return false;
+      refreshCanopies();
+      return true;
+    },
     reserveFootprints(radii) {
       if (disposed) return 0;
       let changed = 0;
       for (let cell=0; cell<map.tiles.length; cell++) if (fog.reserve(cell, radii.get(cell) || 0)) changed++;
+      if (changed) refreshCanopies();
       return changed;
     },
     isCellVisible(cell, grade = 0) { return !disposed && fog.visible(cell, grade); },

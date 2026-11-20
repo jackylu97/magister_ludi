@@ -10,7 +10,7 @@ import {
 // carries how lit a hex is and how far the world has soaked through the paper —
 // the two things that are light rather than ink, and therefore fade. See that
 // file for why the second field is twice as wide.
-export function createPaintedFog(width, height) {
+export function createPaintedFog(width, height, onCanopyChange) {
   let shadowRevision = 0;
   const data = new Uint8Array(width * height * 4);
   const texture = new T.DataTexture(data, width, height, T.RGBAFormat);
@@ -32,9 +32,12 @@ export function createPaintedFog(width, height) {
   const stamped = new Float64Array(cells);
   let stamps = 0, revealMs = PAINTED_REVEAL_MS;
   function write(cell, channel, value) {
-    if (cell < 0 || cell >= width * height || data[cell * 4 + channel] === value) return false;
-    data[cell * 4 + channel] = value;
+    if (cell < 0 || cell >= width * height) return false;
+    const index = cell * 4 + channel, previous = data[index];
+    if (previous === value) return false;
+    data[index] = value;
     texture.needsUpdate = true;
+    if (channel !== 0 || (previous === 0) !== (value === 0)) onCanopyChange?.(cell);
     return true;
   }
   function settle(cell, lit, charted) {
@@ -97,6 +100,11 @@ export function createPaintedFog(width, height) {
     unsuppress(cell) { return write(cell, 1, 0); },
     visible(cell, grade = 0) {
       return data[cell * 4] > 0 && (grade === 0 || data[cell * 4 + 1] < grade);
+    },
+    canopyVisible(cell, grade, distance) {
+      // Match the normalized byte and float comparison in the vertex shader.
+      const reserved = distance > 0 && Math.fround(distance - 1) < Math.fround(data[cell * 4 + 2] / 255);
+      return this.visible(cell, grade) && !reserved;
     },
     dispose() { texture.dispose(); light.dispose(); },
   };

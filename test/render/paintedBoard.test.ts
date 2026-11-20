@@ -42,6 +42,50 @@ function meshesOf(board: PaintedBoard): Mesh[] {
 }
 
 describe('production painted board', () => {
+  it('draws the visible trees in source order and restores them on all three map copies', () => {
+    const { assets, map, build } = fixture();
+    assets.broadleaf.material.userData.canopySway = { x: .045, z: .028 };
+    const board = build();
+    const index = board.exportBatches().findIndex(batch => batch.source === assets.broadleaf.material && batch.detail === 'near');
+    expect(index).toBeGreaterThanOrEqual(0);
+    const template = board.exportBatches()[index]!;
+    const meshes = board.copies.map(copy => copy.children[index] as InstancedMesh);
+    const cells = template.geometry.getAttribute('paintedCell');
+    const grades = template.geometry.getAttribute('paintedSuppress');
+    const distances = template.geometry.getAttribute('paintedReservationDistance');
+    const all = Array.from({ length: template.count! }, (_, i) => i);
+    function check(slots: number[]) {
+      const expected = slots.flatMap(i => Array.from(template.matrix!.array.slice(16 * i, 16 * i + 16)));
+      for (const mesh of meshes) {
+        expect(mesh.count).toBe(slots.length);
+        expect(Array.from(mesh.instanceMatrix.array.slice(0, slots.length * 16))).toEqual(expected);
+        expect(Array.from(mesh.geometry.getAttribute('paintedCell').array.slice(0, slots.length))).toEqual(slots.map(i => cells.getX(i)));
+        expect(Array.from(mesh.instanceColor!.array.slice(0, slots.length * 3))).toEqual(
+          slots.flatMap(i => Array.from(template.color!.array.slice(i * 3, i * 3 + 3))),
+        );
+      }
+      expect(board.exportBatches()[index]!.count).toBe(all.length);
+    }
+    board.applyFog(null);
+    check(all);
+    const cell = cells.getX(0);
+    board.suppressTile(cell, 2);
+    const cleared = all.filter(i => cells.getX(i) !== cell || grades.getX(i) === 0);
+    expect(cleared.length).toBeLessThan(all.length);
+    check(cleared);
+    board.unsuppressTile(cell);
+    check(all);
+    board.reserveFootprints(new Map([[cell, 1]]));
+    const reserved = all.filter(i => cells.getX(i) !== cell || distances.getX(i) <= 0 || distances.getX(i) >= 2);
+    expect(reserved.length).toBeLessThan(all.length);
+    check(reserved);
+    board.applyFog(map.tiles.map((_, i) => i === cell ? 0 : 1));
+    check(all.filter(i => cells.getX(i) !== cell));
+    board.reserveFootprints(new Map());
+    board.applyFog(null);
+    check(all);
+  });
+
   it('shares canonical terrain across three translated wrap copies and picks every cell', () => {
     const { map, build } = fixture();
     const original = JSON.stringify(map), board = build();

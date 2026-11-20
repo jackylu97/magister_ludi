@@ -87,6 +87,35 @@ The terrain experiment shortened a draw when the first or last groups of 384 tri
 
 Both changes cost time in the wide city view. The game keeps its previous terrain draw ranges and water shader. [Pixel checks, triangle counts and sample pairs](terrain-and-water-2026-11-20.json)
 
+## Hidden trees on the painted board
+
+The renderer now submits only the trees the existing shader can show. A tree on remembered ground still draws. A tree on unexplored ground, cleared land or inside a building footprint can leave the draw. The three map copies share the same list. A change to a tile updates its tree batches and restores trees when the new view needs them.
+
+At turn 151, four fixed views matched every RGBA byte before and after filtering. The checks included a fresh shadow map and a settled water reflection. Switching between two players and the full map also matched after the camera settled. An earlier check caught a change immediately after the seat switch. Repeating the original renderer alone produced that same change. [Image checks and paired GPU measurements](canopy-instances-2026-11-20.json)
+
+| Turn 151 view | Tree triangles skipped per main draw of the board | Median GPU time saved per frame | Faster pairs out of 24 |
+|---|---:|---:|---:|
+| Cinderhold at normal zoom | 309,260 | 0.83 ms | 17 |
+| Cinderhold at wide zoom | 549,724 | 1.69 ms | 24 |
+| Inland at normal zoom | 289,547 | 1.17 ms | 23 |
+| Map seam without trees | 0 | −0.08 ms | 9 |
+
+### Player input on a 60 Hz display
+
+The empty WebGL canvas reached 60 FPS in three runs while the Mac was charging. Two builds then ran in alternating order with five bots enabled. Both used the same picking and meter changes. Only the tree renderer differed. The measurements below count board draws during the gesture. The linked data also covers the short interval after release. [Gesture timings and display control](canopy-instances-2026-11-20.json)
+
+| Turn 120 action | Before tree filtering, two runs | With tree filtering, two runs |
+|---|---:|---:|
+| Pan while holding the pointer | 60.1, 60.1 FPS | 56.5, 60.1 FPS |
+| Zoom across the detail threshold | 60.0, 48.5 FPS | 60.0, 60.0 FPS |
+| First move handler to next observed board draw | 33.0, 29.4 ms | 32.5, 28.4 ms |
+
+The longest gap during an active pan was 39.7 ms with filtering. It overlapped a 19.9 ms Chrome renderer task. The other filtered pan had a 52.7 ms gap just after the pointer was released. While the pointer was down, its longest gap was 17.9 ms. These captures do not isolate the cause of the active hitch. They show a repeatable GPU saving in the wide city view, with first-move latency similar in both interactive builds.
+
+On the two first moves, the updated click handlers took 10.2 and 8.8 ms. The next board frame took 11.9 and 11.8 ms of CPU time. Updating the board layers used 5.0 and 5.2 ms of that frame, including 2.0 and 2.2 ms to update the units.
+
+Over Cinderhold on turn 151, the original renderer drew 47.3 and 40.8 FPS during active drags. The filtered renderer drew 43.7 and 33.2 FPS. During wheel input the figures were 41.3 and 40.7 FPS before filtering, then 41.3 and 38.1 FPS after filtering. Each drag started soon after opening this save and switching to the sixth seat. Six main-thread idle callbacks took at least 50 ms during the slower filtered drag. The native GPU savings did not translate into a faster average in this comparison. [Cinderhold gesture samples](canopy-instances-2026-11-20.json)
+
 ## Setup for the asset measurements
 
 The renderer came from commit `ee54e8d1`, save version 251. The snapshot followed turn 150 on seed 20260832. It held 530 units and 91 cities. It used player 6's fog, the painted board and daylight. Headless Chrome used the Apple M4 through ANGLE Metal. The 1.5× drawing buffer measured 2205 × 1189.
