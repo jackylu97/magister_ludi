@@ -544,6 +544,97 @@ The game's rule is 40 between primaries (`inkDistance`). The closest pair here i
 - The six code points in "For the builder".
 - The history is from memory. For Jayavarman VII, the counts of 102 hospitals and 121 rest houses are from their own inscriptions as I recall them; check before any text ships.
 
+## The user's rulings on the readings (2026-11-20)
+
+The user commented on the review page and said: "ok i've commented on the
+leaders doc, i'm pretty happy with these changes." **Where a line here differs
+from sections 1, 2 or 4 above, this section is the spec.** A reading with no
+comment stands as recommended. The user's words are quoted.
+
+### Readings confirmed as recommended
+
+- **Alexander, Ability II:** every military unit *gained* counts ("gained");
+  half is rounded down ("round down"); the name The Royal Army stays ("sounds
+  good").
+- **Alexander, the building:** opens at Bronzeworking and needs no Barracks
+  ("Yup, unlocked at bronzeworking"); it reads hexes the city works that hold
+  a strategic resource ("yup"); it is a military building for every card that
+  counts them ("Yup").
+- **Genghis Khan's building:** The Yam, one in each city ("one a city. yam is
+  fine").
+- **Joan of Arc:** stacking with The Spiritual Host is accepted ("stacking is
+  fine."); the ground is "all territory belonging to cities that follow your
+  faith".
+- **Mehmed:** each town's Barracks counts, every scholar or general gained
+  counts however gained, and the Külliye is a science building ("yes" three
+  times).
+- **Nezahualcoyotl, The Dikes:** the science is on each farm ("on each farm").
+- **Cyrus:** chairs added by cards, wonders and the Assembly Hall count
+  ("yes"); joined means joined by road to the capital ("yup connected by road
+  to your capital"); one Paradise Garden in each city ("one in each city"); the
+  garden follows the Spirit Way rules as written ("yup") and counts as a work
+  for lines and legacies that multiply works ("yes").
+- **Cleopatra, The Museion:** every city may hold one ("one a city").
+- **Lorenzo:** the bank reads net gold ("net gold") and favours no family
+  ("none"); the wonder bonus counts gold buildings in that city ("in that
+  city").
+- **Harun al-Rashid:** a building pays once ("No, building shouldn't be double
+  counted.").
+- **Justinian:** the happiness is the empire's ("yup"); the Basilica needs no
+  Temple ("agreed").
+- **Sejong, The Royal Lectures:** the extra renown splits by family as that
+  turn's renown does ("Yup").
+- **Colours:** "ok lets keep the colors".
+
+### Lines the user changed
+
+| Leader, piece | The user's words | The line to build |
+|---|---|---|
+| Cyrus, The Cyrus Cylinder | "is it really that strong? let's say +1 culture in all connected cities for every civic/wildcard order in your government" | Cities joined to your capital by road gain +1 happiness, and +1 culture for every Civic and Wildcard chair in your government. (My reading: "order" here is the chair, as in the user's first line, "for every civic and wildcard slot"; and the happiness clause stays, since the comment sat on the culture question. To confirm.) |
+| Cleopatra, The Queen's Alliances | "+4 gold +2 culture per age for each deal you have." | Your capital gains +4 gold and +2 culture for each age you have reached, for each deal you have. So the count of deals returns: with no deal the line pays nothing. |
+| Lorenzo, The Medici Bank | "no cap" | +1 renown a turn for every 8 gold your empire makes each turn, net. No cap. |
+| Lorenzo, Ability II | "no cap, there aren't that many gold buildings in the game no?" | +10% production toward wonders for every gold building in that city. No cap. (About eight gold buildings and two empire buildings exist, so a full capital reaches +80% to +100%.) |
+| Lorenzo, The Bottega | "i meant it as every city. let's nerf for now, to +3 renown to each." and "spirit way and paradise garden should count. lorenzo has no access to paradise gardens but theoretically they should count." | One in each city. +3 renown a turn toward great engineers and +3 toward great artists. +2 production for every luxury resource or great person's work in its city; a Paradise Garden and a ghost work of The Spirit Way count as works. |
+| Justinian, Ability II | "the hex has +5 production and +2 happiness, it must be worked to get the 2 happiness. If it's simpler, we can have the happiness apply without being worked." | Each holy site gives +5 production on its hex, and +2 happiness to the empire. The builder chooses: happiness only while a citizen works the hex if that is cheap to build, otherwise for every holy site held. Say which in the hand-back. |
+| Sejong, The Royal Lectures | "let's make it three turns" | Each time you complete a technology, gain three turns of renown. |
+| Sejong, The Hall of Worthies | "one in each city." | +4 science, and +5 renown a turn toward great scholars. One in each city. |
+| Jayavarman VII, Ability I | "modify: +1 food and +1 faith on freshwater farms for every public work in the city." | The Hospitals of the King. Farms beside fresh water gain +1 food and +1 faith for every public work in their city. |
+| Jayavarman VII, Ability II | "+1 culture and +1 faith for every 2 citizens in your empire." | The Great City. +1 culture and +1 faith for every 2 citizens in your empire. |
+| Jayavarman VII, The House of Fire | "this seems underwhelming, let's modify: public work building, +2 food and +2 happiness and +3 renown towards engineers." | The House of Fire. A public work. +2 food, +2 happiness, and +3 renown a turn toward great engineers. |
+| Alexander, the building's name | "lets come up with a better historical name, i just copied the civ 6 ability name." | **Open: a name.** Proposed, in order: The School of Mieza (where Aristotle taught Alexander and the sons of the Macedonian nobles), The Royal Pages (the plain English of Basilikoi Paides), The Gymnasion. |
+
+Jayavarman VII's kit is otherwise as section 2 gives it (the unit, the
+capital and towns, the colours), and the user's three lines replace its two
+abilities and its building.
+
+### Arithmetic on the changed lines, for the user to see
+
+- **Jayavarman, The Great City:** an empire of 60 citizens in Æra II pays +30
+  culture and +30 faith a turn; 120 citizens in Æra III pays +60 and +60; 200
+  in Æra IV pays +100 and +100. A headline card pays 35 to 45 in Æra II and
+  about 120 in Æra IV, so this is two headline cards in every age, from turn
+  one, and culture is the draft currency. It is the strongest leader line on
+  the roster.
+- **Jayavarman, The Hospitals:** a city with four public works and five river
+  farms pays +20 food and +20 faith. It grows with the public works, which
+  the Expansionist deck already rewards.
+- **Sejong, The Hall of Worthies in each city:** ten cities pay +50 scholar
+  renown and +40 science a turn. The Bottega was cut to +3 for this reason;
+  the Hall is at +5.
+- **Cyrus, the culture in each joined city:** eight joined towns and five
+  chairs pay +40 culture a turn in Æra III, a headline card, and +8 happiness.
+- **Lorenzo, the bank with no cap:** a seat that banks 600 gold a turn late
+  gains +75 renown a turn, a great person every four to six turns.
+- **Cleopatra:** two deals in Æra III pay +24 gold and +12 culture; none pays
+  nothing.
+
+### Still open
+
+- The name of Alexander's building.
+- Cyrus: "order" as chair, and the happiness clause (my reading above).
+- Whether The Great City and The Hall of Worthies stay at these figures after
+  the arithmetic above.
+
 ## Record: 1. The structure
 
 This pass designs every candidate in the ruling of 2026-11-19 (`docs/flags.md`, "Leaders: a more mainstream roster, one for each pair of decks"). Nothing here is built or ruled. You choose; the build follows your choice.
