@@ -3219,7 +3219,7 @@ too."
   150; units a seat; the turn of the first settler and the first war).
 - Owner: Astra (data rows and two rules).
 
-### Workers and settlers (proposed 2026-11-20, not ruled)
+### Workers and settlers (ruled 2026-11-20, not built)
 
 The user: "I think workers and settlers probably need to become more
 expensive too." They are civilians, so the soldier's surcharge does not
@@ -3231,4 +3231,6 @@ costs 28 and each one built adds 7. Proposed first figures:
 | Worker | 10, 12, 14, 16 | base 14 (the `line` size), +4 each: 14, 18, 22, 26 |
 | Settler | 28, 35, 42, 49 | base 36, +9 each: 36, 45, 54, 63 |
 
-Waits for the user's yes on the figures.
+The user: "ok lets do that for now, i'll see if we need a further pass." So
+the proposed figures are ruled as a first step. The worker moves to the
+`line` size with a ladder of 4; the settler's base is 36 with a ladder of 9.

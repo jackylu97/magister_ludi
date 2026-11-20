@@ -466,8 +466,10 @@ not built)". Five figures: science for each citizen 0.25; the Library +3
 flat; the University +6 flat; the Amphitheater +4 flat; a soldier's
 surcharge 80%. Technology prices stay, so the tree is slower on purpose.
 Run the bots before and after, and report the measures that the flag lists.
-The worker and settler prices in the same flag are a proposal: do not build
-them until the flag says ruled. The docs with sync tests
+The same flag rules the worker and the settler: a worker costs 14 and each
+one built adds 4 (14, 18, 22, 26); a settler costs 36 and each one built adds
+9 (36, 45, 54, 63). The user calls these a first step ("i'll see if we need a
+further pass"), so keep every figure in data. The docs with sync tests
 (`docs/production-costs.md`, `docs/yields.md`) change with the data.
 
 ## 4. Rules that apply to every change
