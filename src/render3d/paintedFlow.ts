@@ -73,6 +73,8 @@ export class PaintedFlowLayer {
   private readonly material: MeshBasicMaterial;
   private geometry: BufferGeometry | null = null;
   private meshes: InstancedMesh[] = [];
+  private drawn: readonly Placed[] = [];
+  private layout = '';
 
   constructor() {
     this.group.name = 'painted-flow';
@@ -93,10 +95,15 @@ transformed.z *= flowShow;`);
 
   /** `prepared` is the board's own map. Built with the works layer, never on a frame. */
   build(prepared: GameMap, levels: FogLevels, map: GameMap, organic: boolean): void {
-    this.clear();
-    if (!organic || !FLOW.length) return;
+    if (!organic || !FLOW.length) { this.clear(); return; }
     const period = ROOT3 * prepared.width, wrap = (x: number): number => ((x % period) + period) % period;
     const kept = placedGlints(prepared).filter((placed) => levelAt(levels, map, placed.col, placed.row) !== HIDDEN);
+    // Visible and remembered river tiles use the same glints. Keep their buffers
+    // when a unit changes sight without revealing a new stretch of river.
+    const layout = [period, FLOW.length, FLOW.width, FLOW.lift, FLOW.travel].join('/');
+    if (layout === this.layout && kept.length === this.drawn.length && kept.every((point, i) => point === this.drawn[i])) return;
+    this.clear();
+    this.layout = layout; this.drawn = kept;
     if (!kept.length) return;
     const geometry = this.geometry = new BufferGeometry();
     // A flat dash, one unit long in x and one wide in z, with pointed ends.
@@ -126,6 +133,7 @@ transformed.z *= flowShow;`);
   }
 
   private clear(): void {
+    this.drawn = []; this.layout = '';
     for (const mesh of this.meshes) this.group.remove(mesh);
     this.meshes[0]?.dispose(); this.meshes = [];
     this.geometry?.dispose(); this.geometry = null;
