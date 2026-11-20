@@ -3138,7 +3138,9 @@ read 'city cannot purchase without free tiles'".
   is not ruled; it stays as it is.
 - Owner: Astra (a rule in `src/sim`).
 
-## A coastal city is a city that controls a coast hex (proposed 2026-11-20, not ruled)
+## A coastal city is a city that owns a coast hex within two hexes (ruled 2026-11-20, not built)
+
+**Ruled:** the user confirmed the narrow form on 2026-11-20 ("confirm all the commerce 5 points"). On 48 starts it raises coastal capitals from 17 to 26. The text below is the proposal as first written.
 
 The user, in the Commerce pass (on dealing sea cards only to seats with a
 coast, which the user rejected): "a coastal city should be defined as a city
@@ -3171,8 +3173,12 @@ farms for as much as a lumber mill yields, so a chop costs nothing later. The
 proposal: a lumber mill gives +2 production (from +1). The user: "great". It
 is a base rule in the improvement data, for every deck. Owner: Astra.
 
-## A terrace farm is built only beside a mountain (ruled 2026-11-20, not built)
+## The terrace farm keeps its rule (2026-11-20)
 
-From the Expansionist pass, on Pachacuti's unique improvement: "let's update
-the terrace farm: can only be built adjacent to a mountain." Owner: Astra,
-with the leader roster build.
+The user first wrote, on Pachacuti's improvement: "let's update the terrace
+farm: can only be built adjacent to a mountain." The row already asks for a
+hill beside a mountain, and the user then confirmed: "i mean only a hill
+beside a mountain. This way, terraces aren't broken with our new changes".
+So nothing changes: a terrace farm is built on a hill beside a mountain. It
+is a unique improvement, and the Expansionist pay-offs for unique
+improvements read it.

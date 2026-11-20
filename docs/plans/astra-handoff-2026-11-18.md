@@ -402,12 +402,61 @@ checked all thirteen leaders' units). The two units above are the only gaps.
 | Keshig | the leader roster | It keeps the Xiongnu Horse Archer's model only if the row keeps its id. |
 | The School of Mieza, the other new leader buildings | the leader roster | Nothing: buildings are not drawn. |
 | The Paradise Garden (Cyrus's improvement) | the leader roster | Final. It needs a prop, or the game stops at load. |
-| New improvements for ground where none could be built (desert, tundra, mixed terrain) | the Expansionist pass, round four | **Not final.** Wait for "Ready for the build" in `docs/plans/expansionist-design-pass-2026-11-20.md`. Root-crop grounds and hill groves were withdrawn with the wild-land theme: do not model them. |
+| Nazca lines, inuksuk, totem pole, stepwell, hillfort, baray | the Expansionist pass (3.14) | Final. Each needs a model. Root-crop grounds, hill groves, the date garden, the reindeer corral, the hammer pond and the vineyard were withdrawn: do not model them. |
 | The eight new wonders | the wonders rework (3.6) | In the data already. They need models only if the user decides wonders get their own. |
 
 **A decision for the user, not for Astra to take alone:** whether wonders get
 their own models on the board. Today a town's wonders are three shared
 monuments.
+
+### 3.14 The Commerce and Expansionist deck passes (ready)
+
+Both passes are closed. Each plan ends in "Ready for the build" and then a
+short section "The pass is closed", which settles its last open points. Read
+those two sections first; the numbered changes above them carry a ruling each.
+
+- **Commerce:** `docs/plans/commerce-design-pass-2026-11-20.md`. 85 cards
+  (27 unchanged, 26 changed, 32 new, 16 cut), 15 Doctrines, 25 shared cards.
+  Trade routes fall from 36% of the deck to 18%. New themes: the sea (15
+  cards, all buildable today), land hexes, customs houses, the purse, and
+  bridges to each partner deck. A great person bought with gold costs 10 gold
+  for each point of renown the next one costs. Stacked discounts on a
+  purchase are capped at half.
+- **Expansionist:** `docs/plans/expansionist-design-pass-2026-11-20.md`. 82
+  cards (9 cut, 17 new), 21 Doctrines, 17 shared cards. **Wild land and
+  tended land leave the game as keywords;** there is no third state of land.
+  The new theme is **unique improvements:** any improvement a charter or a
+  leader opens (the keyword covers Pachacuti's terraces, Nezahualcoyotl's
+  floating gardens, Cyrus's Paradise Garden, the physic garden and the
+  qanat). The deck's own are fish traps, orchard, Nazca lines, inuksuk, totem
+  pole, stepwell, hillfort, baray, polder, keep and outpost; the plan has a
+  table of each one's ground, yield and neighbour rule.
+- **Shared between the two:** The Founders' Stores ("Towns you found start
+  with a Granary") is one card. The Hillforts is shared with Dominion. Both
+  passes change shared cards on the Devotion, Magisterial, Scientific and
+  Dominion sheets; each plan lists them.
+- **Base rules these passes ruled, for every deck** (`docs/flags.md`):
+  - a lumber mill gives +2 production;
+  - a city is coastal when it owns a coast hex within two hexes (decide where
+    a ship built there appears; the flag proposes the nearest owned water
+    hex, by a fixed order);
+  - a purchased unit appears beside a full city (3.11).
+- **Each new improvement needs four things:** a data row, the way a worker
+  builds it (a charter opens it), an icon, and a board model. An improvement
+  with no board prop stops the game at load (3.13). The new ones are the
+  Nazca lines, inuksuk, totem pole, stepwell, hillfort and baray; fish traps,
+  the orchard, the keep, the polder and the outpost have rows and borrowed or
+  placeholder models today.
+- **New effect shapes** are listed once in each plan's "Ready for the build",
+  with the cards that need them. Each is a design decision under CLAUDE.md:
+  say which you add, and defer a card that fits no shape.
+- **UI the Claude session owes after these builds:** the current value on a
+  growing card (The Votive Accounts, Bought and Paid For, The Makers of
+  Land). Tell the Claude session when the cards exist.
+- **Order:** these two after the generic Orders, Dominion and Magisterial
+  (3.5, 3.7), since several shared cards read what those passes change. The
+  leader roster (3.10) comes after all the decks.
+- **Schema:** both passes change saved games. Raise the schema.
 
 ## 4. Rules that apply to every change
 

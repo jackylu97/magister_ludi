@@ -1961,3 +1961,23 @@ Review page: https://claude.ai/artifact/BY9EkS9pwYUzfXGrXKPmdM.
 - **Shape:** Existing shapes: `effectAmplifier` on `lentLuxuryCopies` at 100 (the retired The Commenda has it at 50), and a negative `combatLine`.
 - **Confidence:** speculative
 - **Depends, joins and notes:** It depends on question 1.
+
+## The pass is closed (2026-11-20)
+
+The user: "confirm all the commerce 5 points." So the five open points take
+their recommended answers, and nothing in this pass waits on the user:
+
+1. **The coastal rule is approved, in the narrow form:** a city is coastal
+   when it owns a coast hex within two hexes. It is a base rule for Astra
+   (`docs/flags.md`).
+2. **Change 118 is approved:** discounts on a purchase that stack are capped
+   at half.
+3. **A bought great person costs 10 gold for each point of renown,** and
+   nothing more is done about a merchant's bargain. Watch The Company of the
+   Staple with it in play.
+4. **Change 117 is approved:** The Free Ports and The Scholars' Roads are
+   common.
+5. **The Herring Fleets:** "coastal tiles" are the coast hexes, the water
+   hexes along the shore.
+
+"Ready for the build" above is the list a builder follows, with these five.

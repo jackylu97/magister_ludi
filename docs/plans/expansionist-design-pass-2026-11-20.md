@@ -1489,3 +1489,19 @@ The leader roster changed on 2026-11-20. Cyrus and Jayavarman VII are read on th
 | 67 The Mansiones | "great" | Approved at +2 culture. |
 | 68 The Marching Roads | "cut" | Cut. |
 | 69 The Fyrd | "lets just make this a generic defensive card. Military units gain +1 combat strength in your territory for every 2 yields on the tile it occupies." | Your line. |
+
+## The pass is closed (2026-11-20)
+
+The user: "confirm the 3 expansionist points too, #3 i mean only a hill
+beside a mountain. This way, terraces aren't broken with our new changes".
+Nothing in this pass waits on the user:
+
+1. **Change 70, The Hillforts, is approved** as written (Tier II, uncommon, a
+   charter, shared with Dominion). A unit on a hillfort does not count as a
+   garrison.
+2. **The Fyrd has a cap of +6 combat strength.**
+3. **The terrace farm stays as it is today: a hill beside a mountain.** The
+   user's earlier line ("can only be built adjacent to a mountain") is met by
+   the rule the game has, so nothing changes for Pachacuti.
+
+"Ready for the build" above is the list a builder follows, with these three.
