@@ -2,7 +2,7 @@
 
 This list covers the implementation work from the November 18 handoff and the related playtest requests. Claude supplied the approved card and leader designs and built the setup, diplomacy and other interface screens. The items below describe the rules, rendering, bots, models and maintenance work in the playtest branch.
 
-The release passed the TypeScript checks, the production build and all 12,709 tests in 597 files. The full test run took 12 minutes and 3 seconds with three workers. A sustained 60 FPS during player interaction remains an open target.
+Port 5199 now serves save version 251. A fresh game as Alexander reached its first board frame at 2205 × 1189 in Chrome. The release passed the TypeScript checks, the production build and all 12,724 tests in 597 files. The full test run took 10 minutes and 23 seconds with three workers. A sustained 60 FPS during player interaction remains an open target.
 
 ## Cards, wonders and people
 
@@ -53,13 +53,13 @@ The reference sheets give each effect, unit and named person. [Generic Orders](.
 - Startup releases listeners and other resources after a failed attempt. Shared types check both ends of terrain worker messages. Corrected stale comments and tests covering current screen behavior.
 - Shared deterministic bot fixtures and a 120-turn duel between tests. Switched large geometry comparisons to direct byte checks. In the matched six-worker core comparison, elapsed time fell from 376 to 207 seconds. The full suite also runs the slow tier. [Test measurements](test-suite-speed-2026-11-19.md)
 
-Great Person ratings and balance tuning remain open. Claude owns leader portraits. Until a portrait is available, the game displays the leader's emblem. The schema 249 build requires a fresh game or a save from that rules version. The shelf hides saves from version 248. Updating the build leaves their stored data in place.
+Great Person ratings and balance tuning remain open. Claude owns leader portraits. Until a portrait is available, the game displays the leader's emblem. The playtest accepts fresh games and version 251 saves. Earlier saves remain in browser storage and the shelf hides them.
 
 Two implementation choices affect the roster. The Ballista Elephant uses its listed strength of 50 for its range-two attack. The generic teal seat color moved from `#1f8a85` to `#208b85` to meet the game's color separation rule against Cyrus. The approved leader colors are in the roster sheet.
 
 ## Commerce and Expansionist handoff review
 
-Claude closed both designs at `08852814`. The following counts describe the approved designs. The playtest still uses its previous Commerce and Expansionist decks. [Handoff](astra-handoff-2026-11-18.md#314-the-commerce-and-expansionist-deck-passes-ready)
+Claude closed both designs at `08852814`. The following counts describe the approved designs. The playtest includes the first deck rules below. Most of the two decks still use their earlier cards. [Handoff](astra-handoff-2026-11-18.md#314-the-commerce-and-expansionist-deck-passes-ready)
 
 | Deck | Deck-specific Orders | Shared Orders | Doctrines | Main change |
 |---|---:|---:|---:|---|
@@ -67,8 +67,8 @@ Claude closed both designs at `08852814`. The following counts describe the appr
 | Expansionist | 82 | 17 | 21 | Charters and leaders open unique improvements. Their placement and neighboring tiles determine their value. |
 
 - Both passes use one shared copy of The Founders’ Stores. The Hillforts is shared with Dominion. Update the partner sheets and the single shared row together.
-- A purchased unit already uses a legal neighboring tile when its city is full. Great People still cost a flat 1,000 gold. The approved rate is 10 gold per point of required renown. The Open Market also discounts this gold price by 20%. Stacked purchase discounts stop at 50%. A larger individual discount still applies by itself.
-- Lumber mills currently give +1 production. The new rule gives +2. Pachacuti’s terraces need a correction too. An existing test accepts a grassland hill with no adjacent mountain. The closing ruling requires both a hill and an adjacent mountain.
+- A purchased unit uses a legal neighboring tile when its city is full. The new gold pricing and recruitment rules for Great People appear below.
+- Lumber mills now give +2 production. Pachacuti’s terraces require both a hill and an adjacent mountain.
 - The new coastal rule counts a city that owns a coast tile within two hexes. Ship placement, naval attacks and the start of sea routes need to respect the distance from the city to the water. The flag proposes spawning on the nearest owned water tile using a stable tie order.
 - Six new improvements need a worker action, an icon and a board model with their data. They are Nazca lines, inuksuk, totem pole, stepwell, hillfort and baray. The bots need to value their charters and choose sites using the neighboring tiles.
 - The 16-leader roster already ships. The seven new leader units and the two charter units still use fallback figures. Keshig already uses the painted horse archer. The gallery has a siege elephant study suitable for reviewing the Ballista Elephant.
@@ -76,9 +76,9 @@ Claude closed both designs at `08852814`. The following counts describe the appr
 
 Read the closing rulings with each build list. The Hillforts is approved, The Fyrd stops at +6 strength, and The Beacons is dealt in both Tiers I and II. [Commerce](commerce-design-pass-2026-11-20.md#the-pass-is-closed-2026-11-20) · [Expansionist](expansionist-design-pass-2026-11-20.md#the-pass-is-closed-2026-11-20)
 
-### First deck rules in the separate test build
+### First deck rules
 
-The save version for this build is 250. Port 5199 continues to use version 249. Most of the Commerce and Expansionist redesigns are still pending.
+These rules first entered the test build at version 250 and now run on port 5199 with the base economy changes.
 
 - The Open Market is a Tier 0 rare Economic Order. It gives a 20% discount on units, buildings, tiles, caravans and Great People bought with gold. A Great Person’s gold price starts at ten times the next renown threshold. The Reliquary displays the quote that the purchase command charges. The card does not grant the ability to buy a Great Person. The faith price stays the same. In a browser game with recruitment unlocked, the Reliquary displayed 1,576 gold for a 197-renown threshold. Clicking the purchase deducted 1,576 and opened a three-name offer.
 - Combined discounts stop at 50% on one purchase. A larger individual discount still applies by itself. For example, The Laurion Leases buys a resource tile for a quarter of its price. Adding The Open Market keeps the price at a quarter. Prices use the existing rule that rounds down to whole coins.
