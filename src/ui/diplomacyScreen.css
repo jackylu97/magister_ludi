@@ -1,20 +1,24 @@
-/* The Diplomacy sheet as the treaty desk (batch SS6, layout B of
-   docs/plans/mockups/scholars-study/diplomacy-options.html, approved by the
-   user). Three parts: the rail of courts, the desk (a tray on each side and
-   the deal as a paper between them) and the column of standing and deals.
+/* The Diplomacy sheet: layout B with the strip of courts (Quiet Table, fourth
+   pass, frames `frame-2-strip` and `frame-2-drawer` in
+   docs/plans/mockups/scholars-study/quiet-table-fourth-pass/; the user: "love
+   this, great"). Three parts, left to right: the strip of courts, the chosen
+   court's portrait window with its words, and the desk (the act tabs, one tray
+   a side, the table under them, and the foot). "Standing and deals" opens a
+   drawer over the desk.
 
-   The values are the board's: the spacing scale 4, 8, 12, 16, 24, 32, the
-   28 px buttons, and the game's own ink and parchment tokens. The three board
-   colours that are not tokens are named once on the sheet.
+   The head, the × and the buttons are the Quiet Table kit's
+   (`.statecraft-head`, `.statecraft-close`, `.btn`, `.btn-primary`,
+   `.btn-quiet`, `.btn.is-war-solid` in style.css). This file only places them
+   and sizes them for the sheet.
 
    The sheet has its own class for its size and layout. The shared cap rule
    (`.statecraft-overlay .statecraft-sheet`, max-height 100%) stays the one
    rule every sheet wears, the lesson of batch SS9b. */
 
 #diplomacy-overlay .dp-sheet {
-  --dp-desk: #e3dac2;
-  --dp-on: #eadfc2;
   --dp-chip: #fbf8ec;
+  --dp-on: #eadfc2;
+  --dp-paper: #fffaf0;
   /* The board's size rule: the window less 56 px wide, at most 1180, and the
      window less 90 px high, at most 860, centred on the board. */
   width: min(calc(100vw - 56px), 1180px);
@@ -23,9 +27,9 @@
   padding: 0;
   overflow: hidden;
   border: 1px solid var(--ink-line);
-  background: var(--vellum);
+  background: var(--parchment);
   box-shadow: 0 18px 50px -10px rgba(0, 0, 0, 0.55);
-  /* Part 2's narrow and short rules ask the sheet's own size. */
+  /* The portrait's size and the short rules ask the sheet's own size. */
   container: dp-sheet / size;
 }
 
@@ -76,23 +80,13 @@
   color: var(--ink);
 }
 
-#diplomacy-overlay .dp-hint {
-  flex: none;
-  margin-left: auto;
-  padding-top: 0;
-  font-size: 12.5px;
-  color: var(--ink-soft);
-  white-space: nowrap;
-}
-
 #diplomacy-overlay .dp-head .statecraft-close {
   position: absolute;
   top: 18px;
   right: 20px;
-  background: var(--parchment);
 }
 
-/* ---------- the three parts */
+/* ---------- the room: the strip, the portrait and the desk */
 
 #diplomacy-overlay .dp-body {
   position: relative;
@@ -104,22 +98,31 @@
   overflow: hidden;
 }
 
-.dp-grid {
+.dp-room {
+  /* The portrait's width: as tall as the room allows at 3:4, and never more
+     than 38% of the sheet, so the desk keeps its trays. */
+  --dp-pw: min(calc((100cqh - 80px - 32px) * 0.75), 38cqw);
   position: relative;
   flex: 1;
   display: grid;
-  grid-template-columns: 196px minmax(0, 1fr) 236px;
-  gap: 20px;
+  grid-template-columns: 44px var(--dp-pw) minmax(0, 1fr);
+  /* One row, the room's own height, so the strip and the desk scroll inside
+     it rather than grow it. */
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: 12px;
+  min-width: 0;
   min-height: 0;
-  padding: 16px 24px 18px;
+  padding: 16px 20px 16px 14px;
 }
 
 .dp-hd {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin: 0;
-  font: 600 var(--size-name)/1.2 var(--face-name);
+  margin: 14px 0 0;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--ink);
+  font: 600 14px/1.2 var(--face-name);
   color: var(--ink);
 }
 
@@ -133,254 +136,237 @@
 
 .dp-none {
   margin: 0;
-  font-size: 12.5px;
-  font-style: italic;
+  padding: 6px 0;
+  font: italic 400 13px var(--face-display);
   color: var(--ink-faint);
 }
 
-/* ---------- the rail of courts */
-
-.dp-rail {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-  min-height: 0;
-}
-
-.dp-rail-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.dp-court {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 46px;
-  padding: 0 8px;
-  border: 1px solid var(--edge);
-  border-radius: var(--paper-radius);
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.dp-court:hover {
-  background: rgba(247, 242, 225, 0.6);
-}
-
-.dp-court.is-sel {
-  border: 1.5px solid var(--ink);
-  background: var(--parchment);
-  box-shadow: var(--paper-shadow);
-}
-
-.dp-court-name {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.dp-court-name b {
-  overflow: hidden;
-  font: 600 13.5px/1.2 var(--face-name);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.dp-court-status {
-  overflow: hidden;
-  font-size: 11.5px;
-  color: var(--ink-faint);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.dp-court.is-war .dp-court-status {
-  color: var(--war-red);
-}
-
-.dp-court.is-truce .dp-court-status {
-  color: var(--deep-gilt);
-}
-
-.dp-court-marks {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.dp-court-wait {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--rubric);
-}
-
-.dp-court-figure,
-.dp-court-count {
+.dp-fig {
   font: 500 var(--size-label) var(--face-num);
   font-variant-numeric: tabular-nums;
 }
 
-.dp-court-count {
-  color: var(--ink-soft);
+/* ---------- the strip of courts */
+
+.dp-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 0;
+  /* Room for the ring of the chosen court and the dots, inside the scroll. */
+  padding: 6px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
-/* The court's shield, cut from the seat's colour with its charge in the
-   metal. Two sizes: the rail's and the column's. */
-.dp-seal {
+.dp-court {
+  position: relative;
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 26px;
-  background: var(--court);
-  clip-path: polygon(0 0, 100% 0, 100% 81%, 50% 100%, 0 81%);
-}
-
-.dp-seal.is-large {
-  width: 34px;
-  height: 44px;
-}
-
-.dp-seal-mark {
   display: block;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* The same portrait window as the chosen court's, small and square. */
+.dp-court .leader-portrait {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.dp-court .leader-portrait[data-picture='painted'] {
+  background-position: center 22%;
+}
+
+.dp-court .leader-portrait-plate {
   width: 70%;
-  height: 70%;
-  background: var(--metal);
-  -webkit-mask: var(--charge) center / contain no-repeat;
-  mask: var(--charge) center / contain no-repeat;
+  border-width: 1px;
 }
 
-.dp-short {
-  display: none;
+.dp-court .leader-portrait-mark {
+  width: 76%;
+  height: 76%;
 }
 
-/* The hover label of the shield strip (a sheet under 1100 px wide). */
+.dp-court.is-sel {
+  box-shadow:
+    0 0 0 2px var(--parchment),
+    0 0 0 4px var(--ink);
+}
+
+.dp-court:hover:not(.is-sel):not(.is-unmet) {
+  box-shadow: 0 0 0 2px var(--parchment), 0 0 0 3px var(--ink-line);
+}
+
+.dp-court:focus-visible {
+  outline: 1.5px dashed var(--ink);
+  outline-offset: 5px;
+}
+
+/* A court this seat has not met: a blank, faded mark. Who it is stays off the
+   sheet (the met ruling). */
+.dp-court.is-unmet {
+  border: 1px dashed var(--ink);
+  background: var(--table);
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* The dots, as the board draws them: war in the war red, a truce in deep
+   gilt, an offer that waits in cinnabar. A court at war with an offer waiting
+   carries both, side by side. */
+.dp-court-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--parchment);
+  border-radius: 50%;
+  background: var(--war-red);
+}
+
+.dp-court-dot.is-truce {
+  background: var(--deep-gilt);
+}
+
+.dp-court-dot.is-offer {
+  background: var(--cinnabar);
+}
+
+.dp-court-dot + .dp-court-dot {
+  right: 6px;
+}
+
+/* The hover label beside a mark: the court's name and where you stand. */
 .dp-tip {
   position: absolute;
   z-index: 6;
-  padding: 5px 9px;
+  padding: 4px 9px;
+  border: 1px solid var(--ink);
   border-radius: var(--paper-radius);
-  background: var(--ink);
-  color: var(--parchment);
-  font: 500 var(--size-label) var(--face-ui);
+  background: var(--parchment);
+  color: var(--ink);
+  font: 400 var(--size-label) var(--face-ui);
   white-space: nowrap;
   transform: translateY(-50%);
   pointer-events: none;
+  box-shadow: 0 6px 16px -8px rgba(29, 26, 32, 0.45);
+}
+
+.dp-tip b {
+  font: 600 var(--size-label) var(--face-name);
 }
 
 .dp-tip[hidden] {
   display: none;
 }
 
-/* ---------- the desk */
+/* ---------- the chosen court: the portrait window, the name, the words */
 
-.dp-main {
+.dp-figure {
+  position: relative;
+  align-self: start;
+  width: var(--dp-pw);
+  aspect-ratio: 3 / 4;
+  margin: 6px 0 0;
+}
+
+.dp-figure .leader-portrait {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+}
+
+/* The charge sits in the upper half, clear of the name and the slip. */
+.dp-figure .leader-portrait[data-picture='charge'] {
+  align-content: start;
+  padding-top: 15%;
+}
+
+/* A fade at the foot, so the name reads over any portrait or ink. */
+.dp-figure-fade {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 48%;
+  background: linear-gradient(rgba(29, 26, 32, 0), rgba(29, 26, 32, 0.66));
+  pointer-events: none;
+}
+
+.dp-figure-foot {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-width: 0;
-  min-height: 0;
 }
 
-.dp-main > .dp-desk {
-  flex: 1;
-}
-
-/* The right column folded into one line, shown only on a narrow sheet. */
-.dp-fold {
-  display: none;
-}
-
-.dp-fold-name {
+.dp-nameplate {
   margin: 0;
-  font: 400 21px/1.1 var(--face-display);
-  color: var(--ink);
+  font: 400 15px/1.25 var(--face-card-title, var(--face-name));
+  letter-spacing: 0.06em;
+  color: #fbf3e2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
 
-.dp-fold-sub {
-  min-width: 0;
-  overflow: hidden;
-  font-size: 12.5px;
-  color: var(--ink-faint);
-  text-overflow: ellipsis;
-}
-
-.dp-fold.is-war .dp-fold-sub {
-  color: var(--war-red);
-}
-
-.dp-fchip {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 24px;
-  padding: 0 8px;
+/* The court's words, on a slip of paper with a hard ink shadow. */
+.dp-slip {
+  margin: 0 4px 0 6px;
+  padding: 9px 14px 11px;
   border: 1px solid var(--ink);
-  border-radius: var(--paper-radius);
-  background: var(--dp-chip);
-  color: var(--ink);
-  font: 500 var(--size-label) var(--face-ui);
-  white-space: nowrap;
-  cursor: pointer;
+  background: var(--dp-paper);
+  box-shadow: 3px 3px 0 var(--ink);
 }
 
-.dp-fchip b {
-  font: 500 11.5px var(--face-num);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-soft);
+.dp-slip-label {
+  display: block;
+  font: 400 var(--size-label)/1.2 var(--face-name);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
 }
 
-.dp-fchip.is-on {
-  background: var(--dp-on);
-}
-
-.dp-fchip .dp-envelope {
+.dp-slip.is-declined .dp-slip-label {
   color: var(--rubric);
 }
 
-.dp-fchip u {
-  font-weight: 600;
-  text-underline-offset: 3px;
+.dp-quote {
+  margin: 2px 0 0;
+  font: italic 400 clamp(16px, calc(var(--dp-pw) * 0.054), 23px) / 1.18 var(--face-display);
+  color: var(--ink);
 }
 
-/* In the folded line the war button is smaller, and still solid. */
-#diplomacy-overlay .dp-fold .dp-btn.is-quiet-war {
-  margin-left: auto;
-  height: 24px;
-  padding: 0 10px;
+.dp-q {
+  color: var(--rubric);
 }
 
-/* The drawer's ×, drawn only while the column is a drawer. */
-#diplomacy-overlay .dp-drawer-close {
-  display: none;
-}
+/* ---------- the desk */
 
 .dp-desk {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
   min-height: 0;
-  padding: 10px 14px 14px;
-  border: 1px solid var(--edge);
-  border-radius: var(--paper-radius);
-  background: var(--dp-desk);
+  margin-left: 12px;
 }
 
 .dp-desk.is-empty {
+  grid-column: 2 / -1;
   justify-content: center;
   align-items: center;
 }
@@ -389,47 +375,40 @@
   flex: none;
   display: flex;
   align-items: flex-end;
-  gap: 4px;
+  gap: 14px;
   height: 30px;
-  border-bottom: 1px solid var(--ink);
+  border-bottom: 1px solid var(--rule);
 }
 
 .dp-act {
   flex: none;
-  height: 26px;
-  padding: 0 12px;
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 3px 3px 0 0;
+  height: 28px;
+  margin-bottom: -1px;
+  padding: 0 1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--ink-soft);
-  font: 500 12.5px var(--face-ui);
+  color: var(--ink-faint);
+  font: 500 var(--size-ui) var(--face-ui);
   white-space: nowrap;
   cursor: default;
 }
 
 .dp-act.is-cur {
-  height: 27px;
-  margin-bottom: -1px;
-  border-color: var(--ink);
-  background: var(--parchment);
+  border-bottom-color: var(--ink);
   color: var(--ink);
   font-weight: 600;
 }
 
-.dp-act.is-off {
-  color: var(--ink-faint);
-}
+/* ---------- the trays */
 
-.dp-d3 {
-  flex: 1;
+.dp-trays {
+  flex: 1 1 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 216px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
   min-height: 0;
 }
-
-/* ---------- a tray */
 
 .dp-tray {
   display: flex;
@@ -443,25 +422,26 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 0 0 5px;
+  padding: 0 0 3px;
   border-bottom: 1px solid var(--ink);
 }
 
-.dp-colh b {
-  font: 600 var(--size-name)/1.2 var(--face-name);
+.dp-colh > b {
+  font: 600 14px/1.2 var(--face-name);
   white-space: nowrap;
 }
 
-.dp-colh span {
-  min-width: 0;
+.dp-colh-gold {
   margin-left: auto;
-  overflow: hidden;
-  font: 400 12.5px var(--face-name);
+  font: 400 var(--size-label) var(--face-name);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.05em;
   color: var(--ink-faint);
   white-space: nowrap;
-  text-overflow: ellipsis;
+}
+
+.dp-colh-gold .dp-fig {
+  color: var(--ink-soft);
 }
 
 .dp-group {
@@ -469,10 +449,11 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  margin-top: 6px;
 }
 
 /* Only a long group scrolls, inside its tray: the luxuries, and the towns in
-   a peace. Gold and the rights stay in view. */
+   a peace. Gold and the right of way stay in view. */
 .dp-group.is-luxuries,
 .dp-group.is-towns {
   flex: 0 1 auto;
@@ -489,9 +470,9 @@
   flex: none;
   display: flex;
   gap: 8px;
-  margin: 0;
-  padding: 9px 0 4px;
-  font: 400 12.5px/1 var(--face-name);
+  margin: 4px 0 0;
+  padding: 0 0 4px;
+  font: 400 var(--size-label)/1 var(--face-name);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.06em;
   color: var(--ink-faint);
@@ -510,18 +491,18 @@
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  gap: 6px;
+  gap: 4px;
 }
 
 .dp-hid {
   flex-basis: 100%;
   margin: 0;
-  padding: 2px 4px 0;
+  padding: 4px 2px 0;
   font: italic 11.5px/1.35 var(--face-ui);
   color: var(--ink-faint);
 }
 
-/* ---------- a chip (layout C's chips, in layout B's trays) */
+/* ---------- a chip */
 
 .dp-chip {
   display: inline-flex;
@@ -534,7 +515,7 @@
   border-radius: var(--paper-radius);
   background: var(--dp-chip);
   color: var(--ink);
-  font: 500 12.5px var(--face-ui);
+  font: 600 12.5px var(--face-ui);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -563,7 +544,7 @@ button.dp-chip:hover {
 
 .dp-chip-note {
   overflow: hidden;
-  font: italic var(--size-note) var(--face-ui);
+  font: italic 400 var(--size-note) var(--face-display);
   color: var(--ink-faint);
   text-overflow: ellipsis;
 }
@@ -571,7 +552,6 @@ button.dp-chip:hover {
 .dp-chip.is-on {
   border-color: var(--ink);
   background: var(--dp-on);
-  font-weight: 600;
 }
 
 .dp-chip.is-on .res-mark {
@@ -601,6 +581,7 @@ button.dp-chip:hover {
   border-style: dashed;
   background: transparent;
   color: var(--ink-faint);
+  font-weight: 400;
   cursor: help;
 }
 
@@ -657,7 +638,7 @@ button.dp-chip:hover {
 }
 
 .dp-amount {
-  width: 48px;
+  width: 52px;
   height: 18px;
   padding: 0 5px;
   border: 1px solid var(--ink-line);
@@ -683,7 +664,8 @@ button.dp-chip:hover {
   mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
 }
 
-/* The reducer's sentence for the last refused chip pressed. */
+/* The reducer's sentence for the last refused chip pressed, or for a paper
+   that cannot be sent. */
 .dp-say {
   flex: none;
   margin: 6px 0 0;
@@ -691,31 +673,58 @@ button.dp-chip:hover {
   color: var(--war-red);
 }
 
-/* ---------- the paper */
+.dp-warn {
+  flex: none;
+  margin: 0;
+  font: italic 11.5px/1.35 var(--face-ui);
+  color: var(--ink-soft);
+}
 
-.dp-paper {
+/* ---------- the table: on the table, the questions and the foot */
+
+.dp-table {
+  flex: none;
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.dp-table > .dp-say {
+  margin: 0;
+}
+
+.dp-paper {
+  display: grid;
+  grid-template-columns: minmax(118px, max-content) minmax(0, 1fr);
+  column-gap: 18px;
+  align-items: start;
+  padding: 9px 14px 10px;
+  border: 1px solid var(--edge);
+  background: var(--dp-paper);
+}
+
+.dp-paper.is-offer {
+  border-color: var(--ink);
+}
+
+.dp-paper-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
   min-width: 0;
-  min-height: 0;
-  padding: 16px 16px 14px;
-  border: 1px solid var(--ink-line);
-  border-radius: var(--paper-radius);
-  background: var(--parchment);
-  box-shadow: var(--paper-shadow);
+  max-width: 190px;
 }
 
 .dp-paper-title {
-  flex: none;
   margin: 0;
-  font: 400 21px/1.15 var(--face-display);
+  font: 400 18px/1.15 var(--face-display);
   color: var(--ink);
 }
 
 .dp-runs {
-  flex: none;
-  margin: 4px 0 6px;
-  font: 400 12.5px var(--face-name);
+  margin: 0;
+  font: 400 var(--size-label) var(--face-name);
   font-variant-caps: all-small-caps;
   letter-spacing: 0.05em;
   color: var(--ink-faint);
@@ -728,17 +737,40 @@ button.dp-chip:hover {
   letter-spacing: 0;
 }
 
+/* "Clear the table": the interface's own verb, quiet and underlined. */
+.dp-link {
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 500 var(--size-label) var(--face-ui);
+  text-decoration: underline;
+  text-decoration-color: var(--edge);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.dp-link.is-idle {
+  visibility: hidden;
+}
+
 .dp-clauses {
-  flex: 1 1 auto;
-  min-height: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 18px;
+  max-height: 128px;
+  min-height: 0;
   overflow-y: auto;
 }
 
+.dp-cl {
+  min-width: 0;
+}
+
 .dp-cl-head {
-  margin: 10px 0 0;
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--ink);
-  font: 600 var(--size-body) var(--face-name);
+  margin: 0;
+  font: 600 12.5px/1.3 var(--face-ui);
 }
 
 .dp-clauses-list {
@@ -752,13 +784,15 @@ button.dp-chip:hover {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  min-height: 26px;
+  min-height: 22px;
   border-bottom: 1px solid var(--rule);
-  font: 400 var(--size-name)/1.2 var(--face-display);
+  font: 400 14.5px/1.2 var(--face-display);
 }
 
 .dp-clauses-list li.is-nil {
+  border-bottom: 0;
   color: var(--ink-faint);
+  font-size: 13px;
   font-style: italic;
 }
 
@@ -780,125 +814,79 @@ button.dp-chip:hover {
   color: var(--ink);
 }
 
-.dp-docfoot {
-  flex: none;
+.dp-ask {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 3px double var(--ink);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.dp-word {
-  margin: 0;
-}
-
-.dp-word-label {
-  display: block;
-  margin-bottom: 2px;
-  font: 400 var(--size-label) var(--face-name);
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.05em;
-  color: var(--ink-faint);
-}
-
-.dp-quote {
-  margin: 0;
-  font: italic 400 15px/1.3 var(--face-display);
-  color: var(--ink);
-}
-
-.dp-warn {
-  margin: 0;
-  font: italic 11.5px/1.35 var(--face-ui);
-  color: var(--ink-soft);
-}
-
-.dp-docfoot .dp-say {
-  margin: 0;
-}
-
-.dp-btns {
+.dp-foot {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
 }
 
-/* ---------- buttons: the board's 28 px */
+.dp-foot-gap {
+  flex: 1;
+}
 
-#diplomacy-overlay .dp-btn {
+/* The kit's buttons, placed: a button keeps its width in a row. */
+.dp-room .btn {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  width: 100%;
-  height: 28px;
-  padding: 0 12px;
-  border: 1px solid var(--edge);
-  border-radius: var(--paper-radius);
-  background: var(--parchment);
-  color: var(--ink);
-  font: 500 12.5px var(--face-ui);
-  letter-spacing: 0;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 13px;
   white-space: nowrap;
 }
 
-#diplomacy-overlay .dp-btn.is-primary {
-  border-color: var(--ink);
-  background: var(--cinnabar);
-  color: var(--parchment);
-  font-weight: 600;
+.dp-room .btn.btn-primary {
+  padding: 5px 18px;
 }
 
-#diplomacy-overlay .dp-btn.is-quiet {
-  height: 20px;
-  border-color: transparent;
-  background: transparent;
+.dp-room .btn.dp-small {
+  min-height: 24px;
+  padding: 2px 9px;
+}
+
+/* Declare war: the kit's solid war red with the blade. Greyed, it is paper
+   like any refused button. */
+#diplomacy-overlay .btn.is-war-solid {
+  border-width: 1.5px;
+}
+
+#diplomacy-overlay .btn.is-war-solid:disabled {
+  border-color: var(--edge);
+  background: var(--table);
+  color: var(--ink-line);
+}
+
+/* "Standing and deals": the count of deals in force, and a cinnabar dot when
+   an offer waits. */
+.dp-deals-btn {
+  position: relative;
+}
+
+.dp-deals-btn .dp-fig {
   color: var(--ink-soft);
-  text-decoration: underline;
-  text-decoration-color: var(--edge);
-  text-underline-offset: 3px;
 }
 
-#diplomacy-overlay .dp-btn.is-quiet.is-idle {
-  visibility: hidden;
+.dp-deals-btn.is-on {
+  background: var(--dp-on);
 }
 
-#diplomacy-overlay .dp-btn:disabled {
-  background: var(--table);
-  color: var(--ink-line);
-  border-color: var(--edge);
-}
-
-#diplomacy-overlay .dp-btn.is-primary:disabled {
-  background: var(--table);
-  color: var(--ink-faint);
-}
-
-#diplomacy-overlay .dp-btn.is-small {
-  width: auto;
-  height: 22px;
-  padding: 0 8px;
-  font-size: var(--size-label);
-}
-
-/* Declare war (version A; Quiet Table, build stage 1): a solid button in the
-   war red with the blade, an ink edge, set apart from Propose. A darker red
-   than the cinnabar of an ordinary next step, so it never reads as the step. */
-#diplomacy-overlay .dp-btn.is-war {
-  width: auto;
-  border: 1.5px solid var(--ink);
-  background: var(--war-red);
-  color: var(--parchment);
-  font-weight: 600;
-}
-
-#diplomacy-overlay .dp-btn.is-war:disabled {
-  border-color: var(--edge);
-  background: var(--table);
-  color: var(--ink-line);
+.dp-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--parchment);
+  border-radius: 50%;
+  background: var(--cinnabar);
 }
 
 /* A court mark (`src/art/courtMarks.ts`): the picture masks the ink of the
@@ -913,58 +901,52 @@ button.dp-chip:hover {
   mask: var(--court-mark) center / contain no-repeat;
 }
 
-/* ---------- the right column */
+/* ---------- the drawer: standing and deals */
 
-.dp-colm {
+.dp-drawer {
+  position: absolute;
+  z-index: 5;
+  /* Over the whole desk, to the sheet's edges (the board), and under the
+     head's gilt hairline, which stays in view. */
+  top: -10px;
+  right: -20px;
+  bottom: -16px;
+  left: -14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-  min-height: 0;
+  padding: 14px 20px 18px;
+  overflow-y: auto;
+  border-left: 1px solid var(--ink);
+  background: var(--parchment);
+  box-shadow: -10px 0 24px rgba(29, 26, 32, 0.18);
 }
 
-.dp-colm > .dp-hd {
+.dp-drawer-head {
   flex: none;
-  margin-top: 10px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--ink);
-}
-
-.dp-who-block {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dp-who {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.dp-who-names {
-  min-width: 0;
-}
-
-.dp-rname {
+.dp-drawer-title {
   margin: 0;
-  font: 400 24px/1.1 var(--face-display);
+  font: 400 22px/1.15 var(--face-display);
   color: var(--ink);
 }
 
-.dp-people {
-  margin: 1px 0 0;
+.dp-drawer-back {
+  margin-left: auto;
   font-size: var(--size-label);
   color: var(--ink-faint);
 }
 
 .dp-ln {
+  flex: none;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  height: 26px;
+  padding: 5px 0;
   border-bottom: 1px solid var(--rule);
   font-size: 12.5px;
 }
@@ -992,18 +974,13 @@ button.dp-chip:hover {
   color: var(--war-red);
 }
 
-.dp-deals {
-  flex: 0 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-}
-
 .dp-deal {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 5px 0;
+  gap: 12px;
+  padding: 6px 0;
   border-bottom: 1px solid var(--rule);
   font-size: 12.5px;
 }
@@ -1013,7 +990,7 @@ button.dp-chip:hover {
 }
 
 .dp-deal-left {
-  font: 500 var(--size-label) var(--face-num);
+  font: 600 var(--size-label) var(--face-num);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1022,16 +999,9 @@ button.dp-chip:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid var(--ink);
-  border-radius: var(--paper-radius);
-  background: var(--dp-chip);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule);
   font-size: 12.5px;
-}
-
-.dp-wait.is-mine {
-  border-color: var(--edge);
-  background: transparent;
 }
 
 .dp-wait .dp-envelope {
@@ -1048,148 +1018,19 @@ button.dp-chip:hover {
   font-weight: 600;
 }
 
-.dp-other {
-  flex: none;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: auto;
-}
+/* ---------- a narrower sheet: a smaller portrait, closer trays */
 
-.dp-other .dp-hd {
-  width: 100%;
-  margin-bottom: 4px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--ink);
-}
-
-/* ---------- a sheet under 1100 px wide (the board's rule)
-   The rail becomes a 56 px strip of shields, with the names on hover and the
-   selected court's name in the fold line. The right column folds into that
-   line above the desk, and its "Standing and deals" button opens the column as
-   a drawer over their tray. The paper and the propose control stay in view. */
-
-@container dp-sheet (max-width: 1099px) {
-  .dp-grid {
-    grid-template-columns: 56px minmax(0, 1fr);
-    gap: 12px;
-    padding-left: 16px;
+@container dp-sheet (max-width: 999px) {
+  .dp-room {
+    --dp-pw: min(calc((100cqh - 80px - 32px) * 0.75), 30cqw);
   }
 
-  .dp-rail {
-    align-items: center;
-    gap: 6px;
-  }
-
-  .dp-rail-hd {
-    font: 400 var(--size-label)/1 var(--face-name);
-    font-variant-caps: all-small-caps;
-    letter-spacing: 0.06em;
-    color: var(--ink-faint);
-  }
-
-  .dp-long {
-    display: none;
-  }
-
-  .dp-short {
-    display: inline;
-  }
-
-  .dp-rail-list {
-    align-items: center;
-    gap: 3px;
-    padding: 2px;
-  }
-
-  .dp-court {
-    position: relative;
-    justify-content: center;
-    width: 46px;
-    height: 40px;
-    padding: 0;
-    border-color: transparent;
-  }
-
-  .dp-court-name,
-  .dp-court-count,
-  .dp-court-figure {
-    display: none;
-  }
-
-  .dp-court-marks {
-    position: absolute;
-    top: 2px;
-    right: 1px;
-  }
-
-  .dp-court-wait .dp-envelope {
-    width: 12px;
-    height: 9px;
-  }
-
-  .dp-court.is-war::after,
-  .dp-court.is-truce::after {
-    content: '';
-    position: absolute;
-    right: 9px;
-    bottom: 2px;
-    left: 9px;
-    height: 2px;
-    background: var(--war-red);
-  }
-
-  .dp-court.is-truce::after {
-    background: var(--deep-gilt);
-  }
-
-  .dp-fold {
-    flex: none;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 36px;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  .dp-d3 {
-    grid-template-columns: minmax(0, 1fr) 240px minmax(0, 1fr);
-  }
-
-  .dp-colm {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 5;
-    display: none;
-    width: 300px;
-    padding: 14px 18px 16px;
-    border-left: 1px solid var(--ink);
-    background: var(--vellum);
-    box-shadow: -14px 0 28px -14px rgba(29, 26, 32, 0.55);
-  }
-
-  .dp-colm.is-open {
-    display: flex;
-  }
-
-  .dp-colm .dp-who {
-    padding-right: 36px;
-  }
-
-  #diplomacy-overlay .dp-drawer-close {
-    position: absolute;
-    top: 14px;
-    right: 18px;
-    display: block;
-    background: var(--parchment);
+  .dp-trays {
+    gap: 14px;
   }
 }
 
-/* ---------- a sheet under 720 px high: the denser rows and the short head */
+/* ---------- a sheet under 720 px high: the short head and the denser rows */
 
 @container dp-sheet (max-height: 719px) {
   #diplomacy-overlay .dp-head {
@@ -1205,29 +1046,18 @@ button.dp-chip:hover {
     top: 13px;
   }
 
-  .dp-grid {
+  .dp-room {
+    --dp-pw: min(calc((100cqh - 56px - 24px) * 0.75), 36cqw);
     padding-top: 12px;
-    padding-bottom: 14px;
+    padding-bottom: 12px;
   }
 
-  .dp-rail-list {
-    gap: 4px;
-  }
-
-  .dp-court {
-    height: 40px;
+  .dp-strip {
+    gap: 5px;
   }
 
   .dp-desk {
-    gap: 10px;
-  }
-
-  .dp-gl {
-    padding: 7px 0 3px;
-  }
-
-  .dp-chips {
-    gap: 5px;
+    gap: 9px;
   }
 
   .dp-chip {
@@ -1235,57 +1065,26 @@ button.dp-chip:hover {
   }
 
   .dp-paper {
-    padding: 12px 14px;
+    padding: 7px 12px 8px;
   }
 
-  .dp-paper-title {
-    font-size: 18px;
-  }
-
-  .dp-runs {
-    margin: 2px 0 0;
-  }
-
-  .dp-cl-head {
-    margin-top: 8px;
+  .dp-clauses {
+    max-height: 96px;
   }
 
   .dp-clauses-list li {
-    min-height: 22px;
-    font-size: 15px;
+    min-height: 20px;
+    font-size: 14px;
   }
 
-  .dp-docfoot {
-    gap: 8px;
-    margin-top: 8px;
-    padding-top: 8px;
+  .dp-room .btn {
+    min-height: 28px;
+    padding-top: 4px;
+    padding-bottom: 4px;
   }
 
-  .dp-quote {
-    font-size: var(--size-body);
-  }
-
-  #diplomacy-overlay .dp-btn {
-    height: 26px;
-  }
-
-  #diplomacy-overlay .dp-btn.is-quiet {
-    height: 18px;
-  }
-
-  .dp-colm {
-    gap: 6px;
-  }
-
-  .dp-colm > .dp-hd {
-    margin-top: 6px;
-  }
-
-  .dp-ln {
-    height: 24px;
-  }
-
-  .dp-deal {
-    padding: 3px 0;
+  .dp-drawer {
+    top: -6px;
+    bottom: -12px;
   }
 }
