@@ -91,7 +91,7 @@ function board() {
   return { game, state, warrior, x, goal };
 }
 
-function controlsOn(f: ReturnType<typeof board>) {
+function controlsOn(f: ReturnType<typeof board>, animationMs = 0) {
   const viewport = new Surface();
   vi.stubGlobal('window', {
     addEventListener: () => {},
@@ -118,12 +118,16 @@ function controlsOn(f: ReturnType<typeof board>) {
     setFogSeat: vi.fn(),
     skipAnimations: vi.fn(),
     animateMove: vi.fn(),
+    pendingAnimationMs: () => animationMs,
   };
+  const onUpdate = vi.fn();
+  const onAnimatedMove = vi.fn();
   const controls = createGameControls({
     viewport: viewport as unknown as HTMLElement,
     renderer: renderer as unknown as MapView,
     getGame: () => f.game,
-    onUpdate: vi.fn(),
+    onUpdate,
+    onAnimatedMove,
     onHover: vi.fn(),
     lensOrder: [],
     inputBlocked: () => false,
@@ -133,7 +137,7 @@ function controlsOn(f: ReturnType<typeof board>) {
     target = { tile, worldCol: tile.col, row: tile.row, axial: tileHex(tile) };
     viewport.emit('pointermove');
   };
-  return { viewport, renderer, controls, point };
+  return { viewport, renderer, controls, point, onUpdate, onAnimatedMove };
 }
 
 describe('a march that went round a blocked hex', () => {
@@ -163,6 +167,21 @@ describe('a march that went round a blocked hex', () => {
     expect(walked.length).toBeGreaterThan(0);
     expect(walked[walked.length - 1]).toEqual({ col: f.warrior.col, row: f.warrior.row });
     expect(walked.some((cell) => cell.col === f.x.col && cell.row === f.x.row)).toBe(false);
+  });
+
+  it.each([0, 240])('refreshes the panels immediately unless a walk is playing (%i ms)', (duration) => {
+    const f = board();
+    const ui = controlsOn(f, duration);
+    ui.controls.selectPiece(f.warrior.id);
+    ui.controls.setMoveMode(true);
+    ui.point(f.goal);
+    ui.viewport.emit('pointerdown');
+    ui.onUpdate.mockClear();
+    ui.viewport.emit('pointerup');
+
+    expect(ui.renderer.animateMove).toHaveBeenCalledOnce();
+    expect(ui.onAnimatedMove).toHaveBeenCalledTimes(duration > 0 ? 1 : 0);
+    expect(ui.onUpdate).toHaveBeenCalledTimes(duration > 0 ? 0 : 1);
   });
 
   it('hands the resolution’s detours to the end-of-turn slide', () => {
