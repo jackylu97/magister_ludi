@@ -3137,3 +3137,52 @@ read 'city cannot purchase without free tiles'".
   `arriveOnTile`. Whether a produced unit (not bought) follows the same rule
   is not ruled; it stays as it is.
 - Owner: Astra (a rule in `src/sim`).
+
+## A coastal city is a city that owns a coast hex within two hexes (ruled 2026-11-20, not built)
+
+**Ruled:** the user confirmed the narrow form on 2026-11-20 ("confirm all the commerce 5 points"). On 48 starts it raises coastal capitals from 17 to 26. The text below is the proposal as first written.
+
+The user, in the Commerce pass (on dealing sea cards only to seats with a
+coast, which the user rejected): "a coastal city should be defined as a city
+with access to the coast i.e. controls a coastal tile. that way, you can
+settle two tiles from the coast and still build a lighthouse, get coastal
+bonuses, settle more flexibily, what do you think?"
+
+- Today a city is coastal only when its own hex is beside water.
+- **Proposed:** a city is coastal when a water hex is in its borders (or, a
+  narrower form, within its first two rings). It may then build the
+  Lighthouse, the Harbour and ships, and every "coastal" scope reads it.
+- **What the builder must settle:** where a ship built in such a city
+  appears (my proposal: on the nearest water hex the city owns, chosen by a
+  fixed order); whether the city can be attacked from the sea; whether sea
+  trade routes start from it; and whether the reading changes when a city
+  gains or loses its only water hex (it is derived, never stored).
+- My advice to the user: yes, in the narrower form (a water hex within two
+  rings that the city owns). It makes the sea theme live for many more
+  starts without dealing rules, and it ends the choice between a good city
+  site and a coastal one. It also makes every coastal bonus more common, so
+  the sea cards of the Commerce pass should be priced after it.
+- Owner once ruled: Astra (a rule in `src/sim`).
+
+## A lumber mill gives +2 production (ruled 2026-11-20, not built)
+
+From the Expansionist pass, change 65. The user had said of forests: "it
+feels like it's just better to chop them currently". The pass found that a
+chop pays 28 to 46 production in the first two ages and the cleared hex then
+farms for as much as a lumber mill yields, so a chop costs nothing later. The
+proposal: a lumber mill gives +2 production (from +1). The user: "great". It
+is a base rule in the improvement data, for every deck. Owner: Astra.
+
+## The terrace farm keeps its rule (2026-11-20)
+
+The user first wrote, on Pachacuti's improvement: "let's update the terrace
+farm: can only be built adjacent to a mountain." The row already asks for a
+hill beside a mountain, and the user then confirmed: "i mean only a hill
+beside a mountain. This way, terraces aren't broken with our new changes".
+So nothing changes: a terrace farm is built on a hill beside a mountain. It
+is a unique improvement, and the Expansionist pay-offs for unique
+improvements read it.
+
+## The Open Market discounts Great People (ruled 2026-11-20)
+
+The user confirmed “Discount Great People too”. Calculate the base gold price from the next Great Person’s renown cost at 10 gold per point. Apply The Open Market’s 20% discount using the same price for the offer and the payment. The faith offer keeps its existing price. [Commerce build list](plans/commerce-design-pass-2026-11-20.md#4-ready-for-the-build)
