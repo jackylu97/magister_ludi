@@ -1982,4 +1982,6 @@ their recommended answers, and nothing in this pass waits on the user:
 
 The user later confirmed the scope of The Open Market: “Discount Great People too”. If the next Great Person costs 100 renown, the base price is 1,000 gold. The Open Market alone reduces it to 800 gold. Faith purchases keep their existing price.
 
+Merchant Princes can sell a Great Person offer only after the player unlocks recruitment. An Order that grants recruitment satisfies this rule just as Epic Poetry does.
+
 Build from “Ready for the build” with these rulings.
