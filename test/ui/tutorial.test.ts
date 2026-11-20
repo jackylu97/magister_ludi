@@ -995,11 +995,14 @@ describe('the pamphlet', () => {
     expect(main).toContain('createPamphletOverlay({ storage: saveStorage, root: document.body })');
     expect(main).toContain('shouldShowPamphlet(pamphlet.seen(), tutorial.enabled())');
     expect(main).toContain('pamphlet.show(() => tutorial.begin())');
-    // Both new-game sites — boot and adoptGame — go through it; a loaded save
-    // takes `tutorial.resume()` and never meets either surface.
-    expect([...main.matchAll(/beginOpening\(\);/g)].length).toBe(2);
-    expect(main).toMatch(/if \(next === null\) beginOpening\(\);\s*else tutorial\.resume\(\);/);
-    expect(main).toMatch(/if \(initial === null\) beginOpening\(\);\s*else tutorial\.resume\(\);/);
+    // Both new-game sites, boot and adoptGame, go through it after the age I
+    // opening plate: `openNewGame` holds it, and the plate's close runs it
+    // (2026-11-19, the age plate build). A loaded save takes
+    // `tutorial.resume()` and never meets either surface.
+    expect([...main.matchAll(/openNewGame\(\);/g)].length).toBe(2);
+    expect(main).toContain('afterOpeningPlate = beginOpening;');
+    expect(main).toMatch(/if \(next === null\) openNewGame\(\);\s*else tutorial\.resume\(\);/);
+    expect(main).toMatch(/if \(initial === null\) openNewGame\(\);\s*else tutorial\.resume\(\);/);
   });
 
   it('marks itself read before handing over, and prints through the descriptor seam', () => {

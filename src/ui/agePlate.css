@@ -12,7 +12,13 @@
    **A full-screen page** (2026-11-18, the user: "can we make both of these full
    screen? I'm happy to have it be a big moment"). The plate takes the whole
    window, as the Opus close does, and its type grows with the window's
-   height. The content, its order and its motion are the board's. */
+   height. The content, its order and its motion are the board's.
+
+   **On the ribbon** (2026-11-19, frame A7 of the Quiet Table boards). A plate
+   with a painting stands on the ribbon plate (`plateRibbon.css`, shared with
+   the painted wonder); its own words on the painting's foot are at the end of
+   this file. The full-screen lapis page above is now the page for a plate
+   without a painting. */
 
 .age-plate-overlay {
   --plate-lapis: var(--deep-lapis);
@@ -255,5 +261,135 @@
 
   .age-plate-inner {
     padding: 34px 44px 36px;
+  }
+}
+
+/* --- the age plate on the ribbon (frame A7) --------------------------------
+
+   The ribbon, the window, the foot's fall-off, Continue and the arrival are
+   the ribbon plate's (`plateRibbon.css`). Here are only the age's own words on
+   the painting's foot: at the left the numeral, the name and the line; at the
+   right the deeds over Continue.
+
+   The sizes follow the painting's width (`--plate-w`), so the foot keeps the
+   frame's proportions at every window size. Each factor is frame A7's size
+   over its painting's 720 px width: the numeral 88 px, the line 13 px, a
+   deed's figure 16 px and its label 9.5 px. The name is a little under the
+   frame's 34 px, to leave the deeds more room.
+
+   The foot must not cover more than the lower third of the painting. The deeds
+   wrap to at most two rows, which stays inside the lower third at 1440 by 900
+   and at 1280 by 720. The list's height stops at two rows and hides a third,
+   so the first deeds that fit are shown and the rest are not drawn. */
+
+.age-plate--painted {
+  --age-numeral: calc(var(--plate-w) * 0.122);
+  --age-name: max(24px, calc(var(--plate-w) * 0.044));
+  --age-line: max(14px, calc(var(--plate-w) * 0.019));
+  --age-value: max(16px, calc(var(--plate-w) * 0.023));
+  --age-label: max(12px, calc(var(--plate-w) * 0.0135));
+}
+
+/* While the painting loads, the window is the ribbon's deepest lapis. */
+.age-plate-painting {
+  background: #0f1a3d;
+}
+
+.age-plate--painted .plate-caption {
+  flex-wrap: nowrap;
+  gap: calc(var(--plate-w) * 0.03);
+  padding: calc(var(--plate-w) * 0.1) calc(var(--plate-w) * 0.036) calc(var(--plate-w) * 0.026);
+}
+
+/* The left of the foot: the numeral beside the name and the line, their feet
+   on one line. */
+.age-plate-words {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: flex-end;
+  gap: calc(var(--plate-w) * 0.025);
+  min-width: 0;
+}
+
+.age-plate--painted .age-plate-numeral {
+  flex: none;
+  font-size: var(--age-numeral);
+  line-height: 0.78;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+  animation: none;
+}
+
+/* As wide as the name, so the line wraps under it rather than running across
+   the foot. */
+.age-plate-title {
+  width: min-content;
+  min-width: 0;
+}
+
+.age-plate--painted .age-plate-name {
+  margin: 0;
+  font-size: var(--age-name);
+  line-height: 1.05;
+  white-space: nowrap;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+}
+
+.age-plate--painted .age-plate-line {
+  margin: 0.3em 0 0;
+  font-size: var(--age-line);
+  line-height: 1.35;
+  color: rgba(247, 242, 225, 0.9);
+}
+
+/* The right of the foot takes the room the words leave. */
+.age-plate--painted .age-plate-close {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.age-plate-tally {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px calc(var(--plate-w) * 0.026);
+  max-width: 100%;
+  /* Two rows of a figure, the gap and a label. A third row is out of sight. */
+  max-height: calc((var(--age-value) + 4px + var(--age-label) * 1.3) * 2 + 8px);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+
+.age-plate-tally-deed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.age-plate--painted .age-plate-value {
+  font-size: var(--age-value);
+}
+
+.age-plate--painted .age-plate-label {
+  font-size: var(--age-label);
+  line-height: 1.3;
+  color: rgba(247, 242, 225, 0.78);
+}
+
+.age-plate--painted .age-plate-continue {
+  flex: none;
+}
+
+/* A narrow window: the right of the foot goes under the words. */
+@media (max-width: 760px) {
+  .age-plate--painted .plate-caption {
+    flex-wrap: wrap;
+  }
+
+  .age-plate--painted .age-plate-close {
+    flex-basis: 100%;
   }
 }

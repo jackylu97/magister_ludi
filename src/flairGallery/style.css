@@ -1112,6 +1112,35 @@ body {
   border-radius: 6px;
 }
 
+/* The age paintings under the age plate: the three sets, four to a row. */
+.age-gallery-shelf {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.age-gallery-painting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.age-gallery-painting img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--gilt);
+}
+
+.age-gallery-painting figcaption {
+  font-family: var(--face-num);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
 
 /* The great person card (Quiet Table, build stage 2): a row of the five
    families and a thumbnail, at the width the slider sets. */

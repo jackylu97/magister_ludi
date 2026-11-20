@@ -1795,7 +1795,27 @@ Eight root pages, all named in `vite.config.ts` inputs:
     record, the chronicle line and the renown are unchanged. If the plate
     cannot be shown, the Triumph gets its page. Continue flies the wonder to the
     In play door, and the door's count and dot land with it. The chronicle
-    keeps the line; another seat's wonder keeps its toast.
+    keeps the line; another seat's wonder keeps its toast. A wonder with a
+    painting is not on the lapis page: it stands on the ribbon plate (below).
+  - **The ribbon plate** (`src/ui/plateRibbon.ts` and `plateRibbon.css`): a
+    painting over the dimmed board on a lapis ribbon from edge to edge, with
+    a sun and a moon on the band and the words on the painting's foot over a
+    dark fade. The arrival is slow (about 1.8 seconds); reduced motion shows
+    it at once. The painted wonder plate and the age plate both use it
+    through `placeOnRibbon`, so its markup and rules exist once.
+  - **The age plate** (`src/ui/agePlate.ts`, frame A7 of the Quiet Table
+    boards): news when the world's age turns over, in front of the wager
+    sheet. It stands on the ribbon with the age's painting
+    (`public/art/splash/ages/<set><age>.jpg`). The set (`form`, `still` or
+    `abstract`) is one for the whole game, picked by `agePaintingSet` from a
+    hash of the game's seed in the UI, never from the sim's random numbers,
+    so a loaded game shows the same set (`src/ui/agePaintings.ts`). On the
+    foot: the numeral, the name and the line (`agePlateLine`) at the left;
+    the seat's deeds in at most two rows and Continue at the right, all inside
+    the painting's lower third. A deed that does not fit is not drawn. A
+    missing painting, or one that does not load, gives the full-screen lapis
+    page. A new game opens on the age I plate once, before the pamphlet and
+    the tutorial (`openNewGame` in `main.ts`); a loaded game never shows it.
 - **The Council screen's heights** (the user's comments on stage 3): the head
   is taller, the hand shows at most `COUNCIL_FRAME.fanMax` of each card, and
   the height left goes round the government and its chairs

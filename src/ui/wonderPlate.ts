@@ -31,7 +31,6 @@
 import './agePlate.css';
 import './wonderPlate.css';
 
-import { orderFaceMarkUri } from '../art/orderFaceMarks';
 import type { BuildingId } from '../sim/buildingData';
 import type { WonderCompletion } from '../sim/cities';
 import { type GameState, cityById } from '../sim/state';
@@ -45,6 +44,7 @@ import { wonderWindowNode } from './inPlayForms';
 import { type InPlayEntry, inPlayLayout, piecesFigures } from './inPlayPieces';
 import { renownMarkNode } from './meterMark';
 import { type PlateFigure, plateFigureNode } from './orderFace';
+import { placeOnRibbon } from './plateRibbon';
 
 /** The plate's words. Plain, and no number inside a sentence (hard rule 7). */
 export const WONDER_PLATE_WORDS = {
@@ -128,29 +128,11 @@ export function wonderPlateReading(
  * **The plate's page**, built whole: the frame, the 16:9 picture, the name,
  * the line, the turn, the figures, the Triumph's line and Continue. `go` is what
  * Continue does. The Flair Cabinet draws the same page.
+ *
+ * A painted wonder goes on the ribbon (`plateRibbon.ts`, shared with the age
+ * plate): the painting over the dimmed board, the words on its foot. A wonder
+ * without a painting keeps the lapis page with the engraved stand-in.
  */
-/**
- * **The ribbon behind a painted wonder**: a lapis band from the left edge of
- * the window to the right, with a line of stars, moons and suns along each
- * edge and a sun and a moon on the band beside the painting. The marks are
- * the card corners' own (`orderFaceMarks.ts`), handed to the stylesheet as
- * masks, so they take the gilt of the plate.
- */
-function wonderRibbonNode(): HTMLElement {
-  const ribbon = element('div', 'wonder-plate-ribbon');
-  ribbon.setAttribute('aria-hidden', 'true');
-  ribbon.style.setProperty('--wp-star', `url("${orderFaceMarkUri('star')}")`);
-  ribbon.style.setProperty('--wp-sun', `url("${orderFaceMarkUri('sun')}")`);
-  ribbon.style.setProperty('--wp-moon', `url("${orderFaceMarkUri('moon')}")`);
-  ribbon.append(
-    element('i', 'wonder-plate-ribbon-edge is-top'),
-    element('i', 'wonder-plate-ribbon-edge is-foot'),
-    element('i', 'wonder-plate-ribbon-mark is-sun'),
-    element('i', 'wonder-plate-ribbon-mark is-moon'),
-  );
-  return ribbon;
-}
-
 export function wonderPlatePage(reading: WonderPlateReading, go: () => void): HTMLElement {
   const plate = element('div', 'age-plate wonder-plate');
   plate.append(element('div', 'age-plate-frame'));
@@ -188,7 +170,6 @@ export function wonderPlatePage(reading: WonderPlateReading, go: () => void): HT
     // words sit on the foot of the painting: what it is on the left, the
     // Triumph and Continue on the right.
     plate.classList.add('wonder-plate--painted');
-    plate.append(wonderRibbonNode());
     const words = element('div', 'wonder-plate-words');
     const placed = element('p', 'wonder-plate-placed');
     placed.append(where, turn);
@@ -197,10 +178,7 @@ export function wonderPlatePage(reading: WonderPlateReading, go: () => void): HT
     const close = element('div', 'wonder-plate-close');
     if (triumph !== null) close.append(triumph);
     close.append(button);
-    const caption = element('div', 'wonder-plate-caption');
-    caption.append(words, close);
-    picture.append(caption);
-    inner.append(picture);
+    placeOnRibbon(plate, inner, picture, words, close);
   } else {
     // The engraved stand-in: the picture in a smaller window, the words under it.
     inner.append(eyebrow, picture, name, where, turn);
