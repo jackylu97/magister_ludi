@@ -80,7 +80,40 @@ Read the closing rulings with each build list. The Hillforts is approved, The Fy
 
 The save version for this build is 250. Port 5199 continues to use version 249. Most of the Commerce and Expansionist redesigns are still pending.
 
-- The Open Market is a Tier 0 rare Economic Order. It gives a 20% discount on units, buildings, tiles, caravans and Great People bought with gold. A Great Person’s gold price starts at ten times the next renown threshold. The Reliquary displays the quote that the purchase command charges. The card does not grant the ability to buy a Great Person. The faith price stays the same.
+- The Open Market is a Tier 0 rare Economic Order. It gives a 20% discount on units, buildings, tiles, caravans and Great People bought with gold. A Great Person’s gold price starts at ten times the next renown threshold. The Reliquary displays the quote that the purchase command charges. The card does not grant the ability to buy a Great Person. The faith price stays the same. In a browser game with recruitment unlocked, the Reliquary displayed 1,576 gold for a 197-renown threshold. Clicking the purchase deducted 1,576 and opened a three-name offer.
 - Combined discounts stop at 50% on one purchase. A larger individual discount still applies by itself. For example, The Laurion Leases buys a resource tile for a quarter of its price. Adding The Open Market keeps the price at a quarter. Prices use the existing rule that rounds down to whole coins.
 - Lumber mills add two production. A worker can build Pachacuti’s terraces only on a hill beside a mountain. The worker preview and the command use the same check.
 - One test pins the current save version. The subsystem suites retain their historical minimums and their save, header and replay checks. Updating the version no longer requires copying its history to fifteen test files.
+
+### Base science, culture and unit prices
+
+Save version 251 includes this balance pass and the preceding deck rules. The research cost table keeps its previous values.
+
+| Source or cost | Previous | New |
+|---|---|---|
+| Science from each citizen | 0.5 | 0.25 |
+| Library | 2 science plus 0.5 per citizen | 3 science |
+| University | 0.75 science per citizen | 6 science |
+| Amphitheater | 2 culture plus 1 per 2 citizens | 4 culture |
+| Military production surcharge | 50% | 80% |
+| First four workers | 10, 12, 14, 16 production | 14, 18, 22, 26 production |
+| First four settlers | 28, 35, 42, 49 production | 36, 45, 54, 63 production |
+
+A city of ten with both science buildings receives 11.5 science from its citizens, Library and University combined, down from 19.5, before other income and modifiers. Ibn al-Haytham doubles an ordinary Library to 6 science. With Cai Lun’s Library bonus as well, the two legacies give that Library 10 science and 2 culture. The Universitas gives a University 12 science at twelve citizens or more and 3 below twelve. Sophocles gives an Amphitheater 5 culture and 1 happiness.
+
+Other recurring sources of science from population keep their own rules.
+
+| Source | Science tied to population |
+|---|---|
+| Sejong’s Correct Sounds | Each city earns 1 science and 1 culture per 4 citizens. |
+| Sankore Madrasa and Museion | Each adds 0.5 science per citizen to its other effects. |
+| Alchemical Society, Specularium and Gurdwara | Respectively 1 science per citizen, per 2 citizens and per 3 citizens. |
+| The Scribes’ Hall, Examinations of State | A Library city earns 1 science per 4 citizens. A garrisoned city earns 1 science and 1 culture per 3. |
+| The Megalopolis and the Rite of Fasting | The first adds 1 science and 1 production per citizen in cities of ten or more. The rite adds science and culture per citizen while growth stops. |
+| Mithridatium and Scriptorium of Rupertsberg | Their rows still add 1 and 0.25 science per citizen, respectively. Their leaders are outside the current roster. |
+
+The military surcharge applies to the unit’s price after the size and technology column. A Warrior costs 18 production or 72 gold. A Spearman costs 32 production or 128 gold. Civilian traders and Great People retain their separate rules. [Production costs](../production-costs.md) · [Yields](../yields.md)
+
+### Merchant Princes and recruitment
+
+Merchant Princes now requires the Great Person recruitment ability before it accepts gold. In a browser game before Epic Poetry, the Reliquary disabled the purchase and named the missing research. Sending the command directly left the game state and command log unchanged. After Epic Poetry, the same 197-renown threshold cost 1,576 gold with The Open Market and opened three names. A separate game with the retired recruitment Doctrine prepared in the test produced the same offer size and charge.
