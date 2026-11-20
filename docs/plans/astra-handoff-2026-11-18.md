@@ -347,6 +347,118 @@ with yields on the hexes the city can use. A "Citizens" toggle adds one plain
 dot to each worked hex. It replaces the small rings in
 `src/render3d/overlays.ts`.
 
+### 3.13 Models the board is missing (audit of 2026-11-20)
+
+The user: "what are we missing in terms of 3d models? lets put that in the
+handoff doc for astra. off the top, fish traps is one, and unique units that
+we've since added to the game?" This is a read of the code on `decks`, for the
+painted look (the default; the toon look is only the fallback for weak
+graphics cards). Nobody ran the game for it, so how a borrowed prop looks on
+the painted board is not judged here.
+
+**How a model is chosen today.** A unit type draws its own model only if it is
+in `paintedUnitTypes` (`src/terrainStudy/unitCatalog.js:65`); a type that is
+not falls to the old toon class figure (`sculptFor`, `board3d.ts:590`). The
+painted works layer draws fifteen improvements (`paintedWorks.ts:36`); every
+other improvement is drawn by the toon layer's props (`board3d.ts:783-818`),
+and an improvement with no prop at all stops the game at load
+(`board3d.ts:831`). The Blender unit models in `art/terrain-study/` are not
+loaded by the game (`NORTH_STAR_UNIT_MODELS = false`,
+`src/terrainStudy/northStarAssets.js:108`).
+
+**Missing or borrowed today**
+
+| Thing | What draws now | Where |
+|---|---|---|
+| Fish traps | the toon fishing boat | `board3d.ts:799` |
+| Wild orchard | toon trellis rows | `board3d.ts:800` |
+| Floating gardens (Nezahualcoyotl) | toon farm furrows | `board3d.ts:783` |
+| Physic garden | a toon fence ring, tinted green | `board3d.ts:812` |
+| Qanat | the toon mine head | `board3d.ts:818` |
+| Town keep, polder, outpost | their own placeholders, in the old toon style | `board3d.ts:805-807` |
+| Plantation | the farm's barns | `northStarAssets.js:79` |
+| Numidian Cavalry | the toon mounted figure | not in `paintedUnitTypes` |
+| Company Guard | the toon melee figure | not in `paintedUnitTypes` |
+| All 34 wonders | each takes the next of three monuments (obelisk, ziggurat, armillary), which are also the shrine, the temple and the capital | `paintedCities.ts:39, 515` |
+| Twelve shrub resources | one shrub model, tinted | `settlementArt.js:279-317` |
+| Sixteen ore resources | one crag rock, tinted (obsidian has its own) | the same |
+| Wheat, rice, maize, reeds | one grain tuft, one colour | `settlementArt.js:54` |
+| Pearls and Tyrian dye | one shell in two colours | `settlementArt.js:70` |
+| Jungle | the forest's trees with another tint | `paintedBoard.js:666` |
+| A pillaged work | seven works have a ruin; every other one leaves an ash patch | `northStarAssets.js:84` |
+
+Buildings other than the palisade, shrine and temple are not drawn on the
+board at all, so the 21 leader buildings need nothing.
+
+**Every unique unit in the game today has its own painted model** (the audit
+checked all thirteen leaders' units). The two units above are the only gaps.
+
+**Coming, and will need a model**
+
+| Thing | From | State |
+|---|---|---|
+| Hypaspist, Janissary, Condottiere, Qin Crossbowman, Sparabara, Hwacha | the leader roster (3.10) | Final. Each new unit id must join `paintedUnitTypes` with a model, or it draws as a toon figure. |
+| Ballista Elephant | the leader roster | A `siegeElephant` model exists and no row uses it (`warElephantModel.js:131`). Map it to the new row. |
+| Keshig | the leader roster | It keeps the Xiongnu Horse Archer's model only if the row keeps its id. |
+| The School of Mieza, the other new leader buildings | the leader roster | Nothing: buildings are not drawn. |
+| The Paradise Garden (Cyrus's improvement) | the leader roster | Final. It needs a prop, or the game stops at load. |
+| Nazca lines, inuksuk, totem pole, stepwell, hillfort, baray | the Expansionist pass (3.14) | Final. Each needs a model. Root-crop grounds, hill groves, the date garden, the reindeer corral, the hammer pond and the vineyard were withdrawn: do not model them. |
+| The eight new wonders | the wonders rework (3.6) | In the data already. They need models only if the user decides wonders get their own. |
+
+**A decision for the user, not for Astra to take alone:** whether wonders get
+their own models on the board. Today a town's wonders are three shared
+monuments.
+
+### 3.14 The Commerce and Expansionist deck passes (ready)
+
+Both passes are closed. Each plan ends in "Ready for the build" and then a
+short section "The pass is closed", which settles its last open points. Read
+those two sections first; the numbered changes above them carry a ruling each.
+
+- **Commerce:** `docs/plans/commerce-design-pass-2026-11-20.md`. 85 cards
+  (27 unchanged, 26 changed, 32 new, 16 cut), 15 Doctrines, 25 shared cards.
+  Trade routes fall from 36% of the deck to 18%. New themes: the sea (15
+  cards, all buildable today), land hexes, customs houses, the purse, and
+  bridges to each partner deck. A great person bought with gold costs 10 gold
+  for each point of renown the next one costs. The Open Market also discounts
+  that gold price. Stacked discounts on a purchase are capped at half. A
+  single larger discount still applies on its own.
+- **Expansionist:** `docs/plans/expansionist-design-pass-2026-11-20.md`. 82
+  cards (9 cut, 17 new), 21 Doctrines, 17 shared cards. **Wild land and
+  tended land leave the game as keywords;** there is no third state of land.
+  The new theme is **unique improvements:** any improvement a charter or a
+  leader opens (the keyword covers Pachacuti's terraces, Nezahualcoyotl's
+  floating gardens, Cyrus's Paradise Garden, the physic garden and the
+  qanat). The deck's own are fish traps, orchard, Nazca lines, inuksuk, totem
+  pole, stepwell, hillfort, baray, polder, keep and outpost; the plan has a
+  table of each one's ground, yield and neighbour rule.
+- **Shared between the two:** The Founders' Stores ("Towns you found start
+  with a Granary") is one card. The Hillforts is shared with Dominion. Both
+  passes change shared cards on the Devotion, Magisterial, Scientific and
+  Dominion sheets; each plan lists them.
+- **Base rules these passes ruled, for every deck** (`docs/flags.md`):
+  - a lumber mill gives +2 production;
+  - a city is coastal when it owns a coast hex within two hexes (decide where
+    a ship built there appears; the flag proposes the nearest owned water
+    hex, by a fixed order);
+  - a purchased unit appears beside a full city (3.11).
+- **Each new improvement needs four things:** a data row, the way a worker
+  builds it (a charter opens it), an icon, and a board model. An improvement
+  with no board prop stops the game at load (3.13). The new ones are the
+  Nazca lines, inuksuk, totem pole, stepwell, hillfort and baray; fish traps,
+  the orchard, the keep, the polder and the outpost have rows and borrowed or
+  placeholder models today.
+- **New effect shapes** are listed once in each plan's "Ready for the build",
+  with the cards that need them. Each is a design decision under CLAUDE.md:
+  say which you add, and defer a card that fits no shape.
+- **UI the Claude session owes after these builds:** the current value on a
+  growing card (The Votive Accounts, Bought and Paid For, The Makers of
+  Land). Tell the Claude session when the cards exist.
+- **Order:** these two after the generic Orders, Dominion and Magisterial
+  (3.5, 3.7), since several shared cards read what those passes change. The
+  leader roster (3.10) comes after all the decks.
+- **Schema:** both passes change saved games. Raise the schema.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open
