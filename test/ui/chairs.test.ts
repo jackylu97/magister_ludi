@@ -256,20 +256,27 @@ describe('the council, read off the source', () => {
 describe('the government card and the adoption, read off the source', () => {
   const MAIN = uiSource('main.ts');
 
-  it('shows a government’s chairs where its emblem was', () => {
-    const face = braceBody(MAIN, 'function governmentFace(');
-    expect(face).toContain('chairs: offerChairsOf(id, chairLayoutUnder(game.state, seat, id))');
+  it('shows on the government’s banner the chairs this seat would lay out', () => {
+    // Since the government banners (Quiet Table, frame 7) the offer draws each
+    // government on its banner, handed the council the adoption would build.
+    const offer = braceBody(MAIN, 'if (sc.pendingGovernment !== undefined) {');
+    expect(offer).toContain('dress: () => governmentOfferFace(id, chairLayoutUnder(game.state, seat, id)),');
     expect(braceBody(MAIN, 'function slotWords(')).toContain('chairLayoutUnder(game.state, seat, id).length');
-    expect(face).not.toContain('emblem');
-    const offer = uiSource('offerCard.ts');
-    expect(offer).toContain('button.append(offerChairsNode(option.chairs));');
+    // The banner draws one chair a chair, grouped by type, and the mix in words.
+    const banner = uiSource('governmentBanner.ts');
+    expect(banner).toContain('for (const entry of chairMixOfLayout(model.chairs)) {');
+    expect(banner).toContain("block.append(row, element('span', 'gov-chair-words', model.chairWords));");
+    // The offer card still draws a chair mix for a caller that hands one over.
+    expect(uiSource('offerCard.ts')).toContain('button.append(offerChairsNode(option.chairs));');
   });
 
   it('says on the sheet that cards keep their chairs where they can', () => {
     // The government block, brace-matched: since batch C3 a waiting Doctrine
-    // offer is shown before it, so it is the last block of the chain.
+    // offer is shown before it, so it is the last block of the chain. One
+    // short line at the foot since frame 7.
     const offer = braceBody(MAIN, 'if (sc.pendingGovernment !== undefined) {');
-    expect(offer).toContain('Your seated Orders keep their chairs where they still fit');
+    expect(offer).toContain('Your Orders keep their chairs where they still fit.');
+    expect(offer).toContain('The rest move to free chairs, or go back to your collection.');
   });
 
   it('announces what moved and what went back, from the council before and after', () => {

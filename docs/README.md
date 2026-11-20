@@ -1958,6 +1958,41 @@ Eight root pages, all named in `vite.config.ts` inputs:
     "Them", with the unit's name under each, and each side's health bar
     under its unit with the health after the blow. The card is wider while
     it shows a forecast, and the strength lines wrap rather than cut.
+- **The government banners** (`docs/plans/ui-critique-2026-10-16.md`, "Quiet
+  Table, second pass", row 7: "Great, love it"; frames `frame-7-proposed` and
+  `frame-7-fallback`, drawn by `gov()` and `gov_fallback()` in
+  `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/base.py`; the
+  user's comments on the build, 2026-11-20).
+  `src/ui/governmentBanner.ts` and `.css` draw a government in two forms:
+  - **the row** on the government offer: a 3:1 window (330 by 110), the rules
+    through the describers with the figures in mono, and a column with the
+    chairs and, under them, the stamp's seat with no label. The seat shows
+    nothing until the pick, when the figure lands in it. The offer
+    stands the three rows one under another (`Offer.stacked`, laid out by
+    `stackedSpread` in `offerCard.ts`; the board's 856 by 130 at 1280 by 720
+    and up). Every row in the hand is the tallest one's height
+    (`fitGovernmentHand`, `--gov-row-h`), and the rules are one size that
+    wraps. The deal, the crown back, choose and Swear, the stamp and the
+    `adoptGovernment` command are unchanged; a row turns over about its long
+    axis. The foot says in one short line what adopting does;
+  - **the seat** on the Council screen: the same window heading a card the
+    size of the Order cards in the chairs at every form (`COUNCIL_FORMS`: 210
+    by 258, 176 by 236, 187 by 180, 145 by 206), so the government's column is
+    the chair card's width (`CouncilLayout.government`). Under the window: the
+    rules, then at the foot the chairs the council has (`slotTypesOf`) as one
+    row of shapes, and the pay plate (`governmentLive`). The rules step down
+    from 13 px to 11 px as an Order face's effect does, and are cut with a
+    fade if they still do not fit (`fitGovernmentBanner`). Its lift shows the
+    card at the height of its content, larger;
+  - **the window** (`governmentPicture`): the government's painting from
+    `governmentPaintings.ts` (none yet; `public/art/splash/governments/`),
+    with the name and the tier on a dark fade at its foot, or the drawn mark:
+    the engraved seal with the crown, the name and the tier. Both keep the
+    window's size;
+  - **the chairs**: one small card shape a chair in its type's ink with the
+    type's own mark, grouped by type, and the mix in words.
+  The In play screen still draws the held government on the Order face, and
+  the Compendium has no government entry.
 - **The diplomacy screen: layout B with the strip of courts**
   (`docs/plans/ui-critique-2026-10-16.md`, fourth pass; frames
   `frame-2-strip` and `frame-2-drawer` in

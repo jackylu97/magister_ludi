@@ -116,7 +116,7 @@ describe('every statecraft offer carries a stamp', () => {
   it('reads the figure from explainCardImpact and nowhere else', () => {
     const helper = MAIN.slice(
       MAIN.indexOf('function cardStamp(seat: number'),
-      MAIN.indexOf('function governmentFace('),
+      MAIN.indexOf('function slotWords('),
     );
     expect(helper).toContain('stampReading(explainCardImpact(game.state, seat, subject))');
     // Nothing to say is nothing shown: the flourish stands rather than a nought.
@@ -310,12 +310,14 @@ describe('every draft deals a tarot face', () => {
     // engraved face (`orderOfferFace`), a drawn face, which is dealt.
     expect(offerSource('showStatecraftOffer')).toContain('dress: () => orderOfferFace(id),');
     expect(OFFER_CARD).toContain('option.suit !== undefined');
-    // A government's card shows its chairs where an emblem would be (batch
-    // C2b), and the chairs count as a card from a deck too, so the charter
-    // triple is still dealt.
-    expect(offerSource('showStatecraftOffer')).toContain('...governmentFace(seat, id)');
-    expect(offerSource('governmentFace')).toContain('chairs: offerChairsOf(id, chairLayoutUnder(game.state, seat, id))');
-    expect(offerSource('governmentFace')).not.toContain('emblem:');
+    // A government is offered on its banner since Quiet Table's frame 7, a
+    // drawn face, so the charter triple is still dealt; its banners stand one
+    // under another.
+    expect(offerSource('showStatecraftOffer')).toContain(
+      'dress: () => governmentOfferFace(id, chairLayoutUnder(game.state, seat, id)),',
+    );
+    expect(offerSource('showStatecraftOffer')).toContain('stacked: true,');
+    expect(MAIN).not.toContain('function governmentFace(');
     expect(OFFER_CARD).toContain('option.chairs !== undefined');
     // A deck's Doctrine wears its deck's suit and ink (batch C3,
     // `doctrineFaceOf`); a pre-rework Doctrine still reads its thread.

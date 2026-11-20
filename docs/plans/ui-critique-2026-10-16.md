@@ -1751,3 +1751,18 @@ What follows:
 - **Faith row:** the list is headed "Religious followers". The star alone
   marks the player's religion. The kept rite sits under a rule and a "Rite"
   label, apart from the followers.
+
+### Correction: "keep cards the same size" meant the Doctrine stack (2026-11-20)
+
+I read the user's comment on the Council picture as "make the government's
+card the size of a chair's card" and had that built. The user: "to clarify,
+what i meant was to keep the cards lower in the stack the same size, so they
+don't shrink as you go down", and "lets revert the government card size."
+
+- **The government's card goes back** to the banner's seat form in its own
+  column, as first built (the column 200 px wide, 145 in the compact form).
+  The ruling above that made it the chair card's size is withdrawn.
+- **The Doctrines stacked under the government are all one size.** Each strip
+  has the same width and height as the one above it. Today each strip lower in
+  the stack is drawn a little narrower.
+- The offer's change stands: no "With the cards you keep" label.

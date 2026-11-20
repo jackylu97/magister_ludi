@@ -23,8 +23,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { OFFER_REVEAL, revealDelay, revealEndsAt } from '../../src/ui/cardDeal';
-import { OFFER_WORDS, dressedSpread, offerSpread, phaseAfter, takeLabel } from '../../src/ui/offerCard';
-import { OFFER_FACE_SHAPES } from '../../src/ui/offerFaces';
+import { OFFER_WORDS, dressedSpread, offerSpread, phaseAfter, stackedSpread, takeLabel } from '../../src/ui/offerCard';
+import { GOVERNMENT_HAND_SHAPE, OFFER_FACE_SHAPES } from '../../src/ui/offerFaces';
 
 /** The two frames the spread is verified in, and the smaller one is the gate. */
 const STAGES = {
@@ -335,6 +335,33 @@ describe('a hand of drawn faces fits the stage', () => {
       }
     }
   }
+
+  /**
+   * **A stacked hand** (the government banners, Quiet Table frame 7): the
+   * rows stand one under another, each the board's 856 by 130 where there is
+   * room, and the whole sheet inside the window.
+   */
+  for (const count of COUNTS) {
+    for (const [stageName, stage] of Object.entries(STAGES)) {
+      it(`stands a stacked hand inside the window: ${count} banners at ${stageName}`, () => {
+        const spread = stackedSpread(count, stage, GOVERNMENT_HAND_SHAPE);
+        expect(spread.total).toBeLessThanOrEqual(stage.height);
+        expect(spread.sheet).toBeLessThanOrEqual(stage.width - 48);
+        expect(spread.card).toBeLessThanOrEqual(GOVERNMENT_HAND_SHAPE.width);
+        expect(spread.height).toBe(Math.round(spread.card * GOVERNMENT_HAND_SHAPE.ratio));
+      });
+    }
+  }
+
+  it('draws the three government banners at the board’s size on both stages', () => {
+    for (const stage of Object.values(STAGES)) {
+      const spread = stackedSpread(3, stage, GOVERNMENT_HAND_SHAPE);
+      expect(spread.card).toBe(856);
+      expect(spread.height).toBe(130);
+      // The board's sheet: the rows and a 16 px margin either side.
+      expect(spread.sheet).toBe(888);
+    }
+  });
 
   it('draws the three-card draft and the great person offer at the board’s sizes where there is room', () => {
     expect(dressedSpread(3, STAGES.large, OFFER_FACE_SHAPES.order).card).toBe(220);

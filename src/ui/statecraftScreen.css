@@ -302,6 +302,11 @@
   width: var(--council-gov-w, 200px);
 }
 
+.council-gov-card:focus-visible .gov-banner {
+  outline: 2px solid var(--y-gold-lit);
+  outline-offset: 4px;
+}
+
 .council-gov-card:focus-visible {
   outline: none;
 }
@@ -1230,6 +1235,12 @@
   z-index: 60;
   pointer-events: none;
   animation: orders-preview-in 120ms ease-out both;
+}
+
+/* The government lifts its banner larger than the column holds it. */
+.orders-preview .gov-banner.is-lifted {
+  --gov-width: 280px;
+  --gov-scale: 220px;
 }
 
 @keyframes orders-preview-in {

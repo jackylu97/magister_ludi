@@ -355,7 +355,20 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     // Six chairs are a cluster of two rows of three (the user, 2026-11-19), so a
     // short window takes the compact form rather than one row of six.
     expect(councilLayout({ width: 1440, height: 700 }, 6)).toMatchObject({ form: 'compact', rows: 2, cramped: false });
-    expect(councilLayout({ width: 1180, height: 700 }, 11).government).toBe(COUNCIL_FRAME.government.narrow);
+    // The government's card is the chair card's size at every form (the user,
+    // 2026-11-20: "keep cards the same size"), so its column is the card's width.
+    expect(councilLayout({ width: 1180, height: 700 }, 11).government).toBe(COUNCIL_FORMS.narrow.width);
+    for (const [width, height] of [
+      [1180, 700],
+      [1280, 720],
+      [1440, 900],
+      [1920, 1080],
+    ] as const) {
+      for (const chairs of [3, 6, 8, 11, 13]) {
+        const layout = councilLayout({ width, height }, chairs);
+        expect(layout.government, `${width}x${height}, ${chairs} chairs`).toBe(COUNCIL_FORMS[layout.form].width);
+      }
+    }
   });
 
   it('never runs the chairs off the window, and keeps the hand in view, from 1180 by 700 up', () => {
@@ -400,9 +413,11 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     const three = councilLayout({ width: 1440, height: 900 }, 3);
     expect([three.form, three.rows, three.cols]).toEqual(['full', 1, 3]);
     // The middle of the room right of the government (the user, 2026-11-19),
-    // right of the page's centre: 832.5 at 1440 wide, as the board's six chairs sat.
-    expect(three.cluster!.centre).toBe(COUNCIL_FRAME.side + COUNCIL_FRAME.government.wide + COUNCIL_FRAME.columnGap + (1440 - 2 * COUNCIL_FRAME.side - COUNCIL_FRAME.government.wide - COUNCIL_FRAME.columnGap) / 2);
-    expect(three.cluster!.centre).toBe(832.5);
+    // right of the page's centre: 837.5 at 1440 wide, five pixels right of the
+    // board's six chairs, since the government's card is the chair card's 210
+    // (the user, 2026-11-20: "keep cards the same size").
+    expect(three.cluster!.centre).toBe(COUNCIL_FRAME.side + COUNCIL_FORMS.full.width + COUNCIL_FRAME.columnGap + (1440 - 2 * COUNCIL_FRAME.side - COUNCIL_FORMS.full.width - COUNCIL_FRAME.columnGap) / 2);
+    expect(three.cluster!.centre).toBe(837.5);
     const five = councilLayout({ width: 1440, height: 900 }, 5);
     expect([five.form, five.rows, five.cols]).toEqual(['full', 2, 3]);
     expect(five.cluster).not.toBeNull();

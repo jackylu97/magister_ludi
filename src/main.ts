@@ -222,7 +222,7 @@ import {
   slotTypesOf,
   stripRefs,
 } from './sim/statecraft';
-import { adoptionWords, councilChange, offerChairsOf } from './ui/chairs';
+import { adoptionWords, councilChange } from './ui/chairs';
 import {
   type GovernmentId,
   doctrineDef,
@@ -232,8 +232,11 @@ import {
 import { doctrineFaceOf, orderPayoff } from './ui/deckBadges';
 import { offerBackNode } from './ui/cardDeal';
 import {
+  GOVERNMENT_HAND_SHAPE,
   OFFER_FACE_SHAPES,
+  fitGovernmentHand,
   fitOrderHand,
+  governmentOfferFace,
   greatPersonOfferFace,
   greatPersonOfferShape,
   orderOfferFace,
@@ -2507,22 +2510,22 @@ function build3DPanel(renderer: Renderer3D): () => void {
       const url = new URL(location.href); url.searchParams.set('light', select.value); history.replaceState(null, '', url);
     };
     lightLabel.append(select); menuExtrasEl.append(lightLabel);
-    const sharpRow = document.createElement('div');
-    sharpRow.className = 'row check';
-    const sharp = document.createElement('input');
-    sharp.type = 'checkbox';
-    sharp.id = 'sharp-board';
-    sharp.checked = renderer.sharpBoardEnabled;
-    const sharpLabel = document.createElement('label');
-    sharpLabel.htmlFor = sharp.id;
-    sharpLabel.textContent = 'Sharp board';
-    sharpLabel.title = 'Draw finer detail on high-resolution displays.';
-    sharpRow.append(sharp, sharpLabel);
-    menuExtrasEl.append(sharpRow);
-    sharp.onchange = () => {
-      renderer.setSharpBoard(sharp.checked);
+    const resolutionRow = document.createElement('div');
+    resolutionRow.className = 'row check';
+    const reduced = document.createElement('input');
+    reduced.type = 'checkbox';
+    reduced.id = 'reduce-board-resolution';
+    reduced.checked = renderer.reducedBoardResolutionEnabled;
+    const resolutionLabel = document.createElement('label');
+    resolutionLabel.htmlFor = reduced.id;
+    resolutionLabel.textContent = 'Reduce board resolution';
+    resolutionLabel.title = 'Draw fewer board pixels for smoother movement on high-resolution displays.';
+    resolutionRow.append(reduced, resolutionLabel);
+    menuExtrasEl.append(resolutionRow);
+    reduced.onchange = () => {
+      renderer.setReducedBoardResolution(reduced.checked);
       const url = new URL(location.href);
-      if (sharp.checked) url.searchParams.set('sharp', '1'); else url.searchParams.delete('sharp');
+      if (reduced.checked) url.searchParams.set('boardResolution', 'reduced'); else url.searchParams.delete('boardResolution');
       history.replaceState(null, '', url);
     };
     // The option to stop the board's motion when idle (the user, 2026-11-17:
@@ -2671,7 +2674,7 @@ async function createRenderer(
     const { Renderer3D } = await import('./render3d/renderer3d');
     const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'), {
       painted: mode === 'painted',
-      sharpBoard: new URLSearchParams(location.search).get('sharp') === '1',
+      reducedBoardResolution: new URLSearchParams(location.search).get('boardResolution') === 'reduced',
     });
     try {
       if (mode === 'painted') {
@@ -3735,24 +3738,28 @@ async function boot(initial: Game | null): Promise<void> {
           eyebrow: `tier ${offer.tier} · a charter is ready`,
           title: 'Swear a government',
           // The consequences, said before the choice rather than discovered
-          // after it. This is the one irreversible pick in the game.
+          // after it. This is the one irreversible pick in the game. One short
+          // line at the foot, beside the button, as frame 7 draws it.
           note:
-            'Adopting lays out new chairs. Your seated Orders keep their chairs where they still fit; ' +
-            'the rest move to free chairs that fit them, any that fit none go back to your collection, ' +
-            'and every seal lifts so you can re-lay the council. ' +
-            'Then you are offered Doctrines of this government\'s tier from your decks: take one or pass.',
+            'This choice is final. Your Orders keep their chairs where they still fit. ' +
+            'The rest move to free chairs, or go back to your collection. ' +
+            'Every seal lifts, and then you are offered Doctrines of this tier.',
           weight: 'heavy',
-          // The government's cards lie on the crown's back, and the choice is sworn.
+          // The government's banners lie on the crown's back, and the choice is sworn.
           back: () => offerBackNode('crown'),
           takeVerb: 'Swear',
+          // **The government banners** (frame 7, "Three banners"): one row a
+          // government, one under another, every row one size.
+          shape: GOVERNMENT_HAND_SHAPE,
+          stacked: true,
+          fitHand: fitGovernmentHand,
           options: offer.options.map((id) => ({
             title: governmentDef(id).name,
             payoff: slotWords(seat, id),
-            note: describeCard(id).map((clause) => clause.text).join(' · ') || 'No signature',
             flavor: governmentDef(id).flavor,
-            // A government joins no archetype thread, so the middle of its
-            // card shows its chairs instead. See `governmentFace`.
-            ...governmentFace(seat, id),
+            // The banner draws the name, the tier, the rules and the chairs
+            // this seat would lay out (`governmentOfferFace`).
+            dress: () => governmentOfferFace(id, chairLayoutUnder(game.state, seat, id)),
             // The charter's stamp carries the **re-seating**: adoption lays
             // the new chairs out and re-seats the cards that fit them (batch
             // C2, `reseatCouncil`), so the figure is the new law with the
@@ -4173,7 +4180,8 @@ async function boot(initial: Game | null): Promise<void> {
    * a thread looks like; this is only the place the two meet.
    *
    * **The archetype thread answers for the two classes that have no deck** —
-   * a Doctrine and a government — and for nothing else since U1. An Order is
+   * a Doctrine and a government — and for nothing else since U1. (A
+   * government is offered on its banner now, `governmentOfferFace`.) An Order is
    * drawn as the A3 face since batch C1 (`orderSuitFace`, `ui/deckBadges.ts`),
    * because every row written after the decks rework carries `line: 'none'`
    * and this would give all four hundred of them the same lozenge.
@@ -4199,23 +4207,6 @@ async function boot(initial: Game | null): Promise<void> {
   function cardStamp(seat: number, subject: CardImpactSubject): Partial<OfferOption> {
     const reading = stampReading(explainCardImpact(game.state, seat, subject));
     return stampIsEmpty(reading) ? {} : { stamp: reading };
-  }
-
-  /**
-   * **A government card's face** (batch C2b): its chairs in the middle of the
-   * card, where an emblem would be — one small chair per chair, in its type's
-   * ink, and the mix in words, "2 Military · 1 Economic · 1 Civic · 1 Wildcard"
-   * (`offerChairsOf`, `chairs.ts`).
-   *
-   * The one card class with no archetype thread, so `cardFace` would give all
-   * ten the same neutral seal and a charter triple would be three identical
-   * cards. Since batch C2 a government is its chairs, so the chairs are what
-   * tells the three apart. The thread's accent and name stay, and its emblem
-   * does not.
-   */
-  function governmentFace(seat: number, id: GovernmentId): Partial<OfferOption> {
-    const { line, lineName } = cardFace(governmentDef(id));
-    return { line, lineName, chairs: offerChairsOf(id, chairLayoutUnder(game.state, seat, id)) };
   }
 
   /**

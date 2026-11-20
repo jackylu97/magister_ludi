@@ -1,0 +1,507 @@
+@import '../cardFaces.css';
+
+/*
+ * The government banner (`governmentBanner.ts`). The board is the second
+ * pass's frame 7 (`gov()` and `gov_fallback()` in
+ * `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/base.py`): a row
+ * 856 px wide, the banner window 330 by 110, the rules in the middle and the
+ * chairs and the figure in a column of 190 at the right.
+ *
+ * The row form is `85.6em` wide, so one em is ten board pixels at the board's
+ * size; `--gov-width` sets the size (856px when nothing sets it). The seat form
+ * is as wide as `--gov-width` (200px when nothing sets it) and keeps one em to
+ * ten pixels, as the Council's compact cards keep the full card's text.
+ *
+ * Inside the window every length is a share of the window's own width
+ * (`cqw`), so the 330 px window of the offer and the narrow window of the
+ * Council are one drawing.
+ */
+
+.gov-banner {
+  position: relative;
+  box-sizing: border-box;
+  color: var(--ink, #1d1a20);
+  font-family: var(--face-ui);
+  font-variant-numeric: lining-nums;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.gov-banner *,
+.gov-banner *::before,
+.gov-banner *::after {
+  box-sizing: border-box;
+}
+
+/* --- the row: the offer ------------------------------------------------------ */
+
+/* The board's row: the banner, the rules, and the column of chairs and the
+   figure. Every banner in a hand is one height, the tallest any of them needs
+   (`fitGovernmentHand` writes `--gov-row-h`); the board's 130 px until then. */
+.gov-banner[data-form='row'] {
+  display: grid;
+  /* The board's right column is 190 px; 210 here, so the eleven chairs of a
+     tier 26 government and a leader's extra chairs stand on one line. */
+  grid-template-columns: 33.6em minmax(0, 1fr) 21em;
+  align-items: center;
+  column-gap: 1.6em;
+  width: 85.6em;
+  min-height: var(--gov-row-h, 13em);
+  padding: 0.9em 1.2em 0.9em 0.9em;
+  border: 1px solid var(--edge, rgba(29, 26, 32, 0.22));
+  border-radius: 0.5em;
+  background: var(--parchment, #f7f2e1);
+  font-size: calc(var(--gov-width, 856px) / 85.6);
+}
+
+.gov-banner[data-form='row'] .gov-window {
+  width: 33em;
+  height: 11em;
+  margin: 0.3em;
+}
+
+/* --- the window ----------------------------------------------------------------- */
+
+/* One window for a painting and for the mark: an ink line, a gap of paper,
+   then a gilt line (the board's painting window). */
+.gov-window {
+  position: relative;
+  flex: none;
+  container-type: inline-size;
+  overflow: hidden;
+  border: 1px solid var(--ink, #1d1a20);
+  box-shadow:
+    0 0 0 0.2em var(--gov-gap, var(--parchment, #f7f2e1)),
+    0 0 0 0.3em var(--gilt, #c8901f);
+  background-color: #2a3f73;
+  background-position: center;
+  background-size: cover;
+}
+
+/* The fallback: hatched card paper, the engraved seal with the crown, and the
+   name and the tier beside it, in the board's sizes at a 330 px window. The
+   seal and the words sit in a box of their own (`.gov-mark`), because a share
+   of the window's width (`cqw`) means the window's only inside it. */
+.gov-window[data-picture='mark'] {
+  background:
+    repeating-linear-gradient(0deg, rgba(29, 26, 32, 0.16) 0 1px, transparent 1px 4px),
+    var(--card-paper, #f8f1dc);
+  color: var(--deep-gilt, #7f5b0e);
+}
+
+.gov-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4.85cqw;
+  height: 100%;
+  padding: 0 4cqw;
+}
+
+.gov-window .gov-device {
+  flex: none;
+  width: 25.5cqw;
+  height: 25.5cqw;
+}
+
+.gov-device .of-rays {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+.gov-device .of-disc {
+  fill: var(--card-paper, #f8f1dc);
+}
+
+.gov-device .of-hatch {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.7;
+  opacity: 0.42;
+}
+
+.gov-device .of-ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.gov-device .of-ring-inner {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.9;
+}
+
+.gov-device .of-suit {
+  color: currentColor;
+}
+
+.gov-device .of-suit-shadow {
+  color: var(--ink, #1d1a20);
+  opacity: 0.3;
+}
+
+/* A narrow window has no room for the seal beside the name: the name stays. */
+@container (max-width: 150px) {
+  .gov-device {
+    display: none;
+  }
+}
+
+/* The name and the tier. One em is ten board pixels at a 330 px window. */
+.gov-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--ink, #1d1a20);
+  font-size: 3.03cqw;
+}
+
+.gov-name {
+  font-family: var(--face-card-title);
+  /* A long name wraps, and steps down one size only for a third line
+     (`fitGovernmentBanner`). Never under 13 px, so the name still reads in the
+     Council's narrow window. */
+  font-size: max(var(--gov-name, 2.2em), 13px);
+  letter-spacing: 0.02em;
+  line-height: 1.02;
+}
+
+.gov-tier {
+  margin-top: 0.35em;
+  font-family: var(--face-num);
+  font-size: max(1.1em, 9px);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-faint, #625e5b);
+}
+
+.gov-tier b {
+  font-weight: 600;
+}
+
+/* With a painting: the name and the tier on a dark fade at the window's foot. */
+.gov-fall {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 7.9cqw 3cqw 1.5cqw;
+  background: linear-gradient(transparent, rgba(18, 14, 10, 0.86) 62%);
+}
+
+.gov-fall .gov-title {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1em;
+  color: #fbf3e2;
+}
+
+.gov-fall .gov-tier {
+  margin-top: 0;
+  color: #e6dfcf;
+}
+
+/* --- the rules -------------------------------------------------------------- */
+
+/* The government's own clauses, one size on every banner, wrapping. The
+   figures in mono, as the board sets them. */
+.gov-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  min-width: 0;
+  font-size: 1.3em;
+  line-height: 1.35;
+}
+
+.gov-clause {
+  display: block;
+}
+
+/* A clause as the describers word it starts in lower case ("all units: +1
+   movement"); a line of its own starts with a capital, as the Order face's
+   initial does. */
+.gov-clause::first-letter {
+  text-transform: uppercase;
+}
+
+.gov-clause.is-deferred {
+  color: var(--ink-faint, #625e5b);
+  text-decoration: line-through;
+}
+
+.gov-clause.is-none {
+  color: var(--ink-soft, #56505a);
+  font-style: italic;
+}
+
+.gov-rules .of-n {
+  font-family: var(--face-num);
+  font-size: 0.94em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* --- the chairs and the figure -------------------------------------------------- */
+
+.gov-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+  min-width: 0;
+}
+
+.gov-label {
+  display: block;
+  font-family: var(--face-num);
+  font-size: 1.1em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--ink-faint, #625e5b);
+}
+
+.gov-chairs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.gov-chair-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 0.5em;
+}
+
+.gov-chair-group {
+  display: flex;
+  gap: 0.2em;
+}
+
+/* A chair: a small card shape in its type's ink, with the type's own mark. */
+.gov-chair {
+  --gov-chair-ink: var(--type-wildcard, #4a2a72);
+  position: relative;
+  display: block;
+  flex: none;
+  width: 1.3em;
+  height: 1.75em;
+  border: 0.15em solid var(--gov-chair-ink);
+  border-radius: 0.2em;
+  background: var(--card-paper, #f8f1dc);
+}
+
+.gov-chair[data-ink='military'] {
+  --gov-chair-ink: var(--type-military, #a8361b);
+}
+
+.gov-chair[data-ink='economic'] {
+  --gov-chair-ink: var(--type-economic, #b5791b);
+}
+
+.gov-chair[data-ink='civic'] {
+  --gov-chair-ink: var(--type-civic, #4f78be);
+}
+
+.gov-chair[data-ink='wildcard'] {
+  --gov-chair-ink: var(--type-wildcard, #4a2a72);
+}
+
+.gov-chair-mark {
+  position: absolute;
+  inset: 0.2em 0.1em;
+  background-color: var(--gov-chair-ink);
+  -webkit-mask: var(--gov-chair-mark) center / contain no-repeat;
+  mask: var(--gov-chair-mark) center / contain no-repeat;
+}
+
+.gov-chair-words {
+  font-family: var(--face-num);
+  font-size: 1.05em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  color: var(--ink-soft, #56505a);
+}
+
+/* The figure on the offer: the stamp's seat under the chairs, with no label.
+   It shows nothing until the pick: while the stamp wears its flourish, and on
+   a card with no figure, the seat takes no room at all. */
+.gov-seat:empty,
+.gov-seat:has(> .card-stamp[data-face='flourish']) {
+  display: none;
+}
+
+.gov-seat .card-stamp {
+  --stamp-ink: var(--ink, #1d1a20);
+  justify-content: flex-start;
+  margin: 0;
+}
+
+.gov-seat .card-stamp-figure {
+  font-size: 1.3em;
+}
+
+/* --- the seat: the Council screen ---------------------------------------------- */
+
+/* The banner heading a narrow card: the window across the card's width, then
+   the rules, the chairs and the pay plate. It keeps the Council's text scale
+   whatever the card's size. Given a size (`--gov-height`, the Council's chair
+   card), the rules take the room left and the chairs and the plate stand at
+   the foot; given none, the card is as tall as its content. */
+.gov-banner[data-form='seat'] {
+  --gov-gap: var(--card-paper, #f8f1dc);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+  width: var(--gov-width, 200px);
+  height: var(--gov-height, auto);
+  padding: 0.7em 0.7em 0.9em;
+  border: 1px solid var(--ink, #1d1a20);
+  border-radius: 0.5em;
+  background: var(--card-paper, #f8f1dc);
+  box-shadow:
+    0 0 0 0.2em var(--card-paper, #f8f1dc),
+    0 0 0 0.3em var(--gilt, #c8901f);
+  font-size: calc(var(--gov-scale, 200px) / 20);
+}
+
+.gov-banner[data-form='seat'] .gov-window {
+  width: calc(100% - 0.6em);
+  margin: 0.3em 0.3em 0.1em;
+  aspect-ratio: 3 / 1;
+}
+
+/* The rules take the room the other parts leave. At a given size they step
+   down from 13 px to 11 px as an Order face's effect does
+   (`fitGovernmentBanner` writes `--gov-seat-text`), and are cut with a fade
+   only if 11 px does not fit. */
+.gov-banner[data-form='seat'] .gov-rules {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  font-size: var(--gov-seat-text, 1.3em);
+  line-height: 1.25;
+}
+
+.gov-banner[data-form='seat'] .gov-side {
+  flex: none;
+}
+
+.gov-banner[data-form='seat'] .gov-side {
+  gap: 0.6em;
+}
+
+.gov-banner[data-form='seat'] .gov-label {
+  font-size: 1em;
+}
+
+.gov-banner[data-form='seat'] .gov-chair-words {
+  font-size: 1em;
+}
+
+/* --- the seat at the chair card's size (the Council screen) --------------------
+   The same width and height as the Order cards in the chairs (the user,
+   2026-11-20: "keep cards the same size"). Tighter gaps, the chairs as one row
+   of shapes with no label (their words stay for a screen reader), and the
+   plate at the foot where an Order card has its figure. `data-compact` is the
+   chair's form when it is not the full card, as on the Order face. */
+.gov-banner[data-sized] {
+  gap: 0.55em;
+  padding: 0.55em 0.6em 0.45em;
+  overflow: hidden;
+}
+
+.gov-banner[data-sized] .gov-window {
+  margin-bottom: 0;
+}
+
+.gov-banner[data-sized] .gov-side {
+  gap: 0.45em;
+}
+
+.gov-banner[data-sized] .gov-chairs > .gov-label {
+  display: none;
+}
+
+.gov-banner[data-sized] .gov-chair-words {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.gov-banner[data-sized] .gov-chair-row {
+  justify-content: center;
+  gap: 0.3em 0.4em;
+}
+
+.gov-banner[data-sized] .gov-chair-group {
+  gap: 0.15em;
+}
+
+.gov-banner[data-sized] .gov-chair {
+  width: 1.2em;
+  height: 1.6em;
+}
+
+.gov-banner[data-sized][data-compact] .gov-chair {
+  width: 1em;
+  height: 1.35em;
+  border-width: 0.12em;
+}
+
+.gov-banner[data-sized][data-compact] .gov-pay {
+  font-size: 1.7em;
+}
+
+.gov-banner[data-sized][data-compact] .gov-pay[data-plate='idle'] {
+  font-size: 1.15em;
+}
+
+/* Rules that do not fit at 11 px: cut with a fade at the foot, as an Order
+   face's effect is; the hover lift shows them whole. */
+.gov-banner[data-overflow] .gov-rules {
+  -webkit-mask: linear-gradient(#000 calc(100% - 1.6em), transparent);
+  mask: linear-gradient(#000 calc(100% - 1.6em), transparent);
+}
+
+/* The pay plate: a heavy rule and the figures, as an Order's plate in a chair. */
+.gov-pay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.1em 0.45em;
+  padding-top: 0.35em;
+  border-top: 2px solid var(--ink, #1d1a20);
+  font-family: var(--face-card-text);
+  font-size: 2em;
+  line-height: 1.1;
+}
+
+.gov-pay[data-plate='idle'] {
+  justify-content: flex-start;
+  gap: 0.4em;
+  border-top-width: 1px;
+  color: var(--ink-faint, #625e5b);
+  font-size: 1.25em;
+  font-style: italic;
+}
+
+.gov-pay-zero {
+  flex: none;
+  color: var(--ink-soft, #56505a);
+  font-style: normal;
+}

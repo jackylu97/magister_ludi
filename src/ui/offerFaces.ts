@@ -12,11 +12,17 @@
  * spread (`dressedSpread`) lays out: the Order face is the board's 220 px wide
  * at the Council's 21 by 25.8 proportion, and the great person card is the
  * board's 214 by 392.
+ *
+ * The government offer draws a third face, the government banner
+ * (`governmentOfferFace`), as a row: the banners stand one under another, so
+ * their size is `GOVERNMENT_HAND_SHAPE` and the sheet lays them out with
+ * `stackedSpread`.
  */
 
 import type { GreatPersonId } from '../sim/greatPeopleData';
-import type { OrderId } from '../sim/statecraftData';
+import type { ChairType, GovernmentId, OrderId } from '../sim/statecraftData';
 import { element } from './dom';
+import { dressGovernmentBanner, fitGovernmentBanner } from './governmentBanner';
 import {
   GREAT_PERSON_CARD_WIDTH_EM,
   dressGreatPersonCard,
@@ -87,3 +93,25 @@ export function greatPersonOfferFace(id: GreatPersonId): DressedFace {
   const seat = dressGreatPersonCard(face, greatPersonCard(id), { inControl: true });
   return { face, seat, fit: () => fitGreatPersonCard(face) };
 }
+
+/**
+ * **The government banner's row**, as the board draws it: 856 px wide and
+ * 130 px tall at the board's size. A banner with a long rule is taller, and
+ * the rest of its hand grows with it (`fitGovernmentHand`).
+ */
+export const GOVERNMENT_HAND_SHAPE: OfferShape = { width: 856, ratio: 130 / 856 };
+
+/**
+ * **A government on offer**, on its banner: the window, the rules, the chairs
+ * this seat would lay out (`layout`, the caller's `chairLayoutUnder`), and the
+ * stamp's seat under "With the cards you keep". In a control, so a keyword is
+ * bold and not a link.
+ */
+export function governmentOfferFace(id: GovernmentId, layout: readonly ChairType[]): DressedFace {
+  const face = element('div');
+  const seat = dressGovernmentBanner(face, id, { form: 'row', layout, inControl: true });
+  return { face, seat, fit: () => fitGovernmentBanner(face) };
+}
+
+// The hand's fit, for the caller that deals the banners.
+export { fitGovernmentHand } from './governmentBanner';

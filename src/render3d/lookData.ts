@@ -1932,7 +1932,7 @@ interface PaintedShadowSpec {
  * The size of the painted game's drawing buffer.
  *
  * `maxPixelRatio` limits the number of samples per CSS pixel on high-density
- * screens. The Sharp board option uses `sharpPixelRatio` for more detail.
+ * screens. The Reduce board resolution option uses `reducedPixelRatio` to draw fewer pixels.
  * Both settings obey the device ratio and the total pixel limit in
  * `pixelBudget`. See `drawingBufferRatio` in `canvasSetup.ts`.
  *
@@ -1944,7 +1944,7 @@ interface PaintedShadowSpec {
  */
 interface PaintedCanvasSpec {
   maxPixelRatio: number;
-  sharpPixelRatio: number;
+  reducedPixelRatio: number;
   pixelBudget: number;
   restUnderCover: boolean;
   restUnderSheets: boolean;
