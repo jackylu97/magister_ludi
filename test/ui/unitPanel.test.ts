@@ -365,7 +365,7 @@ describe('the worker offers every improvement the table names', () => {
     // earlier in the tech tree, early age 2 probably") — the row is the whole
     // of the change, and this is the interface's half of that claim.
     expect(def.requiresTech).toBe('siegecraft');
-    expect(def.yields.production).toBe(1);
+    expect(def.yields.production).toBe(2);
     expect(def.validFeatures).toEqual(['forest', 'jungle']);
   });
 });

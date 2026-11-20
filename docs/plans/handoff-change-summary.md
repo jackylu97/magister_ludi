@@ -75,3 +75,12 @@ Claude closed both designs at `08852814`. The following counts describe the appr
 - Claude’s UI follow-up is the current value on Bought and Paid For, The Votive Accounts and The Makers of Land. Distinct miniature models for each wonder remain an art decision. The existing shared monuments already sit on the city tile.
 
 Read the closing rulings with each build list. The Hillforts is approved, The Fyrd stops at +6 strength, and The Beacons is dealt in both Tiers I and II. [Commerce](commerce-design-pass-2026-11-20.md#the-pass-is-closed-2026-11-20) · [Expansionist](expansionist-design-pass-2026-11-20.md#the-pass-is-closed-2026-11-20)
+
+### First deck rules in the separate test build
+
+The save version for this build is 250. Port 5199 continues to use version 249. Most of the Commerce and Expansionist redesigns are still pending.
+
+- The Open Market is a Tier 0 rare Economic Order. It gives a 20% discount on units, buildings, tiles, caravans and Great People bought with gold. A Great Person’s gold price starts at ten times the next renown threshold. The Reliquary displays the quote that the purchase command charges. The card does not grant the ability to buy a Great Person. The faith price stays the same.
+- Combined discounts stop at 50% on one purchase. A larger individual discount still applies by itself. For example, The Laurion Leases buys a resource tile for a quarter of its price. Adding The Open Market keeps the price at a quarter. Prices use the existing rule that rounds down to whole coins.
+- Lumber mills add two production. A worker can build Pachacuti’s terraces only on a hill beside a mountain. The worker preview and the command use the same check.
+- One test pins the current save version. The subsystem suites retain their historical minimums and their save, header and replay checks. Updating the version no longer requires copying its history to fifteen test files.

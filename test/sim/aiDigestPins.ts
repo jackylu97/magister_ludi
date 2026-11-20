@@ -1327,9 +1327,10 @@ import { digestOfState, type Played } from './aiDigestHelpers';
  * counts only existing foreign followers when pricing the Camera's current income.
  * Both six-seat games reached turn 120 without a rejected order or a stalled turn.
  */
+/** Version 250 changes the set of draftable Orders, purchase prices, lumber mills and terrace sites. */
 const DIGESTS = {
-  duel: '025552e7:374088',
-  standard: 'de75ccf0:1058730',
+  duel: 'e2f6d1e8:382793',
+  standard: 'ddcaf1f1:1080107',
 };
 
 /** Check driver errors before comparing the state digest. */
