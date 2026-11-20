@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   BoxGeometry, BufferGeometry, DoubleSide, Float32BufferAttribute, Group,
-  InstancedBufferAttribute, InstancedMesh, Layers, Matrix4, Mesh,
+  InstancedBufferAttribute, InstancedMesh, InterleavedBuffer, InterleavedBufferAttribute, Layers, Matrix4, Mesh,
   MeshBasicMaterial, Plane, Raycaster, Vector3,
 } from 'three';
 import { PaintedUnitKit } from '../../src/render3d/paintedUnits';
+import { installPaintedSurface, missesPaintedGround, paintedGroundHit, surfacePickGridBuilds, uninstallPaintedSurface } from '../../src/render3d/paintedSurface';
+import { createMap } from '../../src/sim/map';
 import { pickUnitModel, type UnitModelCandidate } from '../../src/render3d/unitModelPicking';
 
 const cleanup: (() => void)[] = [];
@@ -29,6 +31,21 @@ function batch(positions: readonly number[]): InstancedMesh<BoxGeometry, MeshBas
 
 const ray = (x = 0, y = 0) => ({ origin: new Vector3(x, y, 10), direction: new Vector3(0, 0, -1) });
 const candidate = (object: Mesh, unitId = 1, instanceId?: number): UnitModelCandidate => ({ object, unitId, instanceId });
+
+/** Two front-facing triangles put the bounding box on the ray but leave the centre hit behind the unit. */
+function terrainPatch() {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute([
+    -1, -1, -2, 1, -1, -2, 0, 1, -2,
+     3, -1,  3, 5, -1,  3, 4, 1,  3,
+  ], 3));
+  const material = new MeshBasicMaterial(), ground = new Mesh(geometry, material);
+  ground.userData.paintedSurface = true;
+  const map = createMap({width: 4, height: 3, terrain: 'grassland'});
+  installPaintedSurface(map, map, [ground]);
+  cleanup.push(() => { uninstallPaintedSurface(map); material.dispose(); geometry.dispose(); });
+  return { geometry, ground, map };
+}
 
 describe('direct unit body picking', () => {
   it('tests triangles inside the bounds, preserving gaps beside equipment', () => {
@@ -194,5 +211,87 @@ describe('world occlusion of direct unit picking', () => {
     expect(pickUnitModel(ray(), [piece], [obstruction, distant])).toBeNull();
     expect(bucketCast).not.toHaveBeenCalled(); expect(triangleCast).toHaveBeenCalledTimes(3);
     expect(ranges).toEqual([Infinity, Infinity, 9.5]);
+  });
+});
+describe('unit picking against painted ground', () => {
+  it('skips the full raycast only after the ground pick has indexed this geometry', () => {
+    const {geometry, ground, map} = terrainPatch(), piece = candidate(mesh());
+    const original = Mesh.prototype.raycast;
+    let groundCasts = 0;
+    vi.spyOn(Mesh.prototype, 'raycast').mockImplementation(function(this: Mesh, caster, hits) {
+      if (this.geometry === geometry) groundCasts++;
+      original.call(this, caster, hits);
+    });
+    const before = surfacePickGridBuilds();
+    expect(pickUnitModel(ray(), [piece], [ground])).toBe(1);
+    expect(groundCasts).toBe(1);
+    expect(surfacePickGridBuilds()).toBe(before);
+    expect(paintedGroundHit(map, ray())?.distance).toBe(12);
+    expect(pickUnitModel(ray(), [piece], [ground])).toBe(1);
+    expect(groundCasts).toBe(1);
+    // The same unindexed mesh has a wrap transform and now faces away from the ray.
+    ground.rotation.y = Math.PI; ground.position.x = 40;
+    const wrapped = candidate(mesh(0, 40));
+    expect(pickUnitModel(ray(40), [wrapped], [ground])).toBe(1);
+    ground.material.side = DoubleSide;
+    expect(pickUnitModel(ray(40), [wrapped], [ground])).toBeNull();
+  });
+
+  it('uses the full test after a terrain change or for meshes outside the ground grid contract', () => {
+    const {geometry, ground, map} = terrainPatch(), caster = new Raycaster(ray().origin, ray().direction, 0, 9.5);
+    const piece = candidate(mesh());
+    paintedGroundHit(map, ray());
+    expect(missesPaintedGround(caster, ground)).toBe(true);
+    const grouped = new Mesh(geometry, [ground.material]);
+    grouped.userData.paintedSurface = true;
+    expect(missesPaintedGround(caster, grouped)).toBe(false);
+    geometry.morphAttributes.position = [geometry.getAttribute('position')];
+    expect(missesPaintedGround(caster, ground)).toBe(false);
+    delete geometry.morphAttributes.position;
+    const pos = geometry.getAttribute('position');
+    for (let i = 0; i < 3; i++) pos.setZ(i, 2);
+    pos.needsUpdate = true;
+    geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+    expect(missesPaintedGround(caster, ground)).toBe(false);
+    expect(pickUnitModel(ray(), [piece], [ground])).toBeNull();
+    geometry.setIndex([0, 1, 2, 3, 4, 5]); paintedGroundHit(map, ray());
+    geometry.setDrawRange(3, 3);
+    expect(missesPaintedGround(caster, ground)).toBe(false);
+    expect(pickUnitModel(ray(), [piece], [ground])).toBe(1);
+    paintedGroundHit(map, ray());
+    const index = geometry.getIndex()!;
+    index.setX(3, 0); index.setX(4, 1); index.setX(5, 2); index.needsUpdate = true;
+    expect(missesPaintedGround(caster, ground)).toBe(false);
+    expect(pickUnitModel(ray(), [piece], [ground])).toBeNull();
+  });
+
+  it('checks farther terrain when clipping, fog or a reservation rejects the first surface', () => {
+    const ground = mesh(2), piece = candidate(mesh());
+    ground.userData.paintedSurface = true;
+    ground.material.side = DoubleSide;
+    const map = createMap({width: 3, height: 2, terrain: 'grassland'});
+    installPaintedSurface(map, map, [ground]); cleanup.push(() => uninstallPaintedSurface(map));
+    paintedGroundHit(map, ray());
+    // The front face is above the clipping plane. The back face still conceals the piece.
+    ground.material.clippingPlanes = [new Plane(new Vector3(0, 0, -1), 2.1)];
+    expect(pickUnitModel(ray(), [piece], [ground])).toBeNull();
+    ground.material.clippingPlanes = [];
+    expect(pickUnitModel(ray(), [piece], [ground], { acceptsOccluderHit: hit => hit.point.z < 2 })).toBeNull();
+    expect(pickUnitModel(ray(), [piece], [ground], { acceptsOccluderHit: () => false })).toBe(1);
+  });
+
+  it('raycasts interleaved terrain after a position change', () => {
+    const {geometry, ground, map} = terrainPatch(), piece = candidate(mesh());
+    const storage = new InterleavedBuffer(new Float32Array(geometry.getAttribute('position').array), 3);
+    const position = new InterleavedBufferAttribute(storage, 3, 0);
+    geometry.setAttribute('position', position);
+    paintedGroundHit(map, ray());
+    const caster = new Raycaster(ray().origin, ray().direction, 0, 9.5);
+    expect(missesPaintedGround(caster, ground)).toBe(false);
+    for (let i = 0; i < 3; i++) position.setZ(i, 2);
+    storage.needsUpdate = true;
+    geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+    expect(missesPaintedGround(caster, ground)).toBe(false);
+    expect(pickUnitModel(ray(), [piece], [ground])).toBeNull();
   });
 });

@@ -5,7 +5,7 @@
  */
 import {
   BackSide, Box3, BufferAttribute, BufferGeometry, FrontSide, type InterleavedBufferAttribute, type Intersection, InstancedMesh,
-  type Material, Matrix4, type Mesh, Ray as LineRay, Raycaster, type Side, Sphere, Vector3,
+  type Material, Matrix4, Mesh, Ray as LineRay, Raycaster, type Side, Sphere, Vector3,
 } from 'three';
 import { createTileSurfaceSampler } from './paintedTileSurface';
 import { hexToPixel, pixelToHex } from '../sim/hex';
@@ -234,12 +234,20 @@ let pickGridBuilds = 0;
 /** How many pick grids have been built since the page loaded. For tests and the cost report. */
 export function surfacePickGridBuilds(): number { return pickGridBuilds; }
 
+function currentPickGrid(geometry: BufferGeometry): PickGrid | undefined {
+  const kept = keptPickGrids.get(geometry);
+  if (!kept) return undefined;
+  const index = geometry.index, position = geometry.getAttribute('position'), range = geometry.drawRange;
+  return kept.index === index && kept.indexVersion === (index?.version ?? -1) && kept.position === position
+    && kept.positionVersion === (position as BufferAttribute).version && kept.drawStart === range.start && kept.drawCount === range.count
+    ? kept : undefined;
+}
+
 function pickGridFor(geometry: BufferGeometry): PickGrid | null {
-  const index = geometry.index, position = geometry.getAttribute('position');
+  const kept = currentPickGrid(geometry);
+  if (kept) return kept;
+  const index = geometry.index, position = geometry.getAttribute('position'), range = geometry.drawRange;
   if (!position) return null;
-  const range = geometry.drawRange, kept = keptPickGrids.get(geometry);
-  if (kept && kept.index === index && kept.indexVersion === (index?.version ?? -1) && kept.position === position
-      && kept.positionVersion === (position as BufferAttribute).version && kept.drawStart === range.start && kept.drawCount === range.count) return kept;
   // The same triangle walk as three's `_computeIntersections` for one material.
   const start = Math.max(0, range.start), end = Math.min(index ? index.count : position.count, range.start + range.count);
   const corner = (i: number): number => index ? index.getX(i) : i;
@@ -346,6 +354,18 @@ function nearestOnMesh(raycaster: Raycaster, mesh: Mesh, matrixWorld = mesh.matr
     if (instanceId !== undefined) best.instanceId = instanceId;
   }
   return best;
+}
+
+/**
+ * A unit pick often reaches a large terrain mesh whose triangles all lie behind the piece.
+ * Use the ground pick's current grid to rule out that mesh. A possible hit still needs
+ * the unit pick's checks for fog, reserved tiles, clipping and other triangles in front.
+ */
+export function missesPaintedGround(raycaster: Raycaster, mesh: Mesh): boolean {
+  return mesh.userData.paintedSurface === true && mesh.constructor === Mesh && !Array.isArray(mesh.material)
+    && mesh.geometry.getAttribute('position') instanceof BufferAttribute
+    && !mesh.geometry.morphAttributes.position?.length && !!currentPickGrid(mesh.geometry)
+    && nearestOnMesh(raycaster, mesh) === null;
 }
 
 const instanceLocal = new Matrix4(), instanceWorld = new Matrix4(), instanceSphere = new Sphere();
