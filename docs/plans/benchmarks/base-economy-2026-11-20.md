@@ -18,6 +18,18 @@ At turn 150, the independent samples cover 24 baseline seats and 18 candidate se
 
 The paired turn-150 science medians were **611.31 before and 483.01 after**. On seed 20260832, the sixth seat (balanced, ID 5) rose from 2,538.528 to 15,399.711 science per turn.
 
+### How much science varied between seats
+
+The table uses seats observed at the same turn on both versions of the same map. The middle half runs from the 25th to the 75th percentile. The sample standard deviation measures the spread in science per turn and gives more weight to extreme results.
+
+| Turn | Paired seats | Middle half before | Middle half after | Standard deviation before | Standard deviation after |
+|---:|---:|---:|---:|---:|---:|
+| 50 | 30 | 6.5 to 12.6 | 4.1 to 6.8 | 6.2 | 3.9 |
+| 100 | 30 | 58.0 to 148.6 | 44.6 to 145.3 | 96.4 | 68.4 |
+| 150 | 18 | 250.4 to 1388.8 | 141.0 to 985.0 | 1357.1 | 3545.1 |
+
+The extreme result on seed 20260832 raised the late standard deviation to 2.6 times its previous value. The middle half of late seats occupied a narrower range, and mean science fell on two of the three maps that reached turn 150 in both versions. These five maps show that one late combination can earn much more science. A larger sample would be needed to estimate how often it happens.
+
 | Seed | Mean science before, turn 150 | Mean science after, turn 150 |
 |---:|---:|---:|
 | 20260831 | n/a | n/a |

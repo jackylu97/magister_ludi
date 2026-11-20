@@ -1,0 +1,3472 @@
+{
+  "rendererRevision": "ee54e8d1",
+  "fixture": {
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "version": 251,
+    "stateTurn": 151,
+    "completedTurn": 150,
+    "seed": 20260832,
+    "units": 530,
+    "cities": 91,
+    "fogSeat": 5,
+    "drawing": [
+      2205,
+      1189
+    ],
+    "ratio": 1.5,
+    "nativeGpuTimers": true,
+    "components": 98,
+    "passes": [
+      [
+        "RenderPass",
+        true
+      ],
+      [
+        "_GTAOPass",
+        true
+      ],
+      [
+        "OutputPass",
+        true
+      ]
+    ]
+  },
+  "layerMethod": "Median of 24 same-pose native GPU timer pairs per group and view, in three blocks. Values are baseline minus diagnostic omission. Water reflection held off as during a moving camera. Sham omits nothing. Different omissions cannot be added.",
+  "views": {
+    "capital": {
+      "col": 46,
+      "row": 7,
+      "radius": 7
+    },
+    "wide": {
+      "col": 46,
+      "row": 7,
+      "radius": 14
+    },
+    "inland": {
+      "col": 53,
+      "row": 15,
+      "radius": 7
+    }
+  },
+  "layerAndAssetPairs": {
+    "capital": {
+      "baselineSamples": 288,
+      "baselineMedianGpuMs": 22.287,
+      "baselineMedianCpuSubmitMs": 2.1,
+      "baselineMedianTriangles": 2552028.0,
+      "baselineMedianDraws": 348.0,
+      "groups": {
+        "sham": {
+          "pairedGpuMs": [
+            0.356,
+            0.803,
+            -1.497,
+            0.804,
+            -0.285,
+            0.504,
+            -0.244,
+            -5.775,
+            0.438,
+            2.133,
+            1.895,
+            -1.124,
+            -2.625,
+            1.448,
+            -2.307,
+            -1.055,
+            -4.98,
+            -4.0,
+            -2.5,
+            1.082,
+            -1.229,
+            -0.048,
+            0.201,
+            2.658
+          ],
+          "medianMs": -0.146,
+          "middleHalfMs": [
+            -1.699,
+            0.804
+          ],
+          "blockMediansMs": [
+            0.056,
+            -0.309,
+            -0.639
+          ],
+          "fasterPairs": 11,
+          "medianTrianglesOmitted": 0.0
+        },
+        "land": {
+          "pairedGpuMs": [
+            2.635,
+            3.15,
+            2.433,
+            3.581,
+            3.575,
+            3.135,
+            4.487,
+            6.392,
+            4.566,
+            4.265,
+            2.805,
+            3.634,
+            -0.387,
+            2.137,
+            2.412,
+            5.212,
+            11.607,
+            6.609,
+            4.901,
+            5.98,
+            2.371,
+            5.212,
+            0.797,
+            3.634
+          ],
+          "medianMs": 3.608,
+          "middleHalfMs": [
+            2.584,
+            4.979
+          ],
+          "blockMediansMs": [
+            3.362,
+            3.22,
+            5.056
+          ],
+          "fasterPairs": 23,
+          "medianTrianglesOmitted": 549059.0
+        },
+        "water": {
+          "pairedGpuMs": [
+            1.056,
+            1.778,
+            3.475,
+            5.564,
+            3.771,
+            5.192,
+            1.908,
+            6.778,
+            1.986,
+            4.217,
+            5.347,
+            2.021,
+            12.661,
+            5.773,
+            4.711,
+            3.413,
+            2.635,
+            5.716,
+            2.423,
+            1.362,
+            4.96,
+            3.508,
+            6.213,
+            2.679
+          ],
+          "medianMs": 3.639,
+          "middleHalfMs": [
+            2.323,
+            5.401
+          ],
+          "blockMediansMs": [
+            3.623,
+            4.464,
+            3.093
+          ],
+          "fasterPairs": 24,
+          "medianTrianglesOmitted": 68603.0
+        },
+        "trees": {
+          "pairedGpuMs": [
+            3.239,
+            1.963,
+            3.751,
+            2.626,
+            2.71,
+            5.046,
+            1.729,
+            4.153,
+            4.915,
+            2.787,
+            3.161,
+            5.205,
+            0.067,
+            2.334,
+            2.683,
+            4.972,
+            4.089,
+            0.222,
+            3.319,
+            4.715,
+            2.274,
+            2.636,
+            4.117,
+            5.643
+          ],
+          "medianMs": 3.2,
+          "middleHalfMs": [
+            2.553,
+            4.293
+          ],
+          "blockMediansMs": [
+            2.974,
+            2.974,
+            3.704
+          ],
+          "fasterPairs": 24,
+          "medianTrianglesOmitted": 548288.0
+        },
+        "other layers": {
+          "pairedGpuMs": [
+            0.297,
+            0.091,
+            -0.478,
+            0.496,
+            0.984,
+            -0.449,
+            2.676,
+            -0.439,
+            -3.354,
+            1.189,
+            0.131,
+            -0.615,
+            0.422,
+            2.333,
+            -2.879,
+            -0.827,
+            4.181,
+            0.559,
+            -0.987,
+            0.748,
+            2.357,
+            1.435,
+            -0.035,
+            2.563
+          ],
+          "medianMs": 0.36,
+          "middleHalfMs": [
+            -0.457,
+            1.251
+          ],
+          "blockMediansMs": [
+            0.194,
+            -0.242,
+            1.091
+          ],
+          "fasterPairs": 15,
+          "medianTrianglesOmitted": 154872.0
+        },
+        "units": {
+          "pairedGpuMs": [
+            8.306,
+            7.675,
+            3.111,
+            3.478,
+            3.287,
+            1.804,
+            0.313,
+            0.317,
+            3.714,
+            1.578,
+            3.795,
+            2.639,
+            3.9,
+            0.512,
+            4.174,
+            3.153,
+            2.199,
+            -19.09,
+            -1.321,
+            0.387,
+            -0.424,
+            27.893,
+            0.895,
+            0.534
+          ],
+          "medianMs": 2.419,
+          "middleHalfMs": [
+            0.481,
+            3.734
+          ],
+          "blockMediansMs": [
+            3.199,
+            3.433,
+            0.461
+          ],
+          "fasterPairs": 21,
+          "medianTrianglesOmitted": 658506.0
+        },
+        "towns": {
+          "pairedGpuMs": [
+            -10.843,
+            6.644,
+            1.855,
+            -1.218,
+            -0.695,
+            -0.432,
+            1.226,
+            1.115,
+            1.765,
+            1.549,
+            -1.231,
+            0.046,
+            -1.946,
+            -1.498,
+            6.324,
+            2.309,
+            -8.642,
+            2.77,
+            1.226,
+            3.07,
+            -0.566,
+            31.163,
+            1.522,
+            2.922
+          ],
+          "medianMs": 1.226,
+          "middleHalfMs": [
+            -0.825,
+            2.424
+          ],
+          "blockMediansMs": [
+            0.341,
+            0.797,
+            2.146
+          ],
+          "fasterPairs": 15,
+          "medianTrianglesOmitted": 296941.0
+        },
+        "works and resources": {
+          "pairedGpuMs": [
+            -16.701,
+            -0.198,
+            0.735,
+            0.961,
+            0.471,
+            0.398,
+            0.106,
+            0.506,
+            2.958,
+            3.751,
+            1.522,
+            1.406,
+            1.326,
+            2.026,
+            2.616,
+            -1.353,
+            0.466,
+            0.02,
+            1.48,
+            -0.357,
+            1.877,
+            -1.526,
+            0.378,
+            -1.014
+          ],
+          "medianMs": 0.489,
+          "middleHalfMs": [
+            -0.034,
+            1.491
+          ],
+          "blockMediansMs": [
+            0.434,
+            1.774,
+            0.199
+          ],
+          "fasterPairs": 18,
+          "medianTrianglesOmitted": 197780.0
+        },
+        "asset:longswordsman": {
+          "pairedGpuMs": [
+            1.999,
+            -2.613,
+            -2.775,
+            -0.137,
+            -0.192,
+            -0.214,
+            -2.114,
+            -0.587,
+            1.475,
+            1.477,
+            -0.466,
+            -0.977,
+            21.401,
+            2.577,
+            -1.568,
+            -1.398,
+            5.794,
+            1.369,
+            0.948,
+            1.98,
+            -0.193,
+            1.231,
+            -1.998,
+            1.43
+          ],
+          "medianMs": -0.165,
+          "middleHalfMs": [
+            -1.082,
+            1.476
+          ],
+          "blockMediansMs": [
+            -0.401,
+            0.505,
+            1.3
+          ],
+          "fasterPairs": 11,
+          "medianTrianglesOmitted": 198468.0
+        },
+        "asset:grove-soft-1": {
+          "pairedGpuMs": [
+            1.94,
+            13.189,
+            0.347,
+            3.747,
+            2.128,
+            0.933,
+            2.851,
+            2.526,
+            -0.414,
+            -0.737,
+            -0.55,
+            1.468,
+            -2.637,
+            4.328,
+            5.348,
+            3.75,
+            -1.628,
+            0.491,
+            -0.153,
+            -2.533,
+            2.998,
+            0.934,
+            3.314,
+            2.757
+          ],
+          "medianMs": 1.704,
+          "middleHalfMs": [
+            -0.218,
+            3.077
+          ],
+          "blockMediansMs": [
+            2.327,
+            0.527,
+            0.713
+          ],
+          "fasterPairs": 17,
+          "medianTrianglesOmitted": 232921.0
+        },
+        "asset:ns-house-4a": {
+          "pairedGpuMs": [
+            0.473,
+            5.082,
+            3.136,
+            -3.514,
+            -2.417,
+            1.228,
+            -0.439,
+            -1.295,
+            1.943,
+            2.772,
+            2.109,
+            -1.302,
+            1.211,
+            0.585,
+            1.475,
+            -0.91,
+            1.698,
+            -0.434,
+            0.271,
+            1.438,
+            -0.71,
+            10.188,
+            -3.019,
+            -1.46
+          ],
+          "medianMs": 0.529,
+          "middleHalfMs": [
+            -1.006,
+            1.76
+          ],
+          "blockMediansMs": [
+            0.017,
+            1.343,
+            -0.081
+          ],
+          "fasterPairs": 14,
+          "medianTrianglesOmitted": 58028.0
+        },
+        "asset:ns-mine-headframe": {
+          "pairedGpuMs": [
+            0.086,
+            -1.978,
+            0.685,
+            1.767,
+            2.167,
+            -0.98,
+            -1.452,
+            3.355,
+            0.972,
+            -1.137,
+            1.406,
+            0.283,
+            1.063,
+            -0.512,
+            -0.784,
+            1.859,
+            1.357,
+            2.954,
+            -0.907,
+            -0.068,
+            1.808,
+            1.099,
+            2.375,
+            0.545
+          ],
+          "medianMs": 0.828,
+          "middleHalfMs": [
+            -0.58,
+            1.777
+          ],
+          "blockMediansMs": [
+            0.385,
+            0.628,
+            1.228
+          ],
+          "fasterPairs": 16,
+          "medianTrianglesOmitted": 59400.0
+        }
+      }
+    },
+    "wide": {
+      "baselineSamples": 288,
+      "baselineMedianGpuMs": 26.493,
+      "baselineMedianCpuSubmitMs": 3.1,
+      "baselineMedianTriangles": 2881911.0,
+      "baselineMedianDraws": 593.0,
+      "groups": {
+        "sham": {
+          "pairedGpuMs": [
+            3.527,
+            -1.741,
+            -2.028,
+            0.802,
+            -3.242,
+            3.117,
+            0.393,
+            1.043,
+            -1.028,
+            1.229,
+            -1.343,
+            1.187,
+            2.746,
+            -0.107,
+            0.135,
+            1.113,
+            0.481,
+            -0.47,
+            3.732,
+            -2.632,
+            -1.573,
+            -0.018,
+            1.414,
+            -0.216
+          ],
+          "medianMs": 0.264,
+          "middleHalfMs": [
+            -1.106,
+            1.198
+          ],
+          "blockMediansMs": [
+            0.598,
+            0.624,
+            -0.117
+          ],
+          "fasterPairs": 13,
+          "medianTrianglesOmitted": 0.0
+        },
+        "land": {
+          "pairedGpuMs": [
+            3.165,
+            2.357,
+            3.24,
+            4.466,
+            4.95,
+            2.188,
+            5.189,
+            3.407,
+            6.008,
+            2.487,
+            1.854,
+            1.779,
+            0.737,
+            -1.548,
+            4.429,
+            3.296,
+            2.457,
+            9.899,
+            5.751,
+            4.618,
+            5.204,
+            3.401,
+            3.46,
+            1.136
+          ],
+          "medianMs": 3.348,
+          "middleHalfMs": [
+            2.315,
+            4.701
+          ],
+          "blockMediansMs": [
+            3.323,
+            2.17,
+            4.039
+          ],
+          "fasterPairs": 23,
+          "medianTrianglesOmitted": 195223.0
+        },
+        "water": {
+          "pairedGpuMs": [
+            2.967,
+            4.751,
+            4.697,
+            5.37,
+            4.659,
+            4.417,
+            1.043,
+            3.557,
+            4.843,
+            3.099,
+            4.011,
+            3.28,
+            3.511,
+            3.02,
+            3.878,
+            3.443,
+            0.293,
+            1.35,
+            5.455,
+            6.525,
+            3.391,
+            4.394,
+            1.65,
+            3.309
+          ],
+          "medianMs": 3.534,
+          "middleHalfMs": [
+            3.079,
+            4.668
+          ],
+          "blockMediansMs": [
+            4.538,
+            3.477,
+            3.35
+          ],
+          "fasterPairs": 24,
+          "medianTrianglesOmitted": 138405.0
+        },
+        "trees": {
+          "pairedGpuMs": [
+            5.09,
+            4.414,
+            5.324,
+            7.332,
+            6.534,
+            3.984,
+            10.249,
+            4.959,
+            6.356,
+            4.492,
+            3.821,
+            4.813,
+            4.575,
+            3.416,
+            4.441,
+            4.613,
+            6.223,
+            6.768,
+            3.412,
+            -0.343,
+            8.004,
+            5.554,
+            5.215,
+            4.213
+          ],
+          "medianMs": 4.886,
+          "middleHalfMs": [
+            4.364,
+            6.256
+          ],
+          "blockMediansMs": [
+            5.207,
+            4.533,
+            5.385
+          ],
+          "fasterPairs": 23,
+          "medianTrianglesOmitted": 923618.0
+        },
+        "other layers": {
+          "pairedGpuMs": [
+            -0.757,
+            0.083,
+            2.531,
+            2.082,
+            2.058,
+            1.535,
+            6.332,
+            -0.513,
+            3.089,
+            3.425,
+            0.85,
+            0.123,
+            -1.708,
+            0.349,
+            0.159,
+            1.837,
+            3.815,
+            3.468,
+            3.475,
+            1.955,
+            3.582,
+            1.876,
+            2.423,
+            0.5
+          ],
+          "medianMs": 1.916,
+          "middleHalfMs": [
+            0.301,
+            3.173
+          ],
+          "blockMediansMs": [
+            1.797,
+            0.6,
+            2.945
+          ],
+          "fasterPairs": 21,
+          "medianTrianglesOmitted": 221216.0
+        },
+        "units": {
+          "pairedGpuMs": [
+            1.023,
+            3.936,
+            1.287,
+            0.977,
+            -0.368,
+            -0.365,
+            -0.223,
+            1.899,
+            1.529,
+            -0.671,
+            1.793,
+            1.505,
+            -0.119,
+            2.051,
+            4.218,
+            2.773,
+            2.334,
+            1.413,
+            1.379,
+            1.67,
+            -1.401,
+            -0.016,
+            0.292,
+            0.592
+          ],
+          "medianMs": 1.333,
+          "middleHalfMs": [
+            -0.042,
+            1.819
+          ],
+          "blockMediansMs": [
+            1.0,
+            1.661,
+            0.986
+          ],
+          "fasterPairs": 17,
+          "medianTrianglesOmitted": 710204.0
+        },
+        "towns": {
+          "pairedGpuMs": [
+            1.405,
+            3.251,
+            2.096,
+            1.933,
+            1.885,
+            3.432,
+            0.22,
+            -3.947,
+            1.306,
+            0.938,
+            -3.704,
+            2.536,
+            2.335,
+            0.246,
+            2.235,
+            2.877,
+            0.76,
+            2.896,
+            3.477,
+            3.683,
+            2.274,
+            -0.363,
+            2.71,
+            0.395
+          ],
+          "medianMs": 2.015,
+          "middleHalfMs": [
+            0.669,
+            2.752
+          ],
+          "blockMediansMs": [
+            1.909,
+            1.77,
+            2.492
+          ],
+          "fasterPairs": 21,
+          "medianTrianglesOmitted": 298269.0
+        },
+        "works and resources": {
+          "pairedGpuMs": [
+            2.265,
+            0.506,
+            2.879,
+            -2.158,
+            1.39,
+            0.592,
+            1.754,
+            0.907,
+            -0.113,
+            1.683,
+            5.688,
+            1.638,
+            3.383,
+            -1.196,
+            1.839,
+            1.501,
+            -0.666,
+            4.624,
+            2.086,
+            3.79,
+            3.168,
+            -1.327,
+            1.346,
+            -0.127
+          ],
+          "medianMs": 1.57,
+          "middleHalfMs": [
+            0.352,
+            2.419
+          ],
+          "blockMediansMs": [
+            1.148,
+            1.661,
+            1.716
+          ],
+          "fasterPairs": 18,
+          "medianTrianglesOmitted": 266338.0
+        },
+        "asset:longswordsman": {
+          "pairedGpuMs": [
+            0.021,
+            0.034,
+            -0.69,
+            -0.291,
+            0.054,
+            0.357,
+            0.658,
+            2.025,
+            -0.74,
+            -9.444,
+            2.999,
+            -0.05,
+            -0.672,
+            1.788,
+            0.823,
+            1.783,
+            0.82,
+            4.19,
+            0.955,
+            -1.675,
+            -0.978,
+            1.388,
+            0.521,
+            1.611
+          ],
+          "medianMs": 0.439,
+          "middleHalfMs": [
+            -0.386,
+            1.444
+          ],
+          "blockMediansMs": [
+            0.044,
+            0.386,
+            0.887
+          ],
+          "fasterPairs": 16,
+          "medianTrianglesOmitted": 198468.0
+        },
+        "asset:grove-soft-1": {
+          "pairedGpuMs": [
+            1.593,
+            1.305,
+            1.782,
+            1.908,
+            4.385,
+            -0.021,
+            1.425,
+            4.115,
+            1.279,
+            -4.202,
+            0.769,
+            1.368,
+            1.61,
+            4.334,
+            2.377,
+            2.56,
+            1.049,
+            3.094,
+            1.256,
+            1.4,
+            7.675,
+            3.127,
+            1.222,
+            4.661
+          ],
+          "medianMs": 1.601,
+          "middleHalfMs": [
+            1.273,
+            3.102
+          ],
+          "blockMediansMs": [
+            1.688,
+            1.489,
+            2.247
+          ],
+          "fasterPairs": 22,
+          "medianTrianglesOmitted": 313076.0
+        },
+        "asset:ns-house-4a": {
+          "pairedGpuMs": [
+            3.5,
+            -1.648,
+            4.048,
+            2.279,
+            1.821,
+            0.452,
+            0.025,
+            -1.093,
+            0.483,
+            4.404,
+            0.487,
+            0.804,
+            1.674,
+            0.098,
+            2.869,
+            1.484,
+            -0.33,
+            -0.366,
+            -2.496,
+            1.931,
+            -0.319,
+            -0.864,
+            1.889,
+            -0.465
+          ],
+          "medianMs": 0.485,
+          "middleHalfMs": [
+            -0.339,
+            1.9
+          ],
+          "blockMediansMs": [
+            1.136,
+            1.144,
+            -0.348
+          ],
+          "fasterPairs": 16,
+          "medianTrianglesOmitted": 58028.0
+        },
+        "asset:ns-mine-headframe": {
+          "pairedGpuMs": [
+            0.475,
+            -0.028,
+            -0.696,
+            0.258,
+            -1.655,
+            2.359,
+            0.868,
+            0.045,
+            0.258,
+            -1.037,
+            -0.045,
+            -2.67,
+            -0.376,
+            -1.881,
+            0.096,
+            1.445,
+            1.059,
+            2.6,
+            2.566,
+            0.469,
+            -1.926,
+            -0.382,
+            1.824,
+            0.04
+          ],
+          "medianMs": 0.071,
+          "middleHalfMs": [
+            -0.46,
+            0.916
+          ],
+          "blockMediansMs": [
+            0.152,
+            -0.211,
+            0.764
+          ],
+          "fasterPairs": 14,
+          "medianTrianglesOmitted": 69600.0
+        }
+      }
+    }
+  },
+  "additionalTreeAndLightingPairs": {
+    "capital": {
+      "baselineSamples": 144,
+      "baselineMedianGpuMs": 21.762,
+      "baselineMedianCpuSubmitMs": 2.5,
+      "baselineMedianTriangles": 2552028.0,
+      "baselineMedianDraws": 348.0,
+      "groups": {
+        "sham": {
+          "pairedGpuMs": [
+            -0.104,
+            -0.329,
+            -0.274,
+            0.31,
+            0.692,
+            -2.232,
+            -0.159,
+            -1.862,
+            -2.382,
+            3.779,
+            -0.569,
+            1.244,
+            -12.509,
+            1.626,
+            0.327,
+            -1.761,
+            -0.128,
+            -12.476,
+            1.764,
+            1.51,
+            -0.15,
+            1.139,
+            -2.117,
+            3.919
+          ],
+          "medianMs": -0.139,
+          "middleHalfMs": [
+            -1.787,
+            1.165
+          ],
+          "blockMediansMs": [
+            -0.217,
+            -0.121,
+            0.505
+          ],
+          "fasterPairs": 10,
+          "medianTrianglesOmitted": 0.0
+        },
+        "asset:grove-soft-0": {
+          "pairedGpuMs": [
+            0.295,
+            -0.297,
+            1.16,
+            0.211,
+            0.057,
+            2.167,
+            -0.906,
+            1.594,
+            -0.932,
+            0.492,
+            1.447,
+            0.404,
+            2.433,
+            0.908,
+            2.054,
+            1.197,
+            1.736,
+            -4.847,
+            0.043,
+            0.328,
+            -2.86,
+            -0.759,
+            5.094,
+            -3.576
+          ],
+          "medianMs": 0.366,
+          "middleHalfMs": [
+            -0.412,
+            1.484
+          ],
+          "blockMediansMs": [
+            0.253,
+            1.053,
+            -0.358
+          ],
+          "fasterPairs": 17,
+          "medianTrianglesOmitted": 155595.0
+        },
+        "asset:grove-soft-1": {
+          "pairedGpuMs": [
+            0.22,
+            1.237,
+            -1.904,
+            2.004,
+            -0.685,
+            -0.09,
+            3.349,
+            1.602,
+            0.423,
+            1.227,
+            -3.219,
+            2.895,
+            -2.882,
+            0.528,
+            1.519,
+            -2.943,
+            2.824,
+            2.413,
+            -6.696,
+            -0.693,
+            3.386,
+            1.772,
+            3.084,
+            2.771
+          ],
+          "medianMs": 1.232,
+          "middleHalfMs": [
+            -0.687,
+            2.502
+          ],
+          "blockMediansMs": [
+            0.728,
+            0.475,
+            2.592
+          ],
+          "fasterPairs": 16,
+          "medianTrianglesOmitted": 232921.0
+        },
+        "asset:grove-soft-2": {
+          "pairedGpuMs": [
+            0.892,
+            1.806,
+            6.685,
+            0.617,
+            -0.368,
+            0.321,
+            -0.622,
+            -1.644,
+            1.766,
+            1.989,
+            0.297,
+            -0.509,
+            12.519,
+            0.743,
+            0.666,
+            2.061,
+            1.013,
+            0.582,
+            2.325,
+            1.844,
+            -0.767,
+            0.288,
+            -0.983,
+            -0.387
+          ],
+          "medianMs": 0.642,
+          "middleHalfMs": [
+            -0.373,
+            1.816
+          ],
+          "blockMediansMs": [
+            0.469,
+            1.255,
+            0.435
+          ],
+          "fasterPairs": 17,
+          "medianTrianglesOmitted": 139268.0
+        },
+        "contact": {
+          "pairedGpuMs": [
+            2.044,
+            6.763,
+            15.178,
+            3.176,
+            1.569,
+            2.238,
+            2.173,
+            1.775,
+            1.581,
+            2.537,
+            3.443,
+            3.468,
+            14.012,
+            6.364,
+            3.504,
+            1.322,
+            3.709,
+            2.194,
+            4.442,
+            5.561,
+            1.33,
+            0.309,
+            3.238,
+            3.754
+          ],
+          "medianMs": 3.207,
+          "middleHalfMs": [
+            1.976,
+            3.926
+          ],
+          "blockMediansMs": [
+            2.206,
+            3.456,
+            3.473
+          ],
+          "fasterPairs": 24,
+          "medianTrianglesOmitted": 3.0
+        },
+        "miniature": {
+          "pairedGpuMs": [
+            1.027,
+            -3.122,
+            -3.246,
+            0.413,
+            -0.109,
+            2.766,
+            -0.27,
+            1.217,
+            1.829,
+            -6.867,
+            -2.157,
+            -0.603,
+            -0.874,
+            0.725,
+            -0.13,
+            -0.859,
+            -1.17,
+            5.034,
+            -2.409,
+            -0.203,
+            1.698,
+            -2.265,
+            1.338,
+            -2.25
+          ],
+          "medianMs": -0.236,
+          "middleHalfMs": [
+            -2.18,
+            1.074
+          ],
+          "blockMediansMs": [
+            0.152,
+            -0.731,
+            -0.686
+          ],
+          "fasterPairs": 9,
+          "medianTrianglesOmitted": 0.0
+        }
+      }
+    },
+    "wide": {
+      "baselineSamples": 144,
+      "baselineMedianGpuMs": 26.295,
+      "baselineMedianCpuSubmitMs": 3.3,
+      "baselineMedianTriangles": 2881911.0,
+      "baselineMedianDraws": 593.0,
+      "groups": {
+        "sham": {
+          "pairedGpuMs": [
+            2.144,
+            -1.006,
+            -0.578,
+            -0.489,
+            0.724,
+            0.433,
+            0.305,
+            -0.449,
+            0.182,
+            -0.119,
+            0.015,
+            3.156,
+            0.363,
+            -1.055,
+            -1.071,
+            -0.288,
+            0.683,
+            -0.237,
+            -0.409,
+            2.774,
+            -0.436,
+            -1.986,
+            2.81,
+            0.636
+          ],
+          "medianMs": -0.052,
+          "middleHalfMs": [
+            -0.459,
+            0.648
+          ],
+          "blockMediansMs": [
+            -0.072,
+            -0.052,
+            0.199
+          ],
+          "fasterPairs": 12,
+          "medianTrianglesOmitted": 0.0
+        },
+        "asset:grove-soft-0": {
+          "pairedGpuMs": [
+            2.107,
+            0.604,
+            1.754,
+            2.393,
+            3.422,
+            -1.779,
+            4.671,
+            -0.538,
+            0.647,
+            1.127,
+            0.754,
+            1.422,
+            3.167,
+            1.385,
+            0.212,
+            -0.467,
+            2.942,
+            1.673,
+            4.753,
+            2.304,
+            -0.716,
+            2.379,
+            2.323,
+            3.255
+          ],
+          "medianMs": 1.713,
+          "middleHalfMs": [
+            0.637,
+            2.53
+          ],
+          "blockMediansMs": [
+            1.93,
+            0.941,
+            2.351
+          ],
+          "fasterPairs": 20,
+          "medianTrianglesOmitted": 331936.0
+        },
+        "asset:grove-soft-1": {
+          "pairedGpuMs": [
+            5.137,
+            2.724,
+            3.006,
+            1.946,
+            1.309,
+            1.47,
+            1.053,
+            2.136,
+            1.529,
+            1.255,
+            0.187,
+            -0.656,
+            2.49,
+            -0.763,
+            2.019,
+            2.322,
+            2.183,
+            2.711,
+            0.543,
+            1.556,
+            1.39,
+            2.888,
+            1.776,
+            1.612
+          ],
+          "medianMs": 1.694,
+          "middleHalfMs": [
+            1.295,
+            2.364
+          ],
+          "blockMediansMs": [
+            2.041,
+            1.392,
+            1.694
+          ],
+          "fasterPairs": 22,
+          "medianTrianglesOmitted": 313076.0
+        },
+        "asset:grove-soft-2": {
+          "pairedGpuMs": [
+            4.144,
+            1.275,
+            1.1,
+            1.03,
+            0.174,
+            2.88,
+            -0.782,
+            3.082,
+            1.889,
+            3.718,
+            3.43,
+            0.157,
+            1.296,
+            2.316,
+            1.633,
+            1.039,
+            2.631,
+            3.327,
+            2.215,
+            1.187,
+            -1.648,
+            0.721,
+            3.802,
+            1.688
+          ],
+          "medianMs": 1.661,
+          "middleHalfMs": [
+            1.036,
+            2.93
+          ],
+          "blockMediansMs": [
+            1.188,
+            1.761,
+            1.952
+          ],
+          "fasterPairs": 22,
+          "medianTrianglesOmitted": 237132.0
+        },
+        "contact": {
+          "pairedGpuMs": [
+            0.378,
+            1.252,
+            0.28,
+            0.924,
+            3.568,
+            3.491,
+            3.438,
+            3.663,
+            2.898,
+            3.756,
+            4.005,
+            1.629,
+            3.085,
+            2.302,
+            2.121,
+            3.554,
+            2.013,
+            3.19,
+            3.543,
+            0.185,
+            2.235,
+            1.618,
+            2.007,
+            3.74
+          ],
+          "medianMs": 2.6,
+          "middleHalfMs": [
+            1.626,
+            3.545
+          ],
+          "blockMediansMs": [
+            2.345,
+            2.992,
+            2.124
+          ],
+          "fasterPairs": 24,
+          "medianTrianglesOmitted": 3.0
+        },
+        "miniature": {
+          "pairedGpuMs": [
+            -3.647,
+            -0.82,
+            -2.511,
+            -0.776,
+            3.205,
+            0.295,
+            3.277,
+            -0.18,
+            0.835,
+            1.56,
+            -1.307,
+            0.786,
+            0.688,
+            0.394,
+            -0.533,
+            0.547,
+            -1.127,
+            0.11,
+            0.465,
+            -6.317,
+            1.062,
+            0.521,
+            -1.933,
+            1.131
+          ],
+          "medianMs": 0.345,
+          "middleHalfMs": [
+            -0.897,
+            0.798
+          ],
+          "blockMediansMs": [
+            -0.478,
+            0.618,
+            0.288
+          ],
+          "fasterPairs": 14,
+          "medianTrianglesOmitted": 0.0
+        }
+      }
+    }
+  },
+  "mainCamera": {
+    "capital": {
+      "families": {
+        "works and resources": {
+          "triangles": 197780,
+          "draws": 71
+        },
+        "other layers": {
+          "triangles": 154872,
+          "draws": 65
+        },
+        "towns": {
+          "triangles": 296941,
+          "draws": 13,
+          "checked": 2439,
+          "outside": 1636,
+          "outsideTriangles": 172914
+        },
+        "water": {
+          "triangles": 68603,
+          "draws": 12
+        },
+        "land": {
+          "triangles": 549059,
+          "draws": 12
+        },
+        "rocks and details": {
+          "triangles": 77975,
+          "draws": 61
+        },
+        "trees": {
+          "triangles": 548288,
+          "draws": 35
+        },
+        "units": {
+          "triangles": 658506,
+          "draws": 75,
+          "checked": 851,
+          "outside": 638,
+          "outsideTriangles": 461361
+        }
+      },
+      "parts": [
+        {
+          "cat": "land",
+          "part": "merged land",
+          "layer": "painted-board",
+          "draws": 12,
+          "triangles": 549059,
+          "instances": 12
+        },
+        {
+          "cat": "trees",
+          "part": "grove-soft-1",
+          "layer": "painted-board",
+          "draws": 8,
+          "triangles": 232921,
+          "instances": 247
+        },
+        {
+          "cat": "units",
+          "part": "longswordsman",
+          "layer": "units",
+          "draws": 6,
+          "triangles": 198468,
+          "instances": 111,
+          "checked": 111,
+          "outside": 81,
+          "outsideTriangles": 144828
+        },
+        {
+          "cat": "trees",
+          "part": "grove-soft-0",
+          "layer": "painted-board",
+          "draws": 9,
+          "triangles": 155595,
+          "instances": 165
+        },
+        {
+          "cat": "trees",
+          "part": "grove-soft-2",
+          "layer": "painted-board",
+          "draws": 9,
+          "triangles": 139268,
+          "instances": 148
+        },
+        {
+          "cat": "towns",
+          "part": "painted-cities",
+          "layer": "painted-cities",
+          "draws": 5,
+          "triangles": 108731,
+          "instances": 2112,
+          "checked": 2111,
+          "outside": 1414,
+          "outsideTriangles": 42924
+        },
+        {
+          "cat": "works and resources",
+          "part": "painted-works",
+          "layer": "painted-works",
+          "draws": 34,
+          "triangles": 98032,
+          "instances": 805
+        },
+        {
+          "cat": "units",
+          "part": "swordsman",
+          "layer": "units",
+          "draws": 6,
+          "triangles": 85956,
+          "instances": 57,
+          "checked": 57,
+          "outside": 42,
+          "outsideTriangles": 63336
+        },
+        {
+          "cat": "units",
+          "part": "trader",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 83754,
+          "instances": 54,
+          "checked": 54,
+          "outside": 33,
+          "outsideTriangles": 51183
+        },
+        {
+          "cat": "water",
+          "part": "merged water",
+          "layer": "painted-board",
+          "draws": 12,
+          "triangles": 68603,
+          "instances": 12
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-mine-headframe",
+          "layer": "painted-works",
+          "draws": 4,
+          "triangles": 59400,
+          "instances": 99
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-roads",
+          "layer": "painted-roads",
+          "draws": 4,
+          "triangles": 58434,
+          "instances": 4
+        },
+        {
+          "cat": "towns",
+          "part": "ns-house-4a",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 58028,
+          "instances": 89,
+          "checked": 89,
+          "outside": 62,
+          "outsideTriangles": 40424
+        },
+        {
+          "cat": "units",
+          "part": "worker",
+          "layer": "units",
+          "draws": 6,
+          "triangles": 56544,
+          "instances": 57,
+          "checked": 57,
+          "outside": 48,
+          "outsideTriangles": 47616
+        },
+        {
+          "cat": "units",
+          "part": "scout",
+          "layer": "units",
+          "draws": 6,
+          "triangles": 51636,
+          "instances": 39,
+          "checked": 39,
+          "outside": 36,
+          "outsideTriangles": 47664
+        },
+        {
+          "cat": "towns",
+          "part": "ns-hall-4",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 46970,
+          "instances": 35,
+          "checked": 35,
+          "outside": 25,
+          "outsideTriangles": 33550
+        },
+        {
+          "cat": "rocks and details",
+          "part": "limestone",
+          "layer": "painted-board",
+          "draws": 15,
+          "triangles": 42988,
+          "instances": 977
+        },
+        {
+          "cat": "towns",
+          "part": "ns-house-3f",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 36860,
+          "instances": 95,
+          "checked": 95,
+          "outside": 64,
+          "outsideTriangles": 24832
+        },
+        {
+          "cat": "units",
+          "part": "crossbowman",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 36360,
+          "instances": 18,
+          "checked": 18,
+          "outside": 15,
+          "outsideTriangles": 30300
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-territory-tint",
+          "layer": "painted-territory-tint",
+          "draws": 4,
+          "triangles": 35270,
+          "instances": 4
+        },
+        {
+          "cat": "towns",
+          "part": "ns-house-3e",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 33456,
+          "instances": 82,
+          "checked": 82,
+          "outside": 55,
+          "outsideTriangles": 22440
+        },
+        {
+          "cat": "units",
+          "part": "pikeman",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 31536,
+          "instances": 18,
+          "checked": 18,
+          "outside": 3,
+          "outsideTriangles": 5256
+        },
+        {
+          "cat": "units",
+          "part": "trebuchet",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 31020,
+          "instances": 15,
+          "checked": 15,
+          "outside": 6,
+          "outsideTriangles": 12408
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-chart-table",
+          "layer": "painted-board",
+          "draws": 1,
+          "triangles": 24960,
+          "instances": 1
+        },
+        {
+          "cat": "units",
+          "part": "embarked",
+          "layer": "units",
+          "draws": 9,
+          "triangles": 24960,
+          "instances": 39,
+          "checked": 39,
+          "outside": 27,
+          "outsideTriangles": 17280
+        },
+        {
+          "cat": "units",
+          "part": "horseman",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 22824,
+          "instances": 18,
+          "checked": 18,
+          "outside": 18,
+          "outsideTriangles": 22824
+        },
+        {
+          "cat": "units",
+          "part": "units",
+          "layer": "units",
+          "draws": 21,
+          "triangles": 18696,
+          "instances": 413,
+          "checked": 413,
+          "outside": 326,
+          "outsideTriangles": 14742
+        },
+        {
+          "cat": "trees",
+          "part": "cypress-soft-0",
+          "layer": "painted-board",
+          "draws": 6,
+          "triangles": 15378,
+          "instances": 66
+        },
+        {
+          "cat": "rocks and details",
+          "part": "earth",
+          "layer": "painted-board",
+          "draws": 12,
+          "triangles": 14896,
+          "instances": 12
+        },
+        {
+          "cat": "other layers",
+          "part": "map-ends-rail",
+          "layer": "painted-board",
+          "draws": 1,
+          "triangles": 9072,
+          "instances": 1
+        },
+        {
+          "cat": "units",
+          "part": "prophet",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 8904,
+          "instances": 6,
+          "checked": 6,
+          "outside": 0,
+          "outsideTriangles": 0
+        },
+        {
+          "cat": "units",
+          "part": "knight",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 7848,
+          "instances": 6,
+          "checked": 6,
+          "outside": 3,
+          "outsideTriangles": 3924
+        },
+        {
+          "cat": "other layers",
+          "part": "lens",
+          "layer": "lens",
+          "draws": 36,
+          "triangles": 7224,
+          "instances": 1032
+        },
+        {
+          "cat": "works and resources",
+          "part": "mine",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 6080,
+          "instances": 16
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-yield-light",
+          "layer": "painted-yield-light",
+          "draws": 1,
+          "triangles": 6040,
+          "instances": 1
+        },
+        {
+          "cat": "trees",
+          "part": "cypress-soft-1",
+          "layer": "painted-board",
+          "draws": 3,
+          "triangles": 5126,
+          "instances": 22
+        },
+        {
+          "cat": "towns",
+          "part": "ns-hall-3",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 4448,
+          "instances": 4,
+          "checked": 4,
+          "outside": 4,
+          "outsideTriangles": 4448
+        },
+        {
+          "cat": "works and resources",
+          "part": "resource-shrub",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 4032,
+          "instances": 16
+        },
+        {
+          "cat": "towns",
+          "part": "monument-ziggurat",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 3972,
+          "instances": 6,
+          "checked": 6,
+          "outside": 4,
+          "outsideTriangles": 2648
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-0",
+          "layer": "painted-board",
+          "draws": 3,
+          "triangles": 3910,
+          "instances": 5
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-sails",
+          "layer": "painted-sails",
+          "draws": 1,
+          "triangles": 3528,
+          "instances": 18
+        },
+        {
+          "cat": "towns",
+          "part": "monument-obelisk",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 3296,
+          "instances": 16,
+          "checked": 16,
+          "outside": 8,
+          "outsideTriangles": 1648
+        },
+        {
+          "cat": "works and resources",
+          "part": "Obsidian fractured glass",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 3240,
+          "instances": 30
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-smoke",
+          "layer": "painted-smoke",
+          "draws": 1,
+          "triangles": 3200,
+          "instances": 160
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-loft-barn",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 3000,
+          "instances": 10
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-1",
+          "layer": "painted-board",
+          "draws": 3,
+          "triangles": 2980,
+          "instances": 4
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-camel-a",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 2784,
+          "instances": 8
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range limestone",
+          "layer": "painted-board",
+          "draws": 5,
+          "triangles": 2772,
+          "instances": 63
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-windmill",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 2752,
+          "instances": 8
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-academy",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 2512,
+          "instances": 1
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-camel-b",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 2366,
+          "instances": 7
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-3",
+          "layer": "painted-board",
+          "draws": 2,
+          "triangles": 2202,
+          "instances": 3
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-flow",
+          "layer": "painted-flow",
+          "draws": 1,
+          "triangles": 2012,
+          "instances": 1006
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-territory",
+          "layer": "painted-territory",
+          "draws": 4,
+          "triangles": 1832,
+          "instances": 4
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-2",
+          "layer": "painted-board",
+          "draws": 2,
+          "triangles": 1821,
+          "instances": 3
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-holy-site",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 1768,
+          "instances": 1
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-manufactory",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 1768,
+          "instances": 1
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-1-shoulder",
+          "layer": "painted-board",
+          "draws": 4,
+          "triangles": 1760,
+          "instances": 10
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-horse-b",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 1520,
+          "instances": 5
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-horse-c",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 1520,
+          "instances": 5
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-horse-a",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 1520,
+          "instances": 5
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-saw-hall",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 1408,
+          "instances": 4
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-2-shoulder",
+          "layer": "painted-board",
+          "draws": 3,
+          "triangles": 1232,
+          "instances": 7
+        },
+        {
+          "cat": "towns",
+          "part": "monument-armillary",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 1180,
+          "instances": 1,
+          "checked": 1,
+          "outside": 0,
+          "outsideTriangles": 0
+        },
+        {
+          "cat": "works and resources",
+          "part": "lumber-stockpile",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 1104,
+          "instances": 4
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-4-shoulder",
+          "layer": "painted-board",
+          "draws": 3,
+          "triangles": 1056,
+          "instances": 6
+        },
+        {
+          "cat": "other layers",
+          "part": "site-antiquity",
+          "layer": "painted-sites",
+          "draws": 1,
+          "triangles": 992,
+          "instances": 2
+        },
+        {
+          "cat": "works and resources",
+          "part": "improvements",
+          "layer": "improvements",
+          "draws": 2,
+          "triangles": 864,
+          "instances": 12
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-barn",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 848,
+          "instances": 4
+        },
+        {
+          "cat": "rocks and details",
+          "part": "merged details",
+          "layer": "painted-board",
+          "draws": 4,
+          "triangles": 754,
+          "instances": 4
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-4",
+          "layer": "painted-board",
+          "draws": 1,
+          "triangles": 724,
+          "instances": 1
+        },
+        {
+          "cat": "other layers",
+          "part": "map-ends-shade",
+          "layer": "painted-board",
+          "draws": 1,
+          "triangles": 644,
+          "instances": 1
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-stable",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 640,
+          "instances": 2
+        },
+        {
+          "cat": "other layers",
+          "part": "site-ruin-fragment",
+          "layer": "painted-sites",
+          "draws": 1,
+          "triangles": 528,
+          "instances": 4
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-0-shoulder",
+          "layer": "painted-board",
+          "draws": 2,
+          "triangles": 528,
+          "instances": 3
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-sites",
+          "layer": "painted-sites",
+          "draws": 2,
+          "triangles": 491,
+          "instances": 3
+        },
+        {
+          "cat": "works and resources",
+          "part": "camp",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 371,
+          "instances": 7
+        },
+        {
+          "cat": "other layers",
+          "part": "fog",
+          "layer": "fog",
+          "draws": 2,
+          "triangles": 366,
+          "instances": 183
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-3-shoulder",
+          "layer": "painted-board",
+          "draws": 2,
+          "triangles": 352,
+          "instances": 2
+        },
+        {
+          "cat": "other layers",
+          "part": "sites",
+          "layer": "sites",
+          "draws": 3,
+          "triangles": 252,
+          "instances": 36
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-haystack",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 136,
+          "instances": 4
+        },
+        {
+          "cat": "works and resources",
+          "part": "fishing-boat",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 115,
+          "instances": 1
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-birds",
+          "layer": "painted-birds",
+          "draws": 1,
+          "triangles": 27,
+          "instances": 9
+        }
+      ]
+    },
+    "wide": {
+      "families": {
+        "works and resources": {
+          "triangles": 265138,
+          "draws": 145
+        },
+        "other layers": {
+          "triangles": 221216,
+          "draws": 89
+        },
+        "towns": {
+          "triangles": 298269,
+          "draws": 14,
+          "checked": 2443,
+          "outside": 693,
+          "outsideTriangles": 72446
+        },
+        "water": {
+          "triangles": 138405,
+          "draws": 24
+        },
+        "land": {
+          "triangles": 195223,
+          "draws": 23
+        },
+        "rocks and details": {
+          "triangles": 128634,
+          "draws": 122
+        },
+        "trees": {
+          "triangles": 923618,
+          "draws": 75
+        },
+        "units": {
+          "triangles": 710204,
+          "draws": 96,
+          "checked": 894,
+          "outside": 285,
+          "outsideTriangles": 177090
+        }
+      },
+      "parts": [
+        {
+          "cat": "trees",
+          "part": "grove-soft-0",
+          "layer": "painted-board",
+          "draws": 21,
+          "triangles": 331936,
+          "instances": 352
+        },
+        {
+          "cat": "trees",
+          "part": "grove-soft-1",
+          "layer": "painted-board",
+          "draws": 19,
+          "triangles": 313076,
+          "instances": 332
+        },
+        {
+          "cat": "trees",
+          "part": "grove-soft-2",
+          "layer": "painted-board",
+          "draws": 19,
+          "triangles": 237132,
+          "instances": 252
+        },
+        {
+          "cat": "units",
+          "part": "longswordsman",
+          "layer": "units",
+          "draws": 6,
+          "triangles": 198468,
+          "instances": 111,
+          "checked": 111,
+          "outside": 15,
+          "outsideTriangles": 26820
+        },
+        {
+          "cat": "land",
+          "part": "plain land",
+          "layer": "painted-board",
+          "draws": 23,
+          "triangles": 195223,
+          "instances": 23
+        },
+        {
+          "cat": "water",
+          "part": "merged water",
+          "layer": "painted-board",
+          "draws": 24,
+          "triangles": 138405,
+          "instances": 24
+        },
+        {
+          "cat": "works and resources",
+          "part": "painted-works",
+          "layer": "painted-works",
+          "draws": 68,
+          "triangles": 126952,
+          "instances": 1567
+        },
+        {
+          "cat": "towns",
+          "part": "painted-cities",
+          "layer": "painted-cities",
+          "draws": 5,
+          "triangles": 108731,
+          "instances": 2112,
+          "checked": 2111,
+          "outside": 599,
+          "outsideTriangles": 18988
+        },
+        {
+          "cat": "units",
+          "part": "trader",
+          "layer": "units",
+          "draws": 6,
+          "triangles": 102366,
+          "instances": 66,
+          "checked": 66,
+          "outside": 24,
+          "outsideTriangles": 37224
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-roads",
+          "layer": "painted-roads",
+          "draws": 8,
+          "triangles": 92442,
+          "instances": 8
+        },
+        {
+          "cat": "units",
+          "part": "swordsman",
+          "layer": "units",
+          "draws": 6,
+          "triangles": 85956,
+          "instances": 57,
+          "checked": 57,
+          "outside": 12,
+          "outsideTriangles": 18096
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-mine-headframe",
+          "layer": "painted-works",
+          "draws": 6,
+          "triangles": 68400,
+          "instances": 114
+        },
+        {
+          "cat": "units",
+          "part": "worker",
+          "layer": "units",
+          "draws": 12,
+          "triangles": 65472,
+          "instances": 66,
+          "checked": 66,
+          "outside": 27,
+          "outsideTriangles": 26784
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-territory-tint",
+          "layer": "painted-territory-tint",
+          "draws": 9,
+          "triangles": 63444,
+          "instances": 9
+        },
+        {
+          "cat": "rocks and details",
+          "part": "limestone",
+          "layer": "painted-board",
+          "draws": 24,
+          "triangles": 61556,
+          "instances": 1399
+        },
+        {
+          "cat": "towns",
+          "part": "ns-house-4a",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 58028,
+          "instances": 89,
+          "checked": 89,
+          "outside": 23,
+          "outsideTriangles": 14996
+        },
+        {
+          "cat": "units",
+          "part": "scout",
+          "layer": "units",
+          "draws": 6,
+          "triangles": 51636,
+          "instances": 39,
+          "checked": 39,
+          "outside": 15,
+          "outsideTriangles": 19860
+        },
+        {
+          "cat": "units",
+          "part": "pikeman",
+          "layer": "units",
+          "draws": 6,
+          "triangles": 47304,
+          "instances": 27,
+          "checked": 27,
+          "outside": 6,
+          "outsideTriangles": 10512
+        },
+        {
+          "cat": "towns",
+          "part": "ns-hall-4",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 46970,
+          "instances": 35,
+          "checked": 35,
+          "outside": 9,
+          "outsideTriangles": 12078
+        },
+        {
+          "cat": "towns",
+          "part": "ns-house-3f",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 36860,
+          "instances": 95,
+          "checked": 95,
+          "outside": 26,
+          "outsideTriangles": 10088
+        },
+        {
+          "cat": "units",
+          "part": "crossbowman",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 36360,
+          "instances": 18,
+          "checked": 18,
+          "outside": 0,
+          "outsideTriangles": 0
+        },
+        {
+          "cat": "towns",
+          "part": "ns-house-3e",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 33456,
+          "instances": 82,
+          "checked": 82,
+          "outside": 27,
+          "outsideTriangles": 11016
+        },
+        {
+          "cat": "units",
+          "part": "trebuchet",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 31020,
+          "instances": 15,
+          "checked": 15,
+          "outside": 0,
+          "outsideTriangles": 0
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-chart-table",
+          "layer": "painted-board",
+          "draws": 1,
+          "triangles": 24960,
+          "instances": 1
+        },
+        {
+          "cat": "units",
+          "part": "embarked",
+          "layer": "units",
+          "draws": 9,
+          "triangles": 24960,
+          "instances": 39,
+          "checked": 39,
+          "outside": 12,
+          "outsideTriangles": 7680
+        },
+        {
+          "cat": "rocks and details",
+          "part": "earth",
+          "layer": "painted-board",
+          "draws": 23,
+          "triangles": 24208,
+          "instances": 23
+        },
+        {
+          "cat": "units",
+          "part": "horseman",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 22824,
+          "instances": 18,
+          "checked": 18,
+          "outside": 15,
+          "outsideTriangles": 19020
+        },
+        {
+          "cat": "trees",
+          "part": "cypress-soft-0",
+          "layer": "painted-board",
+          "draws": 7,
+          "triangles": 21436,
+          "instances": 92
+        },
+        {
+          "cat": "trees",
+          "part": "cypress-soft-1",
+          "layer": "painted-board",
+          "draws": 9,
+          "triangles": 20038,
+          "instances": 86
+        },
+        {
+          "cat": "units",
+          "part": "units",
+          "layer": "units",
+          "draws": 24,
+          "triangles": 18710,
+          "instances": 420,
+          "checked": 420,
+          "outside": 156,
+          "outsideTriangles": 7170
+        },
+        {
+          "cat": "works and resources",
+          "part": "resource-shrub",
+          "layer": "painted-works",
+          "draws": 5,
+          "triangles": 17136,
+          "instances": 68
+        },
+        {
+          "cat": "other layers",
+          "part": "map-ends-rail",
+          "layer": "painted-board",
+          "draws": 1,
+          "triangles": 9072,
+          "instances": 1
+        },
+        {
+          "cat": "units",
+          "part": "prophet",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 8904,
+          "instances": 6,
+          "checked": 6,
+          "outside": 0,
+          "outsideTriangles": 0
+        },
+        {
+          "cat": "units",
+          "part": "knight",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 7848,
+          "instances": 6,
+          "checked": 6,
+          "outside": 3,
+          "outsideTriangles": 3924
+        },
+        {
+          "cat": "other layers",
+          "part": "lens",
+          "layer": "lens",
+          "draws": 36,
+          "triangles": 7224,
+          "instances": 1032
+        },
+        {
+          "cat": "works and resources",
+          "part": "mine",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 6460,
+          "instances": 17
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-yield-light",
+          "layer": "painted-yield-light",
+          "draws": 1,
+          "triangles": 6040,
+          "instances": 1
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-3",
+          "layer": "painted-board",
+          "draws": 6,
+          "triangles": 5872,
+          "instances": 8
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-0",
+          "layer": "painted-board",
+          "draws": 4,
+          "triangles": 5474,
+          "instances": 7
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-camel-a",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 4872,
+          "instances": 14
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-2",
+          "layer": "painted-board",
+          "draws": 6,
+          "triangles": 4856,
+          "instances": 8
+        },
+        {
+          "cat": "units",
+          "part": "apostle",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 4608,
+          "instances": 3,
+          "checked": 3,
+          "outside": 0,
+          "outsideTriangles": 0
+        },
+        {
+          "cat": "towns",
+          "part": "ns-hall-3",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 4448,
+          "instances": 4,
+          "checked": 4,
+          "outside": 3,
+          "outsideTriangles": 3336
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range limestone",
+          "layer": "painted-board",
+          "draws": 11,
+          "triangles": 4268,
+          "instances": 97
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-windmill",
+          "layer": "painted-works",
+          "draws": 5,
+          "triangles": 4128,
+          "instances": 12
+        },
+        {
+          "cat": "towns",
+          "part": "monument-ziggurat",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 3972,
+          "instances": 6,
+          "checked": 6,
+          "outside": 1,
+          "outsideTriangles": 662
+        },
+        {
+          "cat": "units",
+          "part": "settler",
+          "layer": "units",
+          "draws": 3,
+          "triangles": 3768,
+          "instances": 3,
+          "checked": 3,
+          "outside": 0,
+          "outsideTriangles": 0
+        },
+        {
+          "cat": "rocks and details",
+          "part": "merged details",
+          "layer": "painted-board",
+          "draws": 10,
+          "triangles": 3576,
+          "instances": 10
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-sails",
+          "layer": "painted-sails",
+          "draws": 1,
+          "triangles": 3528,
+          "instances": 18
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-camel-b",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 3380,
+          "instances": 10
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-territory",
+          "layer": "painted-territory",
+          "draws": 9,
+          "triangles": 3340,
+          "instances": 9
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-loft-barn",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 3300,
+          "instances": 11
+        },
+        {
+          "cat": "towns",
+          "part": "monument-obelisk",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 3296,
+          "instances": 16,
+          "checked": 16,
+          "outside": 3,
+          "outsideTriangles": 618
+        },
+        {
+          "cat": "works and resources",
+          "part": "Obsidian fractured glass",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 3240,
+          "instances": 30
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-smoke",
+          "layer": "painted-smoke",
+          "draws": 1,
+          "triangles": 3200,
+          "instances": 160
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-1",
+          "layer": "painted-board",
+          "draws": 3,
+          "triangles": 2980,
+          "instances": 4
+        },
+        {
+          "cat": "rocks and details",
+          "part": "feature shrub",
+          "layer": "painted-board",
+          "draws": 2,
+          "triangles": 2880,
+          "instances": 2
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-0-shoulder",
+          "layer": "painted-board",
+          "draws": 8,
+          "triangles": 2640,
+          "instances": 15
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-academy",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 2512,
+          "instances": 1
+        },
+        {
+          "cat": "works and resources",
+          "part": "lumber-stockpile",
+          "layer": "painted-works",
+          "draws": 5,
+          "triangles": 2484,
+          "instances": 9
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-saw-hall",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 2464,
+          "instances": 7
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-4",
+          "layer": "painted-board",
+          "draws": 3,
+          "triangles": 2172,
+          "instances": 3
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-2-shoulder",
+          "layer": "painted-board",
+          "draws": 6,
+          "triangles": 2112,
+          "instances": 12
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-1-shoulder",
+          "layer": "painted-board",
+          "draws": 5,
+          "triangles": 2112,
+          "instances": 12
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-flow",
+          "layer": "painted-flow",
+          "draws": 1,
+          "triangles": 2012,
+          "instances": 1006
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-stable",
+          "layer": "painted-works",
+          "draws": 4,
+          "triangles": 1920,
+          "instances": 6
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-horse-b",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 1824,
+          "instances": 6
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-horse-c",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 1824,
+          "instances": 6
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-horse-a",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 1824,
+          "instances": 6
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-holy-site",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 1768,
+          "instances": 1
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-manufactory",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 1768,
+          "instances": 1
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-sites",
+          "layer": "painted-sites",
+          "draws": 8,
+          "triangles": 1645,
+          "instances": 83
+        },
+        {
+          "cat": "other layers",
+          "part": "site-antiquity",
+          "layer": "painted-sites",
+          "draws": 2,
+          "triangles": 1488,
+          "instances": 3
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-barn",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 1484,
+          "instances": 7
+        },
+        {
+          "cat": "rocks and details",
+          "part": "feature stone",
+          "layer": "painted-board",
+          "draws": 2,
+          "triangles": 1464,
+          "instances": 2
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-4-shoulder",
+          "layer": "painted-board",
+          "draws": 5,
+          "triangles": 1408,
+          "instances": 8
+        },
+        {
+          "cat": "towns",
+          "part": "ns-house-3d",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 1328,
+          "instances": 4,
+          "checked": 4,
+          "outside": 2,
+          "outsideTriangles": 664
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-quarry",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 1240,
+          "instances": 2
+        },
+        {
+          "cat": "towns",
+          "part": "monument-armillary",
+          "layer": "painted-cities",
+          "draws": 1,
+          "triangles": 1180,
+          "instances": 1,
+          "checked": 1,
+          "outside": 0,
+          "outsideTriangles": 0
+        },
+        {
+          "cat": "rocks and details",
+          "part": "range crag-fallen-3-shoulder",
+          "layer": "painted-board",
+          "draws": 4,
+          "triangles": 1056,
+          "instances": 6
+        },
+        {
+          "cat": "works and resources",
+          "part": "lumbermill",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 936,
+          "instances": 2
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-bison-a",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 870,
+          "instances": 3
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-bison-b",
+          "layer": "painted-works",
+          "draws": 1,
+          "triangles": 870,
+          "instances": 3
+        },
+        {
+          "cat": "works and resources",
+          "part": "improvements",
+          "layer": "improvements",
+          "draws": 2,
+          "triangles": 864,
+          "instances": 12
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-elephant-a",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 800,
+          "instances": 2
+        },
+        {
+          "cat": "other layers",
+          "part": "site-ruin-fragment",
+          "layer": "painted-sites",
+          "draws": 2,
+          "triangles": 792,
+          "instances": 6
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-elephant-b",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 720,
+          "instances": 2
+        },
+        {
+          "cat": "other layers",
+          "part": "map-ends-shade",
+          "layer": "painted-board",
+          "draws": 1,
+          "triangles": 644,
+          "instances": 1
+        },
+        {
+          "cat": "works and resources",
+          "part": "camp",
+          "layer": "painted-works",
+          "draws": 5,
+          "triangles": 583,
+          "instances": 11
+        },
+        {
+          "cat": "other layers",
+          "part": "site-watchtower",
+          "layer": "painted-sites",
+          "draws": 1,
+          "triangles": 444,
+          "instances": 1
+        },
+        {
+          "cat": "other layers",
+          "part": "fog",
+          "layer": "fog",
+          "draws": 2,
+          "triangles": 366,
+          "instances": 183
+        },
+        {
+          "cat": "works and resources",
+          "part": "fishing-boat",
+          "layer": "painted-works",
+          "draws": 2,
+          "triangles": 345,
+          "instances": 3
+        },
+        {
+          "cat": "other layers",
+          "part": "site-raider-tent",
+          "layer": "painted-sites",
+          "draws": 1,
+          "triangles": 296,
+          "instances": 2
+        },
+        {
+          "cat": "other layers",
+          "part": "sites",
+          "layer": "sites",
+          "draws": 3,
+          "triangles": 252,
+          "instances": 36
+        },
+        {
+          "cat": "works and resources",
+          "part": "ns-haystack",
+          "layer": "painted-works",
+          "draws": 3,
+          "triangles": 170,
+          "instances": 5
+        },
+        {
+          "cat": "other layers",
+          "part": "painted-birds",
+          "layer": "painted-birds",
+          "draws": 1,
+          "triangles": 27,
+          "instances": 9
+        }
+      ]
+    }
+  },
+  "inlandExploratoryGpuMs": {
+    "land": [
+      13.92,
+      -3.97,
+      16.124,
+      21.735
+    ],
+    "other layers": [
+      16.377,
+      13.709,
+      3.77,
+      -2.028
+    ],
+    "rocks and details": [
+      12.797,
+      2.304,
+      -4.429,
+      9.162
+    ],
+    "towns": [
+      0.79,
+      3.213,
+      -8.58,
+      36.074
+    ],
+    "trees": [
+      -4.678,
+      7.508,
+      5.217,
+      9.634
+    ],
+    "units": [
+      -4.641,
+      3.695,
+      -1.244,
+      -5.45
+    ],
+    "water": [
+      24.643,
+      4.701,
+      9.004,
+      3.447
+    ],
+    "works and resources": [
+      1.587,
+      3.869,
+      4.089,
+      -19.798
+    ]
+  },
+  "cityBuildTrial": {
+    "views": [
+      {
+        "col": 46,
+        "row": 7,
+        "z": 7,
+        "diffs": [
+          0,
+          0,
+          0
+        ],
+        "nonzero": true,
+        "current": {
+          "instancesTotal": 7329,
+          "meshes": 39,
+          "allocatedBytes": 557004,
+          "distinctBuffers": 78
+        },
+        "shared": {
+          "instancesTotal": 7329,
+          "meshes": 39,
+          "allocatedBytes": 185668,
+          "distinctBuffers": 26
+        }
+      },
+      {
+        "col": 53,
+        "row": 15,
+        "z": 7,
+        "diffs": [
+          0,
+          0,
+          0
+        ],
+        "nonzero": true,
+        "current": {
+          "instancesTotal": 7329,
+          "meshes": 39,
+          "allocatedBytes": 557004,
+          "distinctBuffers": 78
+        },
+        "shared": {
+          "instancesTotal": 7329,
+          "meshes": 39,
+          "allocatedBytes": 185668,
+          "distinctBuffers": 26
+        }
+      },
+      {
+        "col": 46,
+        "row": 7,
+        "z": 14,
+        "diffs": [
+          0,
+          0,
+          0
+        ],
+        "nonzero": true,
+        "current": {
+          "instancesTotal": 7329,
+          "meshes": 39,
+          "allocatedBytes": 557004,
+          "distinctBuffers": 78
+        },
+        "shared": {
+          "instancesTotal": 7329,
+          "meshes": 39,
+          "allocatedBytes": 185668,
+          "distinctBuffers": 26
+        }
+      },
+      {
+        "col": 0,
+        "row": 7,
+        "z": 14,
+        "diffs": [
+          0,
+          0,
+          0
+        ],
+        "nonzero": true,
+        "current": {
+          "instancesTotal": 7329,
+          "meshes": 39,
+          "allocatedBytes": 557004,
+          "distinctBuffers": 78
+        },
+        "shared": {
+          "instancesTotal": 7329,
+          "meshes": 39,
+          "allocatedBytes": 185668,
+          "distinctBuffers": 26
+        }
+      }
+    ],
+    "times": [
+      {
+        "base": 1.5,
+        "shared": 0.7
+      },
+      {
+        "shared": 1.1,
+        "base": 2.6
+      },
+      {
+        "base": 1.5,
+        "shared": 0.7
+      },
+      {
+        "shared": 0.9,
+        "base": 1.5
+      },
+      {
+        "base": 1.7,
+        "shared": 0.7
+      },
+      {
+        "shared": 0.9,
+        "base": 1.2
+      },
+      {
+        "base": 1.4,
+        "shared": 0.7
+      },
+      {
+        "shared": 0.6,
+        "base": 1
+      },
+      {
+        "base": 1.1,
+        "shared": 0.6
+      },
+      {
+        "shared": 0.9,
+        "base": 1.2
+      },
+      {
+        "base": 1.3,
+        "shared": 0.6
+      },
+      {
+        "shared": 0.8,
+        "base": 1.1
+      },
+      {
+        "base": 1.3,
+        "shared": 0.5
+      },
+      {
+        "shared": 0.8,
+        "base": 1.1
+      },
+      {
+        "base": 4.6,
+        "shared": 0.5
+      },
+      {
+        "shared": 0.6,
+        "base": 1.2
+      },
+      {
+        "base": 1.2,
+        "shared": 0.6
+      },
+      {
+        "shared": 0.8,
+        "base": 1.3
+      },
+      {
+        "base": 1.3,
+        "shared": 0.7
+      },
+      {
+        "shared": 0.6,
+        "base": 1.2
+      },
+      {
+        "base": 1.8,
+        "shared": 0.6
+      },
+      {
+        "shared": 0.8,
+        "base": 1.3
+      },
+      {
+        "base": 1.2,
+        "shared": 0.7
+      },
+      {
+        "shared": 1,
+        "base": 1.2
+      },
+      {
+        "base": 1.4,
+        "shared": 0.6
+      },
+      {
+        "shared": 0.9,
+        "base": 1.2
+      },
+      {
+        "base": 4,
+        "shared": 0.6
+      },
+      {
+        "shared": 0.8,
+        "base": 1.5
+      },
+      {
+        "base": 1.3,
+        "shared": 0.6
+      },
+      {
+        "shared": 1,
+        "base": 1.2
+      }
+    ],
+    "baseMedianMs": 1.3,
+    "sharedMedianMs": 0.7,
+    "pairedMedianSavingMs": 0.6,
+    "fasterPairs": 30,
+    "rgbaDiffOrder": [
+      "baselineRepeat",
+      "baselineVsShared",
+      "sharedVsRestoredBaseline"
+    ]
+  }
+}
