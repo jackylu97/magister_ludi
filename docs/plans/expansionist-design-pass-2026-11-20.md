@@ -1179,3 +1179,46 @@ A builder follows this list once the fourth review is done. Each number is an en
 - It proposed six changes (39 to 44) to give the wild a second economy: a higher orchard, counters that counted tended tiles, a commission, a Doctrine that let outside sources reach tended works, and towns that tended by themselves. None was ruled.
 - You then wrote: *"i'm feeling more skeptical that the wild land is a good direction for the expansionist deck, what do you think? i think the core themes are already fun, and we can find more cards to flesh out its current direction, maybe add a few auxiliary themes to make up for the card count"*.
 - Your ruling for round four, whole: *"let's do this: i like the idea of adding new improvements where previously improvements couldn't be built. i.e. fish traps allows you to build improvements on coast tiles where you couldn't previously. keeps are very fun because they're a new way to interact with the land. let's add a few more of these, and get rid of cards like old song. some ideas off the top of my head: an improvement that can only be built in desert, one for tundra, an improvement that can only be built adjacent to certain combinations of terrains (not prescriptive, just a direction). public works, levies, settling and roads are great directions. i agree with your auxiliary themes too. The frontier seems weaker to me. Lets do a fourth pass with these directions, try to add a few that make the auxiliary directions synergize with the deck at large."*
+
+## The user's rulings on round four (2026-11-20, comments on the page)
+
+The user: "ok made comments, its heading in the right direction." In their
+words:
+
+### On the pass as a whole
+
+- "overall, the new cards are good. Could we add some more love for lumber
+  mills or forest tiles in general? it feels like it's just better to chop
+  them currently"
+
+### The new improvements
+
+| Thing | The user's words | Result |
+|---|---|---|
+| Fish traps and orchards (change 01) | "fish traps: +2 food +1 production. Orchards: +2 food +2 gold" and "Reasoning: these need to be competitive and worth a builder charge. orchards need to be clearly better than a lumbermill" | Fish traps: +2 food, +1 production. Orchards: +2 food, +2 gold. |
+| Date garden (46) | "this doesn't feel very strong. lets make something unique: nazca lines (non-floodplain flat desert). +2 faith +2 culture. additional +2 faith for every adjacent nazca line." | Replaced by **Nazca lines**: on flat desert that is not floodplain; +2 faith and +2 culture, and +2 faith more for each Nazca line beside it. |
+| Reindeer corral (46) | "someting similar to nazca line here" | Replaced. **Owed:** a tundra improvement of the same kind: a monument on the land that pays faith or culture and reads its neighbours. |
+| Hammer pond (47) | "i don't know what a hammer pond is, lets find something unique to put here too" | Replaced. **Owed:** something unique for a hill beside a river (or another mixed ground), that a player knows by name. |
+| Baray (48) | "Rework: must be built next to a river. +2 food and +2 production for each adjacent farm." | The baray is built beside a river. It gains +2 food and +2 production for each farm beside it. (My reading: the yield is on the baray's hex and counts farms. To confirm: "+2 food and +2 production for each adjacent farm" could also mean the base yield is +2 food, plus +2 production a farm.) |
+| The name of the theme (on 51) | "should we just call these 'unique improvements' and extend it to leader special improvements, like the paradise gardens?" | **A question for me; answered in chat. Proposed: yes.** |
+
+### The other changes
+
+| # | Card | The user's words | Result |
+|---|---|---|---|
+| 45 | The wild cards, row "Reworded: Workers may build fish traps…" | "great" | Approved. |
+| 45 | row "+1 culture for every five hexes you own" | "Cut" | Cut. |
+| 45 | Bound to the Soil, "Workers gain +1 charge. Farms gain +1 food." | "needs to be stronger" | **Owed:** a stronger line. |
+| 45 | rows "on an unowned hex within three hexes of your border", "improved tiles", the row that stays, and the Monument town rework | "good", "good", "good", "sure" | Approved. |
+| 49 | Commission: The Reclaimed Lands | "great" | Approved. |
+| 50 | The Makers of Land | "lets have this be generic: +1 science and +1 culture for every 3 improvements you construct." | Gains +1 science and +1 culture for every 3 improvements you build, of any kind. |
+| 51 | The Cadastre | "great" | Approved. |
+| 52 | Commission: Bread and Water | "cool" | Approved. |
+| 53 | The Founders' Stores | "cool" | Approved. |
+| 54 | The Mansiones | "this feels pretty weak." | **Owed:** a stronger card, or a cut. |
+| 55 | The Tribute of Hands | "The wording in this is confusing to me. let's cut this." | Cut. |
+| 56 | The Citizen Soldiers | "too specific i think" and "if we want to do this it should be more genrally useful" | Rejected as written. **Owed:** a more general Military card, or none. |
+| 57 | The River Towns | "i think we have plenty of river bonuses already, cut." | Cut. |
+| 58 | The Mountain Sluices | "Mines and quarries gain +1 production for each adjacent mountain, mine, or quarry." | The user's line. |
+
+Rows of change 45 with no comment are approved (the standing rule).
