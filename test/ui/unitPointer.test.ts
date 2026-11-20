@@ -120,6 +120,21 @@ describe('shared unit pointer resolution', () => {
 });
 
 describe('actual controls pointer gestures', () => {
+  it('picks once to select and once after the board updates on release', () => {
+    const f = controlsFixture();
+    f.point(3, 3, null, f.first.id);
+    f.renderer.pickUnitModel.mockClear();
+    f.renderer.pickUnitModel.mockReturnValueOnce(f.first.id).mockReturnValueOnce(f.elsewhere.id);
+    f.click();
+    expect(f.controls.selectedUnit()?.id).toBe(f.first.id);
+    expect(f.renderer.setHoveredUnitId).toHaveBeenLastCalledWith(f.elsewhere.id);
+    expect(f.renderer.pickUnitModel).toHaveBeenCalledTimes(2);
+    // Moving the pointer again must pick the current screen, even at the same position.
+    f.point(3, 3, null, f.second.id);
+    expect(f.renderer.setHoveredUnitId).toHaveBeenLastCalledWith(f.second.id);
+    expect(f.renderer.pickUnitModel).toHaveBeenCalledTimes(3);
+  });
+
   it.each([0, 2])('keeps a wobbling button-%i move click and leaves the camera still', button => {
     const f = controlsFixture();
     f.controls.selectPiece(f.first.id);

@@ -5027,7 +5027,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.setPathPreview(path, pathTurnMarks(getGame().state, unit, path));
   }
 
-  function select(id: number | null): void {
+  function select(id: number | null, hoverUpdate: 'now' | 'onRelease' = 'now'): void {
     selectedId = id;
     // The two right-hand panels share one slot, so they share one subject: a
     // unit picked up while a city screen is open closes it, exactly as opening
@@ -5045,7 +5045,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (moveMode) setMoveMode(false);
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
-    refreshUnitHover();
+    // endDrag picks the outline after the click has updated the board, using the release position.
+    if (hoverUpdate === 'now') refreshUnitHover();
   }
 
   function clearSelection(): void {
@@ -6945,7 +6946,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const mine = ownUnitsAt(col, row);
     const next = nextUnitInStack(mine, selectedId);
     if (!next) return false;
-    select(next.id);
+    select(next.id, 'onRelease');
     return true;
   }
 
@@ -7052,7 +7053,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // the top row can float clean off the map, where there is no tile at all.
     const pointed = unitPointerTarget(screen);
     if (pointed) {
-      select(pointed.id);
+      select(pointed.id, 'onRelease');
       return;
     }
 
@@ -7103,7 +7104,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // Row 7. Clicking away. With nothing selected this still costs a repaint of
     // the hover readout, which is what the player is looking at when they click
     // an enemy or a stretch of ocean.
-    if (selectedId !== null) select(null);
+    if (selectedId !== null) select(null, 'onRelease');
     else onUpdate(selectedUnit(), hover);
   }
 
