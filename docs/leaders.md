@@ -2,14 +2,9 @@
 
 The current roster has sixteen leaders. The tables below list their abilities, unique pieces, colors, start preferences and city names. The older proposals and historical decisions follow the roster.
 
-## The second cut — fixed identity (2026-09-11)
+## Leader rules
 
-**Ruled with the user, 2026-09-11; built 2026-09-12 (batch L6a).** The first cut
-(a bonus and a deck of twelve drafted cards a figure) is superseded by this
-section, and its tables are gone with the deck. This section is the spec of
-record: `data/leaders.json` mirrors "The thirteen", "The colours", "The cities"
-and "The biases", and the sync tests in `test/sim/leaders.test.ts` and
-`test/render/seatInks.test.ts` hold each pair together.
+`data/leaders.json` contains the roster, colors, cities and starting preferences. The tests in `test/sim/leaders.test.ts` and `test/render/seatInks.test.ts` check these tables. The design history starts below the roster table.
 
 ### Why
 
@@ -38,8 +33,7 @@ Leader and civ are **one thing** in this game. A figure is:
 The second unique is a **hall or a work of the ground** (batch L8, `docs/flags.md`
 (bbbbb)): a figure carries `building` or `improvement` on its row, never both and
 never neither, and every screen prints the fourth line off whichever it is
-("Unique building" · "Unique improvement"). Pachacuti is the one who trades the
-hall for a field. An improvement unique is gated exactly as the other two are —
+("Unique building" · "Unique improvement"). Pachacuti has the Terraces and Cyrus has the Paradise Garden. An improvement unique is gated exactly as the other two are —
 `unlockedByLeader` on the row, `leaderOpensImprovement` beside the unit's and the
 building's gate — and it opens with its own `requiresTech`, since an improvement
 is not a queue row and carries no column.
@@ -74,6 +68,8 @@ Each leader has two abilities and two unique pieces. Fifteen leaders each use a 
 | **Justinian** | Byzantines | devotion + magisterial | *Solomon, I Have Surpassed You* Completing a wonder grants faith equal to its production cost. | *One Faith, One Empire* Each Holy Site gives +5 production. Each Holy Site a citizen works gives your empire +2 happiness. | Cataphract | The Basilica |
 | **Sejong the Great** | Joseon | scientific + magisterial | *The Correct Sounds* Every city gains +1 science and +1 culture for every four citizens. | *The Royal Lectures* Each technology you complete grants three turns of renown, with the same share for each family. | Hwacha | The Hall of Worthies |
 | **Ibn Battuta** | Maghrebis | Every deck | *A Guest at Every Court* One more chair in every government. | *The Rihla* The first redraw of every hand you are dealt costs nothing — an Order, a doctrine or a great person, and never a belief. | The Rihla Caravan | The Funduq |
+
+### Earlier roster decisions
 
 **Pachacuti, reworked (the user, 2026-09-11).** His first cut pulled two ways —
 food from mountains (tall, few sites) and roads (wide, many). Now both lines

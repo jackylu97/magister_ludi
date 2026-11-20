@@ -1325,12 +1325,10 @@ Reference: **`docs/trade.md`** and **`docs/luxuries.md`**.
 
 ## Leaders
 
-Reference: **`docs/leaders.md`**, "The second cut — fixed identity" (the spec of
-record; the figures are still the user's to retune).
-
-**Thirteen figures**, and a figure is Civ's shape exactly: **two abilities**, one
-**unique unit** and one second unique — a **building**, or a **work of the
-ground** (an improvement; Pachacuti's Terraces are the one, batch L8). The
+The sixteen leaders and their deck pairs are listed in `docs/leaders.md`. Each
+leader has two abilities, one unique unit and one unique building or improvement.
+Pachacuti has the Terraces and Cyrus has the Paradise Garden. Eight retired
+leaders remain available to load from an older game configuration. The
 abilities are ordinary card
 effects, live for the seat from the turn it sits down and for the rest of the
 game — `liveEffects`' twelfth source, folded and described by the machinery that
@@ -1343,7 +1341,7 @@ is a bench. An improvement unique is the same two questions asked one table over
 variant improvement may carry `countsAs`, which is what makes a terrace a farm
 wherever the rules read a farm. There is no draft, no offer and no age machinery — the first cut's
 deck of twelve cards a figure retired in batch L6a. Leaders also carry **start
-biases** (three stages, `startPositions.ts`), **fifteen city names**, a pair of
+biases** (three stages, `startPositions.ts`), a list of **city names**, a pair of
 **colours** the board wears and a **people** word ("Inca", "French") for the
 sentences that want a nation; all four are tables in `docs/leaders.md`, mirrored
 in `data/leaders.json` and held together by sync tests. A seat is **called by its
