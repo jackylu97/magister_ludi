@@ -1,226 +1,416 @@
 # Expansionist design pass (2026-11-20)
 
-**Status, 2026-11-20, fifth round:** your rulings on round four are applied. You wrote: *"its heading in the right direction"*. Nothing is built, and no game data changed. **What waits for your fifth review:** 11 new changes (59 to 69), and one reading of your line for the baray. They are all in section 1.
+**Status, 2026-11-20, sixth round: the pass is closed, with three points open.** You wrote of round five: *"it looks good"*. Every ruling of rounds one to five is applied. Nothing is built, and no game data changed. **Open with you:** the write-up of The Hillforts (change 70), a cap for The Fyrd, and one reading of your line for the terrace farm. They are in section 1, r6-8.
 
 Your request, 2026-11-20, in your words:
 
 > *"ok, could you do a deck pass on commerce and expansionist. I find that i don't really take any of the tended land cards in this version of the game, and commerce feels a bit one-note. I'm not sure whether to drop the tended land theme altogether or make it more fleshed out, what do you think?"*
 
-- This file is the current state. The record of rounds one to four, with your words, is at the foot.
-- What you asked of a new improvement, in your words: the date garden *"doesn't feel very strong. lets make something unique"*; *"i don't know what a hammer pond is"*; *"these need to be competitive and worth a builder charge"*.
-- So each new improvement here is a thing a player knows by name, it reads the hexes beside it or changes them, and it is worth a worker's charge.
-- The theme has a name now: **unique improvements**. It means any improvement that a charter or a leader opens (change 63).
-- Every number is a first guess against the power bar, to tune in playtest. I ran no bot games and no tests. The counts of ground are from 48 starts on 8 standard maps.
-- The review page: https://claude.ai/artifact/6cD6W4ym5WeUdMvUWDXaYf. Its anchors are `change-01` to `change-69` and `r5-1` to `r5-10`.
+- This file is the current state. The record of rounds one to five, with your words, is at the foot.
+- The deck goes from 74 cards to 82, and from 24 Doctrines to 21. It shares 17 cards with other decks, two of them new.
+- The land theme is **unique improvements**: any improvement that a charter or a leader opens. The deck opens ten of its own and shares an eleventh with Dominion.
+- Section 2, "Ready for the build", is the list a builder follows. Section 3 is every card of the final deck.
+- Every number is a first guess against the power bar, to tune in playtest. I ran no bot games and no tests.
+- The review page: https://claude.ai/artifact/6cD6W4ym5WeUdMvUWDXaYf. Its anchors are `change-01` to `change-70` and `r6-1` to `r6-8`.
 
-## 1. New for your fifth review
+## 1. Where the pass stands
 
-Only these blocks and changes 59 to 69 are not ruled. Everything else in this file is ruled.
+### r6-1. The deck in numbers
 
-### r5-1. Your round-four rulings are in, and one reading to confirm
-
-- **Fish traps** give +2 food and +1 production, and **orchards** +2 food and +2 gold (01).
-- **Nazca lines** take the date garden's place (46). The tundra work is owed: change 59.
-- **The hammer pond is gone** (47). Change 60 takes its place.
-- **The baray** is built beside a river and counts the farms beside it (48).
-- **The Makers of Land** is generic (50). **The Mountain Sluices** has your line (58).
-- **Cut:** The Wild Marches, The Tribute of Hands (55), The River Towns (57). **Rejected:** The Citizen Soldiers (56).
-- **Approved:** the rest of change 45, The Reclaimed Lands (49), The Cadastre (51), Bread and Water (52), The Founders' Stores (53).
-- **Sent back:** Bound to the Soil (now 66) and The Mansiones (now 67).
-
-**Two readings of "+2 food and +2 production for each adjacent farm"**
-
-| Reading | The baray's hex with four farms beside it | With six | With none |
-|---|---|---|---|
-| **A.** It gains +2 food and +2 production for each farm beside it (recommended) | 8 food, 8 production (16) | 24 | 0 |
-| **B.** It gains +2 food, and +2 production for each farm beside it | 2 food, 8 production (10) | 2 food, 12 production (14) | 2 food |
-
-- I took A. It is what your sentence says most plainly, and it makes the baray worth a charge: with four farms it is a hex of 16, where a typical farm with its cards is 12.
-- Under A a baray with no farm beside it yields nothing, so the worker must plan the fields first. Under B it is a safe +2 food and a smaller prize.
-- Your rework did not say "one in each town". I kept it. Without it a river bank becomes a row of barays and farms in turn.
-- **To rule:** Confirm reading A for the baray, and that it stays one in each town.
-
-### r5-2. Unique improvements: the name, and all of them (change 63)
-
-- You asked: *"should we just call these 'unique improvements' and extend it to leader special improvements, like the paradise gardens?"* Yes.
-- **A unique improvement is any improvement that a charter or a leader opens.** The Reclaimed Lands and The Cadastre read that word.
-- Each one is an ordinary improvement for every other rule: it counts as improved, it can be pillaged, and it opens no resource.
-
-**The deck's own, by tier**
-
-| Unique improvement | Ground | Tier, and the card | Its own yield | What it reads or changes beside it | Starts with the ground | State |
-|---|---|---|---|---|---|---|
-| Fish traps | coast and lake | 0 and I, The Gathering Grounds | +2 food, +1 production | nothing | 92% (7.4 hexes) | your figure |
-| Orchard | forest and jungle | 0 and I, The Gathering Grounds | +2 food, +2 gold | nothing | 79% (9.7) | your figure |
-| Outpost | an unowned hex within three of your border | I, Outposts | none | claims its hex and the ring round it | all | approved |
-| Nazca lines | flat desert, not floodplain | I, The Desert and the Snow | +2 faith, +2 culture | +2 faith for each Nazca line beside it | 19% (1.8); 4% of the map's land | your line |
-| **Inuksuk** | tundra and snow, no forest | I, The Desert and the Snow | +1 food, +2 culture | +1 culture for each inuksuk beside it | 29% (4.4); 21% of the map's land | **new (59)** |
-| **Totem pole** | forest or jungle, one in each town | I, The Totem Poles | +3 culture | **changes:** each forest or jungle hex beside it gains +1 culture and +1 production | 79%; 67% have a wood of four hexes | **new (62)** |
-| **Vineyard** | a hill beside a river | II, The Hillside Vineyards | +2 gold, +2 culture | +1 gold for each hill beside it | 52% (2.6) | **new (60)** |
-| **Stepwell** | flat land with no fresh water, one in each town | II, The Stepwells | +2 food | **changes:** the hexes beside it have fresh water | 100% (5.6) | **new (61)** |
-| Baray | flat land beside a river, one in each town | III, The Barays | none of its own | +2 food and +2 production for each farm beside it | 92% (6.0) | your line |
-| Polder | a coast hex beside three of your land hexes | III, The Polders | as a farm on grassland | it is a farm | 69% (2.7) | approved |
-| Keep | flat land, one in each town | IV, The Keeps | none of its own | the yields of the six hexes round it | all | approved |
-
-**The others the word covers**
-
-| Unique improvement of a leader or another deck | Who opens it | What it is | What the keyword does for it |
-|---|---|---|---|
-| Terraces | Pachacuti (Expansionist and Commerce) | a farm on a hill at a mountain's foot, +2 food | Each terrace gains The Reclaimed Lands' +1 food and +1 production and The Cadastre's +3 science, on top of every farm card. He can meet the commission with terraces alone. |
-| The Paradise Garden | Cyrus (Expansionist and Magisterial) | one in each city, flat land beside fresh water; +1 culture, +1 happiness; it counts as a great-person work | It takes this deck's pay-offs and Magisterial's cards for great-person works on one hex. **This is the strongest case, and the first to test.** |
-| The Physic Garden | the Scientific deck's Herbalists' Charter | one in each town; +2 science, +2 happiness | It gains the pay-offs. A bridge for Nezahualcoyotl's pair. |
-| The Qanat | the Scientific deck's Surveyors' Charter | waters the farms beside it | It gains the pay-offs, and it does what a stepwell does with no limit of one in a town. |
-
-- The floating gardens are not one. They come with the technology Irrigation and every seat can build them. The six great-person works are not: a great person makes them.
-- The ground is spread on purpose: water, woods, desert, cold, river hills, dry flats, river flats and shore. Every start in my count has dry flat land, and nine in ten have open water and a river flat.
-- Three change or read their neighbours in a way that shapes a town's map: the totem pole (the woods round it), the stepwell (fresh water) and the baray (its farms). The Keep copies its six neighbours.
-- **To rule:** Approve change 63. Say if 11 in this deck is too many.
-
-### r5-3. The tundra improvement (change 59)
-
-- You asked for *"someting similar to nazca line here"*: a mark on the land that pays faith or culture and reads its neighbours.
-
-**Three candidates**
-
-| Candidate | Whose | Ground | Its yield | The neighbour rule | For and against |
-|---|---|---|---|---|---|
-| **Inuksuk** (recommended) | the Inuit | tundra and snow, no forest | +1 food, +2 culture | +1 culture more for each inuksuk beside it | Known by name, and a mark on the land as the Nazca lines are. Lines of inuksuit drove caribou toward the hunters, so building them in a row is true to them. A cold town becomes a culture town and still has to be fed. |
-| Sieidi stone | the Sámi | tundra and snow, one in each town | +3 faith | each hex beside it gains +1 food | An offering stone for luck with fish and herds. It changes its neighbours, which is good. Few players know the word. |
-| Whaling camp | the Thule and the Inuit | tundra or snow beside the coast | +2 food, +1 production | +1 food more for each coast hex beside it | Easy to picture, and it reads the sea. It is a yield work more than a monument, so it is the least like the Nazca lines. |
-
-- The inuksuk pays culture where the Nazca lines pay faith, so the two works of the card are one family and not one copy. Its bonus is +1 where theirs is +2, because culture buys drafts.
-- Tundra hexes come in blocks: nearly every tundra hex in my count has another beside it, so the neighbour rule works from the first two built.
-- **To rule:** Pick one of the three, or approve the inuksuk.
-
-### r5-4. In the hammer pond's place (change 60)
-
-- You asked for something unique that a player knows. I kept the idea of mixed ground in two of the three.
-
-**Three candidates**
-
-| Candidate | Ground | Its yield | The neighbour rule | Starts with the ground | For and against |
-|---|---|---|---|---|---|
-| **Vineyard** (recommended) | a hill beside a river | +2 gold, +2 culture | +1 gold more for each hill beside it | 52% (2.6); 44% have such a hill with two hills beside it | Everyone knows it, and the great vineyards stand on river slopes. It keeps the hill and the river, so both auxiliary themes meet on it. It pays gold and culture, which the deck is short of. It does not give the wine luxury. |
-| Cliff monastery | a hill beside a mountain | +2 faith, +2 science | +1 science more for each mountain beside it | 56% (3.8) | Easy to picture, and it serves the high country. It is a second faith work beside the Nazca lines, and it steps toward Devotion's ground. |
-| Hillfort | a hill, one in each town | +2 production | +1 production more for each farm or pasture beside it; units on it gain strength | 90% | Known by name. It is close to the Keep, and its neighbour rule is the baray's. |
-
-- I did not offer a windmill or a watermill. The Watermill is a building, and a mill that counts the farms beside it is what your baray now does.
-- **To rule:** Pick one of the three, or approve the vineyard.
-
-### r5-5. Two more that change the hexes round them (changes 61 and 62)
-
-- **The Totem Poles** (Tier I): one totem pole in each town, in a forest. It yields +3 culture, and each forest or jungle hex beside it gains +1 culture and +1 production. It is the deck's reason to keep a wood whole.
-- **The Stepwells** (Tier II): one stepwell in each town, on flat land with no fresh water. It yields +2 food, and the hexes beside it have fresh water. Your baray did this before your rework, so say if you would rather not have it back in another form.
-
-- **To rule:** Rule on changes 61 and 62 below.
-
-### r5-6. Forests and lumber mills: why it is better to chop, and what to do
-
-- You wrote: *"Could we add some more love for lumber mills or forest tiles in general? it feels like it's just better to chop them currently"*. The data agrees.
-- **A chop pays 20 production, grown by 5% for each technology you know** (`chopBaseFor`), for one worker charge. No card adds to it or takes from it.
-
-**What a chop pays**
-
-| When | Technologies known | One chop pays | A town makes in a turn | The chop in town-turns |
-|---|---|---|---|---|
-| Turn 30, age 1 | 8 | 28 production | 5 | 5.6 |
-| End of age 1 | 14 | 34 | 5 to 10 | about 5 |
-| End of age 2 | 26 | 46 | 10 | 4.6 |
-| End of age 3 | 45 | 65 | 15 | 4.3 |
-| Æra IV | 60 | 80 | 35 | 2.3 |
-
-**What the hex yields after**
-
-| The hex | It yields | Sum |
-|---|---|---|
-| Forest, as it stands | 1 food, 1 production | 2 |
-| Forest with a lumber mill (from age 2) | 1 food, 2 production | 3 |
-| Felled, then a farm on grassland | 3 food, or 4 beside fresh water; and the chop's 28 to 46 production at once | 3 or 4 |
-| Forest with an orchard (your figure) | 3 food, 1 production, 2 gold | 6 |
-| Lumber mill with The Timber Yards (64), three woods beside it | 1 food, 5 production | 6 |
-| Orchard beside a totem pole (62) | 3 food, 2 production, 2 gold, 1 culture | 8 |
-
-- **The diagnosis.** In ages 1 and 2 a chop is 4 to 6 turns of a town's whole production. The felled hex then farms for 3 or 4, and the forest with a lumber mill yields 3. So the chop's lump is free: the player gives up nothing for it.
-- The lumber mill is the weakest improvement in the game: +1 production, no later bonus from a technology, and it comes an age after the axe (Siegecraft against Mining).
-- Nothing in the game pays a forest for standing. One Order pays a lumber mill (Old Workings, Tier III), and one great person (Wenamun). No belief, building, wonder or leader does.
-- **How far the orchard goes.** At +2 food and +2 gold an orchard forest yields 6. That is 2 or 3 a turn more than the farm on felled ground, so it pays back a 34-production chop in about 12 to 17 turns. For a seat that holds The Gathering Grounds, keeping the forest is right from Tier 0. For a seat that does not, nothing has changed.
-- **What I propose.** The Totem Poles (62) makes a whole wood worth more than its hexes. The Timber Yards (64) makes a lumber mill read the woods beside it. Both are cards of this deck.
-- **The real fix is a base rule, and it is outside this deck (65).** A lumber mill should give +2 production. Then a milled forest (1 food, 3 production) matches a farm on the felled ground, and the chop becomes a trade of timber now against nothing lost later. With the cards above it becomes a real choice. I would leave the chop's own figure alone: you set it on 2026-08-28.
-- **To rule:** Rule on changes 62 and 64. Change 65 is a flag for the base rules and is yours to send on.
-
-### r5-7. Bound to the Soil, stronger (change 66)
-
-- **Line 1 (recommended):** Workers gain +1 charge. Every improvement gains +1 food.
-- **Line 2:** Workers gain +2 charges. Farms gain +1 food and +1 production.
-- Line 1 reaches every mine and every unique improvement, so it serves the whole land theme. Fifteen improved hexes worked at turn 60 are +15 food, where the median seat makes 72. Forty-five in Æra IV are +45. The Physiocrats, three tiers later, gives +6 a hex.
-- Line 2 is the farm Doctrine at double size: ten farms are +20, and a Worker has 5 charges before Tinkers' Guild.
-
-- **To rule:** Pick one of the two lines.
-
-### r5-8. Roads: The Mansiones, and a way to lay them (changes 67 and 68)
-
-- **The Mansiones** at +1 culture for each public work paid about 15 in age 3. At **+2** it pays 30, and 80 late. Culture is what the deck lost with the wild cards: The Old Songs, The Wild Marches and The Garden of the World all paid it. The other choice is to cut it.
-- **Roads have many readers and two makers.** The Road Home lays a road when a town is founded, and caravans lay them. Six cards and three leaders read joined towns.
-- **The Marching Roads** (68) is a third maker: a military unit lays a road on each hex it enters inside your borders. You wrote on 2026-10-16: *"maybe in the future a military unit can build it, but caravans only for now."* It is also a Military card that works at peace.
-
-- **To rule:** Rule on changes 67 and 68 below.
-
-### r5-9. Military cards that every seat can use (changes 68 and 69)
-
-- You wrote of The Citizen Soldiers: *"if we want to do this it should be more genrally useful"*.
-- **The Marching Roads** (Tier I): units build the road net as they walk it.
-- **The Fyrd** (Tier II): your military units cost no upkeep while they stand inside your borders. A builder keeps a home army for nothing, and pays for it only when it marches out.
-- With these the deck has six Military cards, at least one in every tier: The Woodland Bands, The Beacons, The Marching Roads, The Fyrd, The General Levy and The Theodosian Walls.
-- **I would stop there.** The deck's materials are towns, citizens, land and roads. Past these six, a Military chair is the partner deck's to fill, and that is a fair price for this deck.
-
-- **To rule:** Rule on changes 68 and 69, or say that the deck should lean on its partner.
-
-### r5-10. The recount, and what still looks thin
-
-- The deck if you approve changes 59 to 69.
+- The deck after every ruling. Section 3 has every card.
 
 **By tier, chair and rarity**
 
 | Tier | Cards | Military | Economic | Civic | Wildcard | Common | Uncommon | Rare |
 |---|---|---|---|---|---|---|---|---|
 | Tier 0 | 11 | 1 | 7 | 3 | 0 | 7 | 3 | 1 |
-| Tier I | 19 | 1, and The Beacons is dealt here too | 14 | 3 | 1 | 9 | 9 | 1 |
-| Tier II | 24 | 2 | 11 | 9 | 2 | 11 | 12 | 1 |
+| Tier I | 17 | 0, and The Beacons is dealt here too | 13 | 3 | 1 | 9 | 7 | 1 |
+| Tier II | 23 | 2 | 10 | 9 | 2 | 11 | 11 | 1 |
 | Tier III | 20 | 1 | 11 | 7 | 1 | 8 | 8 | 4 |
 | Tier IV | 11 | 1 | 5 | 4 | 1 | 3 | 5 | 3 |
-| **All** | **85** | **6** | **48** | **26** | **5** | **38** | **37** | **10** |
+| **All** | **82** | **5** | **46** | **26** | **5** | **38** | **34** | **10** |
+| Shared with another deck | 17 | 3 | 6 | 8 | 0 | 9 | 8 | 0 |
 
 **By theme**
 
-| Theme | Cards | New in round five |
+| Theme | Cards of the deck | Shared cards that serve it |
 |---|---|---|
-| Unique improvements | 12 | 3: The Totem Poles, The Hillside Vineyards, The Stepwells |
-| The worked land in general | 14 | 1: The Timber Yards |
-| Public works and engineers | 10 | 0 |
-| Citizens and tall towns | 13 | 0 |
-| Levies | 7 | 0 |
-| Settling | 14 | 0 |
-| Roads and the home army | 9 | 2: The Marching Roads, The Fyrd; and The Mansiones made stronger |
-| The high country | 4 | 0 |
-| Fresh water | 2 | 0 |
-| **All** | **85** | **6 new cards** |
+| Unique improvements | 11 | The Hillforts |
+| The worked land in general | 14 | The Ambarvalia, Garden Cities, The Sculpted Landscape, Sacred Groves |
+| Public works and engineers | 10 | The Founders' Stores |
+| Citizens and tall towns | 13 |  |
+| Levies | 7 | The Muster of the Fields |
+| Settling | 13 | The Founders' Stores, The Frontier Militia, The Barbarian Frontier |
+| Roads and the home army | 8 | Market Gardens, Garden Provinces, The Farming Garrisons |
+| The high country | 4 | The Hillforts, The Mountain Observatories, The Holy Spring |
+| Fresh water | 2 | The Holy Spring |
+| **All** | **82** | **17** |
 
-- 70 cards after change 45. Plus the eight approved in round four (46, 48, 49, 50, 51, 52, 53, 58): 78. Plus The Mansiones if you keep it (67) and six new cards (60, 61, 62, 64, 68, 69): 85.
-- Doctrines: 21 (4, 5, 6 and 6).
-- Nine cards are charters and take no chair: The Gathering Grounds, Outposts, The Desert and the Snow, The Totem Poles, The Hillside Vineyards, The Stepwells, The Barays, The Polders and The Keeps.
-- Keywords: 4 commissions, 9 charters, 3 scalers and 1 boon.
-- The deck holds 11 unique improvements of its own. You asked for eight to ten. If 11 is one too many, the stepwell goes first: the Scientific deck's Qanat does the same job.
-- **Levies: 7 cards, and no new one.** It is your favourite mechanic, and both riders I proposed were cut (The Gleaners, The Tribute of Hands). I would rather leave it than propose a third weak one.
-- **Tier IV: 11 cards and one Military card.** It was 11 before the pass. The Keeps is its only unique improvement.
-- **Fresh water: 2 cards of its own** (Sweet Water, The Watercourses), with the vineyard, the baray and the stepwell beside them. You wrote that river bonuses are plenty, so I added none.
-- **The high country: 4 cards.** The vineyard and The Mountain Sluices tie it to the rest.
-- **Wildcard: 5 cards.** A Wildcard chair takes any card, so this is not a gap.
-- **Economic: 48 of 85 (56%).** Nine of them are charters, which take no chair.
-- **To rule:** Say if 85 cards is too many, and which thin place you want filled.
+- 74 cards today. Nine are cut and 17 are new: 82. The count of round five was 85; The Founders' Stores is now counted as shared, and the vineyard and The Marching Roads are cut.
+- Doctrines: 21 (4, 5, 6 and 6). Three are cut and one is changed.
+- Eight cards are charters and take no chair: The Gathering Grounds, Outposts, The Desert and the Snow, The Totem Poles, The Stepwells, The Barays, The Polders and The Keeps. The shared The Hillforts is a ninth.
+- Keywords: 4 commissions, 8 charters, 3 scalers and 1 boon.
+- Each card is counted in one theme. The deck is 46 Economic cards of 82 (56%), and eight of those are charters.
+- **To rule:** Nothing to rule. Say if a count looks wrong.
 
-## 2. Index
+### r6-2. Your round-five rulings are in
 
-| # | Card | Tier | Change | Ruling | In the fifth review |
+- **The baray** gives +2 food, and +2 production for each farm beside it (48).
+- **The vineyard is cut** (60). **The hillfort** takes the hammer pond's place, shared with Dominion (70, written up below).
+- **The stepwell** also gives +1 renown a turn toward great engineers (61).
+- **Approved:** the inuksuk (59), The Totem Poles (62), the keyword (63), The Timber Yards (64), The Mansiones at +2 culture (67).
+- **Bound to the Soil:** Workers gain +1 charge. Farms gain +1 food and +1 production (66).
+- **The Marching Roads is cut** (68). **The Fyrd** has your line (69).
+- **Two base rules are approved,** for every deck: a lumber mill gives +2 production, and a terrace farm may be built only beside a mountain.
+- **The Founders' Stores** is one card shared with Commerce. That pass called it The Colonists' Stores and takes this name.
+
+- **To rule:** Nothing to rule.
+
+### r6-3. The Hillforts (change 70), shared with Dominion
+
+- **The line:** Workers may build one hillfort in each town, on a hill: +2 production, and +1 production more for each farm, pasture or camp beside it. A unit on it gains +5 strength when it defends.
+- **Tier II, uncommon, a charter.** A charter takes no chair, so it fills no Military chair; its face is Military.
+- **Against the Keep:** the Keep is Tier IV, on flat land, and copies its six neighbours. The hillfort is early, on a hill, counts three kinds of improvement, and it is the only unique improvement that fights.
+- **On the Dominion side:** pastures and camps are that deck's improvements, so its herds raise the fort's yield. The shared The Farming Garrisons pays the hex while a unit is fortified on it. The citadel cards and the garrison cards do not read it: it is not a citadel, and a unit on it is not in a town.
+
+- **To rule:** Approve change 70, below.
+
+### r6-4. The Fyrd: your line, its shape, and a cap
+
+- **Your line:** Military units gain +1 combat strength in your territory for every 2 yields on the tile they occupy.
+- **The shape.** Combat here is flat points on one ledger. The card adds one labelled line to it, and the figure is the hex's own yield, read from the same fold that feeds the town. Nothing is added up twice.
+
+**What it gives**
+
+| The hex the unit stands on | Its yield | The Fyrd gives | With a cap of +6 |
+|---|---|---|---|
+| Desert, with nothing on it | 0 | 0 | 0 |
+| Grassland, forest or hill, with nothing on it | 2 | +1 | +1 |
+| A watered farm or a mine | 4 | +2 | +2 |
+| A forest with an orchard | 6 | +3 | +3 |
+| A typical farm with its cards, Æra IV | 12 | +6 | +6 |
+| A Nazca line in a block | 8 to 16 | +4 to +8 | +4 to +6 |
+| A farm with every line the deck can give it | 47 | +23 | +6 |
+| A Keep | about 50 | +25 | +6 |
+
+- On ordinary ground it is small: +1 to +3 in ages 2 and 3, under a regular Tier II combat card (+5). On the deck's best hexes it is large, and on a Keep it is eight times a general's aura.
+- A cap of +6 keeps the idea (rich ground is defended ground) and stops the two or three hexes in an empire where it runs away.
+- **To rule:** Say if you want the cap of +6.
+
+### r6-5. Two base rules, for every deck
+
+- Both are outside this deck. They are listed with the build so that they are not lost.
+
+**The base rules**
+
+| Base rule | Today | Approved | What it does to this deck |
+|---|---|---|---|
+| The lumber mill | +1 production | +2 production | A milled forest yields 1 food and 3 production (4), level with a watered farm, so the chop is timber now against nothing lost. An orchard forest yields 6 and is still 2 ahead of the mill, which is your rule for it. With The Timber Yards and three woods beside it a mill yields 7 and passes the orchard, so the two works are a real choice by where the hex lies. Old Workings adds +3 at Tier III. |
+| Pachacuti's terrace farm | on a hill at a mountain's foot (the row has `requiresHills` and `mountainFoot`) | "can only be built adjacent to a mountain" | 63% of capitals have land beside a mountain, 6.4 hexes where they do; 56% have a bare hill beside one, 3.8 hexes. Pachacuti's start asks for a mountain within two hexes, so he has the ground. A terrace is a unique improvement (63), so each one counts toward The Reclaimed Lands and gains The Cadastre's +3 science. |
+
+- **To rule:** Confirm the reading of the terrace farm (r6-8).
+
+### r6-6. Second looks: is anything too thin?
+
+- **Roads are still a theme.** Seven cards read or make joined towns (The Road Home, The Road Towns, The Beacons, Provincial Councils, The Mansiones, The Imperial Roads, The Imperial Highways), with two Doctrines and two shared cards. It has two makers of roads, The Road Home and caravans. If you want one more card: *The Cursus Publicus*, Tier III, common: towns joined to your capital by road gain +10% production.
+- **The high country is an auxiliary theme, and it holds.** Four cards (The Highlands, The Mountain Terraces, The Mountain Sluices, The Philosophers' Peaks), two Doctrines, the shared The Mountain Observatories, and now the hillfort on hills. It has no card of its own before Tier II. If you want one: *The Summer Pastures*, Tier I, common: hills beside a mountain gain +1 food and +1 production.
+- **Levies: 7 cards, and fine.** There is a levy to take in every tier from I to IV (Levy of the Land, The Colonists, The General Levy, The Corvée), two riders (The Terraces of Moray, Seasonal Levies) and two cards that move citizens (Veteran Colonies, The Mit'a). What it lacks is a card that makes a levy pay more. You cut two tries at one, so I leave it.
+- **Tier IV: 11 cards, and fine.** It had 11 before the pass. The other decks hold 10 to 13 there, and a game has about five drafts in the tier.
+- **The Founders' Stores** is listed here as a card shared with Commerce: Tier I, uncommon, Economic. It is built once.
+- **Cyrus.** Nothing in round five changed his case. A Paradise Garden is a unique improvement and a great-person work, so it takes The Reclaimed Lands (+2), The Cadastre (+3 science) and Magisterial's cards for works: about 20 on one hex in each city before any doubler. Bound to the Soil no longer adds to it, because your final line pays farms only.
+
+- **To rule:** Say if you want either candidate card. I recommend neither.
+
+### r6-7. The unique improvements, all of them
+
+- Ten are this deck's own. The hillfort is shared with Dominion. The last four belong to two leaders and to the Scientific deck, and the keyword covers them.
+
+**Unique improvements**
+
+| Unique improvement | Ground | Opened by | Tier | Its own yield | What it reads or changes beside it | Starts with the ground |
+|---|---|---|---|---|---|---|
+| Fish traps | coast and lake | The Gathering Grounds | 0 and I | +2 food, +1 production | nothing | 92% (7.4 hexes) |
+| Orchard | forest and jungle | The Gathering Grounds | 0 and I | +2 food, +2 gold | nothing | 79% (9.7) |
+| Outpost | an unowned hex within three of your border | Outposts | I | none | claims its hex and the ring round it | all |
+| Nazca lines | flat desert, not floodplain | The Desert and the Snow | I | +2 faith, +2 culture | +2 faith for each Nazca line beside it | 19% (1.8); 4% of the map's land |
+| Inuksuk | tundra and snow, no forest | The Desert and the Snow | I | +1 food, +2 culture | +1 culture for each inuksuk beside it | 29% (4.4); 21% of the map's land |
+| Totem pole | forest or jungle, one in each town | The Totem Poles | I | +3 culture | each forest or jungle hex beside it gains +1 culture and +1 production | 79%; 67% have a wood of four hexes |
+| Stepwell | flat land with no fresh water, one in each town | The Stepwells | II | +2 food, +1 engineer renown | the hexes beside it have fresh water | 100% (5.6) |
+| **Hillfort** | a hill, one in each town | The Hillforts (shared with Dominion) | II | +2 production; a unit on it defends at +5 | +1 production for each farm, pasture or camp beside it | 90% (6.4) |
+| Baray | flat land beside a river, one in each town | The Barays | III | +2 food | +2 production for each farm beside it | 92% (6.0) |
+| Polder | a coast hex beside three of your land hexes | The Polders | III | as a farm on grassland | it is a farm | 69% (2.7) |
+| Keep | flat land, one in each town | The Keeps | IV | none of its own | the yields of the six hexes round it | all |
+| Terraces | beside a mountain | Pachacuti | leader | a farm, +2 food | it is a farm | 63% (6.4) |
+| The Paradise Garden | flat land beside fresh water, one in each city | Cyrus | leader | +1 culture, +1 happiness | it counts as a great-person work |  |
+| The Physic Garden | flat land beside fresh water, one in each town | the Scientific deck's Herbalists' Charter |  | +2 science, +2 happiness | nothing |  |
+| The Qanat | flat land | the Scientific deck's Surveyors' Charter |  | none | waters the farms beside it |  |
+
+- The count of starts is from 48 starts on 8 standard maps, in the first three rings.
+- **To rule:** Nothing to rule.
+
+### r6-8. Open with you
+
+- **1. Change 70, The Hillforts.** Approve the write-up: one in each town, on a hill; +2 production, +1 more for each farm, pasture or camp beside it; a unit on it defends at +5; Tier II, uncommon, a charter shared with Dominion. Say if a unit on a hillfort should count as garrisoned for Dominion's cards. Recommended: no.
+- **2. A cap for The Fyrd.** Your line stands. Recommended: at most +6, which is two generals' auras. Without a cap a unit on a Keep gains +25.
+- **3. The terrace farm.** Your line is "can only be built adjacent to a mountain". The row today asks for a hill beside a mountain. Recommended reading: any hex a farm could stand on, hill or flat, beside a mountain. That is 6.4 hexes on a start that has a mountain, against 3.8 today.
+
+- **To rule:** Rule on the three points.
+
+## 2. Ready for the build
+
+A builder follows this list. Each number in brackets is an entry in section 5.
+
+### 1. Cuts: rows to retire
+
+- Orders (9): The Wild Orchards, The Burhs, The Gleaners, The Wide Country, The Old Songs, The Wild Marches, The Tended Country, The Long Tending, The Garden of the World.
+- Doctrines (3): Arcadia, The Wildwood Compact, The Garden Peoples.
+- Each keeps its row with `retired: true`, so that a save which holds it still loads.
+- Take the mark `tended` off the improvement rows `fishTraps` and `wildOrchard`, and the gate `needsTendedWork` off every row. The tests `tended` and `unimproved` stay for Crop Rotation and for saves.
+
+### 2. Text changes on a row that stays
+
+- 01 The Gathering Grounds: the row of The Fish Traps, renamed; a charter for fish traps and orchards.
+- 02 The Woodland Bands: forest, jungle and hills.
+- 07 The Land Hunger: 50%. 09 The Road Towns: +4 production. 13 The Hedgerows: farms beside a forest or jungle, +3 food.
+- 15 The Great Colonies: a fourth. 16 The Great Households: +1 production for every 2 citizens. 22 The General Levy: every 2 turns at war.
+- 08 Outposts, 24 The Polders, 28 The Keeps: each becomes a charter. The Polders: a polder is a farm, for one charge. Outposts: "an unowned hex within three hexes of your border".
+- 25 The Mountain Terraces: 4 science and 2 production. 29 The Philosophers' Peaks: +4 science, at most +12. 21 The Engineers' Yards: +4 production.
+- 45 The Domesday Survey: "improved tiles" in the goal and the reward.
+
+### 3. Moves and rarity changes
+
+- Tier: The Staked Claims to Tier I. The Great Colonies to Tier II. The Engineers' Yards to Tier III. The General Levy to Tier III. The Gathering Grounds to Tier 0.
+- Dealt in two tiers (`lastBand`): The Gathering Grounds (0 and I), Levy of the Land (I and II), The Beacons (I and II).
+- To common: Levy of the Land, The Land Hunger, The Great Households, The Waterworks, Provincial Councils, Seasonal Levies, The Capitolia, The Freedom of the City, The Philosophers' Peaks, The Theodosian Walls.
+- To uncommon: The Gathering Grounds, The Polders, The Mountain Terraces, A Court of Engineers, The Mit'a, The General Levy, The Corvée, The Measure of the Land, The Domesday Survey, The Imperial Highways.
+- To rare: The Staked Claims.
+
+### 4. New cards of this deck (17)
+
+- Tier I: The Desert and the Snow (46, 59), The Makers of Land (50), The Totem Poles (62), The Timber Yards (64).
+- Tier II: The Thermae (17), The Beacons (18), The Seven Fat Years (19), Commission: The Reclaimed Lands (49), Commission: Bread and Water (52), The Mansiones (67), The Stepwells (61), The Fyrd (69).
+- Tier III: The Barays (48), The Cadastre (51), The Mountain Sluices (58).
+- Tier IV: The Water Boards (30), The Thousand Villages (31).
+- Section 3 has each card's text, rarity and chair.
+
+### 5. Shared cards, and what changes on other decks' sheets
+
+- **Devotion** (`docs/decks/devotion.md`): Sacred Groves reads "Worked forests gain +1 food and +1 faith."
+- **Magisterial** (`docs/decks/magisterial.md`): Garden Cities reads "Towns with a Monument gain +1 culture for every three improved tiles they work."
+- **Commerce** (`docs/decks/commerce.md`): The Founders' Stores is new and shared. It is that pass's change 102, under this name. Build it once.
+- **Dominion** (`docs/decks/dominion.md`): The Hillforts is new and shared, if you approve change 70.
+- All four rows live in `data/decks/common.json`.
+- The beliefs sheet: Spirits of the Wood reads unimproved forest and jungle. It stops paying on a forest with an orchard, a lumber mill or a totem pole.
+- The leader roster: Pachacuti's terraces and Cyrus's Paradise Garden are unique improvements.
+
+### 6. Doctrines
+
+- Bound to the Soil: Workers gain +1 charge. Farms gain +1 food and +1 production.
+- Cut: Arcadia, The Wildwood Compact, The Garden Peoples. The deck holds 21 (4, 5, 6 and 6).
+
+### 7. New improvements
+
+- **Each new improvement needs four things: a data row, a way to open it, a 3D model on the board, and an icon.** A work with no board prop stops the game at load, so the model and the icon land in the same batch as the row, with a flair-gallery entry.
+- `nazcaLines`: flat desert with no feature; +2 faith, +2 culture; +2 faith for each Nazca line beside it. Opened by The Desert and the Snow.
+- `inuksuk`: tundra and snow with no forest; +1 food, +2 culture; +1 culture for each inuksuk beside it. Opened by The Desert and the Snow.
+- `totemPole`: forest or jungle, one in each town; +3 culture; each forest or jungle hex beside it gains +1 culture and +1 production. Opened by The Totem Poles.
+- `stepwell`: flat land with no fresh water, one in each town; +2 food, +1 engineer renown a turn; waters the hexes beside it. Opened by The Stepwells.
+- `baray`: flat land beside a river, one in each town; +2 food; +2 production for each farm beside it. Opened by The Barays.
+- `hillfort` (if you approve 70): a hill, one in each town; +2 production; +1 production for each farm, pasture or camp beside it; defence 5. Opened by The Hillforts.
+- Rows that change: `fishTraps` (+2 food, +1 production), `wildOrchard` (+2 food, +2 gold), `polder` (counts as a farm, one charge). `townKeep`, `polder` and `outpost` are opened by a charter and no longer by a seated card.
+- The rows `forestGarden` and `burnedCountry` stay as they are, with no card.
+
+### 8. Base rules, for every deck
+
+- `lumbermill`: +2 production.
+- `terraces` (Pachacuti): built only beside a mountain. The reading is open (section 1, r6-8).
+
+### 9. New effect shapes and small extensions, each listed once
+
+- **A yield "for each hex beside it that…".** On an improvement row: Nazca lines and the inuksuk (the same work), the baray (farms), the hillfort (farms, pastures, camps). On a card: The Mountain Sluices (mountains, mines, quarries) and The Timber Yards (forest and jungle). The Doctrine The High Towns has it for mountains only.
+- **A yield an improvement gives to the hexes beside it:** the totem pole. The stepwell uses the existing `watersBeside`.
+- **A unique improvement** as a tile test and a word in the describers' table and the Compendium: The Reclaimed Lands, The Cadastre. It is read off the row: a charter opens it, a charter technology opens it, or a leader does.
+- **A charter that opens two works:** The Gathering Grounds, The Desert and the Snow.
+- **An improvement that must stand beside a river:** the baray.
+- **An improvement that supplies renown:** the stepwell.
+- **A combat line read from the yield of the unit's hex:** The Fyrd. One labelled line in `planCombat`; the figure is `foldTile` of `explainTileYield` with the owner's context.
+- **Movement that depends on where the unit stands:** The Beacons.
+- **A counted moment "an improvement built":** The Makers of Land (every third), The Reclaimed Lands (unique improvements only).
+- **Public works held, as a commission's goal figure:** Bread and Water. **A public-work selector on `buildingYieldPercent`:** The Water Boards.
+- **A citizen for every town as an on-draft grant:** The Seven Fat Years.
+- **The rule `woodsWalk`, widened to hills:** The Woodland Bands. **`countsAs: farm` with `yieldsAs` on one row:** the polder.
+- Everything else is data on shapes that exist: `pays`, `productionBonus`, `foundingRider`, `levy`, `charter.unlocks`, `lastBand`.
+
+### 10. With the build
+
+- The sheet `docs/decks/expansionist.md` and its sync test `test/sim/decks/expansionist.test.ts`: every row, the counts tables, the shared table, and the "Needs tended land" line in the header.
+- `docs/decks/deck-design.md`: the section "Tended land" becomes history, and "unique improvements" takes its place.
+- The bots: they build no card-opened improvement today (`src/ai/value.ts` prices a charter at nothing). A bot-track batch must teach them where to put a work that reads its neighbours.
+
+## 3. The final deck
+
+Status says what the pass did to each card. A number in brackets is the change in section 5.
+
+### Tier 0 (11 cards)
+
+| Card | Rarity | Chair | Text | Status |
+|---|---|---|---|---|
+| Smallholdings | common | Economic | Worked farms and pastures gain +1 food and +1 gold. | unchanged |
+| Granary Levies | common | Economic | When a city grows in population, gain 15 production | unchanged |
+| The Patient Harvest | rare | Economic | Towns keep 30% of their food when they grow. | unchanged |
+| Sweet Water | common | Economic | Tiles beside a river or lake gain +1 food. | unchanged |
+| The Seed Grain | uncommon | Economic | Towns you found start with one extra citizen. | unchanged |
+| The Rope Stretchers | common | Civic | Each town gains +1 science for every three improved tiles in its borders. | unchanged |
+| The Road Home | common | Economic | Each town you found is joined to your nearest town by road. | unchanged |
+| The Woodland Bands | common | Military | Your units ignore the movement cost of forest, jungle and hills. | changed (02) |
+| The Founding Furrow | common | Civic | Founding a town grants culture equal to five times the number of towns you hold. | unchanged |
+| The Horrea | uncommon | Civic | Each Granary you hold gives +1 authority. | unchanged |
+| The Gathering Grounds | uncommon | Economic | Charter. Workers may build fish traps on coast and lake tiles (+2 food, +1 production) and orchards in forest and jungle (+2 food, +2 gold). | changed (01); was The Fish Traps; also dealt in Tier I |
+
+### Tier I (17 cards)
+
+| Card | Rarity | Chair | Text | Status |
+|---|---|---|---|---|
+| Levy of the Land | common | Economic | A town may spend a citizen for production equal to the food it took to grow. Once every five turns. | changed (04): common; also dealt in Tier II |
+| Tinkers' Guild | common | Economic | Workers gain +1 charge. | unchanged (kept, 06) |
+| The Local Census | common | Civic | A town working four improved tiles costs 1 less authority. | unchanged |
+| Dark Earth | uncommon | Economic | Farms that have stood 20 turns gain +2 food. | unchanged |
+| The Three Sisters | common | Economic | Farms beside a plantation or pasture gain +2 food and +2 production. | unchanged |
+| The Hard Country | common | Economic | Worked desert and tundra tiles gain +1 food and +1 production. | unchanged |
+| Outposts | uncommon | Economic | Charter. Workers may plant an outpost on an unowned hex within three hexes of your border. It claims its hex and the ring around it. | changed (08): a charter |
+| Commission: Break the Sod | common | Wildcard | Goal: work 12 improved tiles. Reward: farms gain +1 food. | unchanged |
+| The Grain Census | uncommon | Economic | Gains +1 production and +1 gold each time a town grows past its largest size. | unchanged |
+| The Road Towns | common | Economic | Towns joined to your capital by road gain +4 production. | changed (09) |
+| The Aediles | uncommon | Civic | Gains +1 production and +1 culture each time you finish a public work. | unchanged |
+| The Land Hunger | common | Economic | Towns build settlers 50% faster. | changed (07) |
+| The Staked Claims | rare | Economic | Each town you found claims every unowned hex within two hexes of it. | moved from Tier II (11) |
+| The Desert and the Snow | uncommon | Economic | Charter. Workers may draw Nazca lines on flat desert (+2 faith, +2 culture, and +2 faith more for each Nazca line beside it) and raise inuksuit on tundra and snow (+1 food, +2 culture, and +1 culture more for each inuksuk beside it). | new (46, 59) |
+| The Makers of Land | uncommon | Civic | Scaler. Gains +1 science and +1 culture for every 3 improvements you build. | new (50) |
+| The Totem Poles | uncommon | Economic | Charter. Workers may raise one totem pole in each town, in a forest or jungle: +3 culture, and each forest or jungle hex beside it gains +1 culture and +1 production. | new (62) |
+| The Timber Yards | common | Economic | Lumber mills gain +1 production for each forest or jungle hex beside them. | new (64) |
+
+### Tier II (23 cards)
+
+| Card | Rarity | Chair | Text | Status |
+|---|---|---|---|---|
+| The Watercourses | uncommon | Economic | Irrigated farms gain +2 production. | unchanged |
+| The Highlands | common | Civic | Mines and quarries on hills gain +2 science and +1 production. | unchanged |
+| The Coast | common | Civic | Worked fishing boats gain +3 food and +3 culture. | unchanged |
+| Provincial Councils | common | Civic | Towns joined to your capital by road cost 1 less authority. | changed (20): common |
+| The Grain Dole | common | Civic | Towns of 10 or more citizens gain +4 happiness. | unchanged |
+| The Waterworks | common | Civic | Aqueducts give +3 happiness. | changed (20): common |
+| The Breadbasket | uncommon | Economic | A town told to stop growing adds its food surplus to its production. | unchanged |
+| Veteran Colonies | uncommon | Economic | A military unit in one of your towns may retire. The town gains a citizen. | unchanged |
+| The Hedgerows | common | Economic | Farms beside a forest or jungle gain +3 food. | changed (13) |
+| The Great Households | common | Economic | Each town gains +1 production for every 2 citizens. | changed (16) |
+| The Harbour Cities | common | Civic | Coastal towns gain +1 culture for every two citizens. | unchanged |
+| The Terraces of Moray | uncommon | Civic | A levy also grants science equal to half its production. | unchanged |
+| The Book of Settlements | uncommon | Economic | +3% production and gold for every town you have founded this game, at most +30%. | unchanged |
+| The Colonists | uncommon | Economic | Towns of at least six citizens may spend a citizen to raise a settler. | unchanged |
+| The Great Colonies | rare | Economic | Towns you found start with a fourth of the citizens of your largest town. | moved from Tier III, changed (15) |
+| The Thermae | uncommon | Civic | Each public work gives its town +2 science. | new (17) |
+| The Beacons | common | Military | Your units gain +1 movement inside your borders. | new (18, 37); also dealt in Tier I |
+| The Seven Fat Years | uncommon | Economic | Boon. On draft: each of your towns gains a citizen. | new (19) |
+| Commission: The Reclaimed Lands | uncommon | Wildcard | Goal: build 8 unique improvements. Reward: unique improvements gain +1 food and +1 production. | new (49) |
+| Commission: Bread and Water | uncommon | Wildcard | Goal: hold 12 public works. Reward: each public work gives its town +1 food and +1 production. | new (52) |
+| The Mansiones | common | Civic | Towns joined to your capital by road gain +2 culture for each public work. | new (67) |
+| The Stepwells | uncommon | Economic | Charter. Workers may dig one stepwell in each town, on flat land with no fresh water: +2 food and +1 renown toward great engineers, and the hexes beside it have fresh water. | new (61) |
+| The Fyrd | common | Military | Military units gain +1 combat strength in your territory for every 2 yields on the tile they occupy. | new (69) |
+
+### Tier III (20 cards)
+
+| Card | Rarity | Chair | Text | Status |
+|---|---|---|---|---|
+| Seasonal Levies | common | Economic | After a town levies a citizen, it gains +60% food for ten turns. | changed (26): common |
+| The Polders | uncommon | Economic | Charter. Workers may build a polder on a coast tile beside three of your land tiles. A polder is a farm. | changed (24): a charter, uncommon |
+| A Court of Engineers | uncommon | Civic | Gain +50% renown, but great-person offers contain only great engineers. | changed (26): uncommon |
+| The Age of Improvement | rare | Wildcard | The bonuses your Orders give to improved tiles are doubled. | unchanged |
+| Old Workings | common | Economic | Mines, quarries and lumber mills gain +3 production. | unchanged |
+| The Megalopolis | rare | Civic | Towns of ten or more citizens gain +1 science and +1 production for each citizen. | unchanged |
+| The Freedom of the City | common | Economic | The first time a town reaches 15 citizens, it gains production equal to forty times its population. | changed (26): common |
+| Plenty | common | Economic | When a town grows, it gains production equal to five times its new population. | unchanged |
+| The Mill Wheels | common | Economic | Towns with a Watermill gain +15% production. | unchanged |
+| The Mit'a | uncommon | Economic | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. | changed (26): uncommon |
+| The Quitrents | common | Economic | +1 gold for every two hexes you own. | unchanged |
+| The Mountain Terraces | uncommon | Civic | Your towns may work the mountains in their borders. A worked mountain yields 4 science and 2 production. | changed (25) |
+| The Sovereign Writ | rare | Civic | Spare authority's bonus has no ceiling. | unchanged |
+| The Imperial Roads | rare | Civic | Towns joined to your capital by road cost no authority. | unchanged |
+| The Capitolia | common | Civic | Each empire building you hold gives each of your towns +1 culture. | changed (26): common |
+| The Engineers' Yards | common | Economic | Improvements beside a manufactory gain +4 production. | moved from Tier II, changed (21) |
+| The General Levy | uncommon | Military | Your towns may spend a citizen to raise a melee unit. At war, they may do it every 2 turns. | moved from Tier IV, changed (22) |
+| The Barays | uncommon | Economic | Charter. Workers may dig one baray in each town, on flat land beside a river: +2 food, and +2 production for each farm beside it. | new (48) |
+| The Cadastre | uncommon | Civic | Unique improvements gain +3 science. | new (51) |
+| The Mountain Sluices | uncommon | Economic | Mines and quarries gain +1 production for each mountain, mine or quarry beside them. | new (58) |
+
+### Tier IV (11 cards)
+
+| Card | Rarity | Chair | Text | Status |
+|---|---|---|---|---|
+| The Keeps | rare | Economic | Charter. Workers may build one Keep in each town. A Keep gains the yields of every tile around it. | changed (28): a charter |
+| The Corvée | uncommon | Economic | Your towns may levy a citizen toward the Magnum Opus. | changed (32): uncommon |
+| The Philosophers' Peaks | common | Civic | Each town gains +4 science for every mountain in its borders, at most +12. | changed (29) |
+| The Measure of the Land | uncommon | Civic | Every town gains +1 science for every 25 hexes your empire owns, at most +10. | changed (32): uncommon |
+| The Mother City | rare | Civic | Your capital gains +5% production and +5% culture for each town you have founded this game. | unchanged |
+| The Great Migration | rare | Economic | Every ten turns, each foreign town near your border loses a citizen to your nearest happier town. | unchanged |
+| The Domesday Survey | uncommon | Wildcard | Goal: own 120 hexes and work 40 improved tiles. Reward: each town gains +1 science for each improved tile it works. | changed (32, 45): uncommon; wording |
+| The Imperial Highways | uncommon | Economic | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. | changed (32): uncommon |
+| The Theodosian Walls | common | Military | Your towns gain +1 defence for every two citizens. | changed (32): common |
+| The Water Boards | uncommon | Economic | Your public works yield twice as much. | new (30) |
+| The Thousand Villages | common | Civic | +1 culture for every two citizens in your empire. | new (31) |
+
+### Shared with another deck (17)
+
+| Card | Shared with | Tier | Rarity | Chair | Text | Status |
+|---|---|---|---|---|---|---|
+| The Country Fair | Commerce | 0 | common | Economic | Luxury resources gain +1 gold. | unchanged |
+| Sacred Groves | Devotion | 0 | uncommon | Civic | Worked forests gain +1 food and +1 faith. | changed (45) |
+| The Frontier Militia | Dominion | 0 | common | Military | Each town you found starts with a melee unit. | unchanged |
+| The Ambarvalia | Devotion | 0 | common | Civic | Each town gains +1 faith for every two improved tiles. | unchanged |
+| The Holy Spring | Devotion | 0 | common | Civic | Towns beside a mountain or a lake gain +2 faith and +1 culture. | unchanged |
+| The Mountain Observatories | Scientific | 0 | common | Civic | Cities with a mountain in their borders gain +3 science. | unchanged |
+| The Muster of the Fields | Dominion | I | uncommon | Military | Towns of 5 or more citizens may spend a citizen to raise a melee unit. | unchanged |
+| The Barbarian Frontier | Dominion | I | uncommon | Economic | Clearing a barbarian camp claims its hex and the unowned hexes around it. | unchanged |
+| The Farming Garrisons | Dominion | I | common | Economic | Hexes with a fortified unit gain +1 food and +1 production. | unchanged |
+| The Assay | Scientific | I | common | Civic | Hexes with a strategic resource gain +2 science. | unchanged |
+| Garden Cities | Magisterial | I | uncommon | Civic | Towns with a Monument gain +1 culture for every three improved tiles they work. | changed (45) |
+| The Founders' Stores | Commerce | I | uncommon | Economic | Towns you found start with a Granary. | new (53); the Commerce pass's change 102 |
+| Market Gardens | Commerce | II | common | Economic | Hexes with a road gain +1 gold. | unchanged |
+| The Provincial Fair | Commerce | II | uncommon | Economic | Towns with a Market gain +2 gold on plantations, camps and pastures. | unchanged |
+| Garden Provinces | Magisterial | II | common | Civic | Connected cities with a Monument gain +3 food and +3 culture. | unchanged |
+| The Hillforts | Dominion | II | uncommon | Military | Charter. Workers may build one hillfort in each town, on a hill: +2 production, and +1 production more for each farm, pasture or camp beside it. A unit on it gains +5 strength when it defends. | new (70), open |
+| The Sculpted Landscape | Magisterial | III | uncommon | Civic | Farms beside a great-person work gain +2 food and +2 culture. | unchanged |
+
+### Doctrines (21)
+
+| Doctrine | Tier | Text | Status |
+|---|---|---|---|
+| Bound to the Soil | I | Workers gain +1 charge. Farms gain +1 food and +1 production. | changed (66) |
+| The Gift of the River | I | Worked tiles beside a river gain +1 food and +1 production. Towns away from fresh water cost 3 more happiness. | unchanged |
+| The Highland Clans | I | Towns on hills cost 1 less authority. Hills beside a town gain +1 food. | unchanged |
+| The Commanderies | I | Each of your towns costs 1 less authority, minimum one. Your borders grow 30% more slowly. | unchanged |
+| The Georgics | II | Your works count as having stood twice as long. Improvements that have stood for twenty turns gain +1 production. | unchanged |
+| Synoecism | II | Your towns of six or more citizens grow 30% faster. Towns you founded cost 1 more authority, including those you already hold. | unchanged |
+| The Curator of Waters | II | Public works give +2 happiness and are built 50% faster. | unchanged |
+| Human Sacrifice | II | Your towns may levy every two turns instead of every five. Your capital may levy a citizen to perform a rite across your empire. | unchanged |
+| The Censors | II | When the world takes a census, each of your towns gains a citizen. If you lead the census, each of your towns also gains +1 happiness for the rest of the game. | unchanged |
+| Crop Rotation | III | Worked improvements yield twice their own bonus. Worked unimproved tiles yield nothing. | unchanged |
+| The Contented City | III | Your citizens ask 20% less happiness. Your gold income is halved. | unchanged |
+| The Builder Kings | III | +25% production toward wonders. Manufactories gain +2 production for each wonder in the town working them. | unchanged |
+| Empire Without End | III | +1 authority for each town you hold. | unchanged |
+| All Roads Lead to Rome | III | Your capital gains +3% production and gold for each town joined to it by road, at most +45%. Each town not joined to it costs 2 more authority. | unchanged |
+| The Planted Towns | III | Towns you found start with four citizens and a Monument. Training a settler also costs its town a citizen. | unchanged |
+| The Physiocrats | IV | Every improved tile gains +2 food, +2 production and +2 gold. | unchanged |
+| The Hydraulic Empire | IV | Worked tiles with fresh water gain +1 food and +1 production for each public work in their town. | unchanged |
+| The Cathedral Lodges | IV | Manufactories yield twice as much. Towns with a Manufactory gain +30% production toward wonders and the Magnum Opus. | unchanged |
+| The High Towns | IV | Your towns may work mountains. Mountains gain +4 production, and each gives +1 production to the hexes beside it. | unchanged |
+| The Mandarinate | IV | Each point of spare authority gives +1% science and culture, at most +30%. Each of your towns costs 1 more authority. | unchanged |
+| The Inward Roads | IV | Towns joined to your capital by road gain +20% science and culture. Your caravans may not travel to other empires. | unchanged |
+
+Cut: The Wildwood Compact (Tier II), The Garden Peoples (Tier III) and Arcadia (Tier IV).
+
+## 4. Index
+
+| # | Card | Tier | Change | Ruling | Open |
 |---|---|---|---|---|---|
 | 01 | The Gathering Grounds (was The Fish Traps) | I to 0 and I | rework | approved with your text |  |
 | 02 | The Woodland Bands | 0 | buff | approved |  |
@@ -280,21 +470,22 @@ Only these blocks and changes 59 to 69 are not ruled. Everything else in this fi
 | 56 | The Citizen Soldiers | IV | new | cut |  |
 | 57 | The River Towns | I | new | cut |  |
 | 58 | The Mountain Sluices | III | new | approved with your text |  |
-| 59 | The inuksuk | I | new | new, not ruled | yes |
-| 60 | The Hillside Vineyards | II | new | new, not ruled | yes |
-| 61 | The Stepwells | II | new | new, not ruled | yes |
-| 62 | The Totem Poles | I | new | new, not ruled | yes |
-| 63 | The keyword: unique improvement | all | rework | new, not ruled | yes |
-| 64 | The Timber Yards | I | new | new, not ruled | yes |
-| 65 | A flag for the base rules: the lumber mill | base rule | buff | new, not ruled | yes |
-| 66 | Bound to the Soil | I | doctrine | new, not ruled | yes |
-| 67 | The Mansiones | II | buff | new, not ruled | yes |
-| 68 | The Marching Roads | I | new | new, not ruled | yes |
-| 69 | The Fyrd | II | new | new, not ruled | yes |
+| 59 | The inuksuk | I | new | approved |  |
+| 60 | The Hillside Vineyards | II | new | cut |  |
+| 61 | The Stepwells | II | new | approved with your text |  |
+| 62 | The Totem Poles | I | new | approved |  |
+| 63 | The keyword: unique improvement | all | rework | approved |  |
+| 64 | The Timber Yards | I | new | approved |  |
+| 65 | A flag for the base rules: the lumber mill | base rule | buff | approved |  |
+| 66 | Bound to the Soil | I | doctrine | approved with your text |  |
+| 67 | The Mansiones | II | buff | approved |  |
+| 68 | The Marching Roads | I | new | cut |  |
+| 69 | The Fyrd | II | new | approved with your text |  |
+| 70 | The Hillforts | II | new | new, not ruled | yes |
 
-Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as today, 12 withdrawn in round four and 3 sent back and replaced. Changes 59 to 69 are new.
+Of changes 01 to 69: 31 approved, 12 approved with your text, 10 cut, 1 kept as today, 12 withdrawn in round four and 3 sent back and replaced. Change 70 is new.
 
-## 3. The changes, with the rulings applied
+## 5. The changes, with the rulings applied
 
 "To build" is the line a builder follows. "Today" is the card in `data/decks/expansionist.json` now.
 
@@ -308,7 +499,7 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 - **Arithmetic:** A coast hex yields 1 food and 1 gold. With fish traps it yields 3 food, 1 production and 1 gold (5). A forest yields 1 food and 1 production. With an orchard it yields 3 food, 1 production and 2 gold (6), against 3 for a lumber mill and 3 or 4 for a farm on the felled ground. Three such hexes worked by turn 40 add 9 to 12 a turn, above a regular Tier 0 card (4 to 8), for one Worker. 92% of capitals have open coast or a lake in three rings and 79% have woods.
 - **Synergy:** Raises: unique improvements, on ground with no improvement before. The Reclaimed Lands (49) and The Cadastre (51) read them, and The Makers of Land (50) counts each one built. The Rope Stretchers, The Local Census, The Georgics and Crop Rotation read them as improved land. Tinkers' Guild (06) gives the charges to build them.
 - **Shape:** Near an existing shape. A charter unlocks one work today (`charter.unlocks.improvement`); this one names two. `lastBand` deals a card in two tiers; it exists, and no dealt row uses it today.
-- **Note:** The figures are yours, from round four. Both works are unique improvements (63). The orchard is the first answer to "it's just better to chop": section 1, r5-6.
+- **Note:** The figures are yours, from round four. Both works are unique improvements (63). With the lumber mill at +2 production (65), an orchard forest yields 6 and a milled forest 4.
 
 ### 02. The Woodland Bands (approved)
 
@@ -649,8 +840,8 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 - **Ruling:** Sent back; replaced by a later change. Your words: *"for this to work, i think we need to make more unlockable tended tiles?"*
 - **Tier, rarity, type:** Tier I, Doctrine, the field
 - **Today:** Workers gain +1 charge. Tended tiles gain +1 food.
-- **To build:** Sent back: "Workers gain +1 charge. Farms gain +1 food." needs to be stronger. Change 66 has two stronger lines.
-- **Note:** Your words: *"needs to be stronger"*. See change 66.
+- **To build:** Sent back in round four. Change 66 has your final line: Workers gain +1 charge. Farms gain +1 food and +1 production.
+- **Note:** See change 66.
 
 ### 34. The Wildwood Compact (withdrawn in round four)
 
@@ -682,7 +873,7 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 37. The Beacons (approved)
 
-- **Ruling:** Approved. No comment, so approved by your ruling of round one.
+- **Ruling:** Approved. Your words: *"sure"*
 - **Tier, rarity, type:** Tiers I and II, common, Military
 - **Today:** Change 18, approved: Tier II, common. Your units gain +1 movement inside your borders.
 - **To build:** The same card, dealt in Tiers I and II.
@@ -749,7 +940,7 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 45. Wild and tended land leave the deck (approved)
 
-- **Ruling:** Approved. No comment, so approved by your ruling of round one.
+- **Ruling:** Approved. Your words: *"great", "good", "good", "good", "sure"; on the culture for five hexes: "Cut"; on Bound to the Soil: "needs to be stronger"*
 - **Tier, rarity, type:** Seven cards cut, three reworked, three reworded, two of them shared
 - **Today:** Eleven cards read wild land, and two works are tended and not improved.
 - **To build:** Cut The Old Songs, The Wild Marches, The Tended Country, The Long Tending, The Garden of the World, and the Doctrines The Wildwood Compact and The Garden Peoples. Rework Sacred Groves (Worked forests gain +1 food and +1 faith) and Garden Cities (+1 culture for every three improved tiles a Monument town works). Reword The Gathering Grounds, Outposts and The Domesday Survey. Fish traps and orchards become ordinary improvements. Bound to the Soil is sent back (66).
@@ -761,7 +952,7 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 46. The Desert and the Snow (approved with your text)
 
-- **Ruling:** Approved with your text.
+- **Ruling:** Approved with your text. Your words: *"this doesn't feel very strong. lets make something unique: nazca lines (non-floodplain flat desert). +2 faith +2 culture. additional +2 faith for every adjacent nazca line." On the reindeer corral: "someting similar to nazca line here"*
 - **Tier, rarity, type:** Tier I, uncommon, Economic, charter
 - **Today:** Not in the deck. Round four proposed date gardens (+2 food, +1 gold) and reindeer corrals.
 - **To build:** Workers may draw Nazca lines on flat desert that is not floodplain: +2 faith and +2 culture, and +2 faith more for each Nazca line beside it. The card's second work, for tundra, is change 59.
@@ -773,27 +964,27 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 47. The Hammer Ponds (sent back; replaced by a later change)
 
-- **Ruling:** Sent back; replaced by a later change.
+- **Ruling:** Sent back; replaced by a later change. Your words: *"i don't know what a hammer pond is, lets find something unique to put here too"*
 - **Tier, rarity, type:** Tier II, uncommon, Economic, charter
 - **Today:** Not in the deck. A hill beside a river can hold a mine (+1 production).
-- **To build:** Sent back. Change 60, The Hillside Vineyards, takes its place.
+- **To build:** Sent back, and the vineyard that took its place is cut. Change 70, The Hillforts, takes the place.
 - **Note:** Your words: *"i don't know what a hammer pond is, lets find something unique to put here too"*.
 
 ### 48. The Barays (approved with your text)
 
-- **Ruling:** Approved with your text.
+- **Ruling:** Approved with your text. Your words: *"Rework: must be built next to a river. +2 food and +2 production for each adjacent farm."*
 - **Tier, rarity, type:** Tier III, uncommon, Economic, charter
 - **Today:** Not in the deck. Round four proposed: one in each town on flat land, +2 food, and the hexes beside it have fresh water.
-- **To build:** Workers may dig one baray in each town, on flat land beside a river. It gains +2 food and +2 production for each farm beside it.
+- **To build:** Workers may dig one baray in each town, on flat land beside a river: +2 food, and +2 production for each farm beside it.
 - **Why:** Your line. The baray is now the heart of a town's fields: the more farms the worker can put round it, the more it yields. The barays were the great reservoirs of Angkor.
-- **Arithmetic:** **The reading I took (A):** all of the yield counts farms. With four farms beside it the baray yields 8 food and 8 production (16); with six, 24. With none it yields nothing. **The other reading (B):** +2 food always, and +2 production for each farm: with four farms 2 food and 8 production (10). A farm on that hex would yield 4, and a typical farm with its cards 12. 92% of capitals have flat land on a river, 6.0 hexes where they do.
+- **Arithmetic:** With four farms beside it a baray yields 2 food and 8 production (10); with six, 2 and 12 (14); with none, 2 food. A farm on that hex would yield 4. 92% of capitals have flat land on a river, 6.0 hexes where they do.
 - **Synergy:** Reads: farms beside it. Every card that makes a farm worth building feeds it, and a polder counts as a farm. The Reclaimed Lands (49) and The Cadastre (51) read it as a unique improvement.
 - **Shape:** A new improvement row with `onePerTown` (the Keep has it). A ground rule "beside a river" for an improvement, and the "for each hex beside it that…" yield (see 46).
-- **Note:** Two things to confirm (section 1, r5-1): reading A, and that it stays one in each town. Your rework did not say.
+- **Note:** You chose this reading in round five (*"this one"*). It stays one in each town: you did not comment on that, so it stands.
 
 ### 49. Commission: The Reclaimed Lands (approved)
 
-- **Ruling:** Approved. No comment, so approved by your ruling of round one.
+- **Ruling:** Approved. Your words: *"great"*
 - **Tier, rarity, type:** Tier II, uncommon, Wildcard, commission
 - **Today:** Not in the deck.
 - **To build:** Goal: build 8 unique improvements. Reward: unique improvements gain +1 food and +1 production.
@@ -805,7 +996,7 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 50. The Makers of Land (approved with your text)
 
-- **Ruling:** Approved with your text.
+- **Ruling:** Approved with your text. Your words: *"lets have this be generic: +1 science and +1 culture for every 3 improvements you construct."*
 - **Tier, rarity, type:** Tier I, uncommon, Civic, scaler
 - **Today:** Not in the deck.
 - **To build:** Gains +1 science and +1 culture for every 3 improvements you build.
@@ -816,7 +1007,7 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 51. The Cadastre (approved)
 
-- **Ruling:** Approved. No comment, so approved by your ruling of round one.
+- **Ruling:** Approved. Your words: *"great". On the name of the theme: "should we just call these 'unique improvements' and extend it to leader special improvements, like the paradise gardens?"*
 - **Tier, rarity, type:** Tier III, uncommon, Civic
 - **Today:** Not in the deck.
 - **To build:** Unique improvements gain +3 science.
@@ -828,37 +1019,38 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 52. Commission: Bread and Water (approved)
 
-- **Ruling:** Approved. No comment, so approved by your ruling of round one.
+- **Ruling:** Approved. Your words: *"cool"*
 - **Tier, rarity, type:** Tier II, uncommon, Wildcard, commission
 - **Today:** Not in the deck.
 - **To build:** Goal: hold 12 public works. Reward: each public work gives its town +1 food and +1 production.
 - **Why:** Public works have one Order in each early tier, and every one takes a chair. A commission is met by building what the seat builds anyway, and its reward stays.
 - **Arithmetic:** Six towns with a Granary and a Watermill each are 12, at about turn 100. The reward is then +24 a turn, and +60 to +80 at 30 to 40 public works, with no chair.
-- **Synergy:** Reads: public works held. The Founders' Stores (53), the Doctrine The Curator of Waters and the generic The Capital's Example bring them sooner. The Thermae, The Mansiones (54) and The Mountain Sluices (58) read the same buildings.
+- **Synergy:** Reads: public works held. The shared The Founders' Stores, the Doctrine The Curator of Waters and the generic The Capital's Example bring them sooner. The Thermae, The Mansiones (67) and The Water Boards read the same buildings.
 - **Shape:** Near an existing shape: the count `publicWorks` exists for cards; a commission needs it as a goal figure. The reward is a `pays` city by that count.
 
 ### 53. The Founders' Stores (approved)
 
-- **Ruling:** Approved. No comment, so approved by your ruling of round one.
-- **Tier, rarity, type:** Tier I, uncommon, Economic
+- **Ruling:** Approved. Your words: *"cool"*
+- **Tier, rarity, type:** Tier I, uncommon, Economic, shared with Commerce
 - **Today:** Not in the deck.
 - **To build:** Towns you found start with a Granary.
 - **Why:** It ties settling to public works. A new town is weakest in its first twenty turns, and a Granary doubles its food surplus then.
 - **Arithmetic:** A Granary gives +2 food and keeps 20% of a town's food when it grows. A new town with a surplus of 2 has 4. It reaches size 4 (52 food) in about 13 turns in place of 26. Each Granary is also +1 authority with The Horrea and +2 science with The Thermae from the first turn.
-- **Synergy:** Raises: public works, and citizens in new towns. Reads: towns founded. The Horrea, The Thermae, Bread and Water (52) and The Mansiones (54) read the Granary. The Seed Grain and The Great Colonies add citizens to the same town.
+- **Synergy:** Raises: public works, and citizens in new towns. Reads: towns founded. The Horrea, The Thermae, Bread and Water (52) and The Mansiones (67) read the Granary. The Seed Grain and The Great Colonies add citizens to the same town.
 - **Shape:** Existing shape: `foundingRider` with a building. The Doctrine The Planted Towns gives a Monument this way.
+- **Note:** One card with the Commerce pass's The Colonists' Stores (its change 102). It takes this name, lives in `data/decks/common.json`, and is built once.
 
 ### 54. The Mansiones (sent back; replaced by a later change)
 
-- **Ruling:** Sent back; replaced by a later change.
+- **Ruling:** Sent back; replaced by a later change. Your words: *"this feels pretty weak."*
 - **Tier, rarity, type:** Tier II, common, Civic
 - **Today:** Not in the deck.
-- **To build:** Sent back as weak. Change 67 has a stronger line.
+- **To build:** Sent back as weak. Change 67 has the line you approved: +2 culture for each public work.
 - **Note:** Your words: *"this feels pretty weak."*
 
 ### 55. The Tribute of Hands (cut)
 
-- **Ruling:** Cut.
+- **Ruling:** Cut. Your words: *"The wording in this is confusing to me. let's cut this."*
 - **Tier, rarity, type:** Tier II, common, Economic, needs a levy
 - **Today:** Not in the deck.
 - **To build:** Cut. The Tribute of Hands does not join the deck.
@@ -870,10 +1062,10 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 56. The Citizen Soldiers (cut)
 
-- **Ruling:** Cut.
+- **Ruling:** Cut. Your words: *"too specific i think" and "if we want to do this it should be more genrally useful"*
 - **Tier, rarity, type:** Tier IV, uncommon, Military, needs a levy that raises a unit
 - **Today:** Not in the deck.
-- **To build:** Rejected as written. Changes 68 and 69 are two Military cards that are useful to every seat.
+- **To build:** Rejected as written. The Fyrd (69) is the Military card that took its place, with your line.
 - **Why:** Tier IV has one Military card, The Theodosian Walls. This one pays at peace. With The General Levy and Veteran Colonies a seat can raise an army from its towns, keep it for nothing, and settle it again.
 - **Arithmetic:** Upkeep is 1 gold for each unit and age, so 4 gold a unit in Æra IV. Ten levied units: 40 gold a turn. That is under the Tier IV bar of 60 to 120 as a yield; its worth is the army a wide seat can then afford to hold.
 - **Synergy:** Reads: units a levy raised. The General Levy (22) and the shared The Muster of the Fields raise them. Alexander's The Royal Army pays science for each one.
@@ -881,7 +1073,7 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 57. The River Towns (cut)
 
-- **Ruling:** Cut.
+- **Ruling:** Cut. Your words: *"i think we have plenty of river bonuses already, cut."*
 - **Tier, rarity, type:** Tier I, common, Economic
 - **Today:** Not in the deck.
 - **To build:** Cut. The River Towns does not join the deck.
@@ -893,7 +1085,7 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 ### 58. The Mountain Sluices (approved with your text)
 
-- **Ruling:** Approved with your text.
+- **Ruling:** Approved with your text. Your words: *"Mines and quarries gain +1 production for each adjacent mountain, mine, or quarry."*
 - **Tier, rarity, type:** Tier III, uncommon, Economic
 - **Today:** Not in the deck.
 - **To build:** Mines and quarries gain +1 production for each mountain, mine or quarry beside them.
@@ -903,9 +1095,9 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 - **Shape:** The "for each hex beside it that…" yield on a card (see 46). The Doctrine The High Towns has it for mountains only.
 - **Note:** The name is from the old text, which was about water. "The Mining Country" would fit your line better; say if you want it.
 
-### 59. The inuksuk (new, not ruled)
+### 59. The inuksuk (approved)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved. Your words: *"i like this"*
 - **Tier, rarity, type:** The second work of The Desert and the Snow (46): Tier I, uncommon, charter
 - **Today:** Owed from round four. The reindeer corral is gone.
 - **To build:** Workers may raise an inuksuk on tundra or snow: +1 food and +2 culture, and +1 culture more for each inuksuk beside it. The card then reads: Workers may draw Nazca lines on flat desert and raise inuksuit on tundra and snow.
@@ -913,35 +1105,35 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 - **Arithmetic:** A tundra hex yields 1 food. One inuksuk makes it 2 food and 2 culture (4). Three in a row yield 3 or 4 culture each. A block of seven yields 2 food and 8 culture at its centre. On snow it is 1 food less. Two food feeds the citizen who works the hex and no more, so a cold town must still be fed from its coast. 29% of capitals have such ground, 4.4 hexes where they do, and it is 21% of the map's land.
 - **Synergy:** Raises: unique improvements, on tundra and snow. The Hard Country pays +1 food and +1 production on tundra, and the belief Winter Mother pays it too. The Reclaimed Lands (49) and The Cadastre (51) read it. Fish traps feed the town.
 - **Shape:** A new improvement row `inuksuk` and the "for each hex beside it that…" yield (see 46).
-- **Note:** The other two candidates are in section 1 (r5-3). A full block of inuksuit is 10 a hex with no card; test it beside the Nazca lines, which reach 16.
+- **Note:** A full block of inuksuit is 10 a hex with no card; test it beside the Nazca lines, which reach 16.
 
-### 60. The Hillside Vineyards (new, not ruled)
+### 60. The Hillside Vineyards (cut)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Cut. Your words: *"cut, doesn't seem that useful tbh" and "cut"*
 - **Tier, rarity, type:** Tier II, uncommon, Economic, charter. It takes the place of The Hammer Ponds (47)
 - **Today:** Not in the deck. A hill beside a river can hold a mine (+1 production).
-- **To build:** Workers may plant a vineyard on a hill beside a river: +2 gold and +2 culture, and +1 gold more for each hill beside it.
+- **To build:** Cut. The vineyard does not join the deck. Change 70, The Hillforts, takes the place.
 - **Why:** A thing every player knows, on the same mixed ground: the old vineyards of the Rhine, the Douro and the Rhône stand on river slopes. Where the worker plants it matters: a river hill inside a range of hills is the prize.
 - **Arithmetic:** A hill yields 2 production. A vineyard makes it 2 production, 2 gold and 2 culture (6), and 8 with two hills beside it. A mine there yields 3, and 4 in Æra IV. 52% of capitals have a bare hill on a river in three rings, 2.6 where they do, and 44% have one with two or more hills beside it.
 - **Synergy:** Raises: unique improvements. Reads: hills beside it. Sweet Water and The Gift of the River pay it as a hex beside fresh water. The Reclaimed Lands (49) and The Cadastre (51) read it. Pachacuti starts on such ground.
 - **Shape:** A new improvement row `vineyard` with `requiresHills`. A ground rule "beside a river" for an improvement, and the "for each hex beside it that…" yield (see 46).
-- **Note:** It does not give the wine luxury, which a plantation on the wine resource does. If that confuses, the work can be called a terraced vineyard.
+- **Note:** You chose the third candidate: *"i like this one the best"*.
 
-### 61. The Stepwells (new, not ruled)
+### 61. The Stepwells (approved with your text)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved with your text. Your words: *"Cool, could we add +1 renown towards engineers?"*
 - **Tier, rarity, type:** Tier II, uncommon, Economic, charter
 - **Today:** Not in the deck. The Scientific deck's Qanat waters its neighbours, behind a charter technology.
-- **To build:** Workers may dig one stepwell in each town, on flat land with no fresh water: +2 food, and the hexes beside it have fresh water.
+- **To build:** Workers may dig one stepwell in each town, on flat land with no fresh water: +2 food and +1 renown a turn toward great engineers, and the hexes beside it have fresh water.
 - **Why:** It changes the hexes round it. A town on dry ground gains a ring of watered farms. The stepwells of Gujarat and Rajasthan are great flights of stairs down to the water, and easy to picture.
-- **Arithmetic:** Six farms beside it gain Irrigation's +1 food, and its own hex +2: +8 food in a town for one charge, with no card. With Sweet Water (+1 food on seven hexes) and The Watercourses (+2 production on six farms) it is about +27. Every capital in my count has such land, 5.6 hexes of it.
-- **Synergy:** Raises: hexes beside fresh water, and unique improvements. Sweet Water, The Watercourses, The Gift of the River, The Hydraulic Empire, Jayavarman VII and Nezahualcoyotl read those hexes.
-- **Shape:** Existing fields on a new improvement row: `onePerTown` (the Keep) and `watersBeside` (the Qanat). Data only, and the art.
-- **Note:** Your baray did this before your rework. With Jayavarman VII it is strong: six more of his farms in each town. If the deck should hold ten unique improvements and not eleven, this one goes.
+- **Arithmetic:** Six farms beside it gain Irrigation's +1 food, and its own hex +2: +8 food in a town for one charge, with no card. With Sweet Water and The Watercourses it is about +27. Eight stepwells are +8 engineer renown a turn. A Watermill gives 2 and a Public Bath 1, so that is four Watermills' worth, and about one more great engineer in each age. Every capital in my count has such land, 5.6 hexes of it.
+- **Synergy:** Raises: hexes beside fresh water, unique improvements, and engineer renown. Sweet Water, The Watercourses, The Gift of the River, The Hydraulic Empire, Jayavarman VII and Nezahualcoyotl read the watered hexes. A Court of Engineers and The Engineers' Yards want the engineers.
+- **Shape:** Existing fields on a new improvement row: `onePerTown` (the Keep) and `watersBeside` (the Qanat). **Small extension:** an improvement that supplies renown. Buildings do (`renown: {family, perTurn}`); improvement rows do not.
+- **Note:** My reading: each stepwell gives the renown, one in each town.
 
-### 62. The Totem Poles (new, not ruled)
+### 62. The Totem Poles (approved)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved. Your words: *"great"*
 - **Tier, rarity, type:** Tier I, uncommon, Economic, charter
 - **Today:** Not in the deck. Nothing pays a forest for standing.
 - **To build:** Workers may raise one totem pole in each town, in a forest or jungle: +3 culture, and each forest or jungle hex beside it gains +1 culture and +1 production.
@@ -951,9 +1143,9 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 - **Shape:** A new improvement row `totemPole` with `onePerTown`. **New** for the row: a yield it gives to hexes beside it that match a test. The Doctrine The Peregrini does this for great-person works, as a card effect.
 - **Note:** It brings back early culture that the deck lost with The Old Songs and The Wild Marches.
 
-### 63. The keyword: unique improvement (new, not ruled)
+### 63. The keyword: unique improvement (approved)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved. Your words: *"Great"*
 - **Tier, rarity, type:** A word for the card faces, the Compendium and two pay-offs
 - **Today:** The pay-offs of round four read "improvements that your charters open".
 - **To build:** A unique improvement is any improvement that a charter or a leader opens. The Reclaimed Lands (49) reads: Goal: build 8 unique improvements. Reward: unique improvements gain +1 food and +1 production. The Cadastre (51) reads: Unique improvements gain +3 science.
@@ -961,91 +1153,104 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 - **Arithmetic:** Pachacuti: eight terraces meet the commission with no charter, and each then gains +1 food, +1 production and +3 science on top of the farm cards. Cyrus: one Paradise Garden in each city gains +5 from the two pay-offs, and as a great-person work it also takes Magisterial's The Masters' Domain (+6 food, +6 production) and The Hanlin Academy (+2 science). That is about 20 on one hex in each city before any doubler.
 - **Synergy:** Read by: The Reclaimed Lands, The Cadastre. Raised by: the nine charters of this deck, two leaders and two Scientific charters.
 - **Shape:** Near an existing shape: a tile test for a unique improvement, read off the row (a card opens it, a charter technology opens it, or a leader does). A word in the describers' table and a Compendium entry.
-- **Note:** To test first: Cyrus's Paradise Garden under both The Age of Improvement and Magisterial's The Divine Proportion, which each double what cards give the hex.
+- **Note:** No ruling of round five changed Cyrus's case: a Paradise Garden still takes this deck's pay-offs and Magisterial's on one hex. It is the first thing to test.
 
-### 64. The Timber Yards (new, not ruled)
+### 64. The Timber Yards (approved)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved. Your words: *"great"*
 - **Tier, rarity, type:** Tier I, common, Economic
 - **Today:** Not in the deck. A lumber mill gives +1 production.
 - **To build:** Lumber mills gain +1 production for each forest or jungle hex beside them.
 - **Why:** A lumber mill in the middle of a wood is then worth keeping the wood for. The card is in Tier I so that a seat sees it before it has felled its forests: lumber mills come in age 2.
-- **Arithmetic:** A lumber mill with three woods beside it yields 1 food and 5 production (6). A farm on the felled hex yields 3 or 4, after a chop of 34 to 46. So the mill is 2 or 3 a turn ahead and pays the chop back in about 15 to 20 turns. Four such mills: +12 production. 67% of capitals have a forest with three or more woods beside it.
+- **Arithmetic:** With the lumber mill at +2 production (65), a mill with three woods beside it yields 1 food and 6 production (7). An orchard on the same hex yields 6, and a farm on the felled hex 3 or 4 after a chop of 34 to 46. Four such mills: +12 production from the card. 67% of capitals have a forest with three or more woods beside it.
 - **Synergy:** Reads: lumber mills, and the woods beside them. An orchard or a totem pole keeps a hex forest, so it still counts. Old Workings (Tier III) adds +3 to the same mills.
 - **Shape:** The "for each hex beside it that…" yield on a card (see 46).
 
-### 65. A flag for the base rules: the lumber mill (new, not ruled)
+### 65. A flag for the base rules: the lumber mill (approved)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved. Your words: *"great"*
 - **Tier, rarity, type:** Not a card. `data/improvements.json`, the row `lumbermill`
 - **Today:** A lumber mill gives +1 production. A chop pays 28 to 46 production in ages 1 and 2 and leaves a hex that farms for 3 or 4.
-- **To build:** A lumber mill gives +2 production.
+- **To build:** A lumber mill gives +2 production. A base rule for every deck.
 - **Why:** It is outside this deck, so it is a flag and not a change of mine. The cards above help a seat that drafts them. A seat with none of them will still fell every forest, because the mill is worth less than the farm that replaces it.
 - **Arithmetic:** At +2 a milled forest yields 1 food and 3 production (4): level with a watered farm and 1 above a dry one. The chop then costs the player nothing later and gains nothing later; it is timber now against production each turn. At +1 the chop wins outright.
 - **Synergy:** Old Workings, The Timber Yards (64), The Totem Poles (62) and the great person Wenamun all pay a lumber mill more once it is worth building.
 - **Shape:** One figure in the data.
-- **Note:** I would not touch the chop's own figure. You set its growth by technology on 2026-08-28.
+- **Note:** Approved as a base rule. It is in "Ready for the build" under base rules, with the terrace farm.
 
-### 66. Bound to the Soil (new, not ruled)
+### 66. Bound to the Soil (approved with your text)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved with your text. Your words: *"line 1" then "actually thats too strong. Lets do: workers gain +1 charge, farms gain +1 food and +1 prod"*
 - **Tier, rarity, type:** Tier I, Doctrine, the land
 - **Today:** As sent back: Workers gain +1 charge. Farms gain +1 food.
-- **To build:** Recommended: Workers gain +1 charge. Every improvement gains +1 food. The other line: Workers gain +2 charges. Farms gain +1 food and +1 production.
-- **Why:** You wrote that it needs to be stronger. A Doctrine is held for the whole game and should change it. The first line reaches every mine and every unique improvement, so a Nazca line or a vineyard gains the food its town lacks.
-- **Arithmetic:** Line 1: fifteen improved hexes worked at turn 60 are +15 food, where the median seat makes 72; forty-five in Æra IV are +45. Line 2: ten farms are +20, and twenty-five are +50.
-- **Synergy:** Reads: every improved hex. Tinkers' Guild stacks with its charge. The nine charters give the charges works to build.
-- **Shape:** Existing shapes: `unitStat` charges, and `pays` hex on `improved`.
+- **To build:** Workers gain +1 charge. Farms gain +1 food and +1 production.
+- **Why:** Your line. You first took +1 food on every improvement, then wrote that it was too strong.
+- **Arithmetic:** Ten farms at turn 40: +20 for the rest of the game. Twenty-five farms late: +50. A polder is a farm and takes it too. A typical watered farm in Æra IV goes from 12 to 13.
+- **Synergy:** Reads: farms. Tinkers' Guild stacks with its charge, and the charters give the charges works to build.
+- **Shape:** Existing shapes: `unitStat` charges, and `pays` hex on farms.
 
-### 67. The Mansiones (new, not ruled)
+### 67. The Mansiones (approved)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved. Your words: *"great"*
 - **Tier, rarity, type:** Tier II, common, Civic. It takes the place of change 54
 - **Today:** As sent back: Towns joined to your capital by road gain +1 culture for each public work.
 - **To build:** Towns joined to your capital by road gain +2 culture for each public work.
 - **Why:** You called it weak. At +2 it is a regular card that grows with two things the deck builds anyway. Culture is the yield the deck lost with the wild cards. If it still does not earn its place, cut it.
 - **Arithmetic:** Six joined towns with 2.5 public works each: +30 culture in age 3, where the median seat makes 83. Ten towns with 4 each: +80 late. A regular Tier II card pays 35 to 60.
-- **Synergy:** Reads: joined towns and their public works. The Road Home, caravans and The Marching Roads (68) join towns. The Founders' Stores (53) and Bread and Water (52) bring the public works.
+- **Synergy:** Reads: joined towns and their public works. The Road Home and caravans join towns. The shared The Founders' Stores and Bread and Water (52) bring the public works.
 - **Shape:** Existing shape: `pays` city by the count `publicWorks`, with the scope `connected`.
 
-### 68. The Marching Roads (new, not ruled)
+### 68. The Marching Roads (cut)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Cut. Your words: *"cut"*
 - **Tier, rarity, type:** Tier I, uncommon, Military
 - **Today:** Not in the deck. Roads are laid by caravans and by The Road Home.
-- **To build:** Your military units lay a road on each hex they enter inside your borders.
+- **To build:** Cut. The Marching Roads does not join the deck.
 - **Why:** Roads have six readers in this deck and two makers. This is a third, and it gives a home army work to do at peace. You said on 2026-10-16 that a military unit might build roads in the future.
 - **Arithmetic:** Two towns six hexes apart are joined by one unit's walk of three turns. Each joined town is then +4 production with The Road Towns, 1 less authority with Provincial Councils, and culture with The Mansiones. A road step costs a third of a move, so the army also crosses the empire three times as fast.
 - **Synergy:** Raises: roads, and towns joined to the capital. The Road Towns, Provincial Councils, The Mansiones (67), The Imperial Roads, The Imperial Highways and The Beacons read them, and so do Pachacuti, Cyrus and Jayavarman VII.
 - **Shape:** **New shape,** small: the movers call `layRoad` for a holder's military unit on a hex its empire owns. The roads should be free of upkeep (the `roadFree` mark exists), or the card costs gold with every step.
-- **Note:** A Military card that is useful to every seat, at peace and at war.
+- **Note:** Roads keep two makers: The Road Home and caravans.
 
-### 69. The Fyrd (new, not ruled)
+### 69. The Fyrd (approved with your text)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved with your text. Your words: *"lets just make this a generic defensive card. Military units gain +1 combat strength in your territory for every 2 yields on the tile it occupies."*
 - **Tier, rarity, type:** Tier II, common, Military
 - **Today:** Not in the deck.
-- **To build:** Your military units cost no upkeep while they stand inside your borders.
-- **Why:** The general form of The Citizen Soldiers, which you found too specific. A deck of towns and land keeps an army to guard them, and this makes that army free at home. The fyrd was the levy of free men that served only in its own shire.
-- **Arithmetic:** Upkeep is 1 gold for each unit and age. Six units at home in age 2 are 12 gold a turn; eight in age 3 are 24; ten in Æra IV are 40. As a yield that is under a regular Tier II card. Its worth is the army a builder can afford to keep.
-- **Synergy:** Reads: units inside your borders. The Staked Claims and Outposts widen the borders. The General Levy raises the units, and Veteran Colonies settles them again.
-- **Shape:** Near an existing shape: the upkeep rebate exists for cards; a rebate by where the unit stands is to confirm.
+- **To build:** Military units gain +1 combat strength in your territory for every 2 yields on the tile they occupy.
+- **Why:** Your line: a generic defensive card. A unit fights harder for rich ground, so the deck's whole economy becomes its defence, and a pillaged hex defends worse.
+- **Arithmetic:** A bare grassland, forest or hill hex yields 2: +1. A watered farm or a mine yields 4: +2. An orchard yields 6: +3. A typical farm with its cards in Æra IV yields 12: +6. A block of Nazca lines yields 8 to 16: +4 to +8. A Keep copies six hexes and yields about 50: +25. A unit has 30 to 35 strength in age 2 and 45 to 80 in Æra IV, and a great general's aura is +3.
+- **Synergy:** Reads: the yield of the unit's hex. Every card of the deck that pays a hex raises it. The Hillforts (70) and a fortified unit stack with it as separate lines.
+- **Shape:** **Small extension:** a combat line whose points are read from the hex. Combat is flat points on one ledger (`planCombat`), so this is one labelled strength line. The figure is the hex's own fold (`foldTile` of `explainTileYield`, with the owner's context), so there is no second sum. Dominion's War Feeds Itself already reads a unit's hex this way.
+- **Note:** Advice: cap it at +6. Without a cap a unit on a Keep gains +25, which is eight times a general's aura. My reading: it counts whenever the unit stands on a hex you own, attacking or defending.
 
-## 4. The themes after round five
+### 70. The Hillforts (new, not ruled)
+
+- **Ruling:** New, not ruled.
+- **Tier, rarity, type:** Tier II, uncommon, charter, shared with Dominion. A charter takes no chair; its face is Military
+- **Today:** Not in the deck. It takes the place of The Hammer Ponds (47) and the vineyard (60).
+- **To build:** Workers may build one hillfort in each town, on a hill: +2 production, and +1 production more for each farm, pasture or camp beside it. A unit on it gains +5 strength when it defends.
+- **Why:** You picked it and said it can be shared with Dominion. A hillfort is the strong point above a town's fields and herds: it counts what it guards, and a unit on it holds the ground. Everyone knows the word, from Maiden Castle to the Māori pā.
+- **Arithmetic:** A hill yields 2 production. A hillfort makes it 4, and 7 with three farms or pastures beside it. A mine there yields 3, and 4 in Æra IV. A unit on it has the hill's +2, the fort's +5 and up to +6 for fortifying: +13 on a unit of 30 to 35 in age 2. Under The Fyrd it gains +2 or +3 more. 90% of capitals have a bare hill in three rings.
+- **Synergy:** Raises: unique improvements. Reads: farms, pastures and camps beside it. For Expansionist, The Reclaimed Lands and The Cadastre read it, and the farm cards make the farms it counts. For Dominion, pastures and camps are its own improvements (The Horse Herds, The Naadam, The Mesta), and the shared The Farming Garrisons pays the hex while a unit is fortified on it.
+- **Shape:** A new improvement row `hillfort`: `requiresHills`, `onePerTown`, and `defense: 5` (the citadel row has `defense: 8`). The "for each hex beside it that…" yield (see 46). A row in `data/decks/common.json` for both decks.
+- **Note:** **How it differs from the Keep.** The Keep is Tier IV, on flat land, and it copies the whole yield of its six neighbours. The hillfort is Tier II, on a hill, counts three kinds of improvement, and defends. **On the Dominion side** it is not a citadel and a unit on it is not a garrison, so the citadel cards and the garrison cards of that deck do not read it. Say if a unit on a hillfort should count as garrisoned.
+
+## 6. The themes of the final deck
 
 ### Unique improvements (the land theme)
 
 - **Tier 0:** The Gathering Grounds (fish traps, orchards)
-- **Tier I:** Outposts, The Desert and the Snow (Nazca lines, inuksuit), The Totem Poles (62), The Hard Country
-- **Tier II:** The Hillside Vineyards (60), The Stepwells (61), Commission: The Reclaimed Lands
+- **Tier I:** Outposts, The Desert and the Snow (Nazca lines, inuksuit), The Totem Poles, The Hard Country
+- **Tier II:** The Stepwells, Commission: The Reclaimed Lands; the shared The Hillforts (70)
 - **Tier III:** The Barays, The Polders, The Cadastre, The Mountain Terraces (a rule)
 - **Tier IV:** The Keeps
-- **The essentials:** food, production and gold from the works; faith and culture from Nazca lines, inuksuit, totem poles and vineyards; science from The Cadastre.
+- **The essentials:** food, production and gold from the works; faith and culture from Nazca lines, inuksuit and totem poles; science from The Cadastre.
 
 ### The worked land in general
 
 - **Tier 0:** Smallholdings, The Rope Stretchers
-- **Tier I:** Dark Earth, The Three Sisters, Commission: Break the Sod, The Local Census, Tinkers' Guild, The Makers of Land, The Timber Yards (64); the Doctrine Bound to the Soil (66)
+- **Tier I:** Dark Earth, The Three Sisters, Commission: Break the Sod, The Local Census, Tinkers' Guild, The Makers of Land, The Timber Yards; the Doctrine Bound to the Soil
 - **Tier II:** The Coast, The Hedgerows; the Doctrine The Georgics
 - **Tier III:** Old Workings, The Age of Improvement; the Doctrine Crop Rotation
 - **Tier IV:** The Domesday Survey; the Doctrine The Physiocrats
@@ -1054,8 +1259,8 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 ### Public works and engineers
 
 - **Tier 0:** The Horrea
-- **Tier I:** The Aediles, The Founders' Stores
-- **Tier II:** The Thermae, The Waterworks, Commission: Bread and Water, The Mansiones (67); the Doctrine The Curator of Waters
+- **Tier I:** The Aediles; the shared The Founders' Stores
+- **Tier II:** The Thermae, The Waterworks, Commission: Bread and Water, The Mansiones; the Doctrine The Curator of Waters
 - **Tier III:** The Mill Wheels, The Capitolia, A Court of Engineers, The Engineers' Yards
 - **Tier IV:** The Water Boards; the Doctrine The Hydraulic Empire
 - **The essentials:** science from The Thermae; culture from The Aediles, The Mansiones and The Capitolia; production from The Aediles, The Mill Wheels and The Water Boards.
@@ -1072,8 +1277,8 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 ### Settling, roads and the home army
 
 - **Tier 0:** The Seed Grain, The Founding Furrow, The Road Home, The Woodland Bands
-- **Tier I:** The Staked Claims, The Land Hunger, The Founders' Stores, The Road Towns, The Marching Roads (68), The Beacons
-- **Tier II:** The Great Colonies, The Colonists, The Book of Settlements, Provincial Councils, The Mansiones (67), The Fyrd (69), The Beacons
+- **Tier I:** The Staked Claims, The Land Hunger, The Road Towns, The Beacons; the shared The Founders' Stores
+- **Tier II:** The Great Colonies, The Colonists, The Book of Settlements, Provincial Councils, The Mansiones, The Fyrd, The Beacons
 - **Tier III:** The Imperial Roads, The Sovereign Writ, The Quitrents
 - **Tier IV:** The Mother City, The Measure of the Land, The Great Migration, The Imperial Highways
 - **The essentials:** culture from The Founding Furrow, The Mansiones and The Mother City; production from The Road Towns and The Book of Settlements; science from The Measure of the Land.
@@ -1082,144 +1287,82 @@ Of changes 01 to 58: 25 approved, 9 approved with your text, 8 cut, 1 kept as to
 
 - **Tier 0:** Sweet Water; the shared The Mountain Observatories and The Holy Spring
 - **Tier I:** the Doctrines The Gift of the River and The Highland Clans
-- **Tier II:** The Highlands, The Watercourses, The Waterworks, The Hillside Vineyards (60), The Stepwells (61)
+- **Tier II:** The Highlands, The Watercourses, The Waterworks, The Stepwells; the shared The Hillforts
 - **Tier III:** The Mountain Terraces, The Mountain Sluices, The Barays, The Polders
 - **Tier IV:** The Philosophers' Peaks; the Doctrines The Hydraulic Empire and The High Towns
 - **The essentials:** science from The Highlands, The Mountain Terraces and The Philosophers' Peaks; food and production from fresh water.
 
-## 5. Example councils
+## 7. Example councils
 
 ### Early, end of Tier I: the settlers of hard land (five chairs, a tier-4 government)
 
 - **Chairs:** The Founding Furrow (0), The Seed Grain (0), The Hard Country (I), The Makers of Land (I), Levy of the Land (I). Held with no chair: The Gathering Grounds, The Desert and the Snow, The Totem Poles and Outposts. Doctrine: Bound to the Soil.
-- **How it plays:** The seat founds a town on the desert edge and one on the cold coast. Workers draw Nazca lines in a block, so each pays 6 faith and 2 culture, and The Hard Country and the Doctrine feed the hex. Fish traps feed the cold town, and its inuksuit pay culture. In the home woods a totem pole stands among orchards. Every third work adds to The Makers of Land.
+- **How it plays:** The seat founds a town on the desert edge and one on the cold coast. Workers draw Nazca lines in a block, so each pays 6 faith and 2 culture, and The Hard Country feeds the hex. Fish traps feed the cold town, and its inuksuit pay culture. In the home woods a totem pole stands among orchards. Every third work adds to The Makers of Land.
 
 ### Early, end of Tier II: the road realm (six chairs, a tier-10 government)
 
-- **Chairs:** The Road Towns (I), The Marching Roads (I), The Grain Census (I), The Thermae (II), The Great Households (II), The Mansiones (II). Taken on the way: The Seven Fat Years, The Founders' Stores, and Commission: Bread and Water. Doctrine: The Curator of Waters.
-- **How it plays:** Seven towns, each founded with a Granary, each joined by the road its guard walked. A joined town pays +4 production, and each of its public works pays 2 science, 2 culture, 2 happiness, 1 food and 1 production. The home army costs nothing under The Fyrd if the seat takes it.
+- **Chairs:** The Road Towns (I), The Grain Census (I), The Thermae (II), The Great Households (II), The Mansiones (II), The Fyrd (II). Taken on the way: The Seven Fat Years, The Founders' Stores, The Hillforts, and Commission: Bread and Water. Doctrine: The Curator of Waters.
+- **How it plays:** Seven towns, each founded with a Granary and joined by road. A joined town pays +4 production, and each of its public works pays 2 science, 2 culture, 2 happiness, 1 food and 1 production. A hillfort stands over each town's fields, and a unit on rich ground fights harder for it.
 
 ### Late, Tier III then Tier IV: the fields round the water (eight chairs, then eleven)
 
-- **Chairs at Tier III:** Dark Earth (I), The Watercourses (II), The Highlands (II), Old Workings, The Mountain Sluices, The Cadastre, The Megalopolis, The Capitolia. Held with no chair: The Barays, The Hillside Vineyards, The Stepwells, The Gathering Grounds; the reward of The Reclaimed Lands. Doctrine: Crop Rotation. Tier IV adds The Water Boards, The Thousand Villages and The Keeps.
-- **How it plays:** Each town has a baray on its river with five farms round it: a hex of 10 food and 10 production before any card. The dry side of the town has a stepwell and its own ring of farms. Vineyards stand on the river hills, and the mines behind them count each other. Crop Rotation costs little, because the coast is in fish traps.
+- **Chairs at Tier III:** Dark Earth (I), The Watercourses (II), The Highlands (II), Old Workings, The Mountain Sluices, The Cadastre, The Megalopolis, The Capitolia. Held with no chair: The Barays, The Stepwells, The Gathering Grounds; the reward of The Reclaimed Lands. Doctrine: Crop Rotation. Tier IV adds The Water Boards, The Thousand Villages and The Keeps.
+- **How it plays:** Each town has a baray on its river with five farms round it: 2 food and 10 production on one hex. The dry side of the town has a stepwell and its own ring of watered farms, and the stepwells call engineers. The mines in the hills count each other. Crop Rotation costs little, because the coast is in fish traps.
 
-## 6. Pairs, leaders and great people
+## 8. Pairs, leaders and great people
 
 ### What Expansionist gives and takes with each other deck
 
-- **Dominion (Alexander):** Expansionist gives citizens to raise as soldiers and wide land to hold. It takes Military cards for its chairs and camps that claim land when cleared. The Marching Roads and The Fyrd serve an army at home.
-- **Commerce (Pachacuti):** Expansionist gives joined towns, road hexes and luxuries on claimed land. It takes gold, which buys hexes and workers, and caravans, which lay roads. The Mountain Sluices and Commerce's Mining Districts both read mines beside mines.
+- **Dominion (Alexander):** Expansionist gives citizens to raise as soldiers and wide land to hold. It takes Military cards for its chairs and camps that claim land when cleared. The Hillforts is shared: a strong point that counts farms, pastures and camps.
+- **Commerce (Pachacuti):** Expansionist gives joined towns, road hexes and luxuries on claimed land. It takes gold and caravans, which lay roads. The Founders' Stores is shared. The Mountain Sluices and Commerce's Mining Districts both read mines beside mines.
 - **Devotion (Jayavarman VII):** Expansionist gives public works, large towns and Nazca lines, which pay faith with no religion. Sacred Groves is reworked to pay every worked forest. It takes happiness and authority in devout towns.
 - **Scientific (Nezahualcoyotl):** Expansionist gives many towns for empire buildings, and public works that pay science. The Physic Garden and the Qanat are unique improvements, so this deck's pay-offs reach them. It takes charters and science.
 - **Magisterial (Cyrus):** Expansionist gives claimed land for great-person works. Garden Cities is reworked to read improved tiles. The Paradise Garden is a unique improvement and a great-person work at once. It takes culture and the government's chairs.
 
 ### For the Commerce pass
 
-- Two shared cards change, and neither is shared with Commerce: Sacred Groves (Devotion) and Garden Cities (Magisterial). The Country Fair, Market Gardens and The Provincial Fair stay as they are.
+- **The Founders' Stores is one card, shared.** It is this pass's change 53 and the Commerce pass's change 102 (The Colonists' Stores). Tier I, uncommon, Economic: Towns you found start with a Granary. Build it once, under this name.
+- The Country Fair, Market Gardens and The Provincial Fair stay as they are.
 - **The rarity finding is not only this deck's.** The draw shows a rare in about 1 game of 9. You approved setting a rarity by how often a card should be seen, and the same count should be made for the other decks.
-- **Roads.** The Marching Roads lays roads with no caravan (68). Caravans still lay them across borders, where the army's roads stop. The Road Towns pays +4 and The Mansiones +2 culture for each public work.
-- **Mines.** The Mountain Sluices reads mines beside mines, as Commerce's Mining Districts does. Pachacuti's pair holds both.
-- **Gold.** Orchards (+2 gold) and vineyards (+2 gold, and more beside hills) give this deck gold from land that paid none.
-- **A unique improvement opens no resource.** A luxury under an orchard or a vineyard is not opened, so a seat still wants the plantation there.
+- **Roads.** The Road Towns pays +4 and The Mansiones +2 culture for each public work. Caravans and The Road Home are the only makers of roads.
+- **A unique improvement opens no resource.** A luxury under an orchard is not opened, so a seat still wants the plantation there.
 
 ### Leaders and great people
 
 The leader roster changed on 2026-11-20. Cyrus and Jayavarman VII are read on their new kits.
 
-- **Alexander (with Dominion):** richer. The General Levy at Tier III gives The Royal Army units to read. The Marching Roads and The Fyrd keep his army cheap and fast at home.
-- **Pachacuti (with Commerce):** much richer. His terraces are unique improvements: they meet The Reclaimed Lands without a charter and gain +1 food, +1 production and +3 science each. He starts on river hills, which is vineyard ground, and The Mountain Sluices pays his mines at a mountain's foot.
-- **Cyrus (with Magisterial):** much richer, and the case to test. The Paradise Garden is one in each city, it is a unique improvement, and it counts as a great-person work. It takes this deck's pay-offs and Magisterial's on one hex: about 20 before any doubler. His Workers from The King's Gardeners have nine charters' works to build.
-- **Jayavarman VII (with Devotion), on today's kit:** richer. A stepwell gives fresh water to six more farms in each town, and each gains his +1 food and +1 faith for every public work. The baray reads those farms. The Founders' Stores, Bread and Water, The Thermae, The Mansiones and The Water Boards add and pay public works. Nazca lines add faith.
+- **Alexander (with Dominion):** richer. The General Levy at Tier III gives The Royal Army units to read. The Fyrd and The Hillforts make his home ground hard to take.
+- **Pachacuti (with Commerce):** much richer. His terraces are unique improvements: they count toward The Reclaimed Lands and gain +1 food, +1 production and +3 science each. By your ruling a terrace is built only beside a mountain. The Mountain Sluices pays his mines at a mountain's foot.
+- **Cyrus (with Magisterial):** much richer, and the case to test. The Paradise Garden is one in each city, a unique improvement and a great-person work. It takes this deck's pay-offs and Magisterial's on one hex: about 20 before any doubler. No ruling of round five changed this.
+- **Jayavarman VII (with Devotion):** richer. A stepwell gives fresh water to six more farms in each town, and each gains his +1 food and +1 faith for every public work. The Founders' Stores, Bread and Water, The Thermae, The Mansiones and The Water Boards add and pay public works. Nazca lines add faith.
 - **Nezahualcoyotl (with Scientific):** richer. Fish traps on his lake at Tier 0. The Scientific deck's Physic Garden and Qanat are unique improvements, so The Cadastre and The Reclaimed Lands pay them.
 - **Ibn Battuta:** no change.
-- **Great people:** no legacy names a unique improvement. One that did (for example a legacy for fish traps, or for monuments on the land) would help the theme late.
+- **Great people:** the stepwell feeds engineer renown. No legacy names a unique improvement.
 
-## 7. Ready for the build
-
-A builder follows this list once the fifth review is done. Each number is an entry in section 3.
-
-### Rows to retire
-
-- The Wild Orchards (03), The Burhs (05), The Gleaners (10), The Wide Country (14), and the Doctrine Arcadia (36).
-- By change 45: The Old Songs, The Wild Marches, The Tended Country, The Long Tending, The Garden of the World, and the Doctrines The Wildwood Compact and The Garden Peoples.
-- Take the mark `tended` off the rows `fishTraps` and `wildOrchard`, and the gate `needsTendedWork` off every row.
-
-### Data only: a number, a tier, a rarity or a wording
-
-- 01 The Gathering Grounds: fish traps +2 food and +1 production; orchards +2 food and +2 gold; Tier 0 with `lastBand` Tier I; uncommon.
-- 04 Levy of the Land: common, `lastBand` Tier II. 07 The Land Hunger: 50%, common. 09 The Road Towns: +4 production.
-- 11 The Staked Claims: Tier I, rare. 15 The Great Colonies: Tier II, `fromLargest: 4`.
-- 20, 26, 32: the rarities, as each entry lists them, less the cards that are cut.
-- 21 The Engineers' Yards: Tier III, +4 production. 22 The General Levy: Tier III, uncommon, `everyAtWar: 2`.
-- 25 The Mountain Terraces: 4 science and 2 production, uncommon. 29 The Philosophers' Peaks: +4 science, at most +12, common.
-- 37 The Beacons: `lastBand`, so that it is dealt in Tiers I and II.
-- 45: Sacred Groves and Garden Cities; the wording of Outposts and The Domesday Survey.
-
-### Data only: a new effect on a shape that exists
-
-- 13 The Hedgerows. 16 The Great Households. 17 The Thermae. 31 The Thousand Villages. 53 The Founders' Stores.
-- 08 Outposts and 28 The Keeps: `charter.unlocks` in place of `unlocksImprovement`.
-
-### A shape to confirm or extend in code
-
-- **One new shape for five cards:** a yield "for each hex beside it that…", on an improvement row (Nazca lines 46, the baray 48) and on a card (The Mountain Sluices 58). If you approve them: the inuksuk (59), the vineyard (60), The Timber Yards (64).
-- **A unique improvement** as a tile test and a word (63), read by The Reclaimed Lands (49) and The Cadastre (51).
-- 01 and 46: a charter that opens two works. 48: an improvement that must stand beside a river.
-- 02 The Woodland Bands: the rule `woodsWalk`, widened to hills. 18 The Beacons: movement that depends on where the unit stands.
-- 19 The Seven Fat Years: a citizen for every town as an on-draft grant. 24 The Polders: `countsAs: farm` with `yieldsAs`. 30 The Water Boards: a public-work selector on `buildingYieldPercent`.
-- 49 and 50: a counted moment for an improvement built. 52 Bread and Water: public works held, as a commission's goal figure.
-
-### New improvement rows, each with a board piece and a flair-gallery entry
-
-- Ruled: `nazcaLines` (46) and `baray` (48).
-- Waiting: `inuksuk` (59), `vineyard` (60), `stepwell` (61), `totemPole` (62).
-
-### Waits for your fifth review
-
-- 59 the inuksuk. 60 The Hillside Vineyards. 61 The Stepwells. 62 The Totem Poles. 63 the keyword. 64 The Timber Yards. 66 Bound to the Soil. 67 The Mansiones. 68 The Marching Roads. 69 The Fyrd.
-- 65 the lumber mill at +2 production: a base rule, outside this deck.
-- The baray: reading A, and one in each town.
-
-### Other sheets and passes
-
-- `docs/decks/devotion.md`: Sacred Groves. `docs/decks/magisterial.md`: Garden Cities. Both are in `data/decks/common.json`.
-- The leader roster: Pachacuti's terraces and Cyrus's Paradise Garden become unique improvements (63).
-- The beliefs sheet: Spirits of the Wood reads unimproved forest and jungle, the last wild-land source in the game.
-- `docs/decks/deck-design.md`: the section "Tended land" becomes history; "unique improvements" takes its place.
-
-### With the build
-
-- The sheet `docs/decks/expansionist.md` and its sync test `test/sim/decks/expansionist.test.ts`: every changed row, the counts tables, and the "Needs tended land" line in the header.
-- The bots: they build no card-opened improvement today (`src/ai/value.ts` prices a charter at nothing). A bot-track batch must teach them where to put a work that reads its neighbours.
-
-## 8. What to test first
+## 9. What to test first
 
 1. **Cyrus's Paradise Garden** as a unique improvement and a great-person work, with both doublers.
-2. **Nazca lines and inuksuit in a full block.** 16 and 10 a hex with no card. Is a desert or tundra town then the best town in the empire?
-3. **The baray, reading A.** A hex of 16 to 24 in each town with a river.
-4. **The forest.** With orchards, a totem pole and The Timber Yards, does a player keep a wood? And without them, does a lumber mill at +2 change anything?
-5. **The Stepwells with Jayavarman VII.** Six more of his farms in each town.
-6. **The Marching Roads.** Does the road net that armies leave look like a plan or like a scribble? Are free roads too cheap?
-7. **Bound to the Soil at +1 food on every improvement.** Fifteen food at turn 60 from a Tier I Doctrine.
-8. **The charters.** Nine cards take no chair. Does a seat with six of them have too little to decide at the council?
-9. **Levy of the Land as a common in two tiers.** Is it an automatic pick?
-10. **The rarities.** After the build, count what a seat is offered in Tiers III and IV over ten games.
+2. **Nazca lines and inuksuit in a full block.** 16 and 10 a hex with no card.
+3. **The Fyrd** on the deck's best hexes, with and without the cap.
+4. **The forest.** With the lumber mill at +2, orchards, a totem pole and The Timber Yards, does a player keep a wood?
+5. **The Stepwells with Jayavarman VII,** and eight stepwells' engineer renown.
+6. **The baray** at 10 to 14 a hex, and where players put it.
+7. **The charters.** Eight cards take no chair, nine with the hillfort. Does a seat with six of them have too little to decide at the council?
+8. **Levy of the Land as a common in two tiers.** Is it an automatic pick?
+9. **The rarities.** After the build, count what a seat is offered in Tiers III and IV over ten games.
 
-## 9. What I could not determine
+## 10. What I could not determine
 
-- No measurement of this deck exists since batches DS1 and DS3 (2026-11-10). The bots build no card-opened improvement, so the theme cannot be measured until they do. Every sum is arithmetic on the rows.
-- The ground counts are from 48 starts on 8 standard maps (the first three rings, 36 hexes). Desert and tundra are rare round a capital and common on the map, so the counts understate the Nazca lines and the inuksuk.
-- How often Nazca lines can stand side by side near a capital. Only 19% of capitals have flat desert, 1.8 hexes of it.
-- Whether "beside a river" should read the hex's own river edges or any neighbour's. I counted the hex's own.
+- No measurement of this deck exists since batches DS1 and DS3 (2026-11-10). The bots build no card-opened improvement, so the theme cannot be measured until they do.
+- The ground counts are from 48 starts on 8 standard maps (the first three rings). Desert and tundra are rare round a capital and common on the map, so the counts understate the Nazca lines and the inuksuk.
+- Whether a unit in a town reads the town centre's yield for The Fyrd. I assumed the hex's own fold, as on any hex.
 - Whether a great-person work that is also a unique improvement is doubled twice, by The Age of Improvement and by The Divine Proportion.
-- Whether a road a unit lays should cost upkeep. I assumed not.
-- What number of technologies a seat knows at each turn. The chop table uses the technology counts by age in `data/techs.json`.
+- Whether "beside a river" should read the hex's own river edges or any neighbour's. I counted the hex's own.
 - Whether a commission's lasting reward counts as an Order's line for The Age of Improvement.
 - The offer figures come from my own model of the draw, not from games.
 - The history behind the names is from my own knowledge, not from a source in the repo.
 
-## Record: rounds one to four, and your rulings (2026-11-20)
+## Record: rounds one to five, and your rulings (2026-11-20)
 
 ### Round one
 
@@ -1327,24 +1470,22 @@ A builder follows this list once the fifth review is done. Each number is an ent
 - Round four proposed 14 changes (45 to 58): the cut of the wild cards, three charters (The Desert and the Snow, The Hammer Ponds, The Barays), three pay-offs, and seven cards for the core and the auxiliary themes.
 - Rows of change 45 with no comment are approved by your standing rule.
 
-## The user's rulings on round five (2026-11-20, comments on the page)
+### Your rulings on round five, in your words
 
-The user: "ok commented on the expansionist pool, it looks good". In their
-words:
-
-| Thing | The user's words | Result |
+| Thing | Your words | Result |
 |---|---|---|
-| The baray's reading (r5-1), on the row "2 food, 8 production (10)" | "this one" | The baray gives +2 food, and +2 production for each farm beside it. |
-| The vineyard (60; the row "+1 gold for each hill beside it", and the heading of r5-4) | "cut, doesn't seem that useful tbh" and "cut" | The vineyard is cut. |
-| The hillfort (the third candidate of r5-4) | "i like this one the best" and "this can be a shared card with dominion" | **The hillfort takes the hammer pond's place, as a card shared with Dominion.** |
-| The stepwell (61) | "Cool, could we add +1 renown towards engineers?" | Approved, and a stepwell also gives +1 renown a turn toward great engineers. |
+| The pass as a whole | "ok commented on the expansionist pool, it looks good" |  |
+| The baray's reading, on the row "2 food, 8 production (10)" | "this one" | +2 food, and +2 production for each farm beside it. |
+| The vineyard (60) | "cut, doesn't seem that useful tbh" and "cut" | Cut. |
+| The hillfort (the third candidate) | "i like this one the best" and "this can be a shared card with dominion" | Change 70, shared with Dominion. |
+| The stepwell (61) | "Cool, could we add +1 renown towards engineers?" | Approved, with +1 engineer renown a turn. |
 | The inuksuk (59) | "i like this" | Approved. |
-| Pachacuti's terrace farm (in the table of unique improvements) | "let's update the terrace farm: can only be built adjacent to a mountain." | **A change to a leader's improvement:** a terrace farm may be built only beside a mountain. |
+| Pachacuti's terrace farm | "let's update the terrace farm: can only be built adjacent to a mountain." | A base rule; the reading is open. |
 | 62 The Totem Poles | "great" | Approved. |
-| 63 The keyword, unique improvement | "Great" | Approved. |
+| 63 The keyword | "Great" | Approved. |
 | 64 The Timber Yards | "great" | Approved. |
-| 65 The base rule: a lumber mill gives +2 production | "great" | **Approved. A base rule for every deck.** |
+| 65 The lumber mill at +2 production | "great" | Approved, as a base rule for every deck. |
 | 66 Bound to the Soil | "line 1" then "actually thats too strong. Lets do: workers gain +1 charge, farms gain +1 food and +1 prod" | Workers gain +1 charge. Farms gain +1 food and +1 production. |
-| 67 The Mansiones | "great" | Approved at +2 culture for each public work. |
+| 67 The Mansiones | "great" | Approved at +2 culture. |
 | 68 The Marching Roads | "cut" | Cut. |
-| 69 The Fyrd | "lets just make this a generic defensive card. Military units gain +1 combat strength in your territory for every 2 yields on the tile it occupies." | The user's line. |
+| 69 The Fyrd | "lets just make this a generic defensive card. Military units gain +1 combat strength in your territory for every 2 yields on the tile it occupies." | Your line. |
