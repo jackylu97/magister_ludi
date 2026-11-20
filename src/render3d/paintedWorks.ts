@@ -248,6 +248,9 @@ export class PaintedWorksLayer {
       }
     }
     const period = Math.sqrt(3) * preparedMap.width;
+    this.group.updateWorldMatrix(false, false);
+    this.group.matrixAutoUpdate = false;
+    this.group.matrixWorldAutoUpdate = false;
     const retained = new Set<string>();
     const reuse = (key: string, inputs: readonly unknown[]): boolean => {
       retained.add(key);
@@ -258,14 +261,30 @@ export class PaintedWorksLayer {
     for (const [id, batch] of props) {
       const key = `props:${id}`;
       if (reuse(key, batch.props)) continue;
+      // A region's three copies differ only in their world position. The batch
+      // owns the instance data and removes all three meshes together.
+      const primary = new InstancedMesh(batch.geometry, batch.material, batch.props.length);
+      for (const [i, prop] of batch.props.entries()) {
+        primary.setMatrixAt(i, prop.matrix);
+        primary.setColorAt(i, prop.color);
+      }
+      primary.instanceMatrix.needsUpdate = true;
+      if (primary.instanceColor) primary.instanceColor.needsUpdate = true;
+      primary.computeBoundingBox();
+      primary.computeBoundingSphere();
       const meshes: InstancedMesh[] = [];
       for (const offset of [-period, 0, period]) {
-        const mesh = new InstancedMesh(batch.geometry, batch.material, batch.props.length);
-        for (let i = 0; i < batch.props.length; i++) { mesh.setMatrixAt(i, batch.props[i]!.matrix); mesh.setColorAt(i, batch.props[i]!.color); }
-        mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-        mesh.position.x = offset; mesh.castShadow = shadows; mesh.receiveShadow = shadows;
-        mesh.userData.paintedWorksCells = batch.cells; mesh.userData.paintedWorksWrap = offset;
-        mesh.computeBoundingBox(); mesh.computeBoundingSphere(); this.group.add(mesh); meshes.push(mesh);
+        const mesh = offset === 0 ? primary : new InstancedMesh(batch.geometry, batch.material, 0);
+        if (mesh !== primary) {
+          mesh.instanceMatrix = primary.instanceMatrix;
+          mesh.instanceColor = primary.instanceColor;
+          mesh.count = primary.count;
+          mesh.boundingBox = primary.boundingBox;
+          mesh.boundingSphere = primary.boundingSphere;
+        }
+        mesh.castShadow = shadows;
+        this.addWrapCopy(mesh, offset, batch.cells, shadows);
+        meshes.push(mesh);
       }
       this.batches.set(key, {inputs: [...batch.props], meshes});
     }
@@ -280,10 +299,11 @@ export class PaintedWorksLayer {
       const geometry = mergeGeometries(batch.geometries); if (!geometry) continue;
       this.merged.add(geometry);
       const meshes: Mesh[] = [];
+      const cells = [...new Set(batch.cells)];
       for (const offset of [-period, 0, period]) {
-        const mesh = new Mesh(geometry, batch.material); mesh.position.x = offset; mesh.receiveShadow = shadows;
-        mesh.userData.paintedWorksCells = [...new Set(batch.cells)]; mesh.userData.paintedWorksWrap = offset;
-        this.group.add(mesh); meshes.push(mesh);
+        const mesh = new Mesh(geometry, batch.material);
+        this.addWrapCopy(mesh, offset, cells, shadows);
+        meshes.push(mesh);
       }
       this.batches.set(key, {inputs: [...batch.geometries], meshes, geometry});
     }
@@ -291,8 +311,18 @@ export class PaintedWorksLayer {
     // Over the reused batches too — they kept their buffers and so kept the flag
     // they were built with. See `setShadows`.
     this.setShadows(shadows);
-    this.group.updateMatrixWorld(true);
-    this.group.traverse(object => { object.matrixAutoUpdate = false; object.matrixWorldAutoUpdate = false; });
+  }
+
+  /** Only a new copy needs its world matrix set. The works stay fixed until their batch is replaced. */
+  private addWrapCopy(mesh: Mesh, offset: number, cells: number[], shadows: boolean): void {
+    mesh.position.x = offset;
+    mesh.receiveShadow = shadows;
+    mesh.userData.paintedWorksCells = cells;
+    mesh.userData.paintedWorksWrap = offset;
+    this.group.add(mesh);
+    mesh.updateMatrixWorld();
+    mesh.matrixAutoUpdate = false;
+    mesh.matrixWorldAutoUpdate = false;
   }
 
   /**
