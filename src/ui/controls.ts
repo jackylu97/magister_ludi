@@ -8276,6 +8276,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   // screen, and that is a fact about the page rather than about one element.
 
   options.signal?.addEventListener('abort', () => {
+    if (dragButton !== null) renderer.setBoardPointerHeld?.(false);
     cancelHandOver();
     window.clearTimeout(rejectionTimer);
     window.clearTimeout(guidanceTimer);
@@ -8287,6 +8288,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (dragButton !== null || inputBlocked?.()) return;
     dragButton = event.button;
     dragPointerId = event.pointerId;
+    renderer.setBoardPointerHeld?.(true);
     clearUnitHover();
     dragging = false;
     pressX = lastDragX = event.clientX;
@@ -8354,6 +8356,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const button = dragButton;
     dragButton = null;
     dragPointerId = null;
+    renderer.setBoardPointerHeld?.(false);
     if (viewport.hasPointerCapture(event.pointerId)) {
       viewport.releasePointerCapture(event.pointerId);
     }

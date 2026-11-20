@@ -108,7 +108,7 @@ describe('the painted performance knobs', () => {
     // land's zoom switch, as `lod` is the props'.
     expect(SHEET).toEqual({
       canvas: { maxPixelRatio: 1.5, reducedPixelRatio: 1.25, pixelBudget: 4500000, restUnderCover: true, restUnderSheets: true },
-      build: { workers: 4, share: true },
+      build: { workers: 4, share: true, surfaceWarmQuietMs: 160, surfaceWarmBudgetMs: 4 },
       groundTexture: { enabled: true, texelsPerUnit: 32, budgetMiB: 256, nearPixels: 90, farPixels: 100, anisotropy: 4, bakeSquare: 1024, bakeSamples: 4, bakeStepMiB: 2, bakeAfterMs: 1000 },
       shadows: {
         staticMapSize: 4096, staticMapTiers: { low: 2048, high: 8192 }, lowMemoryGiB: 4,

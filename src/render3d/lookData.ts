@@ -2063,6 +2063,10 @@ interface PaintedFogSpec {
 interface PaintedBuildSpec {
   workers: number;
   share: boolean;
+  /** Wait this long after a camera input or unit selection before preparing more ground. */
+  surfaceWarmQuietMs: number;
+  /** Stop starting new terrain chunks after this much time in one idle callback. */
+  surfaceWarmBudgetMs: number;
 }
 
 /**

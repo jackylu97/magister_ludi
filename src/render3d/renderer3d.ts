@@ -1067,6 +1067,7 @@ export class Renderer3D implements MapView {
 
   /** The map whose ground samplers the idle warm-up is building or has built. */
   private surfaceWarmFor: GameMap | null = null;
+  private boardPointerHeld = false;
   /**
    * Builds the ground chunks' height samplers in idle time once the board is
    * up (`warmPaintedSurface`), a few milliseconds at a time. The layers are
@@ -1079,11 +1080,24 @@ export class Renderer3D implements MapView {
     this.surfaceWarmFor = map;
     if (!map) return;
     const idle = typeof requestIdleCallback === 'function';
-    const schedule = (): void => { if (idle) requestIdleCallback(step); else setTimeout(step, 50); };
+    const quietMs = VIEW3D.painted.build.surfaceWarmQuietMs;
+    const schedule = (): void => {
+      if (!this.running || this.map !== map) return;
+      if (idle) requestIdleCallback(step);
+      else setTimeout(step, 50);
+    };
     const step = (deadline?: IdleDeadline): void => {
       if (!this.running || this.map !== map) return;
-      const until = performance.now() + 8;
-      if (!warmPaintedSurface(map, () => (deadline ? deadline.timeRemaining() < 2 : performance.now() > until))) schedule();
+      // Chrome can offer idle time between pointer events. A single terrain chunk
+      // can take longer than that gap, so let the gesture or unit move finish.
+      const now = performance.now();
+      const remaining = this.lastActivity + quietMs - now;
+      if (remaining > 0 || this.boardPointerHeld || this.animations.pending) {
+        setTimeout(schedule, remaining > 0 ? remaining : quietMs);
+        return;
+      }
+      const until = now + VIEW3D.painted.build.surfaceWarmBudgetMs;
+      if (!warmPaintedSurface(map, () => performance.now() >= until || (deadline !== undefined && deadline.timeRemaining() < 2))) schedule();
     };
     schedule();
   }
@@ -3465,6 +3479,11 @@ export class Renderer3D implements MapView {
     if (cover === 'opaque') return VIEW3D.painted.canvas.restUnderCover;
     if (cover === 'dimmed') return VIEW3D.painted.canvas.restUnderSheets;
     return false;
+  }
+
+  setBoardPointerHeld(held: boolean): void {
+    this.boardPointerHeld = held;
+    this.noteActivity();
   }
 
   panByScreen(dx: number, dy: number): void {

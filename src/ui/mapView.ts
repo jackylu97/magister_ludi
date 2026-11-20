@@ -385,6 +385,8 @@ export interface MapView {
   /** Re-reads the viewport size. */
   resize(): void;
 
+  /** A press can stay active between pointer events. Terrain preparation can resume after release. */
+  setBoardPointerHeld?(held: boolean): void;
   panByScreen(dx: number, dy: number): void;
   /** Zooms by a multiplier about a screen point; > 1 zooms in. */
   zoomBy(factor: number, screenX: number, screenY: number): void;

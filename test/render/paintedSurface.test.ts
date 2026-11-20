@@ -5,6 +5,7 @@ import { createMap, type GameMap, type Tile } from '../../src/sim/map';
 import { cellCenter, tileTopY, wrapWidth } from '../../src/render3d/layout';
 import { pickTile } from '../../src/render3d/picking';
 import { MoveAnimations3D } from '../../src/render3d/animation3d';
+import { Renderer3D } from '../../src/render3d/renderer3d';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { badgeAnchors, placePiece } from '../../src/render3d/pieces';
 import { badgeCenterY } from '../../src/render3d/badges3d';
@@ -341,6 +342,41 @@ describe('painted gameplay surface', () => {
       expect(paintedGroundHit(map, {origin: new Vector3(x, 10, z), direction: new Vector3(0, -1, 0)})).toBeDefined();
     }
     expect(surfacePickGridBuilds()).toBe(gridsReady);
+  });
+
+  it('waits for camera input and a walking unit to finish before preparing the remaining terrain', () => {
+    const map = createMap({ width: 6, height: 4, terrain: 'grassland' });
+    buildFixture(map);
+    const before = surfacePickGridBuilds(), quiet = VIEW3D.painted.build.surfaceWarmQuietMs;
+    const idle = vi.fn<(run: IdleRequestCallback) => number>(() => 1);
+    const deadline = { timeRemaining: () => 10, didTimeout: false };
+    const animations = { pending: false };
+    const renderer = Object.assign(Object.create(Renderer3D.prototype), {
+      running: true, map, animations,
+    }) as Renderer3D;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    vi.stubGlobal('requestIdleCallback', idle);
+    try {
+      renderer.setBoardPointerHeld(true);
+      (renderer as unknown as { scheduleSurfaceWarm(): void }).scheduleSurfaceWarm();
+      vi.advanceTimersByTime(quiet * 2);
+      idle.mock.calls[0]![0](deadline);
+      vi.advanceTimersByTime(quiet);
+      renderer.setBoardPointerHeld(false);
+      idle.mock.calls[1]![0](deadline);
+      vi.advanceTimersByTime(quiet);
+      animations.pending = true;
+      idle.mock.calls[2]![0](deadline);
+      expect(surfacePickGridBuilds()).toBe(before);
+      animations.pending = false;
+      vi.advanceTimersByTime(quiet);
+      idle.mock.calls[3]![0](deadline);
+      expect(surfacePickGridBuilds()).toBeGreaterThan(before);
+      expect(idle).toHaveBeenCalledTimes(4);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
   });
 
   it('places stacked pieces and their badge targets at the surface under the actual offset', () => {

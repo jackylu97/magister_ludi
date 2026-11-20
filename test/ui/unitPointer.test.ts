@@ -61,7 +61,7 @@ function controlsFixture() {
     pick: vi.fn(() => target), getHover: () => hover, setHover: (next: HoverInfo | null) => { hover = next; },
     pickUnitBadge: vi.fn(() => badgeId), pickUnitModel: vi.fn(() => modelId),
     setHoveredUnitId: vi.fn(), setSelectedUnitId: vi.fn(), setReachable: vi.fn(),
-    setPathPreview: vi.fn(), invalidate: vi.fn(), panByScreen: vi.fn(),
+    setPathPreview: vi.fn(), invalidate: vi.fn(), panByScreen: vi.fn(), setBoardPointerHeld: vi.fn(),
     setFogSeat: vi.fn(), skipAnimations: vi.fn(), animateMove: vi.fn(),
   };
   const onUpdate = vi.fn(), onHover = vi.fn();
@@ -188,6 +188,7 @@ describe('actual controls pointer gestures', () => {
     f.viewport.emit('pointerdown', { button: 2 });
     f.viewport.emit('pointermove', { clientX: 70 });
     f.viewport.emit('lostpointercapture');
+    expect(f.renderer.setBoardPointerHeld.mock.calls).toEqual([[true], [false]]);
     expect(f.game.log).toEqual([]);
     f.viewport.emit('pointerdown', { button: 2 });
     f.viewport.emit('pointerup', { button: 2 });
@@ -201,6 +202,7 @@ describe('actual controls pointer gestures', () => {
     f.viewport.emit('pointermove', { pointerId: 2, clientX: 100 });
     f.viewport.emit('pointerup', { pointerId: 2 });
     f.viewport.emit('pointercancel', { pointerId: 2 });
+    expect(f.renderer.setBoardPointerHeld.mock.calls).toEqual([[true]]);
     expect(f.controls.selectedUnit()).toBeNull();
     expect(f.renderer.panByScreen).not.toHaveBeenCalled();
     f.viewport.emit('pointerup');

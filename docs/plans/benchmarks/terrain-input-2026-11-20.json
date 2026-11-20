@@ -1,0 +1,286 @@
+{
+  "date": "2026-11-20",
+  "gpu": "Apple M4, foreground maximized Chrome through ANGLE Metal at 2205 by 1189. Pixel ratio 1.5.",
+  "fixture": "Turn 151, seed 20260832, 91 cities and 530 units. Human seat 5 at Cinderhold, bots enabled. Renderer includes hidden-tree filtering in all comparisons.",
+  "method": "Each cold page opened the saved state. A four-second trusted drag began at radius seven. An idle callback wrapper recorded jobs longer than two milliseconds and their scheduling stacks. Board FPS covers the time from pointer down to pointer up. Each comparison alternated original, candidate, candidate, original. The control jobs were allowed to run during input. The first prototype waited for a gap between camera inputs. The revised candidate also tracks the complete board press and uses the existing activity clock so delayed input events cannot restart preparation during a drag. Both use a four millisecond budget to start terrain chunks in each idle slot.",
+  "initialTrace": [
+    {
+      "run": "origin-new-nav1",
+      "secondsHeld": 4.202,
+      "boardFpsWhileHeld": 36.17,
+      "slowestFullSecond": 25,
+      "p95GapMs": 56.25,
+      "longestGapMs": 76.8,
+      "terrainCallbacksOver2Ms": 53,
+      "totalMeasuredTerrainMs": 881.2,
+      "longestTerrainCallbackMs": 44.1,
+      "pageTasksOver50Ms": 0,
+      "medianBoardCpuMs": 9.0
+    },
+    {
+      "run": "origin-new-nav2",
+      "secondsHeld": 4.21,
+      "boardFpsWhileHeld": 35.63,
+      "slowestFullSecond": 28,
+      "p95GapMs": 60.08,
+      "longestGapMs": 76.4,
+      "terrainCallbacksOver2Ms": 68,
+      "totalMeasuredTerrainMs": 1382.5,
+      "longestTerrainCallbackMs": 58,
+      "pageTasksOver50Ms": 2,
+      "medianBoardCpuMs": 9.9
+    }
+  ],
+  "normalLoad": [
+    {
+      "run": "quiet-new-pan1",
+      "secondsHeld": 4.208,
+      "boardFpsWhileHeld": 56.8,
+      "slowestFullSecond": 50,
+      "p95GapMs": 26.07,
+      "longestGapMs": 36.4,
+      "terrainCallbacksOver2Ms": 1,
+      "totalMeasuredTerrainMs": 4.9,
+      "longestTerrainCallbackMs": 4.9,
+      "pageTasksOver50Ms": 0,
+      "medianBoardCpuMs": 5.2
+    },
+    {
+      "run": "quiet-new-pan2",
+      "secondsHeld": 4.173,
+      "boardFpsWhileHeld": 40.02,
+      "slowestFullSecond": 31,
+      "p95GapMs": 51.52,
+      "longestGapMs": 58.5,
+      "terrainCallbacksOver2Ms": 0,
+      "totalMeasuredTerrainMs": 0,
+      "longestTerrainCallbackMs": 0,
+      "pageTasksOver50Ms": 0,
+      "medianBoardCpuMs": 9.4
+    },
+    {
+      "run": "quiet-old-pan1",
+      "secondsHeld": 4.209,
+      "boardFpsWhileHeld": 58.21,
+      "slowestFullSecond": 51,
+      "p95GapMs": 22.18,
+      "longestGapMs": 32.8,
+      "terrainCallbacksOver2Ms": 0,
+      "totalMeasuredTerrainMs": 0,
+      "longestTerrainCallbackMs": 0,
+      "pageTasksOver50Ms": 0,
+      "medianBoardCpuMs": 3.4
+    },
+    {
+      "run": "quiet-old-pan2",
+      "secondsHeld": 4.414,
+      "boardFpsWhileHeld": 24.01,
+      "slowestFullSecond": 18,
+      "p95GapMs": 83.36,
+      "longestGapMs": 95.1,
+      "terrainCallbacksOver2Ms": 87,
+      "totalMeasuredTerrainMs": 1973.2,
+      "longestTerrainCallbackMs": 63.9,
+      "pageTasksOver50Ms": 9,
+      "medianBoardCpuMs": 11.7
+    }
+  ],
+  "gapOnlyPrototype": [
+    {
+      "run": "backlog-new-pan1",
+      "secondsHeld": 4.21,
+      "boardFpsWhileHeld": 38.0,
+      "slowestFullSecond": 28,
+      "p95GapMs": 52.04,
+      "longestGapMs": 80.0,
+      "terrainCallbacksOver2Ms": 0,
+      "totalMeasuredTerrainMs": 0,
+      "longestTerrainCallbackMs": 0,
+      "pageTasksOver50Ms": 0,
+      "medianBoardCpuMs": 9.2,
+      "terrainPreparationCompletedAfterTrace": true
+    },
+    {
+      "run": "backlog-new-pan2",
+      "secondsHeld": 5.018,
+      "boardFpsWhileHeld": 23.52,
+      "slowestFullSecond": 15,
+      "p95GapMs": 73.08,
+      "longestGapMs": 175.6,
+      "terrainCallbacksOver2Ms": 78,
+      "totalMeasuredTerrainMs": 1210.0,
+      "longestTerrainCallbackMs": 57.5,
+      "pageTasksOver50Ms": 2,
+      "medianBoardCpuMs": 11.5,
+      "terrainPreparationCompletedAfterTrace": true
+    },
+    {
+      "run": "backlog-old-pan1",
+      "secondsHeld": 4.156,
+      "boardFpsWhileHeld": 30.07,
+      "slowestFullSecond": 24,
+      "p95GapMs": 72.71,
+      "longestGapMs": 100.3,
+      "terrainCallbacksOver2Ms": 105,
+      "totalMeasuredTerrainMs": 2084.9,
+      "longestTerrainCallbackMs": 57.9,
+      "pageTasksOver50Ms": 4,
+      "medianBoardCpuMs": 9.3,
+      "terrainPreparationCompletedAfterTrace": true
+    },
+    {
+      "run": "backlog-old-pan2",
+      "secondsHeld": 4.536,
+      "boardFpsWhileHeld": 21.16,
+      "slowestFullSecond": 15,
+      "p95GapMs": 79.02,
+      "longestGapMs": 130.0,
+      "terrainCallbacksOver2Ms": 100,
+      "totalMeasuredTerrainMs": 2289.4,
+      "longestTerrainCallbackMs": 117.8,
+      "pageTasksOver50Ms": 4,
+      "medianBoardCpuMs": 12.6,
+      "terrainPreparationCompletedAfterTrace": true
+    }
+  ],
+  "fullPress": [
+    {
+      "run": "hold-new-pan1",
+      "secondsHeld": 4.099,
+      "boardFpsWhileHeld": 24.88,
+      "slowestFullSecond": 21,
+      "p95GapMs": 63.0,
+      "longestGapMs": 83.2,
+      "terrainCallbacksOver2Ms": 0,
+      "totalMeasuredTerrainMs": 0,
+      "longestTerrainCallbackMs": 0,
+      "pageTasksOver50Ms": 0,
+      "medianBoardCpuMs": 12.1,
+      "terrainPreparationCompletedAfterTrace": true
+    },
+    {
+      "run": "hold-new-pan2",
+      "secondsHeld": 4.372,
+      "boardFpsWhileHeld": 31.79,
+      "slowestFullSecond": 26,
+      "p95GapMs": 53.16,
+      "longestGapMs": 74.0,
+      "terrainCallbacksOver2Ms": 0,
+      "totalMeasuredTerrainMs": 0,
+      "longestTerrainCallbackMs": 0,
+      "pageTasksOver50Ms": 0,
+      "medianBoardCpuMs": 10.2,
+      "terrainPreparationCompletedAfterTrace": true
+    },
+    {
+      "run": "hold-old-pan1",
+      "secondsHeld": 3.97,
+      "boardFpsWhileHeld": 22.42,
+      "slowestFullSecond": 17,
+      "p95GapMs": 78.42,
+      "longestGapMs": 99.2,
+      "terrainCallbacksOver2Ms": 73,
+      "totalMeasuredTerrainMs": 1767.4,
+      "longestTerrainCallbackMs": 63.9,
+      "pageTasksOver50Ms": 6,
+      "medianBoardCpuMs": 12.4,
+      "terrainPreparationCompletedAfterTrace": true
+    },
+    {
+      "run": "hold-old-pan2",
+      "secondsHeld": 4.324,
+      "boardFpsWhileHeld": 24.29,
+      "slowestFullSecond": 16,
+      "p95GapMs": 74.93,
+      "longestGapMs": 119.1,
+      "terrainCallbacksOver2Ms": 101,
+      "totalMeasuredTerrainMs": 2283.0,
+      "longestTerrainCallbackMs": 65,
+      "pageTasksOver50Ms": 9,
+      "medianBoardCpuMs": 10.4,
+      "terrainPreparationCompletedAfterTrace": true
+    }
+  ],
+  "controlledSetup": "Both versions held the first terrain preparation until the gesture started, so the original could not finish early. Clicks and height checks could still build a needed chunk immediately. The completion check waited for all deferred terrain after the trace. Idle callback counts exclude calls that took two milliseconds or less.",
+  "followupCanopyShader": {
+    "method": "Keep the same CPU-filtered trees. Duplicate the colour and depth programs for those batches only and omit the two fog discard instructions. Native GPU timings at 24 alternating camera positions. Fresh Chrome process per repeat. The map seam has no main-view trees.",
+    "runs": [
+      [
+        {
+          "col": 46,
+          "row": 7,
+          "radius": 7,
+          "pairs": 24,
+          "fasterPairs": 15,
+          "medianSavedMs": 0.092,
+          "maxChangedColorBytes": 0
+        },
+        {
+          "col": 46,
+          "row": 7,
+          "radius": 14,
+          "pairs": 24,
+          "fasterPairs": 16,
+          "medianSavedMs": 0.563,
+          "maxChangedColorBytes": 0
+        },
+        {
+          "col": 53,
+          "row": 15,
+          "radius": 7,
+          "pairs": 24,
+          "fasterPairs": 16,
+          "medianSavedMs": 0.181,
+          "maxChangedColorBytes": 0
+        },
+        {
+          "col": 0,
+          "row": 7,
+          "radius": 14,
+          "pairs": 24,
+          "fasterPairs": 14,
+          "medianSavedMs": 0.008,
+          "maxChangedColorBytes": 0
+        }
+      ],
+      [
+        {
+          "col": 46,
+          "row": 7,
+          "radius": 7,
+          "pairs": 24,
+          "fasterPairs": 14,
+          "medianSavedMs": 0.323,
+          "maxChangedColorBytes": 0
+        },
+        {
+          "col": 46,
+          "row": 7,
+          "radius": 14,
+          "pairs": 24,
+          "fasterPairs": 16,
+          "medianSavedMs": 0.772,
+          "maxChangedColorBytes": 0
+        },
+        {
+          "col": 53,
+          "row": 15,
+          "radius": 7,
+          "pairs": 24,
+          "fasterPairs": 14,
+          "medianSavedMs": 0.32,
+          "maxChangedColorBytes": 0
+        },
+        {
+          "col": 0,
+          "row": 7,
+          "radius": 14,
+          "pairs": 24,
+          "fasterPairs": 16,
+          "medianSavedMs": 0.445,
+          "maxChangedColorBytes": 0
+        }
+      ]
+    ]
+  }
+}

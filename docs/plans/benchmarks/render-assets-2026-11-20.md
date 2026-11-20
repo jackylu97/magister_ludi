@@ -116,6 +116,23 @@ On the two first moves, the updated click handlers took 10.2 and 8.8 ms. The nex
 
 Over Cinderhold on turn 151, the original renderer drew 47.3 and 40.8 FPS during active drags. The filtered renderer drew 43.7 and 33.2 FPS. During wheel input the figures were 41.3 and 40.7 FPS before filtering, then 41.3 and 38.1 FPS after filtering. Each drag started soon after opening this save and switching to the sixth seat. Six main-thread idle callbacks took at least 50 ms during the slower filtered drag. The native GPU savings did not translate into a faster average in this comparison. [Cinderhold gesture samples](canopy-instances-2026-11-20.json)
 
+### Terrain preparation during a drag
+
+Two further traces identified the idle work. Over four seconds of dragging, the renderer spent 881 and 1,392 ms preparing ground height samplers and pointer-picking grids. Chrome sometimes started that work between pointer events. Individual terrain jobs could last longer than a display frame.
+
+The renderer now waits until the player releases the board, any unit walk ends and activity has settled for 160 ms. It starts new chunks for up to 4 ms in an idle callback. A chunk already in progress can take longer. The board can still answer an immediate terrain query. An early version used only the time since the last camera input. It restarted too soon when Chrome delivered successive events far apart during the same press.
+
+For this comparison, both builds had the same surface preparation waiting at the start of the first drag over Cinderhold. The table covers only the interval with the button held. All four runs finished the deferred work. [Traces, slowest seconds and completion checks](terrain-input-2026-11-20.json)
+
+| Turn 151 drag | Original scheduling | Wait for release |
+|---|---:|---:|
+| Board FPS in each run | 22.4, 24.3 | 24.9, 31.8 |
+| Time in terrain callbacks over 2 ms | 1,767, 2,283 ms | 0, 0 ms |
+| Main-thread tasks of at least 50 ms | 6, 9 | 0, 0 |
+| Longest gap between board draws | 99, 119 ms | 83, 74 ms |
+
+A further GPU experiment gave the filtered trees a simpler colour and depth shader. All four fixed pictures matched every byte. The wide city saved 0.56 and 0.77 ms in two runs. In the second run, the seam with no trees also measured 0.45 ms faster. The change would add a separate pair of shader programs for the small remaining gain. We kept the shared programs. [Shader comparisons and control timings](terrain-input-2026-11-20.json)
+
 ## Setup for the asset measurements
 
 The renderer came from commit `ee54e8d1`, save version 251. The snapshot followed turn 150 on seed 20260832. It held 530 units and 91 cities. It used player 6's fog, the painted board and daylight. Headless Chrome used the Apple M4 through ANGLE Metal. The 1.5× drawing buffer measured 2205 × 1189.

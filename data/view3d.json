@@ -1264,7 +1264,9 @@
     },
     "build": {
       "workers": 4,
-      "share": true
+      "share": true,
+      "surfaceWarmQuietMs": 160,
+      "surfaceWarmBudgetMs": 4
     },
     "groundTexture": {
       "enabled": true,
