@@ -1,0 +1,327 @@
+{
+  "fixture": {
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "regularSamples": 4,
+    "resolvedDepth": true,
+    "board": {
+      "w": 2205,
+      "h": 1189,
+      "ratio": 1.5,
+      "turn": 120
+    },
+    "families": [
+      "merged water",
+      "merged land",
+      "plain land",
+      "limestone",
+      "earth",
+      "grove-soft-0",
+      "grove-soft-1",
+      "grove-soft-2",
+      "cypress-soft-1",
+      "merged details",
+      "range crag-fallen-3",
+      "range crag-fallen-0-shoulder",
+      "range crag-fallen-1-shoulder",
+      "range crag-fallen-2-shoulder",
+      "range limestone",
+      "cypress-soft-0",
+      "range crag-fallen-1",
+      "range crag-fallen-3-shoulder",
+      "range crag-fallen-4",
+      "range crag-fallen-4-shoulder",
+      "range crag-fallen-2",
+      "range crag-fallen-0",
+      "feature stone",
+      "feature shrub",
+      "grove-soft-0 far",
+      "grove-soft-1 far",
+      "grove-soft-2 far",
+      "cypress-soft-1 far",
+      "cypress-soft-0 far"
+    ],
+    "retainedMats": 2,
+    "defaultOutputSwap": true,
+    "passNames": [
+      "RenderPass",
+      "_GTAOPass",
+      "OutputPass"
+    ]
+  },
+  "method": "Seed 999 at turn 120, default 1.5\u00d7, Apple M4, one browser. The camera pans through the same twelve poses in each block. Omit the first three. Time includes CPU, GPU and a synchronous one-pixel readback. Presentation was measured separately for the regular board with and without HTML. Diagnostic savings overlap.",
+  "hostLoad": [
+    [
+      2.34716796875,
+      4.55517578125,
+      11.53369140625
+    ],
+    [
+      10.341796875,
+      6.861328125,
+      11.869140625
+    ]
+  ],
+  "scope": {
+    "7": {
+      "baselineMedianMs": 37.15,
+      "baselineCpuMs": 9.85,
+      "draws": 341,
+      "triangles": 2391438,
+      "modes": {
+        "landNoCounter": {
+          "pairedBlockSavingMs": 1.15,
+          "roundsMs": [
+            1.1,
+            1.2,
+            0.6,
+            6.2
+          ],
+          "triangles": 2391438
+        },
+        "flatLand": {
+          "pairedBlockSavingMs": 6.8,
+          "roundsMs": [
+            7.6,
+            4.2,
+            6.0,
+            9.8
+          ],
+          "triangles": 2391438
+        },
+        "treesOff": {
+          "pairedBlockSavingMs": 4.05,
+          "roundsMs": [
+            2.3,
+            2.5,
+            5.6,
+            7.5
+          ],
+          "triangles": 1723644
+        },
+        "scissorLand": {
+          "pairedBlockSavingMs": 3.75,
+          "roundsMs": [
+            3.9,
+            1.7,
+            3.6,
+            8.2
+          ],
+          "triangles": 2391438
+        },
+        "boardOff": {
+          "pairedBlockSavingMs": 18.95,
+          "roundsMs": [
+            18.5,
+            16.2,
+            19.4,
+            24.2
+          ],
+          "triangles": 915970
+        },
+        "noMSAA": {
+          "pairedBlockSavingMs": 7.1,
+          "roundsMs": [
+            5,
+            6.9,
+            7.3,
+            12.7
+          ],
+          "triangles": 2391438
+        },
+        "pinTarget": {
+          "pairedBlockSavingMs": 2.15,
+          "roundsMs": [
+            2.6,
+            1.7,
+            -3.9,
+            6.9
+          ],
+          "triangles": 2391438
+        },
+        "skipStencilResolve": {
+          "pairedBlockSavingMs": 1.9,
+          "roundsMs": [
+            2.8,
+            1.0,
+            -0.1,
+            5.8
+          ],
+          "triangles": 2391438
+        },
+        "base": {
+          "pairedBlockSavingMs": 0.0,
+          "roundsMs": [
+            0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "triangles": 2391438
+        }
+      },
+      "staticBakes": 0,
+      "counterDraws": 0
+    },
+    "14": {
+      "baselineMedianMs": 45.3,
+      "baselineCpuMs": 9.8,
+      "draws": 618,
+      "triangles": 3447543,
+      "modes": {
+        "landNoCounter": {
+          "pairedBlockSavingMs": -0.9,
+          "roundsMs": [
+            -9.8,
+            2.0,
+            -0.9
+          ],
+          "triangles": 3447543
+        },
+        "flatLand": {
+          "pairedBlockSavingMs": 4.4,
+          "roundsMs": [
+            2.5,
+            6.3,
+            4.4
+          ],
+          "triangles": 3447543
+        },
+        "treesOff": {
+          "pairedBlockSavingMs": 6.3,
+          "roundsMs": [
+            2.5,
+            6.3,
+            8.0
+          ],
+          "triangles": 1781315
+        },
+        "scissorLand": {
+          "pairedBlockSavingMs": 0.2,
+          "roundsMs": [
+            -3.3,
+            0.8,
+            0.2
+          ],
+          "triangles": 3447543
+        },
+        "boardOff": {
+          "pairedBlockSavingMs": 23.9,
+          "roundsMs": [
+            23.9,
+            26.5,
+            21.2
+          ],
+          "triangles": 1045511
+        },
+        "noMSAA": {
+          "pairedBlockSavingMs": 4.1,
+          "roundsMs": [
+            4.1,
+            9.5,
+            1.6
+          ],
+          "triangles": 3447543
+        },
+        "pinTarget": {
+          "pairedBlockSavingMs": -4.1,
+          "roundsMs": [
+            -4.6,
+            1.3,
+            -4.1
+          ],
+          "triangles": 3447543
+        },
+        "skipStencilResolve": {
+          "pairedBlockSavingMs": 0.1,
+          "roundsMs": [
+            -1.8,
+            0.8,
+            0.1
+          ],
+          "triangles": 3447543
+        },
+        "base": {
+          "pairedBlockSavingMs": 0.0,
+          "roundsMs": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "triangles": 3447543
+        }
+      },
+      "staticBakes": 0,
+      "counterDraws": 0
+    }
+  },
+  "pixelComparisons": [
+    {
+      "mode": "pinTarget",
+      "pixels": 0,
+      "repeat": 0,
+      "max": 0
+    },
+    {
+      "mode": "skipStencilResolve",
+      "pixels": 0,
+      "repeat": 0,
+      "max": 0
+    },
+    {
+      "mode": "flatLand",
+      "pixels": 816773,
+      "repeat": 0,
+      "max": 103
+    },
+    {
+      "mode": "landNoCounter",
+      "pixels": 18270,
+      "repeat": 0,
+      "max": 129
+    },
+    {
+      "mode": "treesOff",
+      "pixels": 128035,
+      "repeat": 0,
+      "max": 219
+    },
+    {
+      "mode": "noMSAA",
+      "pixels": 878712,
+      "repeat": 0,
+      "max": 255
+    }
+  ],
+  "dom": [
+    {
+      "hudHidden": false,
+      "presentFps": 35.74,
+      "layoutStylePaintMsPerDraw": 0.69
+    },
+    {
+      "hudHidden": true,
+      "presentFps": 35.88,
+      "layoutStylePaintMsPerDraw": 0.57
+    },
+    {
+      "hudHidden": true,
+      "presentFps": 35.41,
+      "layoutStylePaintMsPerDraw": 0.4
+    },
+    {
+      "hudHidden": false,
+      "presentFps": 40.63,
+      "layoutStylePaintMsPerDraw": 0.35
+    },
+    {
+      "hudHidden": true,
+      "presentFps": 37.72,
+      "layoutStylePaintMsPerDraw": 0.35
+    },
+    {
+      "hudHidden": false,
+      "presentFps": 36.08,
+      "layoutStylePaintMsPerDraw": 0.4
+    }
+  ]
+}
