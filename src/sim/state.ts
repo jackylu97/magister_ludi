@@ -610,6 +610,7 @@ import {
  * the sites that can take a terrace. Replaying an older game would change its outcome.
  *
  * v251 changes citizen and building yields and the production prices of units.
+ * Gold purchases of Great People now require the recruitment ability.
  */
 export const SCHEMA_VERSION = 251;
 

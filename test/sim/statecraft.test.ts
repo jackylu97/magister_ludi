@@ -3771,10 +3771,12 @@ describe("the governments’ deferred halves, built", () => {
   it("refuses the purchase to an empty treasury, byte-identically", () => {
     const g = game(319);
     found(g.state, 0);
+    keepTheRites(g.state);
     playerById(g.state, 0)!.statecraft.government = "theCommonwealth" as never;
     bumpRevision(g.state);
     playerById(g.state, 0)!.gold = 0;
     const before = snapshotState(g.state);
+    expect(greatPersonPurchaseError(g.state, 0, "gold")).toContain("gold and has 0");
     expect(
       applyCommand(g.state, {
         type: "purchaseGreatPersonOffer",

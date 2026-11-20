@@ -500,15 +500,8 @@ export function settleRenownWindfall(
     }
   }
 
-  // **The gate** (the tree pass of 2026-08-30): until an empire keeps the
-  // ancestor rites, nobody answers its renown. The pool still fills — that is
-  // the point, and it is why the gate sits *after* the grants are banked rather
-  // than at the top: a realm that reaches the rites late finds a great person
-  // waiting the moment it does, instead of having thrown away the renown it
-  // earned getting there. Read through `hasAbility`, the one register for "may
-  // this empire do that", so moving the gate is one line of `data/techs.json` —
-  // and, since B1, so that a card may open it: The Muses' Call grants the
-  // ability outright, and this seam has no clause about the card at all.
+  // Bank earned renown before checking recruitment. When a technology or card
+  // unlocks it, the empire can use the renown it earned earlier.
   if (!hasAbility(state, player.id, 'ancestorRites')) return null;
 
   let first: GreatPersonOffer | null = null;

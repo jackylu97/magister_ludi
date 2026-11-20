@@ -126,7 +126,7 @@ import {
 } from './statecraft/draft';
 import type { ActionRuleId, CardEffect } from './statecraftData';
 import { hasAbility, settleResearchWindfall } from './tech';
-import { highestAge } from './techData';
+import { ABILITY_TECH, highestAge, techDef } from './techData';
 import { unitDef, unitMaxHp } from './unitData';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from './resourceEffects';
@@ -667,6 +667,10 @@ export function greatPersonPurchaseError(
   const def = OFFER_PURCHASES[purchase];
   if (!cardActionRule(state, playerId, def.rule)) {
     return `${player.name}'s law does not let ${purchaseWords(purchase)} be bought with ${def.currency}`;
+  }
+  if (purchase === 'gold' && !hasAbility(state, playerId, 'ancestorRites')) {
+    const tech = ABILITY_TECH.get('ancestorRites')!;
+    return `To recruit Great People, research ${techDef(tech).name} or gain the ability from a card.`;
   }
   if (player.greatPersonOffer !== undefined) {
     return `${player.name} already has a great person waiting to be chosen`;

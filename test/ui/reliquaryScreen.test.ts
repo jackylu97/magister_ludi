@@ -600,10 +600,27 @@ describe('the calls at the foot', () => {
   function commonwealth(): GameState {
     const state = withLegacies();
     state.players[0]!.statecraft.government = 'theCommonwealth';
+    state.players[0]!.techsResearched.push('epicPoetry');
     bumpRevision(state);
     state.players[0]!.gold = 10_000;
     return state;
   }
+
+  it('shows why Merchant Princes must wait for recruitment', () => {
+    const state = twoSeats();
+    const player = state.players[0]!;
+    player.gold = 10_000;
+    player.statecraft.slots.push({ card: 'merchantPrinces', sealedUntil: state.turn });
+    bumpRevision(state);
+    const [call] = reliquaryCalls(state, 0);
+    expect(call!.purchase).toBe('gold');
+    expect(call!.disabled).toBe(true);
+    expect(call!.note).toBe(greatPersonPurchaseError(state, 0, 'gold'));
+    expect(call!.note).toContain('Epic Poetry');
+    player.techsResearched.push('epicPoetry');
+    bumpRevision(state);
+    expect(reliquaryCalls(state, 0)[0]!.disabled).toBe(false);
+  });
 
   it('draws nothing at all under a law that opens no purchase', () => {
     // The ordinary empire sees the screen it always saw. A control for a rule

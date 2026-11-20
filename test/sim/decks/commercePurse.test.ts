@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest';
 
 import { foundCityAt, tilePurchaseError, tilePurchasePrice } from '../../../src/sim/cities';
 import { type Command, applyCommand } from '../../../src/sim/commands';
+import { snapshotState } from '../../../src/sim/game';
 import { greatPersonOfferPrice, greatPersonPurchaseError } from '../../../src/sim/greatPeople';
 import { explainEmpireGold } from '../../../src/sim/empireGold';
 import { contributeError, explainPurchaseCost, purchaseGate } from '../../../src/sim/purchase';
@@ -99,6 +100,54 @@ function buy(city: City, item: { kind: 'unit' | 'building'; id: string }, curren
 }
 
 const GRANARY = { kind: 'building', id: 'granary' } as const;
+
+describe('Merchant Princes recruitment', () => {
+  const purchase = { type: 'purchaseGreatPersonOffer', playerId: 0, buys: 'gold' } as const;
+
+  function beforeRecruitment() {
+    const { state } = town();
+    const player = state.players[0]!;
+    player.techsResearched = player.techsResearched.filter(tech => tech !== 'epicPoetry');
+    player.gold = 10_000;
+    player.renownPool = 17;
+    seat(state, 0, MERCHANT_PRINCES);
+    return { state, player };
+  }
+
+  it('refuses the gold purchase before recruitment and preserves the entire state', () => {
+    const { state, player } = beforeRecruitment();
+    const before = snapshotState(state);
+    const result = applyCommand(state, purchase);
+    expect(result).toEqual({
+      ok: false,
+      error: 'To recruit Great People, research Epic Poetry or gain the ability from a card.',
+    });
+    expect(snapshotState(state)).toBe(before);
+    expect(player.gold).toBe(10_000);
+    expect(player.renownPool).toBe(17);
+    expect(player.greatPersonOffer).toBeUndefined();
+  });
+
+  it('keeps the two faith purchases available under their own cards', () => {
+    const { state, player } = beforeRecruitment();
+    player.faithPool = 10_000;
+    player.statecraft.doctrines.push('theAcademyOfDeeds');
+    seat(state, 0, 'sacredPatronage');
+    expect(greatPersonPurchaseError(state, 0, 'faith')).toBeNull();
+    expect(greatPersonPurchaseError(state, 0, 'scholarDraft')).toBeNull();
+  });
+
+  it.each(['Epic Poetry', "The Muses' Call"])('accepts the gold purchase with %s', unlock => {
+    const { state, player } = beforeRecruitment();
+    if (unlock === 'Epic Poetry') player.techsResearched.push('epicPoetry');
+    else player.statecraft.doctrines.push('musesCall');
+    bumpRevision(state);
+    const price = greatPersonOfferPrice(state, 0, 'gold');
+    expect(applyCommand(state, purchase).ok).toBe(true);
+    expect(player.gold).toBe(10_000 - price);
+    expect(player.greatPersonOffer!.options.length).toBeGreaterThan(0);
+  });
+});
 
 describe('The Open Market', () => {
   it('discounts each gold purchase and charges the displayed great-person price', () => {

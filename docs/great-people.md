@@ -101,6 +101,11 @@ constructs the command), priced by `greatPersonOfferPrice`, greyed with
 `greatPersonPurchaseError`'s own sentence, and drawn at all only where the
 empire's law names them.
 
+Merchant Princes requires the ordinary Great Person recruitment ability. Epic
+Poetry grants it, and a card can grant it early. Until then, the Reliquary
+shows the gold offer disabled. A rejected purchase leaves gold and renown
+untouched. Sacred Patronage and The Academy retain their own purchase rules.
+
 ## The rate, measured
 
 Two bot games — standard map, two balanced seats (Crimson and Teal), the wild in
