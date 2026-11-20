@@ -5,6 +5,7 @@ import {
   canTransit,
   cheapestStepCost,
   findPath,
+  heldFieldsTally,
   isPassable,
   isShoreStep,
   moveProfile,
@@ -555,6 +556,22 @@ describe('reachableTiles', () => {
     expect(keys.has('3,4')).toBe(false);
     // But the tile beyond the friendly unit is still reachable through it.
     expect(keys.has('6,4')).toBe(true);
+  });
+
+  it('shares two fields across swap checks and reads the board again after a move', () => {
+    const state = flatState();
+    const mover = unit(state, 4, 3, 'warrior', 0);
+    const ally = unit(state, 5, 3, 'spearman', 0);
+    const target = at(state.map, 5, 3);
+    const freshFields = () => heldFieldsTally.asked - heldFieldsTally.kept;
+    const before = freshFields();
+    expect(reachableTiles(state, mover).find(row => row.tile === target)?.swap).toBe(true);
+    expect(freshFields() - before).toBe(2);
+    expect(applyCommand(state, {
+      type: 'moveUnit', playerId: 0, unitId: ally.id, target: {col: 6, row: 3},
+    }).ok).toBe(true);
+    const destination = reachableTiles(state, mover).find(row => row.tile === target);
+    expect(destination).toEqual({tile: target, cost: 1});
   });
 
   it('excludes a foreign city hex, garrisoned or not', () => {
