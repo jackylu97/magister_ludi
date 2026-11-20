@@ -466,11 +466,11 @@ describe('the second step: the user’s comments on the built screen', () => {
     expect(PANEL).toContain('summary: banner.ours ? FAITH_ROW_WORDS.inLine : banner.name,');
   });
 
-  it('keeps the focus chips inside the wider panel', () => {
+  it('wraps the focus chips and keeps the approved city panel widths', () => {
     expect(rule('.city-focus-choices')).toContain('flex-wrap: wrap;');
     expect(rule('.city-focus-choice')).toContain('white-space: nowrap;');
     expect(rule('.city-rail.is-left')).toContain('width: 286px;');
-    expect(rule('.city-rail.is-right')).toContain('width: 400px;');
+    expect(rule('.city-rail.is-right')).toContain('width: 360px;');
     // The Buy tiles button left the panel.
     expect(braceBody(PANEL, 'function renderTownRail(')).not.toContain('city-buy-tiles');
     expect(braceBody(PANEL, 'function renderBorders(')).not.toContain('setBuyMode');
