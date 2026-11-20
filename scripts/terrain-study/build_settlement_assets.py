@@ -185,6 +185,8 @@ def fishing_hull():
   for i in range(n):f.append((j*n+i,j*n+(i+1)%n,(j+1)*n+(i+1)%n,(j+1)*n+i))
  mesh('Clinker hull',v,f,WOOD);block((0,0,.08),(.40,.14,.025),DARK,.003)
 
+if '--improvement-study' in sys.argv:
+ runpy.run_path(str(Path(__file__).with_name('build_improvement_studies.py')),init_globals=globals());sys.exit(0)
 if '--monuments-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_monument_assets.py')),init_globals=globals());sys.exit(0)
 if '--northstar-only' in sys.argv or '--pillaged-works-only' in sys.argv:
