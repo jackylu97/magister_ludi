@@ -37,6 +37,44 @@ WebKit allocated the real 8080 × 4380 base target at 25.92 texels per world uni
 
 These figures estimate attachment storage. Driver overhead, geometry and other renderer targets are separate. A full Giant board and its wide-view image at the lower base density remain unverified.
 
+## Full Giant board
+
+Native WebKit tried the complete 180 × 112 map with seed 42 and two seats on an Apple M4 with 16 GiB of memory. Both runs ended during land construction. Neither reached the base texture bake. WebKit reported that its content process had terminated. The operating system gave no cause in the capture.
+
+| Terrain workers | Last reported land progress | Time from harness start to exit | Peak resident memory sampled for WebContent |
+|---|---:|---:|---:|
+| Shipping setting, up to four | 33% | Unmeasured | Unmeasured |
+| One | 87% | 303 s | 3.24 GiB |
+
+The second run sampled the WebContent process and host memory pressure for 300 seconds. Of 289 samples, 139 showed normal pressure and 150 showed a warning. The host already had 5,997 MiB of swap in use when the run began. Resident memory measures the process pages in RAM. It excludes compressed pages, swap and the separate GPU process. The complete board still needs a successful load before we can compare its wide view or time a pan. [Measurements](benchmarks/ground-close-giant-2026-11-19.json)
+
+## Standard board at closest zoom
+
+These are new crops from the native WebKit captures of seed 42 described above. Each crop keeps the original drawing-buffer pixels. Look at the pale band beside the river and the edge of the grass at the coast. Both have softer edges with the local texture. The seam in this seed crosses open water. The gallery comparison at the top of this page covers a seam on land.
+
+![Cut mesh and local texture on a generated Standard coast, river, hill and open-water seam.](images/close-ground-standard-seed-42.png)
+
+On this board a nine-unit drag drew the cut mesh on eight of nine sampled frames and refilled the local texture in 578 ms. A jump to the seam needed 350 ms and drew the cut mesh on six of seven frames. A half-unit move across the seam used the ready texture. The game keeps its 1.5× drawing resolution and the existing cut-mesh option.
+
+## Beach and river banks under terraces
+
+The grey blocks on the left are pieces of bank that still stand at the old hill height. The painter clips the sand and river banks onto the hill. When terraces replace the mound, the renderer removes the hill faces. The clipped bank pieces carry no hill marker, so they stay. The textured ground on the right paints the bank onto the ground below the terraces. This is the original enlarged middle-zoom comparison from part 3 of the ground paint plan. A separate change to the cut mesh still awaits the visual decision.
+
+![Cut mesh on the left with two raised bank fragments. Textured ground on the right with both terraces exposed.](images/ground-terrace-bank-comparison.png)
+
+## Cost of making the cut land
+
+A separate CPU measurement used two generated Standard maps with the current hill, river and coast shapes. It built and painted the same sample of land tile tops with and without their cut copy. Four pairs per seed reversed the order between pairs.
+
+| Seed | Land tiles | Cut and plain tops, median CPU time | Plain tops alone, median CPU time | Cut top arrays before merging |
+|---:|---:|---:|---:|---:|
+| 42 | 592 | 878 ms | 358 ms | 77.44 MiB |
+| 999 | 589 | 932 ms | 346 ms | 76.51 MiB |
+
+The plain tops kept the same triangle counts in both runs. These times cover tile construction and painting. Stage 4 would also need to send brush outlines, paint them into the texture, and supply the picker and shadow bake with the right surface. The time and peak memory for that complete operation remain open. [Sample measurements](benchmarks/ground-close-giant-2026-11-19.json)
+
 ## Repeat the trial
 
 With the Vite dev server running, open `/scripts/terrain-study/close-ground.html` for the paired gallery captures. Select a picture to save its full-resolution PNG. Add `?size=standard` to use the generated board or `?allocation=giant` to test the Giant targets. The page records measurements in `window.trialReport`.
+
+For a complete generated map, use `?size=standard` or `?size=giant`. The page also captures the wide view at a fixed river or hill. Add `&base=shipping` to open the same wide camera with the shipping atlas budget. Add `&workers=1` to repeat the single-worker build.

@@ -1,0 +1,62 @@
+{
+  "engine": "native WebKit (WKWebView)",
+  "device": "Apple M4",
+  "physicalMemoryBytes": 17179869184,
+  "viewportCssPixels": [
+    1280,
+    960
+  ],
+  "requestedMap": {
+    "size": "giant",
+    "seed": 42,
+    "columns": 180,
+    "rows": 112,
+    "seats": 2
+  },
+  "trial": "64 texels per world unit for the close view and a 180 MiB base budget",
+  "exitSignal": "WKNavigationDelegate.webViewWebContentProcessDidTerminate",
+  "runs": [
+    {
+      "terrainWorkers": "shipping setting, up to 4",
+      "lastStage": "land",
+      "lastLandPercent": 33,
+      "harnessExitCode": 3,
+      "baseAtlasAllocated": false,
+      "wallSeconds": null
+    },
+    {
+      "terrainWorkers": 1,
+      "lastStage": "land",
+      "lastLandPercent": 87,
+      "harnessExitCode": 3,
+      "baseAtlasAllocated": false,
+      "launchToExitSeconds": 303.16,
+      "memorySampleSpanSeconds": 300,
+      "peakWebContentRssKiB": 3401344,
+      "pressureSamples": {
+        "normal": 139,
+        "warning": 150,
+        "critical": 0
+      },
+      "swapUsedMiBAtStart": 5996.56
+    }
+  ],
+  "standardLandSample": [
+    {
+      "seed": 42,
+      "landTiles": 592,
+      "pairs": 4,
+      "cutAndPlainMedianCpuMs": 878.32,
+      "plainOnlyMedianCpuMs": 357.92,
+      "unmergedCutTopBytes": 81200988
+    },
+    {
+      "seed": 999,
+      "landTiles": 589,
+      "pairs": 4,
+      "cutAndPlainMedianCpuMs": 931.77,
+      "plainOnlyMedianCpuMs": 346.05,
+      "unmergedCutTopBytes": 80230608
+    }
+  ]
+}
