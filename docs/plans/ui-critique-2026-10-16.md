@@ -1781,3 +1781,10 @@ the class.
 The deeds on the painted age plate had less contrast on a bright painting. The
 user: "soft dark shadow sounds fine". The words on the painting's foot carry a
 soft dark text shadow.
+
+### Two builds approved (2026-11-20)
+
+The user, on the age plate on the ribbon
+(https://claude.ai/artifact/W3aF5oXGwsE2dCAZmBggzj) and on build stage 3, the
+great person card, the setup's leader step and the faith sheet
+(https://claude.ai/artifact/C5Ht1Xz1KHVetC9JLgooZp): "both approved".
