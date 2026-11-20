@@ -18,6 +18,7 @@ import { createSeaField, RIVER } from './seaField';
 import { createOrganicRivers, organicRiversFrom } from './organicRivers';
 import { createFreeCoast } from './freeCoast';
 import { createGroundPaint } from './groundPaint';
+import { canopyBatchBox } from './copyCulling';
 
 const axis = new T.Vector3(0, 1, 0);
 const NEVER = 0, CLUTTER = 1, DECOR = 2;
@@ -316,6 +317,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     return ownedMaterials.get(source);
   }
   function decorateMesh(mesh, source, castShadow) {
+    // Wrap copies inherit this box. The static board keeps the same tree transforms for its lifetime.
+    const sway = source.userData.canopySway;
+    if (mesh.isInstancedMesh && sway) mesh.boundingBox = canopyBatchBox(mesh, sway);
     // What this batch casts when shadows are *on* is a fact about the batch —
     // the ground and the standing stone throw a shadow, the far clones and the
     // water do not — and is kept apart from whether shadows are on at all, so

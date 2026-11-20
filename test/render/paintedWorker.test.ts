@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 // @ts-expect-error Node is provided by the test runner, outside the browser TS target.
 import {createHash} from 'node:crypto';
-import {BoxGeometry, InstancedBufferAttribute, Mesh, MeshStandardMaterial} from 'three';
+import {BoxGeometry, InstancedBufferAttribute, InstancedMesh, Mesh, MeshStandardMaterial} from 'three';
 import type {TerrainPacket} from '../../src/terrainStudy/terrainPacket';
 import {createMap} from '../../src/sim/map';
 // @ts-expect-error Shared study surface helpers are JavaScript.
@@ -76,6 +76,7 @@ describe('painted worker transfer', () => {
     const {map, assets, materials} = fixture();
     const original = JSON.stringify(map), livePosition = assets.broadleaf.geometry.attributes.position;
     materials.mergedLand.onBeforeCompile = vi.fn();
+    assets.broadleaf.material.userData.canopySway = {x: .045, z: .028};
     const reference = buildPaintedBoard(map,assets,materials); owned.push(reference);
     const kit = packPaintedKit(assets,materials), remote = unpackPaintedKit(structuredClone(kit.packet));
     owned.push(...remote.bindings);
@@ -95,6 +96,11 @@ describe('painted worker transfer', () => {
     expect(terrain).toBe(packet.map);
     const hydrated = buildPaintedBoard(map,assets,materials,true,unpackPaintedBatches(received,kit.bindings),undefined,terrain); owned.push(hydrated);
     expect(fingerprint(hydrated)).toBe(fingerprint(reference));
+    const boxes = (board: PaintedBoard) => board.copies.map(copy => copy.children.flatMap(mesh =>
+      mesh instanceof InstancedMesh && !Array.isArray(mesh.material) && mesh.material.userData.canopySway ? [mesh.boundingBox] : []));
+    const localBoxes = boxes(reference);
+    expect(localBoxes.every(copy => copy.length > 0 && copy.every(box => box && !box.isEmpty()))).toBe(true);
+    expect(boxes(hydrated)).toEqual(localBoxes);
     for (let i=0;i<map.tiles.length;i++) {
       expect(hillMounds(hydrated.renderMap.tiles[i])).toEqual(hillMounds(reference.renderMap.tiles[i]));
       expect(surfaceHeight(hydrated.renderMap.tiles[i],.1,.2)).toBe(surfaceHeight(reference.renderMap.tiles[i],.1,.2));

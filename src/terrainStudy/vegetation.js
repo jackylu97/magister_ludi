@@ -321,6 +321,8 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
   const [flockingGrain,mineralGrain]=await Promise.all([flocking,mineral]);
   const loader=new GLTFLoader();
   const foliageMaterial=new T.MeshStandardMaterial({color:'white',vertexColors:true,roughness:.93,flatShading:true,bumpMap:flockingGrain,bumpScale:.007});
+  // The board bounds each tree with the full sideways movement of its canopy.
+  const canopySway=foliageMaterial.userData.canopySway=NORTH_STAR_TREES?{x:.045,z:.028}:{x:.012,z:.006};
   const rockMaterial=new T.MeshStandardMaterial({color:'white',vertexColors:true,roughness:.9,flatShading:true,bumpMap:mineralGrain,bumpScale:.006});
   const rangeMaterial=rockMaterial.clone();
   rangeMaterial.onBeforeCompile=shader=>{
@@ -349,8 +351,8 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
       #ifdef USE_INSTANCING
       vec3 root=instanceMatrix[3].xyz;
       float bend=smoothstep(.35,1.5,position.y);
-      transformed.x+=sin(groveTime*.8+root.x*.7+root.z*.6)*bend*${NORTH_STAR_TREES?'.045':'.012'};
-      transformed.z+=cos(groveTime*.6+root.x*.4)*bend*${NORTH_STAR_TREES?'.028':'.006'};
+      transformed.x+=sin(groveTime*.8+root.x*.7+root.z*.6)*bend*${canopySway.x};
+      transformed.z+=cos(groveTime*.6+root.x*.4)*bend*${canopySway.z};
       #endif
     `);
   };

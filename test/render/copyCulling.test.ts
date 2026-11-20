@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BoxGeometry, Frustum, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Vector3 } from 'three';
-import { CopyCulling } from '../../src/render3d/copyCulling';
+import { canopyBatchBox, CopyCulling } from '../../src/render3d/copyCulling';
 
 // The board's three wrap copies each hold about a thousand meshes, and three tests every one of them against the camera
 // in each pass. A copy out of view is now hidden as a whole for the pass (render speed pass, third pass). It may be
@@ -40,6 +40,59 @@ function threeDraws(meshes: readonly Mesh[], camera: OrthographicCamera): boolea
 }
 
 describe('wrap copy culling', () => {
+  it('keeps every tree vertex inside its batch box at the full sway, rotation and scale', () => {
+    const geometry = new BoxGeometry(1, 3, 1), sway = { x: .045, z: .028 };
+    const trees = new InstancedMesh(geometry, new MeshBasicMaterial(), 2);
+    const turn = new Matrix4().makeRotationY(Math.PI / 3).scale(new Vector3(2, .75, .5)).setPosition(18, 4, 0);
+    const lean = new Matrix4().makeRotationZ(.17).setPosition(-2, 1, -6);
+    trees.setMatrixAt(0, turn); trees.setMatrixAt(1, lean);
+    const box = canopyBatchBox(trees, sway), position = geometry.getAttribute('position');
+    for (const matrix of [turn, lean]) for (let i = 0; i < position.count; i++) {
+      for (const dx of [-sway.x, sway.x]) for (const dz of [-sway.z, sway.z]) {
+        const vertex = new Vector3().fromBufferAttribute(position, i).add(new Vector3(dx, 0, dz)).applyMatrix4(matrix);
+        expect(box.containsPoint(vertex)).toBe(true);
+      }
+    }
+  });
+
+  it('culls a forest row only beyond its full sway in each wrap copy and keeps it for a shadow pass', () => {
+    const material = new MeshBasicMaterial(), sway = material.userData.canopySway = { x: .045, z: .028 };
+    const geometry = new BoxGeometry(1, 1, 1);
+    function rowAt(x: number): InstancedMesh {
+      const mesh = new InstancedMesh(geometry, material, 2);
+      for (const [i, z] of [2, 10].entries()) mesh.setMatrixAt(i, new Matrix4().makeTranslation(x, 0, z));
+      mesh.boundingBox = canopyBatchBox(mesh, sway);
+      mesh.castShadow = true;
+      return mesh;
+    }
+    const row = rowAt(6.6), edge = rowAt(6.52), hidden = rowAt(6.6);
+    hidden.visible = false;
+    const copy = new Group();
+    copy.add(row, edge, hidden);
+    const copies = [-PERIOD, 0, PERIOD].map(x => {
+      const placed = copy.clone();
+      placed.position.x = x;
+      placed.updateMatrixWorld(true);
+      return placed;
+    });
+    const culling = new CopyCulling();
+    for (const placed of copies) {
+      const camera = cameraOver(placed.position.x);
+      // Three's sphere includes the screen edge for both rows.
+      expect(threeDraws([placed.children[0] as Mesh], camera)).toBe(true);
+      culling.hide(copies, camera, false, [], PERIOD);
+      expect(placed.visible).toBe(true);
+      expect(placed.children.map(tree => tree.visible)).toEqual([false, true, false]);
+      culling.restore();
+      culling.hide(copies, camera, true, [], PERIOD);
+      expect(copies.every(wrap => wrap.visible)).toBe(true);
+      expect(placed.children.map(tree => tree.visible)).toEqual([true, true, false]);
+      // A light with a wider view can still draw the row outside the player camera.
+      expect(threeDraws([placed.children[0] as Mesh], cameraOver(placed.position.x + 8))).toBe(true);
+      culling.restore();
+    }
+  });
+
   it('hides a copy only when three would cull every mesh in it, and restore shows it again', () => {
     const { copies, meshes } = board(), culling = new CopyCulling();
     let hidden = 0;
