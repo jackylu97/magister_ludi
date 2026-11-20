@@ -25,7 +25,7 @@ import {
   foldBuildingPackage,
   stripRefs,
 } from '../../src/sim/statecraft';
-import { townBuildings } from '../../src/sim/statecraft/evaluator';
+import { readingAtRest, townBuildings } from '../../src/sim/statecraft/evaluator';
 import { explainCardBuildingYields } from '../../src/sim/yields/town';
 import { compendiumSections } from '../../src/ui/compendium';
 import { found, game } from './statecraftHelpers';
@@ -149,6 +149,20 @@ const FAITH_ON_LIBRARY: CardEffect = {
   faith: 1,
   scope: { test: 'hasBuilding', building: 'library' },
 };
+
+describe('building yields during a single read', () => {
+  it('keeps each town separate and drops old results after a card is seated', () => {
+    const a = town('library');
+    const b = town('library');
+    const faith = (fixture: typeof a) => buildingSupplies(fixture.state, fixture.city, 'library', 'faith');
+    seat(a.state, CARD_A, [FAITH_ON_LIBRARY]);
+
+    expect(readingAtRest(() => [faith(a), readingAtRest(() => faith(b)), faith(a)])).toEqual([true, false, true]);
+    seat(b.state, CARD_A);
+    expect(faith(b)).toBe(true);
+    expect(readingAtRest(() => faith(b))).toBe(true);
+  });
+});
 
 describe('a building’s own counted lines are in its package', () => {
   it('holds the Cathedral School’s science, and its count of faith suppliers ends', () => {
