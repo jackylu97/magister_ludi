@@ -1985,3 +1985,17 @@ The user later confirmed the scope of The Open Market: “Discount Great People 
 Merchant Princes can sell a Great Person offer only after the player unlocks recruitment. An Order that grants recruitment satisfies this rule just as Epic Poetry does.
 
 Build from “Ready for the build” with these rulings.
+
+## The user's comments on the closing round (2026-11-20, on the page)
+
+- **r4-2, stacked discounts (change 118):** "ok, the real answer is instead of
+  doing subtractive effects, to do additive ones aka your gold is 20% more
+  effective instead of the cost is 20% less. wdyt? The big issue with this is
+  that it's not as intuitive to players." On 118 itself: "see above."
+  **This reopens point 2 of "The pass is closed".** The cap at half stands
+  until the user rules on the other form; the answer is in chat.
+- **r4-3, a bought merchant:** "but the price of a great person scales very
+  quickly no? that's not a problem unless players increase their get at the
+  same rate?" Agreed: nothing is done, as point 3 says.
+- **r4-4 and 117:** "sounds good", "great".
+- **r4-5, The Herring Fleets:** "coast is strictly water tiles". Confirmed.
