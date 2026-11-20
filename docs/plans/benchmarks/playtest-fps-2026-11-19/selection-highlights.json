@@ -1,0 +1,156 @@
+{
+  "baseline": "2164dc86",
+  "scene": {
+    "seed": 999,
+    "turn": 120,
+    "map": "Standard",
+    "cities": 74,
+    "units": 489,
+    "gpu": "Apple M4, Chrome with Metal",
+    "boardPixels": [
+      2205,
+      1189
+    ],
+    "boardPixelRatio": 1.5
+  },
+  "method": "Ran the old, new, new and old versions in that order. Each session opened the same save, moved one unit to the same tile, alternated eight trusted clicks between the Swordsman and Warrior, then panned and zoomed. Each set of click times gives the median for four clicks per unit. Click to draw measures from the start of the click handler to the first completed renderer callback. Presented FPS counts distinct Chrome display timestamps. The camera trials lasted about 4.3 seconds each.",
+  "unitOrder": [
+    "swordsman",
+    "warrior"
+  ],
+  "parity": "All four runs gave identical movement and attack cells, geometry attributes, indices, instance transforms and instance colors for the two selections. The Swordsman had 53 reachable cells and the Warrior had eight. Neither had an attack target. The actual move command and its destination also matched.",
+  "runs": [
+    {
+      "run": "before-1",
+      "overlayBuilds": 25,
+      "overlayMs": 56.7,
+      "clickHandlerMsByUnit": [
+        22.8,
+        12.1
+      ],
+      "clickToDrawMsByUnit": [
+        36.3,
+        20.5
+      ],
+      "moveHandlerMs": 25.8,
+      "moveToDrawMs": 97.9,
+      "target": [
+        54,
+        26
+      ],
+      "selectedIds": [
+        818,
+        999
+      ],
+      "drag": {
+        "presentedFps": 35.3,
+        "boardFps": 39.5,
+        "maxPresentationGapMs": 50.0
+      },
+      "zoom-cross": {
+        "presentedFps": 32.2,
+        "boardFps": 32.9,
+        "maxPresentationGapMs": 66.7
+      }
+    },
+    {
+      "run": "after-1",
+      "overlayBuilds": 17,
+      "overlayMs": 34.7,
+      "clickHandlerMsByUnit": [
+        16.0,
+        6.5
+      ],
+      "clickToDrawMsByUnit": [
+        33.0,
+        17.7
+      ],
+      "moveHandlerMs": 26.2,
+      "moveToDrawMs": 137.8,
+      "target": [
+        54,
+        26
+      ],
+      "selectedIds": [
+        818,
+        999
+      ],
+      "drag": {
+        "presentedFps": 31.5,
+        "boardFps": 33.9,
+        "maxPresentationGapMs": 83.3
+      },
+      "zoom-cross": {
+        "presentedFps": 31.8,
+        "boardFps": 32.0,
+        "maxPresentationGapMs": 66.7
+      }
+    },
+    {
+      "run": "after-2",
+      "overlayBuilds": 17,
+      "overlayMs": 34.1,
+      "clickHandlerMsByUnit": [
+        15.4,
+        6.9
+      ],
+      "clickToDrawMsByUnit": [
+        32.3,
+        17.6
+      ],
+      "moveHandlerMs": 16.3,
+      "moveToDrawMs": 95.7,
+      "target": [
+        54,
+        26
+      ],
+      "selectedIds": [
+        818,
+        999
+      ],
+      "drag": {
+        "presentedFps": 35.3,
+        "boardFps": 40.2,
+        "maxPresentationGapMs": 50.0
+      },
+      "zoom-cross": {
+        "presentedFps": 34.6,
+        "boardFps": 35.0,
+        "maxPresentationGapMs": 50.0
+      }
+    },
+    {
+      "run": "before-2",
+      "overlayBuilds": 24,
+      "overlayMs": 66.5,
+      "clickHandlerMsByUnit": [
+        23.9,
+        11.9
+      ],
+      "clickToDrawMsByUnit": [
+        38.2,
+        21.2
+      ],
+      "moveHandlerMs": 15.6,
+      "moveToDrawMs": 103.9,
+      "target": [
+        54,
+        26
+      ],
+      "selectedIds": [
+        818,
+        999
+      ],
+      "drag": {
+        "presentedFps": 34.3,
+        "boardFps": 37.6,
+        "maxPresentationGapMs": 100.0
+      },
+      "zoom-cross": {
+        "presentedFps": 31.7,
+        "boardFps": 32.0,
+        "maxPresentationGapMs": 83.3
+      }
+    }
+  ]
+}

@@ -570,6 +570,7 @@ export class Renderer3D implements MapView {
   /** Which lens the UI has up. See `setLens` and `lens3d.ts`. */
   private lensView: LensView = NO_LENS;
   private lensDirty = false;
+  private overlaysDirty = false;
   /** Move mode armed in the UI: draw the selection ring live. See the setter. */
   private moveMode = false;
 
@@ -2892,12 +2893,27 @@ export class Renderer3D implements MapView {
     this.sitesShadowSignature = drawn;
   }
 
+  /** One click can change the selection, range and path before the board draws. */
+  private markOverlaysDirty(): void {
+    this.overlaysDirty = true;
+    this.redraw();
+  }
+
+  /** Both the frame and a unit pick need the latest visible board marks. */
+  private flushBoardMarks(): void {
+    if (this.overlaysDirty) this.rebuildOverlays();
+    if (this.lensDirty) this.rebuildLens();
+  }
+
   private rebuildOverlays(): void {
+    this.overlaysDirty = false;
     if (!this.map) return;
     const selected =
       this.selectedUnitId === null
         ? null
         : (this.state?.units.find((unit) => unit.id === this.selectedUnitId) ?? null);
+    const seatColor = this.fogSeat === null ? undefined
+      : playerPieceColor(this.state?.players[this.fogSeat]?.color ?? '', this.fogSeat);
     this.overlays.build(
       this.map,
       {
@@ -2913,27 +2929,8 @@ export class Renderer3D implements MapView {
         worked: this.workedTiles,
         locked: this.lockedTiles,
         siteRadius: this.siteRadius,
-        // The pinned rings wear the seat's own piece colour — worked tiles are
-        // only ever shown for the local seat's cities, so the seat is the one
-        // player whose colour can be right here. No seat, no colour: the
-        // overlay falls back to the data-file accent.
-        lockedColor:
-          this.fogSeat === null
-            ? undefined
-            : playerPieceColor(
-                this.state?.players[this.fogSeat]?.color ?? '',
-                this.fogSeat,
-              ),
-        // And the selection ring in the same ink: the piece chosen is the
-        // seat's, so the ring round it is the seat's primary (H7, then the
-        // user's note of 2026-09-11 that it still wore the old accent).
-        selectionColor:
-          this.fogSeat === null
-            ? undefined
-            : playerPieceColor(
-                this.state?.players[this.fogSeat]?.color ?? '',
-                this.fogSeat,
-              ),
+        lockedColor: seatColor,
+        selectionColor: seatColor,
         moveMode: this.moveMode,
       },
       this.geometry,
@@ -2990,7 +2987,7 @@ export class Renderer3D implements MapView {
     if (this.selectedUnitId === id) return;
     this.units.setBadgeSelection(this.selectedUnitId, id);
     this.selectedUnitId = id;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   /**
@@ -3003,13 +3000,13 @@ export class Renderer3D implements MapView {
   setMoveModeHighlight(on: boolean): void {
     if (this.moveMode === on) return;
     this.moveMode = on;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   setReachable(cells: readonly CellRef[]): void {
     if (sameCells(this.reachable, cells)) return;
     this.reachable = cells;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   /**
@@ -3020,7 +3017,7 @@ export class Renderer3D implements MapView {
   setAttackable(cells: readonly CellRef[]): void {
     if (sameCells(this.attackable, cells)) return;
     this.attackable = cells;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   setPathPreview(cells: readonly CellRef[], marks: readonly TurnMarkRef[] = []): void {
@@ -3031,7 +3028,7 @@ export class Renderer3D implements MapView {
     if (sameCells(this.pathPreview, cells) && sameMarks(this.pathMarks, marks)) return;
     this.pathPreview = cells;
     this.pathMarks = marks;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   /**
@@ -3042,7 +3039,7 @@ export class Renderer3D implements MapView {
     if (sameCells(this.committedPath, cells) && sameMarks(this.committedMarks, marks)) return;
     this.committedPath = cells;
     this.committedMarks = marks;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   /**
@@ -3059,7 +3056,7 @@ export class Renderer3D implements MapView {
     const next = cells ?? [];
     if (sameCells(this.routePreview, next)) return;
     this.routePreview = next;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   /**
@@ -3074,7 +3071,7 @@ export class Renderer3D implements MapView {
   setSiteRadius(cells: readonly CellRef[]): void {
     if (sameCells(this.siteRadius, cells)) return;
     this.siteRadius = cells;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   /**
@@ -3159,7 +3156,7 @@ export class Renderer3D implements MapView {
     if (sameCells(this.workedTiles, cells) && sameCells(this.lockedTiles, locked)) return;
     this.workedTiles = cells;
     this.lockedTiles = locked;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   /**
@@ -3211,7 +3208,7 @@ export class Renderer3D implements MapView {
       (hover !== null && this.hover !== null && hover.tile === this.hover.tile);
     if (same) return;
     this.hover = hover;
-    this.rebuildOverlays();
+    this.markOverlaysDirty();
   }
 
   getHover(): HoverInfo | null {
@@ -3373,8 +3370,7 @@ export class Renderer3D implements MapView {
   /** Exact body triangles, including wrap copies and the current walking pose. */
   pickUnitModel(screenX: number, screenY: number, playerId: number): number | null {
     if (!this.state || !this.map) return null;
-    // The lens can occlude a body even if the pointer arrives before the next frame.
-    if (this.lensDirty) this.rebuildLens();
+    this.flushBoardMarks();
     const candidates: UnitModelCandidate[] = this.units.modelCandidates();
     for (const [unitId, group] of this.walkers) group.traverse(object => {
       if (object instanceof Mesh && object.userData.unitBody) candidates.push({unitId, object});
@@ -4552,7 +4548,7 @@ export class Renderer3D implements MapView {
     const refreshState = this.stateDirty;
     this.stateDirty = false;
     if (refreshState) this.syncStateLayers();
-    if (this.lensDirty) this.rebuildLens();
+    this.flushBoardMarks();
     // The sync may have rebuilt the unit layer, which lays every shell back at
     // rest. Writing the glows again keeps this frame from showing a flicker.
     if (hadGlows && refreshState) this.stepGlows(now);

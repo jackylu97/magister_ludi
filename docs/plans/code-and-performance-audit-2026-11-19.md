@@ -176,3 +176,13 @@ Two other changes passed comparison. The HUD reads used and available routes dir
 The same Swordsman exposed a second cost. The model picker used to test every triangle in a large section of terrain even when all of it was behind the unit. It can now use the ground picker's current triangle index to skip that work. A cold index, edited geometry or an unsupported mesh uses the ordinary check. In 430 comparisons all unit IDs and empty results matched. The CPU time for the Swordsman pick fell from 10.05 to 0.64 ms. The Warrior took about 0.69 ms in both versions. These are times for one model pick. Click-to-draw timing also includes the panels, overlays and the next board frame.
 
 Native WebKit identified both pieces at the same screen positions in every sample. After the normal terrain check, the Swordsman model pick took a median 30 ms on the original build and 12 ms on the release. The Warrior took 4 ms in both. Timing the model pick alone on a fresh board gave 20.5 and 23.5 ms respectively for the Swordsman. The shortcut requires a current terrain index. The native test timed the lookup directly because the test window did not deliver the left mouse events. The full click measurements above use Chrome.
+
+### Selection highlights
+
+Selecting a unit used to build its ring immediately, then build it again when the movement range arrived. The renderer now builds the final highlights when a frame or a unit pick needs them. Selection, range, route and hover changes share this update.
+
+On the turn-120 Standard board, eight selections took 17 highlight builds in each new run. The original took 24 and 25. The time spent building those highlights fell from 57–67 ms to 34–35 ms across the eight selections. The Swordsman's median click to the next board draw fell from 36–38 ms to 32–33 ms. The Warrior's fell from 20–21 ms to about 18 ms. Both selected units had identical highlight geometry and colors in all four runs. [Setup and four runs](benchmarks/playtest-fps-2026-11-19/selection-highlights.json)
+
+The first move still took 96–138 ms to reach the next draw on the new build. Chrome recorded a 15–24 ms wait for a WebGL program query within that frame. At the default 1.5× board resolution, the two new runs presented 32–35 FPS while panning and 32–35 FPS while zooming. The camera runs overlapped the range of the original build.
+
+A separate capture traced the WebGL calls to their materials. The walker's painted body took 14.8 ms in its first program check. Its outline, model and badge passes each spent a further 3–5 ms on their first checks. The first draw took 116 ms in this instrumented run. The renderer already tries to prepare these programs during idle time. Compare the prepared shaders with those used by the first walk.

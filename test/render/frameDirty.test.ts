@@ -5,7 +5,7 @@
  * every frame (WebGL audit 2026-10-06, finding 4). These tests drive the real
  * frame loop with WebGL stubbed out and count the sweeps.
  */
-import { Group, InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
+import { Group, InstancedMesh, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { DeathAnimations3D, MoveAnimations3D } from '../../src/render3d/animation3d';
 import { Renderer3D } from '../../src/render3d/renderer3d';
@@ -37,26 +37,27 @@ function fixture(state: unknown = null) {
   const walkerModels = new Map<number, unknown>();
   const remove = vi.fn();
   const rebuildUnits = vi.fn();
+  const buildOverlays = vi.fn();
   const view = { pan: vi.fn(), zoomByFactor: vi.fn(), stepPan: () => false, camera: { right: 1, left: -1 } };
   const data: Record<string, unknown> = {
     running: true, stateDirty: false, frameDirty: false,
     state, map: null, fogSeat: null, hover: null, hoveredUnitId: null,
+    overlays: {build: buildOverlays}, reachable: [], attackable: [],
     animations, deaths, glows, walkers, fallers, walkerModels,
     vignette: { step: () => false, place: vi.fn(), focus: () => null, setFocus: vi.fn() },
     view, paintedBoard: null, paintedLook: null,
     canvas: { clientWidth: 800, clientHeight: 600 },
     renderer: { render: vi.fn(), info: { render: { calls: 0, triangles: 0 } } },
-    units: { setHoveredUnitId: vi.fn(), setBadgeSelection, clearHidden, isDrawing },
+    units: { modelCandidates: () => [], setHoveredUnitId: vi.fn(), setBadgeSelection, clearHidden, isDrawing },
     selectedUnitId: null, rebuildUnits,
-    scene: { remove }, frameListener: null,
+    scene: { remove, children: [] }, frameListener: null,
     syncStateLayers: sync, applyLight: vi.fn(), cityFocusAnchor: () => null,
-    rebuildOverlays(this: { redraw(): void }) { this.redraw(); },
   };
   const runtime = Object.assign(Object.create(Renderer3D.prototype), data) as Renderer3D;
   const frame = (): void => (runtime as unknown as Loop).loop();
   const drawn = (): number => (data.renderer as { render: ReturnType<typeof vi.fn> }).render.mock.calls.length;
   return {
-    runtime, sync, frame, drawn, view, setBadgeSelection, clearHidden, isDrawing, rebuildUnits,
+    runtime, sync, frame, drawn, view, buildOverlays, setBadgeSelection, clearHidden, isDrawing, rebuildUnits,
     animations, deaths, glows, walkers, fallers, walkerModels, remove,
   };
 }
@@ -99,6 +100,29 @@ describe('a camera frame draws without re-reading the state', () => {
     expect(f.rebuildUnits).not.toHaveBeenCalled();
     expect(f.sync).not.toHaveBeenCalled();
     expect(f.drawn()).toBe(3);
+  });
+
+  it.each(['frame', 'unit pick'] as const)('builds the final selection and range once before the next %s', (consumer) => {
+    const unit = {id: 7, col: 2, row: 3};
+    const map = createMap({width: 8, height: 6, terrain: 'grassland'});
+    const f = fixture({units: [unit]});
+    Object.assign(f.runtime, {map});
+    Object.assign(f.view, {screenRay: () => ({origin: new Vector3(2, 10, 3), direction: new Vector3(0, -1, 0)})});
+    const reachable = [{col: 3, row: 3}];
+    const attackable = [{col: 3, row: 4}];
+    f.runtime.setSelectedUnitId(unit.id);
+    f.runtime.setReachable(reachable);
+    f.runtime.setAttackable(attackable);
+    expect(f.buildOverlays).not.toHaveBeenCalled();
+    if (consumer === 'unit pick') f.runtime.pickUnitModel(0, 0, 0);
+    else f.frame();
+    expect(f.buildOverlays).toHaveBeenCalledOnce();
+    expect(f.buildOverlays.mock.calls[0]![1]).toMatchObject({
+      selection: {col: unit.col, row: unit.row}, reachable, attackable,
+    });
+    f.frame();
+    expect(f.buildOverlays).toHaveBeenCalledOnce();
+    expect(f.drawn()).toBe(1);
   });
 
   it('invalidate, the verb a command calls, runs the sweep once and then idles', () => {
