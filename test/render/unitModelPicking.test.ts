@@ -5,6 +5,7 @@ import {
   MeshBasicMaterial, Plane, Raycaster, Vector3,
 } from 'three';
 import { PaintedUnitKit } from '../../src/render3d/paintedUnits';
+import { mergePaintedPatches } from '../../src/render3d/paintedPatchPicking';
 import { installPaintedSurface, missesPaintedGround, paintedGroundHit, surfacePickGridBuilds, uninstallPaintedSurface } from '../../src/render3d/paintedSurface';
 import { createMap } from '../../src/sim/map';
 import { pickUnitModel, type UnitModelCandidate } from '../../src/render3d/unitModelPicking';
@@ -128,6 +129,33 @@ describe('direct unit body picking', () => {
 });
 
 describe('world occlusion of direct unit picking', () => {
+  it('skips gaps and distant patches while keeping exact hits at the map seam', () => {
+    const left = mesh(), right = mesh(), behind = mesh();
+    left.geometry.translate(-3, 0, 2);
+    right.geometry.translate(3, 0, 2);
+    behind.geometry.translate(0, 0, -3);
+    const merged = mergePaintedPatches([left.geometry, right.geometry, behind.geometry])!;
+    const paint = new Mesh(merged, left.material);
+    cleanup.push(() => merged.dispose());
+    const wraps = [paint, paint.clone()];
+    wraps[1]!.position.x = 20;
+    const originalCast = Mesh.prototype.raycast;
+    let paintCasts = 0;
+    vi.spyOn(Mesh.prototype, 'raycast').mockImplementation(function(this: Mesh, caster, hits) {
+      if (this.geometry === merged) paintCasts++;
+      originalCast.call(this, caster, hits);
+    });
+    left.geometry.translate(100, 0, 0);
+    for (const x of [0, 20]) {
+      const before = paintCasts;
+      expect(pickUnitModel(ray(x), [candidate(mesh(0, x))], wraps)).toBe(1);
+      expect(paintCasts).toBe(before);
+      expect(pickUnitModel(ray(x - 3), [candidate(mesh(0, x - 3))], wraps)).toBeNull();
+      expect(paintCasts).toBe(before + 1);
+      expect(pickUnitModel(ray(x + 3), [candidate(mesh(0, x + 3))], wraps, { acceptsOccluderHit: () => false })).toBe(1);
+    }
+  });
+
   it('blocks through solid scenery in front and ignores scenery behind the body', () => {
     const piece = candidate(mesh());
     expect(pickUnitModel(ray(), [piece], [mesh(2)])).toBeNull();

@@ -1,0 +1,944 @@
+{
+  "baseline": "e6f5824e",
+  "setup": {
+    "turn": 120,
+    "fogSeat": 0,
+    "cityCount": 74,
+    "units": 489,
+    "seen": 492,
+    "radius": 7,
+    "target": [
+      91.79869280115048,
+      42
+    ],
+    "device": 2,
+    "ratio": 1.5,
+    "screen": {
+      "w": 1470,
+      "h": 835
+    },
+    "rect": [
+      0,
+      42,
+      1470,
+      793
+    ],
+    "drawing": [
+      2205,
+      1189
+    ],
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "url": "?light=day",
+    "cover": null,
+    "log": 9171
+  },
+  "botPreparation": "Enabled in the ordinary game host; worker activity can vary between events.",
+  "source": "Isolated headless Chrome using ANGLE Metal. Each run loads the same turn 120 in-memory snapshot. No live playtest save is involved.",
+  "input": "Chrome receives trusted pointer events. Each run selects the same units and issues the same two moveUnit commands.",
+  "method": {
+    "selection": "The first submitted colour draw after rebuilding the overlay with a selection ring on the selected unit’s tile.",
+    "move": "The first submitted colour draw whose walker’s horizontal displacement projects to at least one CSS pixel. Both positions use the same height to exclude vertical changes.",
+    "presentation": "The first Display::FrameDisplayed event after submission is an observation of compositor activity. Chrome does not identify the canvas pixels of that event here.",
+    "cpu": "The old and new functions run on the same live scene, in alternating order by pair. Each value covers the same twelve screen positions. Bounds exist in both cases; only the new picker reads them.",
+    "cold": "First selection and first walking unit after the game opens on the save. The pointer moves onto each target before the click, so its hover can warm a pick.",
+    "caution": "The patched interaction run also includes the paired CPU diagnostic between its fourth selection and the first move. Host load and frame scheduling differed between runs. The end-to-end samples cannot isolate the cost of picking."
+  },
+  "positionSequence": [
+    [
+      833,
+      434
+    ],
+    [
+      882,
+      477
+    ],
+    [
+      784,
+      353
+    ],
+    [
+      931,
+      295
+    ],
+    [
+      835,
+      436
+    ],
+    [
+      830,
+      427
+    ],
+    [
+      780,
+      350
+    ],
+    [
+      880,
+      475
+    ],
+    [
+      850,
+      410
+    ],
+    [
+      816,
+      421
+    ],
+    [
+      844,
+      455
+    ],
+    [
+      811,
+      470
+    ]
+  ],
+  "pickedUnitAtEachPosition": [
+    818,
+    999,
+    null,
+    null,
+    818,
+    818,
+    null,
+    999,
+    null,
+    null,
+    null,
+    null
+  ],
+  "setupCost": {
+    "batches": 24,
+    "patchBoxes": 1860,
+    "ms": 1.9
+  },
+  "pairedPicks": {
+    "samplesMs": [
+      [
+        82.9,
+        27.3
+      ],
+      [
+        49.5,
+        26.6
+      ],
+      [
+        32.1,
+        23.1
+      ],
+      [
+        29.9,
+        20.1
+      ],
+      [
+        27.4,
+        19.5
+      ],
+      [
+        25.2,
+        18.9
+      ],
+      [
+        27.5,
+        15.9
+      ],
+      [
+        24.8,
+        14.7
+      ],
+      [
+        22.6,
+        18.6
+      ],
+      [
+        23.6,
+        15.6
+      ],
+      [
+        22,
+        17.5
+      ],
+      [
+        20.4,
+        16.4
+      ],
+      [
+        24.7,
+        13.4
+      ],
+      [
+        22.1,
+        12.9
+      ]
+    ],
+    "mediansMs": [
+      25.0,
+      18.0
+    ],
+    "medianPairedSavingMs": 9.1,
+    "fasterPairs": 14
+  },
+  "prototypePairs": {
+    "samplesMs": [
+      [
+        29,
+        10.7
+      ],
+      [
+        19.8,
+        11.9
+      ],
+      [
+        15.3,
+        9.3
+      ],
+      [
+        14.5,
+        11.9
+      ],
+      [
+        15.7,
+        10.5
+      ],
+      [
+        14.9,
+        9.6
+      ],
+      [
+        15.9,
+        10
+      ],
+      [
+        18,
+        10.1
+      ],
+      [
+        20.3,
+        13.7
+      ],
+      [
+        15.8,
+        10.7
+      ],
+      [
+        14.7,
+        9.2
+      ],
+      [
+        14.6,
+        10.1
+      ],
+      [
+        15.6,
+        10.4
+      ],
+      [
+        14.3,
+        9.9
+      ]
+    ],
+    "mediansMs": [
+      15.6,
+      10.2
+    ],
+    "medianPairedSavingMs": 5.4,
+    "fasterPairs": 14
+  },
+  "gridValidation": {
+    "columns": 18,
+    "rows": 14,
+    "firstCssPoint": [
+      315,
+      185
+    ],
+    "stepCss": [
+      51,
+      33
+    ],
+    "positions": 252,
+    "positiveHits": 12,
+    "mismatches": 0,
+    "expectedIdsByRow": [
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1092,
+        null,
+        1291,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1134,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        161,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1180,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        921,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        820,
+        null,
+        null
+      ],
+      [
+        null,
+        1263,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        818,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        999,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1090,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1099,
+        null,
+        null
+      ]
+    ]
+  },
+  "inputSamples": {
+    "baseline": [
+      {
+        "action": "select",
+        "unit": 818,
+        "commandTarget": null,
+        "pressToDrawMs": 39.2,
+        "releaseToDrawMs": 38.5,
+        "releaseToNextCompositorEventAfterDrawMs": 41.9,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.2,
+          "pickUnitModel": 13.3,
+          "reachableTiles": 4.7,
+          "rebuildLens": 4.0,
+          "updatePanel": 3.5,
+          "endDrag": 27.1,
+          "rebuildOverlays": 5.1
+        }
+      },
+      {
+        "action": "select",
+        "unit": 999,
+        "commandTarget": null,
+        "pressToDrawMs": 19.5,
+        "releaseToDrawMs": 18.8,
+        "releaseToNextCompositorEventAfterDrawMs": 22.7,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.1,
+          "pickUnitModel": 4.4,
+          "reachableTiles": 0.5,
+          "updatePanel": 2.0,
+          "endDrag": 7.5,
+          "rebuildOverlays": 1.2
+        }
+      },
+      {
+        "action": "select",
+        "unit": 818,
+        "commandTarget": null,
+        "pressToDrawMs": 21.8,
+        "releaseToDrawMs": 21.2,
+        "releaseToNextCompositorEventAfterDrawMs": 31.8,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.1,
+          "pickUnitModel": 10.2,
+          "reachableTiles": 1.6,
+          "updatePanel": 1.6,
+          "endDrag": 14.0,
+          "rebuildOverlays": 2.8
+        }
+      },
+      {
+        "action": "select",
+        "unit": 999,
+        "commandTarget": null,
+        "pressToDrawMs": 16.1,
+        "releaseToDrawMs": 15.5,
+        "releaseToNextCompositorEventAfterDrawMs": 17.3,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.1,
+          "pickUnitModel": 3.9,
+          "reachableTiles": 0.4,
+          "updatePanel": 1.7,
+          "endDrag": 6.5,
+          "rebuildOverlays": 0.9
+        }
+      },
+      {
+        "action": "select",
+        "unit": 1293,
+        "commandTarget": null,
+        "pressToDrawMs": 19.5,
+        "releaseToDrawMs": 18.7,
+        "releaseToNextCompositorEventAfterDrawMs": 36.2,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.1,
+          "pickUnitModel": 2.3,
+          "reachableTiles": 0.3,
+          "updatePanel": 1.6,
+          "endDrag": 5.0,
+          "rebuildOverlays": 1.1
+        }
+      },
+      {
+        "action": "move",
+        "unit": 1293,
+        "commandTarget": {
+          "col": 54,
+          "row": 26
+        },
+        "pressToDrawMs": 43.3,
+        "releaseToDrawMs": 42.3,
+        "releaseToNextCompositorEventAfterDrawMs": 48.3,
+        "drawDisplacementsCssPx": [
+          0.4,
+          6.77
+        ],
+        "phaseCpuMs": {
+          "pick": 0.2,
+          "findPath": 0.3,
+          "applyMoveUnit": 2.6,
+          "commit": 5.1,
+          "animateMove": 0.5,
+          "reachableTiles": 0.0,
+          "pickUnitModel": 0.3,
+          "endDrag": 7.7,
+          "rebuildUnits": 2.1,
+          "rebuildOverlays": 0.5,
+          "syncStateLayers": 4.7,
+          "updatePanel": 7.1
+        }
+      },
+      {
+        "action": "select",
+        "unit": 818,
+        "commandTarget": null,
+        "pressToDrawMs": 27.7,
+        "releaseToDrawMs": 26.4,
+        "releaseToNextCompositorEventAfterDrawMs": 32.9,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.1,
+          "pickUnitModel": 11.5,
+          "reachableTiles": 2.6,
+          "updatePanel": 3.1,
+          "endDrag": 17.8,
+          "rebuildOverlays": 3.8
+        }
+      },
+      {
+        "action": "move",
+        "unit": 818,
+        "commandTarget": {
+          "col": 55,
+          "row": 26
+        },
+        "pressToDrawMs": 36.1,
+        "releaseToDrawMs": 34.9,
+        "releaseToNextCompositorEventAfterDrawMs": 43.5,
+        "drawDisplacementsCssPx": [
+          0.28,
+          1.96
+        ],
+        "phaseCpuMs": {
+          "pick": 0.1,
+          "findPath": 0.5,
+          "applyMoveUnit": 1.3,
+          "commit": 1.6,
+          "animateMove": 0.3,
+          "reachableTiles": 0.0,
+          "pickUnitModel": 0.4,
+          "endDrag": 4.1,
+          "rebuildUnits": 2.3,
+          "rebuildOverlays": 0.7,
+          "syncStateLayers": 4.9,
+          "updatePanel": 5.3
+        }
+      }
+    ],
+    "patchBounds": [
+      {
+        "action": "select",
+        "unit": 818,
+        "commandTarget": null,
+        "pressToDrawMs": 54.3,
+        "releaseToDrawMs": 51.0,
+        "releaseToNextCompositorEventAfterDrawMs": 53.8,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.1,
+          "pickUnitModel": 8.8,
+          "reachableTiles": 7.2,
+          "rebuildLens": 6.3,
+          "updatePanel": 5.9,
+          "endDrag": 30.6,
+          "rebuildOverlays": 10.4
+        }
+      },
+      {
+        "action": "select",
+        "unit": 999,
+        "commandTarget": null,
+        "pressToDrawMs": 19.1,
+        "releaseToDrawMs": 17.5,
+        "releaseToNextCompositorEventAfterDrawMs": 27.1,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.3,
+          "pickUnitModel": 5.1,
+          "reachableTiles": 0.6,
+          "updatePanel": 2.7,
+          "endDrag": 9.5,
+          "rebuildOverlays": 2.3
+        }
+      },
+      {
+        "action": "select",
+        "unit": 818,
+        "commandTarget": null,
+        "pressToDrawMs": 39.1,
+        "releaseToDrawMs": 37.4,
+        "releaseToNextCompositorEventAfterDrawMs": 399.7,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.2,
+          "pickUnitModel": 8.7,
+          "reachableTiles": 11.6,
+          "updatePanel": 4.4,
+          "endDrag": 26.3,
+          "rebuildOverlays": 4.9
+        }
+      },
+      {
+        "action": "select",
+        "unit": 999,
+        "commandTarget": null,
+        "pressToDrawMs": 48.0,
+        "releaseToDrawMs": 44.9,
+        "releaseToNextCompositorEventAfterDrawMs": 84.7,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.2,
+          "pickUnitModel": 5.7,
+          "reachableTiles": 0.7,
+          "updatePanel": 2.9,
+          "endDrag": 10.4,
+          "rebuildOverlays": 1.9
+        }
+      },
+      {
+        "action": "select",
+        "unit": 1293,
+        "commandTarget": null,
+        "pressToDrawMs": 26.7,
+        "releaseToDrawMs": 23.6,
+        "releaseToNextCompositorEventAfterDrawMs": 27.8,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.1,
+          "pickUnitModel": 2.3,
+          "reachableTiles": 0.8,
+          "updatePanel": 8.6,
+          "endDrag": 13.6,
+          "rebuildOverlays": 2.8
+        }
+      },
+      {
+        "action": "move",
+        "unit": 1293,
+        "commandTarget": {
+          "col": 54,
+          "row": 26
+        },
+        "pressToDrawMs": 108.0,
+        "releaseToDrawMs": 100.2,
+        "releaseToNextCompositorEventAfterDrawMs": 116.6,
+        "drawDisplacementsCssPx": [
+          0.17,
+          35.72
+        ],
+        "phaseCpuMs": {
+          "pick": 0.2,
+          "findPath": 0.6,
+          "applyMoveUnit": 5.2,
+          "commit": 14.9,
+          "animateMove": 1.0,
+          "reachableTiles": 0.0,
+          "pickUnitModel": 0.5,
+          "endDrag": 19.7,
+          "rebuildUnits": 7.5,
+          "rebuildOverlays": 0.7,
+          "syncStateLayers": 11.7,
+          "updatePanel": 8.2
+        }
+      },
+      {
+        "action": "select",
+        "unit": 818,
+        "commandTarget": null,
+        "pressToDrawMs": 41.7,
+        "releaseToDrawMs": 40.3,
+        "releaseToNextCompositorEventAfterDrawMs": 40.4,
+        "drawDisplacementsCssPx": [],
+        "phaseCpuMs": {
+          "pick": 0.2,
+          "pickUnitModel": 12.2,
+          "reachableTiles": 6.4,
+          "updatePanel": 5.7,
+          "endDrag": 26.0,
+          "rebuildOverlays": 8.1
+        }
+      },
+      {
+        "action": "move",
+        "unit": 818,
+        "commandTarget": {
+          "col": 55,
+          "row": 26
+        },
+        "pressToDrawMs": 44.7,
+        "releaseToDrawMs": 42.7,
+        "releaseToNextCompositorEventAfterDrawMs": 45.5,
+        "drawDisplacementsCssPx": [
+          0.19,
+          2.94
+        ],
+        "phaseCpuMs": {
+          "pick": 0.1,
+          "findPath": 0.7,
+          "applyMoveUnit": 1.5,
+          "commit": 1.9,
+          "animateMove": 0.6,
+          "reachableTiles": 0.0,
+          "pickUnitModel": 0.4,
+          "endDrag": 5.4,
+          "rebuildUnits": 6.9,
+          "rebuildOverlays": 0.6,
+          "syncStateLayers": 9.6,
+          "updatePanel": 7.8
+        }
+      }
+    ]
+  },
+  "firstDiagnostic": {
+    "firstSelection": {
+      "action": "select",
+      "unit": 818,
+      "commandTarget": null,
+      "pressToDrawMs": 37.4,
+      "releaseToDrawMs": 33.4,
+      "releaseToNextCompositorEventAfterDrawMs": null,
+      "drawDisplacementsCssPx": [],
+      "phaseCpuMs": {
+        "pick": 0.1,
+        "pickUnitModel": 8.8,
+        "reachableTiles": 3.8,
+        "rebuildLens": 4.1,
+        "updatePanel": 3.2,
+        "endDrag": 21.6,
+        "rebuildOverlays": 5.5
+      }
+    },
+    "firstMove": {
+      "action": "move",
+      "unit": 1293,
+      "commandTarget": {
+        "col": 54,
+        "row": 26
+      },
+      "pressToDrawMs": 40.0,
+      "releaseToDrawMs": 39.2,
+      "releaseToNextCompositorEventAfterDrawMs": null,
+      "drawDisplacementsCssPx": [],
+      "phaseCpuMs": {
+        "pick": 0.1,
+        "findPath": 0.4,
+        "applyMoveUnit": 3.4,
+        "commit": 6.7,
+        "animateMove": 0.7,
+        "reachableTiles": 0.0,
+        "pickUnitModel": 0.4,
+        "endDrag": 9.8,
+        "rebuildUnits": 2.2,
+        "rebuildOverlays": 0.6,
+        "syncStateLayers": 5.0,
+        "updatePanel": 5.2
+      }
+    },
+    "secondMove": {
+      "action": "move",
+      "unit": 818,
+      "commandTarget": {
+        "col": 55,
+        "row": 26
+      },
+      "pressToDrawMs": 32.3,
+      "releaseToDrawMs": 31.1,
+      "releaseToNextCompositorEventAfterDrawMs": null,
+      "drawDisplacementsCssPx": [],
+      "phaseCpuMs": {
+        "pick": 0.0,
+        "findPath": 0.5,
+        "applyMoveUnit": 0.9,
+        "commit": 1.2,
+        "animateMove": 0.3,
+        "reachableTiles": 0.0,
+        "pickUnitModel": 0.1,
+        "endDrag": 3.0,
+        "rebuildUnits": 1.8,
+        "rebuildOverlays": 0.4,
+        "syncStateLayers": 3.6,
+        "updatePanel": 4.2
+      }
+    }
+  }
+}

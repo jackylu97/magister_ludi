@@ -8,6 +8,7 @@ import {
   type Material, Matrix4, Mesh, Object3D, Raycaster, Sphere, Vector3,
 } from 'three';
 import type { Ray } from './camera3d';
+import { missesPaintedPatches } from './paintedPatchPicking';
 import { missesPaintedGround } from './paintedSurface';
 
 export interface UnitModelCandidate {
@@ -134,7 +135,7 @@ function cast(mesh: Mesh, instanceId: number | undefined, accepts: (hit: Interse
   if (!raycaster.ray.intersectsSphere(sphere)) return null;
   box.copy(geometry.boundingBox).applyMatrix4(matrix);
   if (!inRange(box)) return null;
-  if (instanceId === undefined && missesPaintedGround(raycaster, mesh)) return null;
+  if (instanceId === undefined && (missesPaintedPatches(raycaster, mesh) || missesPaintedGround(raycaster, mesh))) return null;
   probe.geometry = geometry;
   probe.material = mesh.material;
   probe.matrixWorld.copy(matrix);

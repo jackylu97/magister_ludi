@@ -2,7 +2,7 @@ import {
   BufferGeometry, Color, Group, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial,
   Quaternion, Vector3,
 } from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { mergePaintedPatches } from './paintedPatchPicking';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
@@ -320,7 +320,7 @@ export class PaintedWorksLayer {
     for (const [id, batch] of patches) {
       const key = `patches:${id}`;
       if (reuse(key, batch.geometries)) continue;
-      const geometry = mergeGeometries(batch.geometries); if (!geometry) continue;
+      const geometry = mergePaintedPatches(batch.geometries); if (!geometry) continue;
       this.merged.add(geometry);
       const meshes: Mesh[] = [];
       const cells = [...new Set(batch.cells)];

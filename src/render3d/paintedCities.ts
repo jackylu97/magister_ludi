@@ -2,7 +2,7 @@ import {
   Box3, BufferGeometry, Color, DoubleSide, Group, InstancedBufferAttribute, InstancedMesh, Matrix4,
   Mesh, MeshStandardMaterial, Quaternion, Vector3,
 } from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { mergePaintedPatches } from './paintedPatchPicking';
 import { type GameMap, type Tile, getTileAt, tileIndex } from '../sim/map';
 import type { City, GameState } from '../sim/state';
 import { type CityLook, capitalIds, cityLook } from './cities3d';
@@ -309,7 +309,7 @@ export class PaintedCityLayer {
       this.batches.set(id, { inputs: [...matrices], meshes });
     }
     if (patches.length && !reuse('fields', patches)) {
-      const geometry = mergeGeometries(patches)!;
+      const geometry = mergePaintedPatches(patches)!;
       geometry.computeBoundingSphere();
       const meshes: Mesh[] = [];
       for (const offset of [-period, 0, period]) {

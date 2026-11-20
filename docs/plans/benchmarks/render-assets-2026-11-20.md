@@ -52,6 +52,23 @@ This cut about 77,000 submitted triangles at normal zoom and 42,000 at wide zoom
 
 ## Unit selection and first moves
 
+The next measurement should trace mid-turn work from a real pointer event to the first frame that shows a selection or at least one CSS pixel of movement. Record input queuing, command validation, simulation calculations, UI updates, board updates and overlapping bot work. Compare bot planning on and off on the same save. Put reusable measurement code outside the simulation and keep it off during normal play.
+
+The follow-up used the turn 120 save at the default 1.5× resolution with bot planning enabled. In the first capture, releasing the pointer to select a swordsman spent 21.6 ms in the handler. Two exact unit picks used 8.8 ms. Computing the movement range used 3.8 ms, building the lens used 4.1 ms and refreshing the panel used 3.2 ms.
+
+City streets, squares and improvement patches each share a draw with other patches. A pointer over a unit can cross the combined bounds of all those patches while missing every individual patch in front of the unit. The picker now checks the individual bounds first. It still tests the original triangles when a patch could cover the unit. Preparing 1,860 bounds across 24 batches took 1.9 ms when the save opened.
+
+Twelve screen positions took a median of 25.0 ms with the old picker and 18.0 ms with the new one. The new picker was faster in all 14 alternating pairs on the same scene. Both returned the same unit or empty result at all 252 positions on a separate grid. Twelve grid positions hit a unit.
+
+| Pointer release to board draw | Previous picker | Updated picker |
+|---|---:|---:|
+| First selection ring | 38.5 ms | 51.0 ms |
+| Later selection rings, five clicks | 15.5–26.4 ms | 17.5–44.9 ms |
+| First walk, at least one CSS pixel | 42.3 ms | 100.2 ms |
+| Second walk, at least one CSS pixel | 34.9 ms | 42.7 ms |
+
+The table measures the draw submitted by the game. Chrome's presentation events could also include an older frame. The updated run included the paired picking test before the first walk and had longer board updates. These two runs establish the CPU saving in the paired picks only. For all four walks, the first frame moved the model less than half a CSS pixel. The second frame reached the one-pixel threshold. On the first move, checking for a model at the destination took at most 0.5 ms. The renderer samples the walking pose before it updates board layers. Sampling the pose after that work is a separate candidate. [Input phases, projected distances and paired picks](unit-interactions-2026-11-20.json)
+
 On the turn 120 save with 489 units and 74 cities, Chrome received a real click on the same unit and a real move order to the same tile. Bot preparation was on. The renderer now prepares picking grids during idle time, reuses the list of standing unit models and defers drawing movement highlights until the frame. The tutorial also skips measuring a card again when its contents and visibility stay the same.
 
 The move handler took 33.0, 33.8 and 38.4 ms before the changes. It took 29.6 and 31.1 ms after them. From the start of the move handler to the first observed board draw, the original took 99.8 to 137.8 ms. The updated version took 122.4 and 123.0 ms. These samples show less work inside the handler. They do not establish a shorter wait for the first visible movement.
