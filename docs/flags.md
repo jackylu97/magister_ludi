@@ -3182,3 +3182,7 @@ beside a mountain. This way, terraces aren't broken with our new changes".
 So nothing changes: a terrace farm is built on a hill beside a mountain. It
 is a unique improvement, and the Expansionist pay-offs for unique
 improvements read it.
+
+## The Open Market discounts Great People (ruled 2026-11-20)
+
+The user confirmed “Discount Great People too”. Calculate the base gold price from the next Great Person’s renown cost at 10 gold per point. Apply The Open Market’s 20% discount using the same price for the offer and the payment. The faith offer keeps its existing price. [Commerce build list](plans/commerce-design-pass-2026-11-20.md#4-ready-for-the-build)

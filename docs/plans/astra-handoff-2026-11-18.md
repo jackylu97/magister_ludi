@@ -420,8 +420,9 @@ those two sections first; the numbered changes above them carry a ruling each.
   Trade routes fall from 36% of the deck to 18%. New themes: the sea (15
   cards, all buildable today), land hexes, customs houses, the purse, and
   bridges to each partner deck. A great person bought with gold costs 10 gold
-  for each point of renown the next one costs. Stacked discounts on a
-  purchase are capped at half.
+  for each point of renown the next one costs. The Open Market also discounts
+  that gold price. Stacked discounts on a purchase are capped at half. A
+  single larger discount still applies on its own.
 - **Expansionist:** `docs/plans/expansionist-design-pass-2026-11-20.md`. 82
   cards (9 cut, 17 new), 21 Doctrines, 17 shared cards. **Wild land and
   tended land leave the game as keywords;** there is no third state of land.

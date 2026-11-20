@@ -442,11 +442,11 @@ This section and section 3 are the whole list a builder follows. A number in bra
 | Small extension | A count of purchases with faith, beside the counts of gold purchases and rites | The Votive Accounts |
 | Small extension | A hex row that counts the buildings of its town | The Patrons' Quarter |
 | Small extension | A rider's grant that counts the ages reached | The Royal Patents |
-| Small extension | A discount that reaches every gold purchase: units, buildings, hexes and caravans | The Open Market |
+| Small extension | A discount on gold spent on units, buildings, hexes, caravans and Great People | The Open Market |
 | Small extension | The gold price of a great person reads the renown ladder | the rule of change 115 |
 | Data only | Shapes the game has today | every other card in sections 3 and 4 |
 
-- **A reading for The Open Market:** "everything you buy with gold" is a unit, a building, a hex and a caravan. A great-person draft has its own price rule (115), and I would leave it out. To confirm.
+- **The Open Market includes Great People.** Apply its 20% discount to the gold price from change 115. Use the same price for the displayed offer and the purchase. The card applies only to gold.
 - **Shapes that are no longer needed:** a route with no range limit (The Admiralty of Trade is cut), and a boon that names its towns (The Plate Fleet is cut).
 - **For the builder to check in code:** that a route may start before Currency (The First Caravan); that a luxury on loan from a post counts as a kind held (The Spice Exchange, The Tiraz, The Palace Stores); that a hex beside two customs houses is paid once (The Bonded Warehouses).
 
@@ -1980,4 +1980,6 @@ their recommended answers, and nothing in this pass waits on the user:
 5. **The Herring Fleets:** "coastal tiles" are the coast hexes, the water
    hexes along the shore.
 
-"Ready for the build" above is the list a builder follows, with these five.
+The user later confirmed the scope of The Open Market: “Discount Great People too”. If the next Great Person costs 100 renown, the base price is 1,000 gold. The Open Market alone reduces it to 800 gold. Faith purchases keep their existing price.
+
+Build from “Ready for the build” with these rulings.
