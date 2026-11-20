@@ -17,7 +17,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { foundCityAt, raiseFreeUnit, realiseItem, spawnTileFor, tileOwnerPlayerId } from '../../../src/sim/cities';
+import { foundCityAt, raiseFreeUnit, realiseItem, purchasedUnitTile, tileOwnerPlayerId } from '../../../src/sim/cities';
 import { generalAuraLines } from '../../../src/sim/combat';
 import { runCommissions } from '../../../src/sim/commissions';
 import { pillageAt } from '../../../src/sim/improvements';
@@ -434,7 +434,7 @@ describe('Dominion D12 — Rally to the Standard', () => {
     const lead = general(state, 6, 6);
     createUnit(state, 0, 'warrior', city.col, city.row);
     bumpRevision(state);
-    const tile = spawnTileFor(state, city, 'warrior', { onCityHexOnly: true });
+    const tile = purchasedUnitTile(state, city, 'warrior');
     expect(tile).not.toBeNull();
     expect(distance(state, tile!, lead)).toBe(1);
   });

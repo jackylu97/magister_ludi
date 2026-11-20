@@ -37,72 +37,66 @@
     "heal": 25
   },
   "names": {
-    "epithets": {
-      "hearth": [
-        "Hearth",
-        "Grain",
-        "Loom",
-        "Ember"
-      ],
-      "sky": [
-        "Sky",
-        "Cloud",
-        "Thunder",
-        "Star"
-      ],
-      "stone": [
-        "Stone",
-        "Cairn",
-        "Anvil",
-        "Mountain"
-      ],
-      "wild": [
-        "Wild",
-        "Antler",
-        "Wolf",
-        "Thicket"
-      ],
-      "water": [
-        "Reed",
-        "River",
-        "Tide",
-        "Spring"
-      ],
-      "war": [
-        "Spear",
-        "Blood",
-        "Shield",
-        "Banner"
-      ],
-      "road": [
-        "Road",
-        "Wayfarer",
-        "Crossroad",
-        "Milestone"
-      ],
-      "sun": [
-        "Sun",
-        "Dawn",
-        "Flame",
-        "Noon"
-      ],
-      "frost": [
-        "Frost",
-        "Winter",
-        "Snow",
-        "Hoarfrost"
-      ],
-      "none": [
-        "Quiet",
-        "Elder",
-        "Threshold",
-        "Vigil"
-      ]
-    },
-    "patterns": [
-      "the {0} Cult",
-      "the Way of the {0}",
-      "the Children of {0} and {1}"
+    "roster": [
+      {"name": "Nongjia", "axis": "hearth"},
+      {"name": "Vestals", "axis": "hearth"},
+      {"name": "Marzeah", "axis": "hearth"},
+      {"name": "Eleusinia", "axis": "hearth"},
+      {"name": "Kinunites", "axis": "hearth"},
+      {"name": "Epoptai", "axis": "hearth"},
+      {"name": "Harranians", "axis": "sky"},
+      {"name": "Zurvanism", "axis": "sky"},
+      {"name": "Haruspices", "axis": "sky"},
+      {"name": "Yinyangjia", "axis": "sky"},
+      {"name": "Sabaziasts", "axis": "sky"},
+      {"name": "Asterites", "axis": "sky"},
+      {"name": "Pythagoreans", "axis": "sky"},
+      {"name": "Dactyls", "axis": "stone"},
+      {"name": "Metragyrtai", "axis": "stone"},
+      {"name": "Chavin Cult", "axis": "stone"},
+      {"name": "Saxari", "axis": "stone"},
+      {"name": "Eleatics", "axis": "stone"},
+      {"name": "Lokayata", "axis": "stone"},
+      {"name": "Kryptari", "axis": "stone"},
+      {"name": "Selloi", "axis": "wild"},
+      {"name": "Arktoi", "axis": "wild"},
+      {"name": "Maenads", "axis": "wild"},
+      {"name": "Orgeones", "axis": "wild"},
+      {"name": "Silvari", "axis": "wild"},
+      {"name": "Orphism", "axis": "wild"},
+      {"name": "Apkallu", "axis": "water"},
+      {"name": "Isiacs", "axis": "water"},
+      {"name": "Telchines", "axis": "water"},
+      {"name": "Arioi", "axis": "water"},
+      {"name": "Hydrophoroi", "axis": "water"},
+      {"name": "Thalassari", "axis": "water"},
+      {"name": "Huang-Lao", "axis": "water"},
+      {"name": "Salii", "axis": "war"},
+      {"name": "Korybantes", "axis": "war"},
+      {"name": "Mithraism", "axis": "war"},
+      {"name": "Hwarang", "axis": "war"},
+      {"name": "Qarradites", "axis": "war"},
+      {"name": "Mojia", "axis": "war"},
+      {"name": "Pochteca", "axis": "road"},
+      {"name": "Fetials", "axis": "road"},
+      {"name": "Peripatetics", "axis": "road"},
+      {"name": "Hermetism", "axis": "road"},
+      {"name": "Filid", "axis": "road"},
+      {"name": "Ajivika", "axis": "road"},
+      {"name": "Fangshi", "axis": "road"},
+      {"name": "Atenism", "axis": "sun"},
+      {"name": "Manichee", "axis": "sun"},
+      {"name": "Shemsu Hor", "axis": "sun"},
+      {"name": "Mingjiao", "axis": "sun"},
+      {"name": "Solari", "axis": "sun"},
+      {"name": "Shamshites", "axis": "sun"},
+      {"name": "Hypsistarians", "axis": "sun"},
+      {"name": "Hyperboreans", "axis": "frost"},
+      {"name": "Hiemari", "axis": "frost"},
+      {"name": "Nivites", "axis": "frost"},
+      {"name": "Ajnana", "axis": "frost"},
+      {"name": "Kapnobatai", "axis": "frost"},
+      {"name": "Volkhvy", "axis": "frost"}
     ]
   },
   "founderTrickle": [

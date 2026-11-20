@@ -604,8 +604,11 @@ import {
  * v248 changes the Dominion and Magisterial draft pools and the rules for
  * wonders and council chairs. A v247 log can select a different card at the
  * same offer index and produce different yields from the same wonder.
+ *
+ * v249 changes the religion name draw, roster offers, Great Work yields and
+ * the placement of purchased units. Old command logs use different outcomes.
  */
-export const SCHEMA_VERSION = 248;
+export const SCHEMA_VERSION = 249;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3235,8 +3238,8 @@ export type ReligionId = number;
  * reaches.
  *
  * **Identity is the pantheon**: the beliefs the founder had consecrated at the
- * moment of founding are copied here, and their axes are what the generated
- * name is made of. They are a *snapshot* rather than a live reading of
+ * moment of founding are copied here. Their axes guide the name draw.
+ * They are a *snapshot* rather than a live reading of
  * `Player.pantheon`, because a religion outlives the moment — an empire that
  * consecrates a fourth god afterwards has not renamed its faith.
  *
@@ -3262,7 +3265,7 @@ export interface Religion {
    * gone (pillaged, or standing on ground nobody owns).
    */
   founderId: number;
-  /** Generated at founding from the pantheon's axes; renamable, pure prose. */
+  /** The founder can rename the faith after the name draw. */
   name: string;
   /** The founder's gods at the moment of founding. Identity, never redrafted. */
   pantheon: BeliefId[];

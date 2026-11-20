@@ -23,6 +23,32 @@
     "tech": "prospecting"
   },
   "improvements": {
+    "paradiseGarden": {
+      "name": "The Paradise Garden",
+      "emoji": "🌿",
+      "chargeCost": 1,
+      "requiresTech": "agriculture",
+      "unlockedByLeader": true,
+      "countsAsGreatWork": true,
+      "onePerTown": true,
+      "happiness": 1,
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0,
+        "culture": 1
+      },
+      "validTerrain": [],
+      "freshwaterTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "requiresHills": false,
+      "clearsClutter": true
+    },
     "farm": {
       "name": "Farm",
       "emoji": "🌱",
@@ -373,9 +399,29 @@
         "food": 0,
         "production": 0,
         "gold": 0,
-        "science": 3
+        "science": 4
       },
-      "clearsClutter": true
+      "clearsClutter": true,
+      "upgrades": [
+        {
+          "tech": "philosophy",
+          "add": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "science": 2
+          }
+        },
+        {
+          "tech": "education",
+          "add": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "science": 2
+          }
+        }
+      ]
     },
     "landmark": {
       "name": "Landmark",
@@ -386,9 +432,29 @@
         "food": 0,
         "production": 0,
         "gold": 0,
-        "culture": 3
+        "culture": 4
       },
-      "clearsClutter": true
+      "clearsClutter": true,
+      "upgrades": [
+        {
+          "tech": "philosophy",
+          "add": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "culture": 2
+          }
+        },
+        {
+          "tech": "education",
+          "add": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "culture": 2
+          }
+        }
+      ]
     },
     "manufactory": {
       "name": "Manufactory",
@@ -397,10 +463,28 @@
       "greatPerson": "engineer",
       "yields": {
         "food": 0,
-        "production": 3,
+        "production": 4,
         "gold": 0
       },
-      "clearsClutter": true
+      "clearsClutter": true,
+      "upgrades": [
+        {
+          "tech": "philosophy",
+          "add": {
+            "food": 0,
+            "production": 2,
+            "gold": 0
+          }
+        },
+        {
+          "tech": "education",
+          "add": {
+            "food": 0,
+            "production": 2,
+            "gold": 0
+          }
+        }
+      ]
     },
     "customsHouse": {
       "name": "Customs House",
@@ -410,9 +494,27 @@
       "yields": {
         "food": 0,
         "production": 0,
-        "gold": 3
+        "gold": 4
       },
-      "clearsClutter": true
+      "clearsClutter": true,
+      "upgrades": [
+        {
+          "tech": "philosophy",
+          "add": {
+            "food": 0,
+            "production": 0,
+            "gold": 2
+          }
+        },
+        {
+          "tech": "education",
+          "add": {
+            "food": 0,
+            "production": 0,
+            "gold": 2
+          }
+        }
+      ]
     },
     "citadel": {
       "name": "Citadel",
@@ -421,12 +523,30 @@
       "greatPerson": "general",
       "yields": {
         "food": 0,
-        "production": 2,
+        "production": 3,
         "gold": 0
       },
       "clearsClutter": true,
       "defense": 8,
-      "claimsNeighbours": true
+      "claimsNeighbours": true,
+      "upgrades": [
+        {
+          "tech": "philosophy",
+          "add": {
+            "food": 0,
+            "production": 2,
+            "gold": 0
+          }
+        },
+        {
+          "tech": "education",
+          "add": {
+            "food": 0,
+            "production": 2,
+            "gold": 0
+          }
+        }
+      ]
     },
     "holySite": {
       "name": "Holy Site",

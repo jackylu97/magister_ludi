@@ -119,6 +119,7 @@
         ],
         "buildings": [
           "barracks",
+          "schoolOfMieza",
           "funeralGames",
           "wallsOfUruk"
         ],
@@ -458,6 +459,7 @@
         ],
         "buildings": [
           "temple",
+          "basilica",
           "highTemple",
           "solomonsTemple"
         ]

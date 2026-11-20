@@ -130,14 +130,16 @@ Every Devotion seat draws all the shared cards that name Devotion, whatever its 
 
 ### Leaders
 
-Devotion has six leaders, more than any other deck.
-- **Joan of Arc** (Dominion, Devotion) leads the holy war: kills pay faith and press the faith, and her units gain +4 on the faith's ground. Her cards: The Spiritual Host, The Martyrology, The Holy Summons, The Turning of Swords, The Last Crusade.
-- **Modu Chanyu** (Dominion, Devotion) leads the holy war's horsemen and the sacred herds: pastures pay production and faith. His cards: Lay Offerings, The Shrine Guards, The Sacred Host, The Spiritual Host.
-- **Akhenaten** (Devotion, Magisterial) leads the holy places: holy-site towns make wonders 20% faster, and watered farms pay faith. His cards: The Anchorites, The Abbeys, Sacred Commissions, The Pious Masons.
-- **Hildegard of Bingen** (Devotion, Magisterial) leads the devout realm's rites: rite towns pay +20% culture, and faith buildings pay culture and production. Her cards: The Rogations, The Rites Commonwealth, The Psalter, The Double Feast, The Gifts of the Faithful, The Sacred Precincts.
-- **Al-Ma'mun** (Devotion, Scientific) leads the engine: science from the faith the realm makes, and food from faith and science buildings. His cards: The Learned Clergy, The Monastic Builders, The Gifts of the Faithful, The Book of Life.
-- **Mansa Musa** (Commerce, Devotion) leads the pilgrims: routes to or from a holy-site town pay gold and faith. His cards: Pilgrim Markets, The Saints' Fields, Temple Estates, The Anchorites.
-- **The gap:** no leader points at the spreading faith. Joan's kills press the faith, and Mansa Musa's routes reach holy sites, but nobody's ability reads followers abroad. Leaders are tuned later.
+
+| Leader | Deck pair | Gameplay |
+|---|---|---|
+| Joan of Arc | Dominion + Devotion | Kills, faith and fighting in territory that follows the same religion. |
+| Jayavarman VII | Expansionist + Devotion | Public works, freshwater farms and empire population. |
+| Mansa Musa | Commerce + Devotion | Mining, camps, desert yields and Holy Site routes. |
+| Harun al-Rashid | Devotion + Scientific | Buildings that pay faith or science, and research. |
+| Justinian | Devotion + Magisterial | Wonders, faith and worked Holy Sites. |
+
+Ibn Battuta can draw from every deck.
 
 ## 3. The engine: faith, and what it buys
 

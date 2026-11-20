@@ -41,7 +41,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { braceBody, uiSource } from './sourceHelpers';
+import { between, braceBody, uiSource } from './sourceHelpers';
 
 import { applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
@@ -747,7 +747,8 @@ describe('every action sends the same command as before', () => {
     expect(table).toContain('if (model.peace) options.offerPeace(row.playerId, true, { give: draft.give, take: draft.take });');
     expect(table).toContain('else options.proposeDeal(row.playerId, draft.give, draft.take);');
     // Their offer on the table: accept or decline it; sign or refuse their peace.
-    const offer = braceBody(screen, '  function drawOffer(');
+    // The return type contains an object, so its first brace belongs to the type.
+    const offer = between(screen, '  function drawOffer(', '  function repaintTable(');
     expect(offer).toContain('options.offerPeace(row.playerId, true);');
     expect(offer).toContain('options.declinePeace(row.playerId);');
     expect(offer).toContain('options.answerDeal(proposal.id, true);');

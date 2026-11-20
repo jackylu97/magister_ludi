@@ -14,10 +14,10 @@ balance worksheet, sync-tested against the data — is `docs/beliefs.md`.
 - **Religion is a tide, not a verb**: no missionaries, no theological combat.
   What a city follows is recomputed from pressure; the levers are things a
   player already does, plus the clergy's one-shot acts.
-- **Religions are fluid, never historical**: name generated at founding from
-  the pantheon's axes (`names.epithets` + `patterns`, drawn from `state.rng`;
-  `renameReligion` is pure prose). The pantheon IS the identity and is never
-  redrafted.
+- The founder's pantheon defines the religion. At founding, one draw from
+  `names.roster` picks an unused name on any of the pantheon's axes. If none
+  are available, it picks from all unused names. Players can rename a faith.
+  A later founding skips names already in use, including player-chosen names.
 - Cap: `maxReligions` = ⌈2/3 × real players⌉.
 
 ## The clergy (schema 74)

@@ -13,8 +13,7 @@
  * to an Order and a Doctrine on the same terms. Nothing in
  * `data/religion.json` is a one-off.
  *
- * The one runtime import beyond the data is `isFaithHouse` (`buildingData.ts`,
- * a leaf), which the Faith house keyword reads (`beliefKeyword`, batch B1).
+ * The data checks use the game rules and the Faith house marker from the building table.
  *
  * Why beliefs are cards and rites are cards too
  * ---------------------------------------------
@@ -39,6 +38,7 @@
 
 import religionJson from '../../data/religion.json';
 
+import { RULES } from './rulesData';
 import { isFaithHouse } from './buildingData';
 import type { CardDefBase, CardEffect } from './statecraftData';
 import type { AbilityId, TechId } from './techData';
@@ -470,24 +470,15 @@ interface ApostleConfig {
   heal: number;
 }
 
-/**
- * How a religion is **named**: an epithet per belief axis, and the patterns the
- * epithets are dropped into.
- *
- * Generated rather than drawn from a list of faiths, which is the user's ruling
- * of 2026-08-27 — "keep religions fluid / not tied to historical world
- * religions" — and generated *from the pantheon's axes* so that a religion looks
- * like what it is made of: an empire that consecrated the Hearth Mother and the
- * Standing Stones gets a name with hearth and stone in it.
- *
- * `patterns` are printf-shaped with `{0}` and `{1}`. A pattern naming `{1}` is
- * only reachable by a pantheon spanning two axes; the draw falls back to the
- * one-axis patterns otherwise, so a single-god religion never reads "the
- * Children of Hearth and Hearth".
- */
+/** Each name belongs to one axis. A neutral pantheon can draw from the whole roster. */
 interface ReligionNamesConfig {
-  epithets: Partial<Record<BeliefAxis, string[]>>;
-  patterns: string[];
+  roster: { name: string; axis: Exclude<BeliefAxis, 'none'> }[];
+}
+
+/** The same cap sets the number of founding places and the minimum roster size. */
+export function religionLimitForSeats(seats: number): number {
+  const share = RULES.religion.maxReligions;
+  return Math.ceil((seats * Math.floor(share.numerator)) / Math.max(1, Math.floor(share.denominator)));
 }
 
 interface ReligionConfig {
@@ -886,15 +877,21 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
       problems.push(`consecration "${id}" does nothing`);
     }
   }
-  // A pattern naming an epithet no axis supplies would name a religion after an
-  // empty string, which reads as a game that forgot to finish a sentence.
-  for (const axis of BELIEF_AXES) {
-    const epithets = RELIGION.names.epithets[axis];
-    if (epithets === undefined || epithets.length === 0) {
-      problems.push(`no epithet is written for the "${axis}" axis`);
-    }
+  const roster = RELIGION.names.roster;
+  if (roster.length < religionLimitForSeats(RULES.game.maxPlayers)) {
+    problems.push('the religion name roster is too small for the largest game');
   }
-  if (RELIGION.names.patterns.length === 0) problems.push('no religion name patterns are written');
+  const names = new Set<string>();
+  const axes = BELIEF_AXES.filter(axis => axis !== 'none');
+  for (const row of roster) {
+    const name = row.name.trim();
+    if (!name || name.length > 14 || name !== row.name || name.split(/\s+/).length > 2) {
+      problems.push(`invalid religion name "${row.name}"`);
+    }
+    if (names.has(name.toLowerCase())) problems.push(`duplicate religion name "${name}"`);
+    names.add(name.toLowerCase());
+    if (!axes.includes(row.axis)) problems.push(`invalid axis for religion name "${name}"`);
+  }
   if (RELIGION.founderTrickle.length === 0) {
     problems.push('founding a religion pays its founder nothing');
   }

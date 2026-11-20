@@ -451,10 +451,8 @@ interface ReligionWatcher {
  * possessive is the founder's `seatName`: a leader's name, or a leaderless
  * seat's own name, and "'s" reads well after every leader on the sheet.
  *
- * Every generated name begins with an article (`religion.json`'s three patterns
- * are all "the …"), and "Hypatia's the Way of the Reed" is not English. The
- * article is what goes, and nothing else: a player may rename a faith to
- * anything at all, and a name that does not start with one is used whole.
+ * A player can add a leading article when renaming a religion. Drop it after
+ * a possessive, so the notification reads "Hypatia's Way of the Reed".
  */
 function possessed(name: string): string {
   return name.startsWith('the ') ? name.slice(4) : name;

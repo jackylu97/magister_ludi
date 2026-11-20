@@ -14,6 +14,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { fillPurchaseRing } from '../sim/purchaseHelpers';
 
 import { foundCityAt } from '../../src/sim/cities';
 import { getTileAt } from '../../src/sim/map';
@@ -151,9 +152,10 @@ describe('the purchase gate, read into a look', () => {
     const { state, city } = capital();
     playerById(state, 0)!.gold = 500;
     createUnit(state, 0, 'scout', city.col, city.row);
+    fillPurchaseRing(state, city, 'scout');
     bumpRevision(state);
     const refusal = purchaseError(state, 0, city.id, WARRIOR, 'gold');
-    expect(refusal).toBe(`A Scout already stands in ${city.name} — move it first`);
+    expect(refusal).toBe('This city cannot purchase without free tiles.');
     expect(purchaseLook(state, 0, city.id, WARRIOR, 'gold')).toMatchObject({
       look: 'none',
       refusal,
@@ -166,11 +168,12 @@ describe('the purchase gate, read into a look', () => {
     const { state, city } = capital();
     playerById(state, 0)!.gold = 1;
     createUnit(state, 0, 'scout', city.col, city.row);
+    fillPurchaseRing(state, city, 'scout');
     bumpRevision(state);
     expect(purchaseShortfall(state, 0, city.id, WARRIOR, 'gold')).toBeNull();
     expect(purchaseLook(state, 0, city.id, WARRIOR, 'gold')).toMatchObject({
       look: 'none',
-      refusal: `A Scout already stands in ${city.name} — move it first`,
+      refusal: 'This city cannot purchase without free tiles.',
     });
   });
 

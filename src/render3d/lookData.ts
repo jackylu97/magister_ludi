@@ -676,6 +676,7 @@ interface TerritorySpec {
   /** Both rings' size, as a fraction of the full tile hex ring. */
   ringScale: number;
   lockedRingOpacity: number;
+  citizens: Omit<typeof viewJson.territory.citizens, 'ink'> & { ink: number };
 }
 
 /**
@@ -3195,6 +3196,7 @@ export const VIEW3D: View3DData = {
     lockedColor: named(viewJson.territory.lockedColor, 'territory.lockedColor'),
     ringScale: viewJson.territory.ringScale,
     lockedRingOpacity: viewJson.territory.lockedRingOpacity,
+    citizens: { ...viewJson.territory.citizens, ink: named(viewJson.territory.citizens.ink, 'territory.citizens.ink') },
   },
   look: viewJson.look,
   camera: viewJson.camera,

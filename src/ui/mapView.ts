@@ -125,6 +125,8 @@ export const LENS_DEFAULTS: { readonly yields: boolean; readonly resources: bool
  * are not lenses.
  */
 export interface LensView {
+  /** An open city replaces the general yield overlay with its assignment marks. */
+  citizens?: { cityId: number; dots: boolean };
   mode: LensMode;
   /**
    * Restrict the mode's wash to these cells, or `null` for the whole map.

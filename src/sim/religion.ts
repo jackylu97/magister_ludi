@@ -110,7 +110,7 @@ import {
   wrappedDistance,
 } from './map';
 import {
-  type BeliefAxis,
+  religionLimitForSeats,
   type BeliefId,
   type BeliefOffer,
   type ReligionBeliefPool,
@@ -2558,10 +2558,7 @@ export function isProphet(unit: Unit): boolean {
  * three players including the barbarians would hand out one religion too many.
  */
 export function maxReligions(state: GameState): number {
-  const share = RULES.religion.maxReligions;
-  const seats = realPlayers(state).length;
-  const denominator = Math.max(1, Math.floor(share.denominator));
-  return Math.ceil((seats * Math.floor(share.numerator)) / denominator);
+  return religionLimitForSeats(realPlayers(state).length);
 }
 
 /**
@@ -2593,38 +2590,15 @@ export function foundReligionError(state: GameState, playerId: number): string |
   return null;
 }
 
-/**
- * A generated name, drawn from `state.rng` at the moment of founding.
- *
- * **Never a historical faith and never a fixed roster** (user, 2026-08-27: "keep
- * religions fluid"). The name is made out of the pantheon's *axes*, so an empire
- * that consecrated the Hearth Mother and the Standing Stones is named after
- * hearth and stone and looks like what it is made of.
- *
- * Three draws, in this order and never reordered: the pattern, then one epithet,
- * then the second. The order is the seed's — a replay of the same log deals the
- * same name — which is why the two-axis pattern is filtered *out* before the
- * pattern is drawn rather than being drawn and rejected: a rejection would spend
- * the generator a different number of times for a one-god religion than for a
- * two-god one, and the whole game after it would shift.
- */
+/** Use one draw at every founding, including when all matching names are taken. */
 function generateReligionName(state: GameState, pantheon: readonly BeliefId[]): string {
-  const axes: BeliefAxis[] = [];
-  for (const id of pantheon) {
-    const axis = beliefDef(id).axis;
-    if (!axes.includes(axis)) axes.push(axis);
-  }
-  if (axes.length === 0) axes.push('none');
-  const { epithets, patterns } = RELIGION.names;
-  const usable = patterns.filter((pattern) => axes.length >= 2 || !pattern.includes('{1}'));
-  const shape = usable[Math.floor(nextFloat(state.rng) * usable.length)] ?? patterns[0] ?? '{0}';
-  const pick = (axis: BeliefAxis): string => {
-    const bag = epithets[axis] ?? epithets.none ?? ['Quiet'];
-    return bag[Math.floor(nextFloat(state.rng) * bag.length)] ?? 'Quiet';
-  };
-  const first = pick(axes[0]!);
-  const second = axes.length >= 2 ? pick(axes[1]!) : first;
-  return shape.replace('{0}', first).replace('{1}', second);
+  const taken = state.religions.map(religion => religion.name.trim().toLowerCase());
+  const free = RELIGION.names.roster.filter(row => !taken.includes(row.name.toLowerCase()));
+  const axes = pantheon.map(id => beliefDef(id).axis);
+  const matching = free.filter(row => axes.includes(row.axis));
+  const pool = matching.length ? matching : free;
+  // The roster validator guarantees a free name for every legal founding.
+  return pool[Math.floor(nextFloat(state.rng) * pool.length)]!.name;
 }
 
 /**

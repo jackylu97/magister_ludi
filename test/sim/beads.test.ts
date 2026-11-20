@@ -648,7 +648,8 @@ describe("the bead catalogue", () => {
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
     // Version 248 changes the draft pools and wonder effects used during replay.
-    expect(SCHEMA_VERSION).toBe(248);
+    // Version 249 changes the leader and Great Person rosters, religion names and unit purchases.
+    expect(SCHEMA_VERSION).toBe(249);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

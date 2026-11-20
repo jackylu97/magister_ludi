@@ -192,7 +192,7 @@ A pay-off with no floor is a dead card. An opener whose ceiling matches a pay-of
 
 ## Leaders
 
-- Each leader's ability points at a theme of its decks (Modu Chanyu: mounted units and pillage; Taizong: melee and garrisons; Joan: kills and faith; Mithridates: camps and plantations, and fighting wider empires).
+- A leader should have several cards that support its abilities. Genghis Khan rewards mounted units and pillage. Mehmed rewards Barracks and great scholars or generals. The current deck pairs and abilities are in `docs/leaders.md`.
 - That theme has at least three cards in the leader's two decks, across several bands and more than one throughline, so the leader has something to draft toward without being locked into one theme.
 - Nothing names a leader or a leader's unique unit or building.
 - Leaders will be tuned later; when a card proposal makes a leader's theme thin or rich, say so.

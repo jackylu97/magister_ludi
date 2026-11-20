@@ -577,6 +577,8 @@ export interface PlayerStatecraft {
    */
   rerollsTaken: number;
   freeRerolls?: number;
+  /** Free Order drafts waiting for the player to finish a hand or unlock more cards. */
+  waitingOrderOffers?: number;
   /**
    * **What each growing card has watched happen** — the counters the scaling
    * family reads (`docs/history/doctrine-ideas.md`, ruled 2026-09-04).
@@ -1917,6 +1919,7 @@ export function draftSettledBy(state: GameState, player: Player, grant: number):
 export function runStatecraft(state: GameState): void {
   for (const player of state.players) {
     if (player.barbarian) continue;
+    openWaitingOrderOffer(state, player);
     settleDraft(state, player);
     openWaitingDoctrineOffer(state, player);
   }
@@ -2138,6 +2141,13 @@ export function openFreeDraft(state: GameState, player: Player): boolean {
   if (!freeDraftCanOpen(state, player.id)) return false;
   player.statecraft.pendingOrder = drawOrderOffer(state, player);
   return true;
+}
+
+/** Deal one earned draft as soon as a hand can open. A pick or pass can release the next. */
+export function openWaitingOrderOffer(state: GameState, player: Player): void {
+  const sc = player.statecraft;
+  if (!sc.waitingOrderOffers || !openFreeDraft(state, player)) return;
+  if (--sc.waitingOrderOffers === 0) delete sc.waitingOrderOffers;
 }
 
 /** What a pass did, for the announcement. */

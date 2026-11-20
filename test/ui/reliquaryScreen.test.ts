@@ -267,16 +267,10 @@ describe('the legacy is the headline', () => {
     expect(legacyIsSilent([])).toBe(true);
     expect(legacyIsSilent([{ text: 'x', deferred: true }])).toBe(true);
     expect(legacyIsSilent([{ text: 'x' }])).toBe(false);
-    // **A silent row says why it is silent.** Every roster row was built between
-    // batch E4a (2026-09-07) and the great-person pass of 2026-09-09, which
-    // wrote a handful of legacies in shapes the vocabulary does not have — so
-    // the rule the promotion exists for is live again. The claim the sweep makes
-    // is the table's own discipline rather than a count: a row that leaves
-    // nothing behind carries a `deferred` sentence saying what is missing, and a
-    // row that quietly does nothing is the one thing this table may never hold.
+    // Every person has a standing effect, a one-time grant or a description of a missing rule.
     for (const id of GREAT_PERSON_IDS) {
       const def = greatPersonDef(id);
-      expect(def.legacy.length + (def.deferred ?? []).length, id).toBeGreaterThan(0);
+      expect(def.legacy.length + Number(def.onSpend !== undefined) + (def.deferred ?? []).length, id).toBeGreaterThan(0);
     }
   });
 

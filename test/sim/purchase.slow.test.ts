@@ -84,17 +84,15 @@ describe('determinism', () => {
     }
     expect(playerById(live.state, 0)!.gold).toBeGreaterThan(price());
 
-    // **A bought unit stands on the city hex, or is not sold** (item (hhhh)), so
-    // the hex has to be clear before each of the two purchases — and here that
-    // is a *command* too, exactly like everything else in this log: the seat's
-    // escort marches out, and after the first delivery the new warrior does. The
-    // rule joining the replay is the point, not a detour around it.
     marchOut(live, town);
     expect(dispatch(live, buyCommand(town.id, WARRIOR)).ok).toBe(true);
+    expect(live.state.units[live.state.units.length - 1]).toMatchObject({ col: town.col, row: town.row });
     dispatch(live, { type: 'endTurn', playerId: 0 } as Command);
     dispatch(live, { type: 'endTurn', playerId: 1 } as Command);
-    marchOut(live, town);
     expect(dispatch(live, buyCommand(town.id, WARRIOR)).ok).toBe(true);
+    const beside = live.state.units[live.state.units.length - 1]!;
+    expect(neighborTiles(live.state.map, tileHex(getTileAt(live.state.map, town.col, town.row)!))
+      .some(tile => tile.col === beside.col && tile.row === beside.row)).toBe(true);
 
     const replayed = replay(live.config, live.log);
     expect(snapshotState(replayed)).toEqual(snapshotState(live.state));

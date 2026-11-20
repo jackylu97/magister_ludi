@@ -20,6 +20,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { fillPurchaseRing } from '../sim/purchaseHelpers';
 
 import { createMap, getTileAt } from '../../src/sim/map';
 import {
@@ -315,17 +316,18 @@ describe('the price column carries the reducer’s answer', () => {
     expect(panel).not.toMatch(/\bexplainPurchaseCost\(/);
   });
 
-  it('prints the piece in the way, by name', () => {
+  it('prints the purchase refusal when the city has no room', () => {
     // The sentence a player reads on the greyed tag when the town's own
     // garrison is standing in the slot the purchase would land on.
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     playerById(state, 0)!.gold = 500;
     createUnit(state, 0, 'warrior', city.col, city.row);
+    fillPurchaseRing(state, city, 'warrior');
     bumpRevision(state);
 
     expect(purchaseError(state, 0, city.id, { kind: 'unit', id: 'warrior' }, 'gold')).toBe(
-      `A Warrior already stands in ${city.name} — move it first`,
+      'This city cannot purchase without free tiles.',
     );
   });
 });

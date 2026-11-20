@@ -419,6 +419,21 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
    */
   const scopedDemand = cardRuleIsScoped(state, playerId, 'happinessDemand');
   const realmDemand = ruleFactor(state, playerId, 'happinessDemand');
+  // One tile scan serves every city and player until ownership or its improvements change.
+  const happyWorks = slateMemo(state, 'economy', 'improvementHappiness', 'cities', () => {
+    const byCity = new Map<number, { name: string; amount: number }[]>();
+    for (let i = 0; i < state.map.tiles.length; i++) {
+      const id = state.map.tiles[i]!.improvement;
+      if (!id) continue;
+      const work = improvementDef(id);
+      const cityId = state.tileOwner[i];
+      if (!work.happiness || cityId == null) continue;
+      const lines = byCity.get(cityId) ?? [];
+      lines.push({ name: work.name, amount: work.happiness });
+      byCity.set(cityId, lines);
+    }
+    return byCity;
+  });
   // The Scattered Hearths' waiver: the first citizens of every town are simply
   // not counted. Applied to *who is charged* rather than to what each one asks
   // for — a discount on the rate is Toleration Edicts and is already `demand`
@@ -426,6 +441,9 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   const free = Math.max(0, cardMeterRule(state, playerId, 'freeCitizens', 0));
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
+    for (const work of happyWorks.get(city.id) ?? []) {
+      list.push({ source: `${city.name} · ${work.name}`, part: 'gain', value: work.amount });
+    }
     const demand = scopedDemand
       ? ruleFactor(state, playerId, 'happinessDemand', city)
       : realmDemand;

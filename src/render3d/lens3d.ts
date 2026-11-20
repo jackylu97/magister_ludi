@@ -135,6 +135,7 @@ import type { CellRef, LensView } from '../ui/mapView';
 
 import { type TileIcons, YIELD_KEYS } from './badges3d';
 import { playerColor } from './cities3d';
+import { citizenCells, CitizenMarks } from './citizenMarks';
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
@@ -218,6 +219,7 @@ function sameCells(
 /** Are two lens views asking for the same picture? */
 export function sameLens(a: LensView, b: LensView): boolean {
   if (a.mode !== b.mode || a.playerId !== b.playerId) return false;
+  if (a.citizens?.cityId !== b.citizens?.cityId || a.citizens?.dots !== b.citizens?.dots) return false;
   if (a.yields !== b.yields || a.resources !== b.resources) return false;
   // A restriction only means anything while the half it scopes is up; comparing
   // it when that half is down would rebuild the layer for a change nobody can
@@ -234,6 +236,9 @@ export function sameLens(a: LensView, b: LensView): boolean {
 
 export class LensLayer {
   readonly group = new Group();
+  private citizenMarks: CitizenMarks | null = null;
+  private faintSource: MeshBasicMaterial | null = null;
+  private faintGlyphs: MeshBasicMaterial | null = null;
   private drawCallCount = 0;
 
   /**
@@ -261,6 +266,13 @@ export class LensLayer {
   ): void {
     disposeInstancedGroup(this.group);
     this.drawCallCount = 0;
+    const city = lens.citizens && state?.cities.find(town => town.id === lens.citizens!.cityId && town.ownerId === lens.playerId);
+    const citizens = city && state ? citizenCells(state, city, levels) : null;
+    if (citizens && city && state) {
+      this.citizenMarks ??= new CitizenMarks();
+      this.citizenMarks.update(state, city, citizens, lens.citizens!.dots, faceCamera, materials);
+      this.group.add(this.citizenMarks.group);
+    } else this.citizenMarks?.clear();
     if (!state) return;
     // Every half is independent and any of them may be off; with all of them off
     // there is nothing to build and no collector worth allocating.
@@ -326,7 +338,7 @@ export class LensLayer {
     }
     if (lens.yields && icons) {
       this.addYieldGlyphs(
-        resolveTiles(map, lens.yieldCells, levels),
+        citizens?.yieldTiles ?? resolveTiles(map, lens.yieldCells, levels),
         collector,
         geometry,
         icons,
@@ -337,10 +349,11 @@ export class LensLayer {
         // cached per owning city inside, because building one is a fold.
         state,
         lens.playerId,
+        citizens?.kinds,
       );
     }
 
-    this.drawCallCount = collector.flush(this.group, materials, false);
+    this.drawCallCount = collector.flush(this.group, materials, false) + (this.citizenMarks?.group.children.length ?? 0);
   }
 
   /**
@@ -379,32 +392,30 @@ export class LensLayer {
     icons: TileIcons,
     state: GameState,
     playerId: number,
+    kinds?: ReturnType<typeof citizenCells>['kinds'],
   ): void {
     const identity = new Quaternion();
     const glyph = new Vector3(LENS.glyphSize, 1, LENS.glyphSize);
     const numeral = new Vector3(LENS.numeralSize, 1, LENS.numeralSize);
 
-    // One context per owning city (or the viewer's own for wild ground),
-    // built lazily: `tileContextAt` folds a city's cards and a fold per hex
-    // would be the per-frame recomputation this layer exists to avoid.
-    const contexts = new Map<number | 'wild', TileYieldContext | undefined>();
-    const contextFor = (tile: Tile): TileYieldContext | undefined => {
-      const cityId = tileOwnerCityId(state, tile.col, tile.row) ?? 'wild';
-      if (!contexts.has(cityId)) {
-        contexts.set(cityId, tileContextAt(state, playerId, tile));
-      }
-      return contexts.get(cityId);
-    };
-
-    for (const tile of tiles) {
-      const value = foldTile(tile, contextFor(tile));
+    const values = seenTileYields(state, playerId, tiles);
+    if (kinds && this.faintSource !== icons.material) {
+      this.faintGlyphs?.dispose();
+      this.faintSource = icons.material;
+      this.faintGlyphs = icons.material.clone();
+      this.faintGlyphs.transparent = true;
+      this.faintGlyphs.opacity = VIEW3D.territory.citizens.freeYieldOpacity;
+    }
+    for (const [index, tile] of tiles.entries()) {
+      const value = values[index]!;
+      const material = kinds?.get(tileIndex(state.map, tile.col, tile.row)) === 'free' ? this.faintGlyphs! : icons.material;
       const rows = YIELD_KEYS.filter((key) => value[key] > 0);
       if (rows.length === 0) continue;
 
       const centre = cellCenter(tile.col, tile.row);
       const y = tileTopY(tile) + OVERLAY.lift + LENS.glyphLift;
       rows.forEach((key, rowIndex) => {
-        const z = centre.z + (rowIndex - (rows.length - 1) / 2) * LENS.rowSpacing;
+        const z = centre.z + (kinds ? VIEW3D.territory.citizens.yieldOffset : 0) + (rowIndex - (rows.length - 1) / 2) * LENS.rowSpacing;
         const row = yieldRowLayout(value[key]);
         const shape = geometry.yieldGlyphs[key];
 
@@ -417,7 +428,7 @@ export class LensLayer {
             shape,
             [],
             new Matrix4().compose(new Vector3(centre.x + offset, y, z), identity, glyph),
-            { material: icons.material, order: RENDER_ORDER.tileIcon },
+            { material, order: RENDER_ORDER.tileIcon },
           );
         }
         for (const mark of row.numerals) {
@@ -425,7 +436,7 @@ export class LensLayer {
             geometry.numerals[mark.digit]!,
             [],
             new Matrix4().compose(new Vector3(centre.x + mark.x, y, z), identity, numeral),
-            { material: icons.material, order: RENDER_ORDER.tileIcon },
+            { material, order: RENDER_ORDER.tileIcon },
           );
         }
       });
@@ -994,6 +1005,8 @@ export class LensLayer {
   }
 
   dispose(): void {
+    this.citizenMarks?.dispose();
+    this.faintGlyphs?.dispose();
     disposeInstancedGroup(this.group);
   }
 }

@@ -196,6 +196,7 @@ import {
   FAMILIES,
   type Family,
   LIVE_GREAT_PERSON_IDS,
+  type PersonSpendGrant,
   greatPersonDef,
   isGreatPersonId,
 } from '../sim/greatPeopleData';
@@ -212,6 +213,7 @@ import {
   routeHexes,
   routeIsInternational,
   routeIsLive,
+  routeMode,
 } from '../sim/routes';
 // Commerce batch T9: The Return Leg is priced off the route's own fold, the
 // list the rule copies.
@@ -1999,7 +2001,9 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext, town?: City): numb
     // `collectYields` hands the evaluator, so nothing is estimated.
     if (effect.fromRate === undefined) return 0;
     const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
-    const helpings = Math.floor(rateSourceValue(effect.fromRate, ctx) / per);
+    const rate = rateSourceValue(effect.fromRate, ctx);
+    if (effect.percent !== undefined) return scorePayout({ ...effect, amount: rate * effect.percent / 100 }, ctx);
+    const helpings = Math.floor(rate / per);
     if (helpings === 0) return 0;
     return helpings * scorePayout(effect, ctx);
   }
@@ -3055,6 +3059,7 @@ function rateKeyOf(voice: string): keyof EmpireRates {
  * a malus would be a card that rewards misery.
  */
 function rateSourceValue(source: RateSource, ctx: ValueContext): number {
+  if (source === 'renownPerTurn') return renownPerTurn(ctx.state, ctx.playerId);
   if (source === 'happiness') return Math.max(0, happinessOf(ctx.state, ctx.playerId));
   if (source === 'authority') return Math.max(0, authorityOf(ctx.state, ctx.playerId));
   return Math.max(0, ratesOf(ctx)[source] ?? 0);
@@ -4468,6 +4473,18 @@ function scoreAmplifier(
   const flat = effect.amount ?? 0;
   switch (effect.target) {
     case 'routeYields': {
+      if (effect.mode !== undefined) {
+        let pay = 0;
+        for (const unit of ctx.state.units) {
+          if (unit.ownerId !== ctx.playerId || !unit.trade || routeMode(unit.trade) !== effect.mode) continue;
+          const pair = liveRouteCities(ctx.state, unit);
+          if (!pair) continue;
+          const lines = routeIsInternational(pair.from, pair.to)
+            ? explainRouteSenderYield(ctx.state, unit) : explainRouteYield(ctx.state, unit);
+          pay += valueOfYields(foldRouteYield(lines), ctx);
+        }
+        return share * pay;
+      }
       const running = Math.max(0, ctx.routes.used);
       const best = ctx.routes.open?.pay.total ?? ctx.routes.next?.pay.total ?? 0;
       return share * best * running;
@@ -4871,6 +4888,8 @@ function conditionIsLive(
       return authorityOf(ctx.state, ctx.playerId) > 0;
     case 'happinessNegative':
       return happinessOf(ctx.state, ctx.playerId) < 0;
+    case 'happinessNonnegative':
+      return happinessOf(ctx.state, ctx.playerId) >= 0;
     case 'atWar': {
       // The register itself, which is the whole of why this reading is honest:
       // the wild is never in it, so raiders cannot open a war clause.
@@ -9479,7 +9498,7 @@ function readMarkBeside(mark: HexMarkId, ctx: ValueContext): number {
 function guildInflowWorth(share: number, ctx: ValueContext): number {
   let inflow = 0;
   for (const city of citiesOf(ctx.state, ctx.playerId)) {
-    if (nextGuildFamily(city, townShelf(ctx.state, city)) === null) continue;
+    if (nextGuildFamily(city, townShelf(ctx.state, city), ctx.state) === null) continue;
     if (!canFormGuild(city, idleCitizens(ctx.state, city))) continue;
     const cards = cardRulePercent(ctx.state, ctx.playerId, 'guildInflow', city).map((line) => line.source);
     for (const line of explainGuildInflow(ctx.state, city)) {
@@ -12588,6 +12607,17 @@ function handWorth(ctx: ValueContext): number {
   });
 }
 
+/** An extra hand buys the next draft's choices. A free reroll saves the current faith price. */
+export function explainPersonSpendGrant(grant: PersonSpendGrant, ctx: ValueContext): Appraisal {
+  const terms: ValueTerm[] = [{ label: 'free Order drafts', value: grant.orderDrafts * handWorth(ctx) }];
+  if (grant.freeRerolls) {
+    const faith = grant.freeRerolls * nextRerollCost(ctx.state, ctx.playerId);
+    terms.push(nest('free rerolls', explainLump({ faith }, ctx)));
+  }
+  return appraise(terms);
+}
+
+
 /**
  * **What more Wildcard chairs are worth to this seat**, a turn (bot pass 3, batch
  * BP7; `docs/flags.md` (ooooooo) P9). The Forbidden City opens one, and so do The
@@ -13532,7 +13562,7 @@ export function explainActFor(
       return appraise([nest(`${hammers} hammers into a basket`, explainLump({ production: hammers }, ctx))]);
     }
     case 'merchant': {
-      const gold = Math.floor(people.merchantGold * era * aged);
+      const gold = actGainOf(state, player.id, 'gold', readEmpireRates(state, player.id));
       return appraise([nest(`${gold} gold into the treasury`, explainLump({ gold }, ctx))]);
     }
     case 'artist': {
@@ -13655,6 +13685,7 @@ export function expectedGreatPersonWorth(ctx: ValueContext): Appraisal {
     const acts = new Map<Family, number>();
     let act = 0;
     let legacy = 0;
+    let spend = 0;
     for (let index = 0; index < bag.candidates.length; index++) {
       const def = greatPersonDef(bag.candidates[index]!);
       const share = (bag.weights[index] ?? 0) / weight;
@@ -13665,11 +13696,13 @@ export function expectedGreatPersonWorth(ctx: ValueContext): Appraisal {
       }
       act += share * familyAct;
       legacy += share * explainEffects(def.legacy, ctx).total;
+      if (def.onSpend) spend += share * explainPersonSpendGrant(def.onSpend, ctx).total;
     }
     const names = bag.candidates.length;
     return appraise([
       { label: `the act its family would perform, over the ${names} names the next offer can deal`, value: act },
       { label: 'the legacy it leaves, over the same names and odds', value: legacy },
+      ...(spend ? [{ label: 'one-time grants over the same names and odds', value: spend }] : []),
     ]);
   });
 }

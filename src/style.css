@@ -23076,3 +23076,27 @@ body.compendium-page {
 .loading-refusal-out {
   align-self: flex-end;
 }
+
+.city-citizen-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px 11px;
+  padding: 5px 9px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-size: .72rem;
+}
+.city-citizen-key { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.city-citizen-key i { display: inline-block; width: .83em; height: .83em; border: 1.5px solid currentColor; }
+.city-citizen-key .citizen-key-dot, .city-citizen-key .citizen-key-pin { border-radius: 50%; }
+.city-citizen-key .citizen-key-dot { background: #f6edda; }
+.city-citizen-key .citizen-key-pin, .city-citizen-key .citizen-key-lock { background: var(--citizen-seat); }
+.city-citizen-key .citizen-key-lock { border-radius: 2px; height: .65em; position: relative; margin-top: .22em; }
+.citizen-key-lock::before { content: ''; position: absolute; width: 45%; height: .43em; left: 14%; bottom: 100%; border: 1.5px solid var(--citizen-seat); border-radius: 50% 50% 0 0; }
+.city-citizen-key .citizen-key-outline { clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--ink); position: relative; }
+.citizen-key-outline::after { content: ''; position: absolute; inset: 0; background: var(--parchment); clip-path: inherit; }
+.city-citizen-key .citizen-key-free { background: rgba(30, 27, 33, .32); }
+.city-citizen-key .citizen-key-dark { background: rgba(30, 27, 33, .61); }

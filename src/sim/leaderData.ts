@@ -379,7 +379,29 @@ export type LeaderAbilityId =
   | 'symphonia'
   // Ibn Battuta
   | 'guestAtEveryCourt'
-  | 'theRihla';
+  | 'theRihla'
+  | 'unbrokenCharge'
+  | 'royalArmy'
+  | 'steppeRidersOfMongolia'
+  | 'paxMongolica'
+  | 'enderun'
+  | 'greatBombard'
+  | 'greatWorksOfQin'
+  | 'registeredHouseholds'
+  | 'hospitalsOfTheKing'
+  | 'greatCityOfAngkor'
+  | 'cyrusCylinder'
+  | 'kingsGardeners'
+  | 'booksFromTheShips'
+  | 'queensAlliances'
+  | 'mediciBank'
+  | 'florins'
+  | 'storehouseOfWisdom'
+  | 'learnedCourt'
+  | 'surpassedSolomon'
+  | 'oneFaithOneEmpire'
+  | 'correctSounds'
+  | 'royalLectures';
 
 /**
  * **The two colours a figure wears** (batch H7, `docs/flags.md` (oooo); the table
@@ -417,6 +439,8 @@ interface LeaderColors {
 const HEX_COLOR = /^#[0-9a-f]{6}$/;
 
 interface LeaderDef {
+  retired?: true;
+  persona?: 'balanced' | 'wide' | 'tall' | 'zealot' | 'warmonger';
   /** The figure's name, as every surface prints it. */
   name: string;
   /**
@@ -525,7 +549,8 @@ const LEADER_DATA = leadersJson as unknown as LeaderTable;
 export type LeaderId = keyof typeof leadersJson.leaders & string;
 
 /** Every leader id, in sheet order. The roster's own order. */
-export const LEADER_IDS: readonly LeaderId[] = Object.keys(LEADER_DATA.leaders) as LeaderId[];
+export const ALL_LEADER_IDS: readonly LeaderId[] = Object.keys(LEADER_DATA.leaders) as LeaderId[];
+export const LEADER_IDS: readonly LeaderId[] = ALL_LEADER_IDS.filter((id) => !leaderDef(id).retired);
 
 export function isLeaderId(value: unknown): value is LeaderId {
   return typeof value === 'string' && value in LEADER_DATA.leaders;
@@ -571,14 +596,14 @@ export function startBiasOf(leader: LeaderId | undefined): StartBias | undefined
  * nothing can name.
  */
 const LEADER_ABILITIES = new Map<string, { ability: LeaderAbility; leader: LeaderId }>();
-for (const leader of LEADER_IDS) {
+for (const leader of ALL_LEADER_IDS) {
   for (const ability of leaderDef(leader).abilities) {
     LEADER_ABILITIES.set(ability.id, { ability, leader });
   }
 }
 
 /** Every ability id, in sheet order: by figure, then first line and second. */
-export const LEADER_ABILITY_IDS: readonly LeaderAbilityId[] = LEADER_IDS.flatMap((leader) =>
+export const LEADER_ABILITY_IDS: readonly LeaderAbilityId[] = ALL_LEADER_IDS.flatMap((leader) =>
   leaderDef(leader).abilities.map((ability) => ability.id),
 );
 
@@ -817,9 +842,10 @@ export function biasIsEmpty(bias: StartBias | undefined): boolean {
 // At module load, so a sheet that names a terrain nobody has heard of is a boot
 // error. A weight that silently never fires is the failure mode this whole file
 // exists to prevent: a designer would read the row and believe it.
-for (const id of LEADER_IDS) {
+for (const id of ALL_LEADER_IDS) {
   const def = LEADER_DATA.leaders[id]!;
   const where = `leaders.json: ${id}`;
+  if (def.retired !== undefined && def.retired !== true) throw new Error(`${where} has an invalid retired flag`);
   if (typeof def.name !== 'string' || def.name.length === 0) {
     throw new Error(`${where} has no name`);
   }

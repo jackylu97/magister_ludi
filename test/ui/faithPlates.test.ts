@@ -33,12 +33,8 @@ function plateAt(plates: readonly MapPlate[], col: number, row: number): MapPlat
 // --- the device --------------------------------------------------------------
 
 describe('religionDevice', () => {
-  /**
-   * Every generated name begins with "the" (`religion.json`'s three patterns),
-   * so the article is what goes — a board of Ts would be no mark at all.
-   */
   it('is the initial of the word that distinguishes one faith from another', () => {
-    expect(religionDevice('the Grain Cult')).toBe('G');
+    expect(religionDevice('Atenism')).toBe('A');
     expect(religionDevice('the Way of the Hearth')).toBe('W');
     expect(religionDevice('the Children of Sky and Stone')).toBe('C');
   });

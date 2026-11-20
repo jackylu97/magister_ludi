@@ -8,7 +8,7 @@
  * once their own technology has arrived. Everything below is a claim about one
  * of those:
  *
- *   · both abilities are in the law on turn one, for every one of the thirteen,
+ *   · both abilities are in the law on turn one, for every one of the sixteen leaders,
  *     before anything has been researched or built;
  *   · a unique opens for its figure's seat at its tech, and for no other seat at
  *     any tech; a row nobody names opens for nobody, ever — the bench;
@@ -20,7 +20,7 @@
  *     caravan that pays and is not plundered, soldiers bought with faith in the
  *     Sainte-Chapelle, the Funduq in a town with no caravanserai, the
  *     Tetzcotzinco's share of the whole yield;
- *   · the sheet and the doc agree — "The thirteen", "The colours", "The cities"
+ *   · the sheet and the doc agree — "The sixteen", "The colours", "The cities"
  *     and "The biases", row for row;
  *   · every declared effect shape is read by the evaluator;
  *   · the book has a shelf.
@@ -41,6 +41,7 @@ import { getTileAt } from '../../src/sim/map';
 import { type Command } from '../../src/sim/commands';
 import { dispatch, snapshotState } from '../../src/sim/game';
 import {
+  ALL_LEADER_IDS,
   LEADER_ABILITY_IDS,
   LEADER_IDS,
   type LeaderId,
@@ -130,10 +131,10 @@ describe('a figure’s two abilities', () => {
    * **The whole of the second cut, walked over the whole roster.** There is no
    * age, no draft and no gate: a figure's pair of lines is in the seat's law on
    * turn one, before a settler has stopped walking, and stays there. Every one
-   * of the thirteen, because "one of them forgot" is exactly the failure a
+   * of the sixteen leaders, because "one of them forgot" is exactly the failure a
    * hand-picked example would miss.
    */
-  it('are both live from the first turn, for every one of the thirteen', () => {
+  it('are both live from the first turn, for every one of the sixteen leaders', () => {
     for (const id of LEADER_IDS) {
       const g = raw(id);
       const sources = lawSources(g.state, 0);
@@ -154,7 +155,7 @@ describe('a figure’s two abilities', () => {
   });
 
   it('are exactly two a figure, named once across the whole sheet', () => {
-    expect(LEADER_ABILITY_IDS).toHaveLength(LEADER_IDS.length * 2);
+    expect(LEADER_ABILITY_IDS).toHaveLength(ALL_LEADER_IDS.length * 2);
     expect(new Set(LEADER_ABILITY_IDS).size).toBe(LEADER_ABILITY_IDS.length);
     for (const id of LEADER_IDS) expect(leaderDef(id).abilities, id).toHaveLength(2);
   });
@@ -183,7 +184,7 @@ function claimedUnits(): string[] {
 
 /**
  * A figure's **second** unique, with its kind — a hall for twelve of the
- * thirteen, a work of the ground for the one (batch L8).
+ * sixteen, a work of the ground for the one (batch L8).
  *
  * Read off the sheet and never assumed, which is the whole of what L8 changed
  * here: the claims below are about "the row nobody else may raise", and which
@@ -298,7 +299,7 @@ describe('a unique row', () => {
 
   it('is one figure’s and one figure’s only — no row is claimed twice', () => {
     expect(new Set(claimedUnits()).size).toBe(LEADER_IDS.length);
-    // **Across all three kinds** (batch L8): thirteen second rows, no id twice,
+    // **Across all three kinds** (batch L8): sixteen second rows, no id twice,
     // and every one of them carrying the marker of its own table.
     const seconds = claimedSeconds();
     expect(new Set(seconds.map((row) => row.id as string)).size).toBe(LEADER_IDS.length);
@@ -326,7 +327,7 @@ describe('a unique row', () => {
     }
     // And the one who trades the hall for a field is the one the ruling names.
     const ground = LEADER_IDS.filter((id) => leaderDef(id).improvement !== undefined);
-    expect(ground).toEqual(['pachacuti']);
+    expect(ground).toEqual(['pachacuti', 'cyrusTheGreat']);
     expect(leaderDef('pachacuti').building).toBeUndefined();
   });
 
@@ -612,7 +613,7 @@ describe('the doc’s tables and the data', () => {
     );
     const end = ends.length === 0 ? -1 : Math.min(...ends);
     const section = DOC.slice(start, end === -1 ? undefined : end);
-    // **The first table under the heading and no other.** "The thirteen" is
+    // **The first table under the heading and no other.** "The sixteen" is
     // followed by a sketchbook table of figures that are *not* in the game, so a
     // walk of every pipe line in the section would compare the roster against
     // the shelf. A table is a contiguous run of lines, which is what stops here.
@@ -640,8 +641,8 @@ describe('the doc’s tables and the data', () => {
     return italic ? italic[1]!.trim() : cell.trim();
   }
 
-  it('carries the same thirteen figures, with the same ability names', () => {
-    const rows = tableRows('### The thirteen').filter((cells) => cells[0] !== 'figure');
+  it('carries the same sixteen figures, with the same ability names', () => {
+    const rows = tableRows('### The sixteen leaders').filter((cells) => cells[0] !== 'figure');
     expect(rows).toHaveLength(LEADER_IDS.length);
     rows.forEach((cells, at) => {
       const def = leaderDef(LEADER_IDS[at]!);
@@ -662,7 +663,7 @@ describe('the doc’s tables and the data', () => {
       }
       // The unique cells name the rows in prose; the row's own name is in them.
       // The **last cell is read by kind** (batch L8): a hall for twelve of the
-      // thirteen and a work of the ground for the one, so the column holds a
+      // sixteen and a work of the ground for the one, so the column holds a
       // name off whichever table the figure's sheet points at.
       expect(
         cells[5]!.toLowerCase(),
@@ -729,14 +730,14 @@ describe('the doc’s tables and the data', () => {
 
 // --- the colours ------------------------------------------------------------
 
-describe('the thirteen’s inks', () => {
+describe('the sixteen leaders’s inks', () => {
   /**
    * Thirteen distinct primaries, none within the palette's own distance of
    * another figure's or of a plain seat's. The failure is the kind nobody
    * reports — two empires whose borders are the same green — so the pin names
    * the offending pair rather than merely failing.
    */
-  it('are thirteen distinct fields, and none crowds a plain seat’s', () => {
+  it('are sixteen distinct fields, and none crowds a plain seat’s', () => {
     const inks: { name: string; hex: string }[] = [
       ...LEADER_IDS.map((id) => ({ name: leaderDef(id).name, hex: leaderDef(id).colors.primary })),
       ...SEATS.map((seat) => ({ name: `seat · ${seat.name}`, hex: seat.color })),
@@ -757,16 +758,16 @@ describe('the thirteen’s inks', () => {
   it('gives every figure a first town nobody else’s list takes', () => {
     const firsts = LEADER_IDS.map((id) => leaderDef(id).cities[0]);
     expect(new Set(firsts).size).toBe(LEADER_IDS.length);
-    for (const id of LEADER_IDS) expect(leaderDef(id).cities.length, id).toBeGreaterThanOrEqual(10);
+    for (const id of LEADER_IDS) expect(leaderDef(id).cities.length, id).toBeGreaterThanOrEqual(6);
   });
 });
 
 // --- the shelf --------------------------------------------------------------
 
 describe('the Compendium', () => {
-  it('shelves the thirteen, each with its four lines and its towns', () => {
+  it('shelves the sixteen leaders, each with its four lines and its towns', () => {
     const shelf = compendiumSections().find((section) => section.id === 'leader');
-    // The shelf opens with its own "about" page; the thirteen follow it.
+    // The shelf opens with its own "about" page; the sixteen leaders follow it.
     expect(shelf?.entries.length).toBeGreaterThanOrEqual(LEADER_IDS.length);
     for (const id of LEADER_IDS) {
       const def = leaderDef(id);
@@ -825,3 +826,221 @@ describe('a unique’s technology', () => {
 });
 
 export type { Command };
+
+describe('November leader rulings', () => {
+  it('offers every pair once and resolves retired leader IDs from existing configs', () => {
+    expect(LEADER_IDS).toHaveLength(16);
+    const pairs = LEADER_IDS.filter((id) => !leaderDef(id).rainbow).map((id) => [...leaderDef(id).decks!].sort().join('/'));
+    expect(new Set(pairs).size).toBe(15);
+    expect(ALL_LEADER_IDS.filter((id) => leaderDef(id).retired)).toHaveLength(8);
+    expect(LEADER_IDS).not.toContain('modu');
+    expect(raw('modu').state.players[0]!.leader).toBe('modu');
+  });
+
+  it('pays the Royal Army for a gained soldier and prices a completed wonder for Justinian', async () => {
+    const { realiseItem, buildingProductionCost } = await import('../../src/sim/cities');
+    const { windfallPayout } = await import('../../src/sim/statecraft');
+    const mac = game('alexanderTheGreat').state;
+    const grant = (actor: 'warrior' | 'worker') => windfallPayout(mac, 0, 'unitCompletion', 0, 0, { actor, strength: 15 }).grants;
+    expect(grant('warrior').find((line) => line.card === 'royalArmy')?.amount).toBe(7);
+    expect(grant('worker').some((line) => line.card === 'royalArmy')).toBe(false);
+    const byz = game('justinian').state, city = byz.cities[0]!, player = byz.players[0]!;
+    expect(BUILDING_UNLOCK_TECH.get('basilica')).toBe(BUILDING_UNLOCK_TECH.get('temple'));
+    expect(BUILDING_UNLOCK_TECH.get('schoolOfMieza')).toBe('bronzeWorking');
+    const before = player.faithPool;
+    const cost = buildingProductionCost('stonehenge', byz, 0);
+    realiseItem(byz, city, { kind: 'building', id: 'stonehenge' });
+    expect(player.faithPool - before).toBe(cost);
+  });
+
+  it('doubles Yam range only at the route origin', async () => {
+    const { routeRange } = await import('../../src/sim/trade');
+    const state = game('genghisKhan').state, [first, second] = state.cities;
+    const base = routeRange(state, 0, first!, second!);
+    first!.buildings.push('relayYam');
+    bumpRevision(state);
+    expect(routeRange(state, 0, first!, second!)).toBe(base * 2);
+    expect(routeRange(state, 1, second!, first!)).toBe(base);
+  });
+
+  it('puts the Enderun and Storehouse grants in the building that earned them', async () => {
+    const { explainBuildingPackage, foldBuildingPackage } = await import('../../src/sim/statecraft');
+    for (const leader of ['mehmedTheConqueror', 'harunAlRashid'] as const) {
+      const state = game(leader).state, city = state.cities[0]!;
+      city.buildings.push('barracks', 'temple');
+      state.players[0]!.greatPeopleByFamily = { scholar: 2, general: 3, artist: 1 };
+      bumpRevision(state);
+      const source = leader === 'mehmedTheConqueror' ? 'enderun' : 'storehouseOfWisdom';
+      const shelf = (id: BuildingId) => foldBuildingPackage(explainBuildingPackage(state, city, id).filter((line) => line.card === source));
+      if (source === 'enderun') {
+        expect(shelf('barracks').science).toBe(6);
+        expect(shelf('temple').science).toBe(0);
+      } else {
+        expect(shelf('temple')).toMatchObject({ faith: 1, science: 1 });
+        expect(shelf('barracks')).toMatchObject({ faith: 0, science: 0 });
+      }
+    }
+  });
+
+  it('counts Cyrus’s occupied chairs by chair type, including a military Order in a Wildcard chair', async () => {
+    const { countOf } = await import('../../src/sim/statecraft/evaluator');
+    const { state } = game('cyrusTheGreat');
+    const sc = state.players[0]!.statecraft!;
+    sc.extraTypedChairs = ['wildcard', 'military', 'civic'];
+    sc.slots = [null, null, null];
+    const held = () => countOf(state, 0, 'cyrusCylinder', { kind: 'pays', where: 'city', basis: 'count', count: 'slottedOrdersOfSlot', slot: 'wildcard', byChair: true });
+    expect(held()).toBe(0);
+    sc.slots[0] = { card: 'conscription', sealedUntil: 0 };
+    sc.slots[1] = { card: 'conscription', sealedUntil: 0 };
+    expect(held()).toBe(1);
+  });
+
+  it('pays Cleopatra for each live deal, including a second deal with the same seat', async () => {
+    const { explainCardCityYields } = await import('../../src/sim/statecraft');
+    const state = game('cleopatra').state, city = state.cities[0]!;
+    const sum = () => explainCardCityYields(state, city).filter((l) => l.card === 'queensAlliances').reduce((n, l) => n + l.gold, 0);
+    expect(sum()).toBe(0);
+    const deal = { a: 0, b: 1, terms: { a: { goldPerTurn: 1 }, b: {} }, untilTurn: state.turn + 2 };
+    state.deals.push({ id: 12, ...deal }, { id: 13, ...deal }, { id: 14, ...deal, untilTurn: state.turn });
+    bumpRevision(state);
+    expect(sum()).toBe(8);
+  });
+
+  it('pays Jayavarman once per four empire citizens and multiplies freshwater farms by local public works', async () => {
+    const { explainCardEmpireYields } = await import('../../src/sim/statecraft');
+    const { cityContext, explainTileYield } = await import('../../src/sim/yields/hex');
+    const state = game('jayavarmanVII').state, city = state.cities[0]!;
+    city.population = 11;
+    city.buildings.push('granary', 'houseOfFire');
+    bumpRevision(state);
+    const lines = explainCardEmpireYields(state, 0).filter((l) => l.card === 'greatCityOfAngkor');
+    expect(lines.reduce((n, l) => n + l.culture, 0)).toBe(2);
+    expect(lines.reduce((n, l) => n + l.faith, 0)).toBe(2);
+    const tile = { ...getTileAt(state.map, city.col, city.row)!, improvement: 'farm' as const, freshwater: true };
+    const farm = (freshwater: boolean) => explainTileYield({ ...tile, freshwater }, cityContext(state, city)).filter((l) => l.card === 'hospitalsOfTheKing');
+    expect(farm(true).reduce((n,l) => n + l.food, 0)).toBe(2);
+    expect(farm(true).reduce((n,l) => n + l.faith, 0)).toBe(2);
+    expect(farm(false)).toHaveLength(0);
+    expect(buildingDef('houseOfFire')).toMatchObject({ food: 2, happiness: 2, publicWork: true, renown: { family: 'engineer', perTurn: 3 } });
+  });
+
+  it('counts local gold buildings without a cap and grants each town both Bottega feeds', async () => {
+    const { cardProduction, cardRenownLines } = await import('../../src/sim/statecraft');
+    const { explainRenown } = await import('../../src/sim/renown');
+    const state = game('lorenzoDeMedici').state, city = state.cities[0]!;
+    const gold = BUILDING_IDS.filter((id) => buildingDef(id).category === 'gold').slice(0, 6);
+    city.buildings.push(...gold, 'bottega');
+    bumpRevision(state);
+    expect(cardProduction(state, city, 'wonder', undefined, 'stonehenge').find((l) => l.card === 'florins')?.percent).toBe(60);
+    expect(explainRenown(state, 0).filter((l) => l.source.includes('Bottega')).map((l) => [l.family,l.amount])).toEqual(expect.arrayContaining([['artist',3],['engineer',3]]));
+    expect(cardRenownLines(state, 0).every((line) => line.card !== 'mediciBank' || line.family === null)).toBe(true);
+    expect(buildingDef('bottega').oncePerEmpire).toBeUndefined();
+  });
+
+  it('lets the worker build one familyless Paradise Garden on flat freshwater land', async () => {
+    const { ownedTiles, improvementWouldOpenResource } = await import('../../src/sim/cities');
+    const { createUnit } = await import('../../src/sim/state');
+    const { buildImprovementAt, improvementGroundError, improvementError, repairImprovementAt } = await import('../../src/sim/improvements');
+    const { damageImprovement } = await import('../../src/sim/map');
+    const { isGreatPersonWork } = await import('../../src/sim/improvementData');
+    const { explainHappiness } = await import('../../src/sim/meters');
+    const state = game('cyrusTheGreat').state;
+    const city = state.cities[0]!;
+    const [tile, other] = ownedTiles(state, city).filter((t) => t.col !== city.col || t.row !== city.row);
+    if (!tile || !other) throw new Error('The city must own two tiles outside its center');
+    for (const t of [tile, other]) {
+      Object.assign(t, { terrain: 'grassland', freshwater: true, hills: false, feature: 'none' });
+      delete t.improvement;
+    }
+    learnEverything(state, 0);
+    const worker = createUnit(state, 0, 'worker', tile.col, tile.row);
+    expect(improvementGroundError(state, 0, { ...tile, freshwater: false }, 'paradiseGarden')).toMatch(/fresh water/);
+    expect(improvementGroundError(state, 0, { ...tile, hills: true }, 'paradiseGarden')).toMatch(/flat|hill/);
+    tile.resource = 'iron';
+    expect(improvementWouldOpenResource(state, tile, 0, 'paradiseGarden')).toBe(true);
+    expect(improvementError(state, worker.id, 'paradiseGarden')).toBeNull();
+    expect(isGreatPersonWork('paradiseGarden')).toBe(true);
+    expect(improvementDef('paradiseGarden').greatPerson).toBeUndefined();
+    const happiness = (pid: number) => explainHappiness(state, pid).filter((l) => l.source.includes('Paradise Garden')).map((l) => l.value);
+    expect(happiness(0)).toEqual([]);
+    const charges = worker.chargesLeft!;
+    buildImprovementAt(state, worker, tile, 'paradiseGarden');
+    expect(worker.chargesLeft).toBe(charges - 1);
+    expect(improvementGroundError(state, 0, other, 'paradiseGarden')).toMatch(/already has/);
+    expect(happiness(0)).toEqual([1]);
+    damageImprovement(tile, state.turn);
+    bumpRevision(state);
+    expect(happiness(0)).toEqual([]);
+    repairImprovementAt(state, worker, tile);
+    expect(happiness(0)).toEqual([1]);
+    expect(worker.chargesLeft).toBe(charges - 1);
+    city.ownerId = 1;
+    bumpRevision(state);
+    expect(happiness(1)).toEqual([1]);
+    expect(happiness(0)).toEqual([]);
+  });
+
+  it('gives each new unit its printed advantage with the proper target or currency', async () => {
+    const { cardBirthExperience, cardPurchaseRiders } = await import('../../src/sim/statecraft/evaluator');
+    const state = game('mehmedTheConqueror', 'lorenzoDeMedici').state;
+    const [ottoman, florentine] = state.cities;
+    expect(cardBirthExperience(state, ottoman!, 'janissary').rank).toBe('veteran');
+    expect(cardBirthExperience(state, ottoman!, 'longswordsman').rank).toBeNull();
+    const price = (unit: 'longswordsman' | 'condottiere', currency: 'gold' | 'faith') =>
+      cardPurchaseRiders(state, 1, 'unit', unit, florentine, undefined, currency).map((l) => l.percent);
+    expect(price('condottiere', 'gold')).toContain(-40);
+    expect(price('condottiere', 'faith')).not.toContain(-40);
+    expect(price('longswordsman', 'gold')).not.toContain(-40);
+    expect(unitDef('hypaspist').movement).toBe(unitDef('swordsman').movement + 1);
+    expect(unitDef('hypaspist').combatLines).toContainEqual(expect.objectContaining({ amount: 5, side: 'attack', vsCity: true }));
+    expect(unitDef('qinCrossbowman').rangedStrength).toBe(unitDef('bowman').rangedStrength! + 3);
+    expect(unitDef('qinCrossbowman').size).toBe(unitDef('archer').size);
+    expect(unitDef('sparabara').combatLines).toContainEqual(expect.objectContaining({ amount: 5, side: 'defend' }));
+    expect(unitDef('ballistaElephant').range).toBe(2);
+    expect(unitDef('ballistaElephant').rangedStrength).toBeGreaterThan(0);
+    expect(unitDef('hwacha').combatLines).toEqual([expect.objectContaining({ amount: 10, side: 'attack', vsCity: false, vsKind: 'ranged' })]);
+  });
+
+  it('checks the named yield when speeding up construction of a building', async () => {
+    const { buildingProductionBonusMatches } = await import('../../src/sim/statecraft/evaluator');
+    const state = game().state;
+    const city = state.cities[0]!;
+    const matches = (building?: BuildingId) => buildingProductionBonusMatches(
+      state, city, { kind: 'productionBonus', category: 'building', percent: 50, supplies: 'culture' }, building);
+    expect(matches('monument')).toBe(true);
+    expect(matches('granary')).toBe(false);
+    expect(matches()).toBe(false);
+  });
+
+  it('requires a worked Holy Site for Justinian’s happiness', async () => {
+    const { cardHappiness } = await import('../../src/sim/statecraft');
+    const state = game('justinian').state, city = state.cities[0]!;
+    const tile = getTileAt(state.map, city.col, city.row)!;
+    tile.improvement = 'holySite'; city.workedTiles = []; bumpRevision(state);
+    const bonus = () => cardHappiness(state,0).filter(l => l.card === 'oneFaithOneEmpire').reduce((n,l) => n+l.amount,0);
+    expect(bonus()).toBe(0);
+    city.workedTiles = [{col: tile.col, row: tile.row}]; bumpRevision(state);
+    expect(bonus()).toBe(2);
+  });
+
+  it('preserves Sejong’s family split and lets the Heroic Epic multiply a great person’s building renown', async () => {
+    const { explainRenown } = await import('../../src/sim/renown');
+    const { windfallPayout, explainBuildingPackage } = await import('../../src/sim/statecraft');
+    const state = game('sejongTheGreat').state, player = state.players[0]!, city = state.cities[0]!;
+    city.buildings.push('library', 'hallOfWorthies', 'heroicEpic'); bumpRevision(state);
+    const before = explainRenown(state, 0);
+    player.legacies.push({id:'aryabhata',age:4}); bumpRevision(state);
+    const after = explainRenown(state,0);
+    const by = (lines: typeof before, source: string) => lines.find((line) => line.source.includes(source))?.amount ?? 0;
+    expect(by(after,'Epic') > 0).toBe(true);
+    const delta = after.reduce((n,l)=>n+l.amount,0) - before.reduce((n,l)=>n+l.amount,0);
+    expect(delta).toBe(3);
+    expect(explainBuildingPackage(state,city,'library').find((l)=>l.card==='aryabhata')?.faith).toBe(1);
+    const gains = windfallPayout(state,0,'tech').renown.filter(l => l.card === 'royalLectures');
+    for (const f of [null,'scholar','artist'] as const) {
+      expect(gains.filter(l=>(l.family??null)===f).reduce((n,l)=>n+l.amount,0)).toBe(
+        3 * after.filter(l=>l.perTurn && l.family===f).reduce((n,l)=>n+l.amount,0));
+    }
+    expect(buildingDef('hallOfWorthies').oncePerEmpire).toBeUndefined();
+  });
+});

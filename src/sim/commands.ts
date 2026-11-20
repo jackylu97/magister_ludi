@@ -159,7 +159,7 @@ import {
   isRouteItem,
   purchaseError,
   purchaseItemAt,
-  readPurchasableItem,
+  purchaseGate,
   routePrice,
 } from './purchase';
 import type { RiteId } from './religionData';
@@ -198,6 +198,7 @@ import {
   doctrineSkipError,
   forgetTheLaw,
   governmentChoiceError,
+  openWaitingOrderOffer,
   orderChoiceError,
   orderSkipError,
   orderOpensChairs,
@@ -3468,6 +3469,7 @@ function applyChooseOrder(state: GameState, command: ChooseOrderCommand): Comman
   // with the hand's price. `settleCardTaken` (`cities.ts`) is the one tail,
   // which The Cabinet of Curiosities' card goes through too.
   if (taken) settleCardTaken(state, actor, taken, price);
+  openWaitingOrderOffer(state, actor);
   return ok();
 }
 
@@ -3534,6 +3536,7 @@ function applySkipOrderOffer(state: GameState, command: SkipOrderOfferCommand): 
   if (problem) return fail(problem);
 
   settleOrderSkip(state, actor);
+  openWaitingOrderOffer(state, actor);
   return ok();
 }
 
@@ -3702,6 +3705,7 @@ function applySkipDoctrineOffer(state: GameState, command: SkipDoctrineOfferComm
 
   settleDoctrineSkip(actor);
   openWaitingDoctrineOffer(state, actor);
+  openWaitingOrderOffer(state, actor);
   return ok();
 }
 
@@ -3737,6 +3741,7 @@ function applyChooseDoctrine(
   // resize and not a re-seating, so no card moves. `refitSlots` announces itself.
   refitSlots(state, actor);
   openWaitingDoctrineOffer(state, actor);
+  openWaitingOrderOffer(state, actor);
   // **A Doctrine that bans routes abroad ends them now** (batch TR2, the reading
   // taken on The Sea Ban and The Inward Roads, `docs/flags.md` (ggggggg)). A
   // route has no term to run out, so a route already abroad would otherwise run
@@ -3777,28 +3782,11 @@ function applyPurchaseItem(state: GameState, command: PurchaseItemCommand): Comm
     return fail('A trade route is hired on the trade sheet, not bought here');
   }
 
-  const problem = purchaseError(
-    state,
-    actor.id,
-    command.cityId,
-    command.item,
-    command.currency,
-  );
-  if (problem) return fail(problem);
-
-  // Validation is done — `purchaseError` has established the city is this
-  // player's, the thing is for sale in this bank, there is room for it and the
-  // bank covers it. `readPurchasableItem` runs again here rather than being
-  // threaded out of the check, because the command's `item` is JSON off the
-  // wire and this is the one place it becomes a type.
+  const gate = purchaseGate(state, actor.id, command.cityId, command.item, command.currency);
+  if (gate.refusal !== null) return fail(gate.refusal);
   const city = cityById(state, command.cityId)!;
-  const born = purchaseItemAt(
-    state,
-    actor,
-    city,
-    readPurchasableItem(command.item)!,
-    command.currency,
-  );
+  // Routes have their own command. Every other accepted purchase has a delivery.
+  const born = purchaseItemAt(state, actor, city, gate.delivery!, command.currency);
   // **A bought wonder is news to the whole world** (tidy batch Z1), as a
   // finished one and a chopped one are (`applyChopFeature`). The claim and the
   // refunds come from `realiseItem`, the same routine either way, so the
@@ -3806,7 +3794,7 @@ function applyPurchaseItem(state: GameState, command: PurchaseItemCommand): Comm
   // basket was just turned into gold is told of the refund. Gold, faith and
   // culture all reach it. What the wonder hands over (`grants`) goes with it.
   const result = ok(
-    undefined,
+    born.arrival ? [born.arrival] : undefined,
     undefined,
     born.wonder ? [born.wonder] : undefined,
     undefined,

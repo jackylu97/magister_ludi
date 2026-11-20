@@ -233,6 +233,7 @@ export interface GreatPersonFace {
  */
 export function greatPersonCard(id: GreatPersonId): GreatPersonFace {
   const def = greatPersonDef(id);
+  const clauses = describeCard(id);
   return {
     id,
     name: def.name,
@@ -243,7 +244,7 @@ export function greatPersonCard(id: GreatPersonId): GreatPersonFace {
     line: TIER_ACCENT[def.tier],
     lineName: TIER_NAME[def.tier],
     emblem: cardLineMarkUrl(FAMILY_EMBLEM[def.family]),
-    legacy: legacyHeadline(describeCard(id)),
+    legacy: def.legacy.length ? legacyHeadline(clauses) : clauses,
     deed: deedFootnote(def.family),
     flavor: def.epigram,
     stamp: null,

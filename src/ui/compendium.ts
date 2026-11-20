@@ -2471,7 +2471,7 @@ function familyAct(family: Family): string {
     return `Use it once: it adds ${figure(great.engineerHammers)}${YIELD_GLYPH.production} to a city’s production, multiplied by the age your empire has reached — and it grows with every technology you research.`;
   }
   if (family === 'merchant') {
-    return `Use it once: it adds ${figure(great.merchantGold)}${YIELD_GLYPH.gold} to your treasury, multiplied by the age your empire has reached — and it grows with every technology you research.`;
+    return `Add ${figure(great.actGainTurns)} turns of your empire’s gold income to your treasury.`;
   }
   if (family === 'artist') {
     return `Use it once: it adds ${figure(great.actGainTurns)} turns of your empire’s culture toward your next draft, and gives the city ${signedFigure(great.artistHappiness)} happiness for ${figure(great.artistTurns)} turns.`;

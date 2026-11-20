@@ -419,6 +419,7 @@ export function seatLeaders(
   players: readonly PlayerSpec[],
   chosen: string,
   seed = 0,
+  useLeaderPersonas = false,
 ): PlayerSpec[] {
   const rivals = rivalLeaders(chosen, Math.max(0, players.length - 1), seed);
   const mine: LeaderId | undefined = chosen === NO_LEADER ? undefined : (chosen as LeaderId);
@@ -434,7 +435,12 @@ export function seatLeaders(
     // it reads your leader instead"). `seatName` already prints the figure, but
     // a sentence the rules write ("… has 30 gold") reads `Player.name`, and that
     // was the palette's word. A name is data, not a rule: no outcome reads it.
-    return { ...spec, name: def.name, leader, color: def.colors.primary, secondary: def.colors.secondary };
+    const seated = { ...spec, name: def.name, leader, color: def.colors.primary, secondary: def.colors.secondary };
+    if (useLeaderPersonas && !spec.isHuman && def.persona) {
+      if (def.persona === 'balanced') delete seated.persona;
+      else seated.persona = def.persona;
+    }
+    return seated;
   });
 }
 
@@ -675,7 +681,7 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     card.replaceChildren();
     const layout = element('div', 'leader-detail-layout');
     const text = element('div', 'leader-detail-text');
-    if (!isLeaderId(chosen)) {
+    if (!isLeaderId(chosen) || leaderDef(chosen).retired) {
       layout.append(portraitWindow(null));
       text.append(element('h3', 'leader-detail-name', LEADER_STEP_WORDS.noLeaderTitle));
       text.append(element('p', 'leader-note', NO_LEADER_NOTE));

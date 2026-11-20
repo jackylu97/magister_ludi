@@ -401,8 +401,7 @@
   "greatPeople": {
     "actPerTech": 0.05,
     "actGainTurns": 8,
-    "engineerHammers": 40,
-    "merchantGold": 60,
+    "engineerHammers": 60,
     "artistHappiness": 2,
     "artistTurns": 10,
     "generalRadius": 2,

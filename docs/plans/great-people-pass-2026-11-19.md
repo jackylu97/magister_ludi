@@ -1905,3 +1905,7 @@ Brahmagupta #1 is fine. Cai Yan #2 is interesting, lets use that."
 On Deborah, a general of Æra II whom Jewish tradition counts among the
 prophetesses: "Ok, she seems like a minor figure so we can keep her." Deborah
 stays as she is. S12 (the ratings) is the one point still open.
+
+## Work technologies selected for the build
+
+The user chose Philosophy in Age III and Education in Age IV. Each adds 2 to the main yield of the Academy, Landmark, Manufactory, Customs House and Citadel.

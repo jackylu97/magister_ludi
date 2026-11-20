@@ -34,6 +34,7 @@ import { type BotCandidate, type ValueTerm, rankedCandidates } from '../ai/decis
 import { type Game, createGame } from '../sim/game';
 import { MAP_SIZE_NAMES } from '../sim/mapgenData';
 import { RULES } from '../sim/rulesData';
+import { LEADER_PERSONA } from '../ui/gameSetup';
 import { LEADER_IDS, leaderDef, seatName } from '../sim/leaderData';
 import { type PlayerSpec, realPlayers } from '../sim/state';
 import {
@@ -70,7 +71,7 @@ const feedCount = need<HTMLElement>('feed-count');
  * the rest fall back to the renderer's own palette, which is `mapgenPage`'s
  * bargain and for its reason.
  */
-const GAME_SEAT_COLORS: readonly string[] = ['#d4502e', '#1f8a85'];
+const GAME_SEAT_COLORS: readonly string[] = ['#d4502e', '#208b85'];
 
 function seatColor(index: number): string {
   return (
@@ -134,13 +135,14 @@ seatsSelect.value = '2';
 // stepper rather than off the tuning surface — see its re-export's docblock:
 // this page may know what a persona is *called* and must never know what it is
 // worth.
+personaSelect.add(new Option("Leader’s preference", LEADER_PERSONA));
 for (const id of PERSONA_IDS) {
   const option = document.createElement('option');
   option.value = id;
   option.textContent = personaLabel(id);
   personaSelect.append(option);
 }
-personaSelect.value = DEFAULT_PERSONA;
+personaSelect.value = LEADER_PERSONA;
 
 const renderer = new Renderer3D(canvas);
 // No seat: the spectator board every gallery already draws. Nothing is fogged,
@@ -182,9 +184,10 @@ function start(): void {
   // seats playing the same way. Balanced is written as *no key at all*, so a
   // balanced spectacle is byte-identical to one from before personas existed.
   const persona = personaSelect.value;
-  const seated = ROSTER.slice(0, Number(seatsSelect.value) || 2).map((spec) =>
-    persona === DEFAULT_PERSONA ? spec : { ...spec, persona },
-  );
+  const seated = ROSTER.slice(0, Number(seatsSelect.value) || 2).map((spec) => {
+    const preference = persona === LEADER_PERSONA ? (spec.leader && leaderDef(spec.leader).persona) : persona;
+    return !preference || preference === DEFAULT_PERSONA ? spec : { ...spec, persona: preference };
+  });
   const config = {
     seed: Number.isFinite(seed) ? seed : 1,
     sizeName: sizeSelect.value,

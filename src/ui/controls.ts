@@ -1528,6 +1528,7 @@ export function statecraftPauseNotice(kind: StatecraftPause): string {
 }
 
 export interface GameControlsOptions {
+  citizenDots?: boolean;
   signal?: AbortSignal;
   viewport: HTMLElement;
   /**
@@ -1950,6 +1951,8 @@ export interface GameControlsOptions {
 }
 
 export interface GameControls {
+  citizenDots(): boolean;
+  setCitizenDots(on: boolean): void;
   /** Drops the selection and its overlays. Called on turn change and new games. */
   clearSelection(): void;
 
@@ -2711,6 +2714,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * panel adds its own glyphs without disturbing it.
    */
   let yieldsOn = LENS_DEFAULTS.yields;
+  let citizenDots = options.citizenDots ?? true;
   /**
    * The resource roundels, as the player left them. Not a lens either, and
    * unlike the glyphs it starts *on* — see `LENS_DEFAULTS`. Nothing automatic
@@ -4788,7 +4792,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   /** The worked-tile dots, and which of them the player pinned by hand. */
   function refreshSpotlight(): void {
     const city = spotlitCity();
-    if (!city) {
+    if (!city || openCity()) {
       renderer.setWorkedTiles?.([], []);
       return;
     }
@@ -4929,7 +4933,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       resources: resourcesOn,
       resourceCells: null,
       yields: lensShowsYields(mode, yieldsOn, city !== null),
-      yieldCells: city && !yieldsOn ? workRadiusCells(city) : null,
+      yieldCells: null,
+      citizens: city ? { cityId: city.id, dots: citizenDots } : undefined,
       playerId,
     };
   }
@@ -6335,7 +6340,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // Aged like the act itself (`agedActFactor`) — the hint is the payout.
         return `+${Math.floor(people.engineerHammers * era * agedActFactor(player!))}${HAMMER} to ${where}`;
       case 'merchant':
-        return `+${Math.floor(people.merchantGold * era * agedActFactor(player!))}${YIELD_GLYPH.gold} to the treasury`;
+        return `+${actGainOf(state, unit.ownerId, 'gold')}${YIELD_GLYPH.gold} to the treasury`;
       case 'artist':
         return (
           `${signedYield(player === undefined ? 0 : actGainOf(state, player.id, 'culture'))}${YIELD_GLYPH.culture} toward the next draft · ` +
@@ -8651,6 +8656,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setLens,
     yieldsShown: () => yieldsOn,
     setYields,
+    citizenDots: () => citizenDots,
+    setCitizenDots(on) {
+      if (citizenDots === on) return;
+      citizenDots = on;
+      refreshLens();
+    },
     resourcesShown: () => resourcesOn,
     setResources,
     setHoveredCity,

@@ -55,7 +55,7 @@ import {
   SWEEP_SEEDS,
   appearances,
   aridNeighbours,
-  castFor,
+  historicalCastFor as castFor,
   seatOf,
   shareOf,
 } from './leaderCriteria';

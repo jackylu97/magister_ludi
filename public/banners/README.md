@@ -86,6 +86,72 @@ The common banner shape and leader palettes are game design choices, not histori
 
 [Reference: Bou Inania Madrasa · Marinid minbar and its sources](https://en.wikipedia.org/wiki/Bou_Inania_Madrasa#Minbar)
 
+### genghisKhan: Xiongnu sun and moon
+
+**Attested emblem.** Gold sun disks and crescent moons decorate excavated Xiongnu elite coffins, including Tomb 64 at Takhiltiin Khotgor. The motif is archaeological; its use here as a banner is a game adaptation, not a verified flag of Modu.
+
+[Reference: Max Planck Institute · Xiongnu sun and moon finds](https://www.eurekalert.org/multimedia/980867)
+
+### harunAlRashid: Abbasid palmette
+
+**Period motif.** A gold palmette adapted from ninth-century Abbasid stucco ornament at Samarra, on the Abbasid black field. Samarra became the capital just after Al-Ma’mun’s reign. The ornament is a visible cultural identifier, not an attested dynastic badge or personal standard.
+
+[Reference: The Met · Architectural ornament of Abbasid Samarra](https://www.metmuseum.org/perspectives/architectural-ornament-of-abbasid-samarra)
+
+### alexanderTheGreat: Horns of Ammon
+
+**Period motif.** Two curled ram horns face out from the central crest.
+
+[Reference: Approved roster art direction](https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md)
+
+### mehmedTheConqueror: Çintamani
+
+**Period motif.** Three discs sit above two wavy bands.
+
+[Reference: Approved roster art direction](https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md)
+
+### qinShiHuang: Ban liang coin
+
+**Period motif.** A square opening cuts through a round coin.
+
+[Reference: Approved roster art direction](https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md)
+
+### jayavarmanVII: Seven-headed naga
+
+**Period motif.** Seven cobra heads spread above a coiled body.
+
+[Reference: Approved roster art direction](https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md)
+
+### cyrusTheGreat: Persepolis rosette
+
+**Period motif.** Twelve pointed petals surround a round centre.
+
+[Reference: Approved roster art direction](https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md)
+
+### cleopatra: Knot of Isis
+
+**Period motif.** The knot has two bent arms and three hanging folds.
+
+[Reference: Approved roster art direction](https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md)
+
+### lorenzoDeMedici: Medici shield
+
+**Period motif.** Six discs follow the curve of a shield.
+
+[Reference: Approved roster art direction](https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md)
+
+### justinian: Dome and arches
+
+**Period motif.** Four arches support the dome.
+
+[Reference: Approved roster art direction](https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md)
+
+### sejongTheGreat: Bowl sundial
+
+**Period motif.** A pointer rises above the curved sundial bowl.
+
+[Reference: Approved roster art direction](https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md)
+
 ## Editing and export
 
 Source: src/art/leaderBanners.ts. Colors: data/leaders.json.

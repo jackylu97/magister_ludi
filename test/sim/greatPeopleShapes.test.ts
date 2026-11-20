@@ -17,7 +17,7 @@
  *   (c) `tradersUnplunderable` (Pytheas), at both seams;
  *   (d) `faithBuysScienceBuildings` (al-Khwārizmī);
  *   (e) the four counts — trade partners, spare authority, the almoner's
- *       ledger, a road's own length (Ibn Baṭṭūṭa, Gracia, Cosimo, Marco Polo);
+ *       ledger, a road's own length (Ibn Jubayr, Gracia, Jacques Cœur, Marco Polo);
  *   (f) a scoped `happinessDemand` (Epicurus);
  *   (g) the science houses' happiness, counted empire-wide (Maimonides) — a
  *       shape that turned out to be **already sayable**, pinned here so it stays
@@ -61,7 +61,6 @@ import {
   type PlayerStatecraft,
   buildingSupplies,
   cardHappiness,
-  cardUnitStat,
   countOf,
   describeEffects,
   explainCardEmpireYields,
@@ -633,7 +632,7 @@ describe('happiness per science building across the realm', () => {
  * the number.
  *
  * Three of the twelve are pinned in `greatPeople.test.ts` instead, beside the
- * deferral tests they replace: Ibn Baṭṭūṭa's share of song, Spartacus' attack
+ * deferral tests they replace: Ibn Jubayr's share of song, Spartacus' attack
  * line, and Marco Polo's coin by the mile.
  */
 describe('the twelve legacies GP3 wired', () => {
@@ -708,7 +707,7 @@ describe('the twelve legacies GP3 wired', () => {
     expect(lines[0]!.culture).toBeCloseTo(buildingDef('theOracle').culture / 2, 6);
   });
 
-  it('Pytheas takes his laden carts off the target list, and lends them an eye', () => {
+  it('Pytheas protects traders and pays gold on international routes', () => {
     const g = game();
     const from = found(g.state, 0);
     const to = found(g.state, 1);
@@ -719,11 +718,8 @@ describe('the twelve legacies GP3 wired', () => {
     expect(attackTargetAt(g.state, cart.col, cart.row, 1)?.unit?.id).toBe(cart.id);
     bear(g.state, 0, 'pytheas');
     expect(attackTargetAt(g.state, cart.col, cart.row, 1)?.unit ?? null).toBeNull();
-    // The other half of the row, untouched by GP3 and pinned beside it.
-    const soldier = createUnit(g.state, 0, 'warrior', from.col + 3, from.row);
-    bumpRevision(g.state);
-    expect(cardUnitStat(g.state, cart, 'sight')).toBe(1);
-    expect(cardUnitStat(g.state, soldier, 'sight')).toBe(0);
+    const line = explainRouteSenderYieldBetween(g.state, from, to).find(row => row.source.includes('Pytheas'));
+    expect(line?.gold).toBe(3);
   });
 
   it('al-Khwārizmī opens the faith bank to the science houses, and keeps his tithe', () => {
@@ -770,7 +766,7 @@ describe('the twelve legacies GP3 wired', () => {
     expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(spare * 5);
   });
 
-  it('Cosimo is paid a song for every hundred the treasury has let go', () => {
+  it('Jacques Cœur gains culture for each hundred gold spent', () => {
     const g = game();
     found(g.state, 0);
     const player = playerById(g.state, 0)!;
@@ -789,18 +785,17 @@ describe('the twelve legacies GP3 wired', () => {
     expect(song()).toBe(2);
   });
 
-  it('Epicurus forgives a town of ten and charges a town of nine', () => {
+  it('Epicurus reduces the happiness cost of cities with eight or more people', () => {
     const g = game();
     const big = found(g.state, 0);
-    big.population = 10;
-    const small = { ...big, id: big.id + 400, name: 'Hamlet', population: 9 };
+    big.population = 8;
+    const small = { ...big, id: big.id + 400, name: 'Hamlet', population: 7 };
     g.state.cities.push(small);
     bumpRevision(g.state);
     const plain = costOf(g.state, 'Hamlet');
     const before = costOf(g.state, big.name);
     bear(g.state, 0, 'epicurus');
     expect(costOf(g.state, big.name)).toBeCloseTo(before * 0.85, 6);
-    // Nine is one short of the scope's own figure, and inclusive means ten.
     expect(costOf(g.state, 'Hamlet')).toBeCloseTo(plain, 6);
   });
 
@@ -818,7 +813,7 @@ describe('the twelve legacies GP3 wired', () => {
     const waiting = GREAT_PERSON_IDS.filter((id) => (greatPersonDef(id).deferred?.length ?? 0) > 0);
     expect(waiting).toEqual([]);
     // And nothing live is silent: every drawable name leaves something behind.
-    const silent = LIVE_GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).legacy.length === 0);
+    const silent = LIVE_GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).legacy.length === 0 && !greatPersonDef(id).onSpend);
     expect(silent).toEqual([]);
   });
 });

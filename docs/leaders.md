@@ -1,21 +1,6 @@
 # Leaders — figures for the seats (worksheet, 2026-09-10)
 
-A worksheet in the `wager.md` shape. The game has no civ uniques today — a seat
-is a colour and a charge (`heraldryFor`) — so a leader is a new system, and this
-file is the casting call before the mechanics: who, why they are interesting,
-the **themes** they play to, and **possible bonuses** stated in the card
-vocabulary the game already has, so each is one JSON row when the system
-exists. ▢ is the user's; nothing here is ruled. The user: *"I know for sure i
-want to include mithridates, king of pontus."*
-
-Names already taken by great people (`data/greatPeople.json`) are avoided:
-Imhotep, Hannibal, Boudica, Spartacus, Subutai, El Cid, Nzinga, Yi Sun-sin,
-Leonardo and the rest of that roster stay great people.
-
-**Conventions.** Bonuses are deliberately modest (a doctrine's weight, not a
-civ's) so a leader shades a playstyle rather than dictating it. A leader would
-take two or three of the bullets under it, not all. Each fits one of
-`docs/playstyles.md`'s families first and a sub-identity second.
+The current roster has sixteen leaders. The tables below list their abilities, unique pieces, colors, start preferences and city names. The older proposals and historical decisions follow the roster.
 
 ## The second cut — fixed identity (2026-09-11)
 
@@ -67,34 +52,28 @@ uniques are `unlockedByLeader` rows opened by the seat's figure through the tech
 gate every row already has. L2b's draft sheet goes; the leader sheet stays as
 the record; the landing shows the four lines.
 
-### The thirteen
+### The sixteen leaders
 
-The first six, remapped from what is built (every unit and building below has a
-row and its rules); the second six proposed by the orchestrator — **the six are the user's picks** (2026-09-11); the abilities, units and
-buildings of the last four are the orchestrator's drafts, ▢ to mark up.
-
-The **people** column is the word of record for a seat's country — what a
-sentence says after "the" ("at war with the Inca"), written bare so the sentence
-keeps its own article. It is `LeaderDef.people` in `data/leaders.json`, read by
-`seatPeople`, and the sync test holds the two together. The figure column is
-`LeaderDef.name`, read by `seatName`: a seat is called by its figure everywhere,
-and only a seat under nobody keeps its ink's name (`docs/flags.md` (ppppp)).
+Each leader has two abilities and two unique pieces. Fifteen leaders each use a different pair of decks. Ibn Battuta can use all six. Eight retired leaders remain available by ID in older game configurations.
 
 | figure | people | identity | ability I | ability II | unique unit | unique building |
 |---|---|---|---|---|---|---|
-| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | *the Qhapaq Ñan*: cities joined to the capital by road +1 happiness +1 production | *the Gold of the Peaks*: farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | **Terraces** — a farm of the hills alone, +1 food over a farm; a peak beside it stands in for fresh water (a unique improvement; he has no unique building — ruled) |
-| **Emperor Taizong** | Tang | wide · the imperium | *the Mandate*: melee +3 strength +1 movement | *the Garrison Towns*: garrisoned cities +1 happiness, +15% culture | Tang heavy cavalry | the Examination Court |
-| **Modu Chanyu** | Xiongnu | wide · the steppe | *the Riders of the Steppe*: mounted +1 movement on grass and plains; pillaging +50% | *the Herds*: pastures +1 production +1 faith | the Xiongnu horse archer | the Horde Camp |
-| **Akhenaten** | Egyptians | tall · faith and wonders | *the Great Works*: cities with a holy site +20% production toward wonders | *the Nile's Gift*: +1 faith on farms drinking fresh water | the Khopesh | the Obelisk |
-| **Al-Ma'mun** | Abbasids | tall · science and faith | *the Mu'tazila*: +1 science per five faith a turn, empire-wide | *the House of Wisdom*: faith and science buildings +2 food | the camel archer | the House of Learning |
-| **Mithridates VI** | Pontics | tall · defence and growth | *the Poison King*: +2 strength against empires with more cities | *the Groves and the Hunt*: +2 food on plantations and camps | the Pontic peltast | the Mountain Hold |
-| **Joan of Arc** | French | faith and war | *the Voices*: a kill pays faith and presses your faith on every town within four hexes of the field | *the Maid*: +4 combat strength on any hex that follows your faith | the Gendarme — a heavy lance of the fourth age, +10 against cities | the Sainte-Chapelle — a temple line, +3 faith; military units may be bought here with faith |
-| **Mansa Musa** | Malians | land commerce · gold and the hajj | *the Gold of Wangara*: mines and camps pay +2 gold; desert hexes worked pay +1 gold | *the Hajj*: routes to or from a city holding a holy site pay +2 gold +2 faith | the Mandekalu — a horseman line, pillaging pays double gold | the Sankore Madrasa — a library line, +1 science per four faith the city makes |
-| **Zheng He** | Ming | wide · the sea | *the Treasure Fleet*: ships +2 movement and +1 sight | *Tribute of the Western Ocean*: sea routes pay +2 gold +1 culture; the first sea route to each foreign empire pays a lump of gold | the Treasure Ship — a great hull of the third age, strong and far-seeing (▢ carrying two passengers is a new escort shape) | the Longjiang Dockyard — a harbour line: ships built here +1 movement, routes to or from this city pay +2 gold |
-| **Nezahualcoyotl** | Texcocans | tall · the engineer-poet | *the Dikes*: cities with an aqueduct pay +1 culture, and their farms +1 production | *Flower and Song*: +1 culture for every two citizens in the capital | the Eagle warrior — a swordsman line; a kill pays +5 culture | the Tetzcotzinco — replaces the garden, keeps its effects, and the city makes +15% food in total (the whole yield, not the surplus) |
-| **Hypatia** | Alexandrians | tall · the library city | *the Museion*: +25% renown | *the Commentaries*: great people's works pay +50% of their yields | the Alexandrian galley — a light hull with +1 sight | the Museion — replaces the library, keeps its effects, and pays +1 science for every great person your realm has called this game |
-| **Hildegard of Bingen** | Rhinelanders | tall · rites and song | *the Rites*: cities keeping a rite pay +20% culture | *Symphonia*: every faith building pays +2 culture +2 production | the Canoness — an apostle whose proclamation also grants a lump of production to every city | the Scriptorium of Rupertsberg — +3 faith and +2 culture (the monastery line is retired, so it stands alone); follower and founder effects are doubled in this city (▢ a new shape: a city-scoped amplifier on belief effects — deferred in L6a) |
-| **Ibn Battuta** | Maghrebis | the traveller — the generalist who reacts to the map | *A guest at every court*: one more wildcard chair in every government | *the Rihla*: one free re-roll at every draft — Orders, doctrines, governments, great people — never a belief (▢ a re-roll verb: the draft is redrawn from the seat's own pool, once, the Magister's Dice shape) | the Rihla caravan — a trader whose routes pay +3 gold and which cannot be plundered (▢ the unplunderable rule and a route rider scoped to one trader row) | the Funduq — replaces the caravanserai and stands in any city (the site rule lifted); +1 route slot; each foreign route starting or ending here pays +2 food +2 production |
+| **Alexander the Great** | Macedonians | dominion + expansionist | *The Unbroken Charge* Your units gain +3 combat strength when they attack. Capturing a city heals all your units. | *The Royal Army* Gaining a military unit grants science equal to half its strength. | Hypaspist | The School of Mieza |
+| **Genghis Khan** | Mongols | dominion + commerce | *The Riders of the Steppe* Mounted units gain +1 movement on grassland and plains. Pillaging pays half again. | *The Pax Mongolica* Your traders cannot be plundered. Trade routes pay +3 gold. | Keshig | The Yam |
+| **Joan of Arc** | French | dominion + devotion | *The Voices* Killing a unit pays faith, and presses your faith on the towns around the field. | *The Maid* +4 combat strength on any ground that follows your faith. | The Gendarme | The Sainte-Chapelle |
+| **Mehmed the Conqueror** | Ottomans | dominion + scientific | *The Enderun* Each Barracks gives +1 science, and +1 more for every great scholar and great general you have gained this game. | *The Great Bombard* Your units gain +5 combat strength against cities. Capturing a city grants science equal to thirty times its population. | Janissary | The Külliye |
+| **Qin Shi Huang** | Qin | dominion + magisterial | *The Great Works of Qin* Garrisoned cities build wonders and buildings 25% faster. | *The Registered Households* Every city gains +1 production for every three citizens. | Qin Crossbowman | The Commandery |
+| **Pachacuti** | Inca | expansionist + commerce | *The Qhapaq Ñan* Every city joined to your capital by road pays +1 happiness and +1 production. | *The Gold of the Peaks* Farms pay +1 gold for every mountain standing beside them. | Slinger | Terraces (unique improvement) |
+| **Jayavarman VII** | Khmer | expansionist + devotion | *The Hospitals of the King* Freshwater farms gain +1 food and +1 faith for each public work in their city. | *The Great City* Gain +1 culture and +1 faith for every four citizens in your empire. | Ballista Elephant | The House of Fire |
+| **Nezahualcoyotl** | Texcocans | expansionist + scientific | *The Dikes* In cities with an Aqueduct, farms give +1 science and +1 production. | *Flower and Song* +1 culture for every two citizens in your capital. | The Eagle Warrior | The Tetzcotzinco |
+| **Cyrus the Great** | Persians | expansionist + magisterial | *The Cyrus Cylinder* Cities joined to your capital by road gain +1 happiness and +1 culture per Order in a Civic or Wildcard chair. | *The King's Gardeners* Cities you found start with a Worker. | Sparabara | The Paradise Garden (unique improvement) |
+| **Mansa Musa** | Malians | commerce + devotion | *The Gold of Wangara* +2 gold on mines and camps, and +1 gold on every desert hex worked. | *The Hajj* Trade routes that begin or end at a city holding a holy site pay +2 gold and +2 faith. | The Mandekalu | The Sankore Madrasa |
+| **Cleopatra** | Ptolemies | commerce + scientific | *Books from the Ships* Your trade routes pay +2 science, and your foreign routes +2 more. | *The Queen's Alliances* For each active deal, your capital gains +4 gold and +2 culture per age you have reached. | The Alexandrian Galley | The Museion |
+| **Lorenzo de' Medici** | Florentines | commerce + magisterial | *The Medici Bank* Gain +1 renown per turn for every eight gold your empire earns per turn after costs. | *Florins* A city builds wonders 10% faster for every gold building in it. | Condottiere | The Bottega |
+| **Harun al-Rashid** | Abbasids | devotion + scientific | *The Storehouse of Wisdom* Faith buildings and science buildings give +1 science and +1 faith each. | *The Learned Court* Completing a technology grants faith equal to a fifth of its cost. | Camel Archer | The House of Learning |
+| **Justinian** | Byzantines | devotion + magisterial | *Solomon, I Have Surpassed You* Completing a wonder grants faith equal to its production cost. | *One Faith, One Empire* Each Holy Site gives +5 production. Each Holy Site a citizen works gives your empire +2 happiness. | Cataphract | The Basilica |
+| **Sejong the Great** | Joseon | scientific + magisterial | *The Correct Sounds* Every city gains +1 science and +1 culture for every four citizens. | *The Royal Lectures* Each technology you complete grants three turns of renown, with the same share for each family. | Hwacha | The Hall of Worthies |
+| **Ibn Battuta** | Maghrebis | Every deck | *A Guest at Every Court* One more chair in every government. | *The Rihla* The first redraw of every hand you are dealt costs nothing — an Order, a doctrine or a great person, and never a belief. | The Rihla Caravan | The Funduq |
 
 **Pachacuti, reworked (the user, 2026-09-11).** His first cut pulled two ways —
 food from mountains (tall, few sites) and roads (wide, many). Now both lines
@@ -718,18 +697,21 @@ nothing asked for, and a row of dashes is a figure that takes what it is given.
 
 | Leader | Terrain | Wants | Resources | Luxuries | Furnish |
 |---|---|---|---|---|---|
-| Pachacuti | river 6 · hills 1.5 · mountain 2.5 | mountainWithin 2 · riverWithin 1 | — | — | — |
-| Emperor Taizong | grassland 0.9 · river 2 | grasslandWithin 2 | — | — | — |
-| Modu Chanyu | grassland 0.45 · plains 0.4 · hills -0.3 | pastureGroundWithin 3 | horses 12 · cattle 4 | — | horses |
-| Akhenaten | river 4 · floodplain 3 · oasis 3 · desert 2 | riverOrFloodplainWithin 1 · aridBeside 3 | — | — | — |
-| Al-Ma'mun | river 5 · coast 0.6 | riverWithin 2 | — | — | — |
-| Mithridates VI | river 9 · coast 0.4 · hills 0.6 | riverWithin 2 | deer 2 | wine 2.5 | plantation · camp |
+| Alexander the Great | river 2 · hills 0.6 · coast 0.4 | — | — | — | — |
+| Genghis Khan | grassland 0.45 · plains 0.4 · hills -0.3 | pastureGroundWithin 3 | horses 12 · cattle 4 | — | horses |
 | Joan of Arc | river 3 | — | — | — | — |
-| Mansa Musa | desert 2 · river 2 · oasis 2 | aridWithin 2 | — | gold 3 | gold |
-| Zheng He | coast 2 | coastalWithin 1 | — | — | — |
+| Mehmed the Conqueror | coast 1.5 · hills 0.6 · river 2 | — | — | — | — |
+| Qin Shi Huang | grassland 0.9 · river 2 | grasslandWithin 2 | — | — | — |
+| Pachacuti | river 6 · hills 1.5 · mountain 2.5 | mountainWithin 2 · riverWithin 1 | — | — | — |
+| Jayavarman VII | river 4 · lake 2 · forest 1 | riverOrFloodplainWithin 1 | — | — | — |
 | Nezahualcoyotl | lake 2.5 · river 2 | riverOrFloodplainWithin 1 · lakeWithin 2 | — | — | — |
-| Hypatia | coast 2 · river 3 | coastalWithin 1 · riverWithin 2 | — | — | — |
-| Hildegard of Bingen | river 4 · forest 1.5 | riverWithin 1 | — | — | — |
+| Cyrus the Great | river 4 · plains 0.4 · oasis 2 | riverWithin 2 | — | — | — |
+| Mansa Musa | desert 2 · river 2 · oasis 2 | aridWithin 2 | — | gold 3 | gold |
+| Cleopatra | coast 2 · river 3 | coastalWithin 1 · riverWithin 2 | — | — | — |
+| Lorenzo de' Medici | river 3 · hills 1 | riverWithin 1 | — | — | — |
+| Harun al-Rashid | river 5 · coast 0.6 | riverWithin 2 | — | — | — |
+| Justinian | coast 2 · hills 0.6 · river 2 | — | — | — | — |
+| Sejong the Great | river 3 · hills 1 · coast 0.5 | riverWithin 2 | — | — | — |
 | Ibn Battuta | — | — | — | — | — |
 
 Ibn Battuta carries **nothing at all**, which is the design: taking what the
@@ -758,42 +740,47 @@ colours it always wore.
 
 | Leader | Primary | Secondary | Why |
 |---|---|---|---|
-| Pachacuti | maroon `#8b2635` | sun gold `#e0b21a` | the Sapa Inca's red fringe; the sun |
-| Emperor Taizong | jade `#2e8b6e` | ivory `#f3ecd8` | Tang jade; court white |
-| Modu Chanyu | sky blue `#3a78b5` | bone `#efe6d2` | Tengri's eternal blue sky; felt and bone |
-| Akhenaten | sun orange `#e0852a` | lapis `#234b9a` | the Aten's disc; Egyptian blue |
-| Al-Ma'mun | black `#1c1a1a` | gold `#d4a934` | the Abbasid black banner; gilt |
-| Mithridates VI | Tyrian purple `#6b2d7a` | silver `#d8d8e0` | a Hellenistic king's purple; the star and crescent |
-| Joan of Arc | royal azure `#2c3e9e` | gold `#d9a521` | the azure field of France, sown with gold lilies |
-| Mansa Musa | Wangara gold `#e6c419` | indigo `#27306e` | the gold of the Bambuk washings; the indigo the Sahel dyes with |
-| Zheng He | vermilion `#c8341b` | porcelain blue `#4a7fc1` | the cinnabar of the Ming seal; the blue of the wares the fleet carried |
-| Nezahualcoyotl | turquoise `#1fb3a5` | ochre `#c98b2e` | the turquoise mosaic of an Acolhua crown; the reeds of the lake |
-| Hypatia | papyrus `#e8dcae` | deep lapis `#1c3f7a` | the papyrus of the library; the sea under the Pharos |
-| Hildegard of Bingen | viridian `#55a832` | vellum `#efe3c8` | *viriditas*, her own word for the greening; the leaf she wrote it on |
-| Ibn Battuta | ochre `#b5651d` | sea teal `#0d6b78` | the mud brick of the Maghreb; the water he would not stop crossing |
+| Alexander the Great | Tyrian purple `#6b2d7a` | sun gold `#e3b93a` | Roster colors |
+| Genghis Khan | sky blue `#3a78b5` | bone `#efe6d2` | Roster colors |
+| Joan of Arc | royal azure `#2c3e9e` | gold `#d9a521` | Roster colors |
+| Mehmed the Conqueror | Ottoman red `#d81e2c` | white `#f5f1e6` | Roster colors |
+| Qin Shi Huang | cinnabar `#a83224` | lacquer black `#1c1a1a` | Roster colors |
+| Pachacuti | maroon `#8b2635` | sun gold `#e0b21a` | Roster colors |
+| Jayavarman VII | Angkor sandstone `#c9a27a` | forest green `#1e6a45` | Roster colors |
+| Nezahualcoyotl | turquoise `#1fb3a5` | ochre `#c98b2e` | Roster colors |
+| Cyrus the Great | Susa glaze teal `#0f7c8c` | gold `#dcae3a` | Roster colors |
+| Mansa Musa | Wangara gold `#e6c419` | indigo `#27306e` | Roster colors |
+| Cleopatra | papyrus `#e8dcae` | deep lapis `#1c3f7a` | Roster colors |
+| Lorenzo de' Medici | iris violet `#7b5ea7` | florin gold `#e0b548` | Roster colors |
+| Harun al-Rashid | Abbasid black `#1c1a1a` | gold `#d4a934` | Roster colors |
+| Justinian | porphyry `#5a1e4a` | mosaic gold `#d9b23c` | Roster colors |
+| Sejong the Great | ink navy `#25346b` | porcelain white `#f3f1ea` | Roster colors |
+| Ibn Battuta | ochre `#b5651d` | sea teal `#0d6b78` | Roster colors |
 
 ## The cities (2026-09-11, `docs/flags.md` (pppp))
 
-About fifteen a figure, in order of importance, from the empire the figure
-ruled or the age it ruled in; a founded town takes the next name no standing
+Each leader has at least six names. A founded town takes the next name no standing
 town anywhere wears, then the plain list, then a number. `data/leaders.json`'s
 `cities` mirrors this table and a sync test holds the two together; the rows
 are the user's to retune. Names are separated by ` · `.
 
 | Leader | Cities, in order |
 |---|---|
-| Pachacuti | Cusco · Quito · Tumebamba · Cajamarca · Vilcashuamán · Huánuco Pampa · Hatun Xauxa · Machu Picchu · Ollantaytambo · Pisac · Pachacamac · Chan Chan · Vilcabamba · Choquequirao · Raqchi |
-| Emperor Taizong | Chang'an · Luoyang · Yangzhou · Chengdu · Guangzhou · Taiyuan · Jiangling · Bianzhou · Hangzhou · Suzhou · Youzhou · Dunhuang · Liangzhou · Xiangyang · Fuzhou |
-| Modu Chanyu | Longcheng · Ordos · Ivolga · Noin-Ula · Gol Mod · Terelzhiin Dörvölzhin · Boroo · Loulan · Turfan · Karashahr · Kucha · Barkol · Hami · Duurlig Nars · Yanran |
-| Akhenaten | Akhetaten · Thebes · Memphis · Heliopolis · Abydos · Hermopolis · Elephantine · Thinis · Sais · Bubastis · Coptos · Edfu · Swenett · Buhen · Napata |
-| Al-Ma'mun | Baghdad · Merv · Kufa · Basra · Raqqa · Damascus · Samarra · Mosul · Wasit · Rayy · Nishapur · Isfahan · Fustat · Aleppo · Bukhara |
-| Mithridates VI | Sinope · Amaseia · Amisos · Trapezus · Cabira · Pharnacia · Eupatoria · Zela · Comana · Themiscyra · Panticapaeum · Phanagoria · Chersonesus · Laodicea · Gaziura |
+| Alexander the Great | Pella · Aigai · Amphipolis · Alexandria Eschate · Bucephala · Kandahar |
+| Genghis Khan | Karakorum · Avarga · Almaliq · Samarkand · Zhongdu · Sarai |
 | Joan of Arc | Orléans · Reims · Paris · Bourges · Chinon · Rouen · Tours · Poitiers · Blois · Compiègne · Troyes · Lyon · Bordeaux · Avignon · Domrémy |
-| Mansa Musa | Niani · Timbuktu · Djenné · Gao · Walata · Kumbi Saleh · Kangaba · Taghaza · Tadmekka · Kukiya · Awdaghost · Takedda · Dia · Ségou · Bamako |
-| Zheng He | Nanjing · Beijing · Taicang · Quanzhou · Ningbo · Changle · Zhangzhou · Malacca · Palembang · Calicut · Hormuz · Aden · Malindi · Semarang · Kunyang |
+| Mehmed the Conqueror | Istanbul · Edirne · Bursa · Thessalonica · Trebizond · Sarajevo |
+| Qin Shi Huang | Xianyang · Yong · Yueyang · Handan · Linzi · Langya |
+| Pachacuti | Cusco · Quito · Tumebamba · Cajamarca · Vilcashuamán · Huánuco Pampa · Hatun Xauxa · Machu Picchu · Ollantaytambo · Pisac · Pachacamac · Chan Chan · Vilcabamba · Choquequirao · Raqchi |
+| Jayavarman VII | Angkor Thom · Phimai · Banteay Chhmar · Lavo · Beng Mealea · Koh Ker |
 | Nezahualcoyotl | Texcoco · Tenochtitlan · Tlacopan · Huexotla · Coatlinchan · Teotihuacan · Otumba · Chimalhuacan · Acolman · Tepetlaoztoc · Chiconauhtla · Papalotla · Chiautla · Calpulalpan · Tepechpan |
-| Hypatia | Alexandria · Cyrene · Ptolemais · Naucratis · Canopus · Pelusium · Antinoöpolis · Oxyrhynchus · Arsinoe · Berenice · Myos Hormos · Philae · Leontopolis · Nicopolis · Taposiris Magna |
-| Hildegard of Bingen | Bingen · Rupertsberg · Disibodenberg · Mainz · Trier · Cologne · Worms · Speyer · Eibingen · Koblenz · Aachen · Frankfurt · Ingelheim · Lorsch · Sponheim |
+| Cyrus the Great | Pasargadae · Ecbatana · Susa · Babylon · Sardis · Anshan |
+| Mansa Musa | Niani · Timbuktu · Djenné · Gao · Walata · Kumbi Saleh · Kangaba · Taghaza · Tadmekka · Kukiya · Awdaghost · Takedda · Dia · Ségou · Bamako |
+| Cleopatra | Alexandria · Cyrene · Ptolemais · Naucratis · Canopus · Pelusium |
+| Lorenzo de' Medici | Florence · Pisa · Arezzo · Volterra · Prato · Pistoia |
+| Harun al-Rashid | Baghdad · Raqqa · Kufa · Basra · Merv · Rayy |
+| Justinian | Constantinople · Ravenna · Carthage · Thessalonica · Antioch · Justiniana Prima |
+| Sejong the Great | Hanseong · Gaeseong · Pyongyang · Gyeongju · Jeonju · Hamhung |
 | Ibn Battuta | Tangier · Fez · Marrakesh · Sijilmasa · Ceuta · Tlemcen · Tunis · Salé · Rabat · Meknes · Oujda · Bougie · Algiers · Tripoli · Kairouan |
 
 Notes on the choices: Akhetaten leads Egypt's list because it is the city

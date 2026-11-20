@@ -116,11 +116,16 @@ Dominion gives up development at home unless it keeps acting. The cards show it:
 
 ### Leaders
 
-- **Emperor Taizong** (Dominion, Magisterial) leads the garrison state: melee strength, and garrisoned towns pay happiness and culture. Their cards: Sword and Plough, Martial Law, The Garrison Captains, Commission: Man the Walls, Standing Garrisons, The Limitanei, The Military Frontier.
-- **Modu Chanyu** (Dominion, Devotion) leads the marches: mounted movement, pillage half again, pastures that pay production and faith. Their cards: The Horse Herds, Horse Lords, The Swift Riders, Commission: Harry the Border, The Naadam, The March Revenues, The Chevauchée, The Horde.
-- **Mithridates VI** (Dominion, Expansionist) leads the marches' camps (The Horse Herds, The Cattle Raid, The Naadam) and the provinces' underdog (The Defiant Kingdom). The Upstarts reads technologies, not towns, so it is a cousin of their strength line, not a copy.
-- **Joan of Arc** (Dominion, Devotion) leads the engine's kills: The Camp Chaplains, Songs of the Fallen, The Bards' Praise, The Champion's Portion. Joan also suits the captains.
-- **The gap:** no leader points at the provinces' civic side or at the captains. A general who led a Dominion and Magisterial empire would suit the captains, but Taizong holds that pair. Leaders are tuned later.
+
+| Leader | Deck pair | Gameplay |
+|---|---|---|
+| Alexander the Great | Dominion + Expansionist | Attacks, captures and science from gaining soldiers. |
+| Genghis Khan | Dominion + Commerce | Mounted movement, pillage and protected trade routes. |
+| Joan of Arc | Dominion + Devotion | Kills, faith and fighting in territory that follows the same religion. |
+| Mehmed the Conqueror | Dominion + Scientific | Barracks, scholars, generals and attacks on cities. |
+| Qin Shi Huang | Dominion + Magisterial | Garrisons, wonders and production from population. |
+
+Ibn Battuta can draw from every deck.
 
 ## 3. The engine: soldiers and commissions
 

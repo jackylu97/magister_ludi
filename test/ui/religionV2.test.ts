@@ -38,6 +38,7 @@ import {
 import {
   ALL_BELIEF_IDS,
   BELIEF_IDS,
+  RELIGION,
   CONSECRATION_IDS,
   ENHANCER_BELIEF_IDS,
   FOLLOWER_BELIEF_IDS,
@@ -194,9 +195,7 @@ describe('the Religion sheet’s right pane, once a religion is founded', () => 
     const reading = religionReading(state, 0);
     expect(reading.religion?.name).toBe(religion.name);
     expect(reading.found).toBeNull();
-    // The generated names all begin with an article (`religion.json`'s three
-    // patterns), which is what the possessive in a toast has to strip.
-    expect(religion.name.startsWith('the ')).toBe(true);
+    expect(RELIGION.names.roster.some(row => row.name === religion.name)).toBe(true);
   });
 
   it('opens a house for each drawable pool, and says what fills an empty one', () => {

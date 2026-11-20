@@ -1,5 +1,434 @@
 {
   "leaders": {
+    "alexanderTheGreat": {
+      "name": "Alexander the Great",
+      "people": "Macedonians",
+      "decks": [
+        "dominion",
+        "expansionist"
+      ],
+      "abilities": [
+        {
+          "id": "unbrokenCharge",
+          "name": "The Unbroken Charge",
+          "text": "Your units gain +3 combat strength when they attack. Capturing a city heals all your units.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 3,
+              "side": "attack",
+              "when": {
+                "test": "always"
+              }
+            },
+            {
+              "kind": "windfallRider",
+              "occasion": "capture",
+              "grant": {
+                "healAll": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "royalArmy",
+          "name": "The Royal Army",
+          "text": "Gaining a military unit grants science equal to half its strength.",
+          "effects": [
+            {
+              "kind": "windfallRider",
+              "occasion": "unitCompletion",
+              "grant": {
+                "yield": "science",
+                "amount": 0.5,
+                "fromOccasion": "strength",
+                "whole": true
+              },
+              "class": {
+                "category": "military"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "hypaspist",
+      "colors": {
+        "primary": "#6b2d7a",
+        "secondary": "#e3b93a",
+        "names": [
+          "Tyrian purple",
+          "sun gold"
+        ]
+      },
+      "startBias": {
+        "terrain": {
+          "river": 2,
+          "hills": 0.6,
+          "coast": 0.4
+        }
+      },
+      "persona": "warmonger",
+      "building": "schoolOfMieza",
+      "cities": [
+        "Pella",
+        "Aigai",
+        "Amphipolis",
+        "Alexandria Eschate",
+        "Bucephala",
+        "Kandahar"
+      ]
+    },
+    "genghisKhan": {
+      "name": "Genghis Khan",
+      "people": "Mongols",
+      "decks": [
+        "dominion",
+        "commerce"
+      ],
+      "abilities": [
+        {
+          "id": "steppeRidersOfMongolia",
+          "name": "The Riders of the Steppe",
+          "text": "Mounted units gain +1 movement on grassland and plains. Pillaging pays half again.",
+          "effects": [
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": {
+                "modelClass": "mounted"
+              },
+              "where": "grassOrPlains"
+            },
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": {
+                "modelClass": "mountedRanged"
+              },
+              "where": "grassOrPlains"
+            },
+            {
+              "kind": "windfallRider",
+              "occasion": "pillage",
+              "percent": 50
+            }
+          ]
+        },
+        {
+          "id": "paxMongolica",
+          "name": "The Pax Mongolica",
+          "text": "Your traders cannot be plundered. Trade routes pay +3 gold.",
+          "effects": [
+            {
+              "kind": "rule",
+              "rule": "tradersUnplunderable"
+            },
+            {
+              "kind": "pays",
+              "where": "route",
+              "gold": 3
+            }
+          ]
+        }
+      ],
+      "unit": "xiongnuHorseArcher",
+      "colors": {
+        "primary": "#3a78b5",
+        "secondary": "#efe6d2",
+        "names": [
+          "sky blue",
+          "bone"
+        ]
+      },
+      "startBias": {
+        "terrain": {
+          "grassland": 0.45,
+          "plains": 0.4,
+          "hills": -0.3
+        },
+        "resources": {
+          "horses": 12,
+          "cattle": 4
+        },
+        "furnish": [
+          "horses"
+        ],
+        "wants": {
+          "pastureGroundWithin": 3
+        }
+      },
+      "persona": "warmonger",
+      "building": "relayYam",
+      "cities": [
+        "Karakorum",
+        "Avarga",
+        "Almaliq",
+        "Samarkand",
+        "Zhongdu",
+        "Sarai"
+      ]
+    },
+    "joan": {
+      "name": "Joan of Arc",
+      "people": "French",
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
+      "abilities": [
+        {
+          "id": "theVoices",
+          "name": "The Voices",
+          "text": "Killing a unit pays faith, and presses your faith on the towns around the field.",
+          "effects": [
+            {
+              "kind": "windfallRider",
+              "occasion": "kill",
+              "grant": {
+                "yield": "faith",
+                "amount": 8,
+                "pressure": {
+                  "amount": 15,
+                  "range": 4
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "theMaid",
+          "name": "The Maid",
+          "text": "+4 combat strength on any ground that follows your faith.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 4,
+              "side": "both",
+              "when": {
+                "test": "followingTerritory"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "gendarme",
+      "building": "sainteChapelle",
+      "colors": {
+        "primary": "#2c3e9e",
+        "secondary": "#d9a521",
+        "names": [
+          "royal azure",
+          "gold"
+        ]
+      },
+      "cities": [
+        "Orléans",
+        "Reims",
+        "Paris",
+        "Bourges",
+        "Chinon",
+        "Rouen",
+        "Tours",
+        "Poitiers",
+        "Blois",
+        "Compiègne",
+        "Troyes",
+        "Lyon",
+        "Bordeaux",
+        "Avignon",
+        "Domrémy"
+      ],
+      "startBias": {
+        "terrain": {
+          "river": 3
+        }
+      },
+      "persona": "zealot"
+    },
+    "mehmedTheConqueror": {
+      "name": "Mehmed the Conqueror",
+      "people": "Ottomans",
+      "decks": [
+        "dominion",
+        "scientific"
+      ],
+      "abilities": [
+        {
+          "id": "enderun",
+          "name": "The Enderun",
+          "text": "Each Barracks gives +1 science, and +1 more for every great scholar and great general you have gained this game.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              },
+              "science": 1
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "science",
+              "amount": 1,
+              "count": "greatPeopleGained",
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              },
+              "family": "scholar",
+              "onNamedBuilding": true
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "science",
+              "amount": 1,
+              "count": "greatPeopleGained",
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              },
+              "family": "general",
+              "onNamedBuilding": true
+            }
+          ]
+        },
+        {
+          "id": "greatBombard",
+          "name": "The Great Bombard",
+          "text": "Your units gain +5 combat strength against cities. Capturing a city grants science equal to thirty times its population.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 5,
+              "side": "attack",
+              "when": {
+                "test": "vsCity"
+              }
+            },
+            {
+              "kind": "windfallRider",
+              "occasion": "capture",
+              "grant": {
+                "yield": "science",
+                "amount": 30,
+                "fromOccasion": "population"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "janissary",
+      "colors": {
+        "primary": "#d81e2c",
+        "secondary": "#f5f1e6",
+        "names": [
+          "Ottoman red",
+          "white"
+        ]
+      },
+      "startBias": {
+        "terrain": {
+          "coast": 1.5,
+          "hills": 0.6,
+          "river": 2
+        }
+      },
+      "persona": "warmonger",
+      "building": "kulliye",
+      "cities": [
+        "Istanbul",
+        "Edirne",
+        "Bursa",
+        "Thessalonica",
+        "Trebizond",
+        "Sarajevo"
+      ]
+    },
+    "qinShiHuang": {
+      "name": "Qin Shi Huang",
+      "people": "Qin",
+      "decks": [
+        "dominion",
+        "magisterial"
+      ],
+      "abilities": [
+        {
+          "id": "greatWorksOfQin",
+          "name": "The Great Works of Qin",
+          "text": "Garrisoned cities build wonders and buildings 25% faster.",
+          "effects": [
+            {
+              "kind": "productionBonus",
+              "category": "wonder",
+              "percent": 25,
+              "scope": {
+                "test": "garrisoned"
+              }
+            },
+            {
+              "kind": "productionBonus",
+              "category": "building",
+              "percent": 25,
+              "scope": {
+                "test": "garrisoned"
+              }
+            }
+          ]
+        },
+        {
+          "id": "registeredHouseholds",
+          "name": "The Registered Households",
+          "text": "Every city gains +1 production for every three citizens.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "production",
+              "amount": 1,
+              "count": "population",
+              "per": 3,
+              "within": "city"
+            }
+          ]
+        }
+      ],
+      "unit": "qinCrossbowman",
+      "colors": {
+        "primary": "#a83224",
+        "secondary": "#1c1a1a",
+        "names": [
+          "cinnabar",
+          "lacquer black"
+        ]
+      },
+      "startBias": {
+        "terrain": {
+          "grassland": 0.9,
+          "river": 2
+        },
+        "wants": {
+          "grasslandWithin": 2
+        }
+      },
+      "persona": "wide",
+      "building": "postStation",
+      "cities": [
+        "Xianyang",
+        "Yong",
+        "Yueyang",
+        "Handan",
+        "Linzi",
+        "Langya"
+      ]
+    },
     "pachacuti": {
       "name": "Pachacuti",
       "people": "Inca",
@@ -93,235 +522,29 @@
           "mountainWithin": 2,
           "riverWithin": 1
         }
-      }
-    },
-    "taizong": {
-      "name": "Emperor Taizong",
-      "people": "Tang",
-      "decks": [
-        "dominion",
-        "magisterial"
-      ],
-      "abilities": [
-        {
-          "id": "theMandate",
-          "name": "The Mandate",
-          "text": "Melee units gain +3 combat strength and +1 movement.",
-          "effects": [
-            {
-              "kind": "combatLine",
-              "amount": 3,
-              "side": "both",
-              "when": {
-                "test": "always"
-              },
-              "class": {
-                "modelClass": "melee"
-              }
-            },
-            {
-              "kind": "unitStat",
-              "stat": "movement",
-              "amount": 1,
-              "class": {
-                "modelClass": "melee"
-              }
-            }
-          ]
-        },
-        {
-          "id": "garrisonTowns",
-          "name": "The Garrison Towns",
-          "text": "Garrisoned cities pay +1 happiness and +15% culture.",
-          "effects": [
-            {
-              "kind": "happiness",
-              "amount": 1,
-              "scope": {
-                "test": "garrisoned"
-              }
-            },
-            {
-              "kind": "percentYields",
-              "yield": "culture",
-              "percent": 15,
-              "scope": {
-                "test": "garrisoned"
-              }
-            }
-          ]
-        }
-      ],
-      "unit": "tangCavalry",
-      "building": "examinationCourt",
-      "colors": {
-        "primary": "#2e8b6e",
-        "secondary": "#f3ecd8",
-        "names": [
-          "jade",
-          "ivory"
-        ]
       },
-      "cities": [
-        "Chang'an",
-        "Luoyang",
-        "Yangzhou",
-        "Chengdu",
-        "Guangzhou",
-        "Taiyuan",
-        "Jiangling",
-        "Bianzhou",
-        "Hangzhou",
-        "Suzhou",
-        "Youzhou",
-        "Dunhuang",
-        "Liangzhou",
-        "Xiangyang",
-        "Fuzhou"
-      ],
-      "startBias": {
-        "terrain": {
-          "grassland": 0.9,
-          "river": 2
-        },
-        "wants": {
-          "grasslandWithin": 2
-        }
-      }
+      "persona": "wide"
     },
-    "modu": {
-      "name": "Modu Chanyu",
-      "people": "Xiongnu",
+    "jayavarmanVII": {
+      "name": "Jayavarman VII",
+      "people": "Khmer",
       "decks": [
-        "dominion",
+        "expansionist",
         "devotion"
       ],
       "abilities": [
         {
-          "id": "steppeRiders",
-          "name": "The Riders of the Steppe",
-          "text": "Mounted units gain +1 movement on grassland and plains. Pillaging pays half again.",
-          "effects": [
-            {
-              "kind": "unitStat",
-              "stat": "movement",
-              "amount": 1,
-              "class": {
-                "modelClass": "mounted"
-              },
-              "where": "grassOrPlains"
-            },
-            {
-              "kind": "unitStat",
-              "stat": "movement",
-              "amount": 1,
-              "class": {
-                "modelClass": "mountedRanged"
-              },
-              "where": "grassOrPlains"
-            },
-            {
-              "kind": "windfallRider",
-              "occasion": "pillage",
-              "percent": 50
-            }
-          ]
-        },
-        {
-          "id": "theHerds",
-          "name": "The Herds",
-          "text": "+1 production and +1 faith on every pasture.",
+          "id": "hospitalsOfTheKing",
+          "name": "The Hospitals of the King",
+          "text": "Freshwater farms gain +1 food and +1 faith for each public work in their city.",
           "effects": [
             {
               "kind": "pays",
               "where": "hex",
-              "production": 1,
-              "faith": 1,
-              "on": {
-                "test": "improvement",
-                "improvement": "pasture"
-              }
-            }
-          ]
-        }
-      ],
-      "unit": "xiongnuHorseArcher",
-      "building": "hordeCamp",
-      "colors": {
-        "primary": "#3a78b5",
-        "secondary": "#efe6d2",
-        "names": [
-          "sky blue",
-          "bone"
-        ]
-      },
-      "cities": [
-        "Longcheng",
-        "Ordos",
-        "Ivolga",
-        "Noin-Ula",
-        "Gol Mod",
-        "Terelzhiin Dörvölzhin",
-        "Boroo",
-        "Loulan",
-        "Turfan",
-        "Karashahr",
-        "Kucha",
-        "Barkol",
-        "Hami",
-        "Duurlig Nars",
-        "Yanran"
-      ],
-      "startBias": {
-        "terrain": {
-          "grassland": 0.45,
-          "plains": 0.4,
-          "hills": -0.3
-        },
-        "resources": {
-          "horses": 12,
-          "cattle": 4
-        },
-        "furnish": [
-          "horses"
-        ],
-        "wants": {
-          "pastureGroundWithin": 3
-        }
-      }
-    },
-    "akhenaten": {
-      "name": "Akhenaten",
-      "people": "Egyptians",
-      "decks": [
-        "devotion",
-        "magisterial"
-      ],
-      "abilities": [
-        {
-          "id": "greatWorks",
-          "name": "The Great Works",
-          "text": "Cities with a holy site make wonders 20% faster.",
-          "effects": [
-            {
-              "kind": "productionBonus",
-              "category": "wonder",
-              "percent": 20,
-              "scope": {
-                "test": "hasImprovement",
-                "improvement": "holySite"
-              }
-            }
-          ]
-        },
-        {
-          "id": "nilesGift",
-          "name": "The Nile's Gift",
-          "text": "+1 faith on farms that drink fresh water, from a river, a lake or an oasis alike.",
-          "effects": [
-            {
-              "kind": "pays",
-              "where": "hex",
+              "basis": "count",
+              "count": "publicWorks",
+              "within": "city",
+              "food": 1,
               "faith": 1,
               "on": {
                 "test": "all",
@@ -337,295 +560,240 @@
               }
             }
           ]
-        }
-      ],
-      "unit": "khopesh",
-      "building": "obelisk",
-      "colors": {
-        "primary": "#e0852a",
-        "secondary": "#234b9a",
-        "names": [
-          "sun orange",
-          "lapis"
-        ]
-      },
-      "cities": [
-        "Akhetaten",
-        "Thebes",
-        "Memphis",
-        "Heliopolis",
-        "Abydos",
-        "Hermopolis",
-        "Elephantine",
-        "Thinis",
-        "Sais",
-        "Bubastis",
-        "Coptos",
-        "Edfu",
-        "Swenett",
-        "Buhen",
-        "Napata"
-      ],
-      "startBias": {
-        "terrain": {
-          "river": 4,
-          "floodplain": 3,
-          "oasis": 3,
-          "desert": 2
         },
-        "wants": {
-          "riverOrFloodplainWithin": 1,
-          "aridBeside": 3
-        }
-      }
-    },
-    "almamun": {
-      "name": "Al-Ma'mun",
-      "people": "Abbasids",
-      "decks": [
-        "devotion",
-        "scientific"
-      ],
-      "abilities": [
         {
-          "id": "mutazila",
-          "name": "The Mu'tazila",
-          "text": "+1 science for every fifth point of faith your realm makes each turn.",
+          "id": "greatCityOfAngkor",
+          "name": "The Great City",
+          "text": "Gain +1 culture and +1 faith for every four citizens in your empire.",
           "effects": [
             {
               "kind": "pays",
               "where": "empire",
-              "basis": "rate",
-              "to": "science",
+              "basis": "count",
+              "to": "culture",
               "amount": 1,
-              "fromRate": "faithPerTurn",
-              "per": 5
-            }
-          ]
-        },
-        {
-          "id": "theHouseOfWisdom",
-          "name": "The House of Wisdom",
-          "text": "+2 food for every faith or science building a city holds.",
-          "effects": [
+              "count": "population",
+              "per": 4
+            },
             {
               "kind": "pays",
-              "where": "city",
+              "where": "empire",
               "basis": "count",
-              "to": "food",
-              "amount": 2,
-              "count": "buildingsOfCategories",
-              "categories": [
-                "faith",
-                "science"
-              ]
+              "to": "faith",
+              "amount": 1,
+              "count": "population",
+              "per": 4
             }
           ]
         }
       ],
-      "unit": "camelArcher",
-      "building": "houseOfLearning",
+      "unit": "ballistaElephant",
       "colors": {
-        "primary": "#1c1a1a",
-        "secondary": "#d4a934",
+        "primary": "#c9a27a",
+        "secondary": "#1e6a45",
         "names": [
-          "black",
-          "gold"
+          "Angkor sandstone",
+          "forest green"
         ]
       },
-      "cities": [
-        "Baghdad",
-        "Merv",
-        "Kufa",
-        "Basra",
-        "Raqqa",
-        "Damascus",
-        "Samarra",
-        "Mosul",
-        "Wasit",
-        "Rayy",
-        "Nishapur",
-        "Isfahan",
-        "Fustat",
-        "Aleppo",
-        "Bukhara"
-      ],
       "startBias": {
         "terrain": {
-          "river": 5,
-          "coast": 0.6
+          "river": 4,
+          "lake": 2,
+          "forest": 1
         },
         "wants": {
-          "riverWithin": 2
+          "riverOrFloodplainWithin": 1
         }
-      }
+      },
+      "persona": "wide",
+      "building": "houseOfFire",
+      "cities": [
+        "Angkor Thom",
+        "Phimai",
+        "Banteay Chhmar",
+        "Lavo",
+        "Beng Mealea",
+        "Koh Ker"
+      ]
     },
-    "mithridates": {
-      "name": "Mithridates VI",
-      "people": "Pontics",
+    "nezahualcoyotl": {
+      "name": "Nezahualcoyotl",
+      "people": "Texcocans",
       "decks": [
-        "dominion",
-        "expansionist"
+        "expansionist",
+        "scientific"
       ],
       "abilities": [
         {
-          "id": "poisonKing",
-          "name": "The Poison King",
-          "text": "+2 combat strength against an empire holding more cities than yours.",
-          "effects": [
-            {
-              "kind": "combatLine",
-              "amount": 2,
-              "side": "both",
-              "when": {
-                "test": "vsWiderEmpire"
-              }
-            }
-          ]
-        },
-        {
-          "id": "grovesAndHunt",
-          "name": "The Groves and the Hunt",
-          "text": "+2 food on plantations and camps.",
+          "id": "theDikes",
+          "name": "The Dikes",
+          "text": "In cities with an Aqueduct, farms give +1 science and +1 production.",
           "effects": [
             {
               "kind": "pays",
               "where": "hex",
-              "food": 2,
+              "production": 1,
               "on": {
-                "test": "anyImprovement",
-                "improvements": [
-                  "plantation",
-                  "camp"
-                ]
+                "test": "improvement",
+                "improvement": "farm"
+              },
+              "scope": {
+                "test": "hasBuilding",
+                "building": "aqueduct"
+              },
+              "science": 1
+            }
+          ]
+        },
+        {
+          "id": "flowerAndSong",
+          "name": "Flower and Song",
+          "text": "+1 culture for every two citizens in your capital.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "capital",
+              "basis": "count",
+              "to": "culture",
+              "amount": 1,
+              "count": "capitalPopulation",
+              "per": 2,
+              "scope": {
+                "test": "trueCapital"
               }
             }
           ]
         }
       ],
-      "unit": "ponticPeltast",
-      "building": "ponticHold",
+      "unit": "eagleWarrior",
+      "building": "tetzcotzinco",
       "colors": {
-        "primary": "#6b2d7a",
-        "secondary": "#d8d8e0",
+        "primary": "#1fb3a5",
+        "secondary": "#c98b2e",
         "names": [
-          "Tyrian purple",
-          "silver"
+          "turquoise",
+          "ochre"
         ]
       },
       "cities": [
-        "Sinope",
-        "Amaseia",
-        "Amisos",
-        "Trapezus",
-        "Cabira",
-        "Pharnacia",
-        "Eupatoria",
-        "Zela",
-        "Comana",
-        "Themiscyra",
-        "Panticapaeum",
-        "Phanagoria",
-        "Chersonesus",
-        "Laodicea",
-        "Gaziura"
+        "Texcoco",
+        "Tenochtitlan",
+        "Tlacopan",
+        "Huexotla",
+        "Coatlinchan",
+        "Teotihuacan",
+        "Otumba",
+        "Chimalhuacan",
+        "Acolman",
+        "Tepetlaoztoc",
+        "Chiconauhtla",
+        "Papalotla",
+        "Chiautla",
+        "Calpulalpan",
+        "Tepechpan"
       ],
       "startBias": {
         "terrain": {
-          "river": 9,
-          "coast": 0.4,
-          "hills": 0.6
+          "lake": 2.5,
+          "river": 2
         },
-        "resources": {
-          "deer": 2
-        },
-        "luxuries": {
-          "wine": 2.5
-        },
-        "furnish": [
-          "plantation",
-          "camp"
-        ],
         "wants": {
-          "riverWithin": 2
+          "riverOrFloodplainWithin": 1,
+          "lakeWithin": 2
         }
-      }
+      },
+      "persona": "tall"
     },
-    "joan": {
-      "name": "Joan of Arc",
-      "people": "French",
+    "cyrusTheGreat": {
+      "name": "Cyrus the Great",
+      "people": "Persians",
       "decks": [
-        "dominion",
-        "devotion"
+        "expansionist",
+        "magisterial"
       ],
       "abilities": [
         {
-          "id": "theVoices",
-          "name": "The Voices",
-          "text": "Killing a unit pays faith, and presses your faith on the towns around the field.",
+          "id": "cyrusCylinder",
+          "name": "The Cyrus Cylinder",
+          "text": "Cities joined to your capital by road gain +1 happiness and +1 culture per Order in a Civic or Wildcard chair.",
           "effects": [
             {
-              "kind": "windfallRider",
-              "occasion": "kill",
-              "grant": {
-                "yield": "faith",
-                "amount": 8,
-                "pressure": {
-                  "amount": 15,
-                  "range": 4
-                }
+              "kind": "happiness",
+              "amount": 1,
+              "scope": {
+                "test": "connected"
               }
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "culture",
+              "amount": 1,
+              "count": "slottedOrdersOfSlot",
+              "byChair": true,
+              "scope": {
+                "test": "connected"
+              },
+              "slot": "civic"
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "culture",
+              "amount": 1,
+              "count": "slottedOrdersOfSlot",
+              "byChair": true,
+              "scope": {
+                "test": "connected"
+              },
+              "slot": "wildcard"
             }
           ]
         },
         {
-          "id": "theMaid",
-          "name": "The Maid",
-          "text": "+4 combat strength on any ground that follows your faith.",
+          "id": "kingsGardeners",
+          "name": "The King's Gardeners",
+          "text": "Cities you found start with a Worker.",
           "effects": [
             {
-              "kind": "combatLine",
-              "amount": 4,
-              "side": "both",
-              "when": {
-                "test": "followingTerritory"
-              }
+              "kind": "foundingRider",
+              "unit": "worker"
             }
           ]
         }
       ],
-      "unit": "gendarme",
-      "building": "sainteChapelle",
+      "unit": "sparabara",
       "colors": {
-        "primary": "#2c3e9e",
-        "secondary": "#d9a521",
+        "primary": "#0f7c8c",
+        "secondary": "#dcae3a",
         "names": [
-          "royal azure",
+          "Susa glaze teal",
           "gold"
         ]
       },
-      "cities": [
-        "Orléans",
-        "Reims",
-        "Paris",
-        "Bourges",
-        "Chinon",
-        "Rouen",
-        "Tours",
-        "Poitiers",
-        "Blois",
-        "Compiègne",
-        "Troyes",
-        "Lyon",
-        "Bordeaux",
-        "Avignon",
-        "Domrémy"
-      ],
       "startBias": {
         "terrain": {
-          "river": 3
+          "river": 4,
+          "plains": 0.4,
+          "oasis": 2
+        },
+        "wants": {
+          "riverWithin": 2
         }
-      }
+      },
+      "persona": "wide",
+      "improvement": "paradiseGarden",
+      "cities": [
+        "Pasargadae",
+        "Ecbatana",
+        "Susa",
+        "Babylon",
+        "Sardis",
+        "Anshan"
+      ]
     },
     "mansaMusa": {
       "name": "Mansa Musa",
@@ -734,7 +902,937 @@
         "wants": {
           "aridWithin": 2
         }
-      }
+      },
+      "persona": "balanced"
+    },
+    "cleopatra": {
+      "name": "Cleopatra",
+      "people": "Ptolemies",
+      "decks": [
+        "commerce",
+        "scientific"
+      ],
+      "abilities": [
+        {
+          "id": "booksFromTheShips",
+          "name": "Books from the Ships",
+          "text": "Your trade routes pay +2 science, and your foreign routes +2 more.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "route",
+              "science": 2
+            },
+            {
+              "kind": "pays",
+              "where": "route",
+              "science": 2,
+              "crossing": "international"
+            }
+          ]
+        },
+        {
+          "id": "queensAlliances",
+          "name": "The Queen's Alliances",
+          "text": "For each active deal, your capital gains +4 gold and +2 culture per age you have reached.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "capital",
+              "basis": "count",
+              "to": "gold",
+              "amount": 4,
+              "count": "activeDealAges"
+            },
+            {
+              "kind": "pays",
+              "where": "capital",
+              "basis": "count",
+              "to": "culture",
+              "amount": 2,
+              "count": "activeDealAges"
+            }
+          ]
+        }
+      ],
+      "unit": "alexandrianGalley",
+      "colors": {
+        "primary": "#e8dcae",
+        "secondary": "#1c3f7a",
+        "names": [
+          "papyrus",
+          "deep lapis"
+        ]
+      },
+      "startBias": {
+        "terrain": {
+          "coast": 2,
+          "river": 3
+        },
+        "wants": {
+          "coastalWithin": 1,
+          "riverWithin": 2
+        }
+      },
+      "persona": "tall",
+      "building": "museion",
+      "cities": [
+        "Alexandria",
+        "Cyrene",
+        "Ptolemais",
+        "Naucratis",
+        "Canopus",
+        "Pelusium"
+      ]
+    },
+    "lorenzoDeMedici": {
+      "name": "Lorenzo de' Medici",
+      "people": "Florentines",
+      "decks": [
+        "commerce",
+        "magisterial"
+      ],
+      "abilities": [
+        {
+          "id": "mediciBank",
+          "name": "The Medici Bank",
+          "text": "Gain +1 renown per turn for every eight gold your empire earns per turn after costs.",
+          "effects": [
+            {
+              "kind": "renown",
+              "amount": 1,
+              "count": "empireYield",
+              "voice": "gold",
+              "countPer": 8
+            }
+          ]
+        },
+        {
+          "id": "florins",
+          "name": "Florins",
+          "text": "A city builds wonders 10% faster for every gold building in it.",
+          "effects": [
+            {
+              "kind": "productionBonus",
+              "category": "wonder",
+              "percent": 10,
+              "count": "buildingsOfCategory",
+              "countCategory": "gold"
+            }
+          ]
+        }
+      ],
+      "unit": "condottiere",
+      "colors": {
+        "primary": "#7b5ea7",
+        "secondary": "#e0b548",
+        "names": [
+          "iris violet",
+          "florin gold"
+        ]
+      },
+      "startBias": {
+        "terrain": {
+          "river": 3,
+          "hills": 1
+        },
+        "wants": {
+          "riverWithin": 1
+        }
+      },
+      "persona": "tall",
+      "building": "bottega",
+      "cities": [
+        "Florence",
+        "Pisa",
+        "Arezzo",
+        "Volterra",
+        "Prato",
+        "Pistoia"
+      ]
+    },
+    "harunAlRashid": {
+      "name": "Harun al-Rashid",
+      "people": "Abbasids",
+      "decks": [
+        "devotion",
+        "scientific"
+      ],
+      "abilities": [
+        {
+          "id": "storehouseOfWisdom",
+          "name": "The Storehouse of Wisdom",
+          "text": "Faith buildings and science buildings give +1 science and +1 faith each.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "science",
+              "amount": 1,
+              "count": "buildingsOfCategory",
+              "category": "faith",
+              "within": "city"
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "faith",
+              "amount": 1,
+              "count": "buildingsOfCategory",
+              "category": "faith",
+              "within": "city"
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "science",
+              "amount": 1,
+              "count": "buildingsOfCategory",
+              "category": "science",
+              "within": "city"
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "faith",
+              "amount": 1,
+              "count": "buildingsOfCategory",
+              "category": "science",
+              "within": "city"
+            }
+          ]
+        },
+        {
+          "id": "learnedCourt",
+          "name": "The Learned Court",
+          "text": "Completing a technology grants faith equal to a fifth of its cost.",
+          "effects": [
+            {
+              "kind": "windfallRider",
+              "occasion": "tech",
+              "grant": {
+                "yield": "faith",
+                "amount": 0.2,
+                "fromOccasion": "techCost"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "camelArcher",
+      "colors": {
+        "primary": "#1c1a1a",
+        "secondary": "#d4a934",
+        "names": [
+          "Abbasid black",
+          "gold"
+        ]
+      },
+      "startBias": {
+        "terrain": {
+          "river": 5,
+          "coast": 0.6
+        },
+        "wants": {
+          "riverWithin": 2
+        }
+      },
+      "persona": "zealot",
+      "building": "houseOfLearning",
+      "cities": [
+        "Baghdad",
+        "Raqqa",
+        "Kufa",
+        "Basra",
+        "Merv",
+        "Rayy"
+      ]
+    },
+    "justinian": {
+      "name": "Justinian",
+      "people": "Byzantines",
+      "decks": [
+        "devotion",
+        "magisterial"
+      ],
+      "abilities": [
+        {
+          "id": "surpassedSolomon",
+          "name": "Solomon, I Have Surpassed You",
+          "text": "Completing a wonder grants faith equal to its production cost.",
+          "effects": [
+            {
+              "kind": "windfallRider",
+              "occasion": "buildingCompletion",
+              "grant": {
+                "yield": "faith",
+                "amount": 1,
+                "fromOccasion": "production"
+              },
+              "wonder": true
+            }
+          ]
+        },
+        {
+          "id": "oneFaithOneEmpire",
+          "name": "One Faith, One Empire",
+          "text": "Each Holy Site gives +5 production. Each Holy Site a citizen works gives your empire +2 happiness.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "production": 5,
+              "on": {
+                "test": "improvement",
+                "improvement": "holySite"
+              }
+            },
+            {
+              "kind": "pays",
+              "where": "empire",
+              "basis": "count",
+              "to": "happiness",
+              "amount": 2,
+              "count": "workedTilesInCity",
+              "within": "city",
+              "tile": {
+                "test": "improvement",
+                "improvement": "holySite"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "cataphract",
+      "colors": {
+        "primary": "#5a1e4a",
+        "secondary": "#d9b23c",
+        "names": [
+          "porphyry",
+          "mosaic gold"
+        ]
+      },
+      "startBias": {
+        "terrain": {
+          "coast": 2,
+          "hills": 0.6,
+          "river": 2
+        }
+      },
+      "persona": "tall",
+      "building": "basilica",
+      "cities": [
+        "Constantinople",
+        "Ravenna",
+        "Carthage",
+        "Thessalonica",
+        "Antioch",
+        "Justiniana Prima"
+      ]
+    },
+    "sejongTheGreat": {
+      "name": "Sejong the Great",
+      "people": "Joseon",
+      "decks": [
+        "scientific",
+        "magisterial"
+      ],
+      "abilities": [
+        {
+          "id": "correctSounds",
+          "name": "The Correct Sounds",
+          "text": "Every city gains +1 science and +1 culture for every four citizens.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "science",
+              "amount": 1,
+              "count": "population",
+              "per": 4,
+              "within": "city"
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "culture",
+              "amount": 1,
+              "count": "population",
+              "per": 4,
+              "within": "city"
+            }
+          ]
+        },
+        {
+          "id": "royalLectures",
+          "name": "The Royal Lectures",
+          "text": "Each technology you complete grants three turns of renown, with the same share for each family.",
+          "effects": [
+            {
+              "kind": "windfallRider",
+              "occasion": "tech",
+              "grant": {
+                "renown": 3,
+                "fromRate": "renownPerTurn"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "hwacha",
+      "colors": {
+        "primary": "#25346b",
+        "secondary": "#f3f1ea",
+        "names": [
+          "ink navy",
+          "porcelain white"
+        ]
+      },
+      "startBias": {
+        "terrain": {
+          "river": 3,
+          "hills": 1,
+          "coast": 0.5
+        },
+        "wants": {
+          "riverWithin": 2
+        }
+      },
+      "persona": "tall",
+      "building": "hallOfWorthies",
+      "cities": [
+        "Hanseong",
+        "Gaeseong",
+        "Pyongyang",
+        "Gyeongju",
+        "Jeonju",
+        "Hamhung"
+      ]
+    },
+    "ibnBattutaOfTangier": {
+      "name": "Ibn Battuta",
+      "people": "Maghrebis",
+      "rainbow": true,
+      "abilities": [
+        {
+          "id": "guestAtEveryCourt",
+          "name": "A Guest at Every Court",
+          "text": "One more chair in every government.",
+          "effects": [
+            {
+              "kind": "slotRider",
+              "extra": 1
+            }
+          ]
+        },
+        {
+          "id": "theRihla",
+          "name": "The Rihla",
+          "text": "The first redraw of every hand you are dealt costs nothing — an Order, a doctrine or a great person, and never a belief.",
+          "effects": [
+            {
+              "kind": "rule",
+              "rule": "rerollOffers"
+            }
+          ]
+        }
+      ],
+      "unit": "rihlaCaravan",
+      "building": "funduq",
+      "colors": {
+        "primary": "#b5651d",
+        "secondary": "#0d6b78",
+        "names": [
+          "ochre",
+          "sea teal"
+        ]
+      },
+      "cities": [
+        "Tangier",
+        "Fez",
+        "Marrakesh",
+        "Sijilmasa",
+        "Ceuta",
+        "Tlemcen",
+        "Tunis",
+        "Salé",
+        "Rabat",
+        "Meknes",
+        "Oujda",
+        "Bougie",
+        "Algiers",
+        "Tripoli",
+        "Kairouan"
+      ],
+      "startBias": {},
+      "persona": "balanced"
+    },
+    "taizong": {
+      "name": "Emperor Taizong",
+      "people": "Tang",
+      "decks": [
+        "dominion",
+        "magisterial"
+      ],
+      "abilities": [
+        {
+          "id": "theMandate",
+          "name": "The Mandate",
+          "text": "Melee units gain +3 combat strength and +1 movement.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 3,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "modelClass": "melee"
+              }
+            },
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": {
+                "modelClass": "melee"
+              }
+            }
+          ]
+        },
+        {
+          "id": "garrisonTowns",
+          "name": "The Garrison Towns",
+          "text": "Garrisoned cities pay +1 happiness and +15% culture.",
+          "effects": [
+            {
+              "kind": "happiness",
+              "amount": 1,
+              "scope": {
+                "test": "garrisoned"
+              }
+            },
+            {
+              "kind": "percentYields",
+              "yield": "culture",
+              "percent": 15,
+              "scope": {
+                "test": "garrisoned"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "tangCavalry",
+      "building": "examinationCourt",
+      "colors": {
+        "primary": "#2e8b6e",
+        "secondary": "#f3ecd8",
+        "names": [
+          "jade",
+          "ivory"
+        ]
+      },
+      "cities": [
+        "Chang'an",
+        "Luoyang",
+        "Yangzhou",
+        "Chengdu",
+        "Guangzhou",
+        "Taiyuan",
+        "Jiangling",
+        "Bianzhou",
+        "Hangzhou",
+        "Suzhou",
+        "Youzhou",
+        "Dunhuang",
+        "Liangzhou",
+        "Xiangyang",
+        "Fuzhou"
+      ],
+      "startBias": {
+        "terrain": {
+          "grassland": 0.9,
+          "river": 2
+        },
+        "wants": {
+          "grasslandWithin": 2
+        }
+      },
+      "retired": true
+    },
+    "modu": {
+      "name": "Modu Chanyu",
+      "people": "Xiongnu",
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
+      "abilities": [
+        {
+          "id": "steppeRiders",
+          "name": "The Riders of the Steppe",
+          "text": "Mounted units gain +1 movement on grassland and plains. Pillaging pays half again.",
+          "effects": [
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": {
+                "modelClass": "mounted"
+              },
+              "where": "grassOrPlains"
+            },
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": {
+                "modelClass": "mountedRanged"
+              },
+              "where": "grassOrPlains"
+            },
+            {
+              "kind": "windfallRider",
+              "occasion": "pillage",
+              "percent": 50
+            }
+          ]
+        },
+        {
+          "id": "theHerds",
+          "name": "The Herds",
+          "text": "+1 production and +1 faith on every pasture.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "production": 1,
+              "faith": 1,
+              "on": {
+                "test": "improvement",
+                "improvement": "pasture"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "xiongnuHorseArcher",
+      "building": "hordeCamp",
+      "colors": {
+        "primary": "#3a78b5",
+        "secondary": "#efe6d2",
+        "names": [
+          "sky blue",
+          "bone"
+        ]
+      },
+      "cities": [
+        "Longcheng",
+        "Ordos",
+        "Ivolga",
+        "Noin-Ula",
+        "Gol Mod",
+        "Terelzhiin Dörvölzhin",
+        "Boroo",
+        "Loulan",
+        "Turfan",
+        "Karashahr",
+        "Kucha",
+        "Barkol",
+        "Hami",
+        "Duurlig Nars",
+        "Yanran"
+      ],
+      "startBias": {
+        "terrain": {
+          "grassland": 0.45,
+          "plains": 0.4,
+          "hills": -0.3
+        },
+        "resources": {
+          "horses": 12,
+          "cattle": 4
+        },
+        "furnish": [
+          "horses"
+        ],
+        "wants": {
+          "pastureGroundWithin": 3
+        }
+      },
+      "retired": true
+    },
+    "akhenaten": {
+      "name": "Akhenaten",
+      "people": "Egyptians",
+      "decks": [
+        "devotion",
+        "magisterial"
+      ],
+      "abilities": [
+        {
+          "id": "greatWorks",
+          "name": "The Great Works",
+          "text": "Cities with a holy site make wonders 20% faster.",
+          "effects": [
+            {
+              "kind": "productionBonus",
+              "category": "wonder",
+              "percent": 20,
+              "scope": {
+                "test": "hasImprovement",
+                "improvement": "holySite"
+              }
+            }
+          ]
+        },
+        {
+          "id": "nilesGift",
+          "name": "The Nile's Gift",
+          "text": "+1 faith on farms that drink fresh water, from a river, a lake or an oasis alike.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "faith": 1,
+              "on": {
+                "test": "all",
+                "of": [
+                  {
+                    "test": "improvement",
+                    "improvement": "farm"
+                  },
+                  {
+                    "test": "freshwater"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "khopesh",
+      "building": "obelisk",
+      "colors": {
+        "primary": "#e0852a",
+        "secondary": "#234b9a",
+        "names": [
+          "sun orange",
+          "lapis"
+        ]
+      },
+      "cities": [
+        "Akhetaten",
+        "Thebes",
+        "Memphis",
+        "Heliopolis",
+        "Abydos",
+        "Hermopolis",
+        "Elephantine",
+        "Thinis",
+        "Sais",
+        "Bubastis",
+        "Coptos",
+        "Edfu",
+        "Swenett",
+        "Buhen",
+        "Napata"
+      ],
+      "startBias": {
+        "terrain": {
+          "river": 4,
+          "floodplain": 3,
+          "oasis": 3,
+          "desert": 2
+        },
+        "wants": {
+          "riverOrFloodplainWithin": 1,
+          "aridBeside": 3
+        }
+      },
+      "retired": true
+    },
+    "almamun": {
+      "name": "Al-Ma'mun",
+      "people": "Abbasids",
+      "decks": [
+        "devotion",
+        "scientific"
+      ],
+      "abilities": [
+        {
+          "id": "mutazila",
+          "name": "The Mu'tazila",
+          "text": "+1 science for every fifth point of faith your realm makes each turn.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "empire",
+              "basis": "rate",
+              "to": "science",
+              "amount": 1,
+              "fromRate": "faithPerTurn",
+              "per": 5
+            }
+          ]
+        },
+        {
+          "id": "theHouseOfWisdom",
+          "name": "The House of Wisdom",
+          "text": "+2 food for every faith or science building a city holds.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "food",
+              "amount": 2,
+              "count": "buildingsOfCategories",
+              "categories": [
+                "faith",
+                "science"
+              ]
+            }
+          ]
+        }
+      ],
+      "unit": "camelArcher",
+      "building": "houseOfLearning",
+      "colors": {
+        "primary": "#1c1a1a",
+        "secondary": "#d4a934",
+        "names": [
+          "black",
+          "gold"
+        ]
+      },
+      "cities": [
+        "Baghdad",
+        "Merv",
+        "Kufa",
+        "Basra",
+        "Raqqa",
+        "Damascus",
+        "Samarra",
+        "Mosul",
+        "Wasit",
+        "Rayy",
+        "Nishapur",
+        "Isfahan",
+        "Fustat",
+        "Aleppo",
+        "Bukhara"
+      ],
+      "startBias": {
+        "terrain": {
+          "river": 5,
+          "coast": 0.6
+        },
+        "wants": {
+          "riverWithin": 2
+        }
+      },
+      "retired": true
+    },
+    "mithridates": {
+      "name": "Mithridates VI",
+      "people": "Pontics",
+      "decks": [
+        "dominion",
+        "expansionist"
+      ],
+      "abilities": [
+        {
+          "id": "poisonKing",
+          "name": "The Poison King",
+          "text": "+2 combat strength against an empire holding more cities than yours.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 2,
+              "side": "both",
+              "when": {
+                "test": "vsWiderEmpire"
+              }
+            }
+          ]
+        },
+        {
+          "id": "grovesAndHunt",
+          "name": "The Groves and the Hunt",
+          "text": "+2 food on plantations and camps.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "food": 2,
+              "on": {
+                "test": "anyImprovement",
+                "improvements": [
+                  "plantation",
+                  "camp"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "ponticPeltast",
+      "building": "ponticHold",
+      "colors": {
+        "primary": "#6b2d7a",
+        "secondary": "#d8d8e0",
+        "names": [
+          "Tyrian purple",
+          "silver"
+        ]
+      },
+      "cities": [
+        "Sinope",
+        "Amaseia",
+        "Amisos",
+        "Trapezus",
+        "Cabira",
+        "Pharnacia",
+        "Eupatoria",
+        "Zela",
+        "Comana",
+        "Themiscyra",
+        "Panticapaeum",
+        "Phanagoria",
+        "Chersonesus",
+        "Laodicea",
+        "Gaziura"
+      ],
+      "startBias": {
+        "terrain": {
+          "river": 9,
+          "coast": 0.4,
+          "hills": 0.6
+        },
+        "resources": {
+          "deer": 2
+        },
+        "luxuries": {
+          "wine": 2.5
+        },
+        "furnish": [
+          "plantation",
+          "camp"
+        ],
+        "wants": {
+          "riverWithin": 2
+        }
+      },
+      "retired": true
     },
     "zhengHeOfMing": {
       "name": "Zheng He",
@@ -830,102 +1928,8 @@
         "wants": {
           "coastalWithin": 1
         }
-      }
-    },
-    "nezahualcoyotl": {
-      "name": "Nezahualcoyotl",
-      "people": "Texcocans",
-      "decks": [
-        "expansionist",
-        "scientific"
-      ],
-      "abilities": [
-        {
-          "id": "theDikes",
-          "name": "The Dikes",
-          "text": "Cities with an aqueduct pay +1 culture, and their farms +1 production.",
-          "effects": [
-            {
-              "kind": "pays",
-              "where": "city",
-              "culture": 1,
-              "scope": {
-                "test": "hasBuilding",
-                "building": "aqueduct"
-              }
-            },
-            {
-              "kind": "pays",
-              "where": "hex",
-              "production": 1,
-              "on": {
-                "test": "improvement",
-                "improvement": "farm"
-              },
-              "scope": {
-                "test": "hasBuilding",
-                "building": "aqueduct"
-              }
-            }
-          ]
-        },
-        {
-          "id": "flowerAndSong",
-          "name": "Flower and Song",
-          "text": "+1 culture for every two citizens in your capital.",
-          "effects": [
-            {
-              "kind": "pays",
-              "where": "capital",
-              "basis": "count",
-              "to": "culture",
-              "amount": 1,
-              "count": "capitalPopulation",
-              "per": 2,
-              "scope": {
-                "test": "trueCapital"
-              }
-            }
-          ]
-        }
-      ],
-      "unit": "eagleWarrior",
-      "building": "tetzcotzinco",
-      "colors": {
-        "primary": "#1fb3a5",
-        "secondary": "#c98b2e",
-        "names": [
-          "turquoise",
-          "ochre"
-        ]
       },
-      "cities": [
-        "Texcoco",
-        "Tenochtitlan",
-        "Tlacopan",
-        "Huexotla",
-        "Coatlinchan",
-        "Teotihuacan",
-        "Otumba",
-        "Chimalhuacan",
-        "Acolman",
-        "Tepetlaoztoc",
-        "Chiconauhtla",
-        "Papalotla",
-        "Chiautla",
-        "Calpulalpan",
-        "Tepechpan"
-      ],
-      "startBias": {
-        "terrain": {
-          "lake": 2.5,
-          "river": 2
-        },
-        "wants": {
-          "riverOrFloodplainWithin": 1,
-          "lakeWithin": 2
-        }
-      }
+      "retired": true
     },
     "hypatiaOfAlexandria": {
       "name": "Hypatia",
@@ -999,7 +2003,8 @@
           "coastalWithin": 1,
           "riverWithin": 2
         }
-      }
+      },
+      "retired": true
     },
     "hildegard": {
       "name": "Hildegard of Bingen",
@@ -1087,64 +2092,8 @@
         "wants": {
           "riverWithin": 1
         }
-      }
-    },
-    "ibnBattutaOfTangier": {
-      "name": "Ibn Battuta",
-      "people": "Maghrebis",
-      "rainbow": true,
-      "abilities": [
-        {
-          "id": "guestAtEveryCourt",
-          "name": "A Guest at Every Court",
-          "text": "One more chair in every government.",
-          "effects": [
-            {
-              "kind": "slotRider",
-              "extra": 1
-            }
-          ]
-        },
-        {
-          "id": "theRihla",
-          "name": "The Rihla",
-          "text": "The first redraw of every hand you are dealt costs nothing — an Order, a doctrine or a great person, and never a belief.",
-          "effects": [
-            {
-              "kind": "rule",
-              "rule": "rerollOffers"
-            }
-          ]
-        }
-      ],
-      "unit": "rihlaCaravan",
-      "building": "funduq",
-      "colors": {
-        "primary": "#b5651d",
-        "secondary": "#0d6b78",
-        "names": [
-          "ochre",
-          "sea teal"
-        ]
       },
-      "cities": [
-        "Tangier",
-        "Fez",
-        "Marrakesh",
-        "Sijilmasa",
-        "Ceuta",
-        "Tlemcen",
-        "Tunis",
-        "Salé",
-        "Rabat",
-        "Meknes",
-        "Oujda",
-        "Bougie",
-        "Algiers",
-        "Tripoli",
-        "Kairouan"
-      ],
-      "startBias": {}
+      "retired": true
     }
   }
 }

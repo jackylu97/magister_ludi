@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { fillPurchaseRing } from '../purchaseHelpers';
 
 import { valueContext } from '../../../src/ai/bot';
 import { explainYields } from '../../../src/ai/prices';
@@ -190,11 +191,12 @@ describe('The Great Raising', () => {
     puppet.puppet = true;
     for (const town of [blocked, puppet, wonder, opus, project, idle, rival]) town.hammerBasket = 4;
     createUnit(state, 0, 'worker', blocked.col, blocked.row);
+    fillPurchaseRing(state, blocked, 'worker');
     const unchanged = [blocked, puppet, wonder, opus, project, idle, rival]
       .map((city) => ({ city, queue: city.queue.slice(), hammers: city.hammerBasket }));
     const workerCost = unitProductionCost(state, 0, 'worker');
     bumpRevision(state);
-    expect(planProduction(state, blocked, Infinity)?.kind).toBe('unit');
+    expect(planProduction(state, blocked, Infinity)).toBeNull();
     const ctx = valueContext(state, player);
     expect(onDraftWorth(RAISING, ctx)).toBeCloseTo(
       explainYields({ production: workerCost - 2 }, ctx).total / boonTurns(ctx),

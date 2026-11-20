@@ -1174,7 +1174,8 @@ describe('the schema, as landed', () => {
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
     // Version 248 changes the draft pools and wonder effects used during replay.
-    expect(SCHEMA_VERSION).toBe(248);
+    // Version 249 changes the leader and Great Person rosters, religion names and unit purchases.
+    expect(SCHEMA_VERSION).toBe(249);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

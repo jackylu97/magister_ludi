@@ -88,6 +88,7 @@ import {
   type TileYieldContribution,
 } from './yields/hex';
 import {
+  isGreatPersonWork,
   type ImprovementId,
   type WorkFamily,
   chopDef,
@@ -530,7 +531,7 @@ export function improvementGroundError(
   // It is not a trap door: an improvement *replaces* whatever stands on the tile
   // (see `buildImprovementAt`), so a farm laid over an unrevealed seam is
   // recoverable the day the seam is named.
-  if (!anywhere && !marking && tile.resource !== undefined) {
+  if (!isGreatPersonWork(improvementId) && !marking && tile.resource !== undefined) {
     const owningPlayer = playerById(state, ownerId);
     const wanted = improvementForResource(tile.resource);
     if (

@@ -32,7 +32,7 @@ import {
 } from '../../src/sim/state';
 import type { OrderId } from '../../src/sim/statecraftData';
 import { buildError, isUnlocked, upgradeTargetForType } from '../../src/sim/tech';
-import { TECH_IDS } from '../../src/sim/techData';
+import { TECH_IDS, techColumn } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, isNaval, unitDef } from '../../src/sim/unitData';
 import {
   type BuildListRow,
@@ -138,7 +138,24 @@ describe('a row this town can never build or buy is hidden', () => {
 
   it('hides a withdrawn unit, whatever the empire knows', () => {
     const { state, city } = developed();
-    expect(unitDef('cataphract').retired).toBe(true);
+    const retired = UNIT_TYPE_IDS.filter(id => unitDef(id).retired === true);
+    expect(retired.length).toBeGreaterThan(0);
+    for (const id of retired) expect(unitRowShown(state, city, id), id).toBe(false);
+  });
+
+  it('shows the Cataphract only to Justinian when its column opens', () => {
+    const { state, city } = firstTurn();
+    const player = state.players[city.ownerId]!;
+    const column = unitDef('cataphract').column!;
+    player.leader = 'justinian';
+    player.techsResearched = TECH_IDS.filter(id => techColumn(id) < column);
+    bumpRevision(state);
+    expect(unitRowShown(state, city, 'cataphract')).toBe(false);
+    player.techsResearched = TECH_IDS.filter(id => techColumn(id) <= column);
+    bumpRevision(state);
+    expect(unitRowShown(state, city, 'cataphract')).toBe(true);
+    player.leader = 'joan';
+    bumpRevision(state);
     expect(unitRowShown(state, city, 'cataphract')).toBe(false);
   });
 
@@ -404,7 +421,10 @@ describe('the work rail’s card and the Faith card', () => {
     // The rite the town keeps is a small card: its name, a bar of the turns
     // gone against the rite's whole length, and the turns left.
     expect(card).toContain('const whole = riteTurnsFor(state, city.ownerId, held) ?? left;');
-    expect(card).toContain("kept.append(bar(Math.max(0, whole - left), Math.max(whole, left), 'is-faith'));");
+    expect(card).toContain('for (const held of kept)');
+    expect(card).toContain("const box = element('div', 'city-rite-kept');");
+    expect(card).toContain("box.append(bar(Math.max(0, whole - left), Math.max(whole, left), 'is-faith'));");
+    expect(card).toContain('rites.append(box);');
   });
 });
 

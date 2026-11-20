@@ -111,6 +111,7 @@ import {
   cardOfferFamily,
   cardWorkDiscount,
   offerSize,
+  openWaitingOrderOffer,
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
@@ -162,23 +163,11 @@ export function familyOf(unit: Unit): Family | null {
 
 // --- the draw ---------------------------------------------------------------
 
-/**
- * The roster age an empire of this era draws from.
- *
- * `docs/great-people.md` numbers its roster Æra II (Heroes) through Æra V
- * (Magister); the tech tree today knows three ages (`TechAge`). **One function
- * maps between them**, so the tree pass that adds the fourth and fifth ages
- * moves this line and nothing else — the alternative is a `+ 1` sprinkled
- * through the draw, the spill and every test.
- *
- * Æra I is the Heroes roster: great people first appear there, and an empire
- * that fills its bucket before researching anything should be offered the
- * earliest names rather than nothing at all.
- */
+/** An early grant uses the first roster. Once the empire reaches that age, the two ages match. */
 export function rosterAgeFor(techAge: number): number {
   const first = ROSTER_AGES[0] ?? 2;
   const last = ROSTER_AGES[ROSTER_AGES.length - 1] ?? first;
-  return Math.min(last, Math.max(first, first + Math.max(0, Math.floor(techAge) - 1)));
+  return Math.min(last, Math.max(first, Math.floor(techAge)));
 }
 
 /** The roster age this empire draws from, read off what it has researched. */
@@ -1072,48 +1061,14 @@ export function agedActFactor(player: Player): number {
   return 1 + PEOPLE.actPerTech * player.techsResearched.length;
 }
 
-/**
- * The **base** figure a rate-quoted act pays: `actGainTurns` turns of what this
- * empire is already banking in that voice.
- *
- * The nerf pass of 2026-09-03 re-quoted two of the five acts. A scholar used to
- * pay a *share of the aimed technology's cost*, which meant a great person was
- * worth more the deeper the tree went and worth it to an empire that had built
- * nothing; an artist used to pay a flat forty. Both now pay **turns of the
- * empire's own rate**, which is the same sentence The Lyceum says about a
- * technology, and it is the honest one: a great person is worth what your empire
- * is worth.
- *
- * "What am I making per turn" is asked of `foldEmpireRates` (`cities.ts`) and
- * nowhere else — the very fold `collectYields` banks and the top bar prints — so
- * the preview, the payout and the headline cannot drift. It is the **base**
- * rate, before any `pays` rate pays anything, which is that reading's own
- * discipline: an act that read a converted rate would be two cards feeding each
- * other through a great person.
- *
- * Deliberately outside `agedActFactor`: a figure read off the empire's own books
- * already grows with every technology, every building and every citizen, and
- * ageing it a second time would compound. Leonardo's amplifier is *not* folded
- * here — it belongs to the act, beside the two flat arms' own boost, so this
- * stays the one number a preview may print without a card in hand.
- *
- * Never negative: an empire whose treasury is being eaten alive still cannot be
- * charged for calling a scholar.
- *
- * **A reader at rest may hand in the books** (bot batch BP14): `readEmpireRates`
- * (`readings.ts`) is this same fold, taken off the `readCity` lists and remembered
- * on the economy clock, so the figure is the same. The bot prices every act of
- * the five families several times a decision, and each fresh fold here priced
- * every town of the empire again (3% of a late bot turn). The act itself and the
- * interface pass nothing and fold fresh, as before.
- */
+/** A merchant, artist or scholar receives turns of current income. The bot can pass the same rates from its cache. */
 export function actGainOf(
   state: GameState,
   playerId: number,
-  voice: 'science' | 'culture',
-  rates: Readonly<{ sciencePerTurn?: number; culturePerTurn?: number }> = foldEmpireRates(state, playerId),
+  voice: 'science' | 'culture' | 'gold',
+  rates: Readonly<{ sciencePerTurn?: number; culturePerTurn?: number; goldPerTurn?: number }> = foldEmpireRates(state, playerId),
 ): number {
-  const perTurn = voice === 'science' ? rates.sciencePerTurn : rates.culturePerTurn;
+  const perTurn = rates[`${voice}PerTurn`];
   return Math.max(0, Math.floor(perTurn ?? 0)) * Math.max(0, Math.floor(PEOPLE.actGainTurns));
 }
 
@@ -1191,7 +1146,7 @@ export function greatPersonActAt(
       break;
     }
     case 'merchant': {
-      player.gold += paid(PEOPLE.merchantGold * era);
+      player.gold += gained(actGainOf(state, player.id, 'gold'));
       bumpEconomy(state);
       break;
     }
@@ -1385,6 +1340,13 @@ function spendGreatPerson(
     // A legacy is `liveEffects`' sixth source, and the walk the meters fold
     // (batch M3, `slate.ts`).
     bumpEconomy(state);
+  }
+  const grant = greatPersonDef(id).onSpend;
+  if (grant !== undefined) {
+    const sc = player.statecraft;
+    if (grant.freeRerolls) sc.freeRerolls = (sc.freeRerolls ?? 0) + grant.freeRerolls;
+    sc.waitingOrderOffers = (sc.waitingOrderOffers ?? 0) + grant.orderDrafts;
+    openWaitingOrderOffer(state, player);
   }
   // The growing cards' occasion, written here because this is **the** one place
   // a great person is spent — both verbs reach it, so The Reliquary Rolls counts
