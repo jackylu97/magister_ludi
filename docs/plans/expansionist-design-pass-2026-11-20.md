@@ -1,90 +1,206 @@
 # Expansionist design pass (2026-11-20)
 
-**Status, 2026-11-20, second round:** round one is ruled. Of the 36 changes, 26 are approved, 4 carry your own text, 5 are cut and 1 is kept as it is today. Nothing is built, and no game data changed. **What waits for your second review:** the four tended works on three cards, two new changes (37 and 38), three advice notes on your own lines, and one reading to confirm. They are all in section 1.
+**Status, 2026-11-20, third round:** rounds one and two are ruled. Of 38 changes, 26 are approved, 6 carry your own text, 5 are cut and 1 is kept as it is today. Nothing is built, and no game data changed. **What waits for your third review:** the answer to your question about wild land (the counts and the Æra IV comparison), and six new changes (39 to 44) that close the gap. They are all in section 1.
 
 Your request, 2026-11-20, in your words:
 
 > *"ok, could you do a deck pass on commerce and expansionist. I find that i don't really take any of the tended land cards in this version of the game, and commerce feels a bit one-note. I'm not sure whether to drop the tended land theme altogether or make it more fleshed out, what do you think?"*
 
-- This file is the current state. The record of round one, with your words, is at the foot.
-- Your ruling on the whole: *"yup no comment means approved, please fold these in and i'll do another review"*.
-- Tended land: option C stands. It is folded into the wild-land theme. Section 2 has the decision and the four works.
-- Every number is a first guess against the power bar, to tune in playtest. I ran no bot games and no tests. I did count the ground around 48 starts on 8 standard maps (section 2).
-- A line marked "your text" is yours and stands. Where I think it is off the bar, a note says so. The note is advice.
-- The review page: https://claude.ai/artifact/6cD6W4ym5WeUdMvUWDXaYf. Its anchors are `change-01` to `change-38` and `new-1` to `new-9`.
+- This file is the current state. The record of rounds one and two, with your words, is at the foot.
+- Your rule from round two: **a tended work is clearly better than the plain improvement on the same ground** (*"it needs to be clearly better than a regular farm"*). It reverses the older line in `docs/decks/deck-design.md`, which says a tended work yields less than a proper improvement.
+- Your question from round two: *"How many cards today buff wild cards? For this to be meaningful, they need to pay off as much as improvements in the late game, which can get kind of busted with religious beliefs and great people."* Section 1 answers it.
+- Every number is a first guess against the power bar, to tune in playtest. I ran no bot games and no tests. I counted rows in the data files and in the three pass documents.
+- The review page: https://claude.ai/artifact/6cD6W4ym5WeUdMvUWDXaYf. Its anchors are `change-01` to `change-44` and `r3-1` to `r3-10`.
 
-## 1. New for your second review
+## 1. New for your third review
 
-Only these items are not ruled. Everything else in this file is ruled and waits for the build.
+Only these ten blocks are not ruled. Everything else in this file is ruled and waits for the build.
 
-### new-1. Four tended works on three cards
+### r3-1. How many cards pay on wild land, and how many on improved land
 
-- You wrote on change 33: *"for this to work, i think we need to make more unlockable tended tiles?"* and on change 35: *"have this unlock a tended tile type too"*.
-- No work gets a card whose only job is to open it. Each work rides on a card that is good without it.
-- **The Gathering Grounds** (01, the charter, Tiers 0 and I) opens fish traps and orchards. **Bound to the Soil** (33, Doctrine, Tier I) also opens root-crop grounds on wild grassland and plains. **The Garden Peoples** (35, Doctrine, Tier III) also opens terraced groves on wild hills.
-- On an average start the first two rings hold 18 hexes. A seat with only the charter can tend 7.5 of them. With Bound to the Soil it can tend 13.6, and with The Garden Peoples 16.4. Section 2 has the table and the sums.
-- **To rule:** Approve the set, or change a work, its ground or its card.
+- After all your rulings, this deck has **11 cards that read wild land**. Eight of them pay on the hex: 5 Orders (one shared) and 3 Doctrines.
+- It has **23 cards that read improved land**. Nineteen of them pay on the hex: 13 Orders (two shared) and 6 Doctrines.
+- The Local Census and The Domesday Survey count improved and tended tiles alike, so they serve both.
 
-### new-2. Root-crop grounds pay 1 more than a dry farm
+**Wild land, in this deck**
 
-- Bound to the Soil gives +1 food to farms and to tended tiles. So the Doctrine that opens the work also pays on it.
-- On grassland: a root-crop hex yields 2 + 1 food + 1 production + 1 food = **5**. A dry farm under the same Doctrine yields 2 + 1 + 1 = **4**, and a farm beside fresh water yields **5** from age 2.
-- So the work beats a dry farm by 1 from the turn the Doctrine is taken, and the hex also stays wild. With The Garden Peoples at Tier III the root-crop hex yields **8** (5 food, 2 production, 1 culture). A dry farm with the three field Doctrines (Bound to the Soil, The Georgics, Crop Rotation) yields **6**, and a watered farm **8**.
-- The Wildwood Compact pays nothing on open ground, but it makes the work cost no charge.
-- **My advice:** the work gives +1 food and no production. Under its Doctrine it is then a dry farm that stays wild (4 on grassland), and a watered farm is 1 better. The farm keeps its cards, its count for the cards that count improved hexes, and its resources. If you keep +1 food and +1 production, the cost is that a seat with this Doctrine has little reason to farm dry ground.
-- **To rule:** Keep +1 food and +1 production, or make the work +1 food. Recommended: +1 food.
+| Card | Tier | Kind | What it does on wild land |
+|---|---|---|---|
+| The Gathering Grounds | 0 and I | uncommon, charter | opens fish traps and orchards |
+| The Old Songs | I | common | +2 culture on worked wild forest, jungle and hills |
+| The Wild Marches | I | common | +1 culture for every four wild hexes you own (a count, not on the hex) |
+| The Standing Woods | II | uncommon | +3 production on worked wild forest and jungle |
+| The Long Tending | III | rare | doubles what your Orders pay on wild hexes |
+| The Garden of the World | IV | uncommon | +2 food, +1 production, +1 culture on every worked wild hex |
+| Sacred Groves (shared with Devotion) | 0 | uncommon | +1 food, +1 faith on worked wild forest |
+| Garden Cities (shared with Magisterial) | I | uncommon | +1 culture for every three wild tiles a Monument town works (a count) |
+| Bound to the Soil | I | Doctrine | +1 food on tended tiles; opens root-crop grounds |
+| The Wildwood Compact | II | Doctrine | +1 food, +1 production on worked wild forest and jungle; tending is free |
+| The Garden Peoples | III | Doctrine | +1 food, +1 production, +1 culture on every worked wild hex; opens hill groves |
 
-### new-3. Terraced groves: the yield is sound, the name is crowded
+**Improved land, in this deck**
 
-- A wild hill yields 2 production. A terraced grove makes it 1 food, 2 production and 1 culture (4). A mine makes it 3 production, and 4 in age 4. The mine opens the resource under it and takes the mine cards (The Highlands, Old Workings). So the work alone is level.
-- The Doctrine that opens it pays +1 food, +1 production and +1 culture on every worked wild hex, so a tended hill under it yields **7**. That +3 is The Garden Peoples' own line, which you approved. Against it, Crop Rotation makes a mine yield 4. The wild side of the Tier III fork is ahead by about 2 a hex before any Order. It is first in the test list.
-- **The name.** The game has Terraces (Pachacuti's improvement), The Mountain Terraces and The Terraces of Moray. A fourth "terrace" is easy to confuse. "Hill grove" says the same thing.
-- **To rule:** Keep the name, or call the work a hill grove. Recommended: hill grove.
+| Card | Tier | Kind | What it does on improved land |
+|---|---|---|---|
+| Smallholdings | 0 | common | +1 food, +1 gold on farms and pastures |
+| The Rope Stretchers | 0 | common | +1 science for every three improved tiles (a count) |
+| Dark Earth | I | uncommon | +2 food on farms that have stood 20 turns |
+| The Three Sisters | I | common | +2 food, +2 production on farms beside a plantation or pasture |
+| Commission: Break the Sod | I | common | reward: +1 food on farms, with no chair |
+| The Watercourses | II | uncommon | +2 production on farms beside fresh water |
+| The Highlands | II | common | +2 science, +1 production on hill mines and quarries |
+| The Coast | II | common | +3 food, +3 culture on fishing boats |
+| The Hedgerows | II | common | +3 food on farms beside forest or jungle |
+| The Engineers' Yards | III | common | +4 production on improvements beside a manufactory |
+| Old Workings | III | common | +3 production on mines, quarries and lumber mills |
+| The Age of Improvement | III | rare | doubles what your Orders pay on improved hexes |
+| The Polders | III | uncommon, charter | opens polders, which are farms |
+| The Keeps | IV | rare, charter | opens the Keep |
+| The Ambarvalia (shared with Devotion) | 0 | common | +1 faith for every two improved tiles (a count) |
+| The Provincial Fair (shared with Commerce) | II | uncommon | +2 gold on plantations, camps and pastures |
+| The Sculpted Landscape (shared with Magisterial) | III | uncommon | +2 food, +2 culture on farms beside a great-person work |
+| Bound to the Soil | I | Doctrine | +1 food on farms |
+| The Georgics | II | Doctrine | +1 production on improvements that have stood 20 turns |
+| Crop Rotation | III | Doctrine | an improvement's own bonus is doubled; wild hexes yield nothing |
+| The Physiocrats | IV | Doctrine | +2 food, +2 production, +2 gold on every improved hex |
+| The Builder Kings | III | Doctrine | +2 production on manufactories for each wonder in the town |
+| The Cathedral Lodges | IV | Doctrine | manufactories yield double |
 
-### new-4. Change 37 (new): The Beacons is also dealt in Tier I
+- Where the wild cards pay matters as much as their number. On a tended forest, eight of them pay. On open ground and on water, two Orders and two Doctrines pay (The Garden of the World, The Long Tending, Bound to the Soil, The Garden Peoples). Before Tier III, nothing but Bound to the Soil pays on open ground.
+- **To rule:** Nothing to rule. This is the answer to your question.
 
-- With The Burhs cut, Tier I has no Military card of this deck. A government with Military chairs then gets nothing from the deck in that tier, unless the partner is Dominion.
-- The smallest fix adds no card. The Beacons (18, which you called "great") is dealt in Tiers I and II, as Levy of the Land is.
-- **To rule:** Approve or reject change 37.
+### r3-2. What pays an improvement from outside the deck
 
-### new-5. Change 38 (new): The Old Songs names its terrain
+- I counted every source outside this deck that pays on a hex with an improvement, or names an improvement, and pays nothing on a wild hex.
 
-- The Old Songs pays +2 culture on every worked wild hex. With root-crop grounds, a seat with Bound to the Soil can keep every farmable hex wild and lose no food. Twenty worked hexes then pay 40 culture a turn in age 2, where the median seat makes 25.
-- Proposed: "Worked wild forest, jungle and hill tiles gain +2 culture." It follows your model of 2026-09-03, where a bonus on unimproved land names its terrain.
-- **To rule:** Approve or reject change 38. It matters only if root-crop grounds are approved.
+**Outside the deck**
 
-### new-6. Advice on your line: The Great Colonies (15) is now under the bar
+| Source outside the deck | Pay on an improvement and not on a wild hex | Of these, on a farm, mine, pasture, camp, plantation, quarry, boat or mill | Pay only on a wild hex |
+|---|---|---|---|
+| Generic cards (no deck) | 0 | 0 | 0 |
+| The other five decks, and the cards they share | 33 | 10 | 0 |
+| Beliefs (56 live) | 8 | 7 | 1 (Spirits of the Wood) |
+| Great people, as the pass rules them | 21 | 20 | 0 |
+| Wonders, as the review rules them | 7 | 4 | 0 |
+| Luxuries' signatures | 2 | 2 | 0 |
+| Buildings | 5 | 5 | 0 |
+| Technologies (an improvement's later bonus) | 4 | 4 | 0 |
+| Leaders of the new roster | 5 | 4 | 0 |
+| **All** | **85** | **56** | **1** |
 
-- Your line: a fifth of the citizens of your largest town. The game rounds down.
-- With a largest town of 10 to 14, a new town starts with 2 citizens. That is 1 more than usual, which is what the Tier 0 uncommon The Seed Grain gives. With a largest town under 10, the card gives nothing. At 15 it gives 3.
-- In Tier II (turns 72 to 133) the largest town has about 9 to 13 citizens. So for most of its tier the card is worth one citizen (10 food) for each town founded, against 52 food at a third.
-- A quarter gives 3 citizens at 12 and 4 at 16. Or keep a fifth and make the card an uncommon, so that its rarity matches its size.
-- **To rule:** Your line stands. Say if you want a quarter, or the card as an uncommon.
+- **The other decks:** Dominion 6 (The Horse Herds, The Naadam, The Mesta on pastures and camps; three on citadels), Commerce 4 (The Mineral Trade, Mining Districts, The Emporia, The Customs Houses), Devotion 5 (Lay Offerings; four on holy sites), Scientific 6 (all on Academies), Magisterial 8 (The Quarry Gangs; seven on great-person works), and 4 that two of those decks share.
+- **Beliefs:** Keeper of the Calendar and Vineyard Rites (plantations), Lady of the Hunt (camps), Lord of the Sea (fishing boats), The Stone Hoard (mines and quarries on a resource), Herd Gods (pastures), Harvest Blessing (farms), Ecclesia (holy sites).
+- **Great people:** on farms Li Bing, Jang Yeong-sil, Zheng Guo, Iddin-Marduk and Eupalinos; on mines Ea-nāṣir, Maria Hebraea and Su Song; on quarries Michelangelo, Thutmose and Ineni; on plantations Thales and Tiruvalluvar; on pastures Lamassī and Tomyris; on fishing boats Hippalus, Artemisia and Willem Beukelszoon; on lumber mills Wenamun; Widow Qing on improved strategic resources; Ferdowsi on great-person works.
+- **Wonders:** The Temple of Artemis (camps, pastures), The Great Lighthouse (fishing boats), The Hanging Gardens (farms beside fresh water), Angkor Wat (improved resources, holy sites), The Mausoleum, The Great Library, The Pyramid of the Sun.
+- **Buildings:** the Stable (pastures, camps), the Shipyard (fishing boats), the Smithy (mines and quarries on a resource), the Plantation House, The Horde Camp.
+- **Technologies:** Irrigation (+1 food on a farm beside fresh water), Prospecting (+1 production on a mine), The Cataphract (+1 production on a pasture), Currency (+1 gold on a plantation).
+- **Leaders:** Pachacuti (farms beside mountains), Nezahualcoyotl (farms in Aqueduct towns), Jayavarman VII (farms beside fresh water, for each public work), Mansa Musa (mines and camps), Justinian (holy sites).
+- **About 24 more sources pay by terrain or resource and reach a wild hex too:** for example The Hydraulic Empire (fresh water), Petra (desert), Tapputi (luxury hexes), Li Bai (beside a river or a mountain), Bashō (forest and jungle), the Lighthouse (water).
+- **To rule:** Nothing to rule.
 
-### new-7. Advice on your line: The Land Hunger (07) is still under the bar
+### r3-3. One hex in Æra IV: improved against wild
 
-- Your line: towns build settlers 50% faster.
-- The fourth to seventh Settlers cost 49, 56, 63 and 70 production: 238 in all. +50% saves a third of that, 79 production in about 40 turns, which is 2 a turn. Each Settler is also done about 2 turns sooner, so each town is founded 2 turns sooner (about 16 yield) and its parent stops growing for 2 turns fewer (about 12 food).
-- In all the card is worth about 4 to 5 a turn in Tier I, where a regular card pays 15 to 25. It is a tempo card, and a cheap one. As an uncommon it is offered in about 1 game in 4. As a common it would be offered in 1 game in 3 and would cost less of a rare place.
-- **To rule:** Your line stands. Say if the card should be a common.
+- One hex in Æra IV. **Typical** is: the hex and its technologies, two of the theme's Doctrines, two Order lines, and one belief and one great person where any can pay. **Busted** is every line that this deck and the outside sources can put on the hex, with no leader. The figure in each cell is the sum of the six yields.
 
-### new-8. A reading to confirm: The Burhs (05) leaves the deck
+**The sums, after your rulings and before changes 39 to 44**
 
-- You wrote: *"too strong, lets just cut"*. I read it as: the card leaves the deck and its row is retired.
-- The other reading is that only my rework is cut and The Burhs stays as it is today (+3 defence for each defensive building). If that is what you meant, Tier I keeps its Military card and change 37 is not needed.
-- **To rule:** Confirm that the card is cut, or say that only the rework is cut.
+| Hex | The hex and its technologies | Typical: the lines | Typical | Busted: the lines | Busted |
+|---|---|---|---|---|---|
+| **Watered farm** | grassland 2, farm +1, Irrigation +1: **4** | Bound to the Soil +1, The Georgics +1; Dark Earth +2, The Watercourses +2; Harvest Blessing +1; Li Bing +1 | **12** | Doctrines 10 (with Crop Rotation +2, The Physiocrats +6); six farm Orders 14, doubled by The Age of Improvement: 28; Harvest Blessing 1; Li Bing and Jang Yeong-sil 3; The Hanging Gardens 1 | **47** |
+| **Mine on a hill** | hill 2, mine +1, Prospecting +1: **4** | The Georgics +1; The Highlands +3, Old Workings +3; Maria Hebraea +1 | **12** | Doctrines 9; The Highlands, Old Workings and The Engineers' Yards 10, doubled: 20; Su Song, Maria Hebraea and Ea-nāṣir 5 | **38** |
+| **Plantation on wine** | grassland 2, wine 2, plantation +2, Currency +1: **7** | The Georgics +1; no Order of this deck; Vineyard Rites +2; Tiruvalluvar +2 | **12** | Doctrines 10; with Commerce, The Country Fair, The Provincial Fair and The Emporia 5, doubled: 10; two beliefs 3; Thales, Tiruvalluvar and Tapputi 6 | **36** |
+| **Root-crop ground** | grassland 2, work +3: **5** | Bound to the Soil +1, The Garden Peoples +3; The Garden of the World +4 (the only Order that pays here) | **13**, and 9 without that Order | the same Doctrines 4; The Garden of the World doubled by The Long Tending: 8 | **17** |
+| **Orchard in forest** | forest 2, orchard +2: **4** | Bound to the Soil +1, The Wildwood Compact +2; The Old Songs +2, The Standing Woods +3 | **12** | three Doctrines 6; The Old Songs, The Standing Woods and The Garden of the World 9, doubled: 18; Spirits of the Wood 2; Bashō 1 | **31** |
+| **Hill grove** | hill 2, grove +3: **5** | The Garden Peoples +3, Bound to the Soil +1; The Old Songs +2, The Garden of the World +4 | **15**, and 11 without The Garden of the World | the same Doctrines 4; the two Orders 6, doubled: 12 | **21** |
+| **Fish traps on coast** | coast 2, traps +2, a Lighthouse +1: **5** | Bound to the Soil +1, The Garden Peoples +3; The Garden of the World +4 (the only Order that pays here) | **13**, and 9 without that Order | the same Doctrines 4; The Garden of the World doubled: 8 | **17** |
 
-### new-9. Your other two lines are on the bar
+- **Typical against typical, the wild is level today: 12 to 15 against 12.** Your new figures for the works did that.
+- **But on open ground, on hills and on water it rests on one card.** The Garden of the World is the only Order that pays on a root-crop ground or on fish traps, and it is a Tier IV uncommon. Without it those hexes yield 9, and a hill grove 11: 1 to 3 behind.
+- **Busted against busted, the wild is at about half.** A farm reaches 47, a mine 38 and a plantation 36. A root-crop ground and fish traps reach 17 and a hill grove 21. Only the woods come close, at 31, because five wild cards pay there.
+- **The cause is the count, and the outside sources.** On the hex, this deck has 19 payers for improved land (13 Orders, 6 Doctrines) and 8 for wild land (5 Orders, 3 Doctrines). Outside the deck, 85 sources pay an improvement and 1 pays a wild hex. Every belief and great person a seat takes can land on a farm, and none can land on a root-crop ground.
+- A leader adds to the improved side only: Nezahualcoyotl +2 on a farm in an Aqueduct town, and Jayavarman VII +8 on a watered farm in a town with four public works.
+- The orchard is at today's figure in this table. Change 39 raises it by 1.
+- **To rule:** Nothing to rule. Say if a line in a sum looks wrong to you.
 
-- **The Great Households (16):** +1 production for every 2 citizens. Eight towns of 9 citizens: +36 production in age 3, where the median seat makes 107. A regular Tier II card pays 35 to 60. It is a flat, so every production percentage multiplies it.
-- **The General Levy (22):** every 2 turns at war. A town cannot regrow a citizen in 2 turns, so the wait rarely binds. It halves the first burst of a war: five towns raise five units in two turns, not ten.
-- **To rule:** Nothing to rule. For your information.
+### r3-4. What I recommend
 
-## 2. Tended land: the decision, and four works on three cards
+- **Do not raise the wild's own numbers again.** Typical against typical it is level. Close the gap in the two places where it is real.
+- **1. Depth.** Give every wild ground a second and a third line, so that the wild seat does not rest on one Tier IV uncommon. Change 42 is a Tier III commission whose reward pays on every wild hex and takes no chair. Change 41 lets The Sculpted Landscape pay tended tiles beside a great-person work. Change 40 lets the two cards that count improved tiles count tended tiles too, which brings science and faith.
+- **2. The outside sources.** Change 43 is a Tier IV Doctrine: for everything that is not an Order or a Doctrine, a root-crop ground is paid as a farm, a hill grove as a mine and an orchard as a lumber mill. A wild seat's beliefs, great people, wonders, buildings and technologies then land on its hexes as they would on improvements. The hex stays wild for every card.
+- **This is Arcadia's idea in a narrower form, and I propose it knowing you cut Arcadia.** Arcadia made a tended hex count as improved for every card, so the hex stopped being wild and the two sides of the deck merged. That reason does not apply here: no card reads the hex differently. The other reason for the cut does apply: Tier IV would hold seven Doctrines again, against a target of three to five. I still propose it, because your new requirement cannot be met by cards alone while 85 outside sources name improvements, and the other passes add more of them. If you want six Doctrines, The High Towns is the one I would cut: its rule is The Mountain Terraces' rule.
+- **3. Your rule, applied to the two works that are in the game.** Fish traps pass it: nothing else can be built on open water. The orchard does not: it is 1 above a lumber mill and level with felling the forest and farming. Change 39 makes it +2 food and +1 gold.
+- **4. The chore.** Change 44 makes the towns do the tending under The Wildwood Compact. It is in its own block, r3-10.
+- **What I do not propose.** No pay "for each age": a Tier IV Doctrine is taken in Æra IV, so it would be a flat figure in practice. No new Military card: no honest Military card pays a hex. No flat bonus on all wild land before Tier III: your note of 2026-09-03 stands.
 
-- **Option C stands: tended land is folded into the wild-land theme.** You approved every wild-land rework (12, 13, 23, 27, 34), the cut of Arcadia (36) and the one charter (01).
-- **The reasons, in short.** A tended hex was never weak: it yields 4, level with a farm or a mine. Its pay-offs were parasitic: four Orders and three Doctrines sat behind the gate "Needs tended land", and a seat that took a charter was then offered about 1.1 of them in a whole game.
-- **What changes.** The gate goes from every row. Every pay-off reads **wild** hexes, untouched or tended. "Tended" stays on the three cards that open a work, on The Wildwood Compact, and in the hex's own info.
+**The wild hexes, before and after**
+
+| Wild hex | Typical today | Typical with 39 to 43 | Busted today | Busted with 39 to 43 | The improvement it is measured against |
+|---|---|---|---|---|---|
+| Root-crop ground | 13 (9) | 15 (11 or 13 with one of the two Order lines) | 17 | 26, and 34 beside a great-person work | watered farm: 12 and 47 |
+| Orchard in forest | 12 | 13, and 15 with the commission's reward | 31 | 38 | watered farm: 12 and 47. A lumber mill is 9 and about 28 |
+| Hill grove | 15 (11) | 15, and 17 with the commission's reward | 21 | 31 | mine: 12 and 38 |
+| Fish traps on coast | 13 (9) | 15 (11 or 13) | 17 | 21 | nothing can be built on open water |
+
+- After the changes the wild is 13 to 15 typical against 12, with two Order lines on every ground. Busted it reaches 21 to 38, under the improved side's 36 to 47.
+- The wild seat still gives up three things: every resource under a tended hex, The Physiocrats' +6, and the cards that double or count improvements.
+- **To rule:** Rule on changes 39 to 44 one by one, below. This block is the summary.
+
+### r3-5. Change 39 (new): the orchard gives +2 food and +1 gold
+
+- Your rule: a tended work is clearly better than the plain improvement on the same ground. An orchard makes a forest yield 4. A lumber mill makes it 3, and a farm on the felled ground yields 3 or 4. That is not clearly better.
+- At +2 food and +1 gold a forest orchard yields 3 food, 1 production and 1 gold (5), as a root-crop ground and a hill grove do. Fish traps stay at +1 food and +1 production: on open water a worker can build nothing else.
+
+- **To rule:** Approve or reject change 39.
+
+### r3-6. Change 40 (new): the cards that count improved tiles count tended tiles too
+
+- The Local Census and The Domesday Survey count improved or tended tiles. The Rope Stretchers (science) and The Ambarvalia (faith) count improved tiles only.
+- With one rule for all four, a wild seat gets the same science and faith from its land as a field seat. No number changes.
+
+- **To rule:** Approve or reject change 40. The Ambarvalia is shared with Devotion.
+
+### r3-7. Change 41 (new): The Sculpted Landscape also pays tended tiles
+
+- Today: farms beside a great-person work gain +2 food and +2 culture. Proposed: farms and tended tiles beside a great-person work.
+- It is the bridge to Magisterial that the pair notes ask for (works beside tended land), and a second Tier III line on open ground and water.
+
+- **To rule:** Approve or reject change 41. The card is shared with Magisterial.
+
+### r3-8. Change 42 (new): Commission: Keep the Wild
+
+- Tier III, uncommon, Wildcard. Goal: work 20 wild tiles. Reward: worked wild tiles gain +1 food and +1 production.
+- A seat that keeps its land wild reaches the goal by playing its plan. The reward takes no chair. The deck has four Wildcard cards and, after the cut of The Wide Country, no commission in Tiers II and III.
+
+- **To rule:** Approve or reject change 42.
+
+### r3-9. Change 43 (new): The Satoyama, a Tier IV Doctrine
+
+- For everything but your Orders and Doctrines, a root-crop ground is paid as a farm, a hill grove as a mine and an orchard as a lumber mill.
+- On a watered root-crop ground that is Irrigation +1, one belief +1 and one great person +1 or +2 in a typical seat, against The Physiocrats' +6 on the other side. It grows with every belief, great person and wonder the seat takes, which is what your question asks for.
+- It is a new shape, and the largest piece of engine work in this round. If you do not want a "counts as" rule, the plain form uses a shape that exists.
+- Satoyama is the Japanese name for the managed land between a village and the wild hills: woods cut for poles, ponds, grass and small fields, all kept and none of it cleared.
+
+- **To rule:** Approve it, take the plain form (tended tiles gain +2 food, +2 production and +2 culture), or reject it.
+
+### r3-10. The chore: does every seat now tend every hex? And change 44 (new)
+
+- **What stops it today.**
+- *The cards that open the works.* A Doctrine hand is three cards from both decks' Doctrines of the tier: 7 or 8 in Tier I and 10 or 11 in Tier III. So about 2 seats in 5 are offered Bound to the Soil and about 3 in 10 The Garden Peoples. Most seats can tend woods and water and nothing else.
+- *Charges.* A Worker has 3 and its price rises by 2 each time. The 16 hexes around a capital are 6 Workers. Only a hex a citizen works pays, and a town of 10 works 10.
+- *Resources.* A tended work opens no resource. On an average start 4.2 hexes of 18 carry one, and a luxury is worth 4 happiness and a trade.
+- *The cards the seat holds.* A watered farm with two farm Orders yields 12. A root-crop ground in a seat with no wild card yields 6. A seat tends where its cards pay and farms where its cards pay.
+- *Leaders and Doctrines.* Pachacuti, Nezahualcoyotl and Jayavarman VII are paid on farms. Crop Rotation makes every wild hex yield nothing.
+- **So no limit is needed for a seat that pays charges.** It lays a root-crop ground where it would have laid a farm: the same number of orders to a Worker.
+- **The chore is The Wildwood Compact.** Its second line makes tended works free, and a free work on 16 hexes of every town is a round of clicks with no decision in it.
+- **Change 44:** the Doctrine's second line becomes "Each turn, each of your towns tends one wild tile it works." Each ground has one work, so there is nothing to choose. A town tends only the works its seat can lay.
+
+- **To rule:** Approve or reject change 44. Say if you want a limit on tended works as well; I recommend none.
+
+## 2. Tended land: the rule, and four works on three cards
+
+- **Tended land is folded into the wild-land theme** (option C, round one). The gate "Needs tended land" goes from every row, and every pay-off reads wild hexes, untouched or tended.
+- **Your rule (round two): a tended work is clearly better than the plain improvement on the same ground.** `docs/decks/deck-design.md` says the opposite ("tended works yield less than a proper improvement"). That line is reversed, and the design doc needs the edit when the build lands.
+- **Four works on three cards** (approved in round two). No work has a card whose only job is to open it.
 - **The fork.** The field: improved hexes, The Age of Improvement, the Doctrine Crop Rotation. The wild: wild hexes, The Long Tending, the Doctrine The Garden Peoples. A hex is one or the other.
 
 ### The four works
@@ -92,25 +208,25 @@ Only these items are not ruled. Everything else in this file is ruled and waits 
 | Work | Ground | Yield | The card that opens it | State |
 |---|---|---|---|---|
 | Fish traps | coast and lake | +1 food, +1 production | The Gathering Grounds (01), charter, Tiers 0 and I | in the game |
-| Orchard | forest and jungle | +1 food, +1 gold | The Gathering Grounds (01) | in the game |
-| Root-crop grounds | wild grassland and plains, no hills, no forest | +1 food, +1 production | Bound to the Soil (33), Doctrine, Tier I | **new, for your review** |
-| Terraced groves | wild hills, no forest | +1 food, +1 culture | The Garden Peoples (35), Doctrine, Tier III | **new, for your review** |
+| Orchard | forest and jungle | +1 food, +1 gold today. **+2 food, +1 gold if you approve change 39** | The Gathering Grounds (01) | in the game |
+| Root-crop grounds | wild grassland and plains, no hills, no forest | +1 food, +2 production (your figure) | Bound to the Soil (33), Doctrine, Tier I | approved, to build |
+| Hill groves | wild hills, no forest | +2 food, +1 culture (your figure) | The Garden Peoples (35), Doctrine, Tier III | approved, to build |
 
-A work is what `docs/decks/deck-design.md` says: not an improvement, still wild, permanent, one worker charge, no resource opened.
+A work is not an improvement. It is still wild, it is permanent, it costs one worker charge, and it opens no resource.
 
-### What each work makes a hex yield
+### Each work against the plain improvement on its ground
 
 From `data/terrain.json` and `data/improvements.json`. The figure in brackets is the sum.
 
-| Hex | Untouched | Tended | Tended, with the card's own line | The improvement on that hex |
+| Hex | Untouched | Tended | The plain improvement on that hex | Clearly better? |
 |---|---|---|---|---|
-| Coast | 1 food, 1 gold (2) | 2 food, 1 production, 1 gold (4) | the same | none, unless a sea resource is there |
-| Lake | 2 food (2) | 3 food, 1 production (4) | the same | almost none |
-| Forest | 1 food, 1 production (2) | 2 food, 1 production, 1 gold (4) | the same | lumber mill: 1 food, 2 production (3), from age 2 |
-| Jungle | 2 food (2) | 3 food, 1 gold (4) | the same | lumber mill: 2 food, 1 production (3) |
-| Grassland | 2 food (2) | 3 food, 1 production (4) | 4 food, 1 production (**5**) under Bound to the Soil | farm: 3 food (3), or 4 beside fresh water. Under Bound to the Soil: **4**, or 5 |
-| Plains | 1 food, 1 production (2) | 2 food, 2 production (4) | 3 food, 2 production (**5**) under Bound to the Soil | farm: 2 food, 1 production (3). Under Bound to the Soil: **4**, or 5 beside fresh water |
-| Hill | 2 production (2) | 1 food, 2 production, 1 culture (4) | 2 food, 3 production, 2 culture (**7**) under The Garden Peoples | mine: 3 production (3), and 4 in age 4 |
+| Coast | 1 food, 1 gold (2) | 2 food, 1 production, 1 gold (4) | none, unless a sea resource is there | yes: nothing else can be built |
+| Lake | 2 food (2) | 3 food, 1 production (4) | almost none | yes |
+| Forest | 1 food, 1 production (2) | today 2 food, 1 production, 1 gold (4). With change 39: 3 food, 1 production, 1 gold (5) | lumber mill: 1 food, 2 production (3). Felled and farmed: 3 or 4 | **no, at today's figure.** Yes with change 39 |
+| Jungle | 2 food (2) | today 3 food, 1 gold (4). With change 39: 4 food, 1 gold (5) | lumber mill: 2 food, 1 production (3) | **no, at today's figure.** Yes with change 39 |
+| Grassland | 2 food (2) | 3 food, 2 production (5) | farm: 3 food (3), or 4 beside fresh water | yes: 5 against 3 or 4 |
+| Plains | 1 food, 1 production (2) | 2 food, 3 production (5) | farm: 2 food, 1 production (3), or 4 beside fresh water | yes |
+| Hill | 2 production (2) | 2 food, 2 production, 1 culture (5) | mine: 3 production (3), and 4 in age 4 | yes: 5 against 3 or 4 |
 
 ### What a seat can tend on a typical start
 
@@ -123,32 +239,22 @@ From `data/terrain.json` and `data/improvements.json`. The figure in brackets is
 - I counted the first two rings around each of 48 starts on 8 standard maps (`newGame`, six seats). The other 1.6 hexes are mountain, desert and tundra.
 - 83% of starts have 3 or more hexes of woods or water, so the charter alone has something to act on in 5 starts of 6. 25% of starts have no coast or lake at all.
 - 79% of starts have 3 or more hexes of open ground, and 71% have 2 or more bare hills.
-- A town works one hex for each citizen. A capital of 6 citizens tends 6 hexes at most that matter, which is two Workers (20 production), or one Worker with Tinkers' Guild and Bound to the Soil (5 charges).
-- Under The Wildwood Compact a tended work costs no charge. A seat with it and both other cards can tend 16 of its 18 hexes for nothing.
+- A town works one hex for each citizen. A capital of 6 citizens needs 6 tended hexes at most, which is two Workers (20 production), or one Worker with Tinkers' Guild and Bound to the Soil (5 charges).
 
 ### The new works against the code's rules for a tended work
 
-- **Not an improvement, still wild.** A row marked `tended` in `data/improvements.json` answers `unimproved` and not `improved` for every card (`tileConditionHolds`). Both new works are rows with that mark, so they need nothing more.
-- **Permanent.** A tended row cannot be pillaged (`pillageError`). One thing can remove it: a worker may lay an improvement over it (`improvements.ts`, the reading of what a new work replaces). Felling removes only a work that needs the wood, so it touches neither new work.
-- **One charge.** `chargeCost: 1` on the row. The Wildwood Compact's rule `tendedWorksFree` reads the mark, so it covers both new works with no change.
+- **Not an improvement, still wild.** A row marked `tended` in `data/improvements.json` answers `unimproved` and not `improved` for every card (`tileConditionHolds`). Both new works are rows with that mark.
+- **Permanent.** A tended row cannot be pillaged (`pillageError`). A worker can still lay another work over it, because any work replaces what stands on the hex (`improvementGroundError` refuses only the same work). So a farm can replace a root-crop ground, and a root-crop ground can replace a farm, each for a charge.
+- **One charge.** `chargeCost: 1` on the row. The rule `tendedWorksFree` reads the mark, so The Wildwood Compact covers both new works with no change (and change 44 would replace that rule).
 - **No resource opened.** A row opens a resource only if it names it in `improvesResource`. Neither row names one.
-- **The ground.** Root-crop grounds: `validTerrain` grassland and plains, `validFeatures` none, no hills. The retired row `burnedCountry` has this ground rule and is the model. Terraced groves: `requiresHills`, any land terrain, `validFeatures` none. Culture in a work's yields exists (the Landmark has it).
-- **The shape that is missing: a Doctrine that opens a work.** Today a tended row opens through a charter on an Order (`charter.unlocks`), or through the effect `unlocksImprovement` on a seated card. A Doctrine has no charter. The effect `unlocksImprovement` on the Doctrine's row should do it, because a held Doctrine is always live. To confirm in code: that the live walk in `cardUnlocksImprovement` reads Doctrines, and that the refusal sentence (`improvementCardError`) can name a Doctrine. Today it names an Order.
-- **Also needed:** two new rows in `ImprovementId`, a piece on the board for each, and a place in the flair gallery (`flair.html`), as CLAUDE.md asks for every new visual.
-- **The bots** lay no tended work today and need no change for these cards to work. They will not use the works until a bot-track batch teaches them.
-
-### Do the Doctrines over-pay on a root-crop hex?
-
-- **Does Bound to the Soil now over-pay on a root-crop hex? Yes, by 1, on dry ground.** Grassland 2, the work +1 food and +1 production, the Doctrine +1 food: **5**. A dry farm under the same Doctrine: 2 + 1 + 1 = **4**. A farm beside fresh water: **5** from age 2. On plains the sums are the same.
-- **The Wildwood Compact** (Tier II) pays only on forest and jungle, so it adds nothing to a root-crop hex. It makes the work free.
-- **The Garden Peoples** (Tier III) adds +1 food, +1 production and +1 culture: the root-crop hex yields **8** (5 food, 2 production, 1 culture) with two Doctrines. A farm with the three field Doctrines (Bound to the Soil +1 food, The Georgics +1 production, Crop Rotation doubles the farm's own +1 or +2) yields **6** dry and **8** watered.
-- **At Tier IV the farm passes it.** The Physiocrats gives +6 to an improved hex, so a farm yields 12 to 14. The wild has no Tier IV Doctrine and stays at 8.
-- **With Orders the two are close.** The wild hex takes The Garden of the World (+4), doubled by The Long Tending: 16. The farm takes Smallholdings (+2), Dark Earth (+2), Break the Sod (+1) and The Hedgerows (+3): 14 with its Doctrines, and 22 if The Age of Improvement doubles the four.
-- **So:** the root-crop hex is 1 ahead on dry ground in Tier I and II, 2 ahead in Tier III, level on fresh water, and behind in Tier IV. My advice is in section 1: make the work +1 food. Then it is level with a dry farm in Tier I and 1 ahead in Tier III.
+- **The ground.** Root-crop grounds: `validTerrain` grassland and plains, `validFeatures` none, no hills. The retired row `burnedCountry` has this ground rule and is the model. Hill groves: `requiresHills`, any land terrain, `validFeatures` none. Culture in a work's yields exists (the Landmark has it).
+- **The shape that is missing: a Doctrine that opens a work.** Today a tended row opens through a charter on an Order (`charter.unlocks`), or through the effect `unlocksImprovement` on a seated card. The effect `unlocksImprovement` on the Doctrine's row should do it: `liveEffects` walks eleven sources and a held Doctrine is one. To confirm in code: that the refusal sentence (`improvementCardError`) can name a Doctrine. Today it names an Order.
+- **Also needed:** two new rows in `ImprovementId` (`rootCropGrounds`, `hillGrove`), a piece on the board for each, and a place in the flair gallery (`flair.html`), as CLAUDE.md asks for every new visual.
+- **The bots** lay no tended work today. The cards work without that. A bot-track batch must teach them before the wild can be measured.
 
 ## 3. Index
 
-| # | Card | Tier | Change | Ruling | In the second review |
+| # | Card | Tier | Change | Ruling | In the third review |
 |---|---|---|---|---|---|
 | 01 | The Gathering Grounds (was The Fish Traps) | I to 0 and I | rework | approved |  |
 | 02 | The Woodland Bands | 0 | buff | approved |  |
@@ -182,14 +288,20 @@ From `data/terrain.json` and `data/improvements.json`. The figure in brackets is
 | 30 | The Water Boards | IV | new | approved |  |
 | 31 | The Thousand Villages | IV | new | approved |  |
 | 32 | Tier IV rarities | IV | move | approved |  |
-| 33 | Bound to the Soil | I | doctrine | approved | yes |
+| 33 | Bound to the Soil | I | doctrine | approved with your text |  |
 | 34 | The Wildwood Compact | II | doctrine | approved |  |
-| 35 | The Garden Peoples | III | doctrine | approved | yes |
+| 35 | The Garden Peoples | III | doctrine | approved with your text |  |
 | 36 | Arcadia | IV | doctrine | cut |  |
-| 37 | The Beacons | II, also dealt in I | move | new, not ruled | yes |
-| 38 | The Old Songs | I | rework | new, not ruled | yes |
+| 37 | The Beacons | II, also dealt in I | move | approved |  |
+| 38 | The Old Songs | I | rework | approved |  |
+| 39 | The orchard | 0 and I | buff | new, not ruled | yes |
+| 40 | The Rope Stretchers and The Ambarvalia | 0 | rework | new, not ruled | yes |
+| 41 | The Sculpted Landscape | III | rework | new, not ruled | yes |
+| 42 | Commission: Keep the Wild | III | new | new, not ruled | yes |
+| 43 | The Satoyama | IV | doctrine | new, not ruled | yes |
+| 44 | The Wildwood Compact | II | doctrine | new, not ruled | yes |
 
-Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1 kept as today. Changes 37 and 38 are new.
+Of the 38 ruled changes: 26 approved, 6 approved with your text, 5 cut, 1 kept as today. Changes 39 to 44 are new.
 
 ## 4. The changes, with the rulings applied
 
@@ -197,7 +309,7 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 
 ### 01. The Gathering Grounds (was The Fish Traps) (approved)
 
-- **Ruling:** Approved. No comment, so approved by your second ruling.
+- **Ruling:** Approved. No comment, so approved by your ruling of round one.
 - **Tier, rarity, type:** Tiers 0 and I, uncommon, Economic, charter (now Tier I, common)
 - **Today:** Tier I, common: Workers may build fish traps on lake and coast tiles: +1 food and +1 production.
 - **To build:** Dealt in Tiers 0 and I, uncommon: Workers may tend wild land: fish traps on coast and lake tiles (+1 food, +1 production) and orchards in forest and jungle (+1 food, +1 gold).
@@ -205,11 +317,11 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 - **Arithmetic:** In age 1 a farm on grassland yields 3 and a mine on a hill yields 3. A tended coast or forest hex yields 4. Three tended hexes worked by turn 40 add 6 a turn, which is a regular Tier 0 card (4 to 8), for 3 charges (one Worker, 10 production). The card takes no chair. In my model of the draw, a Tier 0 uncommon of this deck is offered in 6 to 8 games of 10 today, when the deck has two of them. With three it is a little less, and this card is dealt again in Tier I.
 - **Synergy:** Raises: the yield of wild hexes. Reads: nothing. A tended hex is still wild, so Sacred Groves, Garden Cities, The Standing Woods (12), The Long Tending (23) and The Garden of the World (27) pay on it too. The Local Census and The Domesday Survey count it. Tinkers' Guild (06) and Bound to the Soil (33) give the charges to lay it.
 - **Shape:** Near an existing shape. A charter unlocks one work today (`charter.unlocks.improvement`); this one names two. `lastBand` deals a card in two tiers; it exists, and no dealt row uses it today.
-- **Note:** This card opens two of the four tended works. The other two ride on Bound to the Soil (33) and The Garden Peoples (35), and wait for your second review. You approved the recommended answer to question 2: one charter for both first works.
+- **Note:** This card opens two of the four tended works. The other two ride on Bound to the Soil (33) and The Garden Peoples (35). Change 39 proposes that the orchard gives +2 food and +1 gold, under your rule that a tended work is clearly better than the plain improvement.
 
 ### 02. The Woodland Bands (approved)
 
-- **Ruling:** Approved. No comment, so approved by your second ruling.
+- **Ruling:** Approved. No comment, so approved by your ruling of round one.
 - **Tier, rarity, type:** Tier 0, common, Military
 - **Today:** Your units ignore the movement cost of forest and jungle.
 - **To build:** Your units ignore the movement cost of forest, jungle and hills.
@@ -220,7 +332,7 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 
 ### 03. The Wild Orchards (cut)
 
-- **Ruling:** Cut. No comment, so approved by your second ruling.
+- **Ruling:** Cut. No comment, so approved by your ruling of round one.
 - **Tier, rarity, type:** Tier I, common, Economic, charter
 - **Today:** Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold.
 - **To build:** Cut, as proposed. The orchard moves onto The Gathering Grounds (01). The row is retired, and the `wildOrchard` work stays.
@@ -232,7 +344,7 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 
 ### 04. Levy of the Land (approved)
 
-- **Ruling:** Approved. No comment, so approved by your second ruling.
+- **Ruling:** Approved. No comment, so approved by your ruling of round one.
 - **Tier, rarity, type:** Tier I and II, common, Economic (now Tier I, uncommon)
 - **Today:** Tier I, uncommon: A town may spend a citizen for production equal to the food it took to grow. Once every five turns.
 - **To build:** Common, dealt in Tiers I and II, the same text.
@@ -248,7 +360,7 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 - **Today:** Towns gain +3 defence for each defensive building.
 - **To build:** Cut. The Burhs leaves the deck and its row is retired.
 - **What was proposed:** Barbarian units may not enter your borders.
-- **Note:** My reading, to confirm (section 1, new-8): the card is cut, and not only the rework. The cut leaves Tier I with no Military card of this deck, and change 37 answers that.
+- **Note:** You confirmed it in round two: *"cut"*. The cut leaves Tier I with no Military card of this deck, and change 37 (approved) answers that.
 
 ### 06. Tinkers' Guild (kept as today)
 
@@ -265,14 +377,14 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 ### 07. The Land Hunger (approved with your text)
 
 - **Ruling:** Approved with your text. Your words: *"Rework: towns build settlers 50% faster."*
-- **Tier, rarity, type:** Tier I, uncommon, Economic
+- **Tier, rarity, type:** Tier I, common, Economic (now uncommon)
 - **Today:** Towns build settlers 25% faster.
-- **To build:** Towns build settlers 50% faster.
-- **Why:** Your line. It keeps the card a plain production card and doubles its size. My rework (towns keep growing while they build settlers) is dropped, and with it the new shape.
+- **To build:** Common: Towns build settlers 50% faster.
+- **Why:** Your line, and your rarity from round two (*"common"*). It keeps the card a plain production card and doubles its size. My rework is dropped, and with it the new shape.
 - **Arithmetic:** A Settler costs 28 production and 7 more for each one built. The fourth to seventh cost 49, 56, 63 and 70: 238 in all. +50% saves a third, 79 production in about 40 turns, which is 2 a turn. Each Settler is done about 2 turns sooner: a town 2 turns sooner (about 16 yield), and 2 turns fewer with no growth (about 12 food). In all about 4 to 5 a turn, against a Tier I bar of 15 to 25.
 - **Synergy:** Raises: citizens, and towns founded sooner. Reads: nothing. It feeds The Grain Census, Granary Levies, The Book of Settlements and The Founding Furrow.
-- **Shape:** Existing shape: `productionBonus` toward settlers, 50 in place of 25.
-- **Note:** Advice: still under the bar, by about four times. It is a cheap tempo card. Consider making it a common (section 1, new-7).
+- **Shape:** Existing shape: `productionBonus` toward settlers, 50 in place of 25, and the rarity.
+- **Note:** A cheap tempo card, and now a common, which fits its size.
 
 ### 08. Outposts (approved)
 
@@ -352,12 +464,11 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 - **Ruling:** Approved with your text. Your words: *"this is way too strong, i also don't think i've ever seen it in a game. lets make it a fifth of the citizens."*
 - **Tier, rarity, type:** Tier II, rare, Economic (now Tier III)
 - **Today:** Tier III, rare: Towns you found start with a third of the citizens of your largest town.
-- **To build:** Tier II, rare: Towns you found start with a fifth of the citizens of your largest town.
-- **Why:** Your line. The move to Tier II stands: at Tier III few seats found a town, which may be why you have never seen the card in a game. As a Tier III rare it was also offered in about 1 game of 9.
-- **Arithmetic:** The game rounds down. A largest town of 10 to 14 gives a new town 2 citizens, 1 more than usual. Under 10 it gives nothing. At 15 it gives 3. The second citizen costs 10 food, about 3 turns of a new town's growth. At a third, a largest town of 12 gave 4 citizens (52 food).
+- **To build:** Tier II, rare: Towns you found start with a fourth of the citizens of your largest town.
+- **Why:** Your line of round two: *"ok, lets do a fourth."* (first *"a fifth"*). The move to Tier II stands: at Tier III few seats found a town, which may be why you have never seen the card in a game. As a Tier III rare it was also offered in about 1 game of 9.
+- **Arithmetic:** The game rounds down. A largest town of 8 to 11 gives a new town 2 citizens, 12 to 15 gives 3, and 16 gives 4. Growing from 1 to 3 takes 10 + 17 = 27 food, about 6 turns of a new town's growth. In Tier II the largest town has about 9 to 13 citizens, so the card gives 1 or 2 citizens more than usual, and it passes the Tier 0 card The Seed Grain from a largest town of 12.
 - **Synergy:** Reads: the largest town, and towns founded. The Colonists (a levy raises a settler), The Land Hunger (07) and The Book of Settlements work with it.
-- **Shape:** Existing shape: `foundingRider` with `fromLargest: 5`, and the tier.
-- **Note:** Advice: under the bar. For most of Tier II it does what the Tier 0 uncommon The Seed Grain does. A quarter (3 citizens at 12), or a fifth as an uncommon, would fit better (section 1, new-6).
+- **Shape:** Existing shape: `foundingRider` with `fromLargest: 4`, and the tier.
 
 ### 16. The Great Households (approved with your text)
 
@@ -392,7 +503,7 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 - **Arithmetic:** A Worker has 2 movement, so 3 inside your borders. A defender covers half again the ground, so a seat of eight towns can hold with about five units in place of eight. That saves three units of 81 production each (a Legionary) and their upkeep.
 - **Synergy:** Reads: hexes owned. Claims widen the ground it works on. It works with the roads of The Road Home.
 - **Shape:** Near an existing shape: `unitStat` movement with `where: ownTerritory`. The `where` field exists (a retired healing card used it); movement by place is to confirm.
-- **Note:** Change 37 proposes that this card is also dealt in Tier I, because Tier I has no Military card after the cut of The Burhs.
+- **Note:** Change 37 (approved) also deals this card in Tier I.
 
 ### 19. The Seven Fat Years (approved)
 
@@ -549,17 +660,17 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 - **Synergy:** No change.
 - **Shape:** Existing shape. Rarity only.
 
-### 33. Bound to the Soil (approved)
+### 33. Bound to the Soil (approved with your text)
 
-- **Ruling:** Approved. Your words: *"for this to work, i think we need to make more unlockable tended tiles?"*
+- **Ruling:** Approved with your text. Your words: *"for this to work, i think we need to make more unlockable tended tiles?"*
 - **Tier, rarity, type:** Tier I, Doctrine, the field and the wild
 - **Today:** Workers gain +1 charge. Tended tiles gain +1 food.
-- **To build:** Workers gain +1 charge. Farms and tended tiles gain +1 food. Workers may tend wild grassland and plains into root-crop grounds: +1 food and +1 production.
+- **To build:** Workers gain +1 charge. Farms and tended tiles gain +1 food. Workers may tend wild grassland and plains into root-crop grounds: +1 food and +2 production.
 - **Why:** Your line of 2026-11-05, with farms added (approved). You then wrote that the tended half needs more tended tiles to act on. So the Doctrine itself opens the work for open ground, the ground that the charter does not reach. A seat that takes it can always use both halves.
-- **Arithmetic:** Ten farms at turn 40: +10 food for the rest of the game. A root-crop hex on grassland yields 5 under this Doctrine, against 4 for a dry farm and 5 for a watered farm. An average start has 6.1 hexes of open ground in its first two rings.
+- **Arithmetic:** Ten farms at turn 40: +10 food for the rest of the game. A root-crop hex on grassland yields 3 food and 2 production, and 4 food and 2 production (6) under this Doctrine. A dry farm under it yields 4 and a watered farm 5. An average start has 6.1 hexes of open ground in its first two rings.
 - **Synergy:** Reads: farms and tended hexes. It opens root-crop grounds, and Tinkers' Guild (06) stacks with its charge. The Local Census counts the new work. The Garden Peoples (35) and The Garden of the World (27) pay on it, because it is wild.
 - **Shape:** Existing shape for the food: one more `pays` hex row on farms. **New** for the work: a row `rootCropGrounds` marked `tended`, and a Doctrine that opens a work (section 2).
-- **Note:** The first two sentences are approved. The third is new for your second review. It over-pays by 1 on dry ground; my advice is +1 food for the work (section 1, new-2).
+- **Note:** The work's figure is yours, from round two: *"lets make it even better, +1 food and +2 production. it needs to be clearly better than a regular farm."* My advice to cut it to +1 food is rejected.
 
 ### 34. The Wildwood Compact (approved)
 
@@ -571,19 +682,19 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 - **Arithmetic:** Eight forest hexes: +16 a turn for the game. Each tended work is free (a charge is about 3 production), and with this pass that covers four works: a seat with all three cards can tend 16 of the 18 hexes around its capital at no cost.
 - **Synergy:** Reads: wild forest and jungle, and tended works. The Standing Woods (12) reads the same hexes.
 - **Shape:** Existing shapes: `pays` hex, and the rule `tendedWorksFree`.
-- **Note:** The free tending now reaches root-crop grounds and terraced groves. Watch it in test with Bound to the Soil.
+- **Note:** The free tending now reaches root-crop grounds and hill groves. Change 44 proposes that the towns do the tending, so that it is not a round of clicks.
 
-### 35. The Garden Peoples (approved)
+### 35. The Garden Peoples (approved with your text)
 
-- **Ruling:** Approved. Your words: *"have this unlock a tended tile type too"*
+- **Ruling:** Approved with your text. Your words: *"have this unlock a tended tile type too"*
 - **Tier, rarity, type:** Tier III, Doctrine, the wild
 - **Today:** Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture.
-- **To build:** Worked wild tiles gain +1 food, +1 production and +1 culture. Workers may tend wild hills into terraced groves: +1 food and +1 culture.
+- **To build:** Worked wild tiles gain +1 food, +1 production and +1 culture. Workers may tend wild hills into hill groves: +2 food and +1 culture.
 - **Why:** It is the other side of Crop Rotation, in the same tier, and you asked that it open a tended work too. Hills are the ground no other work reaches, and a grove on a hill pays culture, which the wild side is for.
-- **Arithmetic:** 15 to 20 worked wild hexes: +45 to +60 a turn for the game. A tended hill under it yields 7 (2 food, 3 production, 2 culture), against 3 for a plain mine and 4 for a mine under Crop Rotation. An average start has 2.8 bare hills in its first two rings.
-- **Synergy:** Reads: worked wild hexes. It opens terraced groves. The Long Tending (23) does not double it, because it is a Doctrine and not an Order. The Old Songs (38) pays on a tended hill.
-- **Shape:** Existing shape for the yields: `pays` hex on `unimproved`. **New** for the work: a row `terracedGrove` marked `tended`, and a Doctrine that opens a work (section 2).
-- **Note:** The first sentence is approved. The second is new for your second review. The name is crowded; "hill grove" is my advice (section 1, new-3).
+- **Arithmetic:** 15 to 20 worked wild hexes: +45 to +60 a turn for the game. A hill grove yields 2 food, 2 production and 1 culture (5), and 8 under this Doctrine. A mine yields 3, and 4 in age 4. An average start has 2.8 bare hills in its first two rings.
+- **Synergy:** Reads: worked wild hexes. It opens hill groves. The Long Tending (23) does not double it, because it is a Doctrine and not an Order. The Old Songs (38) pays on a hill grove.
+- **Shape:** Existing shape for the yields: `pays` hex on `unimproved`. **New** for the work: a row `hillGrove` marked `tended`, and a Doctrine that opens a work (section 2).
+- **Note:** The work's figure is yours, from round two: *"make it +2 food +1 culture instead, same reason as my previous comment"*. You did not answer on the name, so the work is a hill grove, as recommended.
 
 ### 36. Arcadia (cut)
 
@@ -597,56 +708,120 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 - **Shape:** No shape. The row is retired. The gate `needsTendedWork` is then on no row.
 - **Note:** This cut was the proposal, and you approved it.
 
-### 37. The Beacons (new, not ruled)
+### 37. The Beacons (approved)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved. No comment, so approved by your ruling of round one.
 - **Tier, rarity, type:** Tiers I and II, common, Military
 - **Today:** Change 18, approved: Tier II, common. Your units gain +1 movement inside your borders.
 - **To build:** The same card, dealt in Tiers I and II.
-- **Why:** With The Burhs cut, Tier I has no Military card of this deck. The shared The Muster of the Fields is there only for a seat with Dominion. A government with Military chairs then gets nothing from the deck in Tier I. This fills the gap with a card you approved and adds no card.
+- **Why:** With The Burhs cut, Tier I has no Military card of this deck. This fills the gap with a card you approved and adds no card.
 - **Arithmetic:** In Tier I a seat holds 3 to 5 towns and its Workers do most of their work. +1 movement is a third less walking for each Worker, and one defender covers two towns. A common dealt in two tiers is offered in about 2 games of 3.
 - **Synergy:** Reads: hexes owned. The Staked Claims (11) and Outposts (08) widen the ground it works on. The Woodland Bands (02) does the same job on rough ground outside the borders.
 - **Shape:** Existing shape: `lastBand`, as on Levy of the Land (04). The card's own shape is change 18's.
-- **Note:** Not needed if The Burhs stays (section 1, new-8).
 
-### 38. The Old Songs (new, not ruled)
+### 38. The Old Songs (approved)
 
-- **Ruling:** New, not ruled.
+- **Ruling:** Approved. No comment, so approved by your ruling of round one.
 - **Tier, rarity, type:** Tier I, common, Civic
 - **Today:** Worked unimproved land gains +2 culture.
 - **To build:** Worked wild forest, jungle and hill tiles gain +2 culture.
-- **Why:** The card pays on every wild hex a town works. Root-crop grounds make open ground wild with a farm's food, so a seat with Bound to the Soil would be paid 2 culture on every hex it works. Culture is the draft currency. Your model of 2026-09-03 is that a bonus on unimproved land names its terrain.
-- **Arithmetic:** Today: 8 to 10 wild hexes worked at turn 60 pay 16 to 20 culture, where the median seat makes about 25 in age 2. That is already a headline for a common. With root-crop grounds: 20 worked hexes pay 40. Proposed: an average start has 4.6 woods and 2.8 bare hills in two rings. Four towns that each work 3 such hexes gain 24 culture, and those hexes feed a town less than open ground does, which is the card's price.
-- **Synergy:** Reads: worked wild woods and hills. Orchards (01) and terraced groves (35) raise the same hexes. The Standing Woods (12) and Sacred Groves pay on the woods. The Long Tending (23) doubles it.
+- **Why:** Root-crop grounds make open ground wild with more than a farm's yield. Without this change a seat with Bound to the Soil would be paid 2 culture on every hex it works. Your model of 2026-09-03 is that a bonus on unimproved land names its terrain.
+- **Arithmetic:** An average start has 4.6 woods and 2.8 bare hills in two rings. Four towns that each work 3 such hexes gain 24 culture, where the median seat makes about 25 in age 2. Those hexes feed a town less than open ground does, which is the card's price.
+- **Synergy:** Reads: worked wild woods and hills. Orchards (01) and hill groves (35) raise the same hexes. The Standing Woods (12) and Sacred Groves pay on the woods. The Long Tending (23) doubles it.
 - **Shape:** Existing shape: `pays` hex on `unimproved` and any of forest, jungle or hills.
-- **Note:** If you reject root-crop grounds, this change is only a test item: watch the card at +2 on all wild land.
+
+### 39. The orchard (new, not ruled)
+
+- **Ruling:** New, not ruled.
+- **Tier, rarity, type:** The work that The Gathering Grounds (01) opens in forest and jungle
+- **Today:** +1 food and +1 gold.
+- **To build:** +2 food and +1 gold. The Gathering Grounds then reads: Workers may tend wild land: fish traps on coast and lake tiles (+1 food, +1 production) and orchards in forest and jungle (+2 food, +1 gold).
+- **Why:** Your rule of round two: a tended work is clearly better than the plain improvement on the same ground. The orchard is 1 above a lumber mill and level with a farm on the felled ground. Food is what a forest town lacks, and The Standing Woods (12) brings the production.
+- **Arithmetic:** Forest: 1 food, 1 production. Orchard today: 2, 1 and 1 gold (4). Lumber mill: 1 and 2 (3). A farm on the felled ground: 3, or 4 beside fresh water. Proposed: 3 food, 1 production, 1 gold (5), the same sum as a root-crop ground and a hill grove. Fish traps make a coast hex 4 where nothing else can be built, so they pass the rule as they are.
+- **Synergy:** Raises: the yield of wild woods. The Old Songs (38), The Standing Woods (12), Sacred Groves and the Doctrine The Wildwood Compact (34) pay on the same hex.
+- **Shape:** Existing shape: one figure on the row `wildOrchard` in `data/improvements.json`.
+
+### 40. The Rope Stretchers and The Ambarvalia (new, not ruled)
+
+- **Ruling:** New, not ruled.
+- **Tier, rarity, type:** Tier 0, common, Civic. The Ambarvalia is shared with Devotion
+- **Today:** The Rope Stretchers: Each town gains +1 science for every three improved tiles in its borders. The Ambarvalia: Each town gains +1 faith for every two improved tiles.
+- **To build:** The Rope Stretchers: Each town gains +1 science for every three improved or tended tiles in its borders. The Ambarvalia: Each town gains +1 faith for every two improved or tended tiles.
+- **Why:** The Local Census and The Domesday Survey already count improved or tended tiles. With one rule for all four, a wild seat gets the science and the faith that a field seat gets from the same number of hexes. The wild has no other science but mountains, and faith from tended land is the hook the Devotion pair notes ask for.
+- **Arithmetic:** A town with 9 tended hexes: +3 science and +4 faith. Eight such towns: +24 science and +32 faith. A field seat with the same count of farms gets the same today. No figure changes.
+- **Synergy:** Reads: improved and tended tiles in a town's borders. Every tended work raises the count. The floor for a seat with no tended work is unchanged.
+- **Shape:** Existing shape: the tile test "improved or tended" that The Local Census uses, in the count.
+
+### 41. The Sculpted Landscape (new, not ruled)
+
+- **Ruling:** New, not ruled.
+- **Tier, rarity, type:** Tier III, uncommon, Civic, shared with Magisterial
+- **Today:** Farms beside a great-person work gain +2 food and +2 culture.
+- **To build:** Farms and tended tiles beside a great-person work gain +2 food and +2 culture.
+- **Why:** It is the bridge to Magisterial that the pair notes name (works beside tended land). It also gives open ground and water a Tier III line, where today only The Garden of the World pays, a tier later.
+- **Arithmetic:** A work has six hexes beside it. A seat with three works and eight farms or tended tiles beside them gains +32. The card's floor for a field seat is unchanged.
+- **Synergy:** Reads: great-person works, and the farms and tended tiles beside them. The Long Tending (23) doubles its line on a tended hex, as The Age of Improvement doubles it on a farm.
+- **Shape:** Existing shape: `pays` hex on a farm or a tended tile, `beside` a great-person work.
+
+### 42. Commission: Keep the Wild (new, not ruled)
+
+- **Ruling:** New, not ruled.
+- **Tier, rarity, type:** Tier III, uncommon, Wildcard, commission
+- **Today:** Not in the deck.
+- **To build:** Goal: work 20 wild tiles. Reward: worked wild tiles gain +1 food and +1 production.
+- **Why:** On open ground and on water one Order pays, and it is in Tier IV. This gives every wild ground a line in Tier III that takes no chair. The deck has four Wildcard cards and no commission in Tiers II and III. The name answers Commission: Break the Sod.
+- **Arithmetic:** Eight towns that each work 3 wild hexes are past the goal (24). A field seat works about 10 wild hexes, on coast and in woods. The reward on 20 to 30 hexes is +40 to +60 a turn with no chair. A regular Tier III card pays 60 to 120 and takes one.
+- **Synergy:** Reads: wild tiles worked. Every tended work makes a wild hex worth working, and the claims of Outposts (08) and The Staked Claims (11) add hexes. The Long Tending (23) doubles the reward if a commission's reward counts as an Order's line (to confirm).
+- **Shape:** Near an existing shape. The count `workedUnimprovedTiles` exists for cards; a commission needs it as a goal figure. The lasting reward is a `pays` hex on `unimproved`.
+
+### 43. The Satoyama (new, not ruled)
+
+- **Ruling:** New, not ruled.
+- **Tier, rarity, type:** Tier IV, Doctrine, the wild
+- **Today:** Not in the deck. Arcadia, the wild's Tier IV Doctrine, is cut (36).
+- **To build:** For everything but your Orders and Doctrines, a root-crop ground is paid as a farm, a hill grove as a mine and an orchard as a lumber mill.
+- **Why:** 85 sources outside this deck pay an improvement and 1 pays a wild hex. No card of this deck can fix that, and each pass on beliefs, great people and wonders adds to it. This lets a seat that kept its land wild use what it drafted outside the deck. The hex stays wild for every card, so the fork between the field and the wild stays. Fish traps are left out: nothing else can be built on open water, so they have no improvement to count as.
+- **Arithmetic:** A watered root-crop ground gains Irrigation +1, and in a typical seat one belief +1 and one great person +1 or +2: +3 to +4. With every farm source: +6. A hill grove gains Prospecting +1 and up to +5 from three great people. An orchard gains little (+2 from Wenamun). The Physiocrats gives an improved hex +6. A leader's farm line counts too: Jayavarman VII's +2 for each public work would land on his watered root-crop grounds.
+- **Synergy:** Reads: what beliefs, great people, wonders, buildings, technologies and the leader pay to farms, mines and lumber mills. About 18 of the outside sources name one of the three, and each feeds it.
+- **Shape:** **New shape,** medium. A test for a named improvement also holds for the tended work on its ground when the effect asking is not an Order or a Doctrine. `liveEffects` knows its eleven sources. The technologies' bonuses and the buildings' hex yields are read in `src/sim/yields/hex.ts` and must ask the same question. The plain form (tended tiles gain +2 food, +2 production and +2 culture) is an existing shape.
+- **Note:** Tier IV would hold seven Doctrines. If you want six, The High Towns is my candidate to cut. With Jayavarman VII this Doctrine is strong; test it first.
+
+### 44. The Wildwood Compact (new, not ruled)
+
+- **Ruling:** New, not ruled.
+- **Tier, rarity, type:** Tier II, Doctrine, the wild
+- **Today:** Change 34, approved: Worked wild forest and jungle tiles gain +1 food and +1 production. Tended works cost your workers no charge.
+- **To build:** Worked wild forest and jungle tiles gain +1 food and +1 production. Each turn, each of your towns tends one wild tile it works.
+- **Why:** A free work on 16 hexes of every town is a round of clicks with no decision in it. Here the towns do it. Each ground has one work, so there is nothing to choose, and no new button.
+- **Arithmetic:** A town of 10 that works 6 wild hexes is tended in 6 turns. That is 6 charges (two Workers, about 25 production) and about 12 orders to a Worker saved for each town. The free charge of the approved text saved the same production and none of the orders.
+- **Synergy:** Raises: tended hexes, with no worker. It works for the works the seat can lay: fish traps and orchards with The Gathering Grounds, root-crop grounds with Bound to the Soil, hill groves with The Garden Peoples.
+- **Shape:** **New shape:** a step at the end of the turn that lays the ground's work on one worked wild hex of each town. It changes a hex's yield, so it joins the register of yield mutations (`refreshTileDerived`). The rule `tendedWorksFree` is then on no row.
+- **Note:** If you reject this, change 34 stands as approved.
 
 ## 5. The deck after the rulings
 
 | Tier | Cards | Military | Economic | Civic | Wildcard | Common | Uncommon | Rare |
 |---|---|---|---|---|---|---|---|---|
 | Tier 0 | 11 | 1 | 7 | 3 | 0 | 7 | 3 | 1 |
-| Tier I | 15 | **0** | 10 | 4 | 1 | 9 | 5 | 1 |
+| Tier I | 15 | 0, and The Beacons is dealt here | 10 | 4 | 1 | 10 | 4 | 1 |
 | Tier II | 19 | 1 | 10 | 8 | 0 | 9 | 9 | 1 |
 | Tier III | 18 | 1 | 9 | 6 | 2 | 8 | 5 | 5 |
 | Tier IV | 12 | 1 | 6 | 4 | 1 | 3 | 6 | 3 |
-| **All** | **75** | **4** | **42** | **25** | **4** | **36** | **28** | **11** |
+| **All** | **75** | **4** | **42** | **25** | **4** | **37** | **27** | **11** |
 
-- 74 cards today. Less The Wild Orchards, The Burhs, The Gleaners and The Wide Country; plus The Thermae, The Beacons, The Seven Fat Years, The Water Boards and The Thousand Villages: 75.
-- Four are charters and take no chair: The Gathering Grounds, Outposts, The Polders and The Keeps.
-- The Gathering Grounds is counted in Tier 0 and Levy of the Land in Tier I. Each is also dealt one tier later.
-- Doctrines: 23 (4, 6, 7 and 6). Arcadia is cut.
+- These are the counts after rounds one and two. 75 cards and 23 Doctrines (4, 6, 7 and 6).
+- Four cards are charters and take no chair: The Gathering Grounds, Outposts, The Polders and The Keeps.
+- The Gathering Grounds is counted in Tier 0, Levy of the Land in Tier I and The Beacons in Tier II. Each is also dealt in one more tier.
 - Keywords: 2 commissions, 4 charters, 2 scalers and 1 boon.
-- If you approve change 37, The Beacons is also dealt in Tier I, and every tier has a Military card to deal.
+- **If you approve changes 39 to 44:** 76 cards and 24 Doctrines. Tier III gains Commission: Keep the Wild (19 cards, 3 Wildcard, 6 uncommon), and Tier IV gains The Satoyama (7 Doctrines). The deck then has 5 Wildcard cards and 3 commissions.
 
 ### What the cuts and the kept card leave
 
-- **Tier I has no Military card.** The Burhs is cut. Change 37 answers it with no new card: The Beacons is also dealt in Tier I.
-- **Tier II has no Wildcard card, and the deck has two commissions.** The Wide Country is cut. I propose no card: a Wildcard chair takes a card of any type, and the generic commissions cover Tiers I to III (The Land Register, The Building Programme, The Master Plan).
-- **The levy has one rider fewer.** The Gleaners is cut. I propose no card: Levy of the Land stands alone, and its first rider is now The Terraces of Moray in Tier II.
-- **Claims have one reader fewer.** Without The Wide Country, Outposts and The Staked Claims feed The Wild Marches, The Quitrents and The Measure of the Land. That is enough.
-- **Tinkers' Guild stays, so Tier I is 10 Economic cards of 15.** Its +1 charge and Bound to the Soil's +1 charge are the same bonus twice. You kept it knowing that, and the tended works give the charges a use.
-- **The Old Songs with root-crop grounds.** A new work on open ground makes a Tier I common pay on every hex. Change 38 answers it.
+- **Tier I has no Military card of its own.** The Burhs is cut. The Beacons is dealt in Tiers I and II (37, approved), so a Military card is offered in every tier.
+- **Tier II has no Wildcard card.** The Wide Country is cut. A Wildcard chair takes a card of any type, and the generic commissions cover the tier. Change 42 puts a commission in Tier III.
+- **The levy has one rider fewer.** The Gleaners is cut. Levy of the Land stands alone, and its first rider is The Terraces of Moray in Tier II.
+- **Tinkers' Guild stays, so Tier I is 10 Economic cards of 15.** Its +1 charge and Bound to the Soil's +1 charge are the same bonus twice, and the four tended works give the charges a use.
+- **The wild rests on few cards.** Section 1 has the count and the changes that answer it (39 to 44).
 - **The deck is 42 Economic cards of 75 (56%).** The type rules put food, production, land and growth there, and that is what this deck does.
 
 ## 6. The themes after the rulings
@@ -665,14 +840,14 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 - **Tier 0:** The Gathering Grounds (fish traps, orchards); the shared Sacred Groves
 - **Tier I:** The Old Songs, The Wild Marches, Outposts, The Staked Claims; the Doctrine Bound to the Soil (root-crop grounds); the shared Garden Cities and The Barbarian Frontier
 - **Tier II:** The Standing Woods, The Hedgerows; the Doctrine The Wildwood Compact
-- **Tier III:** The Long Tending, The Mountain Terraces; the Doctrine The Garden Peoples (terraced groves)
-- **Tier IV:** The Garden of the World, The Philosophers' Peaks
-- **The essentials:** culture from The Old Songs, The Wild Marches and the groves; production from The Standing Woods and root-crop grounds; science from the mountains, which are wild land.
+- **Tier III:** The Long Tending, The Mountain Terraces; the Doctrine The Garden Peoples (hill groves). Proposed: Commission: Keep the Wild (42), and The Sculpted Landscape on tended tiles (41)
+- **Tier IV:** The Garden of the World, The Philosophers' Peaks, The Domesday Survey (it counts tended tiles). Proposed: the Doctrine The Satoyama (43)
+- **The essentials:** culture from The Old Songs, The Wild Marches and the groves; production from The Standing Woods and root-crop grounds; science from the mountains, and from The Rope Stretchers if you approve change 40.
 
 ### The frontier (towns, claims, roads, authority)
 
 - **Tier 0:** The Seed Grain, The Road Home, The Founding Furrow, The Woodland Bands
-- **Tier I:** The Staked Claims, Outposts, The Land Hunger, The Road Towns; The Beacons if you approve change 37
+- **Tier I:** The Staked Claims, Outposts, The Land Hunger, The Road Towns, The Beacons
 - **Tier II:** The Great Colonies, The Colonists, The Book of Settlements, Provincial Councils, The Beacons
 - **Tier III:** The Imperial Roads, The Sovereign Writ, The Quitrents
 - **Tier IV:** The Measure of the Land, The Mother City, The Great Migration, The Imperial Highways
@@ -701,7 +876,7 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 ### Early, end of Tier I: the standing wild (five chairs, a tier-4 government)
 
 - **Chairs:** Sweet Water (0), The Founding Furrow (0), The Old Songs (I), The Wild Marches (I), Levy of the Land (I). Held with no chair: The Gathering Grounds and Outposts. Doctrine: Bound to the Soil.
-- **How it plays:** The seat founds four towns and leaves the woods standing. Workers with 4 charges set fish traps and orchards, and root-crop grounds on the open hexes the towns work. The woods and hills pay culture. Two outposts claim the gaps. The culture brings Tier II early, and a levy turns the food into buildings.
+- **How it plays:** The seat founds four towns and leaves the woods standing. Workers with 4 charges set fish traps and orchards, and root-crop grounds on the open hexes the towns work: each is a hex of 6 where a dry farm is 4. The woods and hills pay culture. Two outposts claim the gaps. The culture brings Tier II early, and a levy turns the food into buildings.
 
 ### Early, end of Tier II: the road realm (six chairs, a tier-10 government)
 
@@ -717,58 +892,58 @@ Of the 36 changes of round one: 26 approved, 4 approved with your text, 5 cut, 1
 
 ### What Expansionist gives and takes with each other deck
 
-- **Dominion (Alexander):** Expansionist gives citizens to raise as soldiers and wide land to hold. It takes Military cards for its chairs and camps that claim land when cleared. The General Levy at Tier III (22) feeds The Royal Army a tier sooner.
+- **Dominion (Alexander):** Expansionist gives citizens to raise as soldiers and wide land to hold. It takes Military cards for its chairs and camps that claim land when cleared.
 - **Commerce (Pachacuti):** Expansionist gives joined towns, road hexes and luxuries on claimed land. It takes gold, which buys hexes and workers, and caravans, which lay roads.
-- **Devotion (Jayavarman VII):** Expansionist gives public works and large towns, which his kit now reads, and wild forest that pays faith (Sacred Groves pays on a tended forest too). It takes happiness and authority in devout towns.
+- **Devotion (Jayavarman VII):** Expansionist gives public works and large towns, which his kit reads, and wild forest that pays faith (Sacred Groves, and the belief Spirits of the Wood). Change 40 lets The Ambarvalia count tended tiles. It takes happiness and authority in devout towns.
 - **Scientific (Nezahualcoyotl):** Expansionist gives many towns for empire buildings, and public works that pay science (The Thermae). It takes charters that open the Aqueduct early, and science.
-- **Magisterial (Cyrus):** Expansionist gives claimed land for great-person works and wild hexes for Garden Cities. It takes culture and the government's chairs.
+- **Magisterial (Cyrus):** Expansionist gives claimed land for great-person works and wild hexes for Garden Cities. Change 41 lets The Sculpted Landscape pay tended tiles beside a work. It takes culture and the government's chairs.
 
 ### For the Commerce pass
 
-- I change no shared card. The Country Fair, Market Gardens and The Provincial Fair stay as they are.
-- **The rarity finding is not only this deck's.** The draw shows a rare in about 1 game of 9. You approved setting a rarity by how often a card should be seen (question 3), and the same count should be made for the other decks.
+- Two shared cards would change, and neither is shared with Commerce: The Ambarvalia (Devotion, change 40) and The Sculpted Landscape (Magisterial, change 41). The Country Fair, Market Gardens and The Provincial Fair stay as they are.
+- **The rarity finding is not only this deck's.** The draw shows a rare in about 1 game of 9. You approved setting a rarity by how often a card should be seen, and the same count should be made for the other decks.
 - **Roads are worth more to this seat.** The Road Towns pays +4 (09) and The Beacons moves units inside the borders (18). Caravans lay roads, so the pair is stronger.
 - **The Wide Country is cut (14).** Nothing in this deck now pays for hexes bought with gold, apart from the cards that count hexes owned.
-- **Tinkers' Guild stays (06).** A Worker bought with gold has the extra charge too, and the tended works give it more to do.
-- **Wild land.** A luxury hex that is left wild pays The Country Fair. A tended hex opens no resource, so a card that reads improved resources does not read it.
+- **Wild land and luxuries.** A tended work opens no resource, so a seat that keeps its land wild has fewer luxuries to sell. A luxury hex left wild still pays The Country Fair. The three Commerce cards on mines and improved luxuries (The Mineral Trade, Mining Districts, The Emporia) are among the 85 outside sources of section 1.
 
 ### Leaders and great people
 
 The leader roster changed on 2026-11-20. Cyrus and Jayavarman VII are read on their new kits.
 
-- **Alexander (with Dominion):** richer. The General Levy at Tier III gives The Royal Army units to read without Dominion's cards. At your 2 turns the burst is half, which is still more than he had.
-- **Pachacuti (with Commerce):** richer. Roads (09, 18) and mountains (25, 29) for a start beside mountains.
+- **Alexander (with Dominion):** richer. The General Levy at Tier III gives The Royal Army units to read without Dominion's cards.
+- **Pachacuti (with Commerce):** richer. Roads (09, 18) and mountains (25, 29) for a start beside mountains. His farms beside mountains pay gold, so he leans to the field there.
 - **Jayavarman VII (with Devotion), on today's kit:** much richer. His farms beside fresh water gain +1 food and +1 faith for every public work in their city, so every card that makes or reads public works is his: The Aediles, The Thermae (17), The Water Boards (30), The Waterworks, and the Doctrines The Curator of Waters and The Hydraulic Empire.
-- **Jayavarman VII, the details.** The House of Fire is a public work, so each of his towns can hold one more than any other seat's. The Thermae pays 2 science for it. The Water Boards doubles its +2 food. Its +3 engineer renown feeds A Court of Engineers and The Engineers' Yards (21). His +1 culture and +1 faith for every 4 citizens reads the same count as The Thousand Villages (31), and The Seven Fat Years (19) raises it at once.
-- **Jayavarman VII and the fork.** His kit pays on farms beside fresh water, so he leans to the field: Sweet Water, The Watercourses and Bound to the Soil's +1 food on farms. Root-crop grounds would take those farm hexes, so for him the new work is for dry ground only. That is the fork working.
+- **Jayavarman VII, the details.** The House of Fire is a public work, so each of his towns can hold one more than any other seat's. The Thermae pays 2 science for it, and The Water Boards doubles its +2 food. Its +3 engineer renown feeds A Court of Engineers and The Engineers' Yards (21). His +1 culture and +1 faith for every 4 citizens reads the same count as The Thousand Villages (31).
+- **Jayavarman VII and the fork.** His kit pays on farms beside fresh water, so he leans to the field. Under The Satoyama (43) his farm line would land on watered root-crop grounds too: +8 on a hex in a town with four public works. That is the strongest use of the Doctrine and the first thing to test.
 - **Nezahualcoyotl (with Scientific):** richer. He starts beside a lake, so fish traps at Tier 0 suit him. The Thermae and The Water Boards read the Aqueduct towns that The Dikes reads.
 - **Cyrus (with Magisterial), on today's kit:** his capital gains culture for each Order seated in a Civic or Wildcard chair. Any Order can sit in a Wildcard chair, and only a Civic Order can sit in a Civic chair. The deck gives him 25 Civic cards of 75. Tier II is his best tier (8 Civic cards of 19), and Tier I is thin (4 of 15).
-- **Cyrus, the details.** Four cards are now charters and sit in no chair (The Gathering Grounds, Outposts, The Polders, The Keeps), so they add nothing to his count. A commission leaves its chair when it is met, so it stops counting then. On the other side, the Workers of The King's Gardeners keep Tinkers' Guild's charge and have four works and outposts to lay in a new town.
+- **Cyrus, the details.** Four cards are charters and sit in no chair, so they add nothing to his count. A commission leaves its chair when it is met, so it stops counting then. The Workers of The King's Gardeners keep Tinkers' Guild's charge and have four works and outposts to lay in a new town. The Sculpted Landscape on tended tiles (41) is a card of his pair.
 - **Ibn Battuta:** no change.
-- No leader points at tended land, so folding it lost no leader's theme.
-- **Great people:** only engineers are touched. The Engineers' Yards moves beside A Court of Engineers in Tier III, and the Court becomes uncommon.
+- **No leader pays on a wild hex.** Five leaders of the new roster pay on an improvement. The Satoyama (43) is the only way a leader's line reaches a tended work.
+- **Great people:** 21 legacies pay on an improvement and none on a wild hex (section 1). The Engineers' Yards moves beside A Court of Engineers in Tier III, and the Court becomes uncommon.
 
 ## 9. Ready for the build
 
-A builder follows this list once the second review is done. Each number is an entry in section 4.
+A builder follows this list once the third review is done. Each number is an entry in section 4.
 
 ### Rows to retire
 
-- The Wild Orchards (03), The Burhs (05, the reading to confirm), The Gleaners (10), The Wide Country (14), and the Doctrine Arcadia (36).
+- The Wild Orchards (03), The Burhs (05), The Gleaners (10), The Wide Country (14), and the Doctrine Arcadia (36).
 - Take the gate `needsTendedWork` off The Standing Woods (12), The Hedgerows (13), The Long Tending (23), The Garden of the World (27), The Wildwood Compact (34) and The Garden Peoples (35). No row then carries it.
 
 ### Data only: a number, a tier or a rarity
 
 - 04 Levy of the Land: common, `lastBand` Tier II.
-- 07 The Land Hunger: 50%.
+- 07 The Land Hunger: 50%, common.
 - 09 The Road Towns: +4 production.
 - 11 The Staked Claims: Tier I, rare.
-- 15 The Great Colonies: Tier II, `fromLargest: 5`.
+- 15 The Great Colonies: Tier II, `fromLargest: 4`.
 - 20, 26, 32: the rarities of Tiers II, III and IV, as each entry lists them.
 - 21 The Engineers' Yards: Tier III, +4 production.
 - 22 The General Levy: Tier III, uncommon, `everyAtWar: 2`.
 - 25 The Mountain Terraces: 4 science and 2 production, uncommon.
 - 29 The Philosophers' Peaks: +4 science, at most +12, common.
+- 37 The Beacons: `lastBand`, so that it is dealt in Tiers I and II.
 
 ### Data only: a new effect on a shape that exists
 
@@ -778,6 +953,7 @@ A builder follows this list once the second review is done. Each number is an en
 - 08 Outposts and 28 The Keeps: `charter.unlocks` in place of `unlocksImprovement`.
 - 34 The Wildwood Compact: the new first sentence, and the price on new workers goes.
 - 33 Bound to the Soil: +1 food on farms. 35 The Garden Peoples: the yields on wild hexes.
+- 38 The Old Songs: forest, jungle and hills.
 
 ### A shape to confirm or extend in code
 
@@ -788,51 +964,61 @@ A builder follows this list once the second review is done. Each number is an en
 - 24 The Polders: a charter; `countsAs: farm` with `yieldsAs` on one row; one charge; uncommon.
 - 30 The Water Boards: a public-work selector on `buildingYieldPercent`.
 
-### Waits for your second review
+### The two new tended works (approved)
 
-- The root-crop grounds on 33 and the terraced groves on 35: two new work rows, a Doctrine that opens a work, a board piece and a flair-gallery entry for each. The yield of the root-crop grounds and the name of the groves are open.
-- 37 The Beacons, also dealt in Tier I. 38 The Old Songs, with its terrain named.
-- Your answer on the advice for 07 and 15, and the reading of 05.
+- A row `rootCropGrounds`: tended, wild grassland and plains, no hills, no forest, +1 food and +2 production, one charge. Opened by Bound to the Soil (33).
+- A row `hillGrove`: tended, wild hills, no forest, +2 food and +1 culture, one charge. Opened by The Garden Peoples (35).
+- A Doctrine that opens a work: the effect `unlocksImprovement` on the Doctrine's row, and a refusal sentence that can name a Doctrine.
+- A board piece and a flair-gallery entry for each work.
+
+### Waits for your third review
+
+- 39 the orchard's figure. 40 the two counters. 41 The Sculpted Landscape. 42 Commission: Keep the Wild. 43 The Satoyama. 44 The Wildwood Compact's second line.
 
 ### With the build
 
 - The sheet `docs/decks/expansionist.md` and its sync test `test/sim/decks/expansionist.test.ts`: every changed row, the counts tables, and the "Needs tended land" line in the header.
+- `docs/decks/deck-design.md`, "Tended land": the line "tended works yield less than a proper improvement" is reversed by your ruling. Write the new rule there, with its date.
 - The Local Census: the game counts tended hexes and the text does not say so. The Domesday Survey: the game's words for the goal leave out "or tended". Make each text and the game's words agree.
-- The bots: they lay no tended work today. The cards work without that. A bot-track batch can teach them later.
+- The bots: they lay no tended work today. A bot-track batch must teach them before the wild can be measured.
 
 ## 10. What to test first
 
-1. **The Tier III fork.** The Garden Peoples (+3 on every worked wild hex, and a new work) against Crop Rotation (the work's own bonus doubled, and wild hexes yield nothing). The wild side looks about 2 a hex ahead before any Order.
-2. **Root-crop grounds with Bound to the Soil.** Does a seat still farm dry ground? Count farms and root-crop hexes at turn 100.
-3. **The Wildwood Compact with four works.** Free tending on 16 of 18 hexes around each town.
-4. **The Old Songs.** At +2 on all wild land it is about 16 to 20 culture at turn 60 against a median of 25. Change 38 names its terrain.
-5. **The Gathering Grounds at Tier 0.** Count the hexes a player tends by turn 60, and whether tending feels like a choice or like a round of clicks.
-6. **Levy of the Land as a common in two tiers.** Is it an automatic pick?
-7. **The charters.** Outposts and The Keeps with no chair: are they too free?
-8. **The Seven Fat Years with The Grain Census and The Great Households.** Six or seven sizes gained in one turn.
-9. **The rarities.** After the build, count what a seat is offered in Tiers III and IV over ten games.
+1. **The Satoyama with Jayavarman VII.** His farm line on watered root-crop grounds: +8 a hex in a town with four public works.
+2. **The Tier III fork.** The Garden Peoples (+3 on every worked wild hex, and hill groves) against Crop Rotation (an improvement's own bonus doubled, and wild hexes yield nothing).
+3. **Root-crop grounds with Bound to the Soil.** A hex of 6 against a dry farm's 4. Does a seat with this Doctrine still farm? Count farms and root-crop hexes at turn 100.
+4. **The wild in Æra IV.** Add up one hex of each kind in a real game and compare it with the table in section 1.
+5. **The Wildwood Compact.** With change 44, do the towns tend the hexes the player would have chosen?
+6. **The Old Songs** on woods and hills only: about 24 culture in age 2 for a seat that leans on it.
+7. **The Gathering Grounds at Tier 0.** Count the hexes a player tends by turn 60.
+8. **Levy of the Land as a common in two tiers.** Is it an automatic pick?
+9. **The charters.** Outposts and The Keeps with no chair: are they too free?
+10. **The rarities.** After the build, count what a seat is offered in Tiers III and IV over ten games.
 
 ## 11. What I could not determine
 
-- No measurement of this deck exists since batches DS1 and DS3 (2026-11-10), and none of tended land at all, because the bots do not tend. The power bar comes from bot games of 2026-10-13 on an older tree.
-- The offer figures come from my own model of the draw, not from games. The model picks a card at random from each hand, uses 4, 6, 8, 8 and 5 drafts by tier, and ignores passes and redraws.
-- The count of ground is from 48 starts on 8 standard maps with six seats. It reads the first two rings only, and it does not know which hexes a player would choose to work.
-- Whether the live walk that opens a work reads a Doctrine's effects (`cardUnlocksImprovement`). I read the function and not the walk behind it.
-- Whether a root-crop ground should be allowed on a floodplain, and whether a worker should be able to lay a farm over a tended work, as the code allows today.
+- No measurement of this deck exists since batches DS1 and DS3 (2026-11-10), and none of wild or tended land at all, because the bots do not tend. Every sum in section 1 is arithmetic on the rows, not a reading from a game.
+- The "typical" stack is my judgement of what a seat holds in Æra IV: two Doctrines of its theme, two Order lines, one belief, one great person. You draft 2 to 3 great people in an age, so one that pays on a given improvement is a fair guess and two is the busted case.
+- The counts of outside sources come from the data files for cards, beliefs, buildings, luxuries and technologies, and from the pass documents for great people, wonders and leaders. I counted a source as "on an improvement" when its effect names an improvement, a great-person work or a holy site. A few that pay on hexes beside a work reach a wild hex and are not in the 85.
+- Whether a commission's lasting reward counts as an Order's line for The Long Tending and The Age of Improvement. The sums assume it does.
+- Whether a resource's own yield is paid on a hex with a tended work. The sums use hexes with no resource.
+- The offer figures come from my own model of the draw, not from games. The count of ground is from 48 starts on 8 standard maps and reads the first two rings only.
+- How a Doctrine hand is drawn. I assumed three at random from the Doctrines of both decks in the tier.
+- Whether a root-crop ground should be allowed on a floodplain.
 - Whether a citizen that a card grants counts as growth and as a new largest size (The Seven Fat Years with Granary Levies and The Grain Census).
 - How the Doctrine Crop Rotation should treat water. Today every hex with no improvement yields nothing under it, coast and lake included.
-- Five shape points for the triage are in "Ready for the build", under "A shape to confirm or extend in code".
 - The history behind the names is from my own knowledge, not from a source in the repo.
-- Some sheet texts differ from the game's own words. The Local Census: the game also counts tended hexes. The Domesday Survey: the game's words for the goal leave out "or tended", and the rule counts them. The Grain Census and The Aediles: the production goes to the capital. Granary Levies: the text has no full stop.
 
-## Record: round one and your rulings (2026-11-20)
+## Record: rounds one and two, and your rulings (2026-11-20)
+
+### Round one
 
 - The first form of this file proposed 36 changes (6 buff, 10 rework, 2 cut, 9 move, 5 new, 4 doctrine) and three options for tended land: A, cut it; B, flesh it out; C, fold it into the wild. It recommended C, with A as the runner-up, and listed the changes under A and B in two appendices.
 - **The diagnosis of tended land.** A tended hex yields 4 in every age, level with a plain farm or mine. About 15 Orders and 3 Doctrines pay on improved hexes and skip tended hexes; four Orders paid on tended hexes. A charter was offered in about 6 games of 10, and a seat that took one was then offered about 1.1 pay-offs in a game. The bots never tend (`src/ai/value.ts`), so no measurement exists. The pay-offs were parasitic: no floor, and not even dealt without a charter.
 - **Why the rest of the deck felt as it did.** The 60 / 30 / 10 draw hid the deck's rares: Tier III held 10 rares, each offered in 1 game of 9, and its four commons were offered in 19 games of 20. Levy of the Land was offered in 1 game in 4. Three cards for an open map came after the map was full. Some rares were weaker than commons (The Polders, The Mountain Terraces). Three cards were chores (seat, build, unseat). Military cards by tier were 1, 1, 0, 0, 2, and the deck had no boon.
 - **The five questions, and the answers you approved by your second ruling:** tended land is folded into the wild (C); one charter opens both first works; a card's rarity is set by how often it should be seen; a card that opens a work is a charter; Levy of the Land is a common dealt in Tiers I and II.
 
-### Your comments on the page, in your words
+### Your comments on the page in round one, in your words
 
 | # | Card | Your words | Result |
 |---|---|---|---|
@@ -877,15 +1063,13 @@ A builder follows this list once the second review is done. Each number is an en
 - You then asked in chat: *"do you think we need more tended improvement draws for some of these cards to make sense?"* The answer was "more kinds of tended work, no more draws": four works on three cards, and no work on a card whose only job is to open it. It is section 2 of this file. Not proposed: a work for desert, tundra or marsh (too few hexes), and burning (a town's decision on a cycle, which is a new system).
 - Your second ruling: *"yup no comment means approved, please fold these in and i'll do another review"*. So changes 01 to 04 are approved as proposed, and the five questions take their recommended answers.
 
-## The user's rulings on the second review (2026-11-20)
+### Your rulings on the second review, in your words
 
-Comments on the nine "new" blocks of the page, in the user's words:
-
-| Block | The user's words | Result |
+| Block | Your words | Result |
 |---|---|---|
-| new-1 Four tended works on three cards | "cool sounds good. How many cards today buff wild cards? For this to be meaningful, they need to pay off as much as improvements in the late game, which can get kind of busted with religious beliefs and great people." | Approved. **A question to answer, and a requirement:** late in the game a wild hex must pay as much as an improved hex does with beliefs and great people on it. |
-| new-2 Root-crop grounds | "lets make it even better, +1 food and +2 production. it needs to be clearly better than a regular farm." | Root-crop grounds: +1 food and +2 production. The advice to cut it to +1 food is rejected. |
-| new-3 Terraced groves | "make it +2 food +1 culture instead, same reason as my previous comment" | +2 food and +1 culture. (The name: the user did not answer; "hill grove" is taken as the recommended reading.) |
+| new-1 Four tended works on three cards | "cool sounds good. How many cards today buff wild cards? For this to be meaningful, they need to pay off as much as improvements in the late game, which can get kind of busted with religious beliefs and great people." | Approved. A question, and a requirement: late in the game a wild hex must pay as much as an improved hex does with beliefs and great people on it. Section 1 answers it. |
+| new-2 Root-crop grounds | "lets make it even better, +1 food and +2 production. it needs to be clearly better than a regular farm." | +1 food and +2 production. The advice to cut it to +1 food is rejected. |
+| new-3 Terraced groves | "make it +2 food +1 culture instead, same reason as my previous comment" | +2 food and +1 culture. You did not answer on the name; "hill grove" is taken, as recommended. |
 | new-4 Change 37, The Beacons also in Tier I | "sure" | Approved. |
 | new-5 Change 38, The Old Songs names its terrain | "sure" | Approved. |
 | new-6 The Great Colonies | "ok, lets do a fourth." | Towns you found start with a fourth of the citizens of your largest town. |
@@ -893,6 +1077,5 @@ Comments on the nine "new" blocks of the page, in the user's words:
 | new-8 The Burhs | "cut" | The card leaves the deck. |
 | new-9 The other two lines | "Yup sounds good" | The Great Households and The General Levy stand. |
 
-The rule the user states for tended works: **a tended work is clearly better
-than the plain improvement on the same ground.** This reverses the design
-doc's older line that a tended work yields less than an improvement.
+- The rule you stated for tended works: a tended work is clearly better than the plain improvement on the same ground. It reverses the design doc's older line that a tended work yields less than an improvement.
+- In round two I advised that root-crop grounds give +1 food only, and that The Great Colonies at a fifth was under the bar. You raised both figures.

@@ -1,282 +1,769 @@
 # Commerce design pass (2026-11-20)
 
-**Status, 2026-11-20:** nothing here is ruled yet. This is a proposal for the user to approve or reject, one change at a time. Nothing is built, and no game data changed.
+**Status, 2026-11-20, second round:** round one is ruled. Of its 49 changes, 39 are approved as proposed, 7 carry your own text, 1 is kept as it is today and 2 are rejected with a replacement owed. Round two proposes 29 more changes (50 to 78). None of them is ruled. Nothing is built, and no game data changed.
 
-The user, 2026-11-20:
+Your request, 2026-11-20:
 
 > *"ok, could you do a deck pass on commerce and expansionist. I find that i don't really take any of the tended land cards in this version of the game, and commerce feels a bit one-note. I'm not sure whether to drop the tended land theme altogether or make it more fleshed out, what do you think?"*
 
-- This pass covers Commerce. Another pass covers Expansionist and the tended-land question. Section 8 lists every place where the two passes touch.
-- It proposes 49 changes. You asked the Dominion pass to go for more changes than needed, and this pass does the same.
-- The method is the card-design skill. "Now" is the card's text in `data/decks/commerce.json`, which equals the sheet `docs/decks/commerce.md`. I checked each one against the game's own words (`describeCard`).
+Your request for the second round, 2026-11-20:
+
+> *"take a look at my comments on the commerce deck, do another pass?"*
+
+Your comment on round one's new notes:
+
+> *"overall the changes here are good, but I don't know if they fix the core problem, that comerce is almost entirely built around trade routes and earning gold. maybe we need to include a few more customs house synergies, tile yield effects, or interactions with the other decks?"*
+
+Your comment on the sea, which round one set aside:
+
+> *"this is interesting, i think we could do with some more sea cards."*
+
+- This file is the current state. The record of round one, with your words, is at the foot.
+- A line marked "your text" is yours and stands. Where the arithmetic puts it off the bar, section 1.6 says so. That is advice only.
+- Round two has four directions, all yours: customs houses, yields on hexes, interactions with the other decks, and the sea.
 - Every number is a first guess against the power bar, to tune in playtest. No bot games and no tests were run.
-- Gold counts at half its face value in the arithmetic (your rate of 2026-09-03: 2 gold to 1 of another yield). Culture in Tiers 0 and I counts three times.
+- Gold counts at half its face value in the arithmetic (your rate of 2026-09-03). Culture in Tiers 0 and I counts three times.
+- The review page keeps the anchors `change-01` to `change-49`. The new changes are `change-50` to `change-78`.
 
-**The proposal by kind:** 13 buff, 12 rework, 6 cut, 6 move, 8 new, 4 doctrine.
+**Round two by kind:** 17 new (12 in the deck and 5 shared), 2 rework, 1 doctrine, 8 cut and 1 rule. Three of the new shared cards replace a shared route card.
 
-## 1. Why the deck feels one-note
+## 1. New for your second review
 
-In three sentences:
+Only the items in sections 1 and 2 are not ruled. Everything in section 4 is ruled.
 
-1. **From Tier II on, almost half the deck reads a trade route or a trading post.** A route is hired once and then runs with no more input. So 22 of the 47 cards in Tiers II to IV reward one act, and the player does that act about ten times in a game.
-2. **Gold has one use, and it is the same use every turn.** The treasury buys the next building at 4 gold a hammer. No Order changes that price. The two things that only Commerce can buy (a wonder and a great person) are rares at Tiers III and IV.
-3. **The other parts of your picture of the deck are too thin to draft toward.** Deals have 2 cards. Posts abroad lost their three cards on 2026-11-10. The sea has no card. The army has 3 cards, and none at Tiers I, III or IV.
+### 1.1 Does round one fix the core problem?
 
-### 1.1 The tally: what each card reads, by tier
+- **No. Round one did not fix it.** After your rulings, 26 of 71 cards read a trade route or a trading post. That is 37%, against 36% before the pass. Tier II got worse: 11 of its 21 cards read a route, against 9 of 20, and your new authority common makes it 12 of 22.
+- Round one made the route cards better and gave them distance and posts. It also cut dead cards that were not route cards, and it added two route cards (The Tea Horse Road and The Feitorias). So the share did not fall.
+- **Round two sets a target: route and post cards are a quarter of the deck.** It reaches 18 of 75 (24%). In Tiers II to IV the share falls from 51% to 33%. Eight route cards leave, and The League of Cities stops reading routes.
+- **The shared cards matter as much.** Five of the 18 cards Commerce shares with other decks read a route. Round two leaves one.
+
+| Cards that read a route or a post | 0 | I | II | III | IV | All | Share |
+|---|---|---|---|---|---|---|---|
+| Before the pass | 2 of 10 | 1 of 13 | 9 of 20 | 8 of 16 | 5 of 11 | 25 of 70 | 36% |
+| After round one's rulings | 1 of 9 | 1 of 14 | 11 of 21 | 7 of 17 | 6 of 10 | 26 of 71 | 37% |
+| After round two | 1 of 11 | 1 of 16 | 7 of 21 | 5 of 19 | 4 of 8 | 18 of 75 | 24% |
+
+- "After round one's rulings" leaves out the two cards you are owed: the Tier 0 rare and your authority common. With the common it is 27 of 72. "After round two" counts both.
+- Tier IV stays at 4 of 8. Its four route cards are the capstones of the home market and the far road (The Grain Barges, The World's Fair, The World's Exchange, The Feitorias).
+- The shared cards: 5 of 18 read a route today. After round two, 1 of 20 does (Pilgrim Markets).
+
+### 1.2 The themes after round two
+
+| Theme | Cards | Tiers | The floor: what a seat with one card of it gets |
+|---|---|---|---|
+| Routes and posts (the core) | 18 | 0 to IV | Any seat with a Market has routes |
+| The purse: purchases and loans | 13 | 0 to IV | Any seat buys things |
+| The goods: luxuries and deals | 12 | 0 to IV | Two to four kinds by age 2, from the map |
+| **Customs houses and great merchants** | 6, and 3 that bring a merchant | I to III | The Merchant Consuls brings its own merchant. The other cards pay nothing before the first customs house |
+| **Hexes: the goods land and the roads** | 6, and 3 shared | 0 to III | Any seat has a luxury hex or a road by age 2 |
+| **The sea** | 3, and 2 shared, and 1 Doctrine | 0 to III | Nothing for an inland seat. A coastal seat works water from turn 1 |
+| **Bridges to the other decks** | 5 shared | II and III | Each reads a thing every seat has a little of (garrisons, food, technologies) |
+| Markets and gold buildings | 7 | 0 to III | One Market a town |
+| Gold income turned into another yield | 5 | 0 to IV | Any gold income |
+
+- The four themes in bold are your four directions. Each has three or more cards across at least two tiers.
+- The 75 cards are counted once each. A card that serves two themes is counted in the first.
+
+### 1.3 The four directions: what the game has today, and what round two adds
+
+#### Customs houses
+
+- **What a customs house is.** A great merchant is used once: for Strike a Bargain (8 turns of the empire's gold, your ruling S4), or to plant a customs house on a hex. The data pays the hex 3 gold today. Your ruling S3 makes it 4, then 6 with a technology of Æra III, then 8 with one of Æra IV. A customs house on a resource opens that resource, with no improvement.
+- **How many a seat has.** A normal seat calls 7 to 9 great people by turn 150, and the ladder costs 75, 134, 197, 267, 346, 436, 538, then 654 renown. 13 buildings and 5 wonders feed merchant renown, and most are Commerce's own (Market, Lighthouse, Bank, Bazaar, Caravanserai). My estimate for a Commerce seat that wants merchants: none or one by the end of age 2, two or three in age 3, three to five in age 4. If the seat plants every merchant, that is its count of customs houses. I could not measure it.
+- **What raises the count in this pass:** Commission: The Trade Mission (13), your line on Houses of Account (+2 renown for each gold building), The Strongroom, A Court of Merchants, the Doctrine The Sogdian Colonies (47), Merchant Princes (35) and the new boon The Merchant Consuls (53). A seat that leans on the theme can hold five to eight customs houses in age 4.
+- **The decision today.** A bargain in age 3 is 800 to 1,200 gold at once. A customs house is 6 gold a turn for the rest of the game. The bargain wins every time. Your line on change 20 changes that: the hex pays 6 gold, 8 science and 8 culture, about 19 a turn, so it repays the bargain in about 30 turns. Now the choice is real, and it depends on how early the merchant comes.
+- **What round two adds:** a boon that brings a merchant (53), two cards that read the hexes around a customs house, so that the place matters (54, 55), and a rare that lets a merchant act twice (56). Three things now pull on the place: beside worked land (54), beside improved resources (55), or on a luxury seam to open it.
+- **Magisterial reads the same hexes in its own way:** works beside works. A customs house is a great-person work, so it counts for those cards too. The two decks do not ask for the same placement.
+
+#### Yields on hexes
+
+- **What Commerce's land is today.** Three cards of its own pay a hex (The Emporia, The Mineral Trade and The Customs Houses), one building does (the Plantation House), and three shared cards do (The Country Fair, Market Gardens and The Provincial Fair). No Commerce card pays a hex at Tier III or IV.
+- **The land identity I propose: Commerce pays the goods hex and the road hex.** Expansionist pays the field and the wild: farms, forests, rivers, mountains, tended land. Commerce pays the hex that holds something to sell (a luxury, a mine, a plantation, a fishing boat), the hexes beside it, the road that carries it, and the customs house that taxes it.
+- **The split with Expansionist:** I wrote no card for rivers, farms, wild land or public works. The one overlap is the road. Expansionist pays the town a road joins (The Road Towns). Commerce pays the road hex itself (the shared Market Gardens, and now The Wayside Inns).
+- **Worth working, not only owning.** Each new hex card adds food or production, so a citizen has a reason to work the hex. A hex pays only while a town works it.
+- **What round two adds:** the hexes beside a luxury (57), the road hex (58), and a card that doubles a luxury hex at Tier III, after the flat cards (59). The two customs house cards (54, 55) and the three sea cards (60 to 62) are hex cards too.
+
+#### The sea
+
+- **What the game has today.** A coast hex and an ocean hex each pay 1 food and 1 gold, and a town may work them. The Lighthouse (age 1, a gold building) gives its town's water hexes +1 gold and gives a route slot. The Harbour gives +1 food and +1 gold on a water hex with a resource. Fishing boats improve fish, crabs, pearls, coral, whales and Tyrian purple, and four of those six are luxuries.
+- **Sea routes are real.** A route is all land or all sea (`TradeRoute.sea`, `routeMode` in `src/sim/routes.ts`). The player picks the mode when they hire the caravan. A sea route pays 50% more (`seaYieldPercent`) and lays no road. A card's route row can name the sea (the retired The Harbour Chain did). A foreign ship beside a port blockades it and stops its routes.
+- **Ships.** 14 naval units, with the waterline rules. Nothing in Commerce reads a ship.
+- **Who holds the sea today.** Commerce: one Doctrine (The Delian League). Shared: The Merchant Navigators and Letters of Marque. Expansionist: The Coast (fishing boats pay food and culture), The Harbour Cities and The Polders. No deck owns it.
+- **What round two adds, on what the game has now:** fishing boats (60), water hexes in a Lighthouse town (61), a card that doubles water hexes at Tier III (62), a Doctrine for a coastal empire (63), and science from Lighthouses and Harbours (64). None of them reads a route, so the sea does not raise the route share.
+- **Deferred to the maritime work:** a card for a town on another landmass (the game announces that moment, but no card can pay on it), a card that reads ships as traders, and any card for ocean hexes far from a town. I wrote none of them.
+- **The cost of the sea.** It depends on the map. An inland seat gets nothing from these cards, as a seat with no mountains gets nothing from a mountain card.
+
+#### Interactions with the other decks
+
+- **The rule I followed.** Each bridge reads a thing the partner deck raises and Commerce does not, and pays gold, which Commerce spends. None names a card. Each is a shared card, so a seat with either deck may draw it.
+- **What the partner decks will hold after their passes.** Dominion: garrisons, captured towns, kills, ranks, citadels (`docs/plans/dominion-design-pass-2026-11-19.md`, "Ready for the build"). Expansionist: citizens, food, public works, joined towns, wild land (`docs/plans/expansionist-design-pass-2026-11-20.md`). Magisterial: Orders held, wonders, great people, great-person works (`docs/plans/magisterial-design-pass-2026-11-19.md`). Devotion and Scientific have had no pass yet, so I read their sheets: followers and faith buildings, technologies and science buildings.
+- **Three bridges replace a shared route card,** so the shared pool loses its route cards too: The Escorted Roads (65), The Silk Road Monks (67) and Merchant Scholars (68). The Silk Road Monks is one of the three rows the sheet marks `as built`, because the game does something different from its text.
+- **These are changes to other decks' sheets.** The Dominion pass says its 22 shared cards do not change. Question 2 asks whether this pass may change four of them.
+
+### 1.4 What leaves to make room
+
+- The deck is 71 cards after round one. Round two adds 12 and cuts 8, so it is 75. Expansionist is 75 after its pass, and Dominion is 82.
+- The eight cuts are all route cards. Three give slots, which do not limit a seat (a Market gives one, and the hire price climbs by 15 gold a route). Two are doubles of a card that stays. Three read a thing the player does not control or cannot see.
+- If you want the deck at 72, the next three cuts are The Pack Trail (section 1.6), The Common Road and The Wayside Inns.
+
+### 1.5 The new changes in one table
+
+| # | Card | Tier | Change | Group | Confidence | Ruling |
+|---|---|---|---|---|---|---|
+| 50 | The Silphium Harvest | 0 | new | Owed from your rulings | good |  |
+| 51 | The Courts of Piepowder | II | new | Owed from your rulings | your text |  |
+| 52 | The League of Cities | II | rework | Owed from your rulings | good |  |
+| 53 | The Merchant Consuls | II | new | customs houses | strong |  |
+| 54 | The Bonded Warehouses | II | new | customs houses | good |  |
+| 55 | The Weigh House | III | new | customs houses | good |  |
+| 56 | The Company of the Staple | III | new | customs houses | good |  |
+| 57 | The Estate Lands | I | new | yields on hexes | good |  |
+| 58 | The Wayside Inns | II | new | yields on hexes | good |  |
+| 59 | The Latifundia | III | new | yields on hexes | good |  |
+| 60 | The Fishing Fleets | 0 | new | the sea | good |  |
+| 61 | The Salt Pans | I | new | the sea | good |  |
+| 62 | The Stato da Mar | III | new | the sea | good |  |
+| 63 | The Delian League | Doctrine I | doctrine | the sea | good |  |
+| 64 | The Merchant Navigators | II | rework | the sea | good |  |
+| 65 | The Sutlers | II | new | interactions with the other decks | good |  |
+| 66 | The Grain Merchants | II | new | interactions with the other decks | good |  |
+| 67 | The Relic Trade | II | new | interactions with the other decks | good |  |
+| 68 | The Royal Patents | III | new | interactions with the other decks | good |  |
+| 69 | The Collectors | II | new | interactions with the other decks | good |  |
+| 70 | The Merchant Guilds | II | cut | The cuts that make room | good |  |
+| 71 | The Carters' Guild | II | cut | The cuts that make room | good |  |
+| 72 | The Fondaci | II | cut | The cuts that make room | good |  |
+| 73 | Commission: The Great Fair | II | cut | The cuts that make room | good |  |
+| 74 | Caravanserai Cities | III | cut | The cuts that make room | good |  |
+| 75 | The Trade Winds | IV | cut | The cuts that make room | good |  |
+| 76 | The Neutral Flag | IV | cut | The cuts that make room | good |  |
+| 77 | The Scholars' Roads | III | cut | The cuts that make room | good |  |
+| 78 | The gold price of a great person | Rule | rule | the gold price of a great person | good |  |
+
+### 1.6 Advice on your own lines
+
+Each line below is yours and stands. The last column is advice only.
+
+| # | Your line | The arithmetic | On the bar? | Advice (your line stands) |
+|---|---|---|---|---|
+| 01 | The Pack Trail at Tier II: +3 gold a route | Six routes: 18 gold, 9 at the half rate. The Tier II bar is 35 to 60. | Under, by a wide margin | Raise it to +6 gold, or cut it. It is the plainest of the seven route cards left in Tier II (question 4). |
+| 05 | Private Patronage at Tier II, uncommon: +25% gold | Age 3: 100 to 150 gold, so +25 to +37 gold, 12 to 18 at the half rate. At Tier I it was +6 to +10 gold against a bar of 15 to 25, so it was under the bar there too. | Under | At Tier II, +40% (your figure of 2026-10-23) gives 20 to 30. |
+| 07 | Letters of Credit: 400 gold, then 30% less gold for fifteen turns | The cost is 30% of 25 to 40 gold for fifteen turns: 112 to 180 gold. My version cost 150 to 240 over thirty turns. | On the bar | None. It is shorter and easier to read. |
+| 09 | The Market Writ: +1 authority and +1 happiness for every two Markets | Four Markets: +2 and +2. Six: +3 and +3. The generic common Local Clerks gives +3 authority at once, and The Settled Realm gives +2 happiness in every town. | Under until six Markets | Make it a common. Authority stays a limit, as you asked. |
+| 19 | Houses of Account: +1 happiness and +2 renown for each gold building | Age 3: 8 gold buildings, so +8 happiness and +16 renown a turn. A normal seat makes about 20 renown a turn late. Age 4: about 30 buildings, so +60 renown, a great person every 9 to 11 turns at the eighth step. | Over, in age 4 | Add "at most +30 renown". Lorenzo's own line has a cap of +40. Below the cap the card is as you wrote it, and it is the supply the customs houses need. |
+| 20 | The Customs Houses: +8 science and +8 culture on the hex | One hex: 6 gold, 8 science and 8 culture for one citizen, about 19. Two: about 38. Hex modifiers multiply it. | On the bar with two | None. It is the model for changes 54 and 55. |
+| 26 | The Tea Horse Road: every six hexes | Six routes of 12 hexes: +12 gold and +12 culture, about 18. Eight routes of 18 hexes: +24 and +24, about 36. With no range limit (28), eight routes of 30 hexes: +40 and +40, about 60. | Under, unless the seat goes far | Leave it at six and test it with The Admiralty of Trade seated. If it is weak, try five. |
+
+### 1.7 Readings to confirm, and three checks you asked for
+
+- **Change 19, the full text:** "Gold buildings provide +1 happiness and +2 renown." The subject is the card's own: each gold building. The renown favours no family, as today.
+- **Change 20, the full text:** "Customs houses gain +8 science and +8 culture." In the game's words a hex gains, and a hex pays only while a town works it. So the old words "whether or not it is worked" go.
+- **Change 21, Bills of Exchange, still holds with Financed Industry at 20%.** The two cards do one job, and you called the one that stays "already strong". What the deck loses is the late size: Bills of Exchange reached +30% production in age 4, about 140. The Tiraz (27) and The Cloth Halls (36) now carry production.
+- **Change 49, The Colleganza: "once a luxury is lent, it can't be further lent."** This can be read two ways. Reading A: an empire that borrows a luxury cannot lend it on. Reading B: you may lend each luxury to one empire only. My round-one arithmetic lent five kinds to three partners each, and I think your comment answers that. **I recommend both readings together:** each luxury is lent once, and a borrowed luxury cannot be lent. Five kinds then make five lent copies, and Export Guilds pays +20 culture and +10 production. Question 5.
+- **Authority, the whole deck.** You wrote: "I don't like too many cards that lower authority on a per-city level." After the rulings one Commerce row still does that: the Doctrine The Delian League ("Your coastal towns cost 1 less authority"). Change 63 reworks it. The Market Writ and your new common both give authority to the empire, not for each town. In Expansionist, Provincial Councils and The Imperial Roads cut authority for each joined town. That is the other pass's to weigh.
+
+## 2. The new changes, 50 to 78
+
+### Owed from your rulings
+
+#### 50. The Silphium Harvest (new)
+
+- **Tier, rarity, type:** 0, rare, Economic
+- **Now:** Not in the deck. It takes the place of The Silent Trade (04), which you rejected.
+- **Proposed:** You hold a luxury as soon as you own its hex, improved or not.
+- **Why:** It changes a rule, and it leaves the barbarians alone. Silphium made Cyrene rich, and nobody could farm it: the plant was gathered wild. With this card the goods open the game: a luxury counts from the turn the border covers it, and a hex bought with gold is a luxury held that turn.
+- **Arithmetic:** A capital has one or two luxuries in its first two rings. To improve them the seat needs a technology and a worker's charge, and that comes at about turn 30 to 50. With the card each one gives its 4 happiness and its own effect from about turn 5. Two luxuries: +8 happiness 30 turns early, which is the first step of the bonus to every yield, and room for the capital to grow. A luxury that pays +2 culture pays it when a seat makes 3 culture a turn. Later, each new town and each bought hex counts at once.
+- **Synergy:** **Raises:** the different luxuries you hold, from turn 1. **Reads:** luxury hexes you own. Feeds Salt Tithes, The Staple Right, The Tiraz, The Spice Exchange and Corner the Market. The Emporia and The Estate Lands (57) still want the improvement, so the seat still improves the hex for its yields.
+- **Shape:** **New shape:** one more clause in `openedResource` (`src/sim/cities.ts`): a card rule opens a luxury on any hex its holder owns. The reveal technology still binds.
+- **Confidence:** good
+- **Depends, joins and notes:** It joins the Expansionist pass: a luxury on wild or tended land would count for this seat. Today a tended hex opens no resource. It is the only Tier 0 rare, so it is the Commerce card of about one hand in ten.
+
+#### 51. The Courts of Piepowder (new)
+
+- **Tier, rarity, type:** II, common, Civic
+- **Now:** Not in the deck. You asked for it on change 15.
+- **Proposed:** +1 authority for every 3 active trade routes.
+- **Why:** The text is yours. The courts of piepowder sat at fairs and markets and judged the disputes of travelling merchants on the spot. The name is mine.
+- **Arithmetic:** Six routes: +2 authority. Nine: +3. Twelve: +4. The generic common Local Clerks gives +3 at once. So this card is under a generic common until the ninth route. "Every 2 routes" would give +3 at six. Your line stands.
+- **Synergy:** **Raises:** authority for the empire, not for each town. **Reads:** trade routes. Fed by every Market, The First Caravan and The Pack Trail's routes.
+- **Shape:** Existing shape: `pays` to authority for the empire, count `tradeRoutes`, per 3.
+- **Confidence:** your text
+- **Depends, joins and notes:** It is a route card, and it is counted in the route share.
+
+#### 52. The League of Cities (rework)
+
+- **Tier, rarity, type:** II, rare, Economic to Wildcard
+- **Now:** Towns that send a trade route gain +20% production. (Round one proposed 1 less authority for each such town, and you rejected it.)
+- **Proposed:** Cards that pay your capital also pay your second-largest town.
+- **Why:** You asked for something more interesting. A league is a state with more than one head city. This gives the seat a second capital for its cards, and it no longer reads a route.
+- **Arithmetic:** A Commerce seat at Tier II can hold Market Day (+1 gold for each citizen there), Travellers' Letters (+2 science and +2 culture for each empire met), The Nest Egg (+1 culture for every 4 gold) and Export Guilds. With three of them and a second town of 10 citizens: about +10 gold, +10 science and +40 culture, about 55. That is a regular Tier II card that grows with every capital card drafted later. The generic rare The Summer Palace raises the same cards by 50%.
+- **Synergy:** **Reads:** cards that pay the capital. Four Commerce cards do by Tier I, four generic cards do (The Palace School, The Royal Household, The Home Fields, The Threshing Floor), and each partner deck has its own. It rewards a tall seat with two great towns.
+- **Shape:** **New shape:** a second town that receives every capital row of a card. The Summer Palace already finds those rows, so the set is known.
+- **Confidence:** good
+- **Depends, joins and notes:** It takes this card out of the route count. If you prefer a plainer card, the other text is "Every town gains +2% production for each Market in your empire, at most +30%".
+
+### Direction 1: customs houses
+
+#### 53. The Merchant Consuls (new)
+
+- **Tier, rarity, type:** II, uncommon, Civic (Boon)
+- **Now:** Not in the deck.
+- **Proposed:** On draft: choose a great merchant.
+- **Why:** The customs house cards pay nothing before the first merchant, and a seat has none or one at this tier. This boon is the theme's supply, and it is the decision in one card: take the gold now, or plant the house. The consuls of the merchants were the elected heads of the trade in the Italian towns.
+- **Arithmetic:** Strike a Bargain in age 3 pays 800 to 1,200 gold, which is 400 to 600 at the half rate. A Tier II lump is 500 to 900. A customs house pays 6 gold, and with change 20 also 8 science and 8 culture: about 19 a turn for the rest of the game, about 1,900 over 100 turns. The earlier the draft, the better the house.
+- **Synergy:** **Raises:** great people gained, customs houses, gold in hand. Feeds The Customs Houses, The Bonded Warehouses (54), The Weigh House (55), Cleopatra's The Museion, and every Magisterial card that reads a great person or a work.
+- **Shape:** Existing shape: `onDraft: [{grant: greatPerson, family: merchant}]`, as Dominion's The Master of Soldiers has for generals.
+- **Confidence:** strong
+
+#### 54. The Bonded Warehouses (new)
+
+- **Tier, rarity, type:** II, uncommon, Economic
+- **Now:** Not in the deck.
+- **Proposed:** Hexes beside a customs house gain +2 production and +2 gold.
+- **Why:** It makes the place of a customs house matter: plant it in the middle of the land a town works, not at the edge. Goods waited in a bonded warehouse beside the customs house until the duty was paid.
+- **Arithmetic:** One customs house with four worked hexes beside it: +8 production and +8 gold, about 12. Two houses: about 24. Three: about 36, a regular Tier II card. A plains hex that pays 1 food and 1 production becomes worth a citizen. A hex beside two houses is paid once.
+- **Synergy:** **Raises:** production and gold on worked hexes. **Reads:** customs houses and their neighbours. Fed by The Merchant Consuls, Commission: The Trade Mission, The Strongroom and A Court of Merchants. Hex modifiers multiply it.
+- **Shape:** Existing shape: `pays` on a hex with the test `beside` of a customs house (the shared The Sculpted Landscape pays farms beside a great-person work this way).
+- **Confidence:** good
+- **Depends, joins and notes:** It pays nothing before the first customs house.
+
+#### 55. The Weigh House (new)
+
+- **Tier, rarity, type:** III, uncommon, Economic
+- **Now:** Not in the deck.
+- **Proposed:** A customs house gains +3 gold and +3 production for each improved resource beside it.
+- **Why:** The second pull on the place: plant the house among the goods. The weigh house of a market town weighed every bale and cask before it was taxed.
+- **Arithmetic:** A house with two or three improved resources beside it gains +6 to +9 gold and production. With change 20 the hex then pays 6 gold, 8 science, 8 culture and 12 to 18 more: one hex worth a small town, for one citizen. Three such houses: about 35 from this card. It is under the Tier III bar alone and it is the hex that every multiplier wants.
+- **Synergy:** **Raises:** gold and production on the customs house hex. **Reads:** improved resources beside a customs house. Fed by The Emporia's improved luxuries, mines, plantations and fishing boats. Magisterial's cards that double a great-person work double this hex.
+- **Shape:** Existing shape: `pays` on a hex with `perNeighbour` (Mining Districts has it), where the neighbour is an improved hex with a resource.
+- **Confidence:** good
+- **Depends, joins and notes:** The Bonded Warehouses wants plain worked land around the house, and this card wants resources. A seat with both chooses for each merchant.
+
+#### 56. The Company of the Staple (new)
+
+- **Tier, rarity, type:** III, rare, Civic
+- **Now:** Not in the deck.
+- **Proposed:** Your great merchants may act twice.
+- **Why:** It keeps the merchant's choice and makes it wider: two customs houses, a house and a bargain, or two bargains. The Company of the Staple held the English wool trade and ran its customs at Calais.
+- **Arithmetic:** A seat calls three or four merchants after this tier. Each second act is worth a bargain: 8 turns of gold, 2,400 to 4,800 gold in age 4. That is 7,000 to 19,000 gold over the rest of the game, or three or four more customs houses. Averaged, it is above a Tier III regular card, and it comes as moments.
+- **Synergy:** **Raises:** customs houses and bargains. **Reads:** great merchants gained. Fed by A Court of Merchants, Merchant Princes, Houses of Account and The Merchant Consuls. Magisterial's Letters Patent doubles each act again.
+- **Shape:** **New shape:** a second act for a great person of one family. A great person is used up by one act today.
+- **Confidence:** good
+- **Depends, joins and notes:** With Letters Patent a merchant's two bargains pay 32 turns of gold. You ruled on S10 that such a combination is deserved. Change 78 sets the gold price of a merchant so that this cannot repeat without end.
+
+### Direction 2: yields on hexes
+
+#### 57. The Estate Lands (new)
+
+- **Tier, rarity, type:** I, common, Economic
+- **Now:** Not in the deck.
+- **Proposed:** Hexes beside an improved luxury gain +1 food and +1 gold.
+- **Why:** A luxury is one hex. This card makes it the centre of a district, so settling beside one shapes the whole town. It is the Tier I step between The Emporia (the luxury hex) and The Latifundia (59).
+- **Arithmetic:** Three improved luxuries with three worked hexes beside each: +9 food and +9 gold, about 13 at Tier I, near the bar of 15 to 25. Six luxuries in age 3: about 27. A hex beside two luxuries is paid once.
+- **Synergy:** **Raises:** food and gold on worked hexes. **Reads:** improved luxuries. Fed by The Silphium Harvest's early settling, the Doctrine The Laurion Leases and The Planters' Charter. The Emporia pays the luxury hex itself.
+- **Shape:** Existing shape: `pays` on a hex with the test `beside` of an improved luxury hex.
+- **Confidence:** good
+
+#### 58. The Wayside Inns (new)
+
+- **Tier, rarity, type:** II, common, Economic
+- **Now:** Not in the deck.
+- **Proposed:** Hexes with a road gain +1 food and +1 production.
+- **Why:** Caravans lay the roads, and today a road hex is only a faster hex. This makes the road the spine of the land a town works. The shared Market Gardens and the Doctrine The Turnpike Trusts each add 1 gold to the same hex.
+- **Arithmetic:** I could not count how many road hexes a seat works. If it is 12 in age 3: +12 food and +12 production, about 24, under the Tier II bar of 35 to 60. With Market Gardens the same hexes pay 12 gold more. If the count is nearer 20, the card is on the bar.
+- **Synergy:** **Raises:** food and production on worked hexes. **Reads:** road hexes. Fed by every land route, The First Caravan, and Expansionist's The Road Home.
+- **Shape:** Existing shape: `pays` on a hex with the test `road` (Market Gardens has it).
+- **Confidence:** good
+- **Depends, joins and notes:** It joins the Expansionist pass: that deck pays the town a road joins, and this card pays the road hex.
+
+#### 59. The Latifundia (new)
+
+- **Tier, rarity, type:** III, uncommon, Economic
+- **Now:** Not in the deck.
+- **Proposed:** Improved luxury hexes pay twice their yields.
+- **Why:** The flat cards come first (The Emporia, The Country Fair, the Plantation House), and this card multiplies them. The latifundia were the great Roman estates that grew wine and oil for sale.
+- **Arithmetic:** An improved luxury hex pays about 8 to 10: the ground, the improvement, the resource, +2 from The Emporia and +1 gold from The Country Fair. Six worked luxury hexes: +50 to +60, the low end of the Tier III bar. Ten in age 4: about +90.
+- **Synergy:** **Reads:** improved luxury hexes and everything that pays on them. Fed by The Emporia, The Planters' Charter, the shared The Country Fair and The Provincial Fair, and Mansa Musa's gold on mines.
+- **Shape:** Existing shape: `pays` on a hex with `wholePercent` 100, applied last (The Mausoleum doubles great-person works this way).
+- **Confidence:** good
+
+### Direction 3: the sea
+
+#### 60. The Fishing Fleets (new)
+
+- **Tier, rarity, type:** 0, common, Economic
+- **Now:** Not in the deck.
+- **Proposed:** Fishing boats gain +1 production and +2 gold.
+- **Why:** Fishing boats are in Commerce's own family of improvements, and no Commerce card pays them. It is a plain Tier 0 yield on a thing a coastal seat already builds.
+- **Arithmetic:** Two boats by turn 40: +2 production and +4 gold, about 4, the low end of the Tier 0 bar. A fish hex then pays 4 food, 1 production and 4 gold. Five boats in age 3: about 15.
+- **Synergy:** **Raises:** production and gold on fishing boats. **Reads:** fishing boats. Four of the six sea resources are luxuries (pearls, coral, whales, Tyrian purple), so the same hexes feed the goods. Expansionist's The Coast pays food and culture on the same boats.
+- **Shape:** Existing shape: `pays` on a hex with the improvement test.
+- **Confidence:** good
+- **Depends, joins and notes:** It pays nothing to an inland seat. You cut Coastal Estates on 2026-10-21 because it paid plantations and boats the deck's own yield. This card pays boats alone and adds production.
+
+#### 61. The Salt Pans (new)
+
+- **Tier, rarity, type:** I, common, Economic
+- **Now:** Not in the deck.
+- **Proposed:** Water hexes gain +1 production in towns with a Lighthouse.
+- **Why:** A water hex pays 1 food and 1 gold, so a coastal town is poor in production. This is the deck's gap answered from the sea. Salt was boiled or dried from sea water on every trading coast.
+- **Arithmetic:** A water hex in a Lighthouse town then pays 1 food, 1 production and 2 gold. Three coastal towns that each work four water hexes: +12 production, near the Tier I bar of 15 to 25. Five towns that work five each in age 3: +25.
+- **Synergy:** **Raises:** production on water hexes. **Reads:** water hexes and Lighthouses. The Lighthouse is a gold building, so Commercial Education, Houses of Account and The Cloth Halls pay on it too.
+- **Shape:** Existing shape: `pays` on a hex with the test `water` and a town scope `hasBuilding` (the shared The Provincial Fair has the same pair).
+- **Confidence:** good
+
+#### 62. The Stato da Mar (new)
+
+- **Tier, rarity, type:** III, uncommon, Economic
+- **Now:** Not in the deck.
+- **Proposed:** Water hexes pay twice their yields.
+- **Why:** The sea's multiplier, after its flat cards. The Stato da Mar was Venice's domain of the sea: the ports and islands from Istria to Cyprus.
+- **Arithmetic:** A plain water hex in a Lighthouse town pays 3, and 4 with The Salt Pans. A fishing boat hex pays 8 to 10. Five coastal towns that each work four plain water hexes and one boat: about +100 with the other sea cards seated, and about +75 with none. That is a regular Tier III card for a coastal empire, and nothing inland.
+- **Synergy:** **Reads:** water hexes and everything that pays on them: the Lighthouse, the Harbour, The Salt Pans, The Fishing Fleets, and the wonders The Colossus and The Great Lighthouse.
+- **Shape:** Existing shape: `pays` on a hex with `wholePercent` 100, with the test `water`.
+- **Confidence:** good
+- **Depends, joins and notes:** It is the same shape as The Latifundia (59). One doubles the goods on land, and one doubles the sea.
+
+#### 63. The Delian League (doctrine)
+
+- **Tier, rarity, type:** I, Doctrine, the sea
+- **Now:** Your coastal towns cost 1 less authority and gain +3 production.
+- **Proposed:** Your coastal towns gain +3 production and +3 gold. Your other towns make 10% less gold.
+- **Why:** It is the one Commerce row left that cuts authority for each town, which you do not want. As a sea Doctrine with a price it asks the seat to settle the coast.
+- **Arithmetic:** Four coastal towns: +12 production and +12 gold from turn 32. The price in a seat with two inland towns of 5 gold each: 1 gold. The Doctrine is for a seat that is mostly coastal, and it tells the player so.
+- **Synergy:** **Reads:** coastal towns. It works with The Salt Pans, The Fishing Fleets and The Stato da Mar.
+- **Shape:** Existing shapes: `pays` in a city with the `coastal` scope, and `percentYields` on gold with the opposite scope. The `meterRule` row goes.
+- **Confidence:** good
+
+#### 64. The Merchant Navigators (rework)
+
+- **Tier, rarity, type:** II, common, Civic (shared with Scientific)
+- **Now:** Trade routes from a town with a Harbour gain +5 science.
+- **Proposed:** Lighthouses and Harbours give +4 science each.
+- **Why:** It is a shared route card, and the sea needs a card at Tier II. The navigators' science now comes from the ports themselves.
+- **Arithmetic:** Four coastal towns with both buildings: +32 science, near the Tier II bar of 35 to 60. Today three routes from Harbour towns pay +15.
+- **Synergy:** **Raises:** science. **Reads:** Lighthouses and Harbours. A Harbour is a public work, so Expansionist's public-works cards read it too.
+- **Shape:** Existing shape: two `pays` rows that count a building by kind (the shared Illuminated Treatises has the pair).
+- **Confidence:** good
+- **Depends, joins and notes:** It is on Scientific's sheet too. Question 2.
+
+### Direction 4: interactions with the other decks
+
+#### 65. The Sutlers (new)
+
+- **Tier, rarity, type:** II, uncommon, Economic (shared with Dominion)
+- **Now:** Not in the game. It takes the place of the shared The Escorted Roads (trade routes from a garrisoned town gain +5 gold).
+- **Proposed:** Garrisoned towns gain +1 gold for each citizen.
+- **Why:** Dominion raises garrisons, and Commerce spends gold. The soldiers' pay is spent in the town's market, and the gold buys the next unit. Sutlers were the traders who followed an army and sold to it.
+- **Arithmetic:** Age 3: seven garrisoned towns of 8 citizens: +56 gold, 28 at the half rate, a little under the Tier II bar. Age 4: twelve towns of 14: +168 gold. A Commerce seat with another partner garrisons two or three towns: +20 gold.
+- **Synergy:** **Raises:** gold. **Reads:** garrisons and citizens. Dominion's Martial Law, The Regimental Schools and the shared The Standing Army read the same garrisons. The gold pays for The Ten Thousand's Veterans.
+- **Shape:** Existing shape: `pays` in a city by `population`, with the `garrisoned` scope (the shared Examinations of State has it for science and culture).
+- **Confidence:** good
+- **Depends, joins and notes:** It is on Dominion's sheet too. Question 2.
+
+#### 66. The Grain Merchants (new)
+
+- **Tier, rarity, type:** II, uncommon, Economic (shared with Expansionist)
+- **Now:** Not in the game.
+- **Proposed:** Towns gain gold equal to 30% of their food.
+- **Why:** Expansionist makes food in bulk, and Commerce spends gold. This is the pair's test from `docs/decks/deck-design.md`: one deck's currency feeds the other deck's way of spending. The food is not used up.
+- **Arithmetic:** Age 3: a median seat makes 144 food, so +43 gold, 21 at the half rate. An Expansionist seat makes about 250: +75 gold, 37, on the Tier II bar. Age 4: 452 food gives +135 gold.
+- **Synergy:** **Raises:** gold. **Reads:** food. Fed by every Expansionist card of the field, and by The Market Halls and Provisioning Contracts.
+- **Shape:** Existing shape: `pays` in a city, basis share, from food to gold (the shared The Cloister turns faith into science this way).
+- **Confidence:** good
+- **Depends, joins and notes:** The Expansionist pass changes no shared card. This one is new, so it adds a row to that deck's sheet.
+
+#### 67. The Relic Trade (new)
+
+- **Tier, rarity, type:** II, uncommon, Economic (shared with Devotion)
+- **Now:** Not in the game. It takes the place of the shared The Silk Road Monks (trade routes to a town that follows your religion gain +3 gold and +3 culture), which the sheet marks `as built`.
+- **Proposed:** +5 gold for each town that follows your religion, in any empire.
+- **Why:** Devotion spreads its religion, and each town that follows it buys what its pilgrims want. The towns abroad count, so a missionary is also a merchant.
+- **Arithmetic:** Age 3: six of your towns and four foreign towns: +50 gold, 25 at the half rate. Age 4: ten and eight: +90 gold. A seat with no religion gets nothing, as with the card it replaces.
+- **Synergy:** **Raises:** gold. **Reads:** towns that follow your religion. Fed by every Devotion card that spreads the faith. The gold buys what faith does not.
+- **Shape:** Existing shape: `pays` for the empire by the counts `followingCities` and `followingForeign`.
+- **Confidence:** good
+- **Depends, joins and notes:** It is on Devotion's sheet too. "Follows your religion" keeps the reading the built card has. Question 2.
+
+#### 68. The Royal Patents (new)
+
+- **Tier, rarity, type:** III, uncommon, Economic (shared with Scientific)
+- **Now:** Not in the game. It takes the place of the shared Merchant Scholars (foreign routes gain +2 science for each Academy in the origin city).
+- **Proposed:** Researching a technology grants 150 gold for each age you have reached.
+- **Why:** Scientific raises technologies, and Commerce spends gold. The gold arrives with the technology, so the seat buys the building it has just unlocked. A patent was a royal grant that let its holder sell a new craft.
+- **Arithmetic:** Age 3: 450 gold a technology. Age 4: 600. A Scientific seat finishes one about every five or six turns, so 100 to 120 gold a turn, 50 to 60 at the half rate, the low end of the Tier III bar. A slow seat finishes one in eight turns: 75 gold a turn.
+- **Synergy:** **Raises:** gold in lumps. **Reads:** technologies researched. Fed by every Scientific card. Feeds Civic Receipts and The Endowment on the purchase that follows.
+- **Shape:** Existing shape: `windfallRider` on `tech` that grants gold. To confirm: that a rider's grant can count the ages reached, as an on-draft grant can.
+- **Confidence:** good
+- **Depends, joins and notes:** It is on Scientific's sheet too. Question 2.
+
+#### 69. The Collectors (new)
+
+- **Tier, rarity, type:** II, uncommon, Economic (shared with Magisterial)
+- **Now:** Not in the game.
+- **Proposed:** +8 gold for each wonder and great-person work you hold.
+- **Why:** Magisterial raises wonders and works, and Commerce spends gold. A customs house is a great-person work, so Commerce's own theme gives this card its floor.
+- **Arithmetic:** Tier II: one wonder and two works: +24 gold, 12 at the half rate. Tier III: three and four: +56 gold. A Magisterial seat in age 4 with five wonders and six works: +88 gold. It is under the bar when drafted and it grows.
+- **Synergy:** **Raises:** gold. **Reads:** wonders and great-person works held (the count `worksAndWondersHeld` exists). Fed by The Merchant Consuls, The Gilded Scaffold's bought wonders, and every Magisterial card of the monuments and the landscape.
+- **Shape:** Existing shape: `pays` for the empire by the count `worksAndWondersHeld`.
+- **Confidence:** good
+- **Depends, joins and notes:** It adds a row to Magisterial's sheet. The pair's other shared card, The Brokers' Redraw, still has no button.
+
+### The cuts that make room
+
+#### 70. The Merchant Guilds (cut)
+
+- **Tier, rarity, type:** II, uncommon, Economic
+- **Now:** You may run one more trade route for every two merchants in the trades.
+- **Proposed:** Cut.
+- **Why:** It gives route slots, and slots do not limit a seat. It reads "merchants in the trades", which a player cannot easily see or raise.
+- **Arithmetic:** Two to four merchants in the trades give one or two slots. I could not count them in a real seat.
+- **Synergy:** Nothing else reads it.
+- **Shape:** No shape. The row is retired.
+- **Confidence:** good
+
+#### 71. The Carters' Guild (cut)
+
+- **Tier, rarity, type:** II, common, Economic
+- **Now:** Towns that receive a domestic trade route build buildings 25% faster.
+- **Proposed:** Cut. The Home Market stays as the card for a town that receives routes.
+- **Why:** Two Tier II commons read a town that receives a home route. The Home Market is the stronger and the clearer one.
+- **Arithmetic:** Six receiving towns of 12 production: about +18 toward buildings. The Home Market gives +30% food and production.
+- **Synergy:** The Champagne Fairs and the Doctrine The Year and a Day still read the same towns.
+- **Shape:** No shape. The row is retired.
+- **Confidence:** good
+
+#### 72. The Fondaci (cut)
+
+- **Tier, rarity, type:** II, uncommon, Civic
+- **Now:** Each time one of your trading posts is established, gain science and culture, each equal to twenty times the population of its town.
+- **Proposed:** Cut.
+- **Why:** The moment comes twenty turns after a route starts, and the game shows the player no count. The Factors' Houses (14) and The Feitorias (45) now pay for the same posts every turn.
+- **Arithmetic:** A post in a town of 10 citizens pays 200 science and 200 culture, once.
+- **Synergy:** The posts keep three readers: The Factors' Houses, The Capitulations and The Feitorias.
+- **Shape:** No shape. The row is retired.
+- **Confidence:** good
+
+#### 73. Commission: The Great Fair (cut)
+
+- **Tier, rarity, type:** II, uncommon, Wildcard
+- **Now:** Goal: have domestic routes arrive in four of your towns. Reward: two more trade routes.
+- **Proposed:** Cut.
+- **Why:** The goal is met by any seat with four Markets, and the reward is route slots, which do not limit a seat.
+- **Arithmetic:** Two more routes are worth about 30 to 40 a turn in age 3, if the seat has no free slot. Most seats have one.
+- **Synergy:** Tier II keeps one commission, Corner the Market.
+- **Shape:** No shape. The row is retired.
+- **Confidence:** good
+
+#### 74. Caravanserai Cities (cut)
+
+- **Tier, rarity, type:** III, uncommon, Economic
+- **Now:** Caravanserais can be built in every city.
+- **Proposed:** Cut.
+- **Why:** Each Caravanserai gives three route slots. A seat with eight towns would hold 24 more slots than it can fill.
+- **Arithmetic:** A route costs 75 gold and 15 more for each route running, so the twentieth costs 360 gold. Gold limits the count long before slots do.
+- **Synergy:** The Chartered Metropolis wants three routes from one town. One Caravanserai gives that.
+- **Shape:** No shape. The row is retired.
+- **Confidence:** good
+
+#### 75. The Trade Winds (cut)
+
+- **Tier, rarity, type:** IV, uncommon, Economic
+- **Now:** Gain +3 trade route capacity. Your trade routes reach 50% farther.
+- **Proposed:** Cut. It takes the place of change 41, which only moved its rarity.
+- **Why:** Its first half gives slots. Its second half is spent once The Admiralty of Trade lifts the range limit (28).
+- **Arithmetic:** Three routes at 20 to 25 yield each, if the seat lacks slots.
+- **Synergy:** Nothing else reads it.
+- **Shape:** No shape. The row is retired.
+- **Confidence:** good
+
+#### 76. The Neutral Flag (cut)
+
+- **Tier, rarity, type:** IV, uncommon, Economic
+- **Now:** Your trade routes to an empire that is at war with another empire gain +100% gold and +50% science.
+- **Proposed:** Cut.
+- **Why:** It pays for what two rivals do to each other. The player cannot raise it, and the simplification of 2026-11-10 asks that no card reads what a rival does.
+- **Arithmetic:** Bot seats were at war on about a third of their turns, so it pays on about a third of the routes abroad.
+- **Synergy:** The World's Fair (43) doubles routes abroad with a goal the player can work toward.
+- **Shape:** No shape. The row is retired.
+- **Confidence:** good
+
+#### 77. The Scholars' Roads (cut)
+
+- **Tier, rarity, type:** III, uncommon, Civic
+- **Now:** Your routes pay twice their science and culture (as approved in change 29).
+- **Proposed:** Cut.
+- **Why:** It multiplies the science and culture on a route, and round two takes three of its feeders off the routes: The Merchant Navigators (64), Merchant Scholars (68) and The Silk Road Monks (67). It would double The Common Road and little else.
+- **Arithmetic:** Six routes abroad with The Common Road: +18 science and +18 culture doubled, so +36. That is under the Tier III bar of 60 to 120.
+- **Synergy:** The far road keeps The Common Road, The Exchange, The Tea Horse Road and the Doctrine The Muda.
+- **Shape:** No shape. The row is retired.
+- **Confidence:** good
+- **Depends, joins and notes:** You approved its buff in round one (29). If you keep it, keep Merchant Scholars too, and the route share is 19 of 76.
+
+### A rule: the gold price of a great person
+
+#### 78. The gold price of a great person (rule)
+
+- **Tier, rarity, type:** III, a rule, not a card, Merchant Princes (35)
+- **Now:** A great-person draft costs 1,000 gold at every age, and the price never climbs (`offerPriceGold` in `data/rules.json`, read by `OFFER_PURCHASES` in `src/sim/greatPeople.ts`). The purchase buys the next step of the renown ladder, so the renown price of the next person climbs, but the gold price does not.
+- **Proposed:** A great-person draft costs twelve turns of your gold income, and never less than 1,500 gold.
+- **Why:** You wrote: "they need to be quite expensive". At 1,000 gold they are cheap, and there is a loop: a merchant's Strike a Bargain pays 8 turns of gold, so above 125 gold a turn a bought merchant pays for the next one.
+- **Arithmetic:** A Commerce seat makes 150 to 300 gold a turn in age 3 and 300 to 600 in age 4. Today a draft is 3 to 7 turns of income in age 3 and 2 or 3 turns in age 4. At twelve turns it is 1,800 to 3,600 gold in age 3 and 3,600 to 7,200 in age 4. A bargain returns 8 turns, so a bought merchant never repays its price alone.
+- **Synergy:** The Great Loan pays 20 turns of gold, so one loan buys one great person and leaves 8 turns. A Guild Commission pays the same draft for five bought buildings.
+- **Shape:** Small rules change: the price reads the gold income (`goldPerTurn`) times a figure in `data/rules.json`, with a floor. The faith price is not touched.
+- **Confidence:** good
+- **Depends, joins and notes:** With Magisterial's Letters Patent a bargain pays 16 turns, which is more than 12. If that loop shows in play, the figure is 20. The other choice is a flat 2,500 gold.
+
+## 3. Example councils with the new cards
+
+### Early, end of Tier I: the goods coast (five chairs, the Council of Elders)
+
+- **Chairs:** The Fishing Fleets (0, Economic), The Estate Lands (I, Economic), Export Guilds (I, Civic), Commission: The Trade Mission (I, Wildcard), The Pathfinders' Company (0, Military). Held with no chair: The Silphium Harvest took a chair in Tier 0 and gives it up here to The Estate Lands if the luxuries are improved. Doctrine: The Laurion Leases or The Delian League.
+- **How it plays:** the capital stands on the coast beside pearls and a wine hill. Both count as luxuries on turn 1. The seat buys the third luxury hex for 10 gold. Workers improve the luxuries, and the hexes beside them pay food and gold. Two swaps with neighbours bring a great merchant.
+
+### Early, end of Tier II: the customs town (six chairs, the Republic)
+
+- **Chairs:** The Bonded Warehouses, The Tiraz, The Salt Pans (I) (Economic); The Customs Houses (Civic); The League of Cities (the Wildcard chair); The Ten Thousand (I, Military). Taken on the way: The Merchant Consuls.
+- **How it plays:** the boon's merchant plants a customs house two hexes from the capital, between a plantation and the road. The hex pays 6 gold, 8 science and 8 culture, and the four hexes beside it pay 2 production and 2 gold more. The seat makes no route decision this tier. Its decisions are where the next house goes, and which luxury to trade for.
+
+### Late, Tier III then Tier IV: the merchant house (eight chairs under the Merchant League, then eleven under The Estates)
+
+- **Chairs, Tier III:** The Weigh House, The Latifundia, The Cloth Halls (Economic); The Customs Houses (II), The Company of the Staple (Civic); A Court of Merchants and The Bonded Warehouses (II) (the Wildcard chairs); The Stipendium (Military). Tier IV adds Bought and Paid For, Money at Work and The Casa da Índia.
+- **How it plays:** every offer is a merchant, and every merchant acts twice. The seat plants one house among its luxuries and takes one bargain, 8 turns of gold, which it spends that turn. Five customs houses each pay like a small town. The luxury hexes pay double. The routes run in the background, and no card in the council reads one.
+
+## 4. Round one with your rulings applied
+
+39 approved as proposed, 7 with your text (01, 05, 07, 09, 19, 20, 26), 1 kept as it is today (06), and 2 rejected (04, 15). Change 49 is approved with a rule added.
+
+| # | Card | Tier in round one | Ruling | Your words | The line to build |
+|---|---|---|---|---|---|
+| 01 | The Pack Trail | 0 | your text | "isn't currency in age 2? this should move to tier 2" and "this is too contingent on drawing 02, i think we still move it." | Tier II, common: Your trade routes give +3 gold. |
+| 02 | The First Caravan | 0 | approved | "great" | Tier 0, uncommon, Boon: On draft: gain a caravan, and room for one more trade route. |
+| 03 | The Mineral Trade | 0 | approved | "great" | Mines and quarries gain +2 gold. |
+| 04 | The Silent Trade | 0 | rejected | "i think barbarians are too important to the flow of the game. lets find a new rare in its place." | Not built. Change 50 is the new Tier 0 rare. |
+| 05 | Private Patronage | I | your text | "sure" and "this seems too strong for tier 1, no? Lets move this to tier 2." | Tier II, uncommon: Towns gain +25% gold. |
+| 06 | Financed Industry | I | kept | "Already strong, keep it as is." | No change. Tier I, rare: Towns gain production equal to 20% of their gold. |
+| 07 | Letters of Credit | I | your text | "let's make this 30% less gold for 15 turns." | Tier I, rare, Boon: On draft: gain 400 gold. Your towns make 30% less gold for fifteen turns. |
+| 08 | Civic Receipts | I | approved | "great" | Buying a building grants culture equal to 25% of the gold paid. |
+| 09 | The Market Writ | I | your text | "this is too strong, maybe it could read +1 authority and +1 happiness for every two markets in your empire. Authority needs to be a limiting factor for growth." | +1 authority and +1 happiness for every two Markets in your empire. |
+| 10 | The Staple Right | I | approved | "great" | Gain +4 gold and +3 culture for each luxury you hold two or more copies of. |
+| 11 | The Planters' Charter | I | approved | "great" | The card text does not change. The Plantation House gives +2 food and +2 gold on each plantation its town works. |
+| 12 | The Ten Thousand | I | approved | "great" | Tier I, uncommon, Military: Military units you buy with gold start as Veterans. |
+| 13 | Commission: The Trade Mission | I | approved | "great" | Tier I, uncommon, Wildcard: Goal: hold deals with two empires at once. Reward: a great merchant. |
+| 14 | The Factors' Houses | II | approved | "great" | Each town holding your trading post, at home or abroad, gives you +2 gold and +4 culture. |
+| 15 | The League of Cities | II | rejected | "I don't like too many cards that lower authority on a per-city level. Let's add a common that reads: +1 authority for every 3 active trade routes, and do something more interesting here." | Not built as proposed. Change 51 is your common. Change 52 is the new League of Cities. |
+| 16 | The Spice Exchange | II | approved | "sure" | Every city gains +4% science and +4% culture for each different luxury you hold, at most +32%. |
+| 17 | Corner the Market | II | approved | "sure" | Goal: hold three copies of one luxury. Reward: +2 happiness for each different luxury you hold. |
+| 18 | The Treaty Ports | II | approved | "sure" | +8% production for each empire you hold a deal with, at most +40%. |
+| 19 | Houses of Account | II | your text | "how about: +1 happiness and +2 renown" | Gold buildings provide +1 happiness and +2 renown. |
+| 20 | The Customs Houses | II | your text | "have it read +8 science and +8 culture on the customs house, so that it can be affected by modifiers. thus it must be worked to get the benefit." | Customs houses gain +8 science and +8 culture. The pay is on the hex: a town must work it, and hex modifiers multiply it. |
+| 21 | Bills of Exchange | II | approved | "sure" | Cut. The row is retired. The cut still holds with Financed Industry at 20% (section 1.7). |
+| 22 | Mining Districts | II | approved | "sure" | Cut. The row is retired. |
+| 23 | Strategic Exports | II | approved | "sure" | Cut. The row is retired. |
+| 24 | Foreign Procurement | II | approved | "sure" | Common, the same text: You may buy units without their strategic resource. |
+| 25 | Names in Stone | II | approved | "sure" | Rare, the same text. |
+| 26 | The Tea Horse Road | II | your text | "lets make it for every 6 hexes they travel, this sounds very strong" | Tier II, common, Civic: Your trade routes give +1 gold and +1 culture for every six hexes they travel. |
+| 27 | The Tiraz | II | approved | "sure" | Tier II, uncommon, Economic: Every town gains +1 production for each different luxury you hold. |
+| 28 | The Admiralty of Trade | III | approved | "sure" | Common: Your trade routes have no range limit. |
+| 29 | The Scholars' Roads | III | approved | "sure" | Uncommon: Your routes pay twice their science and culture. Round two proposes to cut this card (change 77). |
+| 30 | The Chartered Metropolis | III | approved | "sure" | Uncommon: Towns that send three trade routes gain +50% food, production and culture. |
+| 31 | The Endowment | III | approved | "sure" | Common: Buying a building grants science equal to 25% of the gold paid. |
+| 32 | The Bourse | III | approved | "sure" | Cut. The row is retired. |
+| 33 | The Customs Service | III | approved | "sure" | Cut. The row is retired. |
+| 34 | The Champagne Fairs | III | approved | "Sure. Could we have an indicator of how many turns are left for this to trigger?" | Common, the same text. The seated card shows the turns left until the next fair (section 9). |
+| 35 | Merchant Princes | IV to III | approved | "great" and "they need to be quite expensive" | Tier III, rare, the same text. Change 78 sets the price. |
+| 36 | The Cloth Halls | III | approved | "sure" | Tier III, common, Economic: Gold buildings provide +3 production. |
+| 37 | The Stipendium | III | approved | "sure" | Tier III, common, Military: Your units gain +1 strength for every 50 gold you make each turn, at most +8. |
+| 38 | The Merchant Works | IV | approved | "sure" | Cut. The row is retired. |
+| 39 | Bought and Paid For | IV | approved | "Sure, the finished card should read what percentage it's currently at." | +2% production and culture for each building you have bought with gold, at most +30%. The seated card prints its current percentage (section 9). |
+| 40 | The Grain Barges | IV | approved | "sure" | Your domestic trade routes pay their destination +1 food and +1 production for every three citizens of their origin. |
+| 41 | The Trade Winds | IV | approved | "sure" | Uncommon, the same text. Round two proposes to cut this card (change 75). |
+| 42 | The World's Exchange | IV | approved | "sure" | Uncommon: +20% production toward the Opus for each foreign empire your trade routes reach. |
+| 43 | The World's Fair | IV | approved | "sure" | Goal: have trade routes to four empires. Reward: your trade routes to other empires pay twice as much. |
+| 44 | The Great Loan | IV | approved | "sure" | The same text, built as a true boon. |
+| 45 | The Feitorias | IV | approved | "sure" | Tier IV, uncommon, Civic: Each town holding your trading post gives you +1 science and +1 culture for every four of its citizens. |
+| 46 | The Laurion Leases | Doctrine I | approved | "sure" | Hexes with a resource cost a quarter as much gold to buy. |
+| 47 | The Sogdian Colonies | Doctrine II | approved | "sure" | Each town holding your trading post, at home or abroad, gives you +3 culture and +3 renown, favouring merchants. |
+| 48 | The Muda | Doctrine III | approved | "sure" | Your trade routes to other empires pay +6 science and +6 culture, and cannot be plundered. |
+| 49 | The Colleganza | Doctrine III | approved | "sure, but once a luxury is lent, it can't be further lent." | Tier III Doctrine: Luxuries you lend in a deal still count for you. Your units lose 4 strength. A lent luxury is lent once (section 1.7, question 5). |
+
+**The five questions of round one:**
+
+| Question | Your words | Result |
+|---|---|---|
+| 1 Do deals stay a quantity that cards read? | "yes" | Yes. |
+| 2 May a boon carry a timed drawback? | "yes" | Yes. |
+| 3 May a route run at Tier 0, before Currency? | "02 is fine" | Yes, for The First Caravan (02) only. |
+| 4 Should the pass fix the rarity mix of each tier? | "yes" | Yes. |
+| 5 May Tier 0 hold a rare that changes a rule? | "yes" | Yes. |
+
+## 5. The deck after both rounds
+
+- 70 cards today. Round one makes 71: 6 cut and 7 new. Round two makes 75: 12 new (your common and the Tier 0 rare among them) and 8 cut.
+- 15 Doctrines: the 14 of today and The Colleganza.
+- The shared cards go from 18 to 20: 3 are replaced, 1 is reworked and 2 are new.
+- Keywords: 4 boons (The First Caravan, Letters of Credit, The Merchant Consuls, The Great Loan), 2 charters, 5 commissions and 1 scaler.
+
+| Tier | Cards | Military | Economic | Civic | Wildcard | Common | Uncommon | Rare |
+|---|---|---|---|---|---|---|---|---|
+| 0 | 11 | 1 | 7 | 3 | 0 | 7 | 3 | 1 |
+| I | 16 | 1 | 9 | 5 | 1 | 6 | 8 | 2 |
+| II | 21 | 2 | 7 | 10 | 2 | 9 | 9 | 3 |
+| III | 19 | 1 | 11 | 5 | 2 | 5 | 7 | 7 |
+| IV | 8 | 0 | 4 | 3 | 1 | 0 | 3 | 5 |
+| **All** | **75** | **5** | **38** | **26** | **6** | **27** | **30** | **18** |
+
+- **Seen in a hand** (the chance that one named card is the Commerce card): Tier 0: common 8.6%, uncommon 10%, rare 10%. Tier I: 10%, 3.8%, 5%. Tier II: 6.7%, 3.3%, 3.3%. Tier III: 12%, 4.3%, 1.4%. Tier IV: uncommon 25%, rare 5%.
+- **Tier IV is thin: 8 cards, 3 uncommons and no common.** Each uncommon is in one hand in four until it is taken. I added no card only to fill the tier. If you want one, the customs houses and the sea have no Tier IV card.
+- **Tier IV has no Military card,** and the deck has 5. The sea could carry one (ships), and I wrote none without the maritime work.
+- **Tier III has 7 rares.** Six were there after round one, and The Company of the Staple is the seventh.
+
+**By what a card reads:**
 
 | What the card reads | 0 | I | II | III | IV | All |
 |---|---|---|---|---|---|---|
-| Trade routes and trading posts | 2 | 1 | 9 | 8 | 5 | 25 |
-| Purchases: a thing bought, or gold spent | 1 | 3 | 2 | 3 | 2 | 11 |
-| Luxuries: kinds, copies, plantations | 2 | 2 | 3 | 1 | 1 | 9 |
-| Towns, Markets, gold buildings, great merchants | 1 | 4 | 2 | 2 | 0 | 9 |
-| Gold income: raises all of it, or turns it into another yield | 1 | 2 | 1 | 0 | 2 | 6 |
-| Foreign courts: empires met, deals, scouts | 2 | 1 | 1 | 0 | 0 | 4 |
-| The treasury and loans | 0 | 0 | 0 | 2 | 1 | 3 |
-| Mines, quarries, strategic resources | 1 | 0 | 2 | 0 | 0 | 3 |
-| The sea | 0 | 0 | 0 | 0 | 0 | 0 |
-| Roads | 0 | 0 | 0 | 0 | 0 | 0 |
-| Plunder and war | 0 | 0 | 0 | 0 | 0 | 0 |
-| **All** | 10 | 13 | 20 | 16 | 11 | **70** |
+| A trade route | 1 | 1 | 6 | 4 | 3 | 15 |
+| A trading post | 0 | 0 | 1 | 1 | 1 | 3 |
+| A purchase or a loan | 1 | 4 | 2 | 4 | 2 | 13 |
+| A luxury: kinds and copies | 2 | 1 | 4 | 1 | 1 | 9 |
+| A deal, or an empire met | 2 | 2 | 1 | 0 | 0 | 5 |
+| A customs house or a great merchant | 0 | 0 | 3 | 3 | 0 | 6 |
+| A hex on land: goods, mines, roads | 2 | 2 | 1 | 1 | 0 | 6 |
+| The sea | 1 | 1 | 0 | 1 | 0 | 3 |
+| A Market, a town or a gold building | 1 | 4 | 1 | 1 | 0 | 7 |
+| Gold income | 1 | 1 | 1 | 1 | 1 | 5 |
+| The treasury | 0 | 0 | 0 | 2 | 0 | 2 |
+| Other cards (The League of Cities) | 0 | 0 | 1 | 0 | 0 | 1 |
+| **All** | 11 | 16 | 21 | 19 | 8 | **75** |
 
-- Each card is counted once, by the thing the player must have or do for it to pay. The 70 are the deck's own live cards. The 18 shared cards are not in the table.
-- **What the cards pay is not the problem.** 16 of the 70 pay gold (23%), so the rule "no more than a third pay the deck's own yield" holds. The themes pass of 2026-10-21 fixed that. The one note is in what the cards ask for.
-- **Tiers II to IV:** 22 of 47 cards read a route or a post. 5 of the 13 shared cards in those tiers do too (The Escorted Roads, Pilgrim Markets, The Merchant Navigators, The Silk Road Monks, Merchant Scholars). That is 27 of 60.
-- **Themes the deck really has:** the routes (25 cards), the purse (11), the goods (9) and the gold buildings (9).
-- **Themes that are in `docs/decks/deck-design.md` but have too few cards to draft toward:** deals and diplomacy (2 cards, none after Tier II); trading posts abroad (1 card, The Capitulations, at Tier III); exploration (2 cards, both at Tier 0); great merchants and customs houses (4 cards, and a seat has one customs house or none); the sea (no card); roads (no card in the deck, one shared card and one Doctrine); tolls (no card).
+- The five bridges are shared cards and are not in this table. They read garrisons, food, followers, technologies, and wonders and works.
+- Cards that pay gold: 18 of 75 (24%). The rule is no more than a third.
 
-### 1.2 What a Commerce seat does on the map and in its turns
+## 6. The themes after both rounds
 
-| What the seat does | How often | Cards that pay for it |
+### The home market
+
+- **Tier 0:** Market Day, The First Caravan
+- **Tier I:** The Market Halls, The Grain Banks, The Market Writ, Provisioning Contracts
+- **Tier II:** The Home Market, The Pack Trail, The Courts of Piepowder, The Wayside Inns; the Doctrine The Grand Canal
+- **Tier III:** The Return Leg, The Chartered Metropolis, The Champagne Fairs; the Doctrine The Year and a Day
+- **Tier IV:** The Grain Barges; the Doctrine The Sea Ban
+
+### The far road
+
+- **Tier 0:** Travellers' Letters, The Pathfinders' Company
+- **Tier II:** The Tea Horse Road, The Common Road, The Exchange, The Factors' Houses; the Doctrine The Sogdian Colonies
+- **Tier III:** The Admiralty of Trade, The Capitulations; the Doctrine The Muda
+- **Tier IV:** The World's Fair, The Feitorias, The World's Exchange; the Doctrine The Peace of Lodi
+
+### The goods and the table
+
+- **Tier 0:** The Silphium Harvest, The Emporia, Salt Tithes, Land Speculation; the shared The Country Fair and The Merchant Shrines
+- **Tier I:** The Estate Lands, The Staple Right, The Planters' Charter, Export Guilds, Commission: The Trade Mission; the Doctrine The Laurion Leases
+- **Tier II:** The Tiraz, The Spice Exchange, Corner the Market, The Treaty Ports, Numidian Cavalry; the Doctrine The Forbidden Silks
+- **Tier III:** The Latifundia, The Monopoly, The Capitulations; the Doctrine The Colleganza
+- **Tier IV:** The Casa da Índia
+
+### Customs houses and great merchants
+
+- **Tier I:** Commission: The Trade Mission (a merchant)
+- **Tier II:** The Merchant Consuls (a merchant on the draft), The Customs Houses, The Bonded Warehouses, Houses of Account (renown); the shared The Collectors
+- **Tier III:** The Weigh House, The Company of the Staple, A Court of Merchants, The Strongroom, Merchant Princes
+- **Tier IV:** none
+
+### The sea
+
+- **Tier 0:** The Fishing Fleets
+- **Tier I:** The Salt Pans; the Doctrine The Delian League
+- **Tier II:** the shared The Merchant Navigators
+- **Tier III:** The Stato da Mar; the shared Letters of Marque
+- **Tier IV:** none
+
+### The purse
+
+- **Tier 0:** Land Speculation, The Nest Egg
+- **Tier I:** Letters of Credit, Civic Receipts, The Strongbox, Financed Industry, The Ten Thousand; the Doctrine The Apoikia
+- **Tier II:** Names in Stone, Foreign Procurement, Private Patronage; the Doctrine The Flying Money
+- **Tier III:** The Endowment, Merchant Princes, The Gilded Scaffold, A Guild Commission, The Stipendium, The Cloth Halls
+- **Tier IV:** Bought and Paid For, The Great Loan, Money at Work; the Doctrine The Opera del Duomo
+
+### The bridges (shared cards)
+
+- **Dominion:** The Sutlers (II), The Standing Army (I), and the three purchase cards at Tier III
+- **Expansionist:** The Grain Merchants (II), The Country Fair (0), Market Gardens (II), The Provincial Fair (II)
+- **Devotion:** The Relic Trade (II), The Merchant Shrines (0), The Tithe (II), Pilgrim Markets (II)
+- **Scientific:** The Royal Patents (III), The Merchant Navigators (II), The Exchange of Discoveries (I)
+- **Magisterial:** The Collectors (II), The Art Dealers (I), The Brokers' Redraw (II)
+
+## 7. Where this pass touches other work
+
+- **Dominion** (its pass is ruled; "The 22 shared cards do not change"): change 65 replaces The Escorted Roads with The Sutlers. Changes 12 and 37 stand. The Sutlers reads garrisons, which that deck's Martial Law, The Drill Masters and The Regimental Schools also read.
+- **Expansionist** (its pass is in its second round): change 66 adds a shared card, The Grain Merchants. Change 50 would let a luxury on wild or tended land count for the seat. Change 58 pays road hexes, beside that deck's The Road Towns. Change 15 is rejected, so nothing stacks with Provincial Councils. That pass asked that the rarity count be made for every deck: section 5 has this deck's.
+- **Magisterial** (its pass is ruled): change 69 adds a shared card, The Collectors. A customs house is a great-person work, so changes 53 to 56 feed The Quarter of Masters, The Masters' Domain, The Garden Courts and Commission: The Paradise Garden. The Company of the Staple with Letters Patent doubles twice.
+- **Devotion** (no pass yet): change 67 replaces The Silk Road Monks with The Relic Trade.
+- **Scientific** (no pass yet): change 68 replaces Merchant Scholars with The Royal Patents, and change 64 reworks The Merchant Navigators.
+- **Leaders.** Lorenzo de' Medici is richer: The Medici Bank calls great people with gold, and the customs house cards give each merchant a use. Cleopatra is richer: her coastal start, her galley and The Museion meet the sea cards and The Merchant Consuls. Genghis Khan loses The Escorted Roads and gains The Sutlers. Pachacuti gains The Wayside Inns on the roads his ability reads. Mansa Musa: The Latifundia doubles his gold on a mined luxury.
+- **Great people.** The pass rules that a work pays 4, then 6, then 8. Changes 20, 54 and 55 are sized on 6. Change 56 needs a second act for one family, which is new. Ferdowsi pays culture on works, and a customs house is one.
+
+## 8. What I could not determine
+
+- **No play evidence for this deck.** `docs/playtest_notes.md` has no Commerce game. Your comments are the only evidence from play.
+- **How many customs houses a seat has.** My figures come from the renown ladder and the count of 7 to 9 great people by turn 150. I ran no game.
+- **How many road hexes a seat works** (change 58), and how many water hexes a coastal town works (61, 62).
+- **Whether slots or gold limit routes.** Five of the eight cuts lean on my reading that slots do not.
+- **How the draw weights a family.** I know the offer is weighted by renown feed and never restricted. I do not know how often a Commerce seat is offered a merchant.
+- **Five shape points for the triage:** whether a hex beside two customs houses is paid once (54); whether a rider's grant can count ages (68); whether a card can add a clause to `openedResource` cleanly (50); whether The Summer Palace's set of capital rows can be given a second town (52); and how a great person's second act is stored (56).
+- **The other decks' current shared cards.** I read Dominion's, Magisterial's and Expansionist's pass files. Devotion and Scientific have no pass, so changes 64, 67 and 68 are written against today's sheets.
+- **The history is from my own knowledge.** The Stato da Mar and The Company of the Staple are later than the age of a Tier III card would suggest, and I have not bent them.
+
+## 9. UI asked for
+
+- **The Champagne Fairs (34):** the seated card shows how many turns are left until it next pays. Your words: "Could we have an indicator of how many turns are left for this to trigger?"
+- **Bought and Paid For (39):** the seated card prints the percentage it is at now. Your words: "the finished card should read what percentage it's currently at."
+- Two more would help the new cards, and you did not ask for them: the Trade screen shows the length of a route in hexes (26), and a customs house's hover shows what the hexes beside it gain (54, 55).
+
+## 10. Ready for the build
+
+- **Ready now: 47 of round one's 49 changes.** The table in section 4 has the line to build for each. Changes 04 and 15 are not built.
+- **Hold two of the 47 until you rule on round two:** The Scholars' Roads (29) and The Trade Winds (41), because changes 77 and 75 propose to cut them.
+- **Not ready: changes 50 to 78.** None is ruled.
+- Every new row needs a `flavor` line. None is written here. A cut row keeps its row with `retired: true`.
+
+| The work | Round one, ruled | Round two, waiting |
 |---|---|---|
-| Hires a caravan and picks the two ends of its route | About ten times a game | 25 |
-| Buys a building, a unit or a hex | Every few turns | 11 |
-| Settles beside a luxury and improves it | Three or four times, in age 1 | 9 |
-| Builds a Market in each town | Once a town | 9 |
-| Signs a deal | When a bot offers one, and again every twenty turns | 2 |
-| Calls a great merchant | Once or twice a game | 4 |
+| Data only: a number, a tier, a rarity or a retired row | 01, 03, 05, 08, 09, 10, 11, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 36, 38, 40, 41, 42, 43, 46, 48 | 51, 53, 54, 55, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 69, 70 to 77 |
+| Small extension | 02 (a boon that leaves a route slot), 07 and 44 (a boon with a timed effect), 12 (a rank stamp on bought units), 13 (a goal that counts deal partners), 14 and 47 (posts abroad pay the empire), 28 (no range limit), 37 (strength scaled by gold income), 39 (bought buildings counted for the empire), 45 (citizens in post towns, your own included), 49 (a lent luxury counts in full, and is lent once) | 68 (a technology rider that counts ages), 78 (the price reads gold income) |
+| New shape | none | 50 (a luxury held from an owned hex), 52 (a second town for capital cards), 56 (a great merchant acts twice) |
+| Interface | 34 (turns left), 39 (the current percentage) | none |
 
-- Any seat with gold buys things, at the same price. Any seat builds Markets. So the honest answer to "what does a Commerce seat do that no other seat does" is: it sends routes, and its gold income is larger.
-- **A route has one dimension.** Most route cards count routes, or towns that send or receive one. A route to a far town pays what a route to a near town pays. A post abroad pays nothing unless The Capitulations is seated. After the caravan leaves, nothing about the route changes.
-- **Three cards buy range that no card pays for:** The Admiralty of Trade, The Trade Winds, and the post's own +3 turns of range. Genghis Khan's building The Yam (routes reach twice as far) has the same problem.
-- **Five cards turn gold income into another yield with no decision:** The Nest Egg (culture), Financed Industry (production), Bills of Exchange (production), The Merchant Works (production) and Money at Work (science). They all read "the gold you make each turn". Every other gold card feeds them, and none of them asks the player to do anything.
+## Questions for the user
 
-### 1.3 The gold sinks
+Five questions change the build. Each has my recommended answer.
 
-- **The price.** A hammer costs 4 gold at the counter (`goldPerHammer`). Card text counts 2 gold as 1 of another yield. So a card that pays gold is worth half of what it prints when the seat buys hammers with it. A Market costs 356 gold, and a median seat makes 19 gold a turn in age 2.
-- **No Order improves the price.** You ruled on 2026-10-12 that discount cards become +25% of the yield, so that stacked discounts cannot make a purchase free. Four Doctrines now hold the discounts (The Apoikia, The Laurion Leases, The Flying Money, The Turnpike Trusts). I think that is the right home for them, and this pass adds no discount Order.
-- **What only Commerce can buy:** a wonder (The Gilded Scaffold, Tier III rare), a great-person draft (Merchant Princes, Tier IV rare), units without their strategic resource (Foreign Procurement, Tier II), the Plantation House (a charter, Tier I), and a redraw (the shared The Brokers' Redraw, which has no button yet). Before Tier III the list is short and narrow.
-- **Spending is not a choice today.** Six of the eleven purse cards pay for the same act, which is to buy the next building: Civic Receipts, The Strongbox, Names in Stone, The Endowment, A Guild Commission and Bought and Paid For. On 2026-11-10 the cards that read the treasury changed to read income, so keeping gold pays nothing. Only The Money Lenders, The Strongroom and the Doctrine The Monte di Pietà are left for a seat that keeps gold.
+1. **Is 75 cards the right size?** Recommended: yes. Expansionist is 75 after its pass and Dominion is 82. If you want 72, cut The Pack Trail, The Common Road and The Wayside Inns, and the route share falls to 16 of 72 (22%).
+2. **May this pass change four shared cards that are on other decks' sheets?** Recommended: yes. Changes 64, 65, 67 and 68 take four route cards out of the shared pool (with Scientific, Dominion, Devotion and Scientific). The Dominion pass says its shared cards do not change, so that file needs one line. If the answer is no, the four stay, the bridges are added beside them, and the shared pool keeps five route cards.
+3. **What should a great person cost in gold?** Recommended: twelve turns of your gold income, and never less than 1,500 (change 78). Today it is 1,000 gold at every age, which a Commerce seat makes in two or three turns in age 4. The other choice is a flat 2,500.
+4. **What happens to The Pack Trail at Tier II?** Recommended: cut it. At +3 gold a route it pays 9 against a Tier II bar of 35 to 60, and it is one of seven route cards in the tier. The second choice is +6 gold. Your line (Tier II, +3) stands until you say.
+5. **The Colleganza: which reading of "once a luxury is lent, it can't be further lent"?** Recommended: both. You may lend each luxury to one empire, and an empire that borrows a luxury cannot lend it on. Section 1.7 has the two readings.
 
-### 1.4 Chores: what the cards ask the player to do
+## Record: round one
 
-- **Route babysitting is not the chore.** Batch TR2 (2026-11-10) removed the route term, so a route runs until a war, a plunder or a lost town ends it. A caravan is never asked for orders.
-- **Re-planning the routes.** Five cards ask for a pattern: The Home Market (two routes into one town), The Carters' Guild (one into each town), The League of Cities (one out of each town), The Chartered Metropolis (three out of one town) and The Great Fair (four towns receive). Each time one is drafted, the player sends the caravans again. That is a puzzle once a card, and I count it as a decision, not a chore.
-- **Re-signing deals.** A deal lasts twenty turns (`dealTurns`) and the game has no renewal. Export Guilds and The Treaty Ports pay only while a deal runs. With three partners that is a deal to sign again about every seven turns. This is the real chore in the deck. Section 9 has a fix that is not a card.
-- **Remembering what was bought where.** The Endowment and Bought and Paid For count the buildings bought in each town. You cut the shared The Waqf on 2026-11-10 because "the player must remember which buildings they bought". The same reason holds for these two (changes 31 and 39).
-- **Waiting.** The Strongroom asks the seat to stop buying until it holds 1,500 gold. It is one card, and the goal is clear, so I left it.
-- **Placing mines in clusters.** Mining Districts pays a mine that has two mines beside it (change 22).
+- Round one's diagnosis, in three lines. From Tier II on, almost half the deck read a trade route or a post, and a route is hired once. Gold had one use, at 4 gold a hammer, and no Order changed the price. Deals, posts abroad, the sea and the army were too thin to draft toward.
+- Round one proposed 49 changes on three notes: the goods (the different luxuries held), the purse acts now (loans and things only gold buys), and the far road (distance and posts). It set the sea aside to wait for the maritime work.
+- Every entry of round one is kept below as it was first proposed, with its reasoning, arithmetic and shape. The review page has the same text under each change.
 
-### 1.5 Dead and nearly dead cards
+### Your first rulings (2026-11-20, comments on the page)
 
-- **The Pack Trail and The First Caravan (Tier 0)** pay nothing in Tier 0. A route needs a slot, a slot needs a Market, and a Market needs Currency, an age 2 technology. The caravan waits in the capital for about 30 turns.
-- **The Brokers' Redraw (shared, Tier II)** cannot be used: no button offers the gold redraw (the sheet's own note).
-- **The Merchant Works (Tier IV rare)** reads the gold of the one town that builds a wonder: about +6 to +10 production toward a wonder of 657 hammers or more.
-- **The Admiralty of Trade (Tier III)** lifts the range limit to towns that hold your post. A post exists only where a route already reached.
-- **Strategic Exports (Tier II)** doubles strategic copies in a deck where no card reads a strategic copy.
-- **Mining Districts (Tier II)** needs three mines in a cluster and then pays +2 gold and +2 science.
-- **Letters of Credit (Tier I rare)** is 150 gold once, and it must hold its chair for ever or the debt comes due.
-- **The Customs Houses and The Customs Service** pay for a thing the seat has one of, or none.
-- **Corner the Market (Tier II)** asks for four copies of one luxury, and then pays +2 happiness for each duplicate, of which the seat has one or two.
+Page: https://claude.ai/artifact/BY9EkS9pwYUzfXGrXKPmdM. You commented on every change, 01 to 49, and on the five questions. Your words for each change are in the table of section 4, quoted whole. Your two comments on the pass as a whole are at the top of this file.
 
-### 1.6 Rares that are weaker than commons
+The count: 39 approved as proposed, 7 with your text (01, 05, 07, 09, 19, 20, 26; 49 adds a rule), 1 kept as today (06), 2 rejected with a replacement owed (04, 15).
 
-| The rare | Pays | The common or uncommon that beats it |
-|---|---|---|
-| Private Patronage (I) | +6 to +10 gold in age 2 | The Grain Banks (uncommon): +12 gold with four Granaries |
-| Financed Industry (I) | +5 to +8 production in age 2 | The Market Halls (common): +8 food and +8 production in four Market towns of 6 |
-| Letters of Credit (I) | 150 gold, once | Any Tier I common |
-| The League of Cities (II) | +20% production in towns that send a route, about 18 | The Home Market (common): +30% food and production |
-| The Spice Exchange (II) | +5% to +10% science and culture with one or two duplicates | The Exchange (uncommon): +15% with three partners |
-| The Bourse (III) | About +60 gold in ten towns | Houses of Account (common): +2 happiness for each gold building |
-| The Scholars' Roads (III) | +24 to +42 on six routes abroad, nothing on home routes | The Champagne Fairs (uncommon): about 110 culture a turn |
-| The Merchant Works (IV) | +6 to +10 production toward a wonder | The generic The Grand Design (uncommon): about +75 toward the Opus |
-| The World's Exchange (IV) | +40% in the Opus town, about 40 | The Grand Design again |
+### Round one's entries, as first proposed
 
-### 1.7 How often each card is seen
+Kept so that each ruling can be read against what it ruled on. The line to build is in section 4, not here.
 
-- A hand deals one card for each of the seat's decks. The game rolls the rarity first, at 60 / 30 / 10, over the rarities that deck holds in the current tier. Then it picks evenly inside that rarity (`drawRarityFirst`, `src/sim/statecraft/draft.ts`). So the number of cards at each rarity in a tier decides how often each card is seen.
-- The table gives the chance that one named card is the Commerce card of a hand, before the seat holds any card of the tier.
-
-| Tier | Commons | Uncommons | Rares | Each common | Each uncommon | Each rare |
-|---|---|---|---|---|---|---|
-| 0 | 8 | 2 | 0 | 8.3% | 16.7% | none |
-| I | 4 | 6 | 3 | 15% | 5% | 3.3% |
-| II | 5 | 13 | 2 | 12% | 2.3% | 5% |
-| III | 0 | 8 | 8 | none | 9.4% | 3.1% |
-| IV | 0 | 2 | 9 | none | 37.5% | 2.8% |
-
-- **Tier 0:** the two uncommons (Land Speculation and The Pathfinders' Company) are each seen twice as often as any common.
-- **Tier II:** each of the two rares is seen twice as often as any of the 13 uncommons.
-- **Tiers III and IV have no common.** At Tier IV the first two Commerce hands show The Grain Barges or The Neutral Flag three times in four, and the nine rares share the last quarter.
-- The pass moves rarities so that each tier has commons, and no tier has more rares than uncommons. Section 5 has the table after the changes.
-
-### 1.8 Gaps by tier and by chair
-
-The sheet's own count of types, charters included:
-
-| Tier | Military | Economic | Civic | Wildcard |
-|---|---|---|---|---|
-| 0 | 1 | 6 | 3 | 0 |
-| I | 0 | 8 | 5 | 0 |
-| II | 2 | 7 | 9 | 2 |
-| III | 0 | 9 | 5 | 2 |
-| IV | 0 | 6 | 3 | 2 |
-
-- **Military:** three cards in the deck, and one of them is a charter that takes no chair. Tiers I, III and IV have none. Every government seats at least one Military chair. A seat paired with Dominion has four shared Military cards. A seat paired with any other deck fills the chair from its partner or from the generic cards.
-- **Wildcard:** Tier I has no commission.
-- **Rares:** Tier 0 has none.
-- **Commons:** Tiers III and IV have none.
-
-### 1.9 Doubles
-
-- **Gold income into production, three times:** Financed Industry (I), Bills of Exchange (II) and The Merchant Works (IV).
-- **Purchases this game, twice:** Names in Stone (gold spent) and Bought and Paid For (buildings bought).
-- **Bought buildings by town, twice:** The Endowment (science) and Bought and Paid For (production and culture).
-- **Towns that send routes, twice:** The League of Cities (II) and The Chartered Metropolis (III) are the same card at two sizes.
-- **No iron, twice:** Foreign Procurement and Strategic Exports solve the same problem.
-- **Customs houses, twice:** The Customs Houses and The Customs Service read a thing the seat has one of.
-- **Road gold, twice:** the shared Market Gardens and the Doctrine The Turnpike Trusts both give +1 gold on a road hex. They add up, so I left them.
-
-### 1.10 Science, culture and production
-
-- **Science:** reachable in every tier. Travellers' Letters, Commercial Education, The Strongbox, The Common Road, The Exchange, Names in Stone, The Endowment, Money at Work.
-- **Culture:** reachable in every tier, and early. Land Speculation, The Nest Egg, Civic Receipts, Export Guilds, The Factors' Houses, The Champagne Fairs.
-- **Production:** reachable, but almost all of it comes through home routes (Provisioning Contracts, The Carters' Guild, The Home Market, The Return Leg, The Grain Barges). A seat that leans on the far trade or the goods has Financed Industry and The Treaty Ports and little else. Changes 27 and 36 answer that.
-
-### 1.11 The pairs, in one line each
-
-- **Dominion:** Commerce gives an army bought with gold. It takes Military cards for its empty chairs. Dominion's wars close Commerce's routes abroad.
-- **Expansionist:** Commerce gives roads laid by caravans, and gold for hexes and settlers. It takes luxuries opened on claimed land, and many towns for its Markets.
-- **Devotion:** Commerce gives routes that pay faith and carry religion. It takes holy sites as places to trade with. Neither deck makes production.
-- **Scientific:** Commerce gives gold that buys the schools, and routes abroad that pay science. It takes Academies that pay on routes, and great people for its gold.
-- **Magisterial:** Commerce gives gold for redraws and great people. It takes gold for each seated card, and the any-family great-person cards for its merchants.
-
-## 2. Second and third notes: what I tested, and what I recommend
-
-- Trade routes stay the core. The aim is range. I tested nine second and third notes against one question: does the playstyle produce the quantity by itself, so that a seat that drafts one card of the note still gets paid?
-- I recommend three. A and B are the main ones. C is small: it gives the route cards a second dimension and costs four cards.
-
-### A. The goods: the different luxuries you hold (Recommended)
-
-- **The quantity:** the number of different luxuries the seat holds (`uniqueLuxuries`, deals included). The map has 24 kinds, and each has its own effect, so this note differs from game to game.
-- **Who raises it:** settling beside a luxury (The Emporia), buying the hex (Land Speculation, the Doctrine The Laurion Leases), a swap at the table, a post abroad (The Capitulations), a Customs House on a seam.
-- **Who reads it today:** Salt Tithes, Numidian Cavalry, the Bazaar building, and the shared The Country Fair and The Merchant Shrines. The mid-game cards read duplicates instead, and a seat has one or two of those.
-- **The changes:** The Spice Exchange and Corner the Market read kinds (16, 17). The Tiraz pays production for each kind (27). The Staple Right and The Planters' Charter go up (10, 11). The table becomes the way to gain kinds: a commission for the first two deals (13), a stronger The Treaty Ports (18), and a Doctrine that lets a lent luxury still count (49).
-- **The floor:** every seat holds two to four kinds by age 2, with no card at all. A seat that drafts only The Tiraz gains about +20 production in age 3.
-- **What it does to play:** a new kind is +4 happiness, +4% science and culture, and +1 production in every town. So each swap a bot offers is a gain the player can see, and each site with a new luxury is worth a town.
-- **The partner decks:** Expansionist claims and improves the hexes. Devotion's The Merchant Shrines pays faith on the same towns. Dominion gets Numidian Cavalry. Scientific and Magisterial get the science and culture percentage.
-
-### B. The purse acts now (Recommended)
-
-- **The moment:** a purchase with gold (the `purchase` moment and the `goldPurchase` count, both built).
-- **The idea:** your picture says Commerce should "act where others must wait". Today its gold arrives slowly and buys slowly. This note gives the deck cards that pay on the turn they are drafted, and moves the things only gold can buy to earlier tiers.
-- **The changes:** Letters of Credit becomes a loan paid on the draft (07), and The Great Loan becomes a true boon (44). Merchant Princes moves from Tier IV to Tier III (35). Civic Receipts and The Endowment together return half the price of a bought building as culture and science, which is your rate of 2 gold to 1 (08, 31). The Ten Thousand makes a bought army a good army (12). Two doubles go (21, 38), and Bought and Paid For stops asking the player to remember towns (39).
-- **The floor:** every seat buys something. A seat that drafts only Civic Receipts gains about 90 culture for each Market it buys.
-- **What it does to play:** the turn a loan lands, the seat decides what to buy at once. A war on the border is answered in one turn with bought Veterans.
-- **The partner decks:** Dominion reads the units gained and their ranks. Magisterial and Scientific want the great people. Devotion buys with faith beside it.
-- **What I did not do:** add a discount Order. The Doctrines hold the discounts, and your ruling of 2026-10-12 stands.
-
-### C. The far road: distance and posts (Recommended, small)
-
-- **The quantities:** the hexes a route travels (`routeLength`, built), and the towns that hold your trading post (built; a route kept twenty turns leaves a post at both ends for good).
-- **The idea:** your picture says "Establishing trading posts, setting the seeds for commerce and seeing the effects of this expand throughout the ages". Today a far route pays what a near one pays, and a post abroad pays nothing.
-- **The changes:** The Tea Horse Road pays for each three hexes a route travels (26). The Factors' Houses counts posts abroad (14), and so does the Doctrine The Sogdian Colonies (47). The Admiralty of Trade lifts the range limit everywhere (28). The Feitorias pays posts by the size of their towns at Tier IV (45). The World's Fair becomes the capstone: routes abroad pay twice (43).
-- **The floor:** every route has a length and leaves posts, so a seat with any routes is paid.
-- **What it does to play:** where a route goes becomes a choice on the map. A far partner is worth more than a near one, and a post planted in age 2 pays more in age 4 with no new act.
-- **The partner decks:** Genghis Khan's The Yam finally buys something. Ibn Battuta's The Funduq and Cleopatra's Books from the Ships pay on the same routes abroad.
-
-### D. The table as a note of its own (Not as its own note)
-
-- Deals are a real act, and your picture names them. But a deal depends on a partner at peace, it ends after twenty turns, and on 2026-11-19 you took the deal count out of Cleopatra's kit. So I put the table inside note A, as one way to gain kinds, and kept its cards few. Question 1 asks whether deals stay a card quantity.
-
-### E. Debt (Two cards, not a note)
-
-- Gold now for less gold later is a good card, and the pass has two (07, 44). A whole theme would need many timed drawbacks, and the rule of 2026-11-10 keeps drawbacks to rares.
-
-### F. The hoard: keep or spend (Not recommended)
-
-- On 2026-11-10 the treasury cards changed to read income, so that they stop working against the purchase cards. I agree with that. The Money Lenders and The Strongroom stay as the two cards for a seat that keeps gold, and the hoard can be poured into the Magnum Opus at the end.
-
-### G. The sea (Wait)
-
-- No Commerce Order reads the sea. A sea route already pays 50% more, and the shapes exist (a route row can name the sea). But the note depends on the map, and maritime yields are on your own list of things to return to. I would design it with that work, not before it.
-
-### H. A city of trade against an empire of trade (Already in the deck)
-
-- The Home Market and The Chartered Metropolis reward one great trade town. The Carters' Guild, The Great Fair and The League of Cities reward a network. The choice is real and I kept it. Change 15 makes the two sides pay different things.
-
-### I. Tolls: routes that other empires send to you (Not recommended)
-
-- The quantity is what rivals do, and the player cannot raise it. The rule of 2026-11-10 also asks that no card reads what a rival knows or does.
-
-## 3. Index
-
-| # | Card | Tier | Change | Confidence | Ruling |
-|---|---|---|---|---|---|
-| 01 | The Pack Trail | 0 | buff | good |  |
-| 02 | The First Caravan | 0 | rework | good |  |
-| 03 | The Mineral Trade | 0 | buff | good |  |
-| 04 | The Silent Trade | 0 | new | good |  |
-| 05 | Private Patronage | I | move | good |  |
-| 06 | Financed Industry | I | buff | good |  |
-| 07 | Letters of Credit | I | rework | good |  |
-| 08 | Civic Receipts | I | buff | good |  |
-| 09 | The Market Writ | I | buff | good |  |
-| 10 | The Staple Right | I | buff | good |  |
-| 11 | The Planters' Charter | I | buff | good |  |
-| 12 | The Ten Thousand | I | new | speculative |  |
-| 13 | Commission: The Trade Mission | I | new | good |  |
-| 14 | The Factors' Houses | II | rework | good |  |
-| 15 | The League of Cities | II | rework | good |  |
-| 16 | The Spice Exchange | II | rework | good |  |
-| 17 | Corner the Market | II | rework | good |  |
-| 18 | The Treaty Ports | II | buff | good |  |
-| 19 | Houses of Account | II | rework | speculative |  |
-| 20 | The Customs Houses | II | buff | good |  |
-| 21 | Bills of Exchange | II | cut | good |  |
-| 22 | Mining Districts | II | cut | good |  |
-| 23 | Strategic Exports | II | cut | good |  |
-| 24 | Foreign Procurement | II | move | good |  |
-| 25 | Names in Stone | II | move | good |  |
-| 26 | The Tea Horse Road | II | new | good |  |
-| 27 | The Tiraz | II | new | strong |  |
-| 28 | The Admiralty of Trade | III | rework | good |  |
-| 29 | The Scholars' Roads | III | buff | good |  |
-| 30 | The Chartered Metropolis | III | buff | good |  |
-| 31 | The Endowment | III | rework | good |  |
-| 32 | The Bourse | III | cut | good |  |
-| 33 | The Customs Service | III | cut | good |  |
-| 34 | The Champagne Fairs | III | move | good |  |
-| 35 | Merchant Princes | IV to III | move | good |  |
-| 36 | The Cloth Halls | III | new | good |  |
-| 37 | The Stipendium | III | new | good |  |
-| 38 | The Merchant Works | IV | cut | strong |  |
-| 39 | Bought and Paid For | IV | rework | good |  |
-| 40 | The Grain Barges | IV | buff | good |  |
-| 41 | The Trade Winds | IV | move | good |  |
-| 42 | The World's Exchange | IV | buff | good |  |
-| 43 | The World's Fair | IV | rework | good |  |
-| 44 | The Great Loan | IV | rework | strong |  |
-| 45 | The Feitorias | IV | new | good |  |
-| 46 | The Laurion Leases | Doctrine I | doctrine | good |  |
-| 47 | The Sogdian Colonies | Doctrine II | doctrine | good |  |
-| 48 | The Muda | Doctrine III | doctrine | good |  |
-| 49 | The Colleganza | Doctrine III | doctrine | speculative |  |
-
-## 4. The changes
-
-### 01. The Pack Trail (buff)
+#### 01. The Pack Trail (buff)
 
 - **Tier, rarity, type:** 0, common, Economic
 - **Now:** Your trade routes give +2 gold.
@@ -288,7 +775,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** Without change 02 it pays nothing in its own tier.
 
-### 02. The First Caravan (rework)
+#### 02. The First Caravan (rework)
 
 - **Tier, rarity, type:** 0, common to uncommon, Economic (Boon)
 - **Now:** On draft: gain a caravan.
@@ -300,7 +787,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** It joins the Expansionist pass: The Road Home also joins new towns by road at Tier 0. The two add up. They do not clash.
 
-### 03. The Mineral Trade (buff)
+#### 03. The Mineral Trade (buff)
 
 - **Tier, rarity, type:** 0, common, Economic
 - **Now:** Mines and quarries gain +1 gold.
@@ -311,7 +798,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: `pays` on a hex, a number change.
 - **Confidence:** good
 
-### 04. The Silent Trade (new)
+#### 04. The Silent Trade (new)
 
 - **Tier, rarity, type:** 0, rare, Military
 - **Now:** Not in the deck.
@@ -323,7 +810,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** It breaks the rule "a Tier 0 card is a plain yield" (2026-11-10), as Blood Brothers and The Ver Sacrum did in the Dominion pass. Question 5. It is the only Tier 0 rare, so it is the Commerce card of about one hand in ten.
 
-### 05. Private Patronage (move)
+#### 05. Private Patronage (move)
 
 - **Tier, rarity, type:** I, rare to uncommon, Economic
 - **Now:** Rare: Towns gain +25% gold.
@@ -334,7 +821,7 @@ The sheet's own count of types, charters included:
 - **Shape:** No shape change. Only the rarity changes.
 - **Confidence:** good
 
-### 06. Financed Industry (buff)
+#### 06. Financed Industry (buff)
 
 - **Tier, rarity, type:** I, rare, Economic
 - **Now:** Towns gain production equal to 20% of their gold.
@@ -346,7 +833,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** Change 21 cuts Bills of Exchange. If you reject 21, keep this card at 20%.
 
-### 07. Letters of Credit (rework)
+#### 07. Letters of Credit (rework)
 
 - **Tier, rarity, type:** I, rare, Economic (Boon)
 - **Now:** Your treasury may fall to −150 with no penalty.
@@ -358,7 +845,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** It takes the rule `buysOnCredit` out of play. The other choice is to keep the rule and move the floor to −400. Question 2.
 
-### 08. Civic Receipts (buff)
+#### 08. Civic Receipts (buff)
 
 - **Tier, rarity, type:** I, uncommon, Civic
 - **Now:** Buying a building grants culture equal to 15% of the gold paid.
@@ -369,7 +856,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: `windfallRider` on a purchase, a number change.
 - **Confidence:** good
 
-### 09. The Market Writ (buff)
+#### 09. The Market Writ (buff)
 
 - **Tier, rarity, type:** I, uncommon, Civic
 - **Now:** +1 authority for every two Markets in your empire.
@@ -380,7 +867,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: `pays` to authority, count `buildingsOfKind`, the divisor goes.
 - **Confidence:** good
 
-### 10. The Staple Right (buff)
+#### 10. The Staple Right (buff)
 
 - **Tier, rarity, type:** I, common, Economic
 - **Now:** Gain +3 gold and +2 culture for each luxury you hold two or more copies of.
@@ -391,7 +878,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: number changes.
 - **Confidence:** good
 
-### 11. The Planters' Charter (buff)
+#### 11. The Planters' Charter (buff)
 
 - **Tier, rarity, type:** I, uncommon, Economic (Charter)
 - **Now:** Unlocks the Plantation House, a building you buy with gold. The building gives +1 gold, and +1 food and +1 gold on each plantation.
@@ -403,7 +890,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** It joins the Expansionist pass: plantations are where the two decks meet on the land.
 
-### 12. The Ten Thousand (new)
+#### 12. The Ten Thousand (new)
 
 - **Tier, rarity, type:** I, uncommon, Military
 - **Now:** Not in the deck.
@@ -415,7 +902,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** speculative
 - **Depends, joins and notes:** The split of 2026-10-20 gives earned ranks to Dominion and better starts to Scientific. A bought rank sits between them. If that is a problem, the other text is "Military units you buy with gold gain +3 strength", and the shared Professional Soldiers goes up to +5.
 
-### 13. Commission: The Trade Mission (new)
+#### 13. Commission: The Trade Mission (new)
 
 - **Tier, rarity, type:** I, uncommon, Wildcard
 - **Now:** Not in the deck.
@@ -427,7 +914,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** It depends on question 1 (deals as a card quantity).
 
-### 14. The Factors' Houses (rework)
+#### 14. The Factors' Houses (rework)
 
 - **Tier, rarity, type:** II, common, Civic
 - **Now:** Your cities holding your trading post gain +2 gold and +4 culture.
@@ -438,7 +925,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing counts: your own towns through `citiesAdmitted` with the `holdsPost` scope, and paying posts abroad through `postCities`. The pay for a post abroad goes to the empire.
 - **Confidence:** good
 
-### 15. The League of Cities (rework)
+#### 15. The League of Cities (rework)
 
 - **Tier, rarity, type:** II, rare, Economic to Civic
 - **Now:** Towns that send a trade route gain +20% production.
@@ -450,7 +937,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** It joins the Expansionist pass: Provincial Councils cuts 1 authority from a town joined by road. In an Expansionist and Commerce seat a town with both costs 1. A town's cost should not go below 1.
 
-### 16. The Spice Exchange (rework)
+#### 16. The Spice Exchange (rework)
 
 - **Tier, rarity, type:** II, rare, Civic
 - **Now:** Every city gains +5% science and +5% culture for each luxury you hold two or more copies of, at most +30%.
@@ -461,7 +948,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: the count changes from `duplicateLuxuries` to `uniqueLuxuries`. To confirm: that a luxury on loan from a post counts. It does not count for Numidian Cavalry today.
 - **Confidence:** good
 
-### 17. Corner the Market (rework)
+#### 17. Corner the Market (rework)
 
 - **Tier, rarity, type:** II, uncommon, Wildcard
 - **Now:** Goal: hold four copies of one luxury. Reward: +2 happiness for each luxury you hold two or more copies of.
@@ -472,7 +959,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: the commission's figure `luxuryCopies` at 3, and the lasting reward's count changes to `uniqueLuxuries`.
 - **Confidence:** good
 
-### 18. The Treaty Ports (buff)
+#### 18. The Treaty Ports (buff)
 
 - **Tier, rarity, type:** II, uncommon, Economic
 - **Now:** +5% production for each empire you hold a deal with, at most +25%.
@@ -484,7 +971,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** It depends on question 1. Section 9 has the note on deals that end after twenty turns.
 
-### 19. Houses of Account (rework)
+#### 19. Houses of Account (rework)
 
 - **Tier, rarity, type:** II, common, Civic
 - **Now:** Gold buildings provide +2 happiness and +1 renown.
@@ -496,7 +983,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** speculative
 - **Depends, joins and notes:** I have no playtest of this card. You wrote on 2026-09-03: "too much happiness in the game". If happiness is tight in the decks build, reject this change.
 
-### 20. The Customs Houses (buff)
+#### 20. The Customs Houses (buff)
 
 - **Tier, rarity, type:** II, uncommon, Civic
 - **Now:** Each customs house in your borders gives its town +4 science and +4 culture, whether or not it is worked.
@@ -507,7 +994,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: number changes.
 - **Confidence:** good
 
-### 21. Bills of Exchange (cut)
+#### 21. Bills of Exchange (cut)
 
 - **Tier, rarity, type:** II, uncommon, Economic
 - **Now:** Every town gains +1% production for every 10 gold you make each turn, at most +30%.
@@ -519,7 +1006,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** It depends on change 06. If you reject 06, keep this card.
 
-### 22. Mining Districts (cut)
+#### 22. Mining Districts (cut)
 
 - **Tier, rarity, type:** II, uncommon, Civic
 - **Now:** Mines gain +2 gold and +2 science for every two mines beside them.
@@ -530,7 +1017,7 @@ The sheet's own count of types, charters included:
 - **Shape:** No shape. The row is retired.
 - **Confidence:** good
 
-### 23. Strategic Exports (cut)
+#### 23. Strategic Exports (cut)
 
 - **Tier, rarity, type:** II, uncommon, Economic
 - **Now:** Your strategic resources supply twice as many copies.
@@ -542,7 +1029,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** I could not confirm whether a deal can lend a strategic copy. If it can, the card has a second use and this cut is weaker.
 
-### 24. Foreign Procurement (move)
+#### 24. Foreign Procurement (move)
 
 - **Tier, rarity, type:** II, uncommon to common, Military
 - **Now:** Uncommon: You may buy units without their strategic resource.
@@ -553,7 +1040,7 @@ The sheet's own count of types, charters included:
 - **Shape:** No shape change. Only the rarity changes.
 - **Confidence:** good
 
-### 25. Names in Stone (move)
+#### 25. Names in Stone (move)
 
 - **Tier, rarity, type:** II, uncommon to rare, Civic
 - **Now:** Uncommon: +1% science and culture for every 200 gold you have spent buying this game, at most +30%.
@@ -564,7 +1051,7 @@ The sheet's own count of types, charters included:
 - **Shape:** No shape change. Only the rarity changes.
 - **Confidence:** good
 
-### 26. The Tea Horse Road (new)
+#### 26. The Tea Horse Road (new)
 
 - **Tier, rarity, type:** II, common, Civic
 - **Now:** Not in the deck.
@@ -576,7 +1063,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** The retired Venture Routes paid for distance and was among the best-paying cards in the bot games of 2026-10-13. It was cut because it came before routes existed.
 
-### 27. The Tiraz (new)
+#### 27. The Tiraz (new)
 
 - **Tier, rarity, type:** II, uncommon, Economic
 - **Now:** Not in the deck.
@@ -587,7 +1074,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: `pays` in every city, basis count, count `uniqueLuxuries`. The Monopoly pays every town this way.
 - **Confidence:** strong
 
-### 28. The Admiralty of Trade (rework)
+#### 28. The Admiralty of Trade (rework)
 
 - **Tier, rarity, type:** III, uncommon to common, Economic
 - **Now:** Your trade routes to a town holding your trading post have no range limit.
@@ -598,7 +1085,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Small extension: the rule `postsWaiveRouteRange` without its post test.
 - **Confidence:** good
 
-### 29. The Scholars' Roads (buff)
+#### 29. The Scholars' Roads (buff)
 
 - **Tier, rarity, type:** III, rare to uncommon, Civic
 - **Now:** Rare: Your routes gain +50% science and culture.
@@ -609,7 +1096,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: the route share goes from 50 to 100.
 - **Confidence:** good
 
-### 30. The Chartered Metropolis (buff)
+#### 30. The Chartered Metropolis (buff)
 
 - **Tier, rarity, type:** III, rare to uncommon, Economic
 - **Now:** Rare: Towns that send three trade routes gain +35% food, production and culture.
@@ -620,7 +1107,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: number changes.
 - **Confidence:** good
 
-### 31. The Endowment (rework)
+#### 31. The Endowment (rework)
 
 - **Tier, rarity, type:** III, uncommon to common, Civic
 - **Now:** Purchased buildings provide +2 science each, at most +6 per town.
@@ -631,7 +1118,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: `windfallRider` on a purchase, as Civic Receipts has, with science.
 - **Confidence:** good
 
-### 32. The Bourse (cut)
+#### 32. The Bourse (cut)
 
 - **Tier, rarity, type:** III, rare, Economic
 - **Now:** Gold buildings produce 75% more of their own yields.
@@ -642,7 +1129,7 @@ The sheet's own count of types, charters included:
 - **Shape:** No shape. The row is retired.
 - **Confidence:** good
 
-### 33. The Customs Service (cut)
+#### 33. The Customs Service (cut)
 
 - **Tier, rarity, type:** III, uncommon, Civic
 - **Now:** Trade routes leaving a city whose borders hold a customs house gain +3 gold and +3 culture.
@@ -654,7 +1141,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** The great-people pass of 2026-11-19 lists this card among the merchant's cards. That list loses one.
 
-### 34. The Champagne Fairs (move)
+#### 34. The Champagne Fairs (move)
 
 - **Tier, rarity, type:** III, uncommon to common, Civic
 - **Now:** Uncommon: Every ten turns, each town that receives a domestic trade route grants culture equal to ten times its population.
@@ -665,7 +1152,7 @@ The sheet's own count of types, charters included:
 - **Shape:** No shape change. Only the rarity changes.
 - **Confidence:** good
 
-### 35. Merchant Princes (move)
+#### 35. Merchant Princes (move)
 
 - **Tier, rarity, type:** IV to III, rare, Civic
 - **Now:** Tier IV: You may buy great-person drafts with gold.
@@ -677,7 +1164,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** Lorenzo de' Medici's The Medici Bank already calls great people with gold income. The two together make that leader's theme rich.
 
-### 36. The Cloth Halls (new)
+#### 36. The Cloth Halls (new)
 
 - **Tier, rarity, type:** III, common, Economic
 - **Now:** Not in the deck.
@@ -688,7 +1175,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: Commercial Education's row with production.
 - **Confidence:** good
 
-### 37. The Stipendium (new)
+#### 37. The Stipendium (new)
 
 - **Tier, rarity, type:** III, common, Military
 - **Now:** Not in the deck.
@@ -699,7 +1186,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: `combatLine` with `scaled`. To confirm that the scale takes the `empireYield` count.
 - **Confidence:** good
 
-### 38. The Merchant Works (cut)
+#### 38. The Merchant Works (cut)
 
 - **Tier, rarity, type:** IV, rare, Economic
 - **Now:** Towns building a wonder gain production equal to 25% of their gold.
@@ -710,7 +1197,7 @@ The sheet's own count of types, charters included:
 - **Shape:** No shape. The row is retired.
 - **Confidence:** strong
 
-### 39. Bought and Paid For (rework)
+#### 39. Bought and Paid For (rework)
 
 - **Tier, rarity, type:** IV, rare, Civic
 - **Now:** Each town gains +4% production and culture for each building you bought there with gold, at most +24%.
@@ -721,7 +1208,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing count `purchasedBuildings` with the gold bank, read once for the empire and not in each town. To confirm.
 - **Confidence:** good
 
-### 40. The Grain Barges (buff)
+#### 40. The Grain Barges (buff)
 
 - **Tier, rarity, type:** IV, uncommon, Economic
 - **Now:** Your domestic trade routes pay their destination +1 food and +1 production for every four citizens of their origin.
@@ -732,7 +1219,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: the divisor goes from 4 to 3.
 - **Confidence:** good
 
-### 41. The Trade Winds (move)
+#### 41. The Trade Winds (move)
 
 - **Tier, rarity, type:** IV, rare to uncommon, Economic
 - **Now:** Rare: Gain +3 trade route capacity. Your trade routes reach 50% farther.
@@ -743,7 +1230,7 @@ The sheet's own count of types, charters included:
 - **Shape:** No shape change. Only the rarity changes.
 - **Confidence:** good
 
-### 42. The World's Exchange (buff)
+#### 42. The World's Exchange (buff)
 
 - **Tier, rarity, type:** IV, rare to uncommon, Economic
 - **Now:** Rare: +10% production toward the Opus for each foreign empire your trade routes reach, at most +40%.
@@ -754,7 +1241,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: the percent changes and the cap goes.
 - **Confidence:** good
 
-### 43. The World's Fair (rework)
+#### 43. The World's Fair (rework)
 
 - **Tier, rarity, type:** IV, rare, Wildcard
 - **Now:** Goal: have trade routes to four empires. Reward: your trading post in each of their capitals.
@@ -766,7 +1253,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** A table of four seats has three rivals, so the goal cannot be met there. The default table has six seats.
 
-### 44. The Great Loan (rework)
+#### 44. The Great Loan (rework)
 
 - **Tier, rarity, type:** IV, rare, Wildcard to Economic (Boon)
 - **Now:** On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns. It is built as a commission whose goal is to earn 1 gold a turn.
@@ -778,7 +1265,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** strong
 - **Depends, joins and notes:** It depends on question 2.
 
-### 45. The Feitorias (new)
+#### 45. The Feitorias (new)
 
 - **Tier, rarity, type:** IV, uncommon, Civic
 - **Now:** Not in the deck.
@@ -790,7 +1277,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** The Foreign Factor was cut because The Factors' Houses did its job at the same tier. This card is two tiers later and pays by size, not by count.
 
-### 46. The Laurion Leases (doctrine)
+#### 46. The Laurion Leases (doctrine)
 
 - **Tier, rarity, type:** I, Doctrine, the goods
 - **Now:** Hexes with a resource cost half as much gold to buy.
@@ -801,7 +1288,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: `rulePercent` `tilePurchase`, a number change.
 - **Confidence:** good
 
-### 47. The Sogdian Colonies (doctrine)
+#### 47. The Sogdian Colonies (doctrine)
 
 - **Tier, rarity, type:** II, Doctrine, the far trade
 - **Now:** Each of your towns holding your trading post gains +3 culture and +3 renown, favouring merchants.
@@ -813,7 +1300,7 @@ The sheet's own count of types, charters included:
 - **Confidence:** good
 - **Depends, joins and notes:** It goes with change 14. If you reject 14, keep this Doctrine as it is.
 
-### 48. The Muda (doctrine)
+#### 48. The Muda (doctrine)
 
 - **Tier, rarity, type:** III, Doctrine, the far trade
 - **Now:** Your trade routes to other empires pay +3 science and +3 culture, and cannot be plundered.
@@ -824,7 +1311,7 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shape: number changes.
 - **Confidence:** good
 
-### 49. The Colleganza (doctrine)
+#### 49. The Colleganza (doctrine)
 
 - **Tier, rarity, type:** III, Doctrine (new), the goods
 - **Now:** Not in the deck.
@@ -835,253 +1322,3 @@ The sheet's own count of types, charters included:
 - **Shape:** Existing shapes: `effectAmplifier` on `lentLuxuryCopies` at 100 (the retired The Commenda has it at 50), and a negative `combatLine`.
 - **Confidence:** speculative
 - **Depends, joins and notes:** It depends on question 1.
-
-## 5. The deck if every change is approved
-
-- 70 cards become 72: 6 leave and 8 arrive. 14 Doctrines become 15.
-- Cards that read a route or a post: 26 of 72 (36%), the same share as today. Routes stay the core. What changes is that the route cards gain a second dimension, and the other two thirds of the deck become themes a seat can draft toward.
-- Cards that pay gold: 16 of 72 (22%).
-
-**How often each card is seen, after the changes:**
-
-| Tier | Commons | Uncommons | Rares | Each common | Each uncommon | Each rare |
-|---|---|---|---|---|---|---|
-| 0 | 7 | 3 | 1 | 8.6% | 10% | 10% |
-| I | 4 | 9 | 2 | 15% | 3.3% | 5% |
-| II | 7 | 9 | 3 | 8.6% | 3.3% | 3.3% |
-| III | 5 | 6 | 6 | 12% | 5% | 1.7% |
-| IV | 0 | 5 | 5 | none | 15% | 5% |
-
-- Tier IV keeps no common on purpose. One common alone would be the Commerce card of six hands in ten.
-- Tier 0's one rare and Tier I's two rares are still seen a little more often than an uncommon. One more rare in each tier would fix that. I did not invent cards only to fill the count.
-
-**Types, after the changes:**
-
-| Tier | Military | Economic | Civic | Wildcard |
-|---|---|---|---|---|
-| 0 | 2 | 6 | 3 | 0 |
-| I | 1 | 8 | 5 | 1 |
-| II | 2 | 5 | 10 | 2 |
-| III | 1 | 9 | 5 | 2 |
-| IV | 0 | 5 | 3 | 2 |
-
-- Charters and boons are counted by the type on their face. Military goes from 3 to 6. Tier IV still has no Military card.
-- Tier II leans Civic (10 of 19). The League of Cities becomes Civic because it pays authority.
-
-## 6. Throughlines
-
-Each list is the theme after the changes. New and changed cards are in section 4.
-
-### The home market (your own towns trade with each other)
-
-- **Tier 0:** Market Day, The First Caravan (a road at turn 20), The Pack Trail
-- **Tier I:** The Market Halls, The Grain Banks, The Market Writ, Provisioning Contracts
-- **Tier II:** The Carters' Guild, The Home Market, Commission: The Great Fair, The League of Cities (authority); the Doctrine The Grand Canal
-- **Tier III:** The Return Leg, The Chartered Metropolis, The Champagne Fairs, Caravanserai Cities; the Doctrine The Year and a Day
-- **Tier IV:** The Grain Barges; the Doctrine The Sea Ban
-- **The essentials:** production and food from routes, culture from the fairs, authority from the League. It pays in war and in peace.
-
-### The far road (distance, posts and foreign courts)
-
-- **Tier 0:** Travellers' Letters, The Pathfinders' Company, The Silent Trade
-- **Tier I:** Export Guilds, Commission: The Trade Mission
-- **Tier II:** The Tea Horse Road, The Common Road, The Exchange, The Factors' Houses (posts abroad), The Fondaci; the Doctrine The Sogdian Colonies
-- **Tier III:** The Admiralty of Trade (no range limit), The Scholars' Roads, The Capitulations; the Doctrine The Muda
-- **Tier IV:** The World's Fair (routes abroad pay twice), The Feitorias, The Neutral Flag, The World's Exchange, The Trade Winds; the Doctrine The Peace of Lodi
-- **The essentials:** science and culture from routes and posts. Production is thin: Financed Industry and The Treaty Ports. It needs partners at peace, which is the deck's price.
-
-### The goods (the different luxuries you hold, and the table)
-
-- **Tier 0:** The Emporia, Salt Tithes, Land Speculation; the shared The Country Fair and The Merchant Shrines
-- **Tier I:** The Staple Right, The Planters' Charter, Export Guilds, Commission: The Trade Mission; the Doctrine The Laurion Leases
-- **Tier II:** The Tiraz, The Spice Exchange, Corner the Market, The Treaty Ports, Numidian Cavalry; the Doctrine The Forbidden Silks
-- **Tier III:** The Monopoly, The Capitulations; the Doctrine The Colleganza
-- **Tier IV:** The Casa da Índia
-- **The essentials:** production from The Tiraz, science and culture from The Spice Exchange, happiness from the luxuries themselves. It pays from the first town.
-
-### The purse (gold spent, and what only gold can buy)
-
-- **Tier 0:** Land Speculation, The Nest Egg
-- **Tier I:** Letters of Credit (the loan), Civic Receipts, The Strongbox, Financed Industry, The Ten Thousand; the Doctrine The Apoikia
-- **Tier II:** Names in Stone, Foreign Procurement; the Doctrine The Flying Money
-- **Tier III:** The Endowment, Merchant Princes, The Gilded Scaffold, A Guild Commission, The Stipendium
-- **Tier IV:** Bought and Paid For, The Great Loan, Money at Work; the Doctrine The Opera del Duomo
-- **The essentials:** culture and science from each purchase, production from Financed Industry and from the counter itself.
-
-### The bankers (gold buildings and great merchants)
-
-- **Tier I:** Commercial Education, The Market Writ, Commission: The Trade Mission
-- **Tier II:** Houses of Account, The Customs Houses
-- **Tier III:** The Cloth Halls, A Court of Merchants, The Strongroom, The Money Lenders
-- **Tier IV:** the Doctrine The Monte di Pietà
-- **The essentials:** science, happiness and production from the same Markets and Banks. It is the smallest theme, and Tier IV has no Order for it.
-
-## 7. Example councils
-
-### Early, end of Tier I: the goods town (five chairs, the Council of Elders)
-
-- **Chairs:** The Silent Trade (0, Military), The Emporia (0, Economic), Salt Tithes (0, Economic), Export Guilds (I, Civic), Commission: The Trade Mission (I, Wildcard). Taken on the way and holding no chair: The First Caravan, The Planters' Charter. Doctrine: The Laurion Leases.
-- **How it plays:** the seat builds no Warriors. Its first production goes into Settlers, and each town is placed beside a luxury. Each luxury hex costs 10 to 15 gold, so the seat buys them on the turn the town is founded. A caravan lays the first road at turn 20. When a neighbour offers a swap the seat says yes, twice, and a great merchant arrives to plant the first Customs House.
-
-### Early, end of Tier II: the far road (six chairs, the Aristocracy)
-
-- **Chairs:** The Tea Horse Road, The Common Road, The Factors' Houses (all Civic), The Tiraz (Economic), The Spice Exchange (in the Wildcard chair), The Ten Thousand (I, Military). Doctrine: The Sogdian Colonies.
-- **How it plays:** the seat sends its caravans to the far capitals, not the near ones, because each three hexes pay. Twenty turns later each route leaves two posts, and each post pays gold, culture and renown. Six kinds of luxury give +24% science and culture and +6 production in every town. When a neighbour turns hostile, the seat buys Veterans in the towns on that border.
-
-### Late, Tier III then Tier IV: the purse (eight chairs under the Merchant League, then eleven under The Estates)
-
-- **Chairs, Tier III:** Financed Industry (I), The Cloth Halls, The Gilded Scaffold (Economic); The Endowment, Civic Receipts (I) (Civic); Names in Stone (II) and A Guild Commission (the Wildcard chairs); The Stipendium (Military). Merchant Princes takes the commission's chair when it leaves. Tier IV adds Bought and Paid For and Money at Work, and The Great Loan is taken as a boon.
-- **How it plays:** every building the seat buys pays a quarter of its price in culture and a quarter in science, and moves two counters. The fifth bought building brings a great person, and after that gold buys great people directly. The Great Loan lands as one lump of 6,000 gold or more, and the seat spends it on a wonder that turn. Its army is small and well paid: +6 to +8 strength.
-
-## 8. Where this pass touches other work
-
-### The Expansionist pass and the tended-land question
-
-- **Change 02, The First Caravan:** a caravan lays a road at Tier 0. Expansionist's The Road Home also joins new towns by road at Tier 0, and The Road Towns (Tier I), Provincial Councils (Tier II) and The Imperial Roads (Tier III) read joined towns. The pair gets its roads about 40 turns earlier.
-- **Change 15, The League of Cities:** 1 less authority for a town that sends a route. Provincial Councils gives 1 less for a town joined by road. Together a town costs 1. If the Expansionist pass changes its authority cards, the two should be sized together.
-- **Changes 11, 16, 17 and 27:** the goods read the luxuries that Expansionist claims and improves. Plantations are the improvement the two decks share (The Planters' Charter and the shared The Provincial Fair).
-- **If tended land is dropped:** no Commerce card reads tended land, so nothing here breaks. The Wild Orchards pays +1 food and +1 gold, and it is the one tended work with a Commerce flavour. The pair's bridge on the land would then be resources: The Country Fair, The Provincial Fair and the goods.
-- **If tended land is kept and made larger:** I would not add a Commerce card for it. The goods already give the pair a quantity on the land that every game produces.
-- **The shared cards:** this pass changes none of the three (The Country Fair, Market Gardens, The Provincial Fair).
-
-### The leaders (`docs/plans/leader-roster-pass-2026-11-19.md`, section 4)
-
-- **Genghis Khan (Dominion + Commerce):** richer. The Yam's range now buys gold and culture (change 26). The Ten Thousand feeds Dominion's rank cards. The Pax Mongolica makes the second half of The Muda spent.
-- **Pachacuti (Expansionist + Commerce):** richer. The First Caravan joins the second town at turn 20, which is what The Qhapaq Ñan pays for.
-- **Mansa Musa (Commerce + Devotion):** about the same. The mines lose Mining Districts and gain +1 gold on The Mineral Trade. The goods changes suit a seat that settles for gold and salt.
-- **Cleopatra (Commerce + Scientific):** richer. The Scholars' Roads doubles Books from the Ships. The Trade Mission and Merchant Princes at Tier III call great people for The Museion. Her kit no longer reads deals, so the deal cards are a choice for her, not a need.
-- **Lorenzo de' Medici (Commerce + Magisterial):** richer. The Cloth Halls is a fourth reader of gold buildings beside Florins. Merchant Princes arrives a tier early beside The Medici Bank. The Condottiere is bought with gold, so The Ten Thousand makes it a Veteran. His theme loses The Bourse.
-- **Ibn Battuta (every deck):** The Funduq pays on routes abroad, and the far road gives those routes more to do.
-
-### The great people (`docs/plans/great-people-pass-2026-11-19.md`)
-
-- The great-people pass rules that Strike a Bargain pays 8 turns of gold. Changes 13 and 20 are sized on that.
-- A seat gains its first merchant a tier earlier (change 13), and each Customs House pays twice as much (change 20). The Customs Service leaves the list of the merchant's cards (change 33).
-- No change here touches a person's own line.
-
-## 9. Four things that are not card changes
-
-- **Deals end after twenty turns, and nothing offers to sign them again.** Every card that reads a deal turns that into a chore. A small fix: when a deal ends, the game offers the same deal again in one press, and a bot that would still accept it does so. This is a decision about the interface, so it is yours. Without it I would keep the deal cards to the four in this pass.
-- **The Brokers' Redraw has no button.** The shared card (with Magisterial) lets gold redraw a hand, and no screen offers it. Until it does, the card is dead in play. It is one of the few things only gold can buy before Tier III.
-- **Gold is priced two ways.** Card text counts 2 gold as 1 of another yield. The counter charges 4 gold a hammer. I propose no change. It means a card that pays gold is worth a quarter of its number in hammers, and that is why the deck's gold cards read larger than they play.
-- **Three sheet texts differ from the game's own words.** Salt Tithes: the sheet says "each different luxury you have improved", and the game counts each luxury you hold, deals included. The Merchant Shrines: the sheet says "working", and the game says "holding". Numidian Cavalry: the game's words for the charter leave out the +1 strength for each luxury, which is on the unit.
-
-## 10. What to test first, and what I could not determine
-
-### What to test first
-
-1. The First Caravan at turn 10 to 20: does the route start, does the road join the towns, and does it feel like an opening?
-2. The Silent Trade for a whole age 1: is a game with no barbarian war more fun or less?
-3. The Tiraz and The Spice Exchange together: does the player go looking for a seventh luxury?
-4. Letters of Credit on the draft: what does the player buy with 400 gold, and do they notice the thirty turns?
-5. The Tea Horse Road: does the player pick the far town, and does the Trade screen show the distance?
-6. Houses of Account at +1: is happiness tight for a Commerce seat in age 3?
-7. Tier IV hands: with five uncommons and five rares, does the seat see a different Commerce card in each hand?
-
-### What I could not determine
-
-- **No play evidence for this deck.** `docs/playtest_notes.md` has no Commerce game, and the bot measurements of 2026-10-13 are older than the themes pass and the simplification. The case that the deck is one-note rests on the tally of the cards, not on a game.
-- **How many merchants in the trades a seat has,** so I left The Merchant Guilds alone and could not size it.
-- **How many great merchants a human seat calls,** and how the gold price of a great-person draft climbs after 1,000.
-- **Whether route slots or gold limit the number of routes.** A Market gives one slot, and the hire price climbs by 15 gold a route. I assumed about ten routes in age 3.
-- **Seven shape points for the triage:** whether a route can start before Currency (02); whether a rank stamp can be narrowed to bought units (12); whether a luxury on loan from a post counts as a kind held (16, 27); whether a combat line can scale with gold income (37); whether the bought-buildings count can be read for the whole empire (39); whether the count of citizens in post towns can include your own towns (45); and how purchase discounts stack (the Doctrine The Flying Money with Lorenzo's Condottiere).
-- **Whether a deal can lend a strategic copy** (change 23).
-- **The history is from my own knowledge,** not from a source in the repo. One fit is loose: The Feitorias is a 15th-century institution, which suits Tier IV, but The Stipendium is Roman pay on a Tier III card.
-
-## Questions for the user
-
-Five questions change the build. Each has my recommended answer.
-
-1. **Do deals stay a quantity that cards read?** Recommended: yes, and keep them few. Your picture of the deck names deals, and you took the deal count out of Cleopatra's kit on 2026-11-19. This pass keeps Export Guilds, makes The Treaty Ports larger (18), and adds one commission (13) and one Doctrine (49). If the answer is no, reject 13, 18 and 49, and the goods still work through settling, buying and posts.
-2. **May a boon carry a timed drawback?** Recommended: yes, for rares only. Letters of Credit (07) and The Great Loan (44) both pay gold on the draft and take a share of gold income for a number of turns. It needs one new shape. If the answer is no, Letters of Credit keeps its rule with a floor of −400, and The Great Loan stays a commission.
-3. **May a route run at Tier 0, before Currency?** Recommended: yes, for the one caravan of The First Caravan (02). You ruled on 2026-10-21 that route cards come at Tier II, and on 2026-11-10 you added two route cards at Tier 0. Today those two pay nothing in their own tier. If the answer is no, I would move The Pack Trail and The First Caravan to Tier I.
-4. **Should the pass fix the rarity mix of each tier?** Recommended: yes. Tiers III and IV have no common, and Tier IV has nine rares. Eleven changes move a rarity (02, 05, 24, 25, 28, 29, 30, 31, 34, 41, 42). They can be approved as a group.
-5. **May Tier 0 hold a rare that changes a rule?** Recommended: yes. The Silent Trade (04) is not a plain yield, which the rule of 2026-11-10 asks of a Tier 0 card. You approved Blood Brothers and The Ver Sacrum at Tier 0 in the Dominion pass on 2026-11-19. If the answer is no, the card moves to Tier I, where it is worth less.
-
-## The user's first rulings (2026-11-20, comments on the page)
-
-Page: https://claude.ai/artifact/BY9EkS9pwYUzfXGrXKPmdM. The user then asked:
-"take a look at my comments on the commerce deck, do another pass?" The user
-commented on every change, 01 to 49, and on the five questions. The words are
-quoted whole.
-
-### On the pass as a whole
-
-- On section 2, the new notes: "overall the changes here are good, but I don't
-  know if they fix the core problem, that comerce is almost entirely built
-  around trade routes and earning gold. maybe we need to include a few more
-  customs house synergies, tile yield effects, or interactions with the other
-  decks?"
-- On note G, the sea (tested and set aside in round one): "this is
-  interesting, i think we could do with some more sea cards."
-
-So round two has four directions from the user: **customs houses, yields on
-hexes, interactions with the other decks, and the sea.**
-
-### The questions
-
-| Question | The user's words | Result |
-|---|---|---|
-| 1 Do deals stay a quantity that cards read? | "yes" | Yes. |
-| 2 May a boon carry a timed drawback? | "yes" | Yes. |
-| 3 May a route run at Tier 0, before Currency? | "02 is fine" | Yes, for The First Caravan (02) only. |
-| 4 Should the pass fix the rarity mix of each tier? | "yes" | Yes. |
-| 5 May Tier 0 hold a rare that changes a rule? | "yes" | Yes. |
-
-### The changes
-
-| # | Card | The user's words | Result |
-|---|---|---|---|
-| 01 | The Pack Trail | "isn't currency in age 2? this should move to tier 2" and "this is too contingent on drawing 02, i think we still move it." | Moves to Tier II. Not a Tier 0 card. |
-| 02 | The First Caravan | "great" | Approved. |
-| 03 | The Mineral Trade | "great" | Approved. |
-| 04 | The Silent Trade | "i think barbarians are too important to the flow of the game. lets find a new rare in its place." | Rejected. **A new Tier 0 rare is owed.** |
-| 05 | Private Patronage | "sure" and "this seems too strong for tier 1, no? Lets move this to tier 2." | Approved, and it moves to Tier II. |
-| 06 | Financed Industry | "Already strong, keep it as is." | Kept as it is today. (Change 21 cut Bills of Exchange because 06 took its job at 30%; check 21 still holds with 06 unchanged.) |
-| 07 | Letters of Credit | "let's make this 30% less gold for 15 turns." | On draft: gain 400 gold. Your towns make 30% less gold for fifteen turns. |
-| 08 | Civic Receipts | "great" | Approved. |
-| 09 | The Market Writ | "this is too strong, maybe it could read +1 authority and +1 happiness for every two markets in your empire. Authority needs to be a limiting factor for growth." | +1 authority and +1 happiness for every two Markets in your empire. |
-| 10 | The Staple Right | "great" | Approved. |
-| 11 | The Planters' Charter | "great" | Approved. |
-| 12 | The Ten Thousand | "great" | Approved. |
-| 13 | Commission: The Trade Mission | "great" | Approved. |
-| 14 | The Factors' Houses | "great" | Approved. |
-| 15 | The League of Cities | "I don't like too many cards that lower authority on a per-city level. Let's add a common that reads: +1 authority for every 3 active trade routes, and do something more interesting here." | Rejected as proposed. **Two things owed:** a new common, "+1 authority for every 3 active trade routes", and a more interesting League of Cities. |
-| 16 | The Spice Exchange | "sure" | Approved. |
-| 17 | Corner the Market | "sure" | Approved. |
-| 18 | The Treaty Ports | "sure" | Approved. |
-| 19 | Houses of Account | "how about: +1 happiness and +2 renown" | The user's line: +1 happiness and +2 renown (on what the card pays for; keep the card's own subject). |
-| 20 | The Customs Houses | "have it read +8 science and +8 culture on the customs house, so that it can be affected by modifiers. thus it must be worked to get the benefit." | Each customs house gains +8 science and +8 culture on its hex. It must be worked, and hex modifiers multiply it. |
-| 21 | Bills of Exchange | "sure" | Cut (see the note on 06). |
-| 22 | Mining Districts | "sure" | Approved. |
-| 23 | Strategic Exports | "sure" | Approved. |
-| 24 | Foreign Procurement | "sure" | Approved. |
-| 25 | Names in Stone | "sure" | Approved. |
-| 26 | The Tea Horse Road | "lets make it for every 6 hexes they travel, this sounds very strong" | Your trade routes give +1 gold and +1 culture for every six hexes they travel. |
-| 27 | The Tiraz | "sure" | Approved. |
-| 28 | The Admiralty of Trade | "sure" | Approved. |
-| 29 | The Scholars' Roads | "sure" | Approved. |
-| 30 | The Chartered Metropolis | "sure" | Approved. |
-| 31 | The Endowment | "sure" | Approved. |
-| 32 | The Bourse | "sure" | Approved. |
-| 33 | The Customs Service | "sure" | Cut. |
-| 34 | The Champagne Fairs | "Sure. Could we have an indicator of how many turns are left for this to trigger?" | Approved. **UI:** the seated card shows the turns left until it next pays. |
-| 35 | Merchant Princes | "great" and "they need to be quite expensive" | Approved at Tier III. The gold price of a great person is high; state the price and its climb. |
-| 36 | The Cloth Halls | "sure" | Approved. |
-| 37 | The Stipendium | "sure" | Approved. |
-| 38 | The Merchant Works | "sure" | Cut. |
-| 39 | Bought and Paid For | "Sure, the finished card should read what percentage it's currently at." | Approved. **UI:** the seated card prints its current percentage. |
-| 40 | The Grain Barges | "sure" | Approved. |
-| 41 | The Trade Winds | "sure" | Approved. |
-| 42 | The World's Exchange | "sure" | Approved. |
-| 43 | The World's Fair | "sure" | Approved. |
-| 44 | The Great Loan | "sure" | Approved. |
-| 45 | The Feitorias | "sure" | Approved. |
-| 46 | The Laurion Leases | "sure" | Approved. |
-| 47 | The Sogdian Colonies | "sure" | Approved. |
-| 48 | The Muda | "sure" | Approved. |
-| 49 | The Colleganza | "sure, but once a luxury is lent, it can't be further lent." | Approved, with the rule: a luxury that has been lent cannot be lent on. |
-
-The count: 39 approved as proposed, 7 with the user's text (01, 05, 07, 09, 19,
-20, 26; 49 adds a rule), 1 kept as today (06), 2 rejected with a replacement
-owed (04, 15).
