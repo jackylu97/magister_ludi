@@ -1,0 +1,436 @@
+{
+  "board": {
+    "units": 489,
+    "cities": 74,
+    "turn": 120,
+    "seed": 999,
+    "player": 0,
+    "ratio": 1.5,
+    "framebuffer": [
+      2205,
+      1189
+    ],
+    "gpu": "Apple M4, Chrome ANGLE Metal",
+    "bots": "enabled"
+  },
+  "method": "Each version used the same unit, adjacent destination and trusted mouse events. Order was original, shared, shared, original in fresh tabs. Both versions included commit cc834b0b. Only the second run of each version included the drag and zoom. The click interval ends at the next observed board draw after the handler, before physical display latency.",
+  "interaction": [
+    {
+      "run": "meter-new-1",
+      "activity": "move",
+      "durationMs": 4282.6,
+      "boardDraws": 67,
+      "boardDrawFps": 15.64,
+      "displayedFrames": 127,
+      "displayedFps": 29.65,
+      "move": {
+        "button": "right",
+        "handlerMs": 11,
+        "untilNextObservedBoardDrawMs": 42.7
+      },
+      "command": [
+        "moveUnit"
+      ],
+      "target": [
+        54,
+        26
+      ]
+    },
+    {
+      "run": "meter-new-nav",
+      "activity": "drag",
+      "durationMs": 4281.9,
+      "boardDraws": 126,
+      "boardDrawFps": 29.43,
+      "displayedFrames": 123,
+      "displayedFps": 28.73
+    },
+    {
+      "run": "meter-new-nav",
+      "activity": "move",
+      "durationMs": 4283.0,
+      "boardDraws": 68,
+      "boardDrawFps": 15.88,
+      "displayedFrames": 128,
+      "displayedFps": 29.89,
+      "move": {
+        "button": "right",
+        "handlerMs": 14.5,
+        "untilNextObservedBoardDrawMs": 52.2
+      },
+      "command": [
+        "moveUnit"
+      ],
+      "target": [
+        54,
+        26
+      ]
+    },
+    {
+      "run": "meter-new-nav",
+      "activity": "selection",
+      "durationMs": 4281.4,
+      "boardDraws": 73,
+      "boardDrawFps": 17.05,
+      "displayedFrames": 128,
+      "displayedFps": 29.9,
+      "firstSelection": {
+        "button": "left",
+        "handlerMs": 17.7,
+        "untilNextObservedBoardDrawMs": 43.7
+      }
+    },
+    {
+      "run": "meter-new-nav",
+      "activity": "zoom-cross",
+      "durationMs": 4281.4,
+      "boardDraws": 121,
+      "boardDrawFps": 28.26,
+      "displayedFrames": 119,
+      "displayedFps": 27.79
+    },
+    {
+      "run": "meter-old-1",
+      "activity": "move",
+      "durationMs": 4282.4,
+      "boardDraws": 68,
+      "boardDrawFps": 15.88,
+      "displayedFrames": 128,
+      "displayedFps": 29.89,
+      "move": {
+        "button": "right",
+        "handlerMs": 11.5,
+        "untilNextObservedBoardDrawMs": 40.5
+      },
+      "command": [
+        "moveUnit"
+      ],
+      "target": [
+        54,
+        26
+      ]
+    },
+    {
+      "run": "meter-old-nav",
+      "activity": "drag",
+      "durationMs": 4282.2,
+      "boardDraws": 128,
+      "boardDrawFps": 29.89,
+      "displayedFrames": 128,
+      "displayedFps": 29.89
+    },
+    {
+      "run": "meter-old-nav",
+      "activity": "move",
+      "durationMs": 4283.0,
+      "boardDraws": 68,
+      "boardDrawFps": 15.88,
+      "displayedFrames": 128,
+      "displayedFps": 29.89,
+      "move": {
+        "button": "right",
+        "handlerMs": 9.6,
+        "untilNextObservedBoardDrawMs": 36.0
+      },
+      "command": [
+        "moveUnit"
+      ],
+      "target": [
+        54,
+        26
+      ]
+    },
+    {
+      "run": "meter-old-nav",
+      "activity": "selection",
+      "durationMs": 4285.3,
+      "boardDraws": 72,
+      "boardDrawFps": 16.8,
+      "displayedFrames": 128,
+      "displayedFps": 29.87,
+      "firstSelection": {
+        "button": "left",
+        "handlerMs": 23.7,
+        "untilNextObservedBoardDrawMs": 51.3
+      }
+    },
+    {
+      "run": "meter-old-nav",
+      "activity": "zoom-cross",
+      "durationMs": 4285.3,
+      "boardDraws": 127,
+      "boardDrawFps": 29.64,
+      "displayedFrames": 128,
+      "displayedFps": 29.87
+    }
+  ],
+  "emptyWebGLControl": {
+    "visible": "visible",
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "width": 2205,
+    "height": 1189,
+    "runs": [
+      {
+        "seconds": 4.000004000000001,
+        "frames": 121,
+        "fps": 30.249969750030246,
+        "medianMs": 33.30000000000018,
+        "p95Ms": 34.30000000000018
+      },
+      {
+        "seconds": 4,
+        "frames": 120,
+        "fps": 30,
+        "medianMs": 33.30000000000018,
+        "p95Ms": 34.30000000000018
+      },
+      {
+        "seconds": 4.0002,
+        "frames": 120,
+        "fps": 29.998500074996244,
+        "medianMs": 33.30000000000109,
+        "p95Ms": 34.399999999999636
+      }
+    ]
+  },
+  "meterComparisons": [
+    {
+      "turn": 120,
+      "seed": 999,
+      "units": 489,
+      "cities": 74,
+      "commands": 326,
+      "comparisons": 3912,
+      "hits": 2016,
+      "misses": 1896,
+      "ms": {
+        "direct": {
+          "median": 0.1185,
+          "p90": 0.6666,
+          "total": 911
+        },
+        "cached": {
+          "median": 0.0005,
+          "p90": 0.1651,
+          "total": 282
+        },
+        "repeat": {
+          "median": 0.0003,
+          "p90": 0.0005,
+          "total": 1
+        }
+      }
+    },
+    {
+      "turn": 151,
+      "seed": 20260832,
+      "units": 530,
+      "cities": 91,
+      "commands": 375,
+      "comparisons": 4500,
+      "hits": 1920,
+      "misses": 2580,
+      "ms": {
+        "direct": {
+          "median": 0.2051,
+          "p90": 0.9432,
+          "total": 4006
+        },
+        "cached": {
+          "median": 0.0472,
+          "p90": 0.3001,
+          "total": 1888
+        },
+        "repeat": {
+          "median": 0.0003,
+          "p90": 0.0005,
+          "total": 2
+        }
+      }
+    }
+  ],
+  "fogExperiments": {
+    "cacheVisibleDiscs": [
+      {
+        "seed": 999,
+        "turn": 120,
+        "units": 489,
+        "cities": 74,
+        "commands": 326,
+        "moves": 123,
+        "samples": {
+          "old": {
+            "cold": {
+              "n": 6,
+              "medianMs": 0.702,
+              "p90Ms": 1.378
+            },
+            "warm": {
+              "n": 60,
+              "medianMs": 0.369,
+              "p90Ms": 0.488
+            },
+            "moves": {
+              "n": 738,
+              "medianMs": 1.419,
+              "p90Ms": 2.585
+            }
+          },
+          "candidate": {
+            "cold": {
+              "n": 6,
+              "medianMs": 0.883,
+              "p90Ms": 3.025
+            },
+            "warm": {
+              "n": 60,
+              "medianMs": 0.387,
+              "p90Ms": 0.624
+            },
+            "moves": {
+              "n": 738,
+              "medianMs": 1.434,
+              "p90Ms": 2.566
+            }
+          }
+        }
+      },
+      {
+        "seed": 20260832,
+        "turn": 151,
+        "units": 530,
+        "cities": 91,
+        "commands": 375,
+        "moves": 129,
+        "samples": {
+          "old": {
+            "cold": {
+              "n": 6,
+              "medianMs": 0.822,
+              "p90Ms": 0.895
+            },
+            "warm": {
+              "n": 60,
+              "medianMs": 0.488,
+              "p90Ms": 0.681
+            },
+            "moves": {
+              "n": 774,
+              "medianMs": 1.512,
+              "p90Ms": 2.745
+            }
+          },
+          "candidate": {
+            "cold": {
+              "n": 6,
+              "medianMs": 1.384,
+              "p90Ms": 1.585
+            },
+            "warm": {
+              "n": 60,
+              "medianMs": 0.561,
+              "p90Ms": 0.66
+            },
+            "moves": {
+              "n": 774,
+              "medianMs": 1.538,
+              "p90Ms": 2.831
+            }
+          }
+        }
+      }
+    ],
+    "markOwnedTilesFirst": [
+      {
+        "seed": 999,
+        "turn": 120,
+        "units": 489,
+        "cities": 74,
+        "commands": 326,
+        "moves": 123,
+        "samples": {
+          "old": {
+            "cold": {
+              "n": 4,
+              "medianMs": 1.169,
+              "p90Ms": 1.405
+            },
+            "warm": {
+              "n": 40,
+              "medianMs": 0.432,
+              "p90Ms": 0.536
+            },
+            "moves": {
+              "n": 492,
+              "medianMs": 1.629,
+              "p90Ms": 3.009
+            }
+          },
+          "candidate": {
+            "cold": {
+              "n": 4,
+              "medianMs": 0.697,
+              "p90Ms": 3.689
+            },
+            "warm": {
+              "n": 40,
+              "medianMs": 0.394,
+              "p90Ms": 0.593
+            },
+            "moves": {
+              "n": 492,
+              "medianMs": 1.631,
+              "p90Ms": 2.928
+            }
+          }
+        }
+      },
+      {
+        "seed": 20260832,
+        "turn": 151,
+        "units": 530,
+        "cities": 91,
+        "commands": 375,
+        "moves": 129,
+        "samples": {
+          "old": {
+            "cold": {
+              "n": 4,
+              "medianMs": 0.872,
+              "p90Ms": 0.953
+            },
+            "warm": {
+              "n": 40,
+              "medianMs": 0.496,
+              "p90Ms": 0.645
+            },
+            "moves": {
+              "n": 516,
+              "medianMs": 1.533,
+              "p90Ms": 2.745
+            }
+          },
+          "candidate": {
+            "cold": {
+              "n": 4,
+              "medianMs": 0.827,
+              "p90Ms": 1.009
+            },
+            "warm": {
+              "n": 40,
+              "medianMs": 0.47,
+              "p90Ms": 0.505
+            },
+            "moves": {
+              "n": 516,
+              "medianMs": 1.473,
+              "p90Ms": 2.72
+            }
+          }
+        }
+      }
+    ]
+  },
+  "meterMethod": "For each of six real seats after each command, compare both cached meter readings with full fresh folds. Timings alternate the order of fresh and cached calls. Each hit count records reuse across commands. Repeat timings measure the same read a second time with no change.",
+  "fogMethod": "Each variant replayed two more turns on each late-game board. The first repetition compared command results and the whole serialized state after every command. Each repetition checked the final state. Cold and warm times cover sight sweeps across every seat divided by the seat count. Move timings cover individual accepted move commands."
+}

@@ -182,7 +182,7 @@ import { type OfferCard, type OfferOption, createOfferCard } from './ui/offerCar
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
 import { type Rect as TutorialRect, createTutorial } from './ui/tutorial';
 import { createPamphletOverlay, shouldShowPamphlet } from './ui/pamphlet';
-import { authorityOf, happinessOf } from './sim/meters';
+import { readMeter } from './sim/readings';
 import { type ConfirmCard, type ConfirmRequest, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import type { TriumphAward } from './sim/triumphs';
@@ -3109,10 +3109,10 @@ async function boot(initial: Game | null): Promise<void> {
    */
   function noteMeterPain(): void {
     const seat = controls.localPlayerId();
-    if (tutorial.wantsTip('unhappy') && happinessOf(game.state, seat) < 0) {
+    if (tutorial.wantsTip('unhappy') && readMeter(game.state, seat, 'happiness').total < 0) {
       tutorial.note({ kind: 'event', event: 'happinessDeficit' });
     }
-    if (tutorial.wantsTip('overreach') && authorityOf(game.state, seat) < 0) {
+    if (tutorial.wantsTip('overreach') && readMeter(game.state, seat, 'authority').total < 0) {
       tutorial.note({ kind: 'event', event: 'authorityOverrun' });
     }
   }

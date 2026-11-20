@@ -271,7 +271,7 @@ describe('the fold is a presentation of one evaluator’s list', () => {
 
   it('folds the lines the evaluator returned, and asks nothing else', () => {
     const bar = source('topBar.ts');
-    expect(bar).toContain('foldCityHappiness(explainHappiness(state, playerId), towns)');
+    expect(bar).toContain("foldCityHappiness(readMeter(state, playerId, 'happiness').entries, towns)");
     // The other evaluator for the same fact. Reaching for it here is the second
     // implementation this whole arrangement exists to prevent.
     expect(bar).not.toContain('buildingHappiness');
@@ -281,10 +281,9 @@ describe('the fold is a presentation of one evaluator’s list', () => {
   it('applies it in exactly one place, so no reader can disagree', () => {
     const bar = source('topBar.ts');
     // One helper; the chip, the hover card and the click-through ledger all ask
-    // it. A raw `explainHappiness(state, ...)` outside it would be a surface
-    // printing a different ledger from the one beside it.
-    const raw = bar.match(/explainHappiness\(state, /g) ?? [];
-    expect(raw).toHaveLength(1);
+    // it. Each surface must group the same entries for a city's happiness.
+    expect(bar.match(/readMeter\(state, playerId, 'happiness'\)/g)).toHaveLength(1);
+    expect(bar).not.toContain('explainHappiness(state, ');
     expect(bar).toContain('function happinessEntries(');
   });
 

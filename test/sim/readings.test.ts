@@ -37,7 +37,7 @@ import {
   foundCityAt,
   foundingErrorAt,
 } from '../../src/sim/cities';
-import { meterEffects } from '../../src/sim/meters';
+import { explainAuthority, explainHappiness, meterEffects, meterStanding } from '../../src/sim/meters';
 import { economyStamp, setSlatePhase, setSlateShadow, slateShadow } from '../../src/sim/slate';
 import { getTile, getTileAt, mapNeighbors, tileHex, tileIndex } from '../../src/sim/map';
 import { isWaterTerrain } from '../../src/sim/terrainData';
@@ -48,7 +48,7 @@ import {
   foldCityFlats,
 } from '../../src/sim/yields/town';
 import { LEDGER_CLASSES } from '../../src/sim/ledgerClass';
-import { readCity, readEmpire, readEmpirePercents, readRoutes } from '../../src/sim/readings';
+import { readCity, readEmpire, readEmpirePercents, readMeter, readRoutes } from '../../src/sim/readings';
 import { routePrice } from '../../src/sim/purchase';
 import { playerScience } from '../../src/sim/tech';
 import { EXPLORED, HIDDEN, isExploredBy, isVisibleTo } from '../../src/sim/visibility';
@@ -76,6 +76,22 @@ import { newGame } from './newGameHelpers';
 
 /** The steps a town's list may carry — `docs/yields.md`'s 1 through 10. */
 const TOWN_STEPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+it('shares a seat’s meter lines until an economic change and keeps the seats separate', () => {
+  const { state } = game();
+  const before = readMeter(state, 0, 'happiness');
+  expect(readMeter(state, 0, 'happiness')).toBe(before);
+  expect(readMeter(state, 1, 'happiness')).not.toBe(before);
+  const authorityBefore = readMeter(state, 0, 'authority');
+  expect(found(state, 0)).toBeDefined();
+  const happiness = readMeter(state, 0, 'happiness');
+  const authority = readMeter(state, 0, 'authority');
+  expect(happiness).not.toBe(before);
+  expect(authority).not.toBe(authorityBefore);
+  expect(happiness).toEqual(meterStanding(explainHappiness(state, 0)));
+  expect(authority).toEqual(meterStanding(explainAuthority(state, 0)));
+  expect(readMeter(state, 1, 'authority')).toEqual(meterStanding(explainAuthority(state, 1)));
+});
 
 describe('the town publishes its list', () => {
   it('folds to its own flats, voice for voice', () => {

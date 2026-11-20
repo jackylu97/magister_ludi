@@ -50,9 +50,7 @@ A temporary build sorted large town batches into six-by-six tile areas. It short
 
 This cut about 77,000 submitted triangles at normal zoom and 42,000 at wide zoom. Draw counts stayed the same. A repeat in a fresh browser took 48 matched GPU samples per view. The median saving was 0.05 ms at normal zoom. Wide zoom took 0.88 ms longer and the inland view took 0.35 ms longer. The renderer keeps its previous draw order. [Pixel checks, timings and controls](city-spatial-culling-2026-11-20.json)
 
-## Measurement conditions
-
-### Unit selection and first moves
+## Unit selection and first moves
 
 On the turn 120 save with 489 units and 74 cities, Chrome received a real click on the same unit and a real move order to the same tile. Bot preparation was on. The renderer now prepares picking grids during idle time, reuses the list of standing unit models and defers drawing movement highlights until the frame. The tutorial also skips measuring a card again when its contents and visibility stay the same.
 
@@ -64,7 +62,32 @@ In the last capture the board drew 18.4 frames per second during a drag and 24.3
 
 A temporary build stored contact shadow intensity in a single half-precision channel. It kept the resolution and intensity precision. Four fixed camera views matched every colour byte. Over 24 paired GPU samples per view, the normal city view took 2.65 ms longer and the wide city view took 2.22 ms longer. The inland view saved 1.30 ms and the seam view saved 0.25 ms. The city results ruled out this change for the M4. [Pixel checks and GPU timings](board-interactions-2026-11-20.json)
 
-### GPU measurement setup
+## Second interaction comparison
+
+In a later run, a visible Chrome window cleared a WebGL canvas of the same size once per animation callback. Three four-second samples delivered 30.25, 30.00 and 30.00 callbacks per second. The Mac reported 9% battery. This control measures the browser's frame cadence during that session.
+
+At 1.5× resolution with bot planning on, the updated game drew 29.4 FPS during the drag and 28.3 FPS through the zoom transition. The two first moves took 42.7 and 52.2 ms from the start of the click handler to the next observed board draw. The comparison build had the same unit picking and tutorial fixes but read the meters directly. Its first moves took 40.5 and 36.0 ms. The meter change saves CPU time on repeated reads. These clicks show no reduction in the wait to see a move. [Input samples and empty-canvas control](late-game-meters-2026-11-20.json)
+
+### Sharing the empire meters
+
+The guide, top bar and meter cards now reuse the same happiness or authority reading until the economy changes. We checked each line and its totals for six seats after every command on two late-game saves. All 8,412 comparisons matched the fresh readings. On turn 120, CPU time across those requests fell from 911 to 282 ms. On turn 151 it fell from 4,006 to 1,888 ms. These totals cover repeated reads over two turns. [CPU timings and command counts](late-game-meters-2026-11-20.json)
+
+Two fog experiments used the same 701 commands. Caching the visible tiles around each unit made moves slightly slower on both maps. Revealing owned tiles before checking sight lines moved the median command time from 1.63 to 1.63 ms on one map and from 1.53 to 1.47 ms on the other. The command results and complete game state matched after every command. Both experiments stayed out of the game. [Fog measurements](late-game-meters-2026-11-20.json)
+
+### Offscreen terrain and water shading
+
+The terrain experiment shortened a draw when the first or last groups of 384 triangles fell outside the main camera. The water experiment skipped ripple and glint calculations when the shader would give them zero weight. Each experiment matched every colour byte in four fixed views. The table gives the median GPU time saved over 24 alternating pairs. A negative number means the candidate took longer.
+
+| View | Terrain triangles skipped | Terrain time saved | Water time saved |
+|---|---:|---:|---:|
+| City at normal zoom | 259,418 | 0.48 ms | 1.30 ms |
+| City at wide zoom | 58,517 | −1.11 ms | −0.76 ms |
+| Inland at normal zoom | 331,518 | 1.68 ms | 0.04 ms |
+| Map seam at wide zoom | 9,988 | −0.57 ms | −0.04 ms |
+
+Both changes cost time in the wide city view. The game keeps its previous terrain draw ranges and water shader. [Pixel checks, triangle counts and sample pairs](terrain-and-water-2026-11-20.json)
+
+## Setup for the asset measurements
 
 The renderer came from commit `ee54e8d1`, save version 251. The snapshot followed turn 150 on seed 20260832. It held 530 units and 91 cities. It used player 6's fog, the painted board and daylight. Headless Chrome used the Apple M4 through ANGLE Metal. The 1.5× drawing buffer measured 2205 × 1189.
 

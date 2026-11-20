@@ -225,12 +225,12 @@ describe('the two meter ledgers are folded once a render', () => {
     const body = declaration('    render(): void {', 'topBar.ts');
     expect(body).toContain('const effects = meterEffects(state, playerId);');
     expect(body).toContain('const happinessLedger = happinessEntries(state, playerId);');
-    expect(body).toContain('const authorityLedger = explainAuthority(state, playerId);');
+    expect(body).toContain("const authorityStanding = readMeter(state, playerId, 'authority');");
     // And every reader inside the render takes the pass rather than re-asking.
     expect(body).toContain("effectsOf('happiness', effects)");
     expect(body).toContain("effectsOf('authority', effects)");
     expect(body).toContain('renderLedger(happiness.body, happinessLedger, happinessStanding)');
-    expect(body).toContain('renderLedger(authority.body, authorityLedger, authorityStanding)');
+    expect(body).toContain('renderLedger(authority.body, authorityStanding.entries, authorityStanding)');
     // Nothing in the render asks for a second sweep of its own.
     expect(body).not.toContain("effectsOf('happiness')");
     expect(body).not.toContain("effectsOf('authority')");

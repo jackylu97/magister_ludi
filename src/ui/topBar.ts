@@ -78,15 +78,13 @@
 
 // The empire's one reading, remembered on `state.revision` — the single source
 // of truth this strip and every other yield surface subscribe to (batch E2).
-import { readEmpire } from '../sim/readings';
+import { readEmpire, readMeter } from '../sim/readings';
 import type { Game } from '../sim/game';
 import {
   type MeterContribution,
   type MeterEffect,
   type MeterId,
   type MeterStanding,
-  explainAuthority,
-  explainHappiness,
   meterEffects,
   meterStanding,
 } from '../sim/meters';
@@ -1190,7 +1188,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
    */
   function happinessEntries(state: GameState, playerId: number): MeterContribution[] {
     const towns = state.cities.filter((city) => city.ownerId === playerId);
-    return foldCityHappiness(explainHappiness(state, playerId), towns);
+    return foldCityHappiness(readMeter(state, playerId, 'happiness').entries, towns);
   }
 
   /**
@@ -1350,8 +1348,8 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       happinessCard.close();
       onOpenPopover?.();
       const { state } = getGame();
-      const entries = explainAuthority(state, localPlayerId());
-      renderLedger(authority.body, entries, meterStanding(entries));
+      const standing = readMeter(state, localPlayerId(), 'authority');
+      renderLedger(authority.body, standing.entries, standing);
     },
   });
 
@@ -1369,15 +1367,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   });
   info.bind(authorityChip, () => {
     const { state } = getGame();
-    const entries = explainAuthority(state, localPlayerId());
-    const standing = meterStanding(entries);
+    const standing = readMeter(state, localPlayerId(), 'authority');
     // Used against capacity, which is the reading the *chip* gave up when it
     // went to a net figure: the card is where "six of eight" still lives.
     return meterCard(
       'authority',
       'Authority',
       `${meterFigure(standing.cost)}/${meterFigure(standing.gain)}`,
-      entries,
+      standing.entries,
       effectsOf('authority'),
     );
   });
@@ -1542,15 +1539,11 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       // waiting for.
       writeTurnLine(turnLineOf(state, playerId));
 
-      // The three empire sweeps behind the two meter chips, taken once for the
-      // whole render (2026-08-29). Each of them folds the ledger over every city
-      // and every unit the seat holds; the chip, its tier list and an open
-      // click-through card are three readings of the *same* ledger, and taking
-      // them apart was five sweeps where one pass does. Nothing is cached across
-      // renders — this is one render's own arithmetic, handed down.
+      // The bar shares the meter lines with the guide and their open cards.
+      // Happiness groups the individual city lines for display.
       const effects = meterEffects(state, playerId);
       const happinessLedger = happinessEntries(state, playerId);
-      const authorityLedger = explainAuthority(state, playerId);
+      const authorityStanding = readMeter(state, playerId, 'authority');
 
       // The two meters round whole on the **chip** and keep their tenth in the
       // card (item z again, and `signedMeterFigure`'s docblock has the argument):
@@ -1570,7 +1563,6 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       // the hover card's headline and in its two group subtotals. A chip saying
       // "6/8" also has to be *subtracted* before it means anything, which is
       // work the strip should be saving.
-      const authorityStanding = meterStanding(authorityLedger);
       writeChip(
         authorityChip,
         signedFigure(authorityStanding.total),
@@ -1586,7 +1578,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         renderLedger(happiness.body, happinessLedger, happinessStanding);
       }
       if (authorityCard.isOpen) {
-        renderLedger(authority.body, authorityLedger, authorityStanding);
+        renderLedger(authority.body, authorityStanding.entries, authorityStanding);
       }
 
       // The digits half of the fit (see `fitStrip`). The yields and the meters

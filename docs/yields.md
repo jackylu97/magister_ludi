@@ -86,6 +86,7 @@ a reading *of*, and the slate keeps a half per clock:
 | tenant | clock | why |
 |---|---|---|
 | `meterEffects` | economy | walks towns, buildings, luxuries and law — and, through the card evaluator, the garrisons standing in them and the banks behind them |
+| `readMeter` | economy | the guide and top bar share each meter's lines, total, gains and costs |
 | `controlledHoldings` | economy | walks the ground |
 | `readEmpirePercents` | economy | those, plus the treasury |
 | `readCity` | economy | a town's list. It can see a piece, and every step it can see announces |

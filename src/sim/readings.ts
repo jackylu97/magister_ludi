@@ -141,6 +141,7 @@
  * | `meterEffects` | economy | walks towns, buildings, luxuries and law — and, through the card evaluator, the **garrisons** standing in the towns and the **banks** behind them (M3's correction: The Long Watch counts pieces and Pilgrim Roads counts banked faith, so the seams that write one announce) |
  * | `controlledHoldings` | economy | walks the ground |
  * | `readEmpirePercents` | economy | those, plus the treasury |
+ * | `readMeter` | economy | the lines and total for happiness or authority |
  * | `readCity` | economy | a town's list; see below |
  * | `readEmpire` | economy | that reading summed, with the empire's own lines |
  * | `readEmpireRates` | economy | the same lists, folded for a question about a rate |
@@ -167,6 +168,7 @@ import {
   type UnitCostLine,
 } from './cities';
 import { getTileAt } from './map';
+import { type MeterId, type MeterStanding, explainAuthority, explainHappiness, meterStanding } from './meters';
 import { explainRoutePrice } from './purchase';
 import { RULES } from './rulesData';
 import { rankSites, type SiteCandidate } from './sites';
@@ -202,6 +204,17 @@ import {
 import { type EmpireRates, readingAtRest } from './statecraft/evaluator';
 import { CITY_YIELD_KEYS } from './resourceData';
 import { slateMemo } from './slate';
+
+/** The guide and the top bar use the same meter after a command. A change to
+ * the economy invalidates both the total and its labelled contributions. */
+export function readMeter(state: GameState, playerId: number, meter: MeterId): MeterStanding {
+  return slateMemo(state, 'economy', meter, String(playerId), () => {
+    const lines = meter === 'happiness'
+      ? explainHappiness(state, playerId)
+      : explainAuthority(state, playerId);
+    return meterStanding(lines);
+  });
+}
 
 /** One town's whole reading: its labelled list, and what it banks. */
 export interface TownReading {

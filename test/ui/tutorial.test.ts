@@ -817,11 +817,9 @@ describe('the meter notes', () => {
 
   it('is fired from the commit funnel off the meters’ own folds', () => {
     const main = source('main.ts');
-    // Gated on the note still being wanted (the enemy sweep's economy), and
-    // read from `happinessOf`/`authorityOf` — the folds the chips print — so
-    // the note cannot disagree with the number it is explaining.
-    expect(main).toContain("tutorial.wantsTip('unhappy') && happinessOf(game.state, seat) < 0");
-    expect(main).toContain("tutorial.wantsTip('overreach') && authorityOf(game.state, seat) < 0");
+    // The guide reads the same total as the bar and skips tips already shown.
+    expect(main).toContain("tutorial.wantsTip('unhappy') && readMeter(game.state, seat, 'happiness').total < 0");
+    expect(main).toContain("tutorial.wantsTip('overreach') && readMeter(game.state, seat, 'authority').total < 0");
     expect(main).toContain("tutorial.note({ kind: 'event', event: 'happinessDeficit' })");
     expect(main).toContain("tutorial.note({ kind: 'event', event: 'authorityOverrun' })");
     expect(main).toContain('noteMeterPain();');
