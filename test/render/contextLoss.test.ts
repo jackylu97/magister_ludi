@@ -227,7 +227,7 @@ describe('the programs a first gesture needs', () => {
     const faller = new Group(); faller.add(new Mesh(new BoxGeometry(), fallerMaterial));
     const unit = { id: 1, type: 'warrior', ownerId: 0, col: 2, row: 2 };
     const { r } = runtime({
-      renderer, vignette, paintedLook, fogSeat: 0,
+      renderer, vignette, paintedLook, fogSeat: 0, mirrorOn: true,
       state: { units: [unit] }, map: {}, view: { camera: {}, stepPan: () => false },
       buildWalker: () => ({ group: walker, painted: undefined }),
       buildFaller: () => faller,
@@ -235,6 +235,12 @@ describe('the programs a first gesture needs', () => {
     r.warmLatePrograms();
     return { r, seen, bound: () => bound, vignette, walker, faller, fallerMaterial };
   }
+
+  it('keeps the same walking mesh for the painted reflection', () => {
+    const painted = warm({});
+    expect(Reflect.get(painted.r, 'walkerToWarmInMirror')).toBe(painted.walker);
+    expect(Reflect.get(warm(null).r, 'walkerToWarmInMirror')).toBeFalsy();
+  });
 
   it('compiles the wash, a walking piece, its shadow depth and a falling piece', () => {
     const w = warm({});

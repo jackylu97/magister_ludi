@@ -6,6 +6,7 @@
  * out, as `motionRest.test.ts` does, and look at when the mirror is drawn and
  * what it is told to leave out.
  */
+import { Group } from 'three';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { Renderer3D } from '../../src/render3d/renderer3d';
@@ -41,7 +42,8 @@ function fixture() {
   const runtime = Object.assign(Object.create(Renderer3D.prototype), data) as Renderer3D;
   const frame = (): void => (runtime as unknown as Loop).loop();
   const pan = (): void => { view.target.x += .3; (runtime as unknown as { frameDirty: boolean }).frameDirty = true; };
-  return { runtime, frame, pan, seaMirror, works, drawn: () => (data.paintedLook as { render: { mock: { calls: unknown[] } } }).render.mock.calls.length };
+  const { render } = data.paintedLook as { render: ReturnType<typeof vi.fn> };
+  return { runtime, frame, pan, seaMirror, works, render, drawn: () => render.mock.calls.length };
 }
 
 describe('the mirror while the camera moves', () => {
@@ -91,6 +93,29 @@ describe('the mirror while the camera moves', () => {
     // And nothing more while the board stays still.
     for (let i = 0; i < 30; i++) { clock += 16; f.frame(); }
     expect(f.drawn()).toBe(before + 1);
+  });
+
+  it('prepares the walking shader once after a reflection, before the board draw', () => {
+    MIRROR.whileMoving = false;
+    const f = fixture(), walker = new Group();
+    const events: string[] = [];
+    const prepare = vi.fn(() => { events.push('prepare'); });
+    f.seaMirror.render.mockImplementation(() => { events.push('reflection'); });
+    f.render.mockImplementation(() => { events.push('draw'); });
+    Object.assign(f.runtime, {walkerToWarmInMirror: walker, preparePrototype: prepare});
+    f.pan();
+    f.frame();
+    expect(prepare).not.toHaveBeenCalled();
+    events.length = 0;
+    clock += MIRROR.settleMs + 16;
+    f.frame();
+    expect(events).toEqual(['reflection', 'prepare', 'draw']);
+    expect(prepare).toHaveBeenCalledWith(walker);
+    f.pan();
+    f.frame();
+    clock += MIRROR.settleMs + 16;
+    f.frame();
+    expect(prepare).toHaveBeenCalledOnce();
   });
 
   it('with works off, tells the mirror to leave the works out', () => {

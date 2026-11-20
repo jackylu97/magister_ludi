@@ -1,0 +1,106 @@
+{
+  "baseline": "caf24591",
+  "scene": {
+    "seed": 999,
+    "turn": 120,
+    "map": "Standard",
+    "cities": 74,
+    "units": 489,
+    "gpu": "Apple M4",
+    "boardPixels": [
+      2205,
+      1189
+    ],
+    "boardPixelRatio": 1.5,
+    "unitId": 1293,
+    "target": [
+      54,
+      26
+    ]
+  },
+  "method": "A separate browser session loaded the same save for each run. Chrome used trusted mouse input to select and move. Native WebKit selected the same unit through the game controls and sent a native right click. Click to board draw begins when the right-click handler runs and ends at the first observed completed board draw. Shader counts cover selection and movement. Chrome ran old, new, new, old. WebKit repeated that sequence and then ran a third old and new pair. Both builds used the same board resolution and accepted the same command.",
+  "diagnosis": "A traced unprepared move waited 14.8 ms for the painted walking body and 3\u20135 ms each for further outline, model and badge program checks. The water reflection clips geometry at the water surface. Its moving meshes use different shader programs from both the ordinary walking meshes and the instanced pieces at rest. A separate trial took 8.3 ms to submit the prototype for preparation after the reflection.",
+  "previewParity": "At a fixed visual time the unobstructed 940 by 150 pixel strip of the post-move scene matched in all four Chrome samples. This strip includes water, coast, buildings and pieces. A rotating tutorial message covered the top of the screenshot. The comparison covers the exposed strip only.",
+  "runs": [
+    {
+      "browser": "Chrome / ANGLE Metal",
+      "run": "before-1",
+      "programsAdded": 7,
+      "clickMs": 21.3,
+      "clickToBoardDrawMs": 115.9,
+      "firstDrawRenderMs": 73.2
+    },
+    {
+      "browser": "Chrome / ANGLE Metal",
+      "run": "after-1",
+      "programsAdded": 2,
+      "clickMs": 16,
+      "clickToBoardDrawMs": 62.5,
+      "firstDrawRenderMs": 28.5
+    },
+    {
+      "browser": "Chrome / ANGLE Metal",
+      "run": "after-2",
+      "programsAdded": 2,
+      "clickMs": 21.7,
+      "clickToBoardDrawMs": 90.9,
+      "firstDrawRenderMs": 49.1
+    },
+    {
+      "browser": "Chrome / ANGLE Metal",
+      "run": "before-2",
+      "programsAdded": 6,
+      "clickMs": 20.3,
+      "clickToBoardDrawMs": 130.3,
+      "firstDrawRenderMs": 88.3
+    },
+    {
+      "browser": "Native WebKit",
+      "run": "before",
+      "programsAdded": 6,
+      "clickMs": 21,
+      "clickToBoardDrawMs": 94.0,
+      "firstDrawRenderMs": 53
+    },
+    {
+      "browser": "Native WebKit",
+      "run": "after",
+      "programsAdded": 1,
+      "clickMs": 53,
+      "clickToBoardDrawMs": 165.0,
+      "firstDrawRenderMs": 59
+    },
+    {
+      "browser": "Native WebKit",
+      "run": "after2",
+      "programsAdded": 1,
+      "clickMs": 22,
+      "clickToBoardDrawMs": 68,
+      "firstDrawRenderMs": 29
+    },
+    {
+      "browser": "Native WebKit",
+      "run": "before2",
+      "programsAdded": 6,
+      "clickMs": 24,
+      "clickToBoardDrawMs": 83,
+      "firstDrawRenderMs": 47
+    },
+    {
+      "browser": "Native WebKit",
+      "run": "before3",
+      "programsAdded": 6,
+      "clickMs": 30.0,
+      "clickToBoardDrawMs": 156,
+      "firstDrawRenderMs": 106.0
+    },
+    {
+      "browser": "Native WebKit",
+      "run": "after3",
+      "programsAdded": 1,
+      "clickMs": 29,
+      "clickToBoardDrawMs": 84,
+      "firstDrawRenderMs": 34.0
+    }
+  ]
+}

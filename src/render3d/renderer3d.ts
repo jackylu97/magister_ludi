@@ -694,6 +694,7 @@ export class Renderer3D implements MapView {
   private daylight = 'golden';
   /** `warmLatePrograms` has been asked for on this context. */
   private lateProgramsScheduled = false;
+  private walkerToWarmInMirror: Group | null = null;
   /**
    * Prototype materials from `warmLatePrograms`, kept so their programs stay
    * linked: the falling piece's clones and the walking body's depth stand-in.
@@ -1028,6 +1029,10 @@ export class Renderer3D implements MapView {
       const walker = this.buildWalker(unit);
       if (walker) {
         roots.push(walker.group);
+        if (this.paintedLook && this.mirrorOn && VIEW3D.visualTest.coast.open.mirror.on) {
+          this.walkerToWarmInMirror = walker.group;
+          if (this.seaMirror) this.redraw();
+        }
         // A walking body casts into the counter shadow map, through three's
         // own depth material, which `compile` never reaches. A stand-in with
         // the same material settings (three's default depth material, on the
@@ -1049,12 +1054,17 @@ export class Renderer3D implements MapView {
         });
       }
     }
-    for (const root of roots) {
-      this.compileForFrame(root).catch(() => { /* a lost context: the restore warms again */ });
+    for (const root of roots) void this.preparePrototype(root);
+  }
+
+  private async preparePrototype(root: Object3D): Promise<void> {
+    try {
+      await this.compileForFrame(root);
+    } catch {
+      // Context restoration prepares the programs again if the device drops during setup.
     }
   }
 
-  /** Asks for `warmLatePrograms` once, when the browser is next idle. */
   /** The map whose ground samplers the idle warm-up is building or has built. */
   private surfaceWarmFor: GameMap | null = null;
   /**
@@ -4644,6 +4654,12 @@ export class Renderer3D implements MapView {
           try {
             this.seaMirror.render(this.renderer, this.scene, this.view.camera, [...marks, ...ground],
               { aimed: mirror => this.copyCulling.hide(copies, mirror, bakes, flat, period), shadowPass: bakes });
+            // Three keeps the reflection's clipping plane active until the next draw.
+            // Prepare the walking piece here so its first reflection can use that program.
+            if (this.walkerToWarmInMirror && !hadWalkers && !hadFallers) {
+              void this.preparePrototype(this.walkerToWarmInMirror);
+              this.walkerToWarmInMirror = null;
+            }
           } finally {
             this.copyCulling.restore();
           }
@@ -4719,6 +4735,7 @@ export class Renderer3D implements MapView {
     // Every program went with the old context.
     this.lateProgramsScheduled = false;
     this.fallerProgramKeep = [];
+    this.walkerToWarmInMirror = null;
     this.skipAnimations();
     const finish = (): void => {
       this.contextLost = false;
@@ -4794,6 +4811,7 @@ export class Renderer3D implements MapView {
     this.clearFallers();
     for (const material of this.fallerProgramKeep) for (const one of Array.isArray(material) ? material : [material]) one.dispose();
     this.fallerProgramKeep = [];
+    this.walkerToWarmInMirror = null;
     this.sprites?.dispose();
     this.badges?.dispose();
     this.icons?.dispose();

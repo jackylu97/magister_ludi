@@ -186,3 +186,15 @@ On the turn-120 Standard board, eight selections took 17 highlight builds in eac
 The first move still took 96–138 ms to reach the next draw on the new build. Chrome recorded a 15–24 ms wait for a WebGL program query within that frame. At the default 1.5× board resolution, the two new runs presented 32–35 FPS while panning and 32–35 FPS while zooming. The camera runs overlapped the range of the original build.
 
 A separate capture traced the WebGL calls to their materials. The walker's painted body took 14.8 ms in its first program check. Its outline, model and badge passes each spent a further 3–5 ms on their first checks. The first draw took 116 ms in this instrumented run. The renderer already tries to prepare these programs during idle time. Compare the prepared shaders with those used by the first walk.
+
+### The first walking unit in the water reflection
+
+The first reflection used a shader with one clipping plane, which removes the part below the water. The previous idle setup only prepared the walking piece without that plane. The renderer now keeps the walking mesh from idle setup and prepares its clipped programs after a reflection when no walk or fall is in progress. It uses the existing reflection pass and submits the same meshes to the same draw calls.
+
+On the M4, two Chrome comparisons brought the time from the first move to the next completed board draw from 116 to 63 ms and from 130 to 91 ms. Chrome added six or seven shader programs during selection and movement in the original build and two in the updated build. Across three native WebKit comparisons, the same count fell from six to one. The WebKit draw arrived sooner in two pairs (83 to 68 ms and 156 to 84 ms) and later in one (94 to 165 ms). The game accepted the same move in all ten sessions. A fixed-time strip of water, coastal buildings and pieces matched pixel for pixel across the Chrome runs. [Setup, timing and image comparison](benchmarks/playtest-fps-2026-11-19/walking-reflection.json)
+
+### Production build warnings
+
+Both builds completed with 168 Rollup warnings about circular re-exports across generated JavaScript chunks. They cover 102 distinct exports. All 168 pass through `src/sim/statecraft.ts`. The evaluator accounts for 83 warnings, the council for 45 and the draft for 40. The largest groups of affected imports are in `src/sim/commands.ts` (20), `src/ai/value.ts` (18) and `src/ai/council.ts` (17). The final production output contains 95 JavaScript assets. A separate check with es-module-lexer read all 776 static relative imports between them and found no cycle. In a separate check of the production files, a fresh game as Alexander reached its first board frame. The spectator displayed its first Settler decision and score. Both pages ran without a JavaScript exception. The playtest on 5199 uses the development server.
+
+For a cleanup pass, check the production entry points before changing those imports. Compare setup, the first turn, the spectator and the bot workers after the change. Keep the named public exports and coordinate edits to card modules with the next deck handoff.
