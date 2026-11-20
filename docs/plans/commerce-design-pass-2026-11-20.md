@@ -1807,3 +1807,58 @@ Review page: https://claude.ai/artifact/BY9EkS9pwYUzfXGrXKPmdM.
 - **Shape:** Existing shapes: `effectAmplifier` on `lentLuxuryCopies` at 100 (the retired The Commenda has it at 50), and a negative `combatLine`.
 - **Confidence:** speculative
 - **Depends, joins and notes:** It depends on question 1.
+
+## The user's rulings on round three (2026-11-20, comments on the page)
+
+The user: "ok i commented on the commerce deck". In their words:
+
+| # | Card | The user's words | Result |
+|---|---|---|---|
+| 79 | The Grain Barges (a cut offered) | "keep" | Kept. |
+| 80 | The Courts of Piepowder (a cut offered) | "cut" | Cut. |
+| 81 | The Admiralty of Trade (a cut offered) | "cut" | Cut. |
+| 82 | The Champagne Fairs (a cut offered) | "cut" | Cut. (Three of the four, not two.) |
+| 83 | The Provision Trade | "sure" | Approved. |
+| 84 | The Potters' Quarter | "Y" | Approved. |
+| 85 | The Dye Works | "y" | Approved. |
+| 86 | The Faubourgs | "cut" | Cut. |
+| 87 | The Slipways | "Y, move to tier 1" | Approved, at Tier I. |
+| 88 | The Periplus | "y" | Approved. |
+| 89 | The Garum Works | "this might be too strong but lets keep it" | Approved. |
+| 90 | The Market Halls | "sure" | Approved. |
+| 91 | The Coasting Trade | "this feels superfluous, we already have trade route buffs that are just as strong" | Cut. |
+| 92 | The Sea Lords | "Sure thats interesting" | Approved. |
+| 93 | The Epibatai | "cool i like it" | Approved. |
+| 94 | Commission: The Harbour League | "wow thats so strong, sounds good" | Approved. |
+| 95 | The Free Ports | "cool" | Approved. |
+| 96 | The Plate Fleet | "cut" | Cut. |
+| 97 | The Herring Fleets | "how about: coastal tiles gain +2 culture and +1 production" | The user's line: coastal tiles gain +2 culture and +1 production. |
+| 98 | The Wooden Walls | "sure" | Approved. |
+| 99 | Letters of Marque | "how about: a ship you defeat has a 50% chance of joining your side." | A ship you defeat has a 50% chance to join your side. (The roll uses the game's seeded random numbers.) |
+| 100 | The Army Contractors | "ok sure" | Approved. |
+| 101 | The Euergetai | "cut" | Cut. |
+| 102 | The Colonists' Stores | "sure" | Approved. (The Expansionist pass has the same card, The Founders' Stores: one shared card, not two.) |
+| 103 | The Votive Accounts | "+2 production is ambiguous, lets have it read +2 culture and +2 faith" | Starts at +2 culture and +2 faith; grows by +1 of each for every purchase. |
+| 104 | The Mission Stations | "not very useful, cut" | Cut. |
+| 105 | The Incense Road | "great" | Approved. |
+| 106 | The Learned Guilds | "too specific to be useful i think, cut" | Cut. |
+| 107 | The Patrons' Quarter | "cool" | Approved. |
+| 108 | The League of Cities | "great" | Approved, shared with Magisterial. |
+| 109 | The Patrons' Ledger | "great" | Approved. |
+| 110 | The Palace Stores | "lets add this" | Approved: the Tier 0 rare. |
+| 111 | The Merchant Colony | "cut" | Cut. |
+| 112 | The Open Market | "Wow thats crazy, lets add this" | Approved. |
+| 113 | The Building Loans | "not very useful in practice i think" | Cut. |
+| 114 | The Double Entry | "great, lets make this tier 3" | Approved, at Tier III. |
+| 115 | The gold price of a great person | "lets do 10 gold for now" | 10 gold for each point of renown the next person costs. |
+| 116 | Sea cards dealt only to a seat with a coast | "nah, i think that makes things too easy for the player." | Rejected. Sea cards are dealt to every Commerce seat. |
+
+### A base rule the user proposes (on 116)
+
+"one consideration here though: I think what might help is a coastal city
+should be defined as a city with access to the coast i.e. controls a coastal
+tile. that way, you can settle two tiles from the coast and still build a
+lighthouse, get coastal bonuses, settle more flexibily, what do you think?"
+
+This is a rule of the game's core, not a card. My answer is in chat; the
+proposal is recorded in `docs/flags.md`.

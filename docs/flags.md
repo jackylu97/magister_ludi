@@ -3137,3 +3137,27 @@ read 'city cannot purchase without free tiles'".
   `arriveOnTile`. Whether a produced unit (not bought) follows the same rule
   is not ruled; it stays as it is.
 - Owner: Astra (a rule in `src/sim`).
+
+## A coastal city is a city that controls a coast hex (proposed 2026-11-20, not ruled)
+
+The user, in the Commerce pass (on dealing sea cards only to seats with a
+coast, which the user rejected): "a coastal city should be defined as a city
+with access to the coast i.e. controls a coastal tile. that way, you can
+settle two tiles from the coast and still build a lighthouse, get coastal
+bonuses, settle more flexibily, what do you think?"
+
+- Today a city is coastal only when its own hex is beside water.
+- **Proposed:** a city is coastal when a water hex is in its borders (or, a
+  narrower form, within its first two rings). It may then build the
+  Lighthouse, the Harbour and ships, and every "coastal" scope reads it.
+- **What the builder must settle:** where a ship built in such a city
+  appears (my proposal: on the nearest water hex the city owns, chosen by a
+  fixed order); whether the city can be attacked from the sea; whether sea
+  trade routes start from it; and whether the reading changes when a city
+  gains or loses its only water hex (it is derived, never stored).
+- My advice to the user: yes, in the narrower form (a water hex within two
+  rings that the city owns). It makes the sea theme live for many more
+  starts without dealing rules, and it ends the choice between a good city
+  site and a coastal one. It also makes every coastal bonus more common, so
+  the sea cards of the Commerce pass should be priced after it.
+- Owner once ruled: Astra (a rule in `src/sim`).
