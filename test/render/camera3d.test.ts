@@ -54,6 +54,37 @@ function seated(): DioramaCamera {
   return camera;
 }
 
+it('projects each wrap copy into the CSS viewport used for picking', () => {
+  const view = seated();
+  view.panTo(period - 0.25, 10, false, 0);
+  function check(width: number, height: number): void {
+    const points = [-period, 0, period].map(offset => new Vector3(0.25 + offset, 1.4, 10));
+    // Callers retain both the badge centre and its rim while measuring a hit.
+    const projected = points.map(point => view.projectPoint(point));
+    points.forEach((point, index) => {
+      const ndc = point.clone().project(view.camera);
+      const screen = projected[index]!;
+      expect(screen).toEqual({
+        x: (ndc.x * 0.5 + 0.5) * Math.max(1, width),
+        y: (-ndc.y * 0.5 + 0.5) * Math.max(1, height),
+        ndcX: ndc.x,
+        ndcY: ndc.y,
+      });
+      expect(view.groundAt(screen.x, screen.y, point.y).distanceTo(point)).toBeLessThan(1e-9);
+    });
+  }
+  check(1200, 800);
+  view.resize(853, 479);
+  view.pan(37, -21);
+  view.zoomByFactor(1.3, 247, 100);
+  check(853, 479);
+  view.setCityView(true, true, 0);
+  view.stepPan(CAMERA.panMs / 2);
+  check(853, 479);
+  view.resize(0, 0);
+  check(0, 0);
+});
+
 /** The wrapped distance between two world x values, in either direction. */
 function seamDistance(a: number, b: number): number {
   const raw = Math.abs(((a - b) % period + period) % period);

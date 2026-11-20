@@ -3299,30 +3299,8 @@ export class Renderer3D implements MapView {
     };
   }
 
-  /**
-   * A world point in viewport CSS pixels, with the normalised coordinates it
-   * came from kept so a caller can ask how far off screen it fell.
-   *
-   * The one place this renderer turns world into screen. `projectCell` and the
-   * badge hit test are the same arithmetic asked about different things, and a
-   * second copy of the NDC-to-pixel conversion is the kind of duplication that
-   * survives right up until somebody changes how the canvas is measured.
-   */
-  private projectPoint(point: WorldPoint): {
-    x: number;
-    y: number;
-    ndcX: number;
-    ndcY: number;
-  } {
-    const ndc = new Vector3(point.x, point.y, point.z).project(this.view.camera);
-    const width = Math.max(1, this.canvas.clientWidth);
-    const height = Math.max(1, this.canvas.clientHeight);
-    return {
-      x: (ndc.x * 0.5 + 0.5) * width,
-      y: (-ndc.y * 0.5 + 0.5) * height,
-      ndcX: ndc.x,
-      ndcY: ndc.y,
-    };
+  private projectPoint(point: WorldPoint) {
+    return this.view.projectPoint(point);
   }
 
   /**
