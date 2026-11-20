@@ -326,7 +326,7 @@ describe('a wonder bought with culture (Magisterial batch MG11)', () => {
         'culture comes from what you are saving for your next Order hand.',
     );
     const list = braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(');
-    expect(list).toContain("if (ordinary.includes('culture')) {");
+    expect(list).toContain("if (columns.includes('culture')) {");
   });
 });
 
@@ -486,7 +486,7 @@ describe('which rows print', () => {
     }
   });
 
-  it('turns caravans into a line to the trade sheet, never a build row', () => {
+  it('never turns a caravan into a build row, and prints no caravans line (2026-11-20)', () => {
     const { state, city } = developed();
     const units = shelf(buildListModel(state, city, 0, 'all', false), 'unit');
     expect(units.caravans).toBe(true);
@@ -498,11 +498,16 @@ describe('which rows print', () => {
     expect(shelf(buildListModel(early.state, early.city, 0, 'all', false), 'unit').caravans).toBe(
       false,
     );
-    // The line opens the trade sheet through the panel's existing option.
+    // The model still says when a caravan is open, but the list draws no line
+    // for it (the user: "this line is unneeded (caravans)"). The trade sheet,
+    // where caravans are hired, is opened from the Trade routes row and the
+    // corner panel.
     const list = braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(');
-    expect(list).toContain("'Caravans are hired on the trade sheet →'");
-    expect(list).toContain("link.addEventListener('click', () => onOpenTrade());");
-    expect(list).toContain('if (shelf.caravans) into.append(tradeSheetLine());');
+    expect(list).not.toContain('Caravans are hired on the trade sheet');
+    expect(list).not.toContain('tradeSheetLine');
+    expect(braceBody(uiSource('cityPanel.ts'), 'function renderRoutes(')).toContain(
+      "all.addEventListener('click', () => onOpenTrade());",
+    );
   });
 
   it('gathers what is bought with faith on a Faith shelf, priced in faith', () => {
@@ -546,26 +551,29 @@ describe('which rows print', () => {
     expect(buildListModel(state, city, 0, 'unit', false).map((entry) => entry.shelf)).toEqual([
       'unit',
     ]);
-    // And it heads its column with the faith bank.
-    expect(braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(')).toContain(
-      "if (shelf.shelf === 'faith') into.append(priceHeadElement([held('faith')]));",
-    );
+    // And the faith bank heads the faith column: the columns are every bank
+    // that prices a row on the shelves in view, the Faith shelf's included.
+    const list = braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(');
+    expect(list).toContain('const columns = banksInView(shelves);');
+    expect(list).toContain('for (const bank of columns) head.append(priceColumnHead(held(bank)));');
+    expect(banksInView(buildListModel(state, city, 0, 'faith', false))).toEqual(['faith']);
   });
 });
 
 // --- the head and the work rail --------------------------------------------------
 
 describe('the head and the work rail', () => {
-  it('names what the seat holds where it is spent: the price heading and the Faith row', () => {
+  it('names what the seat holds where it is spent: the price columns’ heads and the Faith row', () => {
     // The simpler city screen took the banks out of the head (the fourth-pass
     // frame: "the build list says 'you have 555 gold', and the Faith row holds
     // the faith"). The treasury still shows on the city screen (the user's
-    // ruling of 2026-10-12), beside the prices it pays.
+    // ruling of 2026-10-12), over the prices it pays: since 2026-11-20 each
+    // price column is headed by its bank's mark and what the seat holds.
     const panel = uiSource('cityPanel.ts');
     expect(braceBody(panel, 'function renderBand(')).not.toContain('bankLineElement');
-    expect(braceBody(panel, 'function renderBuildables(')).toContain(
-      'if (ordinary.length > 0) grid.append(priceHeadElement(ordinary.map(held)));',
-    );
+    const list = braceBody(panel, 'function renderBuildables(');
+    expect(list).toContain('cell.append(yieldMarkNode(bank, true), bankHeldElement(bank, amount));');
+    expect(list).toContain('for (const bank of columns) head.append(priceColumnHead(held(bank)));');
     expect(braceBody(panel, 'function renderFaithCard(')).toContain(
       "bankLineElement(readBanks(state, localPlayerId()).filter((bank) => bank.bank === 'faith'))",
     );

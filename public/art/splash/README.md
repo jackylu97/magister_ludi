@@ -11,6 +11,7 @@ painting shows are in `docs/splash-art.md`.
 | `endings/` | The ending page's painting: `win.jpg` and `loss.jpg`, written by `scripts/splashArt.py endings` | 16:9 | made from the master, at most 1600 wide | `win.jpg`, `loss.jpg` |
 | `beliefs/` | One vignette a belief, written by `scripts/splashArt.py beliefs` | 1:1 | made from the master, 480 x 480 | the belief's id, for example `sacredFire.jpg` |
 | `people/` | One portrait a great person, written by `scripts/splashArt.py people` | 5:6 | made from the master, 720 x 864 | the person's id, for example `imhotep.jpg` |
+| `title/` | The title screen's painting. None yet: the page shows a stand-in | 16:9 | at most 1600 wide | `title.jpg` |
 | `governments/` | One banner painting a government | 3:1 | 990 x 330 | the government's id, for example `imperium.jpg` |
 
 - Use JPEG (quality about 85) or WebP for the files in this folder. Keep
@@ -72,6 +73,29 @@ other seat. `src/ui/endingPaintings.ts` names the two files, and a test fails
 if the list and the folder disagree. The lower third of the page is under a
 dark fade, with the words at the left and the doors at the right, so keep the
 subject of a painting out of its lower third.
+
+## The title painting
+
+The title screen (`src/ui/titlePainting.ts`, frame a8 of the Quiet Table
+boards) shows one painting across the full width of the window, with the
+game's name on its sky at the left. No title painting exists yet.
+
+- Deliver one 16:9 picture, at most 1600 wide (1600 x 900), as
+  `title/title.jpg` (JPEG, quality about 85).
+- About 5:2 of it shows: the full width, cut from the middle of its height.
+  At 1440 x 900, about a seventh of the height is cut at the top and a
+  seventh at the foot; a shorter window cuts a little more. Put the subject
+  in the middle band.
+- The name, a small ornament and the tag line sit on the left part of the
+  sky, over a soft dark fade. Keep the left half of the upper part quiet, as
+  a sky.
+- Add `'title'` to `TITLE_PAINTINGS` in `src/ui/titlePainting.ts`. A test
+  (`test/ui/titlePainting.test.ts`) fails if the list and the folder disagree.
+
+Until the file exists, the page shows the game's own title picture, the
+painted town of the earlier banner (`/art/frontispiece.jpg`). If no picture
+loads, the page shows that banner in its old form with the same buttons under
+it.
 
 ## How a great person's portrait gets into the game
 

@@ -15,9 +15,8 @@
  * one panel with growth, borders and the citizens' focus in view and the rest
  * of the town's facts in fold rows, one open at a time (`renderTownRail`,
  * `cityFoldRows`, `renderFolds`); on the right one panel with what is being
- * built, the queue and the build list (`renderWorkRail`). Nothing of the panel
- * stands at the foot of the screen but the board caption, while it is asked
- * for.
+ * built, the queue and the build list (`renderWorkRail`). At the foot of the
+ * screen, Buy tiles alone, at the bottom centre (`renderBuyDock`).
  *
  * Editing production
  * ------------------
@@ -137,17 +136,14 @@ import {
   isPurchaseOnly,
   purchaseVerb,
 } from '../sim/purchase';
-import { BANK_UNIT, bankHeldText, bankLineElement, readBanks } from './bankFigure';
+import { BANK_UNIT, bankHeldElement, bankHeldText, bankLineElement, readBanks } from './bankFigure';
 import {
   PRICE_BANKS,
   type PriceHeadBank,
   type PriceLook,
-  emptyPriceCellElement,
   priceCellElement,
   priceFigureText,
-  priceHeadElement,
   priceLook,
-  priceNeedText,
   purchaseLook,
 } from './priceCell';
 import {
@@ -161,7 +157,7 @@ import type { Command, CommandResult } from '../sim/commands';
 import type { ConfirmRequest } from './confirmCard';
 import { annexCityError, razeCityError } from '../sim/diplomacy';
 import { type Game, dispatch } from '../sim/game';
-import { happinessOf, meterEffects } from '../sim/meters';
+import { authorityOf, happinessOf, meterEffects } from '../sim/meters';
 import { type ModifierStage, applyStages } from '../sim/yields/stages';
 import { CITY_YIELD_KEYS, type CityYieldKey, type ResourceId } from '../sim/resourceData';
 import {
@@ -1644,7 +1640,7 @@ export function unrestCardParts(state: GameState, city: City): UnrestCardParts |
  * One row of the defence ledger: what it is, what it is worth.
  *
  * `amount` is the same number `figures` prints, kept as a number so the
- * disclosure's summary ("Defence · 21") can be the **fold of this list** rather
+ * head's figure ("Defence 21") can be the **fold of this list** rather
  * than a total computed beside it — rule 5's shape, one grade down from a yield.
  * Nothing parses the string back into a number.
  */
@@ -1682,7 +1678,7 @@ export function defenseRows(state: GameState, city: City): DefenseRow[] {
   return rows;
 }
 
-/** The defence ledger's fold — the figure the disclosure's summary carries. */
+/** The defence ledger's fold — the figure the head carries. */
 export function defenseTotal(rows: readonly DefenseRow[]): number {
   let total = 0;
   for (const row of rows) total += row.amount;
@@ -1969,11 +1965,11 @@ function sumOfRows(rows: readonly ChipLedgerRow[]): number {
 }
 
 /** Where on the city screen a short-of chip's fix is. The chip is a link there. */
-type ShortOfTarget = 'buildList' | 'focus' | 'growth' | 'defence' | 'unrest';
+type ShortOfTarget = 'focus' | 'growth' | 'borders' | 'defence' | 'unrest';
 
 /** One thing a town is short of, as a chip in the head (batch UX6). */
 interface ShortOfChip {
-  id: 'unrest' | 'siege' | 'starving' | 'idle' | 'unhappy';
+  id: 'unrest' | 'siege' | 'starving' | 'unhappy' | 'authority';
   /** The chip's words: "Starving", "No Iron spare". */
   label: string;
   /** A figure beside the words, set in the tabular mono, or `null`. */
@@ -1997,10 +1993,16 @@ interface ShortOfChip {
  *   town's defence figure in the head, whose hover is the defence ledger.
  * - **Starving**: the food surplus is below nothing (`growthSurplus`, the same
  *   figure the Growth row prints). The Focus pane.
- * - **Idle**: nothing in the queue. The build list. A puppet chooses for
- *   itself, so it is never told it is idle.
  * - **Unhappy**: the empire's happiness is below nothing, which slows every
  *   town's growth (`meterEffects`). The Growth row, where the slowing shows.
+ * - **Authority overdrawn**: the empire's authority is below nothing
+ *   (`authorityOf`), which holds its towns back; the borders freeze first. The
+ *   Borders row, where the freeze shows. The words are the ones the Borders
+ *   row's hover and the tile gate already use ("authority is overdrawn").
+ *
+ * The chips are only these five (the user, 2026-11-20: "'Idle' is unneeded.
+ * 'unhappy' and whatever the term is for lacking authority is fine"). A town
+ * with nothing queued says "Nothing queued" where its work is.
  *
  * There is no chip for a strategic resource with none spare. The user's
  * ruling of 2026-11-19 ("the supply is already in the corner panel, could we
@@ -2047,15 +2049,6 @@ export function shortOfChips(state: GameState, city: City, quote: CityReading): 
       target: 'focus',
     });
   }
-  if (city.queue.length === 0 && city.puppet !== true) {
-    chips.push({
-      id: 'idle',
-      label: 'Idle',
-      figure: null,
-      why: 'Nothing is being built here.',
-      target: 'buildList',
-    });
-  }
   if (happinessOf(state, city.ownerId) < 0) {
     chips.push({
       id: 'unhappy',
@@ -2065,6 +2058,17 @@ export function shortOfChips(state: GameState, city: City, quote: CityReading): 
         'Your empire is unhappy, so every town grows more slowly. Luxuries and buildings ' +
         'that make people happy fix it.',
       target: 'growth',
+    });
+  }
+  if (authorityOf(state, city.ownerId) < 0) {
+    chips.push({
+      id: 'authority',
+      label: 'Authority overdrawn',
+      figure: null,
+      why:
+        'Your empire uses more authority than it has, which holds its towns back: their ' +
+        'borders stop growing first. Buildings and cards that add authority fix it.',
+      target: 'borders',
     });
   }
   return chips;
@@ -2181,6 +2185,19 @@ export const CITY_FOLD_WORDS: Readonly<Record<CityFoldId, string>> = {
   levy: 'Levy a citizen',
 };
 
+/**
+ * The Faith row's words for the seat's own faith and for no faith (the user,
+ * 2026-11-20: "It should read 'your religion' instead of the full name, and the
+ * breakdown below can clarify the name of your religion and other religions
+ * present in the city"). `yours` heads the list's first line, `inLine` stands
+ * in for the name in the headline and in the shut row.
+ */
+export const FAITH_ROW_WORDS = {
+  yours: 'Your religion',
+  inLine: 'your religion',
+  none: 'No religion',
+} as const;
+
 /** The order the rows stand in. */
 const CITY_FOLD_ORDER: readonly CityFoldId[] = [
   'buildings',
@@ -2243,8 +2260,9 @@ function turnsWords(turns: number): string {
  *
  * The shut row says, in this order of use: the rite the town keeps and the
  * turns left on it (the frame's "a rite, 9 turns"); how many rites it could
- * start now; the faith most of the town follows, in its founder's ink; that a
- * rite waits only on faith; or that the town follows no religion.
+ * start now; the faith most of the town follows, in its founder's ink ("your
+ * religion" when it is the seat's own); that a rite waits only on faith; or
+ * that the town follows no religion.
  */
 function faithFold(
   state: GameState,
@@ -2266,9 +2284,14 @@ function faithFold(
   if (kept.length > 1) return { summary: `${figure(kept.length)} rites`, ink: null };
   if (ready > 0) return { summary: `${figure(ready)} ready`, ink: null };
   const banner = claims.find((row) => row.majority);
-  if (banner !== undefined) return { summary: banner.name, ink: banner.founderColor };
+  if (banner !== undefined) {
+    return {
+      summary: banner.ours ? FAITH_ROW_WORDS.inLine : banner.name,
+      ink: banner.founderColor,
+    };
+  }
   if (short > 0) return { summary: 'needs faith', ink: null };
-  return { summary: 'no religion', ink: null };
+  return { summary: FAITH_ROW_WORDS.none.toLowerCase(), ink: null };
 }
 
 /**
@@ -3123,8 +3146,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   /**
    * One line of the work rail's card per bank that sells the row (batch UX7):
-   * "Buy outright · 356💰 · you have 437 gold", or what the bank is short of,
-   * or why it is not sold here, in the purchase gate's own words. The figures
+   * "Buy outright · 356💰 · you have 437 gold", in the wanting red when the bank
+   * cannot pay it yet, or why it is not sold here, in the purchase gate's own
+   * words. The figures
    * are the price column's (`purchaseLook`), so the card and the cell agree.
    */
   function buyLine(look: PriceLook): HTMLElement {
@@ -3136,10 +3160,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     const player = playerById(getGame().state, localPlayerId());
     const held = player === undefined ? 0 : bankOf(player, look.bank);
-    const tail =
-      look.look === 'short'
-        ? priceNeedText(look.need)
-        : `you have ${bankHeldText(held)} ${BANK_UNIT[look.bank]}`;
+    // A price the bank cannot pay yet is the line in the wanting red, with what
+    // the seat holds and no "need" figure (the user, 2026-11-20: "no need to
+    // show how much more is needed").
+    if (look.look === 'short') line.classList.add('wanting');
+    const tail = `you have ${bankHeldText(held)} ${BANK_UNIT[look.bank]}`;
     setYieldText(line, `Buy outright · ${priceFigureText(look.bank, look.price)} · ${tail}`);
     return line;
   }
@@ -3544,15 +3569,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *             named, because a border that has stopped for a *policy* reason
    *             must not look like one that has merely run out of poets.
    *
-   * The Buy Tiles button sits under it rather than in the head, because it is
-   * the other half of the same sentence: this is how ground is acquired, and
-   * gold is the way to hurry it. A small button at the bar's right end since the
-   * simpler city screen (the fourth-pass frame drew none, and the third-pass
-   * frame drew it there). It is greyed with the simulation's own answer
-   * (`tileBuyingError`, batch UX7b): a puppet's purse, or the writ's freeze
-   * unless a card lifts it for tiles. It used to be greyed whenever the borders
-   * were frozen, so Purchased Prosperity, which lifts the freeze for tiles,
-   * could not be used from here.
+   * The Buy Tiles button stood under it until 2026-11-20; it is its own
+   * control at the bottom centre of the screen now (`renderBuyDock`).
    */
   function renderBorders(city: City, quote: CityReading): HTMLElement {
     const growth = borderGrowth(
@@ -3600,29 +3618,56 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       box,
       [`Next tile · ${roundYield(growth.banked)} / ${growth.cost}`, ...(why === null ? [] : [why])].join('\n'),
     );
+    // Where the "Authority overdrawn" chip points: the freeze shows here.
+    anchors.set('borders', box);
+    return box;
+  }
 
+  /**
+   * **Buy tiles, its own control at the bottom centre** (the user, 2026-11-20:
+   * "let's have buy tiles appear at the bottom-center as its own
+   * button/interface"). The button arms and disarms the board's Buy Tiles mode
+   * (`setBuyMode`, the mode `controls.ts` owns; Escape stops it there too).
+   * While the mode is on, the dock also says what the treasury holds and how
+   * the board's prices read, and why a plate is a dash (`renderBoardCaption`),
+   * so the prices and the words about them are in one place.
+   *
+   * It is greyed with the simulation's own answer (`tileBuyingError`, batch
+   * UX7b): a puppet's purse, or the writ's freeze unless a card lifts it for
+   * tiles. So Purchased Prosperity, which lifts the freeze for tiles, can be
+   * used from here. Why it is greyed is said on a line beside it, never only in
+   * a note.
+   */
+  function renderBuyDock(city: City): HTMLElement {
+    const { state } = getGame();
+    const dock = element('div', 'city-buy-dock');
+    const active = isBuyMode();
+    dock.classList.toggle('is-on', active);
+    // The caption first, over the button, while the mode is on or the guide is up.
+    const caption = renderBoardCaption(city);
+    if (caption) dock.append(caption);
+    const row = element('div', 'city-buy-dock-row');
     const buy = element('button', 'city-buy-tiles');
     buy.type = 'button';
-    const active = isBuyMode();
     buy.textContent = active ? 'Stop buying' : 'Buy tiles';
     buy.classList.toggle('is-active', active);
-    const { state } = getGame();
+    buy.setAttribute('aria-pressed', active ? 'true' : 'false');
     // The ended turn is the panel's own lock and is said at the foot of the work
     // rail; everything else is the tile gate's town-wide answer.
     const ended = hasEndedTurn(state, localPlayerId());
     const refusal = ended ? null : tileBuyingError(state, localPlayerId(), city.id);
     const blocker = ended ? `You have ended turn ${state.turn}` : refusal;
     buy.disabled = blocker !== null;
-    noteOn(buy, blocker ?? 'Show what the ground around this city costs in gold');
+    noteOn(buy, blocker ?? (active ? 'Stop buying ground (Esc)' : 'Show what the ground around this city costs in gold'));
     buy.addEventListener('click', () => {
       setBuyMode(!isBuyMode());
       onChanged();
     });
-    box.append(buy);
+    row.append(buy);
     // Why it is greyed, on a line (never only a note).
-    if (refusal !== null) box.append(refusalLineElement(refusal, 'row'));
-
-    return box;
+    if (refusal !== null) row.append(refusalLineElement(refusal, 'row'));
+    dock.append(row);
+    return dock;
   }
 
   /**
@@ -4156,12 +4201,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *     the corner panel"): a unit with no supply is greyed in the list with
    *     its counts under it (`greyedForSupply`);
    *   - the tabs: All first, then the four shelves, then Faith, remembered per
-   *     seat (`addTabFor`);
-   *   - the price column's heading, "Buy outright · full price · you have 437
-   *     gold", once over every shelf priced in gold;
-   *   - for each shelf: its eyebrow on the All tab, the Faith shelf's own
-   *     heading, the reasons several of its rows share, the rows, each followed
-   *     by any reason only it has, and then the shelf's "Not yet · N" fold;
+   *     seat (`addTabFor`), directly over the list;
+   *   - the list's head: the first group's eyebrow on the All tab, and over
+   *     each price column the bank's mark and what the seat holds in it (the
+   *     user's comments of 2026-11-20);
+   *   - for each shelf: its eyebrow on the All tab, the reasons several of its
+   *     rows share, the rows, each followed by any reason only it has, and then
+   *     the shelf's "Not yet · N" fold. Every row has one cell in each price
+   *     column: its chip, or the dash where that bank does not sell it;
    *   - the caption, which says what a gold price is.
    *
    * Since batch UX7 (the user's rulings of 2026-10-12 on shortening the list):
@@ -4217,13 +4264,26 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     const shelves = buildListModel(state, city, seat, tab, locked);
     const grid = element('div', 'city-buildable-grid');
-    // Where the band's "Idle" chip points (batch UX6).
-    anchors.set('buildList', grid);
+    // The price columns: one for each bank that prices a row on these shelves,
+    // the Faith shelf's included, in `PRICE_BANKS` order (`banksInView`). Every
+    // row has one cell in each, so its chips stand under their column's head.
+    const columns = banksInView(shelves);
     const player = playerById(state, seat);
     const held = (bank: PurchaseCurrency): PriceHeadBank => ({
       bank,
       held: player === undefined ? 0 : bankOf(player, bank),
     });
+    /**
+     * The head of one price column: the bank's mark and what the seat holds in
+     * it, in the bank's ink, as wide as the chips under it.
+     */
+    const priceColumnHead = ({ bank, held: amount }: PriceHeadBank): HTMLElement => {
+      const cell = element('span', `city-price-head is-${bank}`);
+      cell.append(yieldMarkNode(bank, true), bankHeldElement(bank, amount));
+      cell.setAttribute('aria-label', `${bankHeldText(amount)} ${BANK_UNIT[bank]} in hand`);
+      noteOn(cell, `The ${BANK_UNIT[bank]} you hold, to buy with`, false);
+      return cell;
+    };
     // A seat that has ended its turn may read its prices and not press them.
     // That is a state rather than a lack, so the plate goes quiet rather than
     // vermilion, and the work rail's foot already says the turn is over.
@@ -4427,7 +4487,20 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         ...(item === null ? {} : { onBuy: () => buy(city, item, cell.look.bank) }),
         paused,
         mark: cell.place?.at === 'head' ? cell.place.mark : null,
+        chip: true,
       });
+    };
+
+    /**
+     * The cell of a column whose bank does not sell this row (a building under
+     * the faith column, a project under any): the dash, centred in the column,
+     * so every row has one cell in each column and the chips stand in line.
+     */
+    const unsoldCell = (): HTMLElement => {
+      const cell = element('span', 'price-cell is-none is-chip is-unsold');
+      cell.setAttribute('aria-hidden', 'true');
+      cell.append(element('span', 'price-cell-dash', '—'));
+      return cell;
     };
 
     /**
@@ -4477,10 +4550,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         left.append(now);
       }
       line.append(left);
-      // A project keeps the column's width with an empty cell, so its button
-      // lines up with the rows priced around it.
-      if (row.kind === 'project') line.append(emptyPriceCellElement());
-      for (const cell of row.cells) line.append(priceCell(row, cell));
+      // One cell in each price column, in the columns' order: the row's own
+      // price for that bank, or the dash where the bank does not sell it (a
+      // project is a conversion and is never priced).
+      for (const bank of columns) {
+        const cell = row.cells.find((entry) => entry.look.bank === bank);
+        line.append(cell === undefined ? unsoldCell() : priceCell(row, cell));
+      }
       into.append(line);
       const why = buildReason(row);
       if (why !== null) into.append(why);
@@ -4518,25 +4594,28 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       into.append(fold);
     };
 
-    /**
-     * The line that stands in for every caravan row: caravans are hired with a
-     * route on the trade sheet and never queued (`UnitDef.routeOnly`). A link
-     * when the page handed in the way there, plain words when it did not.
-     */
-    const tradeSheetLine = (): HTMLElement => {
-      if (onOpenTrade === undefined) {
-        return element('p', 'city-trade-link', 'Caravans are hired on the trade sheet.');
-      }
-      const link = element('button', 'city-trade-link', 'Caravans are hired on the trade sheet →');
-      link.type = 'button';
-      link.addEventListener('click', () => onOpenTrade());
-      return link;
-    };
-
-    // The heading over the price column, once, naming the banks the ordinary
-    // shelves are priced in. The Faith shelf carries its own heading.
-    const ordinary = banksInView(shelves.filter((shelf) => shelf.shelf !== 'faith'));
-    if (ordinary.length > 0) grid.append(priceHeadElement(ordinary.map(held)));
+    // No line for the caravans since 2026-11-20 (the user: "this line is
+    // unneeded (caravans)"). Caravans are hired with a route on the trade sheet
+    // and never queued (`UnitDef.routeOnly`); the model still says when one is
+    // open (`BuildListShelf.caravans`), and the Trade routes row's "All routes"
+    // and the corner panel open the sheet.
+    //
+    // The head of the list, directly under the tabs (the user: the tabs
+    // "should be immediately above the 'units' section"): on the All tab the
+    // first shelf's eyebrow on the left, and over each price column what the
+    // seat holds in that bank, its mark and its figure, in line with the chips
+    // under it (the user: "probably need a better spot for the gold and faith
+    // inventory"). "Buy outright · full price" is gone ("this line is
+    // extraneous"); the caption under the list says what a price is.
+    const first = tab === 'all' && shelves[0] !== undefined && shelves[0].shelf !== 'faith'
+      ? shelves[0]
+      : null;
+    if (columns.length > 0 || first !== null) {
+      const head = element('div', 'city-price-heads');
+      head.append(element('h4', 'city-shelf-head', first?.word ?? ''));
+      for (const bank of columns) head.append(priceColumnHead(held(bank)));
+      grid.append(head);
+    }
 
     for (const shelf of shelves) {
       let into: HTMLElement = grid;
@@ -4558,19 +4637,18 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         rememberOpen(fold, 'Faith shelf', affordable);
         grid.append(fold);
         into = fold;
-      } else if (tab === 'all') {
+      } else if (tab === 'all' && shelf !== first) {
         // The eyebrow over a group, on the All tab only: a single-shelf tab is
-        // already named by the tab that is lit.
+        // already named by the tab that is lit, and the first group's eyebrow
+        // stands in the list's head.
         grid.append(element('h4', 'city-shelf-head', shelf.word));
       }
-      if (shelf.shelf === 'faith') into.append(priceHeadElement([held('faith')]));
       // The reasons several rows share, said once, before the rows they cover.
       for (const line of shelf.refusals) {
         into.append(refusalLineElement(line.text, 'head', line.mark));
       }
       for (const row of shelf.rows) drawRow(row, into);
       drawNotYet(shelf, into);
-      if (shelf.caravans) into.append(tradeSheetLine());
     }
 
     // A shelf with nothing on it is a real answer — every wonder in the age
@@ -4605,7 +4683,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // A culture price is the one price that is not the full cost
     // (Magnificence, Magisterial batch MG11), so the screen says so whenever
     // one is in view.
-    if (ordinary.includes('culture')) {
+    if (columns.includes('culture')) {
       box.append(element('p', 'hint', cultureCaption()));
     }
     return box;
@@ -4633,7 +4711,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
-   * "Defence 21" in the head, beside Size and hp: the fold of `defenseRows`
+   * "Defence 21" in the head, beside the town's health: the fold of `defenseRows`
    * (`defenseTotal`, rule 5), with the whole ledger as its hover card. The
    * fourth-pass frame drew no Defence row, and a town's toughness reads beside
    * its hit points. It takes the keyboard, so the ledger is reachable without a
@@ -4642,7 +4720,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   function renderDefenceFigure(city: City): HTMLElement {
     const { state } = getGame();
     const rows = defenseRows(state, city);
-    const defence = element('span', 'city-size city-defence', `Defence ${figure(defenseTotal(rows))}`);
+    const defence = headFact('Defence', figure(defenseTotal(rows)));
+    defence.classList.add('city-defence');
     defence.tabIndex = 0;
     info.bind(defence, () => renderDefense(city));
     anchors.set('defence', defence);
@@ -4650,12 +4729,31 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
+   * One of the head's two facts: a word in the label's small capitals, then
+   * its figure in the tabular mono, a size larger than the label.
+   */
+  function headFact(word: string, value: string): HTMLElement {
+    const fact = element('span', 'city-head-fact');
+    fact.append(element('span', 'city-head-fact-word', word));
+    fact.append(element('span', 'city-head-fact-figure', value));
+    return fact;
+  }
+
+  /**
    * Writes a faith headline into `into`, the faith's name — and only the name —
    * in its founder's ink, the same `--seat-ink` the followers list uses, so a
    * rival's banner in your capital is the same colour wherever a player meets
    * it. The first line of the Faith row's body.
+   *
+   * The seat's own faith is named "your religion" here (the user, 2026-11-20:
+   * "It should read 'your religion' instead of the full name"); its full name
+   * is in the list under the line (`renderFollowers`).
    */
-  function faithHeadlineNode(head: CityFaithHeadline, into: HTMLElement): HTMLElement {
+  function faithHeadlineNode(
+    head: CityFaithHeadline,
+    into: HTMLElement,
+    ours = false,
+  ): HTMLElement {
     if (head.name === null || head.founderColor === null) {
       into.textContent = head.text;
       return into;
@@ -4663,7 +4761,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // Split on the name so the name — and only the name — carries the ink.
     const at = head.text.indexOf(head.name);
     into.append(document.createTextNode(head.text.slice(0, at)));
-    const name = element('span', 'city-faith-head-name', head.name);
+    const name = element('span', 'city-faith-head-name', ours ? FAITH_ROW_WORDS.inLine : head.name);
     name.style.setProperty('--seat-ink', head.founderColor);
     into.append(name);
     into.append(document.createTextNode(head.text.slice(at + head.name.length)));
@@ -4680,9 +4778,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * Top to bottom:
    *   - the faith the seat holds (`bankLineElement`): the head no longer prints
    *     the banks (the fourth-pass frame: "the Faith row holds the faith");
-   *   - the headline (`cityFaithHeadline`), and one click deeper every faith
-   *     with a claim on the town (`renderFollowers`, the old Faith
-   *     disclosure's whole contents, kept);
+   *   - the headline (`cityFaithHeadline`), with the seat's own faith called
+   *     "your religion", and under it every faith with a claim on the town,
+   *     yours first by name, each with its share (`renderFollowers`, the old
+   *     Faith disclosure's whole contents, kept and now in view);
    *   - the rite the town is keeping, as a small card: its name, a bar of the
    *     turns gone, and the turns left. One a rite, so a town keeping two under
    *     The Double Feast (Devotion batch DV8) says both;
@@ -4719,11 +4818,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     );
 
     if (head !== null) {
-      card.append(faithHeadlineNode(head, element('p', 'city-faith-headline')));
-      // Every faith with a claim on the town, one click deeper: the old Faith
-      // disclosure's whole contents (no-deletion rule).
       const claims = cityFaithRows(state, city, localPlayerId());
-      const every = disclosure('Every faith here', figure(claims.length), renderFollowers(city));
+      const ours = claims.some((row) => row.religion === head.religion && row.ours);
+      card.append(faithHeadlineNode(head, element('p', 'city-faith-headline'), ours));
+      // Every faith with a claim on the town, under the line: yours first by
+      // name, then the others, each with its share of the town (the user,
+      // 2026-11-20: "the breakdown below can clarify the name of your religion
+      // and other religions present in the city"). It was one click deeper,
+      // behind "Every faith here", until then.
+      const every = renderFollowers(city);
       if (every) card.append(every);
     }
 
@@ -4805,6 +4908,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
               }),
           paused,
           mark: place?.at === 'head' ? place.mark : null,
+          // The same chip as the build list's prices (the user, 2026-11-20).
+          chip: true,
         });
         line.append(cell);
         if (row.preview !== null) {
@@ -4851,50 +4956,50 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
-   * What this town believes — one line per faith with a claim on it, and the
-   * citizens who follow nothing.
+   * What this town believes: one line per faith with a claim on it, then the
+   * citizens who follow none, each with its share of the town on the right.
    *
-   * Under the citizens' row rather than beside the buildings, because it is a
-   * fact about the *people*: a religion does not take a town, it takes people in
-   * it one at a time, and the town flies the banner more than half of them
-   * follow (`City.followers`). So this reads as a second reading of the row
-   * above it.
+   * The seat's own faith comes first, as "Your religion" with its name beside
+   * it (the user, 2026-11-20: "the breakdown below can clarify the name of your
+   * religion and other religions present in the city"); the others follow in
+   * founding order (`cityFaithRows`), each named in **its founder's ink**,
+   * because whose faith it is is the whole of what makes a rival's banner in
+   * your town news. The faith most of the town follows carries the ✶.
    *
-   * Absent entirely until something presses, which is most of a game — the
-   * `renderBuilt` reading rather than `renderRoutes`': a town nobody has preached
-   * to has nothing to say about faith, and a permanent "no religion" line would
-   * be the sheet answering a question nobody asked.
-   *
-   * Foreign faiths are named in **their founder's ink**, because whose faith it
-   * is is the whole of what makes a rival's banner in your town news.
+   * Absent entirely until something presses, which is most of a game: a town
+   * nobody has preached to has nothing to say about faith.
    */
   function renderFollowers(city: City): HTMLElement | null {
     const { state } = getGame();
     const rows = cityFaithRows(state, city, localPlayerId());
     if (rows.length === 0) return null;
-    const box = element('div', 'city-built city-faith');
-    for (const row of rows) {
+    const box = element('div', 'city-faith');
+    const ordered = [...rows.filter((row) => row.ours), ...rows.filter((row) => !row.ours)];
+    for (const row of ordered) {
       const line = element('p', row.ours ? 'city-faith-row' : 'city-faith-row is-foreign');
+      const who = element('span', 'city-faith-who');
+      if (row.ours) who.append(element('span', 'city-faith-yours', FAITH_ROW_WORDS.yours));
       const name = element('span', 'city-faith-name', row.name);
       if (!row.ours) {
         name.style.setProperty('--seat-ink', row.founderColor);
         noteOn(name, `Founded by ${row.founderName}`);
       }
-      line.append(document.createTextNode('Following '));
-      line.append(name);
+      who.append(name);
       if (row.majority) {
         // The banner. A mark rather than a word, beside the name it is about,
         // exactly as the capital's star sits beside a city's.
         const mark = element('span', 'city-faith-majority', '✶');
         noteOn(mark, `More than half of ${city.name} follows ${row.name}`);
-        line.append(mark);
+        who.append(mark);
       }
+      line.append(who);
       line.append(
-        element(
-          'span',
-          'city-faith-count',
-          ` · ${figure(row.following)} of ${figure(row.population)} citizens`,
-        ),
+        element('span', 'city-faith-count', `${figure(row.following)}/${figure(row.population)}`),
+      );
+      line.setAttribute(
+        'aria-label',
+        `${row.ours ? `${FAITH_ROW_WORDS.yours}, ` : ''}${row.name}: ` +
+          `${figure(row.following)} of ${figure(row.population)} citizens`,
       );
       // The ledger on hover, and the bank's distance to the next citizen after
       // it: how hard a faith is pressing and how close the next one is to
@@ -4911,13 +5016,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     const left = unconvertedCitizens(city);
     if (left > 0) {
-      box.append(
-        element(
-          'p',
-          'hint',
-          `${figure(left)} of ${figure(city.population)} follow the old gods.`,
-        ),
+      const line = element('p', 'city-faith-row is-none');
+      line.append(element('span', 'city-faith-who', FAITH_ROW_WORDS.none));
+      line.append(
+        element('span', 'city-faith-count', `${figure(left)}/${figure(city.population)}`),
       );
+      line.setAttribute(
+        'aria-label',
+        `${FAITH_ROW_WORDS.none}: ${figure(left)} of ${figure(city.population)} citizens`,
+      );
+      box.append(line);
     }
     return box;
   }
@@ -5075,34 +5183,6 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   // --- the mode -------------------------------------------------------------
 
   /**
-   * One collapsed fact inside a fold row: a summary carrying the fold, the
-   * section's own contents inside it, closed until asked. Today only "Every
-   * faith here" inside the Faith row; the town's standing facts are the fold
-   * rows (`renderFolds`).
-   *
-   * A `<details>` is the platform's own: it opens on a click, it opens on
-   * Enter, a screen reader announces it as expandable, and **nothing inside it
-   * is deleted** — the contents are the very elements the sections built
-   * before. The figure in the summary is what makes a closed row worth having.
-   */
-  function disclosure(
-    label: string,
-    figures: string,
-    body: HTMLElement | null,
-    defaultOpen = false,
-  ): HTMLElement | null {
-    if (body === null) return null;
-    const box = element('details', 'city-disc');
-    const summary = element('summary');
-    summary.append(element('span', 'city-disc-name', label));
-    summary.append(element('span', 'city-disc-fig', figures));
-    box.append(summary);
-    box.append(body);
-    rememberOpen(box, label, defaultOpen);
-    return box;
-  }
-
-  /**
    * Opens a `<details>` as the player last left it, and remembers what they do
    * with it. Closed by default and open again after a repaint if the player had
    * opened it — see `openDisclosures` for why that is not a nicety. One that
@@ -5210,18 +5290,18 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * are somewhere else now" the mode has without moving the camera.
    *
    * The simpler city screen's head (the fourth-pass frame, `city_head`): the
-   * name between its ‹ and › (batch UX6); Size, hit points with `maxHpLedger`
-   * on hover, and the defence figure with its ledger on hover; what the town is
-   * short of, only when it is short of something (`renderShortOf`); the six
-   * yields as a mark and a figure each, where the empire's own sit one bar up;
-   * and the × that leaves the town. The empire's bar gives way while the mode
-   * holds (`style.css`, derived from the panel's own `hidden`), so the only
-   * yields on screen are this town's.
+   * name between its ‹ and › (batch UX6); health with `maxHpLedger` on hover
+   * and defence with its ledger on hover, larger than the labels and in the
+   * middle of the head's height; what the town is short of, only when it is
+   * short of something (`renderShortOf`); the six yields as a mark and a figure
+   * each, where the empire's own sit one bar up; and the × that leaves the
+   * town. The empire's bar gives way while the mode holds (`style.css`, derived
+   * from the panel's own `hidden`), so the only yields on screen are this
+   * town's.
    *
-   * Two things left the head with the third-pass comment ("this is too
-   * cluttered"): the banks, which the build list's price heading ("you have 555
-   * gold") and the Faith row now say, and the belief badge, whose sentence is
-   * the first line of the Faith row.
+   * Left the head with the user's comments: the banks (now the heads of the
+   * build list's price columns and the Faith row's first line), the belief
+   * badge (the Faith row's first line), and Size (the Citizens line).
    */
   function renderBand(city: City, quote: CityReading): HTMLElement {
     const { state } = getGame();
@@ -5232,15 +5312,17 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (step !== null) title.append(step.previous);
     title.append(element('h2', undefined, cityDisplayName(state, city)));
     if (step !== null) title.append(step.next);
-    title.append(element('span', 'city-size', `Size ${city.population}`));
-    // Hit points beside population, in the same small voice — `cityMaxHp` is
-    // the fold `explainCityMaxHp` breaks down, so the tooltip and the figure
-    // can never disagree.
-    const hp = element('span', 'city-size', `${city.hp}/${cityMaxHp(city, city, state)} hp`);
-    noteOn(hp, maxHpLedger(city, state));
-    title.append(hp);
-    title.append(renderDefenceFigure(city));
     band.append(title);
+    // Health and defence, larger and in the middle of the head's height (the
+    // user, 2026-11-20: "this text feels awkward, it should probably be bigger
+    // and centered. Size is unneeded in the top bar"). The town's size is the
+    // Citizens line's. Health is `cityMaxHp`, the fold `explainCityMaxHp`
+    // breaks down, so the hover and the figure can never disagree.
+    const facts = element('div', 'city-head-facts');
+    const hp = headFact('Health', `${city.hp}/${cityMaxHp(city, city, state)}`);
+    noteOn(hp, maxHpLedger(city, state));
+    facts.append(hp, renderDefenceFigure(city));
+    band.append(facts);
     // What the town is short of, in the middle of the head (batch UX6). The
     // siege and unrest badges that sat beside the name are two of these chips
     // now, so each problem is said in one place. A town that is fine shows none.
@@ -5453,7 +5535,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * It used to print under every city panel forever, which is the surest way to
    * make an instruction invisible. Two readers are left and both are asking the
    * question it answers: a player being taught (the guide is up), and a player
-   * who has armed Buy Tiles, whose whole mode is clicking hexes.
+   * who has armed Buy Tiles, whose whole mode is clicking hexes. It stands over
+   * the Buy tiles button in the bottom-centre dock (`renderBuyDock`).
    */
   function renderBoardCaption(city: City): HTMLElement | null {
     const { state } = getGame();
@@ -5622,12 +5705,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // A row's card belongs to where the row was; a scroll moves the row.
     workRail.addEventListener('scroll', () => hideRowCard());
     if (pinnedChip !== null) showChipCard(pinnedChip.key);
-    // Out of the flow: the caption sits against the bottom of the screen rather
-    // than after the rails, and the row above must not shorten to make room for
-    // something that is over the board anyway. It is the only thing the panel
-    // puts at the foot, and only while it is asked for.
-    const caption = renderBoardCaption(city);
-    if (caption) container.append(caption);
+    // Out of the flow: Buy tiles and its caption sit against the bottom centre
+    // of the screen rather than after the rails, and the row above must not
+    // shorten to make room for something that is over the board anyway. It is
+    // the only thing the panel puts at the foot.
+    container.append(renderBuyDock(city));
   }
 
   /**

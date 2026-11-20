@@ -702,19 +702,25 @@ describe('the followers on a city sheet', () => {
     expect(panel).toContain('pressureLedgerText(row.ledger)');
     expect(panel).toContain('unconvertedCitizens(city)');
     // Drawn in the Faith row's body since the simpler city screen (the Faith
-    // card of batch UX7, folded), behind a disclosure whose summary is the
-    // count of claims — never dropped, and never a fact the sheet invents
-    // beside the list.
+    // card of batch UX7, folded), and in view under the row's first line since
+    // 2026-11-20 (the user: "the breakdown below can clarify the name of your
+    // religion and other religions present in the city") — never dropped, and
+    // never a fact the sheet invents beside the list. The seat's own faith
+    // comes first.
     expect(fn('cityPanel.ts', 'foldBody')).toContain('return renderFaithCard(city);');
     const card = fn('cityPanel.ts', 'renderFaithCard');
-    expect(card).toContain(
-      "disclosure('Every faith here', figure(claims.length), renderFollowers(city))",
-    );
+    expect(card).toContain('const every = renderFollowers(city);');
     expect(card).toContain('cityFaithRows(state, city, localPlayerId())');
+    expect(fn('cityPanel.ts', 'renderFollowers')).toContain(
+      'const ordered = [...rows.filter((row) => row.ours), ...rows.filter((row) => !row.ours)];',
+    );
     // And the one-line answer the block is the argument for (the 2026-08-28
-    // ruling) is the row's first line, now that the head is simpler; the shut
-    // row names the faith most of the town follows (`cityFoldRows`).
-    expect(card).toContain("card.append(faithHeadlineNode(head, element('p', 'city-faith-headline')));");
+    // ruling) is the row's first line, now that the head is simpler, with the
+    // seat's own faith called "your religion" (the user: "It should read 'your
+    // religion' instead of the full name").
+    expect(card).toContain(
+      "card.append(faithHeadlineNode(head, element('p', 'city-faith-headline'), ours));",
+    );
     expect(sourceOf('cityPanel.ts')).not.toContain('function renderFaithHeadline(');
   });
 });

@@ -32,16 +32,30 @@ import { orderFaceMarkUri } from '../art/orderFaceMarks';
 import { element } from './dom';
 
 /**
+ * The two forms of the ribbon.
+ * - `band`: the full ribbon behind a plate's painting, with a line of marks
+ *   along each edge and a sun and a moon on the band.
+ * - `seam`: a thin ribbon with one line of marks and nothing else. The title
+ *   screen uses it as the seam between its painting and the paper below it
+ *   (frame a8 of the Quiet Table boards, `titlePainting.ts`).
+ */
+type PlateRibbonForm = 'band' | 'seam';
+
+/**
  * The ribbon itself. The stars, suns and moons are the card corners' own marks
  * (`orderFaceMarks.ts`), handed to the stylesheet as masks, so they take the
  * plate's gilt.
  */
-export function plateRibbonNode(): HTMLElement {
-  const ribbon = element('div', 'plate-ribbon');
+export function plateRibbonNode(form: PlateRibbonForm = 'band'): HTMLElement {
+  const ribbon = element('div', form === 'seam' ? 'plate-ribbon is-seam' : 'plate-ribbon');
   ribbon.setAttribute('aria-hidden', 'true');
   ribbon.style.setProperty('--plate-star', `url("${orderFaceMarkUri('star')}")`);
   ribbon.style.setProperty('--plate-sun', `url("${orderFaceMarkUri('sun')}")`);
   ribbon.style.setProperty('--plate-moon', `url("${orderFaceMarkUri('moon')}")`);
+  if (form === 'seam') {
+    ribbon.append(element('i', 'plate-ribbon-edge is-top'));
+    return ribbon;
+  }
   ribbon.append(
     element('i', 'plate-ribbon-edge is-top'),
     element('i', 'plate-ribbon-edge is-foot'),

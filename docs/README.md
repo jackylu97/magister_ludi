@@ -1584,13 +1584,31 @@ Eight root pages, all named in `vite.config.ts` inputs:
   `index.html` lists every surface.
 - **The landing is three screens and one element** (batch L7, `docs/flags.md`
   (yyyy); the mockup is `mockups/new-game-flow.html`): `data-step` on `#landing`
-  is the whole of the screen state — **title** (the poster, shown here and
-  nowhere else, with the menu and the shelf of recent worlds on its edges;
-  Enter · N · L · ? are its keys), **world** (the mode switch, the map card, a
-  mono summary strip) and **civ** (the roster of figures and the detail card,
-  with Begin). Nothing routes and no field is rebuilt between steps, which is
-  what keeps `currentConfig` byte-identical for the same choices. The step walk,
-  the breadcrumbs, the summary and the keys are `src/ui/landingFlow.ts`.
+  is the whole of the screen state: **title**, **world** (the mode switch, the
+  map card, a mono summary strip) and **civ** (the roster of figures and the
+  detail card, with Begin). Nothing routes and no field is rebuilt between
+  steps, which is what keeps `currentConfig` byte-identical for the same
+  choices. The step walk, the breadcrumbs, the summary and the keys are
+  `src/ui/landingFlow.ts`.
+- **The title step** is frame a8 of the Quiet Table boards (approved
+  2026-11-19, `docs/plans/ui-critique-2026-10-16.md`):
+  - the painting across the full width of the window, with "Magister Ludi" on
+    its sky, a small ornament and the tag line "a game for the ages";
+  - the lapis ribbon as the seam (`plateRibbonNode('seam')`, the thin form of
+    the plates' ribbon in `src/ui/plateRibbon.ts`);
+  - on the paper: one row of plain buttons (New game is the primary, then
+    Continue, Load a game, Compendium), the line "Multiplayer and settings
+    come later", and the panel of recent worlds (`recentWorlds`, the newest
+    four saves, each a leader and a turn; a row loads that world).
+  - Its keys are Enter (Continue), N, L and ?. The buttons print N, L and ?.
+  - `src/ui/titlePainting.ts` chooses the picture and owns the step's
+    stylesheet (`src/ui/titleScreen.css`). The title painting is
+    `public/art/splash/title/title.jpg`, listed in `TITLE_PAINTINGS` and
+    synced to the folder by a test. Until it exists, the page shows a
+    stand-in, the painted town of the earlier banner (`TITLE_STAND_IN`). If no
+    picture loads, `data-title-art` on `#landing` becomes `banner` and the
+    page shows the earlier banner (`.marquee-poster`) over the same buttons.
+  - The flair gallery shows it (`flair.html#title-screen`).
 - **A seat is called by its figure** (`docs/flags.md` (ppppp)): `seatName(state,
   id)` and `seatPeople(state, id)` (`src/sim/leaderData.ts`) are the one reading
   — the figure's name where a seat sits under one, the ink's name where it does
@@ -2009,34 +2027,49 @@ Eight root pages, all named in `vite.config.ts` inputs:
   "City screen: simpler"; the fourth-pass frame is `city4` in
   `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/build.py`). The
   user, on the third pass: "this is too cluttered, could you make it a bit
-  simpler and less overwhelming for new players?" All of it is
-  `src/ui/cityPanel.ts`:
+  simpler and less overwhelming for new players?" The user's comments on the
+  built screen (2026-11-20, "The city screen as built") are in it too. All of
+  it is `src/ui/cityPanel.ts`:
+  - **the panels** are the frame's widths: the town panel 286 px and the work
+    panel 400 px. `data/view3d.json`'s `cityFrameBiasPx` (57, half their
+    difference) and `cityFrameInsetPx` (742, both widths and the four 14 px
+    gutters) keep the framed town centred between them, pinned by
+    `test/ui/cityScreen.test.ts`;
   - **the head** is ruled like a sheet head (ink over a gilt hairline): the
-    name between ‹ and ›, then Size, hit points and Defence (the defence
+    name between ‹ and ›, then Health and Defence, each a small-caps word and
+    a larger mono figure in the middle of the head's height (the defence
     ledger is that figure's hover card), what the town is short of (only when
-    it is short of something), the six yields as a mark and a figure each, and
-    the × that leaves the town (Escape too). The banks and the belief badge
-    are no longer in the head;
+    it is short of something: unrest, siege, starving, unhappy, authority
+    overdrawn; no Idle chip), the six yields as a mark and a figure each, and
+    the × that leaves the town (Escape too). The banks, the belief badge and
+    Size are no longer in the head;
   - **the left panel** keeps growth, borders and the citizens' focus in view.
     The next citizen and the next tile are each meter's hover; where the
     citizens are ("8 on land · 2 specialists · 1 idle") is the Citizens line's
-    hover, and an idle citizen also shows beside the count. Buy tiles is a
-    small button at the end of the borders bar;
+    hover, and an idle citizen also shows beside the count. The four focus
+    chips fit one row with even gaps;
   - **the fold rows** under them hold the rest: Buildings, Empire buildings,
     Wonders, Specialists, Faith, Trade routes and Levy a citizen. A town shows
     a row only when it has something in it (`cityFoldRows`); a shut row says
     one fact ("6", "1 ready", "a rite, 9 turns"); one row is open at a time,
     and the open row is the panel's own state, kept when the next town has the
     same row (`keptFold`). The Faith row opens on the faith the seat holds,
-    what the town follows, the rite it keeps and the rites it may start, and
-    folds the rites behind one line when none can be started here. The Levy
-    row's body is the levy menu;
-  - **the work panel** is one panel: what is being built, the queue, and the
-    build list as before (the gear on each row, no pictures). The build list's
-    price heading says what the seat holds; there is no Supply strip and no
-    "No Iron spare" chip, because a unit with no supply is greyed in the list;
-  - **the foot** carries nothing of the panel but the board caption, and only
-    while the guide is up or Buy tiles is on.
+    what the town follows (the seat's own faith is "your religion"), every
+    religion in the town with its share (yours first, by name), the rite it
+    keeps and the rites it may start, and folds the rites behind one line when
+    none can be started here. The Levy row's body is the levy menu;
+  - **the work panel** is one panel: what is being built, the queue, the tabs,
+    and directly under them the build list (the gear on each row, no
+    pictures). Over each price column is its bank's mark and what the seat
+    holds; every row has one cell in each column. A price is one chip, its
+    figure and mark on one line, centred on its row (`priceCellElement`'s
+    `chip` option); a price the bank cannot pay yet is the same chip with its
+    figure in red and no "need" line; a dash where the bank does not sell the
+    row. There is no "Buy outright" line, no caravans line, no Supply strip and
+    no "No Iron spare" chip (a unit with no supply is greyed in the list);
+  - **the foot** carries Buy tiles, its own button at the bottom centre
+    (`renderBuyDock`); while it is on, the board caption over it says what the
+    treasury holds and why a hex's plate is a dash.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

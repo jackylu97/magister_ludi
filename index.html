@@ -78,137 +78,115 @@
          answer byte for byte the same config for the same choices. The step
          logic is src/ui/landingFlow.ts; the stylesheet does the showing.
          ============================================================ -->
-    <div id="landing" data-step="title">
+    <div id="landing" data-step="title" data-title-art="painting">
       <div class="landing-stage">
-        <!-- The specimen's marquee, verbatim in spirit: the display face, the
-             italic vermilion accent on the second word, an italic subtitle and
-             a mono stamp. The one place the game announces itself.
-
-             Dressed as a **frontispiece** (art pass A2): the engraved title
-             page of a book, with the hairline double rule under the title, the
-             printer's device beside it and an epigraph in the margin. Every
-             word here is unchanged — the device and the epigraph are the only
-             two things that were added, and the epigraph is the only new copy
-             on the screen. Both are filled in by src/ui/frontispiece.ts on each
-             showing of the landing; the device is a drawn mark (an astrolabe,
-             src/ui/deviceMarks.ts) worn as a mask, so it takes the page's ink
-             like every other mark in the game.
-
-             It is laid out as a **masthead** rather than a centred plate (the
-             design pass of 2026-09-10, against the mockup): the title page of a
-             book is the whole leaf, and this leaf has two cards on it. Banding
-             the frontispiece across the top is what gets both of them — the
-             world and the seat — onto one screen, which is the mockup's whole
-             composition. The order of the words is unchanged; only the
-             arrangement is. -->
-        <!-- The poster (2026-09-14, the user's design pass in the artifact):
-             the frontispiece is the user's gouache plate — the lit town under a
-             blue sky — with the title set straight into the sky in the plate's
-             own cream and gold, a hairline double frame printed inside the
-             painting with a star at each corner, a small overline and a starred
-             rule under the title, and the stamp as a cream outline in the
-             corner. The tagline, the printer's device and the epigraph are gone
-             (the user: "axe the tagline altogether", "we don't need the
-             astrolabe or the latin text"); src/ui/frontispiece.ts guards both
-             of its elements against absence, so main.ts is untouched. The plate
-             is served at two sizes from public/art/. -->
-        <header class="marquee marquee-poster landing-step" data-step-for="title">
-          <div class="marquee-art">
-            <img
-              class="marquee-plate"
-              src="/art/frontispiece.jpg"
-              srcset="/art/frontispiece-small.jpg 900w, /art/frontispiece.jpg 1680w"
-              sizes="(max-width: 900px) 100vw, 1280px"
-              alt=""
-              decoding="async"
-            />
-            <div class="marquee-frame" aria-hidden="true"></div>
-            <span class="marquee-star tl" aria-hidden="true">✶</span>
-            <span class="marquee-star tr" aria-hidden="true">✶</span>
-            <span class="marquee-star bl" aria-hidden="true">✶</span>
-            <span class="marquee-star br" aria-hidden="true">✶</span>
-            <div class="marquee-name">
-              <h1 class="marquee-title">Magister <em>Ludi</em></h1>
-              <span class="marquee-rule-star" aria-hidden="true"></span>
-            </div>
-            <span class="marquee-stamp">a game for the ages</span>
-          </div>
-        </header>
-
         <!-- ---- step one of three: the title -------------------------------
-             The two cards on the poster's edges: the menu at the left, the
-             shelf of recent worlds at the right. The title screen owns
-             everything that is *not* a decision about a new world — continuing,
-             loading, the book, settings — so that the two setup steps are
-             nothing but the new game.
+             Frame a8 of the Quiet Table boards, which the user approved on
+             2026-11-19 ("great, i like this"; the ruling is in
+             docs/plans/ui-critique-2026-10-16.md). From the top:
+             - the painting, the full width of the window, with the title on
+               its sky and a soft fade behind the words;
+             - the lapis ribbon, as the seam between the painting and the
+               paper (`plateRibbonNode('seam')`, put into #title-seam);
+             - the paper: one row of plain buttons, a line about what comes
+               later, and the panel of recent worlds at the right.
 
-             Every row here is a real button with its key printed beside it, and
-             the keys are the same four landingFlow.ts answers: they cannot
-             drift, because a key with no row would be a secret and a row with no
-             key would be a lie. -->
-        <div class="landing-title-grid landing-step" data-step-for="title">
-          <div class="hud-card landing-card landing-menu">
-            <!-- Continue is the newest save of any kind — autosave or a named
-                 one, whichever is later — named by its own figure, seed and
-                 turn (`refreshResumeRow`). It hides itself when there is
-                 nothing to resume, so a first-ever visit sees a menu with
-                 nothing dead on it. -->
-            <button id="continue-game" class="btn landing-menu-item is-strong" type="button" hidden>
-              <span class="landing-menu-text">
-                Continue
-                <span id="continue-label" class="landing-menu-sub"></span>
-              </span>
-              <span class="landing-key">Enter</span>
-            </button>
-            <button id="landing-new" class="btn landing-menu-item" type="button">
-              <span class="landing-menu-text">New game</span>
-              <span class="landing-key">N</span>
-            </button>
-            <button id="landing-load" class="btn landing-menu-item" type="button">
-              <span class="landing-menu-text">Load a game</span>
-              <span class="landing-key">L</span>
-            </button>
+             The painting is src/ui/titlePainting.ts: it chooses the picture
+             (the title painting, or a stand-in until that exists) and sets
+             `data-title-art` on #landing. If no picture loads, the value is
+             `banner` and the page shows the banner it had before (the poster
+             below), with the same buttons under it. The stylesheet is
+             src/ui/titleScreen.css.
+
+             The title screen owns everything that is not a decision about a
+             new world: continuing, loading, the book. The two setup steps are
+             only the new game. -->
+        <div class="title-screen landing-step" data-step-for="title">
+          <!-- The picture is not in the markup: titlePainting.ts puts it in
+               first, once it knows which picture to ask for, so the page
+               fetches one picture only. Until it shows, the window is the
+               lapis of a sky. -->
+          <header id="title-head" class="title-head">
+            <div class="title-fade" aria-hidden="true"></div>
+            <div class="title-name">
+              <h1 class="title-word">Magister <em>Ludi</em></h1>
+              <span class="title-ornament" aria-hidden="true"><i></i><b></b><i></i></span>
+              <p class="title-tagline">a game for the ages</p>
+            </div>
+          </header>
+
+          <!-- The fallback: the banner the title screen had before frame a8
+               (the user's gouache plate of the lit town, 2026-09-14), shown
+               only when no painting loads. Its picture is lazy, so the page
+               does not fetch it while the banner is hidden. -->
+          <header class="marquee marquee-poster title-banner">
+            <div class="marquee-art">
+              <img
+                class="marquee-plate"
+                src="/art/frontispiece.jpg"
+                srcset="/art/frontispiece-small.jpg 900w, /art/frontispiece.jpg 1680w"
+                sizes="(max-width: 900px) 100vw, 1280px"
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
+              <div class="marquee-frame" aria-hidden="true"></div>
+              <span class="marquee-star tl" aria-hidden="true">✶</span>
+              <span class="marquee-star tr" aria-hidden="true">✶</span>
+              <span class="marquee-star bl" aria-hidden="true">✶</span>
+              <span class="marquee-star br" aria-hidden="true">✶</span>
+              <div class="marquee-name">
+                <h1 class="marquee-title">Magister <em>Ludi</em></h1>
+                <span class="marquee-rule-star" aria-hidden="true"></span>
+              </div>
+              <span class="marquee-stamp">a game for the ages</span>
+            </div>
+          </header>
+
+          <div id="title-seam" class="title-seam"></div>
+
+          <div class="title-paper">
+            <!-- One row of plain buttons. New game is the next step, so it is
+                 the primary button. A key hint is printed only where the frame
+                 prints one, and every key printed here is one that
+                 landingFlow.ts answers. Enter also continues; it is not printed,
+                 as in the frame, and `aria-keyshortcuts` names it. -->
+            <div class="title-menu">
+              <button id="landing-new" class="btn btn-primary title-button" type="button" aria-keyshortcuts="N">
+                New game <kbd class="title-key" aria-hidden="true">N</kbd>
+              </button>
+              <!-- Continue is the newest save of any kind, autosave or named,
+                   whichever is later, named by its leader and its turn
+                   (`refreshResumeRow`). It hides itself when there is nothing to
+                   resume, so a first visit sees nothing dead on the screen. -->
+              <button id="continue-game" class="btn title-button" type="button" aria-keyshortcuts="Enter" hidden>
+                Continue <span id="continue-label" class="title-button-sub"></span>
+              </button>
+              <button id="landing-load" class="btn title-button" type="button" aria-keyshortcuts="L">
+                Load a game <kbd class="title-key" aria-hidden="true">L</kbd>
+              </button>
+              <button id="landing-compendium" class="btn title-button" type="button" aria-keyshortcuts="?">
+                Compendium <kbd class="title-key" aria-hidden="true">?</kbd>
+              </button>
+            </div>
             <!-- Netcode comes after the playable core and the AI (CLAUDE.md,
-                 Direction). The row is here and disabled rather than absent,
-                 because "not yet" is information and a missing row is not. -->
-            <button id="landing-multiplayer" class="btn landing-menu-item" type="button" disabled>
-              <span class="landing-menu-text">
-                Multiplayer
-                <span class="landing-menu-sub">coming after the playable core</span>
-              </span>
-              <span class="landing-key"></span>
-            </button>
-            <div class="double-rule landing-menu-rule" aria-hidden="true"></div>
-            <button id="landing-compendium" class="btn btn-quiet landing-menu-item" type="button">
-              <span class="landing-menu-text">Compendium</span>
-              <span class="landing-key">?</span>
-            </button>
-            <!-- There is no settings screen yet: the ☰ menu's own rows belong to
-                 a running game. Disabled and saying so, for Multiplayer's
-                 reason. -->
-            <button id="landing-settings" class="btn btn-quiet landing-menu-item" type="button" disabled>
-              <span class="landing-menu-text">
-                Settings
-                <span class="landing-menu-sub">soon</span>
-              </span>
-              <span class="landing-key"></span>
-            </button>
-          </div>
+                 Direction), and there is no settings screen yet. The frame says
+                 so in one line, in place of two buttons that could not be
+                 pressed. -->
+            <p class="title-later">Multiplayer and settings come later.</p>
 
-          <!-- The shelf: the same slots the load list holds, newest first, each
-               row naming the figure, the seed, the turn and when. Empty markup —
-               `refreshResumeRow` fills it from `recentWorlds` (savesPanel.ts),
-               which is the one reading of the shelf either surface makes. -->
-          <div class="hud-card landing-card landing-shelf">
-            <p class="eyebrow">Recent worlds</p>
-            <div id="landing-shelf" class="landing-shelf-rows"></div>
-            <p id="landing-shelf-empty" class="landing-hint" hidden>
-              No worlds yet. A game autosaves at the end of every turn.
-            </p>
-            <p class="landing-hint">
-              Named saves and the autosave, newest first. Load opens the whole shelf,
-              with Import beside it.
-            </p>
+            <!-- The recent worlds: the newest slots of the save list, newest
+                 first, each a leader and a turn. A row is a button that loads
+                 that world. Empty markup: `refreshResumeRow` fills it from
+                 `recentWorlds` (savesPanel.ts), the one reading of the save list
+                 that Continue and this panel share. -->
+            <section class="title-worlds" aria-labelledby="title-worlds-head">
+              <p id="title-worlds-head" class="eyebrow">Recent worlds</p>
+              <div id="landing-shelf" class="title-worlds-rows"></div>
+              <p id="landing-shelf-empty" class="title-worlds-empty" hidden>
+                No worlds yet. A game autosaves at the end of every turn.
+              </p>
+            </section>
           </div>
         </div>
 
