@@ -421,9 +421,11 @@ describe('main.ts keeps no hand-written close lists', () => {
     expect(runs).toEqual([]);
   });
 
-  it('closes a surface directly only for its own action or to clean up a failed start', () => {
-    // Menu rows and offers close their current screen. A failed start also
-    // closes the tutorial. Each screen handles its own close shortcut.
+  it('allows direct closes for menu actions, failed startup and the previous game’s tutorial', () => {
+    for (const name of ['disposeGameScreens', 'openNewGame']) {
+      const body = braceBody(code, `function ${name}(): void {`);
+      expect(body.match(/tutorial\.close\(\);/g), name).toHaveLength(1);
+    }
     const closes = [...code.matchAll(/([\w.]+)\??\.close\(\);/g)].map((match) => match[1]!);
     expect(closes.sort()).toEqual(
       [
@@ -433,6 +435,7 @@ describe('main.ts keeps no hand-written close lists', () => {
         'menu',
         'reliquary',
         'statecraft',
+        'tutorial',
         'tutorial',
       ].sort(),
     );

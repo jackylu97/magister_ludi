@@ -448,7 +448,8 @@ describe('the second step: the user’s comments on the built screen', () => {
     expect(tabs).toBeGreaterThan(-1);
     expect(head).toBeGreaterThan(tabs);
     expect(list.slice(tabs, head)).not.toContain('grid.append(');
-    expect(list).not.toContain('Buy outright · full price');
+    const rendered = list.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, '');
+    expect(rendered).not.toContain('Buy outright · full price');
   });
 
   it('calls the seat’s own faith "your religion" on the line, and lists every faith in the town, yours first', () => {

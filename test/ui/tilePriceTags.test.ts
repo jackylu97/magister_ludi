@@ -204,12 +204,19 @@ describe('the flair cabinet’s specimen', () => {
    */
   it('borrows the plate rather than repainting it', () => {
     const local = source('flairGallery/style.css');
-    const priceRules = local.slice(local.indexOf('--- the price plate'));
+    const start = local.indexOf('--- the price plate');
+    const end = local.indexOf('/* --- ', start);
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    const priceRules = local.slice(start, end);
     for (const painted of ['--price-paper', '--price-ink', '--price-rim', 'font-variant-numeric']) {
       expect(priceRules.includes(painted)).toBe(false);
     }
     // The one override it is allowed: the plate is placed by `projectCell` on
     // the board and by nothing at all here, so it returns to the flow.
-    expect(priceRules).toMatch(/\.price-slot \.tile-price \{\s*position: static;/);
+    const rules = local.replace(/\/\*[\s\S]*?\*\//g, '').match(/[^{}]*\.tile-price\b[^{}]*\{[^{}]*\}/g) ?? [];
+    expect(rules.map(rule => rule.replace(/\s+/g, ' ').trim())).toEqual([
+      '.price-slot .tile-price { position: static; }',
+    ]);
   });
 });

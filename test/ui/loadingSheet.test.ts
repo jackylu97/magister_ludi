@@ -286,7 +286,7 @@ describe('the sheet on the page', () => {
     // And Continue, which is the shelf's first row wearing a different hat.
     expect(main).toContain('const newestRefused = newest !== undefined && refusedSlots.has(newest.slot.id);');
     expect(main).toContain(
-      '`${newest.figure} · seed ${newest.slot.seed} · would not open`',
+      'continueLabelEl.textContent = `${newest.figure} · would not open`;',
     );
     expect(main).toContain("continueButton.classList.toggle('is-refused', newestRefused);");
   });
