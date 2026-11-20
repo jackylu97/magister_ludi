@@ -787,3 +787,15 @@ draws for some of these cards to make sense?"
 - With these, every "tended" line has a hex to act on in most starts, a seat
   with only the charter can tend two terrains, and a seat that takes the
   Doctrines can keep whole towns wild.
+
+## The user's second ruling (2026-11-20)
+
+"yup no comment means approved, please fold these in and i'll do another
+review". So:
+- Changes 01 to 04 are approved as proposed, and the five questions take
+  their recommended answers (option C for tended land; one charter for both
+  first works; rarity set by how often a card should be seen; cards that open
+  a work become charters; Levy of the Land common in Tiers I and II).
+- The proposal "more kinds of tended work, no more draws" above is folded
+  into changes 01, 33 and 35 for the user's next review. It is the one part
+  the user has not yet seen on the page.
