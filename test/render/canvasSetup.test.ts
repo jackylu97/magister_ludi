@@ -25,14 +25,16 @@ describe('the canvas the painted look draws to', () => {
 });
 
 describe('the drawing buffer size', () => {
-  const { maxPixelRatio, pixelBudget } = VIEW3D.painted.canvas;
+  const { maxPixelRatio, reducedPixelRatio, pixelBudget } = VIEW3D.painted.canvas;
 
-  it('caps a Retina laptop at the painted ratio', () => {
+  it('caps a Retina laptop at the selected board resolution', () => {
     expect(drawingBufferRatio(1440, 900, 2, maxPixelRatio, pixelBudget)).toBe(1.5);
+    expect(drawingBufferRatio(1440, 900, 2, reducedPixelRatio, pixelBudget)).toBe(1.25);
   });
 
   it('never supersamples past the device ratio', () => {
     expect(drawingBufferRatio(800, 600, 1, maxPixelRatio, pixelBudget)).toBe(1);
+    expect(drawingBufferRatio(800, 600, 1, reducedPixelRatio, pixelBudget)).toBe(1);
   });
 
   it('lowers the ratio on a 4K monitor at 100% scaling so the buffer fits the budget', () => {

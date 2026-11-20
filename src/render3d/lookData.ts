@@ -1931,11 +1931,10 @@ interface PaintedShadowSpec {
 /**
  * The size of the painted game's drawing buffer.
  *
- * `maxPixelRatio` caps the device pixel ratio (a Retina laptop draws at 1.5,
- * not 2). `pixelBudget` caps the buffer's total pixels, so a 4K monitor at
- * 100% scaling, which has a ratio of 1, does not ask for 8.3 million pixels:
- * the ratio is lowered until width × height × ratio² fits. See
- * `drawingBufferRatio` in `canvasSetup.ts`.
+ * `maxPixelRatio` limits the number of samples per CSS pixel on high-density
+ * screens. The Reduce board resolution option uses `reducedPixelRatio` to draw fewer pixels.
+ * Both settings obey the device ratio and the total pixel limit in
+ * `pixelBudget`. See `drawingBufferRatio` in `canvasSetup.ts`.
  *
  * `restUnderCover` (render speed pass five): while a screen that hides every
  * pixel of the board is open, the board's motion frames are not drawn.
@@ -1945,6 +1944,7 @@ interface PaintedShadowSpec {
  */
 interface PaintedCanvasSpec {
   maxPixelRatio: number;
+  reducedPixelRatio: number;
   pixelBudget: number;
   restUnderCover: boolean;
   restUnderSheets: boolean;

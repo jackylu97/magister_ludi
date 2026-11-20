@@ -1697,3 +1697,57 @@ What follows:
 - **Still to draw:** how the board shows which hexes the citizens work (the
   user: "a bit unclear right now"). A design pass with pictures comes first.
 - **Pictures owed:** every fold row open.
+
+### Government banners as built: the user's comments (2026-11-20)
+
+Pictures: https://claude.ai/artifact/4Zc2jZanmY6vNZs2di6gCD. The user: "added
+some comments, otherwise great". In their words:
+
+| Picture | The user's comment |
+|---|---|
+| The government offer | "'with the cards you keep' is unneeded, and probably a bit confusing" |
+| The Council screen, the government seat | "keep cards the same size" |
+
+What follows:
+- **The offer's banner has no "With the cards you keep" label.** The figure
+  still lands in its seat when the player picks; the seat shows nothing before
+  that.
+- **On the Council screen the government's card is the same size as a chair's
+  card:** the same width and the same height as the Order cards beside it, at
+  every layout the screen has. The banner's content fits inside that size.
+
+### The city screen, second step: the user's comments (2026-11-20)
+
+Pictures: https://claude.ai/artifact/49AxwT8A2NjfYVMjoZx41Y. The user: "added
+comments, its looking a lot better." In their words (the "which part" column
+is my reading where the comment sits on a picture):
+
+| Picture | Which part | The user's comment |
+|---|---|---|
+| Late town at rest | the four focus chips, spread across the row | "these feel awkward still, could we have them left aligned, just make sure the chips don't overflow" |
+| Buildings row open | the list of buildings as running text | "lets have the items here be chips that are hoverable for their effects" |
+| Empire buildings row open | the same kind of list | "same goes for the other tabs" |
+| Levy a citizen row open | the row and its menu | "lets move the levies to the top, and give it a different UX than a dropdown so it doesn't disappear with the rest of the menus" |
+| Trade routes row open | the small "Trading post" label | "this formatting is awkward \"trading post\"" |
+| Trade routes row open | the body: "19 of 24 routes", the All routes button, the list of arrows | "lets fix the formatting here" |
+| Faith row open | the label "Your religion" over the list | "instead of 'your religion' as the title, lets just write 'religious followers' and teh star is enough of an indicator to say its yours." |
+| Faith row open | the kept rite's small card (Omen Reading) | "lets label this as a rite, and give it som visual separation from the first half of the tab" |
+
+What follows:
+- **Focus chips:** left aligned, with an ordinary gap, and they never run past
+  the panel.
+- **Buildings, Empire buildings, Wonders and Specialists:** each item is a
+  chip. Hover or keyboard focus on a chip shows what that thing does, from the
+  describers and the yield readings the game has (never hand-written prose
+  about a number). A relic or a consecration in the town is a chip of its own
+  with its effect in the hover.
+- **Levies leave the fold rows.** They sit near the top of the left panel,
+  under the citizens and the focus chips, always in view when the town has a
+  levy it can use: one button a levy, with its cost in citizens said before
+  the player confirms. A town with no levy shows nothing there.
+- **Trade routes row:** a tidy table. The trading post is a plain line or a
+  chip in the row's head, not a floating label. The count and "All routes"
+  share one line. Each route is a row: where it goes, and what it pays.
+- **Faith row:** the list is headed "Religious followers". The star alone
+  marks the player's religion. The kept rite sits under a rule and a "Rite"
+  label, apart from the followers.

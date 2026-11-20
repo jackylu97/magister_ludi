@@ -2510,6 +2510,24 @@ function build3DPanel(renderer: Renderer3D): () => void {
       const url = new URL(location.href); url.searchParams.set('light', select.value); history.replaceState(null, '', url);
     };
     lightLabel.append(select); menuExtrasEl.append(lightLabel);
+    const resolutionRow = document.createElement('div');
+    resolutionRow.className = 'row check';
+    const reduced = document.createElement('input');
+    reduced.type = 'checkbox';
+    reduced.id = 'reduce-board-resolution';
+    reduced.checked = renderer.reducedBoardResolutionEnabled;
+    const resolutionLabel = document.createElement('label');
+    resolutionLabel.htmlFor = reduced.id;
+    resolutionLabel.textContent = 'Reduce board resolution';
+    resolutionLabel.title = 'Draw fewer board pixels for smoother movement on high-resolution displays.';
+    resolutionRow.append(reduced, resolutionLabel);
+    menuExtrasEl.append(resolutionRow);
+    reduced.onchange = () => {
+      renderer.setReducedBoardResolution(reduced.checked);
+      const url = new URL(location.href);
+      if (reduced.checked) url.searchParams.set('boardResolution', 'reduced'); else url.searchParams.delete('boardResolution');
+      history.replaceState(null, '', url);
+    };
     // The option to stop the board's motion when idle (the user, 2026-11-17:
     // "Motion stopping after a few seconds is fine"). Off by default. It is
     // kept in the URL as `rest`, the way the time of day keeps `light`, so a
@@ -2654,7 +2672,10 @@ async function createRenderer(
     // Loaded here rather than at the top of the file, so the landing page does
     // not wait for three.js and the renderer before it can show the title.
     const { Renderer3D } = await import('./render3d/renderer3d');
-    const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'), { painted: mode === 'painted' });
+    const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'), {
+      painted: mode === 'painted',
+      reducedBoardResolution: new URLSearchParams(location.search).get('boardResolution') === 'reduced',
+    });
     try {
       if (mode === 'painted') {
         await renderer.enablePaintedLook(daylightChoice());
