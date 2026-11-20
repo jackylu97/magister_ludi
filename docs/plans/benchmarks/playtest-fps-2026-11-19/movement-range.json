@@ -1,0 +1,246 @@
+{
+  "baseline": "9a81a1bd",
+  "fixture": {
+    "seed": 999,
+    "turn": 120,
+    "seat": 0,
+    "cities": 74,
+    "units": 489,
+    "saveSHA256": "d4c94d9b86025e090e4cbada41453cae1277f5551d7375f79b1406d8cfdc6c96",
+    "viewport": [
+      0,
+      42,
+      1470,
+      793
+    ],
+    "drawingBuffer": [
+      2205,
+      1189
+    ],
+    "ratio": 1.5,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "zoomRadius": 7
+  },
+  "rangeComparison": {
+    "method": "Compare the ordered tile coordinates, costs and swap flags for every unit. Dispatch the same Pikeman move in both builds, compare the command result and state, then repeat. The hashes include the unit ID and every ordered destination.",
+    "move": {
+      "unit": 1293,
+      "target": [
+        54,
+        26
+      ]
+    },
+    "results": [
+      {
+        "label": "before move",
+        "units": 489,
+        "cells": 12208,
+        "swaps": 1326,
+        "sha256": "9127b6a40ab3bec096d072685335aa5901848a00790b551da9ea25a595a90a01"
+      },
+      {
+        "label": "after move",
+        "units": 489,
+        "cells": 12211,
+        "swaps": 1321,
+        "sha256": "d97f23c608080304a5f5564bbc962e0a114fdc3bbf14f1d0159c391a8dc96167"
+      }
+    ]
+  },
+  "fieldCounts": {
+    "method": "Existing field counters with and without the read scope for each moving unit of seat 0. Each count includes the occupancy and zone of control fields.",
+    "units": 94,
+    "before": 1952,
+    "after": 188,
+    "examples": [
+      {
+        "id": 818,
+        "type": "swordsman",
+        "cells": 53,
+        "swaps": 13,
+        "before": 122,
+        "after": 2
+      },
+      {
+        "id": 999,
+        "type": "warrior",
+        "cells": 8,
+        "swaps": 2,
+        "before": 18,
+        "after": 2
+      },
+      {
+        "id": 1293,
+        "type": "pikeman",
+        "cells": 5,
+        "swaps": 2,
+        "before": 18,
+        "after": 2
+      }
+    ]
+  },
+  "cpu": {
+    "method": "Time groups of twelve calls to reachableTiles in Node. Alternate the order of the two builds. Drop two warm-up groups per build. Each timing is the median across fourteen groups.",
+    "units": {
+      "818": {
+        "type": "swordsman",
+        "beforeMs": 8.219888875000038,
+        "afterMs": 3.3136840416666855,
+        "fasterPairs": 14,
+        "pairs": 14
+      },
+      "999": {
+        "type": "warrior",
+        "beforeMs": 1.0292742916666764,
+        "afterMs": 0.4165815833333303,
+        "fasterPairs": 14,
+        "pairs": 14
+      },
+      "1293": {
+        "type": "pikeman",
+        "beforeMs": 1.409253500000015,
+        "afterMs": 0.4035555833333243,
+        "fasterPairs": 14,
+        "pairs": 14
+      }
+    }
+  },
+  "browser": {
+    "method": "Four fresh loads in visible Chrome on the M4, with the same save, player fog, daylight and background bot planning. Alternate the releases in before, after, after, before order. Send real mouse and wheel input. Each load starts with the same Pikeman move and eight alternating unit selections. Handler time ends when the input handler returns. Click-to-draw ends at the first recorded board draw after that handler. Presented FPS counts compositor frame presentations during the camera gesture.",
+    "selectionOrder": [
+      "swordsman",
+      "warrior"
+    ],
+    "highlightParity": "The selected unit, attack tiles, movement tiles, highlight geometry, instance matrices and colors matched in every run.",
+    "runs": [
+      {
+        "run": "before-1",
+        "rangeMsByUnit": [
+          15.4,
+          2.6
+        ],
+        "clickHandlerMsByUnit": [
+          38.4,
+          17.1
+        ],
+        "clickToDrawMsByUnit": [
+          90.9,
+          49.1
+        ],
+        "moveToDrawMs": 126.6,
+        "drag": {
+          "slowestFullSecondPresentedFrames": 22,
+          "p95PresentationGapMs": 83.3,
+          "medianJsDrawSubmitMs": 9.6,
+          "presentedFps": 23.1,
+          "boardFps": 23.6,
+          "maxPresentationGapMs": 166.7
+        },
+        "zoom-cross": {
+          "slowestFullSecondPresentedFrames": 18,
+          "p95PresentationGapMs": 66.7,
+          "medianJsDrawSubmitMs": 9.4,
+          "presentedFps": 22.0,
+          "boardFps": 22.4,
+          "maxPresentationGapMs": 100.0
+        }
+      },
+      {
+        "run": "after-1",
+        "rangeMsByUnit": [
+          5.5,
+          0.9
+        ],
+        "clickHandlerMsByUnit": [
+          26.0,
+          10.6
+        ],
+        "clickToDrawMsByUnit": [
+          60.8,
+          28.3
+        ],
+        "moveToDrawMs": 87.1,
+        "drag": {
+          "slowestFullSecondPresentedFrames": 22,
+          "p95PresentationGapMs": 66.7,
+          "medianJsDrawSubmitMs": 6.8,
+          "presentedFps": 23.8,
+          "boardFps": 24.0,
+          "maxPresentationGapMs": 100.0
+        },
+        "zoom-cross": {
+          "slowestFullSecondPresentedFrames": 23,
+          "p95PresentationGapMs": 66.7,
+          "medianJsDrawSubmitMs": 7.3,
+          "presentedFps": 25.7,
+          "boardFps": 25.7,
+          "maxPresentationGapMs": 100.0
+        }
+      },
+      {
+        "run": "after-2",
+        "rangeMsByUnit": [
+          6.3,
+          1.1
+        ],
+        "clickHandlerMsByUnit": [
+          27.0,
+          13.9
+        ],
+        "clickToDrawMsByUnit": [
+          68.1,
+          39.3
+        ],
+        "moveToDrawMs": 154.3,
+        "drag": {
+          "slowestFullSecondPresentedFrames": 23,
+          "p95PresentationGapMs": 66.7,
+          "medianJsDrawSubmitMs": 10.4,
+          "presentedFps": 25.4,
+          "boardFps": 25.6,
+          "maxPresentationGapMs": 100.0
+        },
+        "zoom-cross": {
+          "slowestFullSecondPresentedFrames": 22,
+          "p95PresentationGapMs": 50.0,
+          "medianJsDrawSubmitMs": 14.3,
+          "presentedFps": 28.2,
+          "boardFps": 25.7,
+          "maxPresentationGapMs": 100.1
+        }
+      },
+      {
+        "run": "before-2",
+        "rangeMsByUnit": [
+          21.0,
+          3.2
+        ],
+        "clickHandlerMsByUnit": [
+          53.3,
+          20.4
+        ],
+        "clickToDrawMsByUnit": [
+          116.4,
+          55.4
+        ],
+        "moveToDrawMs": 112.9,
+        "drag": {
+          "slowestFullSecondPresentedFrames": 24,
+          "p95PresentationGapMs": 66.7,
+          "medianJsDrawSubmitMs": 10.8,
+          "presentedFps": 27.5,
+          "boardFps": 25.9,
+          "maxPresentationGapMs": 100.0
+        },
+        "zoom-cross": {
+          "slowestFullSecondPresentedFrames": 19,
+          "p95PresentationGapMs": 66.7,
+          "medianJsDrawSubmitMs": 15.0,
+          "presentedFps": 24.1,
+          "boardFps": 22.2,
+          "maxPresentationGapMs": 100.0
+        }
+      }
+    ]
+  }
+}
