@@ -2015,44 +2015,48 @@ function planCombat(
    * side. The defender's side is asked of the *defending unit's* owner, so a
    * card is always read for the empire that holds it.
    */
-  const situationFor = (unit: Unit, side: 'attacker' | 'defender'): CombatSituation => ({
-    unit,
-    side: side === 'attacker' ? 'attack' : 'defend',
-    tile,
-    vsBarbarians:
-      side === 'attacker'
-        ? isBarbarian(state, defenderOwnerId)
-        : !isBarbarian(state, defenderOwnerId) && isBarbarian(state, attacker.ownerId),
-    vsCity: target.city !== null,
-    targetHp: target.city
-      ? target.city.hp
-      : unitHp(target.unit!, unitHealthBonus(state, target.unit!.ownerId)),
-    targetMaxHp: target.city
-      ? cityMaxHp(target.city, townShelf(state, target.city), state)
-      : unitMaxHp(target.unit!, unitHealthBonus(state, target.unit!.ownerId)),
-    // **The piece on the other side**, whichever side is asking — Lautaro's "+3
-    // vs mounted". Absent when the thing opposite is a city, which has no
-    // silhouette, so a `vsClass` line simply does not pay against walls.
-    vsType: side === 'attacker' ? target.unit?.type : attacker.type,
-    // And what it is *worth* — Spartacus' "attacking a stronger unit". The
-    // roster's base figure, never this fold: a strength line that read the
-    // ledger it is about to join would be a line inside its own sum. Absent
-    // against a city for `vsType`'s reason exactly.
-    vsStrength:
-      side === 'attacker'
-        ? target.unit === null
-          ? undefined
-          : unitDef(target.unit.type).combatStrength
-        : unitDef(attacker.type).combatStrength,
-    // And **whose** it is — Spartacus' other half, "against a wider empire".
-    // Present against a city as well as against a piece, unlike the two fields
-    // above: walls have no silhouette and no base strength, but a town has an
-    // owner, and the realms are what this one compares.
-    vsOwnerId: side === 'attacker' ? defenderOwnerId : attacker.ownerId,
-    // Weight of Numbers (Dominion batch D8): what the attacker is striking, by
-    // its entity id (`strikeTargetId`). The defender's side names no target.
-    ...(side === 'attacker' ? { targetId: strikeTargetId(target) } : {}),
-  });
+  const situationFor = (unit: Unit, side: 'attacker' | 'defender'): CombatSituation => {
+    const opponent = side === 'attacker' ? target.unit : attacker;
+    const opponentCity = side === 'attacker' ? target.city : null;
+    return {
+      unit,
+      side: side === 'attacker' ? 'attack' : 'defend',
+      tile,
+      vsBarbarians:
+        side === 'attacker'
+          ? isBarbarian(state, defenderOwnerId)
+          : !isBarbarian(state, defenderOwnerId) && isBarbarian(state, attacker.ownerId),
+      vsCity: target.city !== null,
+      targetHp: opponentCity
+        ? opponentCity.hp
+        : unitHp(opponent!, unitHealthBonus(state, opponent!.ownerId)),
+      targetMaxHp: opponentCity
+        ? cityMaxHp(opponentCity, townShelf(state, opponentCity), state)
+        : unitMaxHp(opponent!, unitHealthBonus(state, opponent!.ownerId)),
+      // **The piece on the other side**, whichever side is asking — Lautaro's "+3
+      // vs mounted". Absent when the thing opposite is a city, which has no
+      // silhouette, so a `vsClass` line simply does not pay against walls.
+      vsType: side === 'attacker' ? target.unit?.type : attacker.type,
+      // And what it is *worth* — Spartacus' "attacking a stronger unit". The
+      // roster's base figure, never this fold: a strength line that read the
+      // ledger it is about to join would be a line inside its own sum. Absent
+      // against a city for `vsType`'s reason exactly.
+      vsStrength:
+        side === 'attacker'
+          ? target.unit === null
+            ? undefined
+            : unitDef(target.unit.type).combatStrength
+          : unitDef(attacker.type).combatStrength,
+      // And **whose** it is — Spartacus' other half, "against a wider empire".
+      // Present against a city as well as against a piece, unlike the two fields
+      // above: walls have no silhouette and no base strength, but a town has an
+      // owner, and the realms are what this one compares.
+      vsOwnerId: side === 'attacker' ? defenderOwnerId : attacker.ownerId,
+      // Weight of Numbers (Dominion batch D8): what the attacker is striking, by
+      // its entity id (`strikeTargetId`). The defender's side names no target.
+      ...(side === 'attacker' ? { targetId: strikeTargetId(target) } : {}),
+    };
+  };
   for (const line of cardCombatLines(state, situationFor(attacker, 'attacker'))) {
     bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
   }

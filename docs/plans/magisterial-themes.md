@@ -127,13 +127,16 @@ Magisterial gives up depth. The cards show it:
 
 ### Leaders
 
-- **Hypatia** (Scientific, Magisterial) leads the patrons and the landscape: +25% renown, and a work pays half again. Her cards: The Court Painter, The Overseers of Works, The Symposium, Letters Patent, The Laureate, The Quarter of Masters, The Universal Genius, The Divine Proportion.
-- **Akhenaten** (Devotion, Magisterial) leads the monuments: holy-site towns build wonders 20% faster. His cards: The Cornerstone, The Guild of Masons, The Unveiling, The Golden Age, Magnificence. The Sed Festival, Egypt's festival of a renewed reign, suits him too.
-- **Hildegard of Bingen** (Devotion, Magisterial) leads the engine: rite towns +20% culture, faith buildings +2 culture and +2 production. Her culture pays The Working Court and The Learned Patron.
-- **Emperor Taizong** (Dominion, Magisterial) colours the council: melee strength, and garrisoned towns pay happiness and culture. The Polemarch reads his Military cards.
-- **Zheng He** (Commerce, Magisterial) colours the pair: ships, and coastal routes pay gold and culture. His cards are the shared Travelling Players and The Cosmopolitan Court.
-- **Ibn Battuta** (every deck) leads the council for any seat: one more chair in every government, and the first redraw of every hand is free (the rule The Second Reading uses).
-- **The gap:** no Magisterial leader points at the council. A leader of a Republic or a Divan would. Leaders are tuned later.
+
+| Leader | Deck pair | Gameplay |
+|---|---|---|
+| Qin Shi Huang | Dominion + Magisterial | Garrisons, wonders and production from population. |
+| Cyrus the Great | Expansionist + Magisterial | Road connections, occupied Civic and Wildcard chairs, and worker-built great works. |
+| Lorenzo de' Medici | Commerce + Magisterial | Net gold income, local gold buildings, works and great people. |
+| Justinian | Devotion + Magisterial | Wonders, faith and worked Holy Sites. |
+| Sejong the Great | Scientific + Magisterial | Local population, research and scholar renown. |
+
+Ibn Battuta can draw from every deck.
 
 ## 3. The engine: culture and the draft
 

@@ -221,6 +221,7 @@ import {
   type WarOutlook,
   explainBuildingRow,
   explainEffects,
+  explainPersonSpendGrant,
   explainProjectRow,
   // Bot batch BP6: a row's and a road's step toward an open commission.
   buildingPullTerm,
@@ -4560,7 +4561,8 @@ function explainGreatPerson(
   } else {
     terms.push({ label: 'nothing to act on and nowhere its work would pay', value: 0 });
   }
-  terms.push(nest('the legacy it leaves either way', explainEffects(def.legacy, ctx)));
+  if (def.onSpend) terms.push(nest('when spent', explainPersonSpendGrant(def.onSpend, ctx)));
+  if (def.legacy.length) terms.push(nest('the legacy it leaves either way', explainEffects(def.legacy, ctx)));
   return appraise(terms);
 }
 

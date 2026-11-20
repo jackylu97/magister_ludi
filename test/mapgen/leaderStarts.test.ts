@@ -14,7 +14,6 @@ import { describe, expect, it } from 'vitest';
 import { improvementForResource } from '../../src/sim/improvementData';
 import { furnishMatches } from '../../src/sim/leaderData';
 import {
-  LEADER_IDS,
   type LeaderId,
   leaderDef,
   startBiasOf,
@@ -34,11 +33,12 @@ import {
   startSpacing,
 } from '../../src/sim/startPositions';
 import {
+  HISTORICAL_CAST as LEADER_IDS,
   CAST_ANCHOR,
   CAST_SIZE,
   SWEEP_SEEDS,
   appearances,
-  castFor,
+  historicalCastFor as castFor,
   seatOf,
 } from './leaderCriteria';
 import { newGame } from '../sim/newGameHelpers';

@@ -59,7 +59,7 @@ import type { PlayerSpec } from '../sim/state';
  */
 export const SEATS: readonly PlayerSpec[] = [
   { name: 'Crimson', color: '#d4502e', isHuman: true },
-  { name: 'Teal', color: '#1f8a85', isHuman: true },
+  { name: 'Teal', color: '#208b85', isHuman: true },
   { name: 'Gilt', color: '#c08a2b', isHuman: true },
   { name: 'Lapis', color: '#3f639f', isHuman: true },
   { name: 'Grape', color: '#7c5f8c', isHuman: true },
@@ -139,6 +139,7 @@ export const FULL_GAME_PERSONAS: readonly string[] = ['wide', 'tall', 'warmonger
  * stack, and this module is asked its questions before a game exists. The two
  * are pinned equal by `test/ui/gameSetup.test.ts`.
  */
+export const LEADER_PERSONA = 'leader';
 const DEFAULT_PERSONA_ID = 'balanced';
 
 /**
@@ -200,7 +201,7 @@ export function rosterFor(seats: number, options: RosterOptions = {}): PlayerSpe
     const rival = seat - 1;
     const persona = count === 2 ? (options.persona ?? DEFAULT_PERSONA_ID) : rivalPersona(rival);
     const driven: PlayerSpec = { ...spec, isHuman: false };
-    if (persona !== DEFAULT_PERSONA_ID) driven.persona = persona;
+    if (persona !== DEFAULT_PERSONA_ID && persona !== LEADER_PERSONA) driven.persona = persona;
     return driven;
   });
 }

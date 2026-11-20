@@ -1440,6 +1440,7 @@ describe('the focus arm', () => {
         if (decision === null) break;
         const command = decision.command;
         if (command.type === 'setCitizenFocus') {
+          checkFocusExplanation(decision);
           const city = state.cities.find((entry) => entry.id === command.cityId)!;
           expect(command.focus).not.toBe(cityFocus(city));
           expect(asked.has(command.cityId)).toBe(false);
@@ -1453,29 +1454,23 @@ describe('the focus arm', () => {
     });
   });
 
-  it('prints every sheet and folds each candidate, and every part, from its own terms', () => {
-    // Four rows since bot batch BP13b: the three lean sheets and the balanced
-    // ordering they are measured from.
-    const focus = richSittings().filter((sat) => sat.decision.kind === 'focus');
-    expect(focus.length).toBeGreaterThan(0);
-    for (const { decision } of focus) {
-      expect(decision.candidates.map((candidate) => candidate.label)).toEqual([
-        'work the hammers',
-        'work the harvest',
-        'work the coin',
-        'the balanced ordering',
-      ]);
-      expect(decision.candidates.filter((candidate) => candidate.chosen).length).toBe(1);
-      for (const candidate of decision.candidates) {
-        expect(foldTerms(candidate.terms)).toBe(candidate.score);
-        expect(partFoldFailures(candidate.terms, candidate.label)).toEqual([]);
-        if (candidate.label !== 'the balanced ordering') {
-          expect(candidate.terms[0]!.label).toContain('what the people would make');
-        }
+  function checkFocusExplanation(decision: BotDecision): void {
+    expect(decision.candidates.map((candidate) => candidate.label)).toEqual([
+      'work the hammers',
+      'work the harvest',
+      'work the coin',
+      'the balanced ordering',
+    ]);
+    expect(decision.candidates.filter((candidate) => candidate.chosen).length).toBe(1);
+    for (const candidate of decision.candidates) {
+      expect(foldTerms(candidate.terms)).toBe(candidate.score);
+      expect(partFoldFailures(candidate.terms, candidate.label)).toEqual([]);
+      if (candidate.label !== 'the balanced ordering') {
+        expect(candidate.terms[0]!.label).toContain('what the people would make');
       }
-      expect(decision.summary.length).toBeGreaterThan(0);
     }
-  });
+    expect(decision.summary.length).toBeGreaterThan(0);
+  }
 
   it('never points a puppet — the town that chooses for itself', () => {
     // `citizenFocusError` is the whole gate, and it refuses a puppet outright.
@@ -2796,32 +2791,7 @@ describe('batch X3 — the faith book prices the piece', () => {
   });
 });
 
-// --- item (hhhh): the garrison steps aside -----------------------------------
-
-/**
- * **A piece in the town's own hex is a thing this seat can move**, not a reason
- * to stop wanting a soldier — `docs/flags.md` item (hhhh), 2026-09-10.
- *
- * The ruling put a new refusal in front of every unit purchase: a bought unit
- * stands on the city hex or it is not sold. The book asks `purchaseError` as its
- * single gate, so the naive consequence was that a want *vanished* the moment
- * anything of its category was standing in the town — which is every garrisoned
- * town this bot has, and would have quietly stopped it buying soldiers where it
- * most wants them.
- *
- * Four claims, and the second one is the behaviour:
- *
- *   · the row is **kept and priced as before** — a step costs no coin, so
- *     nothing about what the piece is worth may move;
- *   · the spend arm **steps the blocker one hex and buys in the same turn**.
- *     Turns are simultaneous, so both commands land in one resolution and the
- *     town is garrisoned again before anybody else sees the board;
- *   · the piece **walks back in** on a later turn, which is an arm that already
- *     existed and is why the step needs nothing remembered;
- *   · a blocker with **nowhere to go** is out of reach — a saving row, exactly
- *     as a want beyond the purse is, and never a refusal.
- */
-describe('a bought unit stands on the city hex, so the garrison steps aside', () => {
+describe('bot purchases in a garrisoned town', () => {
   /** The bench's one town, with a warrior standing in it. */
   function garrisoned(): { state: GameState; player: Player; city: City; blockerId: number } {
     const state = benchState(1);
@@ -2855,7 +2825,7 @@ describe('a bought unit stands on the city hex, so the garrison steps aside', ()
     expect(blocked!.price).toBe(empty!.price);
   });
 
-  it('steps the blocker out and buys, both in one turn’s log', () => {
+  it('buys beside the garrison without issuing a move', () => {
     const { state, player, city, blockerId } = garrisoned();
     const sitting = botSitting(0);
     const log: { type: string; unitId?: number; cityId?: number }[] = [];
@@ -2872,31 +2842,12 @@ describe('a bought unit stands on the city hex, so the garrison steps aside', ()
 
     const step = log.findIndex((row) => row.type === 'moveUnit' && row.unitId === blockerId);
     const buy = log.findIndex((row) => row.type === 'purchaseItem' && row.cityId === city.id);
-    expect(step).toBeGreaterThanOrEqual(0);
-    // The order is the whole claim: the hex is cleared *first*, and the purchase
-    // that needed it clearing is the next thing the same arm returns.
-    expect(buy).toBeGreaterThan(step);
-
-    // Where everybody ended up: the bought piece is standing in the town — item
-    // (hhhh)'s own rule — and the blocker is one hex off it.
-    const blocker = state.units.find((unit) => unit.id === blockerId)!;
-    expect(blocker.col === city.col && blocker.row === city.row).toBe(false);
-    expect(
-      wrappedDistance(
-        state.map,
-        tileHex(getTileAt(state.map, blocker.col, blocker.row)!),
-        tileHex(getTileAt(state.map, city.col, city.row)!),
-      ),
-    ).toBe(1);
-    expect(
-      state.units.some(
-        (unit) =>
-          unit.ownerId === player.id &&
-          unit.id !== blockerId &&
-          unit.col === city.col &&
-          unit.row === city.row,
-      ),
-    ).toBe(true);
+    expect(step).toBe(-1);
+    expect(buy).toBeGreaterThanOrEqual(0);
+    expect(state.units.find(unit => unit.id === blockerId)).toMatchObject({ col: city.col, row: city.row });
+    const bought = state.units[state.units.length - 1]!;
+    expect(wrappedDistance(state.map, tileHex(getTileAt(state.map, bought.col, bought.row)!),
+      tileHex(getTileAt(state.map, city.col, city.row)!))).toBe(1);
   });
 
   it('is out of reach, never refused, when the blocker has nowhere to go', () => {

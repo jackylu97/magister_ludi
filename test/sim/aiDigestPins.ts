@@ -1322,10 +1322,12 @@ import { digestOfState, type Played } from './aiDigestHelpers';
  * where its free units can appear. The standard board gives the same result.
  * Version 248 changes the Dominion and Magisterial draft pools and wonder unlocks.
  * These games also use the revised chair valuations and unit grants.
+ * Version 249 changes unit purchases, Great Person recruitment, and religion names.
+ * Both six-seat games reached turn 120 without a rejected order or a stalled turn.
  */
 const DIGESTS = {
-  duel: 'd4d457c9:364993',
-  standard: '95507925:1047719',
+  duel: 'e9001772:371184',
+  standard: '5b4d3a8a:1071661',
 };
 
 /** Check driver errors before comparing the state digest. */

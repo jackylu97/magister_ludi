@@ -35,14 +35,15 @@ import { describe, expect, it } from 'vitest';
 import { tileHex, wrappedDistance } from '../../src/sim/map';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
 import { generateMap } from '../../src/sim/mapgen';
-import { LEADER_IDS, type LeaderId, leaderDef } from '../../src/sim/leaderData';
+import { type LeaderId, leaderDef } from '../../src/sim/leaderData';
 import {
   CAST_SIZE,
+  HISTORICAL_CAST as LEADER_IDS,
   CRITERIA,
   RATES,
   SWEEP_SEEDS,
   appearances,
-  castFor,
+  historicalCastFor as castFor,
   shareOf,
 } from '../mapgen/leaderCriteria';
 import {

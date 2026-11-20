@@ -6,6 +6,7 @@ import {
   ROSTER_AGES,
   greatPersonDef,
 } from '../../src/sim/greatPeopleData';
+import { describeCard, stripRefs } from '../../src/sim/statecraft';
 import { RULES } from '../../src/sim/rulesData';
 
 /**
@@ -141,13 +142,44 @@ describe('the great-people doc mirrors the roster', () => {
    * off the live roster rather than off the rows the table happens to hold, so a
    * row dropped from a table fails the test above and the count fails here.
    */
+  it('includes all approved additions with their family, age and rating', () => {
+    const plans = import.meta.glob('../../docs/plans/great-people-pass-2026-11-19.md', {
+      eager: true, query: '?raw', import: 'default',
+    });
+    const plan = Object.values(plans)[0] as string;
+    const rows = plan.split('\n').filter(line => /^\| A\d{2} \|/.test(line));
+    const people = new Map(LIVE_GREAT_PERSON_IDS.map(id => {
+      const person = greatPersonDef(id);
+      return [person.name, person];
+    }));
+    const ages: Record<string, number> = { 'Æra II': 2, 'Æra III': 3, 'Æra IV': 4 };
+    expect(rows).toHaveLength(74);
+    for (const row of rows) {
+      const [, , markedName, family, age, rating] = row.split('|').map(cell => cell.trim());
+      const name = markedName.replace(/^[★☆] /, '');
+      expect(people.get(name), name).toMatchObject({
+        family: family.toLowerCase(), age: ages[age], tier: rating.split(' ')[1],
+      });
+    }
+  });
+
+  it('prints the same legacy and immediate rewards as the game for every person', () => {
+    const data = new Map(LIVE_GREAT_PERSON_IDS.map(id => [greatPersonDef(id).name, id]));
+    for (const line of DOC.split('\n')) {
+      const [, name, , , , , legacy] = line.split('|').map(cell => cell.trim());
+      const id = name && data.get(name);
+      if (!id) continue;
+      expect(legacy, name).toBe(describeCard(id).map(clause => stripRefs(clause.text)).join(' · '));
+    }
+  });
+
   it('counts the names under each heading', () => {
     for (const age of ROSTER_AGES) {
       const heading = AGE_HEADINGS[age]!;
       const start = DOC.indexOf(heading);
       const end = DOC.indexOf('\n### ', start + heading.length);
       const section = DOC.slice(start, end === -1 ? undefined : end);
-      const said = /(\d+) names — one row per name/.exec(section);
+      const said = /(\d+) names in roster order/.exec(section);
       expect(said, `${heading} does not say how many names it holds`).not.toBeNull();
       const live = LIVE_GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).age === age).length;
       expect(Number(said![1]), `${heading} miscounts its names`).toBe(live);

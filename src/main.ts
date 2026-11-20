@@ -47,7 +47,7 @@ import { answerAudience, botSeatsToDrive, driveBots } from './ai/driver';
 import { valueContext } from './ai/bot';
 import { counterRefusal, counterTerms } from './ai/diplomacy';
 import type { BotDecision } from './ai/decision';
-import { DEFAULT_PERSONA, PERSONA_IDS, personaLabel } from './ai/stepper';
+import { PERSONA_IDS, personaLabel } from './ai/stepper';
 import {
   type CensusRecord,
   type GameConfig,
@@ -263,6 +263,7 @@ import type { HoverInfo, LensMode, MapView } from './ui/mapView';
 import { createInfoCard } from './ui/infoCard';
 import {
   DEFAULT_SEATS,
+  LEADER_PERSONA,
   DEFAULT_SIZE,
   MAX_SEATS,
   MIN_SEATS,
@@ -699,13 +700,14 @@ seatsValue.addEventListener('keydown', (event) => {
  * game's config is byte-identical to one from before personas existed — the
  * same bargain `charge` makes.
  */
+personaSelect.add(new Option("Leader’s preference", LEADER_PERSONA));
 for (const id of PERSONA_IDS) {
   const option = document.createElement('option');
   option.value = id;
   option.textContent = personaLabel(id);
   personaSelect.append(option);
 }
-personaSelect.value = DEFAULT_PERSONA;
+personaSelect.value = LEADER_PERSONA;
 
 /**
  * What moving the Seats stepper does to the rest of the card.
@@ -1915,6 +1917,7 @@ function currentConfig(): GameConfig {
       rosterFor(seatCount(), { persona: personaSelect.value, hotSeat: hotSeatToggle.checked }),
       leaderSelect.chosen,
       seed,
+      !seatsAskPersona(seatCount()) || personaSelect.value === LEADER_PERSONA,
     ),
     // **The game asks for the wild.** `GameConfig.barbarians` defaults to off so
     // that a fixture, an inspection page or a pacing measurement gets the quiet
@@ -4486,6 +4489,7 @@ async function boot(initial: Game | null): Promise<void> {
   let botsToTheWorker = false;
 
   const controls = createGameControls({
+    citizenDots: saveStorage.getItem('webciv.citizenDots') !== 'off',
     signal,
     viewport: viewportEl,
     renderer,
@@ -5984,6 +5988,11 @@ async function boot(initial: Game | null): Promise<void> {
     onClose: () => controls.setOpenCity(null),
     // The panel dispatches for itself too — the star chart's argument exactly.
     onCommitted: (command, result) => controls.reportCommand(command, result),
+    citizenDots: () => controls.citizenDots(),
+    setCitizenDots: (on) => {
+      controls.setCitizenDots(on);
+      saveStorage.setItem('webciv.citizenDots', on ? 'on' : 'off');
+    },
     isBuyMode: () => controls.isBuyMode(),
     setBuyMode: (on) => controls.setBuyMode(on),
     onOpenTrade: () => trade?.open(),

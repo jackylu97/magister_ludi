@@ -379,11 +379,13 @@ export function inPlayLayout(state: GameState, seat: number): InPlayLayout {
   const legacies: InPlayEntry[] = [];
   for (const held of [...player.legacies].reverse()) {
     if (held.revoked === true) continue;
+    const person = greatPersonDef(held.id);
+    if (person.onSpend && person.legacy.length === 0) continue;
     legacies.push({
       key: `legacy:${held.id}`,
       stack: 'legacies',
       form: 'legacy',
-      name: greatPersonDef(held.id).name,
+      name: person.name,
       sub: IN_PLAY_WORDS.legacy,
       card: held.id,
       piece: { kind: 'legacy', id: held.id },

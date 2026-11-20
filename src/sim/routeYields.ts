@@ -360,7 +360,7 @@ function routeLinesBetween(
   cardLines(state, from, to, lines, label, age, mode);
   shares(state, from, to, lines, label, age, mode);
   bySea(mode, lines, label);
-  amplify(state, from, lines, label);
+  amplify(state, from, lines, label, mode);
   return blockaded(state, from, to, lines);
 }
 
@@ -572,8 +572,9 @@ function amplify(
   from: City,
   lines: RouteYieldLine[],
   label: (note: string) => string,
+  mode: RouteMode,
 ): void {
-  const percent = cardAmplifier(state, from.ownerId, 'routeYields');
+  const percent = cardAmplifier(state, from.ownerId, 'routeYields', undefined, mode);
   if (percent === 0) return;
   const total = foldRouteYield(lines);
   // Exact since batch X: half again on a two-gold caravan is one gold, and half
@@ -702,7 +703,7 @@ export function explainRouteSenderYieldBetween(
   // and the ruling is about what a sea route pays, not about whose town it
   // ends in.
   bySea(mode, lines, label);
-  amplify(state, from, lines, label);
+  amplify(state, from, lines, label, mode);
   return blockaded(state, from, to, lines);
 }
 

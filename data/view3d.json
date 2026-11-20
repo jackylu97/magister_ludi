@@ -73,6 +73,7 @@
     "byColor": {
       "#d4502e": "crimson",
       "#1f8a85": "teal",
+      "#208b85": "teal",
       "#7a1f2b": "wildRed"
     },
     "fallbackOrder": [
@@ -275,6 +276,8 @@
       "prophet": "prophet",
       "apostle": "apostle",
       "canoness": "apostle",
+      "sparabara": "phalanx",
+      "ballistaElephant": "warElephant",
       "phalanx": "phalanx",
       "legionary": "legionary",
       "spearWall": "spearWall",
@@ -419,7 +422,13 @@
     "workedOpacity": 0.9,
     "lockedColor": "crimson",
     "ringScale": 0.44,
-    "lockedRingOpacity": 0.95
+    "lockedRingOpacity": 0.95,
+    "citizens": {
+      "ink": "ink", "freeOpacity": 0.32, "darkOpacity": 0.61,
+      "outlineRadius": 0.97, "edgeWidth": 0.069, "edgeInset": 0.014, "lineWidth": 0.041,
+      "dotRadius": 0.12, "dotEdge": 0.025, "markOffset": 0.40, "yieldOffset": 0.18,
+      "freeYieldOpacity": 0.72, "lockHeight": 0.30, "nameHeight": 0.27
+    }
   },
   "look": {
     "lightAzimuth": 187,
@@ -525,6 +534,13 @@
     "byUnitType": {
       "warrior": "warrior",
       "swordsman": "melee",
+      "hypaspist": "melee",
+      "janissary": "longswordsman",
+      "qinCrossbowman": "ranged",
+      "ballistaElephant": "warElephant",
+      "sparabara": "phalanx",
+      "condottiere": "longswordsman",
+      "hwacha": "trebuchet",
       "longswordsman": "longswordsman",
       "spearman": "spear",
       "pikeman": "pikeman",
@@ -808,6 +824,7 @@
         "size": 0.42,
         "jitter": 0.08
       },
+      "paradiseGarden": { "color": "sage", "shade": -0.08, "size": 0.56, "jitter": 0.04 },
       "physicGarden": {
         "color": "sage",
         "shade": -0.08,

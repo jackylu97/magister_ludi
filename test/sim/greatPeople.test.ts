@@ -31,6 +31,7 @@ import {
 } from '../../src/sim/cities';
 import {
   explainTileYield,
+  foldTile,
   yieldContextFor,
 } from '../../src/sim/yields/hex';
 import {
@@ -156,23 +157,15 @@ function citadelBench(): { state: GameState; city: City; general: Unit } {
 // --- the roster -------------------------------------------------------------
 
 describe('the roster', () => {
-  it('is the doc as it reads, four families deep per age', () => {
-    // **Eighty-six rows, seventy-eight of them dealt** (batch GP1, 2026-09-09,
-    // `docs/flags.md` (lll)). The table gained a retired concept it did not have
-    // before, and it gained it for the one reason a great-person row can never
-    // simply be deleted: a `LegacyRecord` in a save names the person by id, so
-    // the eight names the pass cut keep their rows and leave every draw. The two
-    // lists are therefore two questions — `GREAT_PERSON_IDS` is the table and
-    // `LIVE_GREAT_PERSON_IDS` is what the game deals — and this pins both.
-    expect(GREAT_PERSON_IDS.length).toBe(86);
-    expect(LIVE_GREAT_PERSON_IDS.length).toBe(78);
-    expect(GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).retired === true)).toHaveLength(8);
-    for (const age of [2, 3, 4, 5]) {
-      // Deep enough that a draw never spills in ordinary play; Æra II is the
-      // short one at sixteen since the pass moved two of its engineers forward.
-      expect(rosterOfAge(age).length, String(age)).toBeGreaterThanOrEqual(16);
-      // And nothing withdrawn is ever in the bag an offer is dealt from.
-      expect(rosterOfAge(age).some((id) => greatPersonDef(id).retired === true)).toBe(false);
+  it('keeps the approved number of people in each age and family', () => {
+    expect(GREAT_PERSON_IDS).toHaveLength(160);
+    expect(LIVE_GREAT_PERSON_IDS).toHaveLength(157);
+    const families = ['scholar', 'artist', 'engineer', 'merchant', 'general'];
+    const counts = [[10, 10, 10, 10, 10], [10, 10, 10, 10, 10], [11, 11, 10, 10, 11], [0, 2, 1, 0, 1]];
+    for (const [index, expected] of counts.entries()) {
+      const people = rosterOfAge(index + 2).map(greatPersonDef);
+      expect(people.some(person => person.retired)).toBe(false);
+      expect(families.map(family => people.filter(person => person.family === family).length)).toEqual(expected);
     }
   });
 
@@ -192,7 +185,7 @@ describe('the roster', () => {
     const retired = new Set(
       GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).retired === true),
     );
-    expect(retired.size).toBe(8);
+    expect(retired.size).toBe(3);
     let dealt = 0;
     for (let i = 0; i < 200; i += 1) {
       // The whole table, every age: the seat is walked up the tree so the draw
@@ -210,13 +203,8 @@ describe('the roster', () => {
   });
 
   it('maps an empire’s era onto a roster age, and never off the table', () => {
-    // The tech tree knows three ages; the roster is numbered II–V. One function
-    // between them, so the tree pass moves one line.
     expect(rosterAgeFor(1)).toBe(2);
-    expect(rosterAgeFor(2)).toBe(3);
-    expect(rosterAgeFor(3)).toBe(4);
-    // A hypothetical fourth era clamps to the last roster age rather than
-    // reaching for a bag that does not exist.
+    for (const age of [2, 3, 4, 5]) expect(rosterAgeFor(age)).toBe(age);
     expect(rosterAgeFor(9)).toBe(5);
   });
 
@@ -239,11 +227,7 @@ describe('the draw', () => {
   it('spills to the previous age before the next when the age runs short', () => {
     const g = game(11);
     const player = g.state.players[0]!;
-    // An Æra-III **roster** empire whose own age holds one name left. The
-    // roster's ages run one past the tree's (`rosterAgeFor`), so this is a seat
-    // standing in the tree's Æra II — re-read, not re-argued, by the tree pass
-    // of 2026-08-30, which moved Iron Working into Æra III under it.
-    player.techsResearched.push('siegecraft');
+    player.techsResearched.push('ironWorking');
     bumpRevision(g.state);
     const age = 3;
     expect(highestAge(player.techsResearched)).toBeGreaterThan(1);
@@ -259,7 +243,7 @@ describe('the draw', () => {
   it('reaches forward once the previous ages are spent too', () => {
     const g = game(13);
     const player = g.state.players[0]!;
-    player.techsResearched.push('siegecraft');
+    player.techsResearched.push('ironWorking');
     bumpRevision(g.state);
     g.state.recruited.push(...rosterOfAge(2), ...rosterOfAge(3).slice(1));
     const pool = greatPersonPool(g.state, player, 3);
@@ -482,17 +466,17 @@ describe('the act', () => {
     );
   });
 
-  it('a merchant pays gold, scaled by the era', () => {
+  it('pays the merchant eight turns of income and clamps a deficit to zero', () => {
     const g = game(41);
     found(g.state, 0);
     const player = g.state.players[0]!;
     const unit = call(g.state, 0, SAMPLE.merchant);
+    const income = foldEmpireRates(g.state, player.id).goldPerTurn;
+    expect(actGainOf(g.state, player.id, 'gold', { goldPerTurn: -4 })).toBe(0);
+    expect(actGainOf(g.state, player.id, 'gold', { goldPerTurn: 7 })).toBe(7 * PEOPLE.actGainTurns);
     const before = player.gold;
-    applyCommand(g.state, { type: 'greatPersonAct', playerId: 0, unitId: unit.id });
-    expect(player.gold).toBe(
-      before +
-        Math.floor(PEOPLE.merchantGold * (1 + PEOPLE.actPerTech * player.techsResearched.length)),
-    );
+    expect(applyCommand(g.state, { type: 'greatPersonAct', playerId: 0, unitId: unit.id }).ok).toBe(true);
+    expect(player.gold - before).toBe(Math.max(0, Math.floor(income ?? 0)) * PEOPLE.actGainTurns);
   });
 
   it('an artist pays turns of the empire’s own culture and blesses the town', () => {
@@ -840,10 +824,9 @@ describe('a legacy is a card', () => {
     city.buildings.push('granary');
     bumpRevision(g.state);
     const before = foldCity(g.state, city).gold;
-    // Kushim: +1🪙 per granary, an ordinary `cityYields` line with a scope.
     g.state.players[0]!.legacies.push({ id: 'kushim', age: 1 });
     bumpRevision(g.state);
-    expect(foldCity(g.state, city).gold).toBe(before + 1);
+    expect(foldCity(g.state, city).gold).toBe(before + 2);
   });
 
   it('pays a scoped line only where the scope admits it', () => {
@@ -938,11 +921,10 @@ describe('the legacies this pass built', () => {
     bumpRevision(g.state);
     city.buildings.push('stonehenge');
     bumpRevision(g.state);
-    // Three a wonder, and an ordinary building is not one.
-    expect(empire(g.state, 0).culture).toBe(6);
+    expect(empire(g.state, 0).culture).toBe(10);
     city.buildings.push('library');
     bumpRevision(g.state);
-    expect(empire(g.state, 0).culture).toBe(6);
+    expect(empire(g.state, 0).culture).toBe(10);
   });
 
   it('Eratosthenes measures the world in eighties, off the seat’s own grid', () => {
@@ -963,14 +945,14 @@ describe('the legacies this pass built', () => {
   });
 
   /**
-   * **Ibn Baṭṭūṭa's Rihla, wired** (batch GP3): the user's re-cut pays a share of
+   * **Ibn Jubayr's Rihla, wired** (batch GP3): the user's re-cut pays a share of
    * song per *empire your roads reach*, which is GP2's `tradePartnerEmpires`
    * counted at the empire stage. The percentage is Entry XVII's second
    * multiplication, so the pin is on the **percent list** rather than on a
    * town's floored total: five percent of a young town's song rounds to nothing
    * and would have made this test agree with a row that paid nothing at all.
    */
-  it('Ibn Baṭṭūṭa pays a share of song for every realm his roads reach', () => {
+  it('Ibn Jubayr adds culture for each trade partner', () => {
     const g = game(109);
     const mine = found(g.state, 0);
     const theirs = found(g.state, 1);
@@ -995,19 +977,16 @@ describe('the legacies this pass built', () => {
     expect(share()).toBe(bare + 5);
   });
 
-  it('Sima Qian pays every town, once per age behind it', () => {
+  it('Sima Qian pays culture when the player recruits a great person', () => {
     const g = game(113);
-    const city = found(g.state, 0);
-    bear(g.state, 0, 'simaQian');
+    found(g.state, 0);
+    keepTheRites(g.state);
     const player = g.state.players[0]!;
-    // An empire in the first age has closed nothing.
-    expect(highestAge(player.techsResearched)).toBe(1);
-    expect(foldCardYields(explainCardCityYields(g.state, city)).culture).toBe(0);
-    // One age closed, so one point — Æra II, since the tree pass of 2026-08-30
-    // put Iron Working two ages up.
-    player.techsResearched.push('siegecraft');
-    bumpRevision(g.state);
-    expect(foldCardYields(explainCardCityYields(g.state, city)).culture).toBe(1);
+    bear(g.state, 0, 'simaQian');
+    settleRenownWindfall(g.state, player, [{ family: null, amount: renownThreshold(g.state, player) }]);
+    const before = player.culturePool;
+    expect(dispatch(g, { type: 'chooseGreatPerson', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(player.culturePool + (player.statecraft.pendingOrder?.price ?? 0)).toBe(before + 80);
   });
 
   it('Murasaki Shikibu counts the melee in the field, and the filter bites', () => {
@@ -1072,7 +1051,7 @@ describe('the legacies this pass built', () => {
     expect(fight(g.state, unit, tile, 'attack')).toBe(0);
   });
 
-  it('Han Xin fights beside a river or a coast, and a hex that is both pays twice', () => {
+  it('Han Xin gains strength beside fresh water', () => {
     const g = game(139);
     const city = found(g.state, 0);
     bear(g.state, 0, 'hanXin');
@@ -1084,9 +1063,7 @@ describe('the legacies this pass built', () => {
     }
     expect(fight(g.state, unit, tile, 'attack')).toBe(0);
     tile.freshwater = true;
-    expect(fight(g.state, unit, tile, 'attack')).toBe(2);
-    // A disjunction is two lines, and a hex on both pays both — the
-    // vocabulary's own reading, stated in `greatPeopleData.ts`.
+    expect(fight(g.state, unit, tile, 'attack')).toBe(4);
     const shore = neighborTiles(g.state.map, tileHex(tile))[0]!;
     shore.terrain = 'coast';
     expect(fight(g.state, unit, tile, 'defend')).toBe(4);
@@ -1114,7 +1091,9 @@ describe('the legacies this pass built', () => {
     const tile = getTileAt(g.state.map, city.col, city.row)!;
     expect(fight(g.state, unit, tile, 'defend')).toBe(0);
     city.captured = true;
-    // Six since batch GP1 of 2026-11-12 (it was three).
+    const next = neighborTiles(g.state.map, tileHex(tile))[0]!;
+    claimTile(g.state, city, next);
+    expect(fight(g.state, unit, next, 'defend')).toBe(6);
     expect(fight(g.state, unit, tile, 'defend')).toBe(6);
     expect(fight(g.state, unit, tile, 'attack')).toBe(6);
   });
@@ -1202,8 +1181,7 @@ describe('the legacies this pass built', () => {
       0,
       getTileAt(g.state.map, capital.col + 4, capital.row)!,
     )!;
-    // One a colony since the nerf pass of 2026-09-03 (it was two).
-    expect(foldCardYields(explainCardCityYields(g.state, colony)).gold).toBe(1);
+    expect(foldCardYields(explainCardCityYields(g.state, colony)).gold).toBe(2);
     // Still nothing in the capital: the negation is a scope, not a subtraction.
     expect(foldCardYields(explainCardCityYields(g.state, capital)).gold).toBe(0);
   });
@@ -1268,11 +1246,13 @@ describe('the legacies this pass built', () => {
     const printed = (id: GreatPersonId) =>
       describeCard(id).map((clause) => stripRefs(clause.text));
     expect(printed('ptahhotep')).toEqual(['+1 authority capacity per 2 Libraries']);
-    expect(printed('phidias')).toEqual(['+3 culture per wonder you hold']);
+    expect(printed('phidias')).toEqual([
+      '+5 culture per wonder you hold',
+    ]);
     expect(printed('eratosthenes')).toEqual(['+1 science per 80 hexes you have revealed']);
     // Batch L1 (§1b): a legacy is the realm's, and the line is paid town by town.
     expect(printed('simaQian')).toEqual([
-      '+1 culture in every city per age that has closed',
+      'gaining a great person grants +80 culture',
     ]);
     expect(printed('murasakiShikibu')).toEqual(['+4 culture per melee unit in the field']);
     expect(printed('shenKuo')).toEqual(['+2 science per improved strategic resource']);
@@ -1285,14 +1265,17 @@ describe('the legacies this pass built', () => {
       '+5 combat strength when defending in jungle',
     ]);
     expect(printed('hanXin')).toEqual([
-      '+2 combat strength beside fresh water',
-      '+2 combat strength on the coast',
+      '+4 combat strength beside fresh water',
     ]);
     expect(printed('janZizka')).toEqual(['+5 combat strength when defending while fortified']);
-    expect(printed('elCid')).toEqual(['+6 combat strength in a city you captured']);
-    expect(printed('assurIdi')).toEqual(['+1 gold in every city but your capital']);
+    expect(printed('elCid')).toEqual([
+      '+6 combat strength inside the borders of a city you captured',
+    ]);
+    expect(printed('assurIdi')).toEqual([
+      '+2 gold in every city but your capital',
+    ]);
     expect(printed('amenhotepSonOfHapu')).toEqual([
-      '+15% production toward wonders, in your capital',
+      '+4 production and +15% production toward wonders, in your capital',
     ]);
     // Archimedes lost his revocation with the nerf pass of 2026-09-03; batch
     // GP1 took the hammers off the engines and gave him the engines themselves —
@@ -1302,17 +1285,11 @@ describe('the legacies this pass built', () => {
       'siege units: +1 movement',
       '+3 combat strength for siege units',
     ]);
-    // **The revocation prints, and it is not struck through** (2026-08-28): it
-    // is a promise the game *does* make now, so it reads as an ordinary clause
-    // of the card. `GreatPersonDef.revokedWhen` is not an effect — it happens at
-    // a moment and never un-happens — so `describeCard` prints it beside the
-    // completion grant and the slot grant, for their reason.
     expect(printed('hypatia')).toEqual([
-      '+10% science in every city',
-      'lost the first turn your happiness goes negative',
+      'while your happiness is zero or higher: +10% science in every city',
     ]);
     expect(printed('boudica')).toEqual([
-      '+4 combat strength when defending inside your territory',
+      '+8 combat strength when defending inside your territory',
       'lost when the age it was earned in closes',
     ]);
     expect(printed('tychoBrahe')).toEqual([
@@ -1321,16 +1298,20 @@ describe('the legacies this pass built', () => {
     // The two composites the nerf pass wrote, both `all` over `TileCondition`,
     // and the one `tileYield` that carries a negative voice.
     expect(printed('eupalinos')).toEqual(['+1 food on every improved hex beside a mountain']);
-    expect(printed('eaNasir')).toEqual(['-1 production, +3 gold on every hex with a Mine']);
+    expect(printed('eaNasir')).toEqual([
+      '+2 gold on every hex with a Mine',
+      '-2 happiness',
+    ]);
     // A tile line under a **city** scope, which reads as two clauses in one
     // sentence: whose ground, and which hex.
     expect(printed('liBing')).toEqual([
-      '+1 production on every hex with a Farm beside fresh water, in every city with an Aqueduct',
+      '+1 production on every hex with a Farm beside fresh water',
     ]);
     // A city-scoped count paid in the town it counts in — and, since batch L1
     // (§1b), a legacy that says how many towns those are.
     expect(printed('aryabhata')).toEqual([
-      '+1 faith in every city per building there that supplies science',
+      'Each building that supplies science gains +1 faith',
+      'Each building that supplies science gains +1 renown per turn',
     ]);
     // The malice re-read per town rather than once for the realm.
     expect(printed('hemiunu')).toEqual([
@@ -1379,6 +1360,29 @@ describe('the legacies this pass built', () => {
    * but a fight, a hex or a stamp. These are those: one pin per rewrite whose
    * mark is a mechanism and not a number.
    */
+  it.each([
+    ['academy', 'science', 4],
+    ['landmark', 'culture', 4],
+    ['manufactory', 'production', 4],
+    ['customsHouse', 'gold', 4],
+    ['citadel', 'production', 3],
+  ] as const)('%s gains two of its own yield at Philosophy and Education', (improvement, yieldKey, base) => {
+    const { state } = game(1009);
+    const city = found(state, 0);
+    const ground = getTileAt(state.map, city.col + 1, city.row)!;
+    const read = () => {
+      const ctx = yieldContextFor(state, 0);
+      return foldTile({ ...ground, improvement }, ctx)[yieldKey]
+        - foldTile({ ...ground, improvement: undefined }, ctx)[yieldKey];
+    };
+    expect(read()).toBe(base);
+    for (const [index, tech] of (['philosophy', 'education'] as const).entries()) {
+      state.players[0]!.techsResearched.push(tech);
+      bumpRevision(state);
+      expect(read()).toBe(base + 2 * (index + 1));
+    }
+  });
+
   it('Homer pays every great person’s work in its own voice', () => {
     const g = game(1009);
     const city = found(g.state, 0);
@@ -1394,18 +1398,16 @@ describe('the legacies this pass built', () => {
       return sum;
     };
     const bare = { science: voice('science'), culture: voice('culture') };
-    // The academy's own voice, and nothing else's — five rows, one per work,
-    // and each pays the voice its family reads.
     tile.improvement = 'academy';
-    expect(voice('science') - bare.science).toBe(2 + 3);
+    expect(voice('science') - bare.science).toBe(4 + 3);
     expect(voice('culture') - bare.culture).toBe(0);
     // And a landmark on the same ground pays songs instead.
     tile.improvement = 'landmark';
-    expect(voice('culture') - bare.culture).toBe(2 + 3);
+    expect(voice('culture') - bare.culture).toBe(4 + 3);
     expect(voice('science') - bare.science).toBe(0);
   });
 
-  it('Vitruvius hangs his happiness on the aqueduct and the granary', () => {
+  it('Vitruvius adds happiness to each Aqueduct and Public Bath', () => {
     const g = game(1013);
     const city = found(g.state, 0);
     bear(g.state, 0, 'vitruvius');
@@ -1414,7 +1416,7 @@ describe('the legacies this pass built', () => {
     // (`buildingHappiness`) rather than onto the realm — a town with neither
     // gains nothing at all.
     expect(happinessOf(g.state, 0)).toBe(before);
-    city.buildings.push('granary');
+    city.buildings.push('publicBath');
     bumpRevision(g.state);
     expect(happinessOf(g.state, 0)).toBe(before + 1);
     city.buildings.push('aqueduct');
@@ -1544,7 +1546,7 @@ describe('the register', () => {
     // silently does nothing — which is exactly the failure the *card* register
     // test in `statecraft.test.ts` catches one table over.
     // The one switch, which is `statecraft/evaluator.ts` since batch E3b.
-    const evaluator = sourceOf('statecraft/evaluator.ts');
+    const evaluator = sourceOf('statecraft/evaluator.ts') + sourceOf('statecraft/draft.ts');
     const kinds = new Set<CardEffectKind>();
     const walk = (effects: readonly { kind: CardEffectKind; then?: unknown }[]): void => {
       for (const effect of effects) {
@@ -1564,7 +1566,7 @@ describe('the register', () => {
     // outside reading of the same rule.
     for (const id of GREAT_PERSON_IDS) {
       const def = greatPersonDef(id);
-      if (def.legacy.length > 0) continue;
+      if (def.legacy.length > 0 || def.onSpend) continue;
       expect((def.deferred ?? []).length, id).toBeGreaterThan(0);
     }
   });
@@ -1789,7 +1791,7 @@ describe('the one-row shapes, built generically', () => {
     expect(happinessOf(g.state, 0)).toBe(before);
   });
 
-  it('Ea-nāṣir pays every mine and charges it a hand', () => {
+  it('Ea-nāṣir adds gold to Mines and reduces empire happiness', () => {
     // Re-quoted by the nerf pass of 2026-09-03: the seam clause and the luxury
     // malice both struck, and the malice moved onto the same hex as the pay —
     // a mine is worth three coin and one hammer less. A single `tileYield` row
@@ -1819,10 +1821,12 @@ describe('the one-row shapes, built generically', () => {
     delete tile.resource;
     tile.improvement = 'mine';
     const bare = fold();
+    const happy = happinessOf(g.state, 0);
     bear(g.state, 0, 'eaNasir');
+    expect(happinessOf(g.state, 0)).toBe(happy - 2);
     const paid = fold();
-    expect(paid.gold).toBe(bare.gold + 3);
-    expect(paid.production).toBe(bare.production - 1);
+    expect(paid.gold).toBe(bare.gold + 2);
+    expect(paid.production).toBe(bare.production);
     // No seam wanted: the clause is about the works, not about what is under
     // them (it was "a Mine carrying a bonus resource" until this pass).
     expect(hasResource(g.state, 0, 'iron')).toBe(false);
@@ -1943,7 +1947,7 @@ describe('the one-row shapes, built generically', () => {
     const foot = g.state.units.find((u) => u.ownerId === 0 && u.type !== 'trireme')!;
     bumpRevision(g.state);
     // Halved by the user's hand edits to `docs/great-people.md` (2026-09-14).
-    expect(fight(g.state, hull, hex, 'attack')).toBe(5);
+    expect(fight(g.state, hull, hex, 'attack')).toBe(3);
     expect(fight(g.state, foot, hex, 'attack')).toBe(0);
   });
 
@@ -2045,27 +2049,31 @@ describe('a legacy that is lost', () => {
     bumpRevision(state);
   }
 
-  it('marks rather than deletes, and only the effects stop being read', () => {
+  it('restores Hypatia’s science as soon as happiness returns to zero', () => {
     const g = game(241);
     found(g.state, 0);
+    const player = g.state.players[0]!;
+    const original = happinessOf(g.state, 0);
     bear(g.state, 0, 'hypatia');
-    expect(liveEffects(g.state, 0).some((e) => e.card === 'hypatia')).toBe(true);
-    revokeLegacies(g.state, 0, 'happinessNegative');
-    // History is intact; the walk simply stops reading it.
-    bumpRevision(g.state);
-    expect(g.state.players[0]!.legacies).toEqual([
-      { id: 'hypatia', age: 1, revoked: true },
-    ]);
-    expect(liveEffects(g.state, 0).some((e) => e.card === 'hypatia')).toBe(false);
+    for (const target of [-1, 0, 1]) {
+      player.timed = [{ card: 'theRoyalHousehold', effect: { kind: 'happiness', amount: target - original }, expiresTurn: g.state.turn + 1 }];
+      bumpRevision(g.state);
+      expect(happinessOf(g.state, 0)).toBe(target);
+      revokeLegacies(g.state, 0, 'happinessNegative');
+      expect(liveEffects(g.state, 0).some(row => row.card === 'hypatia' && row.effect.kind === 'percentYields')).toBe(target >= 0);
+      expect(player.legacies).toEqual([{ id: 'hypatia', age: 1 }]);
+    }
   });
 
-  it('revokes only the legacy whose row names that occasion', () => {
+  it('keeps other legacies when Boudica’s age closes', () => {
     const g = game(243);
     found(g.state, 0);
-    bear(g.state, 0, 'hypatia');
+    bear(g.state, 0, 'boudica');
     bear(g.state, 0, 'archimedes');
-    revokeLegacies(g.state, 0, 'happinessNegative');
-    expect(g.state.players[0]!.legacies.map((h) => h.revoked)).toEqual([true, undefined]);
+    g.state.players[0]!.techsResearched.push('ironWorking');
+    bumpRevision(g.state);
+    revokeLegacies(g.state, 0, 'ageAdvanced');
+    expect(g.state.players[0]!.legacies.map(record => record.revoked)).toEqual([true, undefined]);
   });
 
   it('Boudica keeps her legacy inside her own age and loses it in the next', () => {

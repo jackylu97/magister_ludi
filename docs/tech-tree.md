@@ -215,7 +215,7 @@ Workshop → Forge · Shrine → Temple.
 | Husbandry | 11 | Agriculture | — | **The Temple of Artemis** | workers may build Pasture · reveals **Horses** · reveals **Camels** |
 | Mining | 11 | Agriculture | — | **The Great Sphinx** | workers may build Mine · Clear Forest · reveals **Copper** |
 | Pottery | 11 | Agriculture | — | Granary | — |
-| Bronzeworking | 24 | Mining | Spearman | Barracks, **The Walls of Uruk** | Clear Jungle · Blessing of Arms |
+| Bronzeworking | 24 | Mining | Spearman | Barracks, The School of Mieza, **The Walls of Uruk** | Clear Jungle · Blessing of Arms |
 | Calendar | 24 | Fletching | — | **The Hanging Gardens**, *Tithes* (project) | workers may build Plantation |
 | Divination | 24 | Husbandry | — | Shrine, **The Oracle**, **The Temple of Thoth** | Rite of the Harvest · Omen Reading |
 | Sailing | 24 | Pottery | Trireme | Lighthouse, **The Great Lighthouse** | workers may build Fishing Boat · Embark |
@@ -240,7 +240,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 | Code of Laws | 190 | Chronology | — | Imperial Throne ‡, **The Library of Ashurbanipal**, **The Weiyang Palace**, *Pageants* (project) | — |
 | Irrigation | 190 | Chronology, Bronze Panoply | — | Garden, **Petra** | workers may build Floating Gardens · renewals: Farm +1🌾 on fresh water |
 | Siegecraft | 190 | Bronze Panoply | Bowman | Stone Walls, **The Iron Pillar** | workers may build Lumbermill · Siege |
-| The High Temple | 190 | Epic Poetry | Prophet | Temple, High Temple ‡, **Solomon's Temple** | — |
+| The High Temple | 190 | Epic Poetry | Prophet | Temple, The Basilica, High Temple ‡, **Solomon's Temple** | — |
 | Wayfinding | 190 | Sailing, Currency | Bireme, War Galley | Harbour, **The Colossus** | Sea Legs |
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
@@ -258,7 +258,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
 | Iron Working | 360 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army** | — |
-| Rhetoric | 360 | The High Temple | — | Forum ‡, **The Great Library** | — |
+| Rhetoric | 360 | The High Temple | — | Forum ‡, **The Great Library** | renewals: Academy +2🔬, Landmark +2🎭, Manufactory +2⚙, Customs House +2💰, Citadel +2⚙ |
 | State Workforce | 360 | Currency | — | Public Bath, **Angkor Wat** | — |
 | The Silk Road | 360 | Wayfinding | — | Caravanserai ‡, **The Great Stelae of Aksum** | — |
 | Mathematics | 650 | Iron Working | Catapult, Composite Bowman | Armoury | — |
@@ -295,7 +295,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 | Geomancy | 1960 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
 | Machinery | 1960 | Horology, Engineering | Crossbowman | — | — |
 | Paper Money | 1960 | Shipwrights, Guildhalls | — | Bazaar, Bourse ‡ | — |
-| Scholarship | 1960 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | — |
+| Scholarship | 1960 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | renewals: Academy +2🔬, Landmark +2🎭, Manufactory +2⚙, Customs House +2💰, Citadel +2⚙ |
 | Natural Philosophy | 3250 | Scholarship | Trebuchet | **Machu Picchu** | reveals **Niter** |
 | Steel | 3250 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
 | The Golden Roads | 3250 | Paper Money | — | — | — |

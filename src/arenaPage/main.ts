@@ -78,7 +78,7 @@ const sheetDeleteButton = need<HTMLButtonElement>('sheet-delete');
 const panelStatusEl = need<HTMLElement>('panel-status');
 
 /** The game's own two inks first, the renderer's palette after — spectate's rule. */
-const GAME_SEAT_COLORS: readonly string[] = ['#d4502e', '#1f8a85'];
+const GAME_SEAT_COLORS: readonly string[] = ['#d4502e', '#208b85'];
 const SEAT_NAMES = ['Crimson', 'Teal', 'Amber', 'Indigo', 'Moss', 'Slate', 'Rust', 'Bone'];
 
 function seatColor(index: number): string {

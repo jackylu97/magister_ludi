@@ -79,7 +79,7 @@ import {
   cardRulePercent,
 } from './statecraft';
 // Expansionist batch E12: what a town holds, a card's grants included.
-import { townShelf } from './statecraft/evaluator';
+import { cardBuildingRenown, townShelf } from './statecraft/evaluator';
 import type { RenownShareRows } from './statecraftData';
 import type { BuildingShelf } from './buildingEffects';
 import { triumphDef } from './triumphData';
@@ -168,7 +168,8 @@ export function explainRenownByTown(state: GameState, playerId: number): RenownT
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const shares = cardCityRenownShares(state, city);
-    for (const line of explainCityRenown(city, shares, townShelf(state, city))) push(city.id, line);
+    const shelf = townShelf(state, city);
+    for (const line of explainCityRenown(city, shares, shelf, state)) push(city.id, line);
     // And what its guilds pay back (Entry XLVIII). *Beside* the buildings rather
     // than inside `explainCityRenown`, and the separation is load-bearing: that
     // list is what fills this town's guild bar, and a specialist feeding the bar
@@ -278,6 +279,7 @@ export function explainCityRenown(
   city: City,
   shares: readonly { source: string; percent: number; of?: RenownShareRows }[] = [],
   shelf: BuildingShelf = city,
+  state?: GameState,
 ): RenownLine[] {
   const lines: RenownLine[] = [];
   // The row behind each building line, in step with `lines`, for a share that
@@ -294,6 +296,10 @@ export function explainCityRenown(
       perTurn: true,
     });
     rows.push(id);
+  }
+  for (const line of state ? cardBuildingRenown(state, city, shelf.buildings) : []) {
+    lines.push({ source: `${buildingDef(line.building).name} at ${city.name} · ${line.source}`, family: line.family, amount: line.amount, perTurn: true });
+    rows.push(line.building);
   }
   if (shares.length === 0) return lines;
   const base = foldRenown(lines);

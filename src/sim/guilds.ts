@@ -145,7 +145,7 @@ interface GuildInflowLine {
 export function explainGuildInflow(state: GameState, city: City): GuildInflowLine[] {
   const lines: GuildInflowLine[] = [];
   // What the town holds (`townShelf`, Expansionist batch E12).
-  for (const line of explainCityRenown(city, [], townShelf(state, city))) {
+  for (const line of explainCityRenown(city, [], townShelf(state, city), state)) {
     if (line.family === null || line.family === 'general') continue;
     lines.push({ source: line.source, amount: line.amount });
   }
@@ -233,13 +233,14 @@ export function cityGuildInflow(state: GameState, city: City): number {
 function guildShares(
   city: City,
   shelf: BuildingShelf = city,
+  state?: GameState,
 ): Record<SpecialistFamily, number> {
   const shares = {} as Record<SpecialistFamily, number>;
   for (const family of SPECIALIST_FAMILIES) shares[family] = 0;
   // `shelf` is the town's buildings (Expansionist batch E12): `runGuilds`
   // hands `townShelf`, as `explainGuildInflow` does, so the bar and the
   // family it pays agree on what the town holds.
-  for (const line of explainCityRenown(city, [], shelf)) {
+  for (const line of explainCityRenown(city, [], shelf, state)) {
     if (line.family === null || line.family === 'general') continue;
     shares[line.family] += line.amount;
   }
@@ -259,8 +260,8 @@ function guildShares(
  * with no renown building in any specialist family never converts, however full
  * its bar. Pure — no `Rng`, no board.
  */
-export function nextGuildFamily(city: City, shelf: BuildingShelf = city): SpecialistFamily | null {
-  const shares = guildShares(city, shelf);
+export function nextGuildFamily(city: City, shelf: BuildingShelf = city, state?: GameState): SpecialistFamily | null {
+  const shares = guildShares(city, shelf, state);
   let best: SpecialistFamily | null = null;
   for (const family of SPECIALIST_FAMILIES) {
     const share = shares[family];
@@ -360,7 +361,7 @@ export function runGuilds(state: GameState, report?: TurnReport): void {
       // specialist count and the idle count, so a second one this turn is judged
       // by the town the first one left behind.
       if (!canFormGuild(city, idleCitizens(state, city))) break;
-      const family = nextGuildFamily(city, townShelf(state, city));
+      const family = nextGuildFamily(city, townShelf(state, city), state);
       // No family has a claim: the bar keeps its bank and waits for a building
       // to name a trade. See the module docblock's first gate.
       if (family === null) break;

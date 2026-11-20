@@ -88,10 +88,16 @@ Revised 2026-10-21 (section 14): The Companions is now a shared card with a new 
 
 ### Leaders
 
-- **Hypatia** leads the learned land: The Royal Tutors, The Scholars' Fame, The Royal Readers, The Latin Quarter, The Nizamiyya, The Studium Generale. Her share and The Nizamiyya's stack: hers is taken of the work's own figure, the Nizamiyya's of the whole hex.
-- **Al-Ma'mun** leads the great cities: The Common Tables (his own food job, so the two stack), The Round City, The Queen of Cities, The Scholars' Guild.
-- **Nezahualcoyotl** leads the great cities through the capital and the Aqueduct: the Surveyors' Charter, The Round City, The Free Cities, The Sum of Knowledge.
-- **The gap:** no leader points at the elite army or institutions. The army's natural leader would hold Dominion and Scientific (Ashurbanipal: the library at Nineveh beside the Assyrian siege train).
+
+| Leader | Deck pair | Gameplay |
+|---|---|---|
+| Mehmed the Conqueror | Dominion + Scientific | Barracks, scholars, generals and attacks on cities. |
+| Nezahualcoyotl | Expansionist + Scientific | Aqueducts and farms, with culture from the capital. |
+| Cleopatra | Commerce + Scientific | Science from trade, deals and great people. |
+| Harun al-Rashid | Devotion + Scientific | Buildings that pay faith or science, and research. |
+| Sejong the Great | Scientific + Magisterial | Local population, research and scholar renown. |
+
+Ibn Battuta can draw from every deck.
 
 ## 3. The engine: technologies and charters
 

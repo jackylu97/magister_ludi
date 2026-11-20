@@ -13,7 +13,7 @@ interface LeaderBannerDesign {
   paths: readonly MarkPath[];
 }
 
-export const LEADER_BANNERS = {
+const existingBanners = {
   pachacuti: {
     motif: 'Sun of Inti', basis: 'Period motif',
     note: 'Inca royal solar symbolism. A new sun drawing, not a reconstruction of Pachacuti’s standard; the modern rainbow flag is not used.',
@@ -100,6 +100,51 @@ export const LEADER_BANNERS = {
     note: 'An eight-pointed geometric star from the decorative vocabulary of Marinid Morocco, rather than the modern five-pointed Moroccan star. Marinid objects document the motif; the frequently reproduced red-and-gold dynastic flag should not be treated as securely attested by those objects.',
     source: { label: 'Bou Inania Madrasa · Marinid minbar and its sources', url: 'https://en.wikipedia.org/wiki/Bou_Inania_Madrasa#Minbar'  },
     paths: [{ d: 'M32 6L40 14H50V24L58 32L50 40V50H40L32 58L24 50H14V40L6 32L14 24V14H24Z', fill: true, width: 0 }],
+  },
+} satisfies Partial<Record<BannerLeaderId, LeaderBannerDesign>>;
+const rosterDesign = {
+  label: 'Approved roster art direction',
+  url: 'https://github.com/jackylu97/magister_ludi/blob/f05ffd47/docs/plans/leader-roster-pass-2026-11-19.md',
+};
+export const LEADER_BANNERS = {
+  ...existingBanners,
+  genghisKhan: existingBanners.modu,
+  harunAlRashid: existingBanners.almamun,
+  alexanderTheGreat: {
+    motif: 'Horns of Ammon', basis: 'Period motif', note: 'Two curled ram horns face out from the central crest.', source: rosterDesign,
+    paths: [{ d: 'M30 16Q15 4 7 22Q1 43 20 46Q31 46 29 35Q28 27 20 28Q15 29 17 34Q23 31 23 37Q22 42 15 37Q8 32 13 23Q17 14 28 22ZM34 16Q49 4 57 22Q63 43 44 46Q33 46 35 35Q36 27 44 28Q49 29 47 34Q41 31 41 37Q42 42 49 37Q56 32 51 23Q47 14 36 22ZM26 23L32 18L38 23L36 43L32 51L28 43Z', fill: true, width: 0, fillRule: 'evenodd' }],
+  },
+  mehmedTheConqueror: {
+    motif: 'Çintamani', basis: 'Period motif', note: 'Three discs sit above two wavy bands.', source: rosterDesign,
+    paths: [{ d: 'M26 16a6 6 0 1 0 12 0a6 6 0 1 0 -12 0ZM17 28a6 6 0 1 0 12 0a6 6 0 1 0 -12 0ZM35 28a6 6 0 1 0 12 0a6 6 0 1 0 -12 0ZM6 41Q15 33 26 39T47 39Q53 36 58 37L58 43Q51 42 47 45Q35 50 25 45T6 47ZM6 50Q15 42 26 48T47 48Q53 45 58 46L58 52Q51 51 47 54Q35 59 25 54T6 56Z', fill: true, width: 0, fillRule: 'evenodd' }],
+  },
+  qinShiHuang: {
+    motif: 'Ban liang coin', basis: 'Period motif', note: 'A square opening cuts through a round coin.', source: rosterDesign,
+    paths: [{ d: 'M8 32a24 24 0 1 0 48 0a24 24 0 1 0 -48 0ZM23 23H41V41H23Z', fill: true, width: 0, fillRule: 'evenodd' }],
+  },
+  jayavarmanVII: {
+    motif: 'Seven-headed naga', basis: 'Period motif', note: 'Seven cobra heads spread above a coiled body.', source: rosterDesign,
+    paths: [{ d: 'M31.1 42.6L12.1 36.0L7.6 36.2L2.1 31.5L0.2 28.4L6.0 27.7L11.0 28.9L13.8 32.4ZM31.3 42.3L16.1 29.2L11.9 27.6L8.5 21.2L7.9 17.6L13.5 19.2L17.7 22.1L19.0 26.4ZM31.6 42.1L22.4 24.2L19.0 21.3L18.3 14.0L19.0 10.5L23.7 14.0L26.4 18.3L26.1 22.8ZM32.0 42.0L30.0 22.0L28.0 18.0L30.0 11.0L32.0 8.0L35.0 13.0L36.0 18.0L34.0 22.0ZM32.4 42.1L37.9 22.8L37.6 18.3L42.0 12.5L45.0 10.5L45.9 16.3L45.0 21.3L41.6 24.2ZM32.7 42.3L45.0 26.4L46.3 22.1L52.6 18.4L56.1 17.6L54.8 23.3L52.1 27.6L47.9 29.2ZM32.9 42.6L50.2 32.4L53.0 28.9L60.2 27.8L63.8 28.4L60.5 33.2L56.4 36.2L51.9 36.0ZM24 48Q31 40 39 47Q39 52 47 52Q40 62 31 56Q26 52 19 55Z', fill: true, width: 0, fillRule: 'evenodd' }],
+  },
+  cyrusTheGreat: {
+    motif: 'Persepolis rosette', basis: 'Period motif', note: 'Twelve pointed petals surround a round centre.', source: rosterDesign,
+    paths: [{ d: 'M40.0 32.0L49.0 28.0L56.0 32.0L49.0 36.0ZM38.9 36.0L48.7 37.0L52.8 44.0L44.7 44.0ZM36.0 38.9L44.0 44.7L44.0 52.8L37.0 48.7ZM32.0 40.0L36.0 49.0L32.0 56.0L28.0 49.0ZM28.0 38.9L27.0 48.7L20.0 52.8L20.0 44.7ZM25.1 36.0L19.3 44.0L11.2 44.0L15.3 37.0ZM24.0 32.0L15.0 36.0L8.0 32.0L15.0 28.0ZM25.1 28.0L15.3 27.0L11.2 20.0L19.3 20.0ZM28.0 25.1L20.0 19.3L20.0 11.2L27.0 15.3ZM32.0 24.0L28.0 15.0L32.0 8.0L36.0 15.0ZM36.0 25.1L37.0 15.3L44.0 11.2L44.0 19.3ZM38.9 28.0L44.7 20.0L52.8 20.0L48.7 27.0ZM27 32a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z', fill: true, width: 0, fillRule: 'evenodd' }],
+  },
+  cleopatra: {
+    motif: 'Knot of Isis', basis: 'Period motif', note: 'The knot has two bent arms and three hanging folds.', source: rosterDesign,
+    paths: [{ d: 'M32 6Q19 6 21 21Q22 25 27 28L15 30Q15 42 10 45Q22 45 25 35L27 32L25 57H30L32 37L34 57H39L37 32L39 35Q42 45 54 45Q49 42 49 30L37 28Q42 25 43 21Q45 6 32 6ZM32 12Q38 12 37 18Q37 23 32 25Q27 23 27 18Q26 12 32 12Z', fill: true, width: 0, fillRule: 'evenodd' }],
+  },
+  lorenzoDeMedici: {
+    motif: 'Medici shield', basis: 'Period motif', note: 'Six discs follow the curve of a shield.', source: rosterDesign,
+    paths: [{ d: 'M10 9H54V31Q52 48 32 58Q12 48 10 31ZM15 14V31Q17 45 32 52Q47 45 49 31V14ZM28 20a4 4 0 1 0 8 0a4 4 0 1 0 -8 0ZM18 25a4 4 0 1 0 8 0a4 4 0 1 0 -8 0ZM38 25a4 4 0 1 0 8 0a4 4 0 1 0 -8 0ZM19 36a4 4 0 1 0 8 0a4 4 0 1 0 -8 0ZM37 36a4 4 0 1 0 8 0a4 4 0 1 0 -8 0ZM28 43a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z', fill: true, width: 0, fillRule: 'evenodd' }],
+  },
+  justinian: {
+    motif: 'Dome and arches', basis: 'Period motif', note: 'Four arches support the dome.', source: rosterDesign,
+    paths: [{ d: 'M10 31Q14 17 29 14V10H35V14Q50 17 54 31ZM7 34H57V51H53V45Q51 39 48 45V51H43V45Q40 38 37 45V51H32V45Q29 38 26 45V51H21V45Q18 38 15 45V51H11V38H7Z', fill: true, width: 0, fillRule: 'evenodd' }],
+  },
+  sejongTheGreat: {
+    motif: 'Bowl sundial', basis: 'Period motif', note: 'A pointer rises above the curved sundial bowl.', source: rosterDesign,
+    paths: [{ d: 'M8 28H56Q54 44 36 48V51H44V55H20V51H28V48Q10 44 8 28ZM14 31Q19 38 28 39Q20 36 18 31ZM30 25L42 9L37 25Z', fill: true, width: 0, fillRule: 'evenodd' }],
   },
 } satisfies Record<BannerLeaderId, LeaderBannerDesign>;
 

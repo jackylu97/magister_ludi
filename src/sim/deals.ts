@@ -242,6 +242,10 @@ function dealIsLive(state: GameState, deal: DealState): boolean {
   return state.turn < deal.untilTurn;
 }
 
+export function activeDealCount(state: GameState, playerId: number): number {
+  return state.deals.filter((deal) => (deal.a === playerId || deal.b === playerId) && dealIsLive(state, deal)).length;
+}
+
 /** Every live deal between this pair, in signing order. */
 export function dealsBetween(state: GameState, x: number, y: number): DealState[] {
   if (x === y) return [];

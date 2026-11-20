@@ -49,12 +49,16 @@ Minor threads: naval force (map-dependent; its two cards are among those the use
 
 ### Leaders
 
-| Leader | Decks | Ability points at | Cards behind it today |
-|---|---|---|---|
-| Emperor Taizong | Dominion, Magisterial | melee strength and movement; garrisoned towns pay happiness and culture | garrison cards (Martial Law, Sword and Plough, The Soldier-Farmers) |
-| Modu Chanyu | Dominion, Devotion | mounted movement, pillage pays half again; pastures pay production and faith | The Horse Herds, Horse Lords, The Swift Riders, Spoils of War |
-| Mithridates VI | Dominion, Expansionist | strength against an empire holding more cities; food on plantations and camps | camps: The Horse Herds. "Against a wider empire" reads no quantity any card raises: no throughline to draft toward yet. |
-| Joan of Arc | Dominion, Devotion | kills pay faith and press her faith; strength on her faith's ground | kill cards (Songs of the Fallen, Battle Honours, The Art of War) |
+
+| Leader | Deck pair | Gameplay |
+|---|---|---|
+| Alexander the Great | Dominion + Expansionist | Attacks, captures and science from gaining soldiers. |
+| Genghis Khan | Dominion + Commerce | Mounted movement, pillage and protected trade routes. |
+| Joan of Arc | Dominion + Devotion | Kills, faith and fighting in territory that follows the same religion. |
+| Mehmed the Conqueror | Dominion + Scientific | Barracks, scholars, generals and attacks on cities. |
+| Qin Shi Huang | Dominion + Magisterial | Garrisons, wonders and production from population. |
+
+Ibn Battuta can draw from every deck.
 
 ### Finished builds
 

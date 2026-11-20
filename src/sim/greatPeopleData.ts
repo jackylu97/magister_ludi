@@ -22,39 +22,16 @@
  *
  * How the ratified text became data
  * ---------------------------------
- * `docs/great-people.md` prints eighty-odd legacies in English. Three
- * translations were made systematically, and they are written down here rather
- * than argued row by row:
- *
- *   · **"buildings −10%⚙" is `productionBonus +10%`.** The vocabulary has one
- *     way to say "this empire builds a category faster", and a discount on a
- *     cost and a bonus on a rate are the same sentence from the two ends. Every
- *     cost-reduction legacy is written this way.
- *   · **"melee units +1 combat" is `unitStat combatPercent`.** `combatLine`
- *     carries no `UnitFilter` — a *shape* decision, deliberately not taken here
- *     — so the only generic way to say "this class of unit fights better" is the
- *     percentage. The figures are chosen to land near the printed flat at the
- *     age's typical strength.
- *   · **A disjunction is two lines.** `CityScope` has no `any`, and
- *     `statecraftData.ts` says out loud that two lines read better; Bezalel's
- *     "a shrine or a temple" is two town `pays` rows, so a town with both is
- *     paid twice. That is the vocabulary's own reading and not a shortcut.
- *
- * Anything that still would not fit is **deferred and annotated** on the row
- * (`deferred`, a list of sentences naming the missing shape) rather than bent to
- * fit — Entry XV.b's rule, `resourceData.ts`'s precedent, and the reason a row
- * may carry an empty `legacy`. A deferred half is *printed on the card*; it is a
- * promise the game has not made, said out loud.
+ * The roster table uses the descriptions from the game. A combat bonus adds
+ * flat points through `combatLine`. A condition can select the side, the
+ * opposing unit, or the territory. A person with only an immediate reward
+ * stores the reward in `onSpend` and has an empty legacy list.
  *
  * Ages
  * ----
- * `age` is the **roster** age, numbered as `docs/great-people.md` numbers it:
- * Æra II (Heroes) through Æra V (Magister). The tech tree today knows three ages
- * (`TechAge`), so an empire's era is mapped onto a roster age by
- * `rosterAgeFor` in `greatPeople.ts` — one function, so the tree pass that adds
- * Æra IV and V moves it and nothing else. Æra V's rows are reachable today only
- * through the offer's *spill* (the forgotten, and those ahead of their time),
- * which is the roster degrading gracefully rather than a hole.
+ * The draw starts with the empire's age. If that age has too few people, it
+ * draws from earlier ages and then from later ones. Age V is available this
+ * way even while the research tree ends at Age IV.
  */
 
 import greatPeopleJson from '../../data/greatPeople.json';
@@ -142,10 +119,8 @@ export type GreatPersonTier = 'defining' | 'strong' | 'situational';
  *     off Archimedes' cell, and the occasion is kept rather than deleted
  *     because the mechanism is a *moment somebody can point at* and the next
  *     defining engineer will want one. Open in `docs/great-people.md`.
- *   · `happinessNegative` — the first turn the realm's happiness goes under.
- *     Hypatia, torn apart by a mob. A **condition of a turn** rather than an
- *     event, so it is read once a turn off the meter, exactly as the standing
- *     Triumphs are read off the board.
+ *   · `happinessNegative` checks the empire's happiness at the end of the turn.
+ *     Hypatia uses a reversible condition. No current person uses this revocation.
  *   · `ageAdvanced` — the era the person was spent in has closed. Boudica, whose
  *     revolt belonged to her century. Compared against `LegacyRecord.age`, an
  *     absolute stamp in the `TimedEffect` tradition.
@@ -218,6 +193,11 @@ export const FAMILY_VERB_KINDS: readonly FamilyVerbKind[] = ['act', 'work'];
 
 export type GreatPersonId = keyof typeof greatPeopleJson.people & string;
 
+export interface PersonSpendGrant {
+  orderDrafts: number;
+  freeRerolls?: number;
+}
+
 interface GreatPersonDef {
   name: string;
   family: Family;
@@ -257,6 +237,8 @@ interface GreatPersonDef {
    * until the shape it needs exists.
    */
   legacy: CardEffect[];
+  /** Paid once when the person leaves the board, through either the act or the work. */
+  onSpend?: PersonSpendGrant;
   /**
    * The halves of the ratified text this build does not implement, one sentence
    * each, naming the missing shape.
@@ -399,10 +381,14 @@ function validateTable(): void {
       throw new Error(`${where} has a non-positive age`);
     }
     if (!Array.isArray(def.legacy)) throw new Error(`${where} has no legacy list`);
-    // An empty legacy with nothing said about it is the one thing this table
-    // must never contain: a name that quietly does nothing is indistinguishable
-    // from a name somebody forgot to finish.
-    if (def.legacy.length === 0 && (def.deferred ?? []).length === 0) {
+    if (def.onSpend !== undefined) {
+      const { orderDrafts, freeRerolls } = def.onSpend;
+      if (!Number.isInteger(orderDrafts) || orderDrafts < 1 ||
+          (freeRerolls !== undefined && (!Number.isInteger(freeRerolls) || freeRerolls < 1))) {
+        throw new Error(`${where} has an invalid grant on spend`);
+      }
+    }
+    if (def.legacy.length === 0 && def.onSpend === undefined && (def.deferred ?? []).length === 0) {
       throw new Error(`${where} leaves no legacy and says nothing about why`);
     }
     // A revocation the sweep does not know is a legacy that would quietly never

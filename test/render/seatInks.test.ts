@@ -257,6 +257,18 @@ describe('playerPieceColor', () => {
    * slot names, so the literal clause resolves each of them to exactly the
    * number the fallback order was already handing out.
    */
+  it('keeps saved Teal colors and uses the same piece ink for the revised preset', () => {
+    const saved = createGame({
+      seed: 41,
+      sizeName: 'duel',
+      players: [{ name: 'Ada', color: '#1f8a85', isHuman: true }],
+    });
+    expect(saved.state.players[0]!.color).toBe('#1f8a85');
+    expect(SEATS.find((s) => s.name === 'Teal')?.color).toBe('#208b85');
+    expect(VIEW3D.players.byColor['#208b85']).toBeDefined();
+    expect(playerPieceColor(saved.state.players[0]!.color, 0)).toBe(playerPieceColor('#208b85', 0));
+  });
+
   it('leaves every palette seat on the number it always had', () => {
     const order = VIEW3D.players.fallbackOrder;
     SEATS.forEach((seat, index) => {

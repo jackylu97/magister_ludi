@@ -1116,7 +1116,12 @@ export function describeCard(id: CardId): CardClause[] {
   // because it is a promise the game **does** make. A card that left it out
   // would be Archimedes reading as six free points of siege.
   if (isGreatPersonId(id)) {
-    const when = greatPersonDef(id).revokedWhen;
+    const { onSpend, revokedWhen: when } = greatPersonDef(id);
+    if (onSpend) {
+      if (onSpend.freeRerolls) clauses.push({ text: `when spent, gain ${onSpend.freeRerolls} free rerolls` });
+      const noun = onSpend.orderDrafts === 1 ? 'Order draft' : 'Order drafts';
+      clauses.push({ text: `when spent, open ${onSpend.orderDrafts} free ${noun}` });
+    }
     if (when !== undefined) clauses.push({ text: REVOCATION_WORDS[when] });
   }
   for (const missing of def.deferred ?? []) {
@@ -2087,6 +2092,10 @@ function describePays(
   // A counted hex row prints in the hex arm below: its helpings multiply the bag,
   // so it has no `to` for `payoutWords` to read (batch DT13).
   if (basis === 'count' && effect.where !== 'hex') {
+    if (effect.onCountedBuilding && effect.count === 'buildingsSupplying' && effect.voice) {
+      out.push({ text: `Each building that supplies ${effect.voice} gains ${payoutWords(effect, 1, voice)}` });
+      return;
+    }
     // The cap is on the **count** (`helpings` in the evaluator), so it is
     // printed as the payout it works out to — "(at most +3 happiness)" — which
     // is how every ratified row states it and the only form a player can check
@@ -2156,7 +2165,9 @@ function describePays(
   if (basis === 'rate') {
     if (effect.fromRate === undefined) return;
     out.push({
-      text: `${payoutWords(effect)} per ${countWords(effect.per, RATE_WORDS[effect.fromRate])}`,
+      text: effect.percent === undefined
+        ? `${payoutWords(effect)} per ${countWords(effect.per, RATE_WORDS[effect.fromRate])}`
+        : `gain ${effect.to} equal to ${effect.percent}% of your ${RATE_WORDS[effect.fromRate].many}`,
     });
     return;
   }
@@ -2480,7 +2491,9 @@ function describeEffect(
               ? buildingDef(effect.building).name
               : buildingPlural(buildingDef(effect.building).name, 2),
           )
-        : effect.buildingCategory
+        : effect.supplies
+          ? `buildings that supply ${effect.supplies}`
+          : effect.buildingCategory
           ? `${effect.buildingCategory} buildings`
           : effect.modelClass
             ? `${effect.modelClass} units`
@@ -2518,6 +2531,7 @@ function describeEffect(
                   // The hexes a `tilesInBorders` count counts (batch DT6, The
                   // Gobelins).
                   tile: effect.tile,
+                  category: effect.countCategory,
                 },
                 '',
               ),
@@ -3168,7 +3182,7 @@ function describeEffect(
         // A share of the moment since Dominion batch D6 (Looted Art).
         const figure =
           grant.fromOccasion === undefined
-            ? `${signed(grant.renown)} renown`
+            ? grant.fromRate === 'renownPerTurn' ? `${grant.renown} turns of renown` : `${signed(grant.renown)} renown`
             : measuredWords('renown', grant.renown, grant.fromOccasion, effect.occasion);
         out.push({ text: `${occasion} grants ${figure}${age}${favours}${per}` });
       }
@@ -3602,6 +3616,10 @@ function describeEffect(
       // **The School of Mines names its work** (Scientific batch S5): the
       // sentence is about the work standing on the deposit, so it is said
       // whole here with the work's name.
+      if (effect.target === 'routeYields' && effect.mode !== undefined) {
+        out.push({ text: `your trade routes by ${effect.mode} pay ${signed(effect.percent ?? 0)}%` });
+        return;
+      }
       if (effect.target === 'depositWorkCopies' && effect.improvement !== undefined) {
         const name = improvementDef(effect.improvement).name;
         const copies =
@@ -3951,7 +3969,9 @@ function describeEffect(
       // ordinary shelves at the counter and a card that slows them in the queue
       // read as one sentence.
       const houses =
-        effect.empireBuilding === true
+        effect.suppliesAny !== undefined
+          ? `buildings that supply ${effect.suppliesAny.join(' or ')}`
+          : effect.empireBuilding === true
           ? 'empire buildings'
           : effect.empireBuilding === false
             ? 'ordinary buildings'
@@ -4007,6 +4027,15 @@ function describeEffect(
       return;
     }
     case 'renown': {
+      if (effect.onCountedBuilding && effect.building) {
+        const family = effect.family ? ` toward great ${effect.family}s` : '';
+        out.push({ text: `${buildingDef(effect.building).name} gives ${signed(effect.amount)} renown per turn${family}` });
+        return;
+      }
+      if (effect.onCountedBuilding && effect.voice) {
+        out.push({ text: `Each building that supplies ${effect.voice} gains ${signed(effect.amount)} renown per turn` });
+        return;
+      }
       // "per turn" is load-bearing and never trimmed: every other count on a
       // card is a standing fact, and this one is a trickle. The family, where a
       // card names one, trails as its own phrase rather than modifying "renown"
@@ -4891,6 +4920,9 @@ function slotFlavourWords(flavour: ChairType): PluralWords {
  * Barracks" and "per Temple" are one shape, one table entry and two data rows.
  */
 function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
+  if (effect.count === 'slottedOrdersOfSlot' && effect.byChair) {
+    return { one: `Order in a ${effect.slot} chair`, many: `Orders in ${effect.slot} chairs` };
+  }
   if (effect.count === 'defensiveBuildings' && effect.category !== undefined) {
     const where = place || 'in this city';
     return { one: `${effect.category} building or fortification ${where}`, many: `${effect.category} buildings or fortifications ${where}` };
@@ -6694,11 +6726,11 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   onHills: 'on hills',
   vsCity: 'against cities',
   targetBelowHalf: 'against units below half strength',
-  // The condition reads the defender, so it only makes sense when attacking.
-  targetWounded: 'when attacking a wounded unit',
+  targetWounded: 'against a wounded unit',
   capitalTerritory: 'inside your capital’s borders',
   inCity: 'while standing in one of your cities',
   capturedCity: 'in a city you captured',
+  capturedTerritory: 'inside the borders of a city you captured',
   // Whose city is deliberately not said, because the card's own sentence is
   // "including foreign cities" — the post is the whole of the test.
   inCityWithPost: 'while standing in a city holding your trading post',
@@ -7171,6 +7203,7 @@ export function occasionWords(
 }
 
 const COUNT_WORDS: Record<CountKind, PluralWords> = {
+  activeDealAges: { one: 'active deal for each age reached', many: 'active deals for each age reached' },
   uniqueLuxuries: { one: 'unique luxury', many: 'unique luxuries' },
   luxuryCopies: { one: 'improved luxury copy', many: 'improved luxury copies' },
   duplicateLuxuries: {
@@ -7252,6 +7285,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // "Called", the great people's own verb everywhere else — they are called,
   // never built or bought — and "you have" rather than "your realm has" because
   // every other count on this table speaks to the player directly.
+  otherEmpiresGreatPeopleCalled: { one: 'great person called by another empire', many: 'great people called by other empires' },
   greatPeopleCalled: {
     one: 'great person you have called',
     many: 'great people you have called',
@@ -7703,6 +7737,7 @@ function measuredWords(
 }
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {
+  renownPerTurn: { one: 'renown per turn', many: 'renown per turn' },
   faithPerTurn: { one: 'faith gained per turn', many: 'faith gained per turn' },
   capitalFaithPerTurn: {
     one: "faith your capital gains per turn",
@@ -8418,6 +8453,7 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   authorityNegative: 'while your authority is negative',
   authorityPositive: 'while your authority is positive',
   happinessNegative: 'while your happiness is negative',
+  happinessNonnegative: 'while your happiness is zero or higher',
   atWar: 'while you are at war',
   // The complement said the way a player would say it, not as a negation of the
   // line above: "while you are at peace" is a state of the realm a player plans
@@ -8445,6 +8481,7 @@ const UNMET_CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   authorityNegative: 'your authority is not negative',
   authorityPositive: 'you have no spare authority',
   happinessNegative: 'your happiness is not negative',
+  happinessNonnegative: 'your happiness is negative',
   atWar: 'you are at peace',
   atPeace: 'you are at war',
   keepingRite: 'no city of yours is keeping a rite',

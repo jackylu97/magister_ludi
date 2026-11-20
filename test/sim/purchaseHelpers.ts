@@ -11,6 +11,9 @@
  */
 import { createGame } from './newGameHelpers';
 import type { Command } from '../../src/sim/commands';
+import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
+import { bumpRevision, createUnit, type City, type GameState } from '../../src/sim/state';
+import { type UnitTypeId } from '../../src/sim/unitData';
 import type { PurchasableItem } from '../../src/sim/purchase';
 
 export function game(seed = 11) {
@@ -31,4 +34,13 @@ export function buyCommand(
   playerId = 0,
 ): Command {
   return { type: 'purchaseItem', playerId, cityId, item, currency } as Command;
+}
+
+/** Fill the ring to test a refused purchase. The caller sets up the city centre. */
+export function fillPurchaseRing(state: GameState, city: City, type: UnitTypeId): void {
+  const centre = getTileAt(state.map, city.col, city.row)!;
+  for (const tile of neighborTiles(state.map, tileHex(centre))) {
+    createUnit(state, city.ownerId, type, tile.col, tile.row);
+  }
+  bumpRevision(state);
 }

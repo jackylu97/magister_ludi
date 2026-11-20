@@ -1905,7 +1905,8 @@ describe('research in the log', () => {
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
     // Version 248 changes the draft pools and wonder effects used during replay.
-    expect(SCHEMA_VERSION).toBe(248);
+    // Version 249 changes the leader and Great Person rosters, religion names and unit purchases.
+    expect(SCHEMA_VERSION).toBe(249);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

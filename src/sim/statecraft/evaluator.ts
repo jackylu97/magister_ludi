@@ -118,7 +118,7 @@ import {
 import { type ChargeVerbName, cityRite } from '../religion';
 // The same edge, one system over: `settleRenownWindfall` is the one place renown
 // is added, called from inside `payWindfallGrants` and never at load time.
-import { settleRenownWindfall } from '../renown';
+import { explainRenown, renownPerTurn, settleRenownWindfall } from '../renown';
 // Scientific batch S8: a rider's great person is dealt by the routine a
 // commission's uses. A function-level edge, as `renown.ts`' is.
 import { grantGreatPersonOffer } from '../greatPeople';
@@ -135,7 +135,7 @@ import { economyStamp, slateMemo, slateShadow } from '../slate';
 import { connectedCityIds } from '../roads';
 // Commerce batch T5, feature D: the deal register is a leaf
 // (`deals.ts`), so its two readings come straight from it with no cycle.
-import { dealPartnerSeats, lentCopyCount } from '../deals';
+import { activeDealCount, dealPartnerSeats, lentCopyCount } from '../deals';
 // A leaf, exactly as `roads.ts` beside it is, and it became one so this line
 // could exist: `routeEndsHere` asks how many trade routes meet a town,
 // `routeYields.ts` imports this file for the lines a card puts on a caravan,
@@ -2023,6 +2023,8 @@ function empireConditionHolds(
       return authorityReading(state, playerId) > 0;
     case 'happinessNegative':
       return happinessReading(state, playerId) < 0;
+    case 'happinessNonnegative':
+      return happinessReading(state, playerId) >= 0;
     case 'atWar':
       // **The register itself**, and nothing derived from it. `atWar` answers
       // *true* against the wild without looking (it has nothing to sign), so a
@@ -3344,7 +3346,7 @@ export function countTilesInBorders(
 ): number {
   const ground = groundFactsFor(state, playerId);
   const walk = (town: City): number => {
-    let here = rule.test === 'greatWork' ? ghostWorksInTown(state, town) : 0;
+    let here = admitsGhostWork(rule) ? ghostWorksInTown(state, town) : 0;
     for (const tile of ownedTiles(state, town)) {
       if (tileConditionHolds(tile, rule, undefined, undefined, state.turn, ground)) here += 1;
     }
@@ -3700,7 +3702,8 @@ export function countOf(
       // What the town holds (`townBuildings`, Expansionist batch E12).
       return city ? townBuildings(state, city).length : 0;
     case 'workedTilesInCity':
-      return city ? city.workedTiles.length : 0;
+      if (!city) return 0;
+      return effect.tile ? worksHolding(state, city, effect.tile) : city.workedTiles.length;
     case 'workedUnimprovedTiles': {
       // `workedHills`' loop with the other question asked of the hex, and the
       // question is asked through `tileConditionHolds` so the count and the 🌿
@@ -3788,6 +3791,9 @@ export function countOf(
       // the first age has closed nothing, so the floor at zero is the meaning
       // rather than a guard.
       return Math.max(0, highestAge(playerById(state, playerId)?.techsResearched ?? []) - 1);
+    case 'otherEmpiresGreatPeopleCalled':
+      return realPlayers(state).reduce((sum, seat) =>
+        sum + (seat.id === playerId ? 0 : seat.greatPeopleRecruited), 0);
     case 'greatPeopleCalled':
       // The ledger kept where a person is *picked* (`Player.greatPeopleRecruited`),
       // never a walk of the pieces still standing: a house that learnt from the
@@ -4027,6 +4033,8 @@ export function countOf(
       // Commerce batch T5, feature D (Export Guilds): one for each kind each
       // live deal row names on this empire's side (the triage's reading 21).
       return lentCopyCount(state, playerId);
+    case 'activeDealAges':
+      return activeDealCount(state, playerId) * ownerAgeOf(state, playerId);
     case 'dealPartners':
       // Commerce batch T5, feature D (The Treaty Ports): the empires holding
       // a live deal row with this one, each once (the triage's reading 20).
@@ -4097,7 +4105,7 @@ export function countOf(
       // Imperium. Through `slottedOrdersOfFlavour`, the one reading, so the
       // Order screen and the combat preview cannot disagree about what a
       // council is made of.
-      return slottedOrdersOfFlavour(state, playerId, effect.slot);
+      return slottedOrdersOfFlavour(state, playerId, effect.slot, effect.byChair);
     case 'clearedCamps':
       // The one count answered off a **record** rather than off the board: a
       // camp that has been burnt out leaves nothing to sweep, which is exactly
@@ -4684,6 +4692,8 @@ function rateOf(
       return Math.max(0, rates.culturePerTurn ?? 0);
     case 'goldPerTurn':
       return Math.max(0, rates.goldPerTurn ?? 0);
+    case 'renownPerTurn':
+      return renownPerTurn(state, playerId);
     case 'sciencePerTurn':
       return Math.max(0, rates.sciencePerTurn ?? 0);
     case 'happiness':
@@ -5555,14 +5565,14 @@ export function explainCardEmpireYields(
 
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'pays')) {
     if (effect.basis !== 'rate' || effect.fromRate === undefined || !paysAVoice(effect)) continue;
-    const times = helpings(
-      rateOf(state, playerId, effect.fromRate, reading()),
-      effect.per,
-      undefined,
-    );
+    const rate = rateOf(state, playerId, effect.fromRate, reading());
+    const percent = effect.percent;
+    const times = percent === undefined ? helpings(rate, effect.per, undefined) : rate;
     if (times === 0) continue;
-    const line = emptyLine(card, label(source, `×${times}`));
-    line[effect.to as CityYieldKey] = (effect.amount ?? 0) * times;
+    const line = emptyLine(card, label(source, percent === undefined ? `×${times}` : `${percent}%`));
+    line[effect.to as CityYieldKey] = percent === undefined
+      ? times * (effect.amount ?? 0)
+      : times * percent / 100;
     if (paysSomething(line)) list.push(line);
   }
 
@@ -6053,15 +6063,18 @@ function cardLinesOnBuilding(
       effect.within === 'city' &&
       (effect.count === 'buildingsOfKind' ||
         effect.count === 'buildingsOfCategory' ||
-        effect.count === 'publicWorks');
+        effect.count === 'publicWorks' ||
+        (effect.count === 'buildingsSupplying' && effect.onCountedBuilding === true));
     if (byShelf) {
       const counted =
         (effect.count === 'buildingsOfKind' && effect.building === id) ||
         (effect.count === 'buildingsOfCategory' && effect.category === category) ||
-        (effect.count === 'publicWorks' && isPublicWork(id));
+        (effect.count === 'publicWorks' && isPublicWork(id)) ||
+        (effect.count === 'buildingsSupplying' && effect.voice !== undefined &&
+          buildingSuppliesFrom(state, city, id, effect.voice, readPayments));
       if (!counted) continue;
     } else {
-      if (card !== id) continue;
+      if (card !== id && !(effect.onNamedBuilding && scopeNamesBuilding(effect.scope, id))) continue;
       if (scopeNamesABuilding(effect.scope) && !scopeNamesBuilding(effect.scope, id)) continue;
     }
     // Where the town fold pays a counted line: every town, or the capital.
@@ -7101,7 +7114,10 @@ function tileAmplifierLines(
     // The follower beliefs' reader reaches town lines only.
     if (effect.reads !== undefined) continue;
     for (const dressed of found) {
-      if (dressed.card === card || !isOrderId(dressed.card)) continue;
+      if (dressed.card === card) continue;
+      // A work multiplier also applies to yields a great person's legacy adds there.
+      const workLegacy = effect.on?.test === 'greatWork' && isGreatPersonId(dressed.card);
+      if (!isOrderId(dressed.card) && !workLegacy) continue;
       // **Only where the amplifier's own tile test holds too** (The Age of
       // Improvement's improved hexes, Expansionist batch E3): the helping lands
       // on the hexes both tests admit.
@@ -7636,8 +7652,9 @@ export function buildingProductionBonusMatches(
   if (building === undefined) {
     return effect.buildingCategory === undefined &&
       effect.empireBuilding === undefined && effect.publicWork !== true &&
-      effect.buildingFilter === undefined;
+      effect.buildingFilter === undefined && effect.supplies === undefined;
   }
+  if (effect.supplies !== undefined && !buildingSupplies(state, city, building, effect.supplies)) return false;
   if (effect.buildingCategory !== undefined && buildingDef(building).category !== effect.buildingCategory) {
     return false;
   }
@@ -7731,7 +7748,8 @@ export function cardProduction(
           admits: effect.admits,
           // The hexes a `tilesInBorders` count counts (batch DT6, The Gobelins).
           tile: effect.tile,
-        }),
+          ...(effect.countCategory === undefined ? {} : { category: effect.countCategory, within: 'city' }),
+        }, city),
         effect.per,
         effect.max,
       );
@@ -8769,7 +8787,7 @@ export interface CombatSituation {
   vsBarbarians: boolean;
   /** True when the target is a city. */
   vsCity: boolean;
-  /** The defender's hit points and maximum, for `targetBelowHalf`. */
+  /** The opposing unit or city's hit points and maximum. */
   targetHp: number;
   targetMaxHp: number;
   /**
@@ -8839,7 +8857,7 @@ function combatConditionHolds(
     case 'targetBelowHalf':
       return situation.targetMaxHp > 0 && situation.targetHp * 2 < situation.targetMaxHp;
     case 'targetWounded':
-      return !situation.vsCity && situation.targetMaxHp > 0 && situation.targetHp < situation.targetMaxHp;
+      return (situation.side === 'defend' || !situation.vsCity) && situation.targetMaxHp > 0 && situation.targetHp < situation.targetMaxHp;
     case 'capitalTerritory': {
       // `ownTerritory` narrowed to the capital's own borders, asked by tile id
       // rather than by owner so that a second city standing beside the first
@@ -8854,6 +8872,11 @@ function combatConditionHolds(
       // with `side: 'defend'` on every row that wants it — see the condition.
       const here = cityAt(state, situation.tile.col, situation.tile.row);
       return here !== undefined && here.ownerId === situation.unit.ownerId;
+    }
+    case 'capturedTerritory': {
+      const id = tileOwnerCityId(state, situation.tile.col, situation.tile.row);
+      const town = id === null ? undefined : cityById(state, id);
+      return town?.ownerId === situation.unit.ownerId && town.captured;
     }
     case 'capturedCity': {
       // `inCity` and one more question of the same town, asked of the same
@@ -10985,18 +11008,25 @@ export function windfallPayout(
       // Multiplied by the era and by the council exactly as a yield grant is —
       // two independent facts about the payout, composing as a product — and
       // composed here so the announcement and the pool see one figure.
-      const amount =
+      const multiplier =
         grant.renown *
         renownMeasure *
         (effect.perAge === true ? era : 1) *
         (effect.perSlottedOrder === true ? slotted : 1) *
         boostFor(card);
-      if (amount !== 0) {
+      // An extra turn repeats each recurring family feed. It excludes one-time rewards.
+      const feeds = grant.fromRate === 'renownPerTurn'
+        ? explainRenown(state, playerId).filter((line) => line.perTurn)
+        : [{ family: grant.renownFamily, amount: 1 }];
+      for (const feed of feeds) {
+        const amount = feed.amount * multiplier;
+        if (amount === 0) continue;
+        const family = feed.family;
         payout.renown.push({
           card,
           source,
           amount,
-          ...(grant.renownFamily !== undefined ? { family: grant.renownFamily } : {}),
+          ...(family ? { family } : {}),
         });
         payout.lines.push({ card, source, note: `${signed(amount)} renown` });
         // **A tier-26 government's rise** (batch R1): its own renown grant,
@@ -11008,7 +11038,7 @@ export function windfallPayout(
             card: rise.raise.card,
             source: named,
             amount: rise.extra,
-            ...(grant.renownFamily !== undefined ? { family: grant.renownFamily } : {}),
+            ...(family ? { family } : {}),
           });
           payout.lines.push({ card: rise.raise.card, source: named, note: `${signed(rise.extra)} renown` });
         }
@@ -11500,6 +11530,7 @@ export function slottedOrdersOfFlavour(
   state: GameState,
   playerId: number,
   flavour?: ChairType,
+  byChair = false,
 ): number {
   const sc = statecraftOf(state, playerId);
   if (!sc) return 0;
@@ -11507,7 +11538,8 @@ export function slottedOrdersOfFlavour(
   let count = 0;
   sc.slots.forEach((slot, index) => {
     if (slot === null) return;
-    if (flavour !== undefined && countedTypeOf(slot.card, layout[index] ?? 'wildcard') !== flavour) {
+    const chair = layout[index] ?? 'wildcard';
+    if (flavour !== undefined && (byChair ? chair : countedTypeOf(slot.card, chair)) !== flavour) {
       return;
     }
     count += 1;
@@ -13585,6 +13617,12 @@ export function cardPurchaseRiders(
       if (kind !== 'building' || building === undefined) continue;
       if (buildingDef(building).category !== effect.buildingCategory) continue;
     }
+    if (effect.suppliesAny !== undefined) {
+      if (kind !== 'building' || building === undefined) continue;
+      if (!effect.suppliesAny.some((voice) => city
+        ? buildingSupplies(state, city, building, voice)
+        : buildingRowSupplies(building, voice))) continue;
+    }
     // **Which side of the great-house line**, and again only ever of a building
     // — Private Patronage's ordinary shelves. The marker the rows carry
     // (`BuildingDef.oncePerEmpire`), asked the same way the production bonus and
@@ -14220,10 +14258,28 @@ function countedRenownHelpings(
   return total;
 }
 
+export function cardBuildingRenown(state: GameState, city: City, buildings: readonly BuildingId[]) {
+  const lines: (CardRenownLine & { building: BuildingId })[] = [];
+  for (const { effect, source, card } of cityEffectsOfKind(state, city, 'renown')) {
+    if (!effect.onCountedBuilding || !cityScopeAdmits(state, city, effect.scope)) continue;
+    for (const id of buildings) {
+      const matches = effect.count === 'buildingsOfKind'
+        ? id === effect.building
+        : effect.count === 'buildingsSupplying' && effect.voice !== undefined &&
+          buildingSupplies(state, city, id, effect.voice);
+      if (matches) {
+        lines.push({ building: id, source, card, family: effect.family ?? null, amount: effect.amount });
+      }
+    }
+  }
+  return lines;
+}
+
 export function cardRenownLines(state: GameState, playerId: number): CardRenownLine[] {
   const list: CardRenownLine[] = [];
   const targeted = targetedYieldRises<CardRenownLine>(state, playerId, scaleMeterAmount);
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'renown')) {
+    if (effect.onCountedBuilding) continue;
     const each = effect.amount;
     if (each === 0) continue;
     const per = effect.per;
@@ -14773,10 +14829,12 @@ export function cardAmplifier(
    * which.
    */
   family?: Family,
+  mode?: RouteMode,
 ): number {
   let percent = 0;
   for (const { effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
     if (effect.target !== target) continue;
+    if (effect.mode !== undefined && effect.mode !== mode) continue;
     if (effect.family !== undefined && effect.family !== family) continue;
     // A row narrowed to a class of piece (Dominion batch D12) is read only
     // where the piece is in hand (`amplifierRows`), never here.

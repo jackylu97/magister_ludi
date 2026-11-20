@@ -18,6 +18,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { fillPurchaseRing } from '../sim/purchaseHelpers';
 
 import { foundCityAt } from '../../src/sim/cities';
 import { type Command, type CommandResult, applyCommand } from '../../src/sim/commands';
@@ -336,8 +337,9 @@ describe('a refusal is said once per reason', () => {
   it('says a reason several rows share once, at the head of the shelf', () => {
     // The scout stands in the town, so no soldier can be bought into it.
     const { state, city } = firstTurn();
+    fillPurchaseRing(state, city, 'scout');
     const units = shelf(buildListModel(state, city, 0, 'all', false), 'unit');
-    const stands = `A Scout already stands in ${city.name} — move it first`;
+    const stands = 'This city cannot purchase without free tiles.';
     expect(units.refusals).toEqual([{ text: stands, mark: null }]);
     const covered = units.rows.filter((row) =>
       row.cells.some((cell) => cell.look.look === 'none' && cell.look.refusal === stands),
@@ -354,6 +356,7 @@ describe('a refusal is said once per reason', () => {
     // town being too small), so that reason is said under the Worker's row.
     const { state, city } = firstTurn();
     createUnit(state, 0, 'worker', city.col, city.row);
+    fillPurchaseRing(state, city, 'worker');
     bumpRevision(state);
     const units = shelf(buildListModel(state, city, 0, 'all', false), 'unit');
     const worker = units.rows.find((row) => row.kind === 'unit' && row.id === 'worker')!;

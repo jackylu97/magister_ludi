@@ -1306,6 +1306,8 @@ const openDisclosures = new Set<string>();
 const closedDisclosures = new Set<string>();
 
 interface CityPanelOptions {
+  citizenDots?: () => boolean;
+  setCitizenDots?: (on: boolean) => void;
   signal?: AbortSignal;
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
@@ -3690,6 +3692,30 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       setBuyMode(!isBuyMode());
       onChanged();
     });
+    if (options.setCitizenDots) {
+      const dots = options.citizenDots?.() ?? true;
+      const legend = element('div', 'city-citizen-legend');
+      legend.setAttribute('role', 'group');
+      legend.setAttribute('aria-label', 'Citizen assignments');
+      legend.style.setProperty('--citizen-seat', state.players[city.ownerId]!.color);
+      for (const [symbol, label] of [[dots ? 'dot' : 'outline', 'worked'], [dots ? 'pin' : 'lock', 'pinned by you'], ['free', 'free'], ['dark', 'not yours']]) {
+        const item = element('span', 'city-citizen-key');
+        const icon = element('i', 'citizen-key-' + symbol);
+        icon.setAttribute('aria-hidden', 'true');
+        item.append(icon, document.createTextNode(label!));
+        legend.append(item);
+      }
+      const toggle = element('button', 'city-buy-tiles citizen-dot-toggle', 'Citizens');
+      toggle.type = 'button';
+      toggle.setAttribute('aria-pressed', String(dots));
+      toggle.classList.toggle('is-active', dots);
+      toggle.addEventListener('click', () => {
+        options.setCitizenDots?.(!dots);
+        onChanged();
+      });
+      row.append(toggle);
+      dock.append(legend);
+    }
     row.append(buy);
     // Why it is greyed, on a line (never only a note).
     if (refusal !== null) row.append(refusalLineElement(refusal, 'row'));
@@ -5763,7 +5789,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // The board draws a *ring* on every worked hex and has since the overlay
       // pass — bone white where the assignment chose the tile, the seat's own
       // ink where the player pinned it (`overlays.ts`).
-      'A ringed hex is a tile this city works. Click one to pin a citizen ' +
+      'An outlined hex is a tile this city works. Click one to pin a citizen ' +
         'there, or any other hex in the radius to move one to it. A unit ' +
         'standing in the radius is selected by clicking its badge.',
     );
@@ -5820,7 +5846,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const key =
       city === null
         ? null
-        : panelRenderKey(drawing, city, localPlayerId(), isBuyMode(), isTutorialActive(), notice);
+        : panelRenderKey(drawing, city, localPlayerId(), isBuyMode(), isTutorialActive(), notice) + String(options.citizenDots?.() ?? true);
     if (key !== null && drawing === drawnState && key === drawnKey) return;
     drawnState = drawing;
     drawnKey = key;

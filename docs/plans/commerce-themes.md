@@ -121,10 +121,16 @@ Commerce gives up production, and it needs partners at peace. The cards show bot
 
 ### Leaders
 
-- **Pachacuti** (Expansionist, Commerce) leads the home market: towns joined to the capital pay happiness and production, and Commerce's caravans lay the roads that join them. His cards: The Agora and The Market Halls early, then Provisioning Contracts, The Carters' Guild, The Great Fair, The Home Market, The Hanse, The Return Leg (revised 2026-10-21, section 12).
-- **Mansa Musa** (Commerce, Devotion) leads the goods: gold on mines and camps, and routes to a holy site pay gold and faith. His cards: The Mineral Trade, Salt Tithes, Royal Assays, Mining Districts, The Monopoly, The Casa da Índia. By history he also suits the purse: his gold flooded Cairo.
-- **Zheng He** (Commerce, Magisterial) leads the far trade by sea: ships move further, and routes to or from a coastal town pay gold and culture. His cards: The Common Road, The Exchange, The Foreign Factor, The Admiralty of Trade, The World's Fair (revised 2026-10-21, section 12: Venture Routes is cut).
-- **The gap:** no leader points at the bankers. A Dominion and Commerce leader (Venice or Carthage) would lead them. Leaders are tuned later.
+
+| Leader | Deck pair | Gameplay |
+|---|---|---|
+| Genghis Khan | Dominion + Commerce | Mounted movement, pillage and protected trade routes. |
+| Pachacuti | Expansionist + Commerce | Road connections, mountain farms and gold. |
+| Mansa Musa | Commerce + Devotion | Mining, camps, desert yields and Holy Site routes. |
+| Cleopatra | Commerce + Scientific | Science from trade, deals and great people. |
+| Lorenzo de' Medici | Commerce + Magisterial | Net gold income, local gold buildings, works and great people. |
+
+Ibn Battuta can draw from every deck.
 
 ## 3. The engine: gold, and what it buys
 

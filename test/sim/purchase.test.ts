@@ -29,7 +29,7 @@ import {
   buildingProductionCost,
   foundCityAt,
   queueItemName,
-  spawnTileFor,
+  purchasedUnitTile,
   tilePurchaseError,
   unitProductionCost,
   unitRosterCost,
@@ -68,7 +68,7 @@ import { buildError, gatingTech } from '../../src/sim/tech';
 import { TECH_IDS } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { hasStackingRoom } from '../../src/sim/units';
-import { buyCommand, game } from './purchaseHelpers';
+import { buyCommand, fillPurchaseRing, game } from './purchaseHelpers';
 
 // --- harness ----------------------------------------------------------------
 
@@ -87,16 +87,7 @@ const TRADER: PurchasableItem = { kind: 'unit', id: 'trader' };
 const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
 const RATE = RULES.production.goldPerHammer;
 
-/**
- * A city for a player, on the tile their first unit is standing on — **with the
- * hex cleared**, because since item (hhhh) a bought unit stands on the city hex
- * or is not sold, and a town founded under the seat's own escort would refuse
- * every soldier in this file for a reason none of these tests is about.
- *
- * The escort is walked one hex out rather than deleted: the pieces are still on
- * the board, still this seat's, and a test that wants the hex occupied puts one
- * back (see "a bought unit stands on the city hex" below).
- */
+/** Clear the centre so each test can choose its garrison. */
 function found(state: GameState, playerId: number): City {
   const unit = state.units.find((u) => u.ownerId === playerId)!;
   const city = foundCityAt(state, playerId, getTileAt(state.map, unit.col, unit.row)!);
@@ -531,21 +522,7 @@ describe('buying a unit', () => {
 
 // --- the city hex ------------------------------------------------------------
 
-/**
- * **A bought unit stands on the city hex, or is not sold** — the user's ruling
- * of 2026-09-10, `docs/flags.md` item (hhhh).
- *
- * Three claims, and the third is the one that keeps the rule from spreading:
- *
- *   · a purchase lands on the town's own tile, never a hex over;
- *   · a piece of the same stacking category standing there refuses the sale, in
- *     a sentence that names it — and refuses it *before* the coin and before the
- *     bucket stamp, so a refused afternoon is an afternoon the town can still
- *     spend once the piece has moved;
- *   · a **built** piece still spills to a neighbour. The two ways of paying now
- *     differ in exactly one place, and it is the placement helper's own option.
- */
-describe('a bought unit stands on the city hex', () => {
+describe('placement of a purchased unit', () => {
   it('lands on the town’s own tile, not a neighbour with room', () => {
     const g = game();
     const city = found(g.state, 0);
@@ -557,61 +534,32 @@ describe('a bought unit stands on the city hex', () => {
     expect(bought.row).toBe(city.row);
   });
 
-  it('refuses the sale when a piece of the same kind is in the way, naming it', () => {
+  it('refuses a full city and ring before payment', () => {
     const g = game();
     const city = found(g.state, 0);
-    const player = playerById(g.state, 0)!;
-    player.gold = 500;
+    playerById(g.state, 0)!.gold = 500;
     garrison(g.state, city, 'warrior');
-
-    const refusal = purchaseError(g.state, 0, city.id, WARRIOR, 'gold');
-    expect(refusal).toBe(`A Warrior already stands in ${city.name} — move it first`);
-
-    // Nothing moved: not the coin, not the stamp, not a byte.
+    fillPurchaseRing(g.state, city, 'warrior');
     const before = snapshotState(g.state);
-    const blocked = dispatch(g, buyCommand(city.id, WARRIOR));
-    expect(blocked.ok).toBe(false);
-    expect(blocked.ok === false && blocked.error).toBe(refusal);
+    const refusal = 'This city cannot purchase without free tiles.';
+    expect(purchaseError(g.state, 0, city.id, WARRIOR, 'gold')).toBe(refusal);
+    expect(dispatch(g, buyCommand(city.id, WARRIOR))).toMatchObject({ ok: false, error: refusal });
     expect(snapshotState(g.state)).toEqual(before);
-    expect(city.purchasedUnitTurns).toBeUndefined();
-
-    // And the town's afternoon is still its own — the stamp was never spent, so
-    // the piece walking out is the whole of the fix.
-    marchOut(g.state, city);
-    expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
-    expect(city.purchasedUnitTurns).toEqual({ militaryGold: g.state.turn });
+    expect(g.log).toHaveLength(0);
   });
 
-  it('asks the stacking category, so a worker blocks a settler and not a warrior', () => {
-    // The rule is `hasStackingRoom`'s own reading, which counts by category: a
-    // civilian in the slot refuses another civilian and says nothing at all
-    // about the garrison.
+  it('shares a centre with a different category and places the matching category beside it', () => {
     const g = game();
     const city = found(g.state, 0);
-    const player = playerById(g.state, 0)!;
-    player.gold = 4000;
+    playerById(g.state, 0)!.gold = 4000;
     city.population = 3;
     garrison(g.state, city, 'worker');
-
-    expect(purchaseError(g.state, 0, city.id, SETTLER, 'gold')).toBe(
-      `A Worker already stands in ${city.name} — move it first`,
-    );
-    expect(purchaseError(g.state, 0, city.id, WARRIOR, 'gold')).toBeNull();
     expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
-  });
-
-  it('leaves the built piece its spill to a neighbour', () => {
-    // The one place the two ways of paying differ, read straight off the helper
-    // they share: the queue's completion still finds a hex, the purchase does
-    // not, and the difference is the option rather than two walks.
-    const g = game();
-    const city = found(g.state, 0);
-    garrison(g.state, city, 'warrior');
-
-    const built = spawnTileFor(g.state, city, 'warrior');
-    expect(built).not.toBeNull();
-    expect(built!.col === city.col && built!.row === city.row).toBe(false);
-    expect(spawnTileFor(g.state, city, 'warrior', { onCityHexOnly: true })).toBeNull();
+    expect(g.state.units[g.state.units.length - 1]).toMatchObject({ col: city.col, row: city.row });
+    const first = purchasedUnitTile(g.state, city, 'settler')!;
+    expect(wrappedDistance(g.state.map, tileHex(first), tileHex(getTileAt(g.state.map, city.col, city.row)!))).toBe(1);
+    expect(dispatch(g, buyCommand(city.id, SETTLER)).ok).toBe(true);
+    expect(g.state.units[g.state.units.length - 1]).toMatchObject({ col: first.col, row: first.row });
   });
 });
 
@@ -809,7 +757,7 @@ describe('the bank’s shortfall, read beside the gate', () => {
     // The gate hands back the price it asked the bank about (bot batch BP16),
     // which is the cost fold's own total, whenever it got as far as the bank.
     const price = refusal === null || shortfall !== null ? explainPurchaseCost(state, 0, cityId, item, bank)!.total : null;
-    expect(purchaseGate(state, 0, cityId, item, bank), label).toEqual({ refusal, shortfall, price });
+    expect(purchaseGate(state, 0, cityId, item, bank), label).toMatchObject({ refusal, shortfall, price });
     if (refusal === null) {
       expect(shortfall, label).toBeNull();
       return 'taken';
@@ -919,8 +867,8 @@ describe('the bank’s shortfall, read beside the gate', () => {
 
     // A piece already standing in the town's hex.
     garrison(g.state, city, 'warrior');
-    refusedTwice(WARRIOR, 'gold', 'a warrior in the way');
-    marchOut(g.state, city);
+    fillPurchaseRing(g.state, city, 'warrior');
+    refusedTwice(WARRIOR, 'gold', 'no free tiles');
     // A building the town already has.
     city.buildings.push('granary');
     bumpRevision(g.state);
@@ -1758,6 +1706,7 @@ describe('the schema witness', () => {
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
     // Version 248 changes the draft pools and wonder effects used during replay.
-    expect(SCHEMA_VERSION).toBe(248);
+    // Version 249 changes the leader and Great Person rosters, religion names and unit purchases.
+    expect(SCHEMA_VERSION).toBe(249);
   });
 });

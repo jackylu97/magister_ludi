@@ -16,6 +16,26 @@ types and the override seam), `docs/luxuries.md` (the resource table itself),
 `docs/history/design-history.md` and git (why any of it is the way it is).
 
 ---
+## Starting ground for the current leaders
+
+Every leader played nine times in a rotation of six seats on 24 standard maps, using seeds 1 through 24. All 144 starts met the spacing rule. The table counts starts which met every hard terrain preference for that leader. A soft preference only changes the site score.
+
+| Leader | Starts meeting all hard preferences |
+|---|---|
+| Genghis Khan | 9 of 9 |
+| Qin Shi Huang | 9 of 9 |
+| Pachacuti | 9 of 9 |
+| Jayavarman VII | 6 of 9 |
+| Nezahualcoyotl | 9 of 9 |
+| Cyrus the Great | 7 of 9 |
+| Mansa Musa | 7 of 9 |
+| Cleopatra | 9 of 9 |
+| Lorenzo de' Medici | 9 of 9 |
+| Harun al-Rashid | 8 of 9 |
+| Sejong the Great | 9 of 9 |
+
+The other leaders have no hard terrain preference. The older seed sweeps below keep their original rosters.
+
 
 ## Contents
 

@@ -42,6 +42,13 @@ import type { ResourceId } from './resourceData';
 import type { CardEffect } from './statecraftData';
 
 export type UnitTypeId =
+  | 'hypaspist'
+  | 'janissary'
+  | 'qinCrossbowman'
+  | 'ballistaElephant'
+  | 'sparabara'
+  | 'condottiere'
+  | 'hwacha'
   | 'warrior'
   | 'scout'
   | 'settler'

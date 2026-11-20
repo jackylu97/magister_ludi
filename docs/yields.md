@@ -203,6 +203,8 @@ what makes the order structural rather than incidental. Its own order is
    (The Keeps, Expansionist batch E4: `ImprovementDef.copiesNeighbours`) adds
    to its own line what each hex `GroundFacts.copiedHexes` names pays, read
    with the same context;
+   - Philosophy and Education each add 2 to the main yield of the Academy,
+     Landmark, Manufactory, Customs House and Citadel when the tile owner knows the technology.
    - then the hex's **lasting marks** (`Tile.marks`, Expansionist batch E3),
      outside the works' bracket: each pays the rule book's figure
      (`rules.improvements.hexMarks`) while its own condition holds, whoever

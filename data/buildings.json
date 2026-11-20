@@ -1,5 +1,208 @@
 {
   "buildings": {
+    "schoolOfMieza": {
+      "name": "The School of Mieza",
+      "category": "military",
+      "size": "small",
+      "column": 3,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "tileYields": [
+        {
+          "on": {
+            "test": "resourceKind",
+            "kind": "strategic"
+          },
+          "add": {
+            "science": 1,
+            "culture": 1
+          }
+        }
+      ]
+    },
+    "hallOfWorthies": {
+      "name": "The Hall of Worthies",
+      "category": "science",
+      "size": "medium",
+      "column": 5,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 4,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "renown": {
+        "family": "scholar",
+        "perTurn": 5
+      }
+    },
+    "basilica": {
+      "name": "The Basilica",
+      "category": "faith",
+      "size": "medium",
+      "column": 5,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "faith": 3,
+      "cityStat": {
+        "stat": "defense",
+        "amount": 3
+      },
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 20,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hasBuilding",
+                "building": "basilica"
+              },
+              {
+                "test": "workingImprovement",
+                "improvements": [
+                  "holySite"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "bottega": {
+      "name": "The Bottega",
+      "category": "production",
+      "size": "medium",
+      "column": 8,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 3
+      },
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 3,
+          "family": "artist",
+          "count": "buildingsOfKind",
+          "building": "bottega",
+          "within": "city",
+          "onCountedBuilding": true
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 2,
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": {
+            "test": "any",
+            "of": [
+              {
+                "test": "resourceKind",
+                "kind": "luxury"
+              },
+              {
+                "test": "greatWork"
+              }
+            ]
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "bottega"
+          }
+        }
+      ]
+    },
+    "houseOfFire": {
+      "name": "The House of Fire",
+      "category": "faith",
+      "size": "medium",
+      "column": 4,
+      "food": 2,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "happiness": 2,
+      "publicWork": true,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 3
+      }
+    },
+    "kulliye": {
+      "name": "The Külliye",
+      "category": "science",
+      "size": "medium",
+      "column": 7,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "faith": 2,
+      "happiness": 1
+    },
+    "relayYam": {
+      "name": "The Yam",
+      "category": "military",
+      "size": "medium",
+      "column": 6,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "productionBonus": {
+        "category": "unit",
+        "percent": 30,
+        "class": {
+          "modelClasses": [
+            "mounted",
+            "mountedRanged"
+          ]
+        }
+      },
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "routeRange",
+          "percent": 100,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "relayYam"
+          }
+        }
+      ]
+    },
     "monument": {
       "name": "Monument",
       "category": "culture",
@@ -508,7 +711,7 @@
         }
       ],
       "renown": {
-        "family": "scholar",
+        "family": "artist",
         "onComplete": 10,
         "perTurn": 1
       }
@@ -661,7 +864,7 @@
         }
       ],
       "renown": {
-        "family": "scholar",
+        "family": "engineer",
         "onComplete": 10,
         "perTurn": 2
       }
@@ -1128,7 +1331,7 @@
         }
       ],
       "renown": {
-        "family": "scholar",
+        "family": "artist",
         "onComplete": 10,
         "perTurn": 2
       }
@@ -3107,7 +3310,7 @@
       "note": "The town that holds it gains science for each Order in your military chairs."
     },
     "postStation": {
-      "name": "The Post Station",
+      "name": "The Commandery",
       "category": "production",
       "size": "large",
       "column": 11,
@@ -3544,7 +3747,7 @@
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 1,
+          "amount": 2,
           "count": "greatPeopleCalled",
           "scope": {
             "test": "hasBuilding",
@@ -3693,7 +3896,7 @@
         }
       ],
       "renown": {
-        "family": "scholar",
+        "family": "general",
         "onComplete": 10,
         "perTurn": 2
       },
@@ -3802,7 +4005,7 @@
         }
       ],
       "renown": {
-        "family": "scholar",
+        "family": "engineer",
         "onComplete": 10,
         "perTurn": 2
       },

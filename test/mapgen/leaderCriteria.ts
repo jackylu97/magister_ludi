@@ -46,7 +46,10 @@ export const CAST_SIZE = 6;
 export const CAST_ANCHOR: LeaderId = 'akhenaten';
 
 /** Everybody the rotation draws from, in sheet order. */
-const ROTATION: readonly LeaderId[] = LEADER_IDS.filter((id) => id !== CAST_ANCHOR);
+export const HISTORICAL_CAST: readonly LeaderId[] = [
+  'pachacuti', 'taizong', 'modu', 'akhenaten', 'almamun', 'mithridates', 'joan', 'mansaMusa', 'zhengHeOfMing', 'nezahualcoyotl', 'hypatiaOfAlexandria', 'hildegard', 'ibnBattutaOfTangier',
+];
+const ROTATION: readonly LeaderId[] = HISTORICAL_CAST.filter((id) => id !== CAST_ANCHOR);
 
 /**
  * The six figures seated on one seed's board: the anchor, and five drawn by
@@ -63,14 +66,20 @@ const ROTATION: readonly LeaderId[] = LEADER_IDS.filter((id) => id !== CAST_ANCH
  * The cast is returned in sheet order, so the seat a figure sits in is its
  * position among those drawn and is found with `cast.findIndex`, never assumed.
  */
-export function castFor(seed: number): StartSeat[] {
+export function historicalCastFor(seed: number): StartSeat[] {
   const seated = new Set<LeaderId>([CAST_ANCHOR]);
   for (let step = 0; step < CAST_SIZE - 1; step++) {
     const at = ((seed - 1) * (CAST_SIZE - 1) + step) % ROTATION.length;
     seated.add(ROTATION[at]!);
   }
   // Iterated off the sheet rather than out of the Set, for rule 2's reason.
-  return LEADER_IDS.filter((id) => seated.has(id)).map((leader) => ({ leader }));
+  return HISTORICAL_CAST.filter((id) => seated.has(id)).map((leader) => ({ leader }));
+}
+
+/** Use each current leader equally often while keeping the historical fixtures reproducible. */
+export function castFor(seed: number): StartSeat[] {
+  return LEADER_IDS.filter((_, i) => (i - (seed - 1) * CAST_SIZE % LEADER_IDS.length + LEADER_IDS.length) % LEADER_IDS.length < CAST_SIZE)
+    .map((leader) => ({ leader }));
 }
 
 /** Where `leader` sits in this seed's cast, or −1 when it is not at the table. */
@@ -80,9 +89,9 @@ export function seatOf(cast: readonly StartSeat[], leader: LeaderId): number {
 
 /** How many of `SWEEP_SEEDS` boards seat each figure. The denominator of a share. */
 export function appearances(seeds: number = SWEEP_SEEDS): Map<LeaderId, number> {
-  const counts = new Map<LeaderId, number>(LEADER_IDS.map((id) => [id, 0]));
+  const counts = new Map<LeaderId, number>(HISTORICAL_CAST.map((id) => [id, 0]));
   for (let seed = 1; seed <= seeds; seed++) {
-    for (const seat of castFor(seed)) counts.set(seat.leader!, counts.get(seat.leader!)! + 1);
+    for (const seat of historicalCastFor(seed)) counts.set(seat.leader!, counts.get(seat.leader!)! + 1);
   }
   return counts;
 }

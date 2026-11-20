@@ -34,7 +34,7 @@
   "people": {
     "imhotep": {
       "name": "Imhotep",
-      "family": "scholar",
+      "family": "engineer",
       "age": 2,
       "tier": "strong",
       "epigram": "He read the sky and then the stone.",
@@ -43,7 +43,15 @@
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 10
+          "percent": 15
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 3,
+          "count": "wonders"
         }
       ]
     },
@@ -74,6 +82,14 @@
       "kernel": "Babylonian astronomer; the lunar tables.",
       "legacy": [
         {
+          "kind": "pays",
+          "where": "city",
+          "science": 4,
+          "scope": {
+            "test": "trueCapital"
+          }
+        },
+        {
           "kind": "percentYields",
           "yield": "science",
           "percent": 15,
@@ -95,6 +111,7 @@
           "kind": "pays",
           "where": "city",
           "culture": 1,
+          "faith": 1,
           "scope": {
             "test": "hasBuilding",
             "building": "shrine"
@@ -113,7 +130,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "science": 2,
+          "science": 3,
           "on": {
             "test": "improvement",
             "improvement": "academy"
@@ -122,7 +139,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "culture": 2,
+          "culture": 3,
           "on": {
             "test": "improvement",
             "improvement": "landmark"
@@ -131,7 +148,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "production": 2,
+          "production": 3,
           "on": {
             "test": "improvement",
             "improvement": "manufactory"
@@ -140,7 +157,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "gold": 2,
+          "gold": 3,
           "on": {
             "test": "improvement",
             "improvement": "customsHouse"
@@ -149,10 +166,19 @@
         {
           "kind": "pays",
           "where": "hex",
-          "production": 2,
+          "production": 3,
           "on": {
             "test": "improvement",
             "improvement": "citadel"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "faith": 3,
+          "on": {
+            "test": "improvement",
+            "improvement": "holySite"
           }
         }
       ]
@@ -169,7 +195,15 @@
           "kind": "productionBonus",
           "category": "building",
           "percent": 50,
-          "building": "amphitheater"
+          "supplies": "culture"
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "count": "buildingsSupplying",
+          "voice": "culture",
+          "within": "city",
+          "onCountedBuilding": true
         }
       ]
     },
@@ -184,8 +218,8 @@
         {
           "kind": "pays",
           "where": "city",
-          "culture": 1,
-          "production": 1,
+          "production": 2,
+          "culture": 2,
           "scope": {
             "test": "coastal"
           }
@@ -197,14 +231,17 @@
       "family": "engineer",
       "age": 2,
       "tier": "strong",
-      "retired": true,
       "epigram": "Every terrace of it was his.",
       "kernel": "Hatshepsut's architect.",
       "legacy": [
         {
-          "kind": "productionBonus",
-          "category": "building",
-          "percent": 10
+          "kind": "pays",
+          "where": "city",
+          "production": 6,
+          "scope": {
+            "test": "terrainInBorders",
+            "terrain": "mountain"
+          }
         }
       ]
     },
@@ -216,6 +253,14 @@
       "epigram": "They made him a god for building.",
       "kernel": "The deified overseer of works.",
       "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 4,
+          "scope": {
+            "test": "trueCapital"
+          }
+        },
         {
           "kind": "productionBonus",
           "category": "wonder",
@@ -237,11 +282,22 @@
         {
           "kind": "pays",
           "where": "city",
-          "production": 1,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "temple"
-          }
+          "basis": "count",
+          "within": "city",
+          "to": "production",
+          "amount": 1,
+          "count": "buildingsOfKind",
+          "building": "temple"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "within": "city",
+          "to": "faith",
+          "amount": 1,
+          "count": "buildingsOfKind",
+          "building": "temple"
         }
       ]
     },
@@ -256,12 +312,15 @@
         {
           "kind": "pays",
           "where": "hex",
-          "production": -1,
-          "gold": 3,
+          "gold": 2,
           "on": {
             "test": "improvement",
             "improvement": "mine"
           }
+        },
+        {
+          "kind": "happiness",
+          "amount": -2
         }
       ]
     },
@@ -270,14 +329,13 @@
       "family": "merchant",
       "age": 2,
       "tier": "strong",
-      "retired": true,
       "epigram": "29,086 measures barley, 37 months.",
       "kernel": "The first named person in writing — an accountant.",
       "legacy": [
         {
           "kind": "pays",
           "where": "city",
-          "gold": 1,
+          "gold": 2,
           "scope": {
             "test": "hasBuilding",
             "building": "granary"
@@ -290,14 +348,13 @@
       "family": "merchant",
       "age": 2,
       "tier": "situational",
-      "retired": true,
       "epigram": "Send the tin by the next donkeys.",
       "kernel": "Old Assyrian trader of the Kanesh letters.",
       "legacy": [
         {
           "kind": "pays",
           "where": "city",
-          "gold": 1,
+          "gold": 2,
           "scope": {
             "test": "notCapital"
           }
@@ -320,6 +377,11 @@
             "test": "improvement",
             "improvement": "pasture"
           }
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "gold": 2
         }
       ]
     },
@@ -332,11 +394,22 @@
       "kernel": "The soldier's tomb autobiography.",
       "legacy": [
         {
-          "kind": "unitStat",
-          "stat": "combatPercent",
-          "amount": 10,
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
           "class": {
             "modelClass": "melee"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "gold",
+            "amount": 10
           }
         }
       ]
@@ -352,14 +425,10 @@
         {
           "kind": "combatLine",
           "amount": 3,
+          "side": "defend",
           "when": {
-            "test": "foreignTerritory"
-          },
-          "side": "both"
-        },
-        {
-          "kind": "authority",
-          "amount": -2
+            "test": "always"
+          }
         }
       ]
     },
@@ -374,7 +443,7 @@
         {
           "kind": "unitStat",
           "stat": "heal",
-          "amount": 5
+          "amount": 10
         }
       ]
     },
@@ -415,7 +484,7 @@
         },
         {
           "kind": "happiness",
-          "amount": 1
+          "amount": 3
         }
       ]
     },
@@ -433,7 +502,7 @@
           "percent": -15,
           "scope": {
             "test": "populationAtLeast",
-            "value": 10
+            "value": 8
           }
         }
       ]
@@ -499,7 +568,7 @@
     },
     "archimedes": {
       "name": "Archimedes",
-      "family": "scholar",
+      "family": "engineer",
       "age": 3,
       "tier": "defining",
       "epigram": "Do not disturb my circles.",
@@ -535,13 +604,20 @@
       "kernel": "Alexandria.",
       "legacy": [
         {
-          "kind": "percentYields",
-          "yield": "science",
-          "percent": 10,
-          "stage": "empire"
+          "kind": "conditionRule",
+          "when": {
+            "test": "happinessNonnegative"
+          },
+          "then": [
+            {
+              "kind": "percentYields",
+              "yield": "science",
+              "percent": 10,
+              "stage": "empire"
+            }
+          ]
         }
-      ],
-      "revokedWhen": "happinessNegative"
+      ]
     },
     "zhangHeng": {
       "name": "Zhang Heng",
@@ -597,7 +673,7 @@
         },
         {
           "kind": "happiness",
-          "amount": -5,
+          "amount": -3,
           "per": "city",
           "scope": {
             "test": "trueCapital"
@@ -610,17 +686,16 @@
       "family": "artist",
       "age": 3,
       "tier": "situational",
-      "retired": true,
       "epigram": "He finished the Records rather than die.",
       "kernel": "The Grand Historian.",
       "legacy": [
         {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "culture",
-          "amount": 1,
-          "count": "agesClosed"
+          "kind": "windfallRider",
+          "occasion": "greatPersonGained",
+          "grant": {
+            "yield": "culture",
+            "amount": 80
+          }
         }
       ]
     },
@@ -637,7 +712,7 @@
           "where": "empire",
           "basis": "count",
           "to": "culture",
-          "amount": 3,
+          "amount": 5,
           "count": "wonders"
         }
       ]
@@ -665,10 +740,6 @@
                 "test": "freshwater"
               }
             ]
-          },
-          "scope": {
-            "test": "hasBuilding",
-            "building": "aqueduct"
           }
         }
       ]
@@ -724,16 +795,16 @@
           "per": "city",
           "scope": {
             "test": "hasBuilding",
-            "building": "granary"
+            "building": "publicBath"
           },
-          "building": "granary"
+          "building": "publicBath"
         }
       ]
     },
     "eupalinos": {
       "name": "Eupalinos",
       "family": "engineer",
-      "age": 3,
+      "age": 2,
       "tier": "situational",
       "epigram": "They met in the middle of the hill.",
       "kernel": "Samos.",
@@ -801,7 +872,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "gold": 1,
+          "gold": 2,
           "on": {
             "test": "improvement",
             "improvement": "fishingBoats"
@@ -849,16 +920,14 @@
       "kernel": "Massalia to Thule.",
       "legacy": [
         {
-          "kind": "unitStat",
-          "stat": "sight",
-          "amount": 1,
-          "class": {
-            "category": "trader"
-          }
-        },
-        {
           "kind": "rule",
           "rule": "tradersUnplunderable"
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "gold": 3,
+          "crossing": "international"
         }
       ]
     },
@@ -893,25 +962,16 @@
       "family": "general",
       "age": 3,
       "tier": "strong",
-      "retired": true,
       "epigram": "Backs to the river, they could not lose.",
       "kernel": "Jingxing.",
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 4,
+          "side": "both",
           "when": {
             "test": "freshwater"
-          },
-          "side": "both"
-        },
-        {
-          "kind": "combatLine",
-          "amount": 2,
-          "when": {
-            "test": "coastal"
-          },
-          "side": "both"
+          }
         }
       ]
     },
@@ -941,11 +1001,11 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 4,
+          "amount": 8,
+          "side": "defend",
           "when": {
             "test": "ownTerritory"
-          },
-          "side": "defend"
+          }
         }
       ],
       "revokedWhen": "ageAdvanced"
@@ -1088,11 +1148,20 @@
           "kind": "pays",
           "where": "city",
           "basis": "count",
+          "within": "city",
           "to": "faith",
           "amount": 1,
           "count": "buildingsSupplying",
           "voice": "science",
-          "within": "city"
+          "onCountedBuilding": true
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "count": "buildingsSupplying",
+          "voice": "science",
+          "within": "city",
+          "onCountedBuilding": true
         }
       ]
     },
@@ -1234,6 +1303,11 @@
       "legacy": [
         {
           "kind": "productionBonus",
+          "category": "building",
+          "percent": 15
+        },
+        {
+          "kind": "productionBonus",
           "category": "wonder",
           "percent": 15
         }
@@ -1259,12 +1333,12 @@
       ]
     },
     "ibnBattuta": {
-      "name": "Ibn Baṭṭūṭa",
+      "name": "Ibn Jubayr",
       "family": "merchant",
       "age": 4,
       "tier": "situational",
-      "epigram": "Thirty years, and I never took the same road twice.",
-      "kernel": "The Rihla.",
+      "epigram": "The Rihla begins on the road.",
+      "kernel": "A traveller from Valencia who wrote an account of his pilgrimage to Mecca.",
       "legacy": [
         {
           "kind": "pays",
@@ -1407,10 +1481,10 @@
         {
           "kind": "combatLine",
           "amount": 6,
+          "side": "both",
           "when": {
-            "test": "capturedCity"
-          },
-          "side": "both"
+            "test": "capturedTerritory"
+          }
         }
       ]
     },
@@ -1437,7 +1511,7 @@
     "paracelsus": {
       "name": "Paracelsus",
       "family": "scholar",
-      "age": 5,
+      "age": 4,
       "tier": "defining",
       "epigram": "The dose makes the poison.",
       "kernel": "The alchemist-physician.",
@@ -1445,7 +1519,7 @@
         {
           "kind": "percentYields",
           "yield": "science",
-          "percent": 15,
+          "percent": 20,
           "stage": "empire"
         },
         {
@@ -1458,7 +1532,7 @@
     "tychoBrahe": {
       "name": "Tycho Brahe",
       "family": "scholar",
-      "age": 5,
+      "age": 4,
       "tier": "situational",
       "epigram": "A brass nose, and an island for the stars.",
       "kernel": "Uraniborg.",
@@ -1484,59 +1558,53 @@
     "johnDee": {
       "name": "John Dee",
       "family": "scholar",
-      "age": 5,
+      "age": 4,
       "tier": "strong",
       "epigram": "The angels speak in a language of their own.",
       "kernel": "The magister's own magister.",
-      "legacy": [
-        {
-          "kind": "offerRider",
-          "offer": "all",
-          "extra": 1
-        }
-      ]
+      "legacy": [],
+      "onSpend": {
+        "orderDrafts": 2
+      }
     },
     "copernicus": {
       "name": "Copernicus",
       "family": "scholar",
-      "age": 5,
+      "age": 4,
       "tier": "strong",
       "epigram": "He stopped the sun and moved the earth.",
       "kernel": "De revolutionibus.",
       "legacy": [
         {
-          "kind": "pays",
-          "where": "city",
-          "science": 4
+          "kind": "buildingYieldPercent",
+          "building": "observatory",
+          "percent": 100,
+          "appliedLast": true
         }
       ]
     },
     "christineDePizan": {
       "name": "Christine de Pizan",
       "family": "artist",
-      "age": 5,
+      "age": 4,
       "tier": "strong",
       "epigram": "A city of ladies, built of reason.",
       "kernel": "The first professional woman of letters.",
       "legacy": [
         {
           "kind": "pays",
-          "where": "city",
-          "culture": 3,
-          "scope": {
-            "test": "trueCapital"
-          }
-        },
-        {
-          "kind": "authority",
-          "amount": 1
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "publicWorks"
         }
       ]
     },
     "durer": {
       "name": "Dürer",
       "family": "artist",
-      "age": 5,
+      "age": 4,
       "tier": "situational",
       "epigram": "A rhinoceros he never saw, drawn perfectly.",
       "kernel": "The woodcuts.",
@@ -1604,7 +1672,7 @@
     "leonardo": {
       "name": "Leonardo",
       "family": "engineer",
-      "age": 5,
+      "age": 4,
       "tier": "defining",
       "epigram": "Art is never finished, only abandoned.",
       "kernel": "The notebooks.",
@@ -1624,17 +1692,18 @@
     "taqiAlDin": {
       "name": "Taqī al-Dīn",
       "family": "engineer",
-      "age": 5,
+      "age": 4,
       "tier": "strong",
       "epigram": "He measured the comet and they tore the tower down.",
       "kernel": "The Istanbul observatory.",
       "legacy": [
         {
-          "kind": "percentYields",
-          "yield": "science",
-          "percent": 20,
+          "kind": "pays",
+          "where": "city",
+          "science": 3,
           "scope": {
-            "test": "trueCapital"
+            "test": "hasBuilding",
+            "building": "workshop"
           }
         }
       ]
@@ -1660,7 +1729,7 @@
     "jakobFugger": {
       "name": "Jakob Fugger",
       "family": "merchant",
-      "age": 5,
+      "age": 4,
       "tier": "defining",
       "epigram": "Rich by the grace of God.",
       "kernel": "The Fugger bank.",
@@ -1716,7 +1785,7 @@
     "willemBeukelszoon": {
       "name": "Willem Beukelszoon",
       "family": "merchant",
-      "age": 5,
+      "age": 4,
       "tier": "strong",
       "epigram": "One clean cut, and the sea keeps until spring.",
       "kernel": "The Zeeland fisherman said to have taught the herring its barrel.",
@@ -1735,7 +1804,7 @@
     "graciaMendesNasi": {
       "name": "Gracia Mendes Nasi",
       "family": "merchant",
-      "age": 5,
+      "age": 4,
       "tier": "strong",
       "epigram": "She moved a whole people by ledger.",
       "kernel": "The House of Mendes.",
@@ -1763,21 +1832,22 @@
       ]
     },
     "cosimoDeMedici": {
-      "name": "Cosimo de' Medici",
+      "name": "Jacques Cœur",
       "family": "merchant",
-      "age": 5,
+      "age": 4,
       "tier": "situational",
-      "epigram": "Patron of everything, prince of nothing.",
-      "kernel": "The bank that bought a Renaissance.",
+      "epigram": "To a willing heart, nothing is impossible.",
+      "kernel": "A merchant from Bourges who traded across the Mediterranean and managed the finances of Charles VII of France.",
       "legacy": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
-          "count": "goldSpent",
           "to": "culture",
           "amount": 1,
-          "per": 100
+          "count": "goldSpent",
+          "per": 100,
+          "max": 60
         }
       ]
     },
@@ -1790,9 +1860,12 @@
       "kernel": "Breitenfeld.",
       "legacy": [
         {
-          "kind": "unitStat",
-          "stat": "combatPercent",
-          "amount": 15,
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
           "class": {
             "ranged": true
           }
@@ -1810,7 +1883,7 @@
     "nzingaOfNdongo": {
       "name": "Nzinga of Ndongo",
       "family": "general",
-      "age": 5,
+      "age": 4,
       "tier": "situational",
       "epigram": "She sat on her servant's back rather than the floor.",
       "kernel": "The forty-year war.",
@@ -1838,18 +1911,26 @@
     "yiSunSin": {
       "name": "Yi Sun-sin",
       "family": "general",
-      "age": 5,
+      "age": 4,
       "tier": "situational",
       "epigram": "Thirteen ships against three hundred.",
       "kernel": "Myeongnyang.",
       "legacy": [
         {
+          "kind": "pays",
+          "where": "city",
+          "food": 3,
+          "scope": {
+            "test": "coastal"
+          }
+        },
+        {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 3,
+          "side": "both",
           "when": {
             "test": "always"
           },
-          "side": "both",
           "class": {
             "category": "naval"
           }
@@ -1859,7 +1940,7 @@
     "lautaro": {
       "name": "Lautaro",
       "family": "general",
-      "age": 5,
+      "age": 4,
       "tier": "situational",
       "epigram": "He learned their horses and turned them.",
       "kernel": "The Mapuche toqui.",
@@ -1873,6 +1954,1621 @@
           "side": "both",
           "vsClass": {
             "modelClass": "mounted"
+          }
+        }
+      ]
+    },
+    "thales": {
+      "name": "Thales of Miletus",
+      "family": "scholar",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "He looked at the stars and fell in the well.",
+      "kernel": "The first Greek to explain nature without gods. He is said to have foretold an eclipse, and to have grown rich by renting every olive press before a good harvest.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "coastal"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "plantation"
+          }
+        }
+      ]
+    },
+    "tapputi": {
+      "name": "Tapputi",
+      "family": "scholar",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Flowers, oil and water, and then again.",
+      "kernel": "A perfume maker and overseer in a royal palace, and the first chemist whose name we have.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "science": 2,
+          "gold": 1,
+          "on": {
+            "test": "resourceKind",
+            "kind": "luxury"
+          }
+        }
+      ]
+    },
+    "panini": {
+      "name": "Pāṇini",
+      "family": "scholar",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "Four thousand rules, and not one word wasted.",
+      "kernel": "He wrote the grammar of Sanskrit in about 4,000 short rules. Linguists still study it.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "trueCapital"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": {
+            "yield": "culture",
+            "amount": 30
+          }
+        }
+      ]
+    },
+    "luBan": {
+      "name": "Lu Ban",
+      "family": "engineer",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "Do not show your axe at Lu Ban’s door.",
+      "kernel": "A master carpenter. Chinese tradition gives him the saw, the plane and the siege ladder, and builders honour him as the patron of their trade.",
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 15
+        },
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "type": "worker"
+          }
+        }
+      ]
+    },
+    "theodorusOfSamos": {
+      "name": "Theodorus of Samos",
+      "family": "engineer",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "He made the lock, and then the key.",
+      "kernel": "An architect and bronze caster. The Greeks credited him with the level, the lathe and the key.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "smithy"
+          }
+        }
+      ]
+    },
+    "hanno": {
+      "name": "Hanno the Navigator",
+      "family": "merchant",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "Past the Pillars the coast keeps going.",
+      "kernel": "He took sixty ships out past the Pillars of Hercules and down the coast of West Africa to found trading towns. His report survives in Greek.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 2,
+          "scope": {
+            "test": "coastal"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "found",
+          "grant": {
+            "yield": "gold",
+            "amount": 60
+          }
+        }
+      ]
+    },
+    "fanLi": {
+      "name": "Fan Li",
+      "family": "merchant",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "When the birds are gone, the bow is put away.",
+      "kernel": "A minister who helped his king win a war, then left court and made three fortunes in trade. China remembers him as the model merchant.",
+      "legacy": [
+        {
+          "kind": "purchaseRider",
+          "on": "building",
+          "class": {},
+          "percent": -15
+        }
+      ]
+    },
+    "harkhuf": {
+      "name": "Harkhuf",
+      "family": "merchant",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Three hundred donkeys, loaded.",
+      "kernel": "A governor who led four donkey caravans south into Nubia and came back with incense, ebony and ivory. He had the story cut on his tomb.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 2,
+          "count": "uniqueLuxuries"
+        }
+      ]
+    },
+    "fuHao": {
+      "name": "Fu Hao",
+      "family": "general",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "The bones asked: should Fu Hao lead? The bones said yes.",
+      "kernel": "A queen who led armies of thousands and made the royal sacrifices. The oracle bones name her, and her tomb was found whole in 1976.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "ownTerritory"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "faith": 2,
+          "scope": {
+            "test": "garrisoned"
+          }
+        }
+      ]
+    },
+    "sunTzu": {
+      "name": "Sun Tzu",
+      "family": "general",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "Know them and know yourself.",
+      "kernel": "The general to whom The Art of War is credited. Historians are not sure that he lived; the book is real and still read.",
+      "legacy": [
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1,
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "targetWounded"
+          }
+        }
+      ]
+    },
+    "virgil": {
+      "name": "Virgil",
+      "family": "artist",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "So great a labour it was to found the Roman people.",
+      "kernel": "The poet of the Aeneid, the story of how a band of exiles founded Rome, and of the Georgics, a poem about farming.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "culture": 2
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "found",
+          "grant": {
+            "yield": "culture",
+            "amount": 100
+          }
+        }
+      ]
+    },
+    "kalidasa": {
+      "name": "Kālidāsa",
+      "family": "artist",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "Go, cloud, and tell her I am alive.",
+      "kernel": "The great poet and playwright of Sanskrit. In The Cloud Messenger an exile asks a cloud to carry word to his wife across all of India.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "culture": 3
+        },
+        {
+          "kind": "happiness",
+          "amount": 2
+        }
+      ]
+    },
+    "wangXizhi": {
+      "name": "Wang Xizhi",
+      "family": "artist",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "Later men will look at us as we look at the past.",
+      "kernel": "The Sage of Calligraphy. His Preface to the Orchid Pavilion is the most copied piece of writing in China; the original is lost.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "buildingsSupplying",
+          "voice": "science"
+        }
+      ]
+    },
+    "caiYan": {
+      "name": "Cai Yan",
+      "family": "artist",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "Twelve years, and I knew every scroll.",
+      "kernel": "A poet and musician taken north by Xiongnu raiders for twelve years, then ransomed home. She wrote out her father’s lost library from memory. Which poems are hers is disputed.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 4,
+          "count": "otherEmpiresGreatPeopleCalled"
+        }
+      ]
+    },
+    "juliusCaesar": {
+      "name": "Julius Caesar",
+      "family": "general",
+      "age": 3,
+      "tier": "defining",
+      "epigram": "The die is cast.",
+      "kernel": "He conquered Gaul, wrote the book about it, crossed the Rubicon and ruled Rome until the senators killed him.",
+      "legacy": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "yield": "gold",
+            "amount": 200
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "yield": "culture",
+            "amount": 200
+          }
+        }
+      ]
+    },
+    "zhugeLiang": {
+      "name": "Zhuge Liang",
+      "family": "general",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "I gave everything, until the end.",
+      "kernel": "Chancellor and strategist of the Three Kingdoms. He fed his armies from soldier farms, and tradition gives him the repeating crossbow.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "ranged": true
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "scope": {
+            "test": "garrisoned"
+          }
+        }
+      ]
+    },
+    "trungTrac": {
+      "name": "Trưng Trắc",
+      "family": "general",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "Sixty-five towns rose in one season.",
+      "kernel": "With her sister Trưng Nhị she raised the country against Han rule and held sixty-five towns for three years. Vietnam honours the sisters as national heroes.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 6,
+          "side": "defend",
+          "when": {
+            "test": "vsWiderEmpire"
+          }
+        }
+      ]
+    },
+    "luBuwei": {
+      "name": "Lü Buwei",
+      "family": "merchant",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "A rare thing. Worth keeping.",
+      "kernel": "A merchant who backed a hostage prince as “goods worth hoarding”, put him on the throne of Qin and became chancellor.",
+      "legacy": [
+        {
+          "kind": "authority",
+          "amount": 2
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "fromRate": "goldPerTurn",
+          "percent": 10,
+          "to": "culture"
+        }
+      ]
+    },
+    "caiLun": {
+      "name": "Cai Lun",
+      "family": "engineer",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "Bark, rags and old fishing nets.",
+      "kernel": "A court official who showed the emperor paper made from bark, rags and old nets in 105. The world wrote on it afterwards.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "within": "city",
+          "to": "science",
+          "amount": 2,
+          "count": "buildingsOfKind",
+          "building": "library"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "within": "city",
+          "to": "culture",
+          "amount": 1,
+          "count": "buildingsOfKind",
+          "building": "library"
+        }
+      ]
+    },
+    "mariaHebraea": {
+      "name": "Maria Hebraea",
+      "family": "scholar",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "One becomes two, two becomes three.",
+      "kernel": "The first alchemist whose apparatus we know: the still and the water bath that cooks still call a bain-marie. Later writers quote her; no work of hers survives.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "science": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "mine"
+          }
+        }
+      ]
+    },
+    "liBai": {
+      "name": "Li Bai",
+      "family": "artist",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "I raise my cup and ask the moon to drink.",
+      "kernel": "The most loved poet of China: wine, the moon, rivers and friends who leave. Legend says he drowned reaching for the moon in the water.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 1,
+          "on": {
+            "test": "any",
+            "of": [
+              {
+                "test": "river"
+              },
+              {
+                "test": "adjacentMountain"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "dante": {
+      "name": "Dante Alighieri",
+      "family": "artist",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "In the middle of the road of our life.",
+      "kernel": "An exile who wrote the Divine Comedy: a walk through Hell, Purgatory and Heaven, in the language people spoke.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "fromRate": "faithPerTurn",
+          "percent": 25,
+          "to": "culture"
+        }
+      ]
+    },
+    "ferdowsi": {
+      "name": "Ferdowsi",
+      "family": "artist",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "I have sown the seeds of the word.",
+      "kernel": "He gave thirty years to the Shahnameh, the Book of Kings: every hero of Persia in fifty thousand couplets.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 4,
+          "on": {
+            "test": "greatWork"
+          }
+        }
+      ]
+    },
+    "michelangelo": {
+      "name": "Michelangelo",
+      "family": "artist",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "The figure was in the stone already.",
+      "kernel": "The sculptor of David, the painter of the Sistine ceiling and the architect of the dome of St Peter’s. He chose his own marble at the quarry.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 3,
+          "on": {
+            "test": "improvement",
+            "improvement": "quarry"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 15
+        }
+      ]
+    },
+    "ibnAlHaytham": {
+      "name": "Ibn al-Haytham",
+      "family": "scholar",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "Doubt the old books. Then test.",
+      "kernel": "He proved by experiment that we see because light enters the eye, and wrote the Book of Optics. Europe called him Alhazen.",
+      "legacy": [
+        {
+          "kind": "buildingYieldPercent",
+          "building": "library",
+          "percent": 100,
+          "appliedLast": true
+        }
+      ]
+    },
+    "ibnKhaldun": {
+      "name": "Ibn Khaldun",
+      "family": "scholar",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "The past is like the future, as water is like water.",
+      "kernel": "A judge and historian. His Muqaddimah explains why states rise, grow soft and fall, and many call it the first work of social science.",
+      "legacy": [
+        {
+          "kind": "authority",
+          "amount": 3
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 2,
+          "count": "authoritySurplus"
+        }
+      ]
+    },
+    "brahmagupta": {
+      "name": "Brahmagupta",
+      "family": "scholar",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "A debt taken from nothing is a fortune.",
+      "kernel": "The first to write rules for zero as a number, and for debts and fortunes: negative and positive numbers.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "buildingsSupplying",
+          "voice": "science",
+          "within": "city"
+        }
+      ]
+    },
+    "belisarius": {
+      "name": "Belisarius",
+      "family": "general",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "Give me the few, and the city.",
+      "kernel": "Justinian’s general. With small armies he took back North Africa and Italy, and he fed his wars from the towns he won.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "attack",
+          "when": {
+            "test": "vsCity"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "unit": "bestMelee"
+          }
+        }
+      ]
+    },
+    "gajahMada": {
+      "name": "Gajah Mada",
+      "family": "general",
+      "age": 4,
+      "tier": "defining",
+      "epigram": "No spice until the islands are one.",
+      "kernel": "Prime minister of Majapahit. He swore to taste no spice until the whole archipelago was one, and nearly kept the oath.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atPeace"
+          },
+          "then": [
+            {
+              "kind": "happiness",
+              "amount": -3
+            }
+          ]
+        }
+      ]
+    },
+    "amina": {
+      "name": "Amina of Zazzau",
+      "family": "general",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "Where she camped, a wall stood.",
+      "kernel": "A warrior queen who walled every camp she made and opened the trade roads north. Hausa towns still call old walls “Amina’s walls”. The sources are later chronicles and oral tradition.",
+      "legacy": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 5,
+          "scope": {
+            "test": "all",
+            "of": []
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "stoneWalls"
+          }
+        }
+      ]
+    },
+    "tlacaelel": {
+      "name": "Tlacaelel",
+      "family": "general",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "Three kings ruled. One man stayed.",
+      "kernel": "Chief counsellor to three Mexica rulers. He shaped the Triple Alliance and the wars fought to take captives. The sources are from after the conquest.",
+      "legacy": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "faith",
+            "amount": 50
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "culture",
+            "amount": 50
+          }
+        }
+      ]
+    },
+    "gutenberg": {
+      "name": "Johannes Gutenberg",
+      "family": "engineer",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "One letter, cast a thousand times.",
+      "kernel": "He cast metal type, built the press and printed the Bible. He lost the workshop to his lender before the books sold.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "culture": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "printingHouse"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 50,
+          "building": "printingHouse"
+        }
+      ]
+    },
+    "jangYeongSil": {
+      "name": "Jang Yeong-sil",
+      "family": "engineer",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "The rain was measured, and the harvest known.",
+      "kernel": "Born a slave, raised to court by King Sejong for his skill. He built the rain gauge, a water clock that struck its own hours and star globes.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "science": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "farm"
+              },
+              {
+                "test": "freshwater"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "ibnMajid": {
+      "name": "Aḥmad ibn Mājid",
+      "family": "merchant",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "The sea has roads for those who can read.",
+      "kernel": "The master pilot of the Indian Ocean, called the Lion of the Sea. His book of winds, stars and coasts guided ships for centuries.",
+      "legacy": [
+        {
+          "kind": "routeRider",
+          "extra": 1
+        },
+        {
+          "kind": "effectAmplifier",
+          "target": "routeYields",
+          "mode": "sea",
+          "percent": 50
+        }
+      ]
+    },
+    "fatimaAlFihri": {
+      "name": "Fatima al-Fihri",
+      "family": "merchant",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "She spent it all on one door that stays open.",
+      "kernel": "A merchant’s daughter who spent her inheritance to found the mosque and school of al-Qarawiyyin in Fez, which still teaches. The story comes from later writers.",
+      "legacy": [
+        {
+          "kind": "purchaseRider",
+          "on": "building",
+          "class": {},
+          "percent": -30,
+          "suppliesAny": [
+            "science",
+            "faith"
+          ]
+        }
+      ]
+    },
+    "hippocrates": {
+      "name": "Hippocrates",
+      "family": "scholar",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "Life is short, the art long.",
+      "kernel": "The physician who taught that illness has natural causes. Doctors still swear an oath in his name.",
+      "legacy": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 15
+        }
+      ]
+    },
+    "anaximander": {
+      "name": "Anaximander",
+      "family": "scholar",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "The earth hangs on nothing.",
+      "kernel": "He drew the first Greek map of the whole world and said the earth floats free in space.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "sightedCities"
+        }
+      ]
+    },
+    "baudhayana": {
+      "name": "Baudhāyana",
+      "family": "scholar",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Stretch the cord across the square.",
+      "kernel": "He wrote the rules for building fire altars with rope and pegs. They hold the right-angle rule, long before Greece.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shrine"
+          }
+        }
+      ]
+    },
+    "peseshet": {
+      "name": "Peseshet",
+      "family": "scholar",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Overseer of the women who heal.",
+      "kernel": "Her tomb stone calls her “overseer of the women physicians”: the first woman doctor whose name we have. Nothing else about her is known.",
+      "legacy": [
+        {
+          "kind": "happiness",
+          "amount": 2
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 1
+        }
+      ]
+    },
+    "solon": {
+      "name": "Solon",
+      "family": "scholar",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "I grow old, always learning.",
+      "kernel": "The lawgiver of Athens. He cancelled the debts that made farmers slaves, wrote the laws, and left the city for ten years so that nobody could ask him to change them.",
+      "legacy": [
+        {
+          "kind": "authority",
+          "amount": 3
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "trueCapital"
+          }
+        }
+      ]
+    },
+    "hesiod": {
+      "name": "Hesiod",
+      "family": "artist",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "Work, foolish Perses.",
+      "kernel": "A farmer poet. Works and Days tells his brother when to plough, when to sail and why to work.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "within": "city",
+          "to": "food",
+          "amount": 1,
+          "count": "publicWorks"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "within": "city",
+          "to": "culture",
+          "amount": 1,
+          "count": "publicWorks"
+        }
+      ]
+    },
+    "aesop": {
+      "name": "Aesop",
+      "family": "artist",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Slow and steady.",
+      "kernel": "The teller of the fables: the fox and the grapes, the tortoise and the hare. Tradition makes him a slave who talked his way free; he may be a legend.",
+      "legacy": [],
+      "onSpend": {
+        "freeRerolls": 3,
+        "orderDrafts": 1
+      }
+    },
+    "exekias": {
+      "name": "Exekias",
+      "family": "artist",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Exekias made me.",
+      "kernel": "The best of the black-figure vase painters. His pots were sold from Etruria to the Black Sea, and he signed them.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "culture": 2
+        }
+      ]
+    },
+    "telesilla": {
+      "name": "Telesilla",
+      "family": "artist",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "The women took the spears down from the temple.",
+      "kernel": "A poet. When Sparta killed the army of Argos, the story says she armed the women and held the walls. The story is from later writers.",
+      "legacy": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 5,
+          "scope": {
+            "test": "all",
+            "of": []
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "culture": 2,
+          "scope": {
+            "test": "garrisoned"
+          }
+        }
+      ]
+    },
+    "thutmoseTheSculptor": {
+      "name": "Thutmose the Sculptor",
+      "family": "artist",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "The king’s favourite, the master of works.",
+      "kernel": "The court sculptor in whose workshop the painted head of Nefertiti was found.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "quarry"
+          }
+        }
+      ]
+    },
+    "mandrocles": {
+      "name": "Mandrocles of Samos",
+      "family": "engineer",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "He roped the two shores together.",
+      "kernel": "He bridged the Bosporus with boats so that the army of Persia could walk into Europe, and paid for a painting of it.",
+      "legacy": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "where": "embarked"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 1,
+          "scope": {
+            "test": "coastal"
+          }
+        }
+      ]
+    },
+    "ineni": {
+      "name": "Ineni",
+      "family": "engineer",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "No one seeing, no one hearing.",
+      "kernel": "Architect to four kings. He cut the first royal tomb in the Valley of the Kings, “no one seeing, no one hearing”.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "quarry"
+          }
+        }
+      ]
+    },
+    "sunshuAo": {
+      "name": "Sunshu Ao",
+      "family": "engineer",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "He held the river until the fields asked for it.",
+      "kernel": "A minister who dammed a valley to make the Peony Dam reservoir. It still waters the fields of Anhui.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 3,
+          "scope": {
+            "test": "freshwater"
+          }
+        }
+      ]
+    },
+    "colaeus": {
+      "name": "Colaeus of Samos",
+      "family": "merchant",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "The wind was wrong, and made him rich.",
+      "kernel": "A ship’s master blown past the Pillars of Hercules to Tartessos. He came home with the richest cargo of silver the Greeks had seen.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "sightedCities"
+        }
+      ]
+    },
+    "wenamun": {
+      "name": "Wenamun",
+      "family": "merchant",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "I sat on the shore for twenty-nine days.",
+      "kernel": "A temple agent sent to buy cedar. He was robbed, ignored and made to wait, and wrote it all down. The report may be a story.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "production": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "lumbermill"
+          }
+        }
+      ]
+    },
+    "iddinMarduk": {
+      "name": "Iddin-Marduk",
+      "family": "merchant",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Onions, by the boatload.",
+      "kernel": "A trader of onions and barley whose tablets survive in hundreds. He bought the crop in the villages and sold it in the city.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "farm"
+          },
+          "scope": {
+            "test": "trueCapital"
+          }
+        }
+      ]
+    },
+    "leonidas": {
+      "name": "Leonidas",
+      "family": "general",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "Come and take them.",
+      "kernel": "The king who held the pass at Thermopylae with three hundred Spartans until all were dead.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "defend",
+          "when": {
+            "test": "fortified"
+          }
+        }
+      ]
+    },
+    "djehuty": {
+      "name": "Djehuty",
+      "family": "general",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Two hundred baskets, and a man in each.",
+      "kernel": "A general of Thutmose III. The tale says he took the city of Joppa with soldiers hidden in baskets.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "attack",
+          "when": {
+            "test": "vsCity"
+          }
+        }
+      ]
+    },
+    "artemisia": {
+      "name": "Artemisia of Caria",
+      "family": "general",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "My men have become women, and my women men.",
+      "kernel": "A queen who led her own ships for Persia at Salamis. She told the king not to fight there, and was right.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "category": "naval"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          }
+        }
+      ]
+    },
+    "tomyris": {
+      "name": "Tomyris",
+      "family": "general",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "I will give you your fill of blood.",
+      "kernel": "The queen who, in Herodotus, defeated and killed Cyrus the Great. Cyrus is a leader in this game; she is his match, not his clash.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "faith": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "pasture"
+          }
+        }
+      ]
+    },
+    "euclid": {
+      "name": "Euclid",
+      "family": "scholar",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "There is no royal road.",
+      "kernel": "He wrote the Elements. Schools taught geometry from it for two thousand years.",
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 30,
+          "building": "library"
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 30,
+          "building": "university"
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 30,
+          "building": "observatory"
+        }
+      ]
+    },
+    "banZhao": {
+      "name": "Ban Zhao",
+      "family": "scholar",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "The brother began it. The sister finished it.",
+      "kernel": "She finished the Book of Han after her brother died, and taught the empress and the court library’s scholars.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 3,
+          "scope": {
+            "test": "trueCapital"
+          }
+        },
+        {
+          "kind": "authority",
+          "amount": 1
+        }
+      ]
+    },
+    "sophocles": {
+      "name": "Sophocles",
+      "family": "artist",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "Call no man happy until he is dead.",
+      "kernel": "The playwright of Oedipus and Antigone. He won the festival of Dionysus more often than anyone.",
+      "legacy": [
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "amphitheater"
+          },
+          "building": "amphitheater"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "culture": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "amphitheater"
+          }
+        }
+      ]
+    },
+    "tiruvalluvar": {
+      "name": "Tiruvalluvar",
+      "family": "artist",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "Learn well, then live as you have learned.",
+      "kernel": "The poet of the Kural: 1,330 couplets on virtue, wealth and love. Tradition says he was a weaver. Little about his life is certain.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "plantation"
+          }
+        }
+      ]
+    },
+    "auvaiyar": {
+      "name": "Auvaiyar",
+      "family": "artist",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "What we know is a handful of earth.",
+      "kernel": "A poet who walked from court to court. One of her poems is said to have stopped a war between two kings.",
+      "legacy": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atPeace"
+          },
+          "then": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "culture": 3
+            }
+          ]
+        }
+      ]
+    },
+    "heronOfAlexandria": {
+      "name": "Hero of Alexandria",
+      "family": "engineer",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "Light the fire, and the doors open.",
+      "kernel": "He built a steam ball that spun, temple doors that opened by fire, and a machine that sold holy water for a coin.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "buildingsSupplying",
+          "voice": "production"
+        }
+      ]
+    },
+    "apollodorus": {
+      "name": "Apollodorus of Damascus",
+      "family": "engineer",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "Twenty piers, and the river crossed.",
+      "kernel": "Trajan’s engineer. He bridged the Danube in two years and built the forum and the column that tell the story.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 2,
+          "scope": {
+            "test": "connected"
+          }
+        }
+      ]
+    },
+    "sostratus": {
+      "name": "Sostratus of Cnidus",
+      "family": "engineer",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "For those who sail the sea.",
+      "kernel": "The builder of the Pharos, the lighthouse of Alexandria. The story says he cut his own name under the plaster that named the king.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 2,
+          "production": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "harbour"
+          }
+        }
+      ]
+    },
+    "zhengGuo": {
+      "name": "Zheng Guo",
+      "family": "engineer",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "I came to ruin you, and I have made you rich.",
+      "kernel": "Sent as a spy to waste Qin’s strength on a great canal. He was found out, and told the king the canal would feed Qin for ever. It did.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "farm"
+          },
+          "scope": {
+            "test": "notFreshwater"
+          }
+        }
+      ]
+    },
+    "pasion": {
+      "name": "Pasion",
+      "family": "merchant",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "He began by carrying the coin.",
+      "kernel": "A slave at a banker’s table who became the banker, the richest man in Athens, and at last a citizen.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "bankedGold",
+          "per": 50,
+          "max": 20
+        }
+      ]
+    },
+    "widowQing": {
+      "name": "Widow Qing of Ba",
+      "family": "merchant",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "The red stone, and the quicksilver in it.",
+      "kernel": "She ran her family’s cinnabar mines for decades. The First Emperor honoured her and built a terrace in her name. Sima Qian gives her a few lines, and that is all we have.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 4,
+          "count": "improvedStrategicResources"
+        }
+      ]
+    },
+    "yarhai": {
+      "name": "Marcus Ulpius Yarhai",
+      "family": "merchant",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "The caravan came home whole.",
+      "kernel": "A patron of the desert caravans between Rome and the Gulf. Palmyra raised at least ten statues to thank him. A deep cut.",
+      "legacy": [
+        {
+          "kind": "routeRider",
+          "extra": 2
+        }
+      ]
+    },
+    "sangHongyang": {
+      "name": "Sang Hongyang",
+      "family": "merchant",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "Wealth does not fall from heaven.",
+      "kernel": "A merchant’s son who could reckon in his head at thirteen. He set up the state trade in salt and iron and defended it in a famous debate.",
+      "legacy": [
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "market"
+          }
+        }
+      ]
+    },
+    "moduChanyu": {
+      "name": "Modu Chanyu",
+      "family": "general",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "Shoot where the arrow sings.",
+      "kernel": "He trained his riders to shoot where his whistling arrow went, and joined the steppe into one power. He is a leader today and leaves the leaders in the chosen roster.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 20,
+          "modelClass": "mounted"
+        }
+      ]
+    },
+    "chanakya": {
+      "name": "Chanakya",
+      "family": "general",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "The arrow may miss. The plan does not.",
+      "kernel": "The minister who put Chandragupta on the throne. Tradition names him the author of the Arthashastra, a manual of rule, spies and war.",
+      "legacy": [
+        {
+          "kind": "upkeepRebate",
+          "free": true,
+          "where": "garrison"
+        },
+        {
+          "kind": "authority",
+          "amount": 3
+        }
+      ]
+    },
+    "liQingzhao": {
+      "name": "Li Qingzhao",
+      "family": "artist",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "Thinner than the yellow flowers.",
+      "kernel": "The great poet of the song lyric. She and her husband collected old bronzes and rubbings, and she lost nearly all of it in flight from the war.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 4,
+          "count": "uniqueLuxuries"
+        }
+      ]
+    },
+    "hildegardOfBingen": {
+      "name": "Hildegard of Bingen",
+      "family": "artist",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "A feather on the breath of God.",
+      "kernel": "An abbess who wrote music, a play, books of medicine and letters to emperors. She is a leader today and leaves the leaders in the chosen roster. The Catholic Church honours her as a saint and teacher.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "culture": 2,
+          "food": 2,
+          "production": 2,
+          "faith": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "cathedral"
+          }
+        }
+      ]
+    },
+    "brunelleschi": {
+      "name": "Filippo Brunelleschi",
+      "family": "engineer",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "He showed them how to stand an egg on its end.",
+      "kernel": "He raised the dome of Florence cathedral with no wooden frame under it, with hoists of his own design.",
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 25,
+          "scope": {
+            "test": "trueCapital"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 25,
+          "scope": {
+            "test": "trueCapital"
+          }
+        }
+      ]
+    },
+    "guoShoujing": {
+      "name": "Guo Shoujing",
+      "family": "engineer",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "Water to the capital, and the year to the second.",
+      "kernel": "He finished the Grand Canal into Beijing, built the instruments of the observatory and measured the year to within half a minute.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "gold": 2,
+          "scope": {
+            "test": "connected"
           }
         }
       ]

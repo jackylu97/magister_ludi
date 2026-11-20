@@ -1384,6 +1384,7 @@ export type EmpireCondition =
    */
   | { test: 'authorityPositive' }
   | { test: 'happinessNegative' }
+  | { test: 'happinessNonnegative' }
   // There was a `queueHolds` gate here (a town of this empire has a row of one
   // category in its queue). The Tithe of Nations was its last row, and batch
   // DS5 removed its Magnum Opus condition, so the gate went with it. A town's
@@ -1535,6 +1536,7 @@ export type CombatCondition =
    * reads. One fact about a town, asked at two scales.
    */
   | { test: 'capturedCity' }
+  | { test: 'capturedTerritory' }
   /**
    * A city holding **this player's commercial post** stands on the contested
    * tile — Entrenched Interests, and the one card that reads a post without
@@ -2518,6 +2520,7 @@ export type CountKind =
    * great person has already paid for it.
    */
   | 'greatPeopleCalled'
+  | 'otherEmpiresGreatPeopleCalled'
   /**
    * **Charter technologies this empire knows** (Scientific batch S1): the rows
    * of `Player.techsResearched` that carry `TechDef.charter`. A charter drafted
@@ -2691,6 +2694,7 @@ export type CountKind =
    * (`deals.ts`).
    */
   | 'dealPartners'
+  | 'activeDealAges'
   /**
    * Trade routes this empire runs whose **partner is one of its own towns** —
    * The Provisioners' grain, which never leaves the realm.
@@ -3865,6 +3869,7 @@ export type RateSource =
   | 'goldPerTurn'
   /** Science the empire gains per turn. */
   | 'sciencePerTurn'
+  | 'renownPerTurn'
   /** The happiness meter, counted only while positive. */
   | 'happiness'
   /** The authority meter, counted only while positive. */
@@ -6667,6 +6672,12 @@ type PayTarget = CityYieldKey | 'happiness' | 'authority';
  * reader never has to ask what a blank meant.
  */
 export interface CardPaysEffect extends CardYieldBag {
+  /** Each qualifying building receives its share before building yield modifiers. */
+  onCountedBuilding?: true;
+  /** Keep a counted payment on the named building when other cards multiply it. */
+  onNamedBuilding?: true;
+  /** Use the chair's type when counting seated Orders. */
+  byChair?: true;
   excludeWonders?: boolean;
   kind: 'pays';
   /** The town, the capital, the hex, the empire, or the road. Required. */
@@ -6700,6 +6711,7 @@ export interface CardPaysEffect extends CardYieldBag {
    *     be a card paying interest on itself;
    *   · at `basis: 'share'`, the share of the town's fold of `from` that is paid
    *     again as `to`, floored per city;
+   *   · at `basis: 'rate'`, a share of the empire's current rate with fractions kept;
    *   · at `basis: 'count'` **with `stage`**, the percentage one helping adds.
    */
   percent?: number;
@@ -7187,6 +7199,10 @@ interface CardPercentYieldsEffect {
  * row. Nothing supplies one yet.
  */
 interface CardProductionBonusEffect {
+  /** Match the yield a building supplies when the city builds it. */
+  supplies?: CityYieldKey;
+  /** Count this category in the producing city, independent of the target. */
+  countCategory?: BuildingCategory;
   kind: 'productionBonus';
   category: ProductionCategory;
   /** Limits the bonus to older buildings or buildings already in the true capital. */
@@ -8554,6 +8570,8 @@ interface CardSlotRiderEffect {
  * ignores `amount`, which is a fact about that target rather than a rule here.
  */
 interface CardEffectAmplifierEffect {
+  /** A route yield bonus can apply only to routes that travel by this mode. */
+  mode?: RouteMode;
   kind: 'effectAmplifier';
   target: AmplifierTarget;
   /** A share of the other table's figure. Absent is no share at all. */
@@ -9495,6 +9513,8 @@ interface CardPantheonSlotsEffect {
 interface CardPurchaseRiderEffect {
   kind: 'purchaseRider';
   class: UnitFilter;
+  /** One price adjustment applies even when the building supplies several listed yields. */
+  suppliesAny?: CityYieldKey[];
   /**
    * Which kind of purchase this rides on. Absent means `'unit'`.
    *
@@ -9663,6 +9683,9 @@ interface CardProjectRiderEffect {
  * none.
  */
 export interface CardRenownEffect {
+  building?: BuildingId;
+  /** Put this renown on each building that supplies the selected yield. */
+  onCountedBuilding?: true;
   kind: 'renown';
   amount: number;
   /**

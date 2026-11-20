@@ -516,7 +516,9 @@ describe('the city mode', () => {
     expect(defence).toContain('figure(defenseTotal(rows))');
     expect(defence).toContain('info.bind(defence, () => renderDefense(city));');
     expect(defence).toContain("anchors.set('defence', defence);");
-    expect(fn('cityPanel.ts', 'renderBand')).toContain('title.append(renderDefenceFigure(city));');
+    const band = fn('cityPanel.ts', 'renderBand');
+    expect(band).toContain('facts.append(hp, renderDefenceFigure(city));');
+    expect(band).toContain('band.append(facts);');
     // Every faith with a claim on the town is in view under the Faith row's
     // first line since 2026-11-20 (it was one click deeper, behind "Every faith
     // here"): the user asked that the list "clarify the name of your religion
@@ -729,7 +731,7 @@ describe('the city mode', () => {
     const printer = fn('cityPanel.ts', 'renderBoardCaption');
     expect(printer).toContain('isBuyMode()');
     expect(printer).toContain('isTutorialActive()');
-    expect(printer).toContain('A ringed hex is a tile this city works');
+    expect(printer).toContain('An outlined hex is a tile this city works');
   });
 });
 
@@ -893,12 +895,12 @@ describe('the build list', () => {
  * caught by somebody reading it — which is exactly what happened.
  */
 describe('what the panel says at the foot of a list', () => {
-  it('does not say "dots" about a board that draws rings', () => {
+  it('describes the outline shared by both citizen settings', () => {
     // `overlays.ts` has drawn a *ring* on every worked hex since the overlay
     // pass — bone white for the assignment's choice, the seat's ink for a pin.
     const text = source('cityPanel.ts');
     expect(text).not.toContain('Dots on the map');
-    expect(text).toContain('A ringed hex is a tile this city works');
+    expect(text).toContain('An outlined hex is a tile this city works');
   });
 
   it('says what a gold price is, and leaves the treasury to the price columns’ heads', () => {

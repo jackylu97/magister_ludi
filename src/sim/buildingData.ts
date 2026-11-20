@@ -323,6 +323,13 @@ export type CompletionGrant =
   | { grant: 'faithRung' };
 
 export type BuildingId =
+  | 'schoolOfMieza'
+  | 'relayYam'
+  | 'kulliye'
+  | 'houseOfFire'
+  | 'bottega'
+  | 'basilica'
+  | 'hallOfWorthies'
   // The fourteen rows the tree pass of 2026-08-30 added, in the order the ages
   // open them: the Heroes band's hall, stele and bazaar, the Empire band's
   // harbour, baths, forum, examination hall, court, shipyard and castle, and

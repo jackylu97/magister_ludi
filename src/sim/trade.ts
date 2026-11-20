@@ -815,7 +815,7 @@ export function routeRange(
   // `routeRange` (The Trade Winds) reaches every medium; `seaRouteRange` only
   // the sea. Both are percentages on the same base and sum before it is taken.
   let percent = 0;
-  for (const line of cardRulePercent(state, playerId, 'routeRange')) percent += line.percent;
+  for (const line of cardRulePercent(state, playerId, 'routeRange', from)) percent += line.percent;
   if (mode === 'sea') {
     for (const line of cardRulePercent(state, playerId, 'seaRouteRange')) percent += line.percent;
   }

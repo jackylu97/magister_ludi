@@ -176,6 +176,7 @@ import {
 import { type TechId, isTechId } from './techData';
 
 export type ImprovementId =
+  | 'paradiseGarden'
   | 'farm'
   // **The Terraces** (batch L8, `docs/flags.md` (bbbbb)): a farm of the high
   // ground and the mountain foot that one figure's seat alone may cut. An
@@ -486,6 +487,9 @@ export interface ImprovementDef {
    * builder may not lay a work, and a great person may lay nothing else.
    */
   greatPerson?: WorkFamily;
+  /** The work qualifies for great-work bonuses even when a worker builds it. */
+  countsAsGreatWork?: true;
+  happiness?: number;
   /**
    * Flat strength this improvement adds to whoever defends the hex it stands
    * on, or absent for the ordinary improvement that adds none.
@@ -786,9 +790,10 @@ export function workForFamily(family: WorkFamily): ImprovementId | null {
   return FAMILY_WORK.get(family) ?? null;
 }
 
-/** Is this a great person's work — the one thing a worker may never build? */
+/** Read the work category separately from the unit that can build it. */
 export function isGreatPersonWork(id: ImprovementId): boolean {
-  return improvementDef(id).greatPerson !== undefined;
+  const def = improvementDef(id);
+  return def.greatPerson !== undefined || def.countsAsGreatWork === true;
 }
 
 /** Is this row a tended work? See `ImprovementDef.tended`. */

@@ -75,6 +75,13 @@
       "ponticPeltast": "pawn",
       "scythedChariot": "person",
       "longswordsman": "pawn",
+      "hypaspist": "pawn",
+      "janissary": "pawn",
+      "qinCrossbowman": "pawn",
+      "ballistaElephant": "person",
+      "sparabara": "pawn",
+      "condottiere": "pawn",
+      "hwacha": "tower",
       "trebuchet": "tower",
       "augur": "house",
       "prophet": "house",
@@ -110,7 +117,8 @@
     },
     "byPlayerColor": {
       "#d4502e": "red",
-      "#1f8a85": "blue"
+      "#1f8a85": "blue",
+      "#208b85": "blue"
     },
     "fallbackOrder": [
       "red",

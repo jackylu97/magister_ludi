@@ -35,6 +35,9 @@ import {
   spawnTileFor,
   unitProductionCost,
 } from '../../src/sim/cities';
+import { applyCommand } from '../../src/sim/commands';
+import { snapshotState } from '../../src/sim/game';
+import { purchaseError } from '../../src/sim/purchase';
 import { siegeField, underSiege } from '../../src/sim/combat';
 import { type City, type GameState, bumpRevision, createUnit } from '../../src/sim/state';
 import type { Tile } from '../../src/sim/map';
@@ -172,6 +175,48 @@ describe('a hex another empire is standing on is never a spawn hex', () => {
     bumpRevision(state);
 
     expect(spawnTileFor(state, city, 'warrior')).toBeNull();
+  });
+});
+
+describe('a purchased unit arrives on the first free tile', () => {
+  const item = { kind: 'unit', id: 'warrior' } as const;
+
+  it('skips an occupied tile and a mountain, then reports the discovery on arrival', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    state.players[0]!.gold = 1000;
+    const [occupied, mountain, free] = ring(state, city);
+    createUnit(state, 0, 'warrior', city.col, city.row);
+    createUnit(state, 1, 'worker', occupied!.col, occupied!.row);
+    mountain!.terrain = 'mountain';
+    free!.discovery = 'ruins';
+    bumpRevision(state);
+    const command = { type: 'purchaseItem', playerId: 0, cityId: city.id, item, currency: 'gold' } as const;
+    expect(purchaseError(state, 0, city.id, item, 'gold')).toBeNull();
+    const result = applyCommand(state, command);
+    expect(result.ok && result.arrivals?.[0]?.discovery).toBeTruthy();
+    expect(state.units[state.units.length - 1]).toMatchObject({ col: free!.col, row: free!.row });
+    expect(free!.discovery).toBeUndefined();
+  });
+
+  it('allows a free centre during a siege and refuses the empty tiles covered by the besiegers', () => {
+    const { state, city, hexes } = besiegedTown();
+    state.players[0]!.gold = 1000;
+    const command = { type: 'purchaseItem', playerId: 0, cityId: city.id, item, currency: 'gold' } as const;
+    expect(purchaseError(state, 0, city.id, item, 'gold')).toBeNull();
+    const guard = createUnit(state, 0, 'warrior', city.col, city.row);
+    bumpRevision(state);
+    const before = snapshotState(state);
+    const refusal = 'This city cannot purchase without free tiles.';
+    expect(purchaseError(state, 0, city.id, item, 'gold')).toBe(refusal);
+    expect(applyCommand(state, command)).toMatchObject({ ok: false, error: refusal });
+    expect(snapshotState(state)).toEqual(before);
+    // A gap in the siege reopens the ring, even beside a remaining besieger.
+    state.units = state.units.filter(unit => unit.col !== hexes[2]!.col || unit.row !== hexes[2]!.row);
+    bumpRevision(state);
+    expect(applyCommand(state, command).ok).toBe(true);
+    expect(state.units[state.units.length - 1]).toMatchObject({ col: hexes[1]!.col, row: hexes[1]!.row });
+    expect(guard).toMatchObject({ col: city.col, row: city.row });
   });
 });
 

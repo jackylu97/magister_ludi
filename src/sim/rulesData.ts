@@ -1803,32 +1803,12 @@ interface RenownRules {
  * in Æra I should still be worth something in Æra III.
  */
 interface GreatPeopleRules {
-  /**
-   * The act's age, per technology (user, 2026-08-30): every **flat** act figure
-   * — the engineer's hammers, the merchant's gold — pays ×(1 + actPerTech ×
-   * technologies researched), the chop's shape one system over. The two arms
-   * quoted in *turns of a rate* (`actGainTurns`) are deliberately outside it:
-   * a figure read off what the empire is already banking grows with the tree by
-   * construction, and scaling it twice would compound.
-   */
+  /** The engineer's production also grows with research. */
   actPerTech: number;
-  /**
-   * How many turns of the empire's **own rate** a rate-quoted act pays (user,
-   * 2026-09-03, the great-people nerf pass): the scholar's beakers and the
-   * artist's culture are both "this many turns of what you are already making",
-   * read through the one seam that answers that question
-   * (`foldEmpireRates`, `cities.ts`).
-   *
-   * One knob for the two families rather than one each, because it is one
-   * sentence: *an act is worth a few turns of your empire*. A designer who wants
-   * the scholar and the artist to diverge splits it then, which is a design
-   * decision rather than a tuning pass.
-   */
+  /** Scholars, artists and merchants receive this many turns of current income. */
   actGainTurns: number;
-  /** Hammers an engineer's act pays, **multiplied by the empire's era**. */
+  /** Multiply the engineer's base production by the empire's age. */
   engineerHammers: number;
-  /** Gold a merchant's act pays, **multiplied by the empire's era**. */
-  merchantGold: number;
   /** Happiness an artist's act hangs on the town. */
   artistHappiness: number;
   /** How many turns that happiness lasts. */

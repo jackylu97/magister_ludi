@@ -133,10 +133,16 @@ Expansionist gives up room. Without land to claim, it stalls. The cards show it:
 
 ### Leaders
 
-- **Mithridates VI** (Dominion, Expansionist): +2 strength against an empire holding more cities, and +2 food on plantations and camps. He leads the militia, and The Land Hunger now reads his own condition: a wider rival.
-- **Pachacuti** (Expansionist, Commerce): joined towns pay happiness and production, farms beside mountains pay gold, terraces. He leads the frontier's roads and highlands: The Road Home, The Road Towns, Provincial Councils, The Milestones, The Opening of the Roads, The Imperial Roads, The Mountain Terraces, and The Cura Aquarum, which needs the roads.
-- **Nezahualcoyotl** (Expansionist, Scientific): Aqueduct towns pay culture and their farms production; a big capital pays culture. He leads public works: The Waterworks, The Coming of the Water, The Cura Aquarum, The Great Aqueducts, Hydraulic Schools, The Public Fountains.
-- **The gap:** no leader points at the raised land's tended works. Leaders are tuned later.
+
+| Leader | Deck pair | Gameplay |
+|---|---|---|
+| Alexander the Great | Dominion + Expansionist | Attacks, captures and science from gaining soldiers. |
+| Pachacuti | Expansionist + Commerce | Road connections, mountain farms and gold. |
+| Jayavarman VII | Expansionist + Devotion | Public works, freshwater farms and empire population. |
+| Nezahualcoyotl | Expansionist + Scientific | Aqueducts and farms, with culture from the capital. |
+| Cyrus the Great | Expansionist + Magisterial | Road connections, occupied Civic and Wildcard chairs, and worker-built great works. |
+
+Ibn Battuta can draw from every deck.
 
 ## 3. The engine: citizens and the levy
 

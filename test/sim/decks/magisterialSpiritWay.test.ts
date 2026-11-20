@@ -121,6 +121,27 @@ describe('The Spirit Way and The Paradise Garden', () => {
     }
   });
 
+  it('applies work multipliers to legacy yields on real works and Spirit Way wonders', () => {
+    const { state, city, ring } = board(1, 1);
+    const player = state.players[0]!;
+    player.legacies.push({ id: 'benjaminOfTudela', age: 4 }, { id: 'homer', age: 2 });
+    seat(state, SPIRIT);
+    const total = () => wonderLines(state, city).reduce((sum, line) => sum + line.gold + line.culture, 0);
+    expect(total()).toBe(3);
+    expect(wonderLines(state, city).some(line => line.card === 'homer')).toBe(false);
+    const tile = ring[0]!;
+    const before = foldTile(tile, cityContext(state, city));
+    seat(state, DIVINE);
+    expect(total()).toBe(6);
+    const doubled = foldTile(tile, cityContext(state, city));
+    expect(doubled.gold - before.gold).toBe(2);
+    expect(doubled.culture - before.culture).toBe(4);
+    addBuilding(state, city, MAUSOLEUM);
+    bumpRevision(state);
+    // Both wonders receive the doubled legacy, then the Mausoleum doubles each package.
+    expect(total()).toBe(24);
+  });
+
   it('pays the lasting reward on real works and restores it after a repair command', () => {
     const { state, city, ring } = board(0, 3);
     const tile = ring[0]!;

@@ -4797,39 +4797,37 @@ function foreignUnitAt(state: GameState, ownerId: number, col: number, row: numb
   return false;
 }
 
+/** Create a unit for movement checks before the city has paid for it. */
+function placementProbe(city: City, type: UnitTypeId, at: Tile): Unit {
+  const def = unitDef(type);
+  return {
+    id: -1, ownerId: city.ownerId, type, col: at.col, row: at.row,
+    hp: def.maxHp, movesLeft: def.movement, hasAttacked: false,
+  };
+}
+
 /**
- * Where a unit built in this city can stand: the city tile if its category has
- * room, otherwise the first neighbour in `HEX_DIRECTIONS` order that is passable,
- * uncontested and has room. `null` when the city is completely boxed in.
- *
- * Exported since M9's purchases: a bought piece stands where a built one would,
- * which is the whole of "same completion routine" applied to the one question a
- * price cannot answer. See `realiseItem`.
- *
- * **`onCityHexOnly` stops the walk at the centre** (the user's ruling of
- * 2026-09-10, `docs/flags.md` item (hhhh)) — the one place the two ways of
- * paying now differ, and the difference is deliberate rather than an oversight
- * in one of them. A **built** unit spills to a neighbour: the town worked on it
- * for turns, the player was not looking when it finished, and a piece appearing
- * one hex over is better than a queue that silently stalls. A **bought** one
- * does not: buying is the player's own act on *that* hex this turn — they
- * pressed the tag to put a defender in the town — so a spearman that turns up
- * outside the walls is the opposite of what was paid for. When the centre is
- * taken the sale is refused instead, in `purchaseError`, before any coin moves.
- *
- * **And a hex another empire is standing on is never a spawn hex** (item
- * (llll)) — `foreignUnitAt` above, asked of every neighbour in both arms. It is
- * a skip rather than a refusal: the walk goes on to the next hex, and only a
- * ring with no clear hex in it leaves the piece waiting.
- *
- * **Rally to the Standard comes first** (Dominion batch D12, the triage's
- * reading 23). While the owner's law holds the `rallyToGeneral` rule for this
- * type, the unit appears beside the owner's great general nearest the town,
- * if that general stands within the rule's range. See `rallyTileFor`. It
- * applies to every way a unit is placed through this function: a built unit,
- * a bought one and a gift alike. With no such hex the walk below runs as it
- * always did (reading 42).
+ * Validate purchase placement before charging the bank. A garrison can share
+ * the centre with another category. If the centre is full, enemy-held tiles
+ * cannot receive recruits, even when a soldier could capture a civilian there.
+ * Under siege the whole ring is denied, including the blockaded sea lanes.
  */
+export function purchasedUnitTile(state: GameState, city: City, type: UnitTypeId): Tile | null {
+  const centre = cityTile(state.map, city);
+  const probe = placementProbe(city, type, centre);
+  const mover = moveProfile(state, probe);
+  let tile: Tile | undefined = centre;
+  if (!canStopOn(state, probe, centre, mover)) {
+    tile = neighborTiles(state.map, tileHex(centre)).find(next =>
+      !foreignUnitAt(state, city.ownerId, next.col, next.row) && canStopOn(state, probe, next, mover),
+    );
+    if (!tile || underSiege(state, city, siegeField(state, city.ownerId))) return null;
+  }
+  // Rally to the Standard redirects a legal purchase to the general.
+  return rallyTileFor(state, city, type) ?? tile;
+}
+
+/** Place a trained or granted unit. A trained unit can use only the centre under siege. */
 export function spawnTileFor(
   state: GameState,
   city: City,
@@ -4860,16 +4858,7 @@ export function spawnTileFor(
    * piece that stands where the town does and belongs to whoever owns it.
    */
   if (isNaval(def)) {
-    const probe: Unit = {
-      id: -1,
-      ownerId: city.ownerId,
-      type,
-      col: centre.col,
-      row: centre.row,
-      hp: def.maxHp,
-      movesLeft: def.movement,
-      hasAttacked: false,
-    };
+    const probe = placementProbe(city, type, centre);
     const mover = moveProfile(state, probe);
     if (
       tileMoveCost(centre, mover) !== null &&
@@ -4939,20 +4928,7 @@ function rallyTileFor(state: GameState, city: City, type: UnitTypeId): Tile | nu
   if (general === null || nearest > range) return null;
   const at = getTileAt(state.map, general.col, general.row);
   if (!at) return null;
-  // A probe rather than a real unit, as the ship's launch above asks: nothing
-  // has been made yet, so the question is asked of a piece of this type that
-  // belongs to the town's owner.
-  const def = unitDef(type);
-  const probe: Unit = {
-    id: -1,
-    ownerId: city.ownerId,
-    type,
-    col: at.col,
-    row: at.row,
-    hp: def.maxHp,
-    movesLeft: def.movement,
-    hasAttacked: false,
-  };
+  const probe = placementProbe(city, type, at);
   const mover = moveProfile(state, probe);
   for (const tile of neighborTiles(state.map, tileHex(at))) {
     if (!isPassable(tile)) continue;
@@ -4976,12 +4952,6 @@ function rallyTileFor(state: GameState, city: City, type: UnitTypeId): Tile | nu
  * moment the turn resolves, and in the worst case it landed there because the
  * besieger's own hex still had room under the stacking caps. So the walk stops
  * at the centre and the piece takes the town hex or waits.
- *
- * Reusing `onCityHexOnly` rather than growing a third option, because it is the
- * same cut for a different reason and a second flag would be two names for one
- * beat of the walk. The *reasons* differ and both are written down: a purchase
- * stops at the centre because that is what the player paid for (item (hhhh)); a
- * completion stops there because the ring is a battlefield.
  *
  * The siege field is built **here, at the completion**, and nothing hoists it:
  * `planQueueItem` asks only after the hammers have covered the cost, so this
@@ -5145,7 +5115,7 @@ function planQueueItem(
     const payable = payableUnitAt(state, city, hammers, index);
     if (!payable) return null;
     const tile = usePurchasePlacement
-      ? spawnTileFor(state, city, payable.id, { onCityHexOnly: true })
+      ? purchasedUnitTile(state, city, payable.id)
       : builtSpawnTileFor(state, city, payable.id);
     if (!tile) return null;
     return { kind: 'unit', item, index, id: payable.id, cost: payable.cost, tile };
@@ -5522,7 +5492,7 @@ function settleProductionPlan(
  * and the spawn tile rides along on a unit because "where would it stand" is
  * settled before the payment, never after it.
  */
-type CompletedItem =
+export type CompletedItem =
   | { kind: 'unit'; id: UnitTypeId; tile: Tile }
   | { kind: 'building'; id: BuildingId };
 
@@ -5700,6 +5670,7 @@ export function realiseItem(
     // pays for a roof somebody bought — so the till now says which bank it was
     // and the town writes it down beside the date. Absent on every other way
     // stones arrive, which is what a completion, a grant and a relic all are.
+    const wonderCost = isWonder(item.id) ? buildingProductionCost(item.id, state, city.ownerId) : undefined;
     const added = addBuilding(state, city, item.id, options.bought);
     // A purchase finishes the building as well. Free grants enter through this
     // routine too, so use the source to distinguish them from work in the queue.
@@ -5784,6 +5755,7 @@ export function realiseItem(
     if (isPublicWork(item.id)) recordScalingOccasion(state, city.ownerId, 'publicWorkCompleted');
     payCompletionRiders(state, city, 'building', {
       wonder: wonder !== undefined,
+      production: wonderCost,
       building: item.id,
       firsts,
     });

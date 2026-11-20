@@ -400,6 +400,7 @@ export {
   newPlayerStatecraft,
   nextDraftCost,
   offerSize,
+  openWaitingOrderOffer,
   orderChoiceError,
   orderSkipError,
   payCardDrafted,

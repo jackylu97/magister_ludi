@@ -1277,7 +1277,8 @@ describe('a captured city, end to end', () => {
     // is two ages past it or half the seats are one age past it.
     // Version 246 changes the generic draft pool. Old picks record offer positions.
     // Version 248 changes the draft pools and wonder effects used during replay.
-    expect(SCHEMA_VERSION).toBe(248);
+    // Version 249 changes the leader and Great Person rosters, religion names and unit purchases.
+    expect(SCHEMA_VERSION).toBe(249);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
