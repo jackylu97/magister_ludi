@@ -1,6 +1,6 @@
 # Improvement models for review
 
-[Revised Nazca Lines and Wild Orchard at play zoom](revisions.jpg) · [Original review sheet](review.jpg) · [Editable Blender scene](improvements.blend)
+[Current Nazca Lines at play zoom](nazca-board.jpg) · [Approved Wild Orchard and earlier Nazca Lines](revisions.jpg) · [Original review sheet](review.jpg) · [Editable Blender scene](improvements.blend)
 
 The original [in-game views](on-board.jpg) show all nine improvements at normal play zoom on turn 151 of seed 20260832. The [original full board screenshot](play-view.jpg) shows the same game with the HUD. For this review, the forest opens around the orchard and totem, the reservoir sluice faces the river, and the hillfort bank follows the slope.
 
@@ -8,7 +8,7 @@ These are the first intact models for six Expansionist improvements and three wo
 
 | Model | What to look for at play zoom |
 |---|---|
-| [Nazca Lines](nazca-lines.glb) | A hummingbird cut into desert gravel. The long bill and two groups of feathers give it a direction on the tile. The strokes need to follow the terrain surface when placed. |
+| [Nazca Lines](nazca-lines.glb) | A white line runs between two dark gravel edges. It doubles back along the bill, around the flight feathers and through the fan tail. The board review projects each band onto the terrain. |
 | [Inuksuk](inuksuk.glb) | Broad, uneven granite slabs carry an overhanging stone. An opening between the lower stacks keeps the silhouette recognizable on snow. |
 | [Totem Pole](totem-pole.glb) | A cedar post with a hooked bird bill, relief-cut wings and a second face below. The red and dark teal pigment sits within the carving. |
 | [Stepwell](stepwell.glb) | Three flights of sandstone steps descend to a small pool. A colonnade marks the far edge. The banks contain the stairs above the tile surface. |
@@ -17,6 +17,10 @@ These are the first intact models for six Expansionist improvements and three wo
 | [Fish Traps](fish-traps.glb) | Two willow fences funnel fish into a tapered reed basket. A plank platform reaches the basket. The lower stakes and basket sit below the waterline. |
 | [Wild Orchard](wild-orchard.glb) | Three fruit trees of different ages surround a picking ladder and two baskets. The front tree leaves a gap so that the ladder stays visible. |
 | [Paradise Garden](paradise-garden.glb) | Crossed water channels divide four planted beds around a fountain. Cypress trees and a shaded pavilion enclose the far end. |
+
+## Nazca photograph references
+
+The redraw follows the aerial photographs in Peru’s Ministry of Culture survey (page 10, photograph 3, Casabonnes) and Robert Stephens’s account of his 2019 flight. [Stephens’s flight photographs](https://www.mojavestars.org/solareclipse/2019-chile-total-solar-eclipse)
 
 ## Editing
 

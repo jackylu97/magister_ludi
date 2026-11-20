@@ -13,8 +13,6 @@ STUDY.mkdir(parents=True, exist_ok=True)
 CYAN = pigment('Water in shade', '387e81')
 JADE = pigment('Reservoir water', '65aaa1')
 RIPPLE = pigment('Water highlights', 'abceab')
-CUT_EARTH = pigment('Exposed red gravel', '81452e')
-DESERT = pigment('Desert varnish', 'ab704c')
 RUST = pigment('Laterite courses', 'a76547')
 SAND = pigment('Warm sandstone', 'd2986b')
 HONEY = pigment('Weathered sandstone', 'e8bd88')
@@ -82,16 +80,58 @@ def stroke(points, width, z, material):
 
 
 def nazca():
-    # One path traces the beak, the spread flight feathers, the tail and the belly.
-    outline = [(-.34,.025),(-.26,.132),(-.157,.148),(-.081,.073),
-               (.06,.423),(.49,.606),(.18,.403),(.55,.484),(.19,.317),(.52,.354),
-               (.11,.177),(.045,.059),(.18,-.04),(.59,-.182),(.246,-.139),
-               (.52,-.299),(.158,-.177),(.336,-.350),(.037,-.194),(-.115,-.174),
-               (-.251,-.089),(-.34,-.017)]
-    stroke(outline,.048,.004,CUT_EARTH)
-    mesh('Tapered bill',[(-.76,-.054,.004),(-.332,-.027,.004),(-.325,.038,.004)],[(0,1,2)],CUT_EARTH)
-    for x,y in [(-.63,.17),(.52,-.40),(.45,.04),(-.40,-.31)]:
-        rock_slab('Gravel beside the cut',x,y,-.009,.020,.015,.014,DESERT,int((x+1)*50))
+    # The line enters at the bill, doubles back around the flight feathers,
+    # crosses the fan tail and leaves along the other side of the bill.
+    bill_and_head = [(-.79,.29),(-.25,.113),(-.21,.112),(-.157,.155),
+                     (-.112,.149),(-.074,.105),(-.026,.105)]
+    far_wing = [(.002,.653),(.070,.661),(.037,.103),(.091,.103),
+                (.126,.501),(.187,.503),(.151,.103),(.205,.099),
+                (.241,.374),(.302,.378),(.261,.087),(.306,.087),
+                (.367,.242),(.420,.246),(.361,.049),(.313,.023)]
+    tail = [(.562,.038),(.565,-.025),(.349,-.037),(.343,-.067),
+            (.772,-.079),(.771,-.143),(.331,-.120),(.323,-.152),
+            (.548,-.177),(.543,-.229),(.237,-.187)]
+    near_wing = [(.309,-.287),(.261,-.319),(.205,-.249),(.178,-.269),
+                 (.213,-.365),(.162,-.389),(.106,-.276),(.079,-.267),
+                 (.026,-.485),(-.025,-.492),(.014,-.242),(-.035,-.226),
+                 (-.150,-.571),(-.207,-.568),(-.089,-.204),(-.133,-.187),
+                 (-.303,-.676),(-.364,-.665),(-.192,-.131)]
+    breast_and_bill = [(-.201,-.097),(-.267,-.048),(-.326,.047),(-.79,.237)]
+    corners = [Vector(p) for p in bill_and_head + far_wing + tail + near_wing + breast_and_bill]
+
+    # The photograph shows rounded hairpin turns. A short quadratic curve
+    # leaves the straight, parallel sides of each feather intact.
+    path = [corners[0]]
+    for before, point, after in zip(corners, corners[1:], corners[2:]):
+        incoming, outgoing = before - point, after - point
+        trim = min(.032, .45 * incoming.length, .45 * outgoing.length)
+        a, b = point + incoming.normalized() * trim, point + outgoing.normalized() * trim
+        for t in (0, .25, .5, .75, 1):
+            path.append((1-t)**2 * a + 2*(1-t)*t * point + t*t * b)
+    path.append(corners[-1])
+
+    # The white cut and both gravel edges share vertices. They stay distinct
+    # when the board projects every face onto the same desert surface.
+    gravel = pigment('Dark desert gravel', '744d38')
+    soil = pigment('Pale exposed soil', 'fff9ec')
+    vertices, faces = [], []
+    for i, point in enumerate(path):
+        incoming = (point - path[i-1]).normalized() if i else (path[1] - point).normalized()
+        outgoing = (path[i+1] - point).normalized() if i+1 < len(path) else incoming
+        tangent = (incoming + outgoing).normalized()
+        normal = Vector((-tangent.y, tangent.x)) / tangent.dot(incoming)
+        for offset in (-.022, -.013, .013, .022):
+            vertex = point + normal * offset
+            vertices.append((vertex.x, vertex.y, .004))
+        if i:
+            row = (i-1)*4
+            for band in range(3):
+                j = row + band
+                faces.append((j, j+4, j+5, j+1))
+    bird = mesh('Hummingbird cut and gravel edges',vertices,faces,gravel)
+    bird.data.materials.append(soil)
+    for face in bird.data.polygons:
+        face.material_index = int(face.index % 3 == 1)
 
 
 def inuksuk():
