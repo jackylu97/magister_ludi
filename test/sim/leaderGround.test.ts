@@ -280,12 +280,8 @@ describe('Akhenaten’s farms are paid for the water they drink', () => {
  * block.
  */
 describe('the Terraces are a farm of the hills alone', () => {
-  /** A dry, bare hill inside a town's borders — the hex a farm always refused. */
-  function dryHill(first: LeaderId | null = 'pachacuti') {
-    // `null` is a seat under **no figure**, said as a value rather than as an
-    // omitted argument: `undefined` would take the default and quietly test
-    // Pachacuti twice.
-    const state = bench(first ?? undefined);
+  function dryHill() {
+    const state = bench('pachacuti');
     const city = foundCityAt(state, 0, at(state, 6, 6));
     const hill = at(state, 6, 5);
     hill.hills = true;
@@ -294,12 +290,6 @@ describe('the Terraces are a farm of the hills alone', () => {
     return { state, city, hill };
   }
 
-  /**
-   * A dry desert **hillside** with one peak beside it, inside a town's borders
-   * — the hex the second ruling is about (the user, 2026-09-14: *"let's have
-   * terrace farms only be able to be built on hills"*): the hill is what the
-   * row requires, and the peak beside it is what forgives the water.
-   */
   function mountainFoot(first: LeaderId | null = 'pachacuti', hills = true) {
     const state = bench(first ?? undefined);
     const city = foundCityAt(state, 0, at(state, 6, 6));
@@ -315,12 +305,14 @@ describe('the Terraces are a farm of the hills alone', () => {
     return { state, city, foot };
   }
 
-  it('is cut into a bare hillside where a farm is refused for its flat ground', () => {
+  it('requires a mountain beside both grassland hills and freshwater desert hills', () => {
     const { state, hill } = dryHill();
-    const refusal = improvementErrorAt(state, 0, hill, 'farm');
-    expect(refusal).not.toBeNull();
-    expect(refusal!.toLowerCase()).toContain('flat');
-    expect(improvementErrorAt(state, 0, hill, 'terraces')).toBeNull();
+    expect(improvementErrorAt(state, 0, hill, 'terraces')).toContain('adjacent mountain');
+    hill.terrain = 'desert';
+    tileNeighbors(state.map, hill)[0]!.terrain = 'lake';
+    reground(state);
+    expect(hill.freshwater).toBe(true);
+    expect(improvementErrorAt(state, 0, hill, 'terraces')).toContain('adjacent mountain');
   });
 
   it('is cut into a dry hillside at the foot of a peak, where a farm is refused for its water', () => {
@@ -333,10 +325,7 @@ describe('the Terraces are a farm of the hills alone', () => {
     expect(improvementErrorAt(state, 0, foot, 'terraces')).toBeNull();
   });
 
-  it('is refused flat ground, even at the foot of a peak — a terrace is a thing of the hills', () => {
-    // The row's `requiresHills` with no waiver: the peak forgives the water and
-    // nothing else, so the flat valley floor beneath it takes a farm's rules
-    // and a farm's refusal, never a terrace.
+  it('requires hills even beside a mountain', () => {
     const { state, foot } = mountainFoot('pachacuti', false);
     const refusal = improvementErrorAt(state, 0, foot, 'terraces');
     expect(refusal).not.toBeNull();
@@ -346,10 +335,7 @@ describe('the Terraces are a farm of the hills alone', () => {
     expect(improvementErrorAt(state, 0, valley, 'terraces')!.toLowerCase()).toContain('hills');
   });
 
-  it('is refused the ground no farm would take — the peak forgives water, not terrain', () => {
-    // The mountain foot forgives the *water* and never the terrain list: open
-    // sea under a peak is not terraced, which is the half of the ruling that
-    // says the terrain must still be one the row names.
+  it('refuses ocean tiles beside a mountain', () => {
     const { state, foot } = mountainFoot();
     foot.terrain = 'ocean';
     reground(state);
@@ -361,14 +347,14 @@ describe('the Terraces are a farm of the hills alone', () => {
   it('is nobody else’s to cut, however much they have researched', () => {
     // The figure's gate, and the sentence a rival is refused with: it names the
     // realm that may, because the technology is not what is in the way.
-    const { state, hill } = dryHill('akhenaten');
+    const { state, foot: hill } = mountainFoot('akhenaten');
     const refusal = improvementErrorAt(state, 0, hill, 'terraces');
     expect(refusal).not.toBeNull();
     expect(refusal).toBe(`Only ${leaderDef('pachacuti').name}'s realm may build terraces`);
     expect(refusal!).not.toMatch(/[0-9]/);
     // A seat under no figure at all is refused the same way.
-    const plain = dryHill(null);
-    expect(improvementErrorAt(plain.state, 0, plain.hill, 'terraces')).toBe(refusal);
+    const plain = mountainFoot(null);
+    expect(improvementErrorAt(plain.state, 0, plain.foot, 'terraces')).toBe(refusal);
   });
 
   it('pays two food where a farm pays one, and takes Irrigation’s renewal like a farm', () => {
@@ -436,12 +422,7 @@ describe('the Terraces are a farm of the hills alone', () => {
   it('is cut by the command, refused to a rival byte for byte, and replays', () => {
     /** A bench with a worker of `seat` standing on a dry, bare hill of its own. */
     function withWorker(first: LeaderId | null) {
-      const state = bench(first ?? undefined);
-      const city = foundCityAt(state, 0, at(state, 6, 6));
-      const hill = at(state, 6, 5);
-      hill.hills = true;
-      reground(state);
-      refreshCityDerived(state, city);
+      const { state, foot: hill } = mountainFoot(first);
       const worker = createUnit(state, 0, 'worker', hill.col, hill.row);
       worker.movesLeft = fullMovement(worker, state);
       bumpRevision(state);

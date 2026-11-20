@@ -459,12 +459,7 @@ export function improvementGroundError(
           `${improvementDef(widened!.improvement).name.toLowerCase()} beside it`
         );
       }
-      // **The mountain foot forgives the water**, the fourth seam
-      // (`ImprovementDef.mountainFoot`) and the only clause in this function
-      // that reads the neighbourhood off the terrain rather than off a
-      // neighbour's works. A peak feeds a hillside the way a river feeds a
-      // valley, which is the whole of the Terraces' second sentence.
-    } else if (!drinks(state, ownerId, tile, improvementId) && !atMountainFoot(def, tile)) {
+    } else if (!drinks(state, ownerId, tile, improvementId)) {
       return `${ARow(def)} on ${tile.terrain} ${rowNeeds(def)} fresh water`;
     }
   }
@@ -500,6 +495,9 @@ export function improvementGroundError(
     return def.requiresHills
       ? `${ARow(def)} ${rowNeeds(def)} hills`
       : `${ARow(def)} ${rowNeeds(def)} flat ground`;
+  }
+  if (!anywhere && def.requiresAdjacentMountain && (tile.mountainsBeside ?? 0) === 0) {
+    return `${ARow(def)} ${rowNeeds(def)} an adjacent mountain`;
   }
   if (!anywhere && def.requiresResource !== undefined) {
     if (tile.resource === undefined || !def.requiresResource.includes(tile.resource)) {
@@ -718,18 +716,6 @@ function hillsWaived(
     }
   }
   return false;
-}
-
-/**
- * Does a peak stand over this hex, and does this row care? The fourth seam.
- *
- * `Tile.mountainsBeside` is the count mapgen bakes once and nothing in the game
- * ever writes again (see the field), so "at the foot of a mountain" is a lookup
- * rather than a ring walk — which matters, because the worker sheet asks this of
- * every row on every hex a builder stands on.
- */
-function atMountainFoot(def: { mountainFoot?: boolean }, tile: Tile): boolean {
-  return def.mountainFoot === true && (tile.mountainsBeside ?? 0) > 0;
 }
 
 /**

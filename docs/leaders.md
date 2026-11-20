@@ -82,17 +82,10 @@ twelve-town Inca content. Every piece is built (the per-mountain farm line from
 L3c pays two peaks twice; the road-joined scope; the Terraces; the
 Slinger's hills) — a data change. The Qollqa and the Tambo go to the bench.
 
-**The Terraces, re-cut as a field (the user, 2026-09-14; batch L8).** They were a
-hall that waived the farm's flat ground inside one town's borders. They are an
-**improvement** now — a row of their own in `data/improvements.json`, the farm's
-terrain and charge, two food where a farm pays one, cut into **hillsides
-only** (the user, 2026-09-14, playtesting: *"let's have terrace farms only be
-able to be built on hills"* — `requiresHills` with no waiver), a dry hillside
-included where a peak stands beside it (the `mountainFoot` seam forgives the
-water and nothing else), and taking Irrigation's renewal like a farm. `countsAs:
-'farm'` is what keeps every rule already written true of them — his own gold of
-the peaks, Akhenaten's fresh water, the Dikes, the Tetzcotzinco, the wheat that
-wants a farm, both renderers' furrows — with no reader learning a second name.
+**Terraces.** Pachacuti can build terraces only on a hill beside a mountain.
+They cost one worker charge and give two food. They count as farms for resource
+access, Irrigation and card effects.
+
 The hall is `retired`, kept for saves and the book's bench; **he has no unique
 building, and that is the ruling** (the user, 2026-09-15: *"pachacuti doesnt
 need a unique building, the terrace farm is plenty strong."*) — the one figure

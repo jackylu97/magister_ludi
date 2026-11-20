@@ -3164,7 +3164,7 @@ bonuses, settle more flexibily, what do you think?"
   the sea cards of the Commerce pass should be priced after it.
 - Owner once ruled: Astra (a rule in `src/sim`).
 
-## A lumber mill gives +2 production (ruled 2026-11-20, not built)
+## A lumber mill gives +2 production (built)
 
 From the Expansionist pass, change 65. The user had said of forests: "it
 feels like it's just better to chop them currently". The pass found that a
@@ -3173,15 +3173,11 @@ farms for as much as a lumber mill yields, so a chop costs nothing later. The
 proposal: a lumber mill gives +2 production (from +1). The user: "great". It
 is a base rule in the improvement data, for every deck. Owner: Astra.
 
-## The terrace farm keeps its rule (2026-11-20)
+## Terrace farms require a hill beside a mountain (built)
 
-The user first wrote, on Pachacuti's improvement: "let's update the terrace
-farm: can only be built adjacent to a mountain." The row already asks for a
-hill beside a mountain, and the user then confirmed: "i mean only a hill
-beside a mountain. This way, terraces aren't broken with our new changes".
-So nothing changes: a terrace farm is built on a hill beside a mountain. It
-is a unique improvement, and the Expansionist pay-offs for unique
-improvements read it.
+The user confirmed on 2026-11-20: "i mean only a hill beside a mountain."
+The worker checks for both hills and an adjacent mountain on every allowed
+terrain. Fresh water alone does not qualify a hill.
 
 ## The Open Market discounts Great People (ruled 2026-11-20)
 

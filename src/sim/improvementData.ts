@@ -18,19 +18,10 @@
  *     requiresHills    the tile's `hills` flag must equal this      (optional)
  *     requiresResource the tile must carry one of these resources   (optional)
  *
- * with **four** seams in the AND, and every one of them *widens* a filter
- * rather than adding one: `freshwaterTerrain`, which widens `validTerrain` on
- * ground that can drink; `hillsIf`, which waives `requiresHills` on ground that
- * has a reason; `adjacentImprovement`, which widens `validTerrain` on ground
- * whose *neighbour* gives it a reason; and `mountainFoot`, which forgives the
- * water on ground a peak stands over. See the fields — the farm is the only
- * user of the first two and the reason both exist, the floating gardens are the
- * third's, and the Terraces are the fourth's.
+ * Fresh water, a hill waiver, or a neighbouring improvement can open more
+ * ground for a row. A row can also require a mountain on a neighbouring hex.
  *
- * A fifth marker is not a seam at all and is filed with them because it is read
- * in the same breath: `countsAs`, the row a **variant** stands in for. It says
- * nothing about which hex will take the row and everything about which rules
- * already written are true of it — see the field.
+ * The `countsAs` field identifies which base improvement a variant counts as.
  *
  * `requiresTech` sits beside them and is the one filter that is *not* about the
  * ground: it asks the worker's owner rather than the hex, which is why it is
@@ -398,24 +389,8 @@ export interface ImprovementDef {
    * they reach is their own row's business and no longer a waiver on the farm's.
    */
   hillsIf?: HillsWaiver[];
-  /**
-   * True when a hex **at the foot of a mountain** is excused the row's water.
-   *
-   * The **fourth seam** in the AND, and a widening like the other three: it
-   * never refuses ground the row would otherwise take, it forgives dry ground
-   * the row asked to be watered on when a peak stands next to it. Read off
-   * `Tile.mountainsBeside`, the fact mapgen bakes once and nothing ever moves,
-   * so it is a question about the *neighbourhood* rather than about the hex —
-   * `adjacentImprovement`'s kind of question asked of the terrain instead of of
-   * a neighbour's works.
-   *
-   * The Terraces are why it exists (the user, 2026-09-14): *"could be built
-   * adjacent to mountains (not just flat tiles and freshwater)"*. The terrain
-   * list still holds — a terrace under a peak is cut into grass, plains, desert,
-   * tundra or snow like any other, never into a marsh or the sea — which is what
-   * makes this a widening of `freshwaterTerrain` and not a hole in the row.
-   */
-  mountainFoot?: boolean;
+  /** A worker needs a mountain beside the site to build this improvement. */
+  requiresAdjacentMountain?: boolean;
   /**
    * The row this one **stands in for** wherever the rules read an improvement,
    * or absent for the ordinary row that is only itself.
@@ -936,13 +911,6 @@ function validateTable(): void {
           throw new Error(`${where} names unknown terrain "${terrain}"`);
         }
       }
-    }
-    // The fourth seam, held to the one thing it cannot get wrong: a widening
-    // with nothing to widen. `mountainFoot` forgives the *water*, so a row with
-    // no watered ground to forgive is a marker whose author meant something and
-    // got nothing — `freshwaterTerrain` without `validTerrain`, one seam over.
-    if (def.mountainFoot === true && def.freshwaterTerrain === undefined) {
-      throw new Error(`${where} stands at a mountain foot but asks no hex for water`);
     }
     // **A stand-in, held to one hop and to its base's seams.** See `countsAs`:
     // a chain would make `improvementBaseRow` a walk, and a variant that opened

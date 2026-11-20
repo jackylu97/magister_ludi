@@ -1631,9 +1631,9 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
       text: `Can also be built on ${eitherWords(near.terrain.map((terrain) => terrain))} when a hex next to it already has ${withArticle(improvementDef(near.improvement).name)}.`,
     });
   }
-  if (def.mountainFoot === true) {
+  if (def.requiresAdjacentMountain === true) {
     clauses.push({
-      text: 'Can also be built on dry ground when a mountain stands beside the hex.',
+      text: 'Requires an adjacent mountain.',
     });
   }
   // **What a row stands in for**, said in the reader's terms and not in the

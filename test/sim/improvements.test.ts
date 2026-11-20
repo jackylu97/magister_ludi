@@ -659,7 +659,7 @@ describe('buildImprovement', () => {
     it('leaves the trees standing, which is what makes it a lumbermill', () => {
       // The one improvement that works the thing already on the tile. Nothing
       // writes `feature = 'none'` for it and it clears no clutter, so the board
-      // keeps its pines and the yield is the canopy's plus one hammer.
+      // keeps its pines and the mill adds two production to the forest yield.
       const { state, worker } = sawyerState();
       const tile = at(state, 5, 4);
       tile.feature = 'forest';
@@ -668,7 +668,7 @@ describe('buildImprovement', () => {
       expect(applyCommand(state, build(0, worker.id, 'lumbermill')).ok).toBe(true);
       expect(tile.feature).toBe('forest');
       expect(tile.improvement).toBe('lumbermill');
-      expect(foldTile(tile).production).toBe(before.production + 1);
+      expect(foldTile(tile).production).toBe(before.production + 2);
     });
 
     it('waits for Siegecraft, and says so last', () => {
