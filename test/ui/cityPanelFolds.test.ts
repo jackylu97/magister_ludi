@@ -37,6 +37,7 @@ import {
   keptFold,
   townBuildingGroups,
 } from '../../src/ui/cityPanel';
+import { levyMenuModel } from '../../src/ui/levyMenu';
 import { priceChipShortSpoken } from '../../src/ui/priceCell';
 import type { RiteOption } from '../../src/ui/controls';
 import { riteTeacherName } from '../../src/ui/religionScreen';
@@ -150,7 +151,6 @@ describe('which fold rows a town shows', () => {
       'specialists',
       'faith',
       'routes',
-      'levy',
     ]);
     expect(rows.map((row) => row.label)).toEqual([
       'Buildings',
@@ -159,8 +159,10 @@ describe('which fold rows a town shows', () => {
       'Specialists',
       'Faith',
       'Trade routes',
-      'Levy a citizen',
     ]);
+    // The town's levy is not a row since 2026-11-20: it stands under the focus
+    // chips, in view (see "the levies" below).
+    expect(levyMenuModel(state, 0, city)).not.toBeNull();
   });
 
   it('puts each building in exactly one of the three groups', () => {
@@ -226,7 +228,7 @@ describe('the summary each shut row prints', () => {
     expect(rowsOf(g.state, city).find((row) => row.id === 'faith')?.summary).toBe('needs faith');
   });
 
-  it('says a trading post, and how many levy lines can be chosen, or that the town waits', () => {
+  it('says a trading post, and draws no row for the levy, which can wait without hiding', () => {
     const { g, city } = bench();
     city.population = 6;
     city.tradingPost = true;
@@ -234,7 +236,10 @@ describe('the summary each shut row prints', () => {
     seat(g, 'levyOfTheLand');
     const said = (): Record<string, string> =>
       Object.fromEntries(rowsOf(g.state, city).map((row) => [row.id, row.summary]));
-    expect(said()).toMatchObject({ routes: 'trading post', levy: '1 ready' });
+    expect(said()).toEqual({ routes: 'trading post' });
+    // The levy's buttons read the model: one line open now, and after a levy
+    // the town waits, and every button stays with its reason.
+    expect(levyMenuModel(g.state, 0, city)!.lines.map((line) => line.blocked)).toEqual([null]);
     const levied = applyCommand(g.state, {
       type: 'levyCitizen',
       playerId: 0,
@@ -242,7 +247,10 @@ describe('the summary each shut row prints', () => {
       use: 'production',
     } as Command);
     expect(levied.ok, JSON.stringify(levied)).toBe(true);
-    expect(said().levy).toBe('waiting');
+    const after = levyMenuModel(g.state, 0, city)!;
+    expect(after.disabled).toBe(true);
+    expect(after.lines[0]!.blocked).not.toBeNull();
+    expect(said()).toEqual({ routes: 'trading post' });
   });
 
   it('opens the Faith row on the rite kept, and folds rites that cannot be started behind one line', () => {
@@ -443,23 +451,151 @@ describe('the second step: the user’s comments on the built screen', () => {
     expect(list).not.toContain('Buy outright · full price');
   });
 
-  it('calls the seat’s own faith "your religion", and lists every faith in the town, yours first', () => {
-    expect(FAITH_ROW_WORDS).toEqual({ yours: 'Your religion', inLine: 'your religion', none: 'No religion' });
+  it('calls the seat’s own faith "your religion" on the line, and lists every faith in the town, yours first', () => {
+    expect(FAITH_ROW_WORDS).toEqual({
+      followers: 'Religious followers',
+      yours: 'Your religion',
+      inLine: 'your religion',
+      none: 'No religion',
+    });
     const followers = braceBody(PANEL, 'function renderFollowers(');
-    expect(followers).toContain("if (row.ours) who.append(element('span', 'city-faith-yours', FAITH_ROW_WORDS.yours));");
     expect(followers).toContain('`${figure(row.following)}/${figure(row.population)}`');
     expect(followers).toContain("line.append(element('span', 'city-faith-who', FAITH_ROW_WORDS.none));");
     // The shut row says "your religion" too, where it named the faith.
     expect(PANEL).toContain('summary: banner.ours ? FAITH_ROW_WORDS.inLine : banner.name,');
   });
 
-  it('keeps the focus chips in one row with even gaps at the wider panel', () => {
-    expect(rule('.city-focus-choices')).toContain('justify-content: space-between;');
+  it('keeps the focus chips inside the wider panel', () => {
+    expect(rule('.city-focus-choices')).toContain('flex-wrap: wrap;');
     expect(rule('.city-focus-choice')).toContain('white-space: nowrap;');
     expect(rule('.city-rail.is-left')).toContain('width: 286px;');
     expect(rule('.city-rail.is-right')).toContain('width: 400px;');
     // The Buy tiles button left the panel.
     expect(braceBody(PANEL, 'function renderTownRail(')).not.toContain('city-buy-tiles');
     expect(braceBody(PANEL, 'function renderBorders(')).not.toContain('setBuyMode');
+  });
+});
+
+// --- the third step: the user's comments on the second step (2026-11-20) -----------
+
+describe('the third step: the user’s comments on the second step', () => {
+  it('sets the focus chips from the left with an ordinary gap, wrapping rather than running past the panel', () => {
+    // "these feel awkward still, could we have them left aligned, just make
+    // sure the chips don't overflow".
+    const chips = rule('.city-focus-choices');
+    expect(chips).toContain('display: flex;');
+    expect(chips).toContain('justify-content: flex-start;');
+    expect(chips).toContain('flex-wrap: wrap;');
+    expect(chips).toContain('gap: 4px;');
+  });
+
+  it('draws each building, empire building and wonder as a chip whose hover is its card', () => {
+    // "lets have the items here be chips that are hoverable for their effects".
+    const chips = braceBody(PANEL, 'function buildingChips(');
+    expect(chips).toContain('info.bind(chip, () => buildingCard(city, id, 0, false, true));');
+    expect(braceBody(PANEL, 'function renderBuilt(')).toContain('const box = buildingChips(city, buildings);');
+    expect(braceBody(PANEL, 'function renderEmpireBuildings(')).toContain('box.append(buildingChips(city, empire));');
+    expect(braceBody(PANEL, 'function renderWonders(')).toContain('return buildingChips(city, wonders);');
+    // A standing building's card says what it is and does, not what another
+    // would add or why another cannot be queued.
+    const card = braceBody(PANEL, 'function buildingCard(');
+    expect(card.indexOf('if (standing) return box;')).toBeGreaterThan(-1);
+    expect(card.indexOf('if (standing) return box;')).toBeLessThan(card.indexOf('explainBuildingPreview('));
+    // A chip takes the keyboard, so its hover shows on focus too, and a long
+    // name wraps at a space inside it.
+    expect(braceBody(PANEL, 'function itemChip(')).toContain('chip.tabIndex = 0;');
+    expect(rule('.city-item-chip')).toContain('white-space: normal;');
+    expect(rule('.city-item-chips')).toContain('flex-wrap: wrap;');
+  });
+
+  it('draws the consecration as a chip of its own, its clauses in the describer’s words', () => {
+    const built = braceBody(PANEL, 'function renderBuilt(');
+    expect(built).toContain("const chip = itemChip(`Consecrated to ${def.name}`, 'is-patron');");
+    expect(built).toContain('describeCard(patron)');
+    expect(built).toContain('{ linked: false },');
+  });
+
+  it('draws each family of specialists as a chip, its guild bar as the hover, with Dismiss beside it', () => {
+    const body = braceBody(PANEL, 'function renderSpecialists(');
+    expect(body).toContain("const chip = itemChip('', 'is-specialist');");
+    expect(body).toContain('setYieldText(chip, entry.text);');
+    expect(body).toContain('noteOn(chip, bar);');
+    expect(body).toContain('group.append(dismissControl(city, entry.family, locked));');
+  });
+
+  it('puts the levies under the focus chips, one button a levy, sent only from a confirm', () => {
+    // "lets move the levies to the top, and give it a different UX than a
+    // dropdown so it doesn't disappear with the rest of the menus".
+    const levy = braceBody(PANEL, 'function renderLevy(');
+    expect(levy).toContain('if (model === null) return null;');
+    expect(levy).toContain("const button = element('button', 'city-levy-button', line.label);");
+    // A line that cannot be chosen keeps its button, with the reason as its note.
+    expect(levy).toContain("if (blocked) button.setAttribute('aria-disabled', 'true');");
+    expect(levy).toContain('noteOn(button, line.blocked ?? `${line.figure} · ${line.source}`);');
+    expect(levy).toContain("if (model.disabled) box.append(refusalLineElement(model.title, 'row'));");
+    // A press opens the confirm; the command leaves only from there.
+    expect(levy).toContain('chooseLevy(levyChoice?.use === line.use ? null : { cityId: city.id, use: line.use });');
+    expect(levy).toContain('renderLevyConfirm(');
+    expect(levy).toContain('...(rite === undefined ? {} : { rite }),');
+    // Escape and a press elsewhere shut it, in place.
+    const keys = braceBody(PANEL, 'function holdLevyKeys(');
+    expect(keys).toContain("document.addEventListener('keydown', onLevyEscape, true);");
+    expect(keys).toContain("document.addEventListener('pointerdown', onLevyAway, true);");
+    expect(braceBody(PANEL, 'function onLevyAway(')).toContain(
+      'if (target instanceof Node && levyBox?.contains(target)) return;',
+    );
+    // The confirm says what the levy gives and what it costs, and the rite
+    // line asks which rite instead of offering "Levy".
+    const confirm = braceBody(uiSource('levyMenu.ts'), 'export function renderLevyConfirm(');
+    expect(confirm).toContain("box.append(element('p', 'city-levy-cost', model.cost));");
+    expect(confirm).toContain("head.append(element('span', 'city-levy-figure num', line.figure));");
+    expect(confirm).toContain(
+      'if (line.rites !== undefined) box.append(renderRiteList(line.rites, (rite) => onConfirm(rite)));',
+    );
+    expect(confirm).toContain('if (line.rites === undefined) {');
+  });
+
+  it('lays the Trade routes row out as a table: the post, the count and All routes on one line, a row a route', () => {
+    // "this formatting is awkward 'trading post'" and "lets fix the formatting here".
+    const routes = braceBody(PANEL, 'function renderRoutes(');
+    expect(routes).toContain("const post = itemChip('Trading post', 'is-post');");
+    expect(routes).toContain(
+      "head.append(element('span', 'city-routes-count', routeSlotsLineOf(state, localPlayerId())));",
+    );
+    expect(routes).toContain('head.append(all);');
+    expect(routes).toContain(
+      "line.append(element('span', 'city-route-place', `${row.outbound ? '→' : '←'} ${row.place}`));",
+    );
+    expect(routes).toContain('setYieldText(pays, row.figures);');
+    expect(routes).not.toContain("'city-size'");
+    // What a route pays is the trade sheet's own reading of it.
+    expect(braceBody(uiSource('tradeLines.ts'), 'export function cityRouteRows(')).toContain(
+      "const figures = routeReading(state, unit)?.figures ?? 'nothing yet';",
+    );
+    // A long list scrolls inside the row.
+    const list = rule('.city-routes-list');
+    expect(list).toContain('max-height: 220px;');
+    expect(list).toContain('overflow-y: auto;');
+  });
+
+  it('heads the faith list "Religious followers", stars the seat’s own faith, and sets the rite apart', () => {
+    // "instead of 'your religion' as the title, lets just write 'religious
+    // followers' and teh star is enough of an indicator to say its yours".
+    const followers = braceBody(PANEL, 'function renderFollowers(');
+    expect(followers).toContain(
+      "box.append(element('h4', 'city-faith-list-head', FAITH_ROW_WORDS.followers));",
+    );
+    expect(followers).toContain('if (row.ours) {');
+    expect(followers).not.toContain('row.majority');
+    expect(followers).not.toContain('city-faith-yours');
+    // A rival's faith on the headline does not wear the star.
+    expect(braceBody(PANEL, 'function faithHeadlineNode(')).toContain(
+      "into.append(document.createTextNode(ours ? rest : rest.replace(/^ ✶/, '')));",
+    );
+    // "lets label this as a rite, and give it som visual separation".
+    const card = braceBody(PANEL, 'function renderFaithCard(');
+    expect(card).toContain("const rites = element('div', 'city-faith-rites');");
+    expect(card).toContain('if (rites.childElementCount > 1) card.append(rites);');
+    expect(rule('.city-faith-rites')).toContain('border-top: 1px solid var(--rule);');
   });
 });

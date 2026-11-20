@@ -108,7 +108,7 @@ import {
   productionMoverFor,
   ref,
 } from '../sim/statecraft';
-import type { CityScope } from '../sim/statecraftData';
+import type { CityScope, LevyUse } from '../sim/statecraftData';
 import { consecrationDef } from '../sim/religionData';
 import { type CitizenFocus, CITIZEN_FOCUSES, RULES } from '../sim/rulesData';
 import {
@@ -208,7 +208,7 @@ import {
 } from '../sim/unitData';
 import { buildingUpkeepFor, unitUpkeep } from '../sim/upkeep';
 import { cityDisplayName } from './cityDisplay';
-import { levyMenuModel, renderLevyMenuBody } from './levyMenu';
+import { levyMenuModel, renderLevyConfirm } from './levyMenu';
 import {
   type YieldKey,
   HAMMER,
@@ -2166,8 +2166,7 @@ export type CityFoldId =
   | 'wonders'
   | 'specialists'
   | 'faith'
-  | 'routes'
-  | 'levy';
+  | 'routes';
 
 /**
  * The name on each row, in the order the rows stand. "Empire buildings" is the
@@ -2182,17 +2181,19 @@ export const CITY_FOLD_WORDS: Readonly<Record<CityFoldId, string>> = {
   specialists: 'Specialists',
   faith: 'Faith',
   routes: 'Trade routes',
-  levy: 'Levy a citizen',
 };
 
 /**
- * The Faith row's words for the seat's own faith and for no faith (the user,
- * 2026-11-20: "It should read 'your religion' instead of the full name, and the
- * breakdown below can clarify the name of your religion and other religions
- * present in the city"). `yours` heads the list's first line, `inLine` stands
- * in for the name in the headline and in the shut row.
+ * The Faith row's words (the user, 2026-11-20: "It should read 'your religion'
+ * instead of the full name, and the breakdown below can clarify the name of
+ * your religion and other religions present in the city"; then "lets just
+ * write 'religious followers' and teh star is enough of an indicator to say
+ * its yours"). `followers` heads the list of religions, `yours` is the star's
+ * note, `inLine` stands in for the name in the headline and in the shut row,
+ * and `none` is the list's line for the citizens who follow no religion.
  */
 export const FAITH_ROW_WORDS = {
+  followers: 'Religious followers',
   yours: 'Your religion',
   inLine: 'your religion',
   none: 'No religion',
@@ -2206,7 +2207,6 @@ const CITY_FOLD_ORDER: readonly CityFoldId[] = [
   'specialists',
   'faith',
   'routes',
-  'levy',
 ];
 
 /** One fold row as the town shows it. */
@@ -2309,9 +2309,10 @@ function faithFold(
  * - **Faith**: see `faithFold`.
  * - **Trade routes**: the town is an end of a route, or holds a trading post.
  *   The figure is the count of routes.
- * - **Levy a citizen**: the seat's cards grant a levy (`levyMenuModel`). It
- *   says how many of the levy's lines can be chosen now, or that the town is
- *   waiting.
+ *
+ * The levy is not a row since 2026-11-20 (the user: "lets move the levies to
+ * the top ... so it doesn't disappear with the rest of the menus"): it stands
+ * under the focus chips (`renderLevy`).
  *
  * `rites` is `controls.riteOptions` for this town, the list the Faith row's
  * body prints; a panel built without a board hands in none.
@@ -2337,11 +2338,6 @@ export function cityFoldRows(
     const runs = cityRouteRows(state, city).length;
     if (runs > 0) summaries.set('routes', { summary: figure(runs), ink: null });
     else if (city.tradingPost === true) summaries.set('routes', { summary: 'trading post', ink: null });
-  }
-  const levy = levyMenuModel(state, seat, city);
-  if (levy !== null) {
-    const ready = levy.lines.filter((line) => line.blocked === null).length;
-    summaries.set('levy', { summary: ready > 0 ? `${figure(ready)} ready` : 'waiting', ink: null });
   }
   const rows: CityFoldRow[] = [];
   for (const id of CITY_FOLD_ORDER) {
@@ -2379,6 +2375,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * (`keptFold`). It is not in the render key: a click opens a row in place.
    */
   let openFold: CityFoldId | null = null;
+  /**
+   * The levy line whose confirm is open, and its town (`renderLevy`), or
+   * `null`. The panel's own state, like `openFold`; it is forgotten when
+   * another town opens. `levyBox` is the drawn levy box, which a press outside
+   * of shuts the confirm.
+   */
+  let levyChoice: { cityId: number; use: LevyUse } | null = null;
+  let levyBox: HTMLElement | null = null;
 
   /**
    * The last command this panel sent that the reducer refused, and when.
@@ -2906,8 +2910,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * need to be built in your empire"), and the panel a building is actually
    * built from is the place a preview would belong if one comes back. This card
    * is the smaller, plainer statement of what the building itself is.
+   *
+   * `standing` is for a building that already stands in the town: the hover of
+   * its chip in the Buildings, Empire buildings and Wonders rows (the user,
+   * 2026-11-20: "lets have the items here be chips that are hoverable for their
+   * effects"). It prints what the building is and does, and leaves out the
+   * price, the "Would add" preview and the queue's refusal, which are about
+   * building another.
    */
-  function buildingCard(city: City, id: BuildingId, index: number, built = true): HTMLElement {
+  function buildingCard(
+    city: City,
+    id: BuildingId,
+    index: number,
+    built = true,
+    standing = false,
+  ): HTMLElement {
     const def = buildingDef(id);
     const box = element('div');
 
@@ -2916,7 +2933,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // "wonder", not "building", because the one thing a player needs to know
     // before spending a hundred hammers is that somebody else may get there
     // first. Read off the row's own flag (`isWonder`) — there is no Oracle case.
-    head.append(element('span', 'info-card-kind', isWonder(id) ? 'wonder' : 'building'));
+    // An empire building says so, off the row's own mark.
+    head.append(
+      element(
+        'span',
+        'info-card-kind',
+        isWonder(id) ? 'wonder' : isEmpireBuilding(id) ? EMPIRE_BUILDING_WORDS.eyebrow : 'building',
+      ),
+    );
     box.append(head);
 
     const figures = element('div', 'info-card-figures');
@@ -3018,6 +3042,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     if (notes.childElementCount === 0) notes.append(note('No yields of its own'));
     box.append(notes);
+    // A building that already stands has no "Would add" and no refusal: both
+    // are about raising another.
+    if (standing) return box;
     // What this **town**, right now, would gain by finishing it — Orders,
     // beliefs, wonders, whatever in this empire's law wakes on a barracks
     // (user, 2026-08-28: "+1 prod for barracks belief" should show in the build
@@ -3800,46 +3827,163 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const parts = specialistRow(city);
     if (!parts) return null;
     const list = element('div', 'city-specialist-list');
+    const bar = guildBarText(getGame().state, city);
     for (const entry of parts.families) {
-      const group = element('p', 'city-specialist');
-      const name = element('span', 'city-specialist-name');
-      setYieldText(name, entry.text);
-      group.append(name);
+      const group = element('div', 'city-specialist');
+      // A chip a family (the user, 2026-11-20: "same goes for the other
+      // tabs"): what the family pays, in the simulation's own figures, with the
+      // guild's bar as its hover, the one number a curious player wants and the
+      // one a beginner never has to see.
+      const chip = itemChip('', 'is-specialist');
+      setYieldText(chip, entry.text);
+      noteOn(chip, bar);
+      group.append(chip);
       group.append(dismissControl(city, entry.family, locked));
       list.append(group);
     }
-    // The bar, on the list's hover rather than a line of its own: it is the one
-    // number a curious player wants and the one a beginner never has to see.
-    noteOn(list, guildBarText(getGame().state, city));
     return list;
   }
 
   /**
-   * The Levy row's body (batch L, `levyMenu.ts`): the menu itself, or the
-   * reason no line can be chosen now. Absent when the player's cards grant no
-   * levy (`cityFoldRows` draws no row). The row is the menu's button now (the
-   * fourth-pass frame: "The levy menu: opens from its row, as today's menu"),
-   * so opening the row opens the menu; choosing a line sends `levyCitizen`.
+   * **The levies, near the top of the town panel** (the user, 2026-11-20:
+   * "lets move the levies to the top, and give it a different UX than a
+   * dropdown so it doesn't disappear with the rest of the menus").
+   *
+   * Under the citizens and the focus chips, in view whenever the seat's cards
+   * grant a levy (`levyMenuModel`); a town with no levy shows nothing. One button
+   * a levy line, named as the menu named it. A press opens a small confirm under
+   * the buttons with what the levy gives and what it costs in citizens
+   * (`renderLevyConfirm`), and the levy is sent only from there; the rite line
+   * asks which rite first. Escape, Cancel or a press anywhere else in the
+   * screen shuts the confirm. A line that cannot be chosen is a button that
+   * does nothing, with the reducer's reason as its note; when no line can be
+   * chosen (most often the town waits) the reason is said on a line under the
+   * buttons too (batch UX7: never only in a tooltip).
+   *
+   * The command is the one the levy menu sent: `levyCitizen` with the use, and
+   * the rite for the rite line.
    */
   function renderLevy(city: City): HTMLElement | null {
     const { state } = getGame();
     const model = levyMenuModel(state, localPlayerId(), city);
     if (model === null) return null;
-    // A levy no line of which can be chosen says why on a line (batch UX7:
-    // never only in a tooltip).
-    if (model.disabled) return refusalLineElement(model.title, 'row');
-    return renderLevyMenuBody(model, (use, rite) => {
-      const command: Command = {
-        type: 'levyCitizen',
-        playerId: localPlayerId(),
-        cityId: city.id,
-        use,
-        ...(rite === undefined ? {} : { rite }),
-      };
-      // A refusal repaints the panel with the reducer's sentence (`report`).
-      if (!report(command, dispatch(getGame(), command)).ok) return;
-      onChanged();
-    });
+    if (levyChoice !== null && levyChoice.cityId !== city.id) levyChoice = null;
+    const box = element('div', 'city-levy');
+    levyBox = box;
+    const head = element('div', 'city-meter-head');
+    head.append(element('span', 'city-meter-name', 'Levy a citizen'));
+    box.append(head);
+    const buttons = element('div', 'city-levy-buttons');
+    for (const line of model.lines) {
+      const button = element('button', 'city-levy-button', line.label);
+      button.type = 'button';
+      const blocked = line.blocked !== null;
+      const chosen = levyChoice?.use === line.use;
+      button.classList.toggle('is-blocked', blocked);
+      button.classList.toggle('is-chosen', chosen);
+      button.setAttribute('aria-expanded', chosen ? 'true' : 'false');
+      // Not `disabled`: a disabled button takes no pointer and no focus, and
+      // then its reason could not be read on hover or with the keyboard.
+      if (blocked) button.setAttribute('aria-disabled', 'true');
+      noteOn(button, line.blocked ?? `${line.figure} · ${line.source}`);
+      // Read the choice at the press, not at the build: Escape and a press
+      // elsewhere shut the confirm without a rebuild.
+      button.addEventListener('click', () => {
+        if (blocked) return;
+        chooseLevy(levyChoice?.use === line.use ? null : { cityId: city.id, use: line.use });
+      });
+      buttons.append(button);
+    }
+    box.append(buttons);
+    if (model.disabled) box.append(refusalLineElement(model.title, 'row'));
+    const line = levyChoice === null ? undefined : model.lines.find((one) => one.use === levyChoice?.use);
+    // A choice whose line has closed since (the town levied, or the card left
+    // the council) lets go of the keys it held.
+    if (levyChoice !== null && (line === undefined || line.blocked !== null)) {
+      levyChoice = null;
+      holdLevyKeys(false);
+    }
+    if (line !== undefined && line.blocked === null && levyChoice !== null) {
+      box.append(
+        renderLevyConfirm(
+          model,
+          line,
+          (rite) => {
+            levyChoice = null;
+            holdLevyKeys(false);
+            const command: Command = {
+              type: 'levyCitizen',
+              playerId: localPlayerId(),
+              cityId: city.id,
+              use: line.use,
+              ...(rite === undefined ? {} : { rite }),
+            };
+            // A refusal repaints the panel with the reducer's sentence (`report`).
+            if (!report(command, dispatch(getGame(), command)).ok) return;
+            onChanged();
+          },
+          () => shutLevyInPlace(),
+        ),
+      );
+    }
+    return box;
+  }
+
+  /**
+   * Opens the levy confirm for one line, or shuts it, and repaints the panel to
+   * show it. While it is open, Escape shuts it before it can leave the town,
+   * and a press outside the levy box shuts it (`onLevyEscape`, `onLevyAway`).
+   */
+  function chooseLevy(next: { cityId: number; use: LevyUse } | null): void {
+    levyChoice = next;
+    holdLevyKeys(next !== null);
+    // Nothing in the state moved, so the render key would skip the rebuild.
+    drawnKey = null;
+    render();
+    // The keyboard follows into the confirm, so Enter can send the levy.
+    if (next !== null) {
+      levyBox?.querySelector<HTMLElement>('.city-levy-confirm button:not(:disabled)')?.focus();
+    }
+  }
+
+  /**
+   * Shuts the levy confirm where it stands, with no rebuild: a press elsewhere
+   * in the screen goes on to do what it was for, and the button it landed on is
+   * still the button under the pointer when the press ends.
+   */
+  function shutLevyInPlace(): void {
+    levyChoice = null;
+    holdLevyKeys(false);
+    if (levyBox === null) return;
+    levyBox.querySelector('.city-levy-confirm')?.remove();
+    for (const button of levyBox.querySelectorAll('.city-levy-button')) {
+      button.classList.remove('is-chosen');
+      button.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function onLevyEscape(event: KeyboardEvent): void {
+    if (event.key !== 'Escape' || levyChoice === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    shutLevyInPlace();
+  }
+
+  function onLevyAway(event: PointerEvent): void {
+    if (levyChoice === null) return;
+    const target = event.target;
+    if (target instanceof Node && levyBox?.contains(target)) return;
+    shutLevyInPlace();
+  }
+
+  function holdLevyKeys(on: boolean): void {
+    if (on) {
+      document.addEventListener('keydown', onLevyEscape, true);
+      document.addEventListener('pointerdown', onLevyAway, true);
+    } else {
+      document.removeEventListener('keydown', onLevyEscape, true);
+      document.removeEventListener('pointerdown', onLevyAway, true);
+    }
   }
 
   /** The quiet Dismiss beside one trade. See `renderSpecialists`. */
@@ -4764,7 +4908,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const name = element('span', 'city-faith-head-name', ours ? FAITH_ROW_WORDS.inLine : head.name);
     name.style.setProperty('--seat-ink', head.founderColor);
     into.append(name);
-    into.append(document.createTextNode(head.text.slice(at + head.name.length)));
+    // The ✶ marks the seat's own faith on this screen (the followers list), so
+    // a rival's faith on the line does not wear it.
+    const rest = head.text.slice(at + head.name.length);
+    into.append(document.createTextNode(ours ? rest : rest.replace(/^ ✶/, '')));
     return into;
   }
 
@@ -4830,18 +4977,24 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       if (every) card.append(every);
     }
 
-    for (const held of cityRites(state, city)) {
+    // The rites, apart from the followers under a thin rule and a "Rite" label
+    // (the user, 2026-11-20: "lets label this as a rite, and give it som
+    // visual separation from the first half of the tab").
+    const kept = cityRites(state, city);
+    const rites = element('div', 'city-faith-rites');
+    rites.append(element('h4', 'city-faith-rites-head', kept.length > 1 ? 'Rites' : 'Rite'));
+    for (const held of kept) {
       const left = cityRiteTurnsLeft(state, city, held);
       // The bar fills with the turns gone, against the rite's whole length as
       // the rules give it today (`riteTurnsFor`).
       const whole = riteTurnsFor(state, city.ownerId, held) ?? left;
-      const kept = element('div', 'city-rite-kept');
-      kept.append(element('span', 'city-rite-kept-name', riteDef(held).name));
-      kept.append(bar(Math.max(0, whole - left), Math.max(whole, left), 'is-faith'));
-      kept.append(
+      const box = element('div', 'city-rite-kept');
+      box.append(element('span', 'city-rite-kept-name', riteDef(held).name));
+      box.append(bar(Math.max(0, whole - left), Math.max(whole, left), 'is-faith'));
+      box.append(
         element('span', 'city-rite-kept-left', `${left} ${left === 1 ? 'turn' : 'turns'} left`),
       );
-      card.append(kept);
+      rites.append(box);
     }
 
     const known = rows.filter((row) => row.requiredTechName === null);
@@ -4875,7 +5028,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // They fold behind one line, closed until opened, so the open row shows
       // what the fourth-pass frame drew: the rite kept, then the link. Every
       // row and every reason is still one click deeper.
-      let into: HTMLElement = card;
+      let into: HTMLElement = rites;
       if (looks.every((look) => look.look === 'none')) {
         const fold = element('details', 'city-not-yet city-rites-fold');
         const summary = element('summary');
@@ -4883,7 +5036,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         summary.append(element('span', 'city-not-yet-count', figure(known.length)));
         fold.append(summary);
         rememberOpen(fold, 'Every rite · none to start', false);
-        card.append(fold);
+        rites.append(fold);
         into = fold;
       }
       for (const line of plan.head) into.append(refusalLineElement(line.text, 'head', line.mark));
@@ -4939,7 +5092,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         fold.append(line);
       }
       rememberOpen(fold, 'Not yet · rites', false);
-      card.append(fold);
+      rites.append(fold);
     }
 
     // The faith sheet keeps the rites of every town at once (batch UX9). A
@@ -4950,8 +5103,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const link = element('button', 'city-trade-link', 'Every rite, in the Faith sheet →');
       link.type = 'button';
       link.addEventListener('click', () => openRites(city.id));
-      card.append(link);
+      rites.append(link);
     }
+    if (rites.childElementCount > 1) card.append(rites);
     return card;
   }
 
@@ -4959,12 +5113,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * What this town believes: one line per faith with a claim on it, then the
    * citizens who follow none, each with its share of the town on the right.
    *
-   * The seat's own faith comes first, as "Your religion" with its name beside
-   * it (the user, 2026-11-20: "the breakdown below can clarify the name of your
-   * religion and other religions present in the city"); the others follow in
-   * founding order (`cityFaithRows`), each named in **its founder's ink**,
-   * because whose faith it is is the whole of what makes a rival's banner in
-   * your town news. The faith most of the town follows carries the ✶.
+   * The list is headed "Religious followers". The seat's own faith comes first,
+   * by name, and the ✶ beside it is the whole of what says it is yours (the
+   * user, 2026-11-20: "lets just write 'religious followers' and teh star is
+   * enough of an indicator to say its yours"); the others follow in founding
+   * order (`cityFaithRows`), each named in **its founder's ink**, because whose
+   * faith it is is the whole of what makes a rival's banner in your town news.
+   * Which faith most of the town follows is the headline's to say.
    *
    * Absent entirely until something presses, which is most of a game: a town
    * nobody has preached to has nothing to say about faith.
@@ -4974,22 +5129,22 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const rows = cityFaithRows(state, city, localPlayerId());
     if (rows.length === 0) return null;
     const box = element('div', 'city-faith');
+    box.append(element('h4', 'city-faith-list-head', FAITH_ROW_WORDS.followers));
     const ordered = [...rows.filter((row) => row.ours), ...rows.filter((row) => !row.ours)];
     for (const row of ordered) {
       const line = element('p', row.ours ? 'city-faith-row' : 'city-faith-row is-foreign');
       const who = element('span', 'city-faith-who');
-      if (row.ours) who.append(element('span', 'city-faith-yours', FAITH_ROW_WORDS.yours));
       const name = element('span', 'city-faith-name', row.name);
       if (!row.ours) {
         name.style.setProperty('--seat-ink', row.founderColor);
         noteOn(name, `Founded by ${row.founderName}`);
       }
       who.append(name);
-      if (row.majority) {
-        // The banner. A mark rather than a word, beside the name it is about,
+      if (row.ours) {
+        // Yours. A mark rather than a word, beside the name it is about,
         // exactly as the capital's star sits beside a city's.
         const mark = element('span', 'city-faith-majority', '✶');
-        noteOn(mark, `More than half of ${city.name} follows ${row.name}`);
+        noteOn(mark, FAITH_ROW_WORDS.yours);
         who.append(mark);
       }
       line.append(who);
@@ -5058,37 +5213,71 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *
    * The body of the Buildings row since the simpler city screen, which lists
    * the ordinary buildings here and the empire buildings and the wonders in
-   * rows of their own (`townBuildingGroups`).
+   * rows of their own (`townBuildingGroups`). Since 2026-11-20 each building is
+   * a chip whose hover is its card (`buildingChips`), and the consecration is a
+   * chip of its own whose hover is its clauses.
    */
   function renderBuilt(city: City): HTMLElement | null {
     const patron = city.consecration;
     const { buildings } = townBuildingGroups(city);
     if (buildings.length === 0 && patron === undefined) return null;
-    const box = element('div', 'city-built');
-    if (buildings.length > 0) {
-      box.append(element('p', 'hint', buildings.map((id) => buildingDef(id).name).join(' · ')));
-    }
+    const box = buildingChips(city, buildings);
     if (patron !== undefined) {
       const def = consecrationDef(patron);
+      const chip = itemChip(`Consecrated to ${def.name}`, 'is-patron');
       // `belief` is the Compendium's own address for a consecration
       // (`consecrationEntry` shelves it there), so the mark resolves to the page
-      // that already explains the whole class.
+      // that already explains the whole class. Every word after the name is the
+      // describer's, drawn as a descriptor so its keywords are marks.
       const named = ref('belief', patron, def.name);
       const clauses = describeCard(patron)
         .map((clause) => clause.text)
         .join(' · ');
-      const line = element('p', 'hint');
-      setDescriptorText(
-        line,
-        clauses === '' ? `Consecrated to ${named}` : `Consecrated to ${named} — ${clauses}`,
-      );
-      box.append(line);
+      info.bind(chip, () => {
+        const card = element('div', 'info-card-note');
+        const line = element('p');
+        setDescriptorText(
+          line,
+          clauses === '' ? `Consecrated to ${named}` : `Consecrated to ${named} — ${clauses}`,
+          { linked: false },
+        );
+        card.append(line);
+        return card;
+      });
+      box.append(chip);
     }
     return box;
   }
 
   /**
-   * The body of the Empire buildings row: the town's empire buildings by name,
+   * One thing in the town as a chip (the user, 2026-11-20: "lets have the items
+   * here be chips that are hoverable for their effects"): its name, which wraps
+   * at a space rather than being cut, and the keyboard reaches it so its hover
+   * card shows on focus too.
+   */
+  function itemChip(name: string, kind = ''): HTMLElement {
+    const chip = element('span', `city-item-chip ${kind}`.trim(), name);
+    chip.tabIndex = 0;
+    return chip;
+  }
+
+  /**
+   * A group of buildings as chips, each with the building's own card as its
+   * hover (`buildingCard` for a standing building: what it is, what it pays,
+   * its clauses in the describers' words, its upkeep).
+   */
+  function buildingChips(city: City, ids: readonly BuildingId[]): HTMLElement {
+    const box = element('div', 'city-item-chips');
+    for (const id of ids) {
+      const chip = itemChip(buildingDef(id).name, isWonder(id) ? 'is-wonder' : '');
+      info.bind(chip, () => buildingCard(city, id, 0, false, true));
+      box.append(chip);
+    }
+    return box;
+  }
+
+  /**
+   * The body of the Empire buildings row: the town's empire buildings as chips,
    * then what an empire building is, in the class's own sentence
    * (`EMPIRE_BUILDING_WORDS.entry`), whose keyword opens the Concepts page. The
    * user, 2026-11-19: "That name makes it clearer that it's one per empire.
@@ -5098,20 +5287,18 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const { empire } = townBuildingGroups(city);
     if (empire.length === 0) return null;
     const box = element('div', 'city-built');
-    box.append(element('p', 'hint', empire.map((id) => buildingDef(id).name).join(' · ')));
+    box.append(buildingChips(city, empire));
     const what = element('p', 'city-fold-note');
     setDescriptorText(what, EMPIRE_BUILDING_WORDS.entry);
     box.append(what);
     return box;
   }
 
-  /** The body of the Wonders row: the wonders that stand in this town, by name. */
+  /** The body of the Wonders row: the wonders that stand in this town, as chips. */
   function renderWonders(city: City): HTMLElement | null {
     const { wonders } = townBuildingGroups(city);
     if (wonders.length === 0) return null;
-    const box = element('div', 'city-built');
-    box.append(element('p', 'hint', wonders.map((id) => buildingDef(id).name).join(' · ')));
-    return box;
+    return buildingChips(city, wonders);
   }
 
   /**
@@ -5122,61 +5309,67 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * caravan brings home is counted off its partner's buildings. A player
    * reading downward meets "Market · Uruk" and then the caravan it paid for.
    *
-   * The **trading post** is a mark rather than a row. It is not a building — it
+   * The **trading post** is a chip rather than a row. It is not a building — it
    * is the *history* of having been an end of a route, written permanently by
    * `startRouteAt` and never cleared — and all it does is let later caravans
    * reach further, which is a fact about this town rather than a thing it makes.
-   * So it sits beside the heading like the capital's star and says so on hover.
+   * So it stands at the start of the body's head line and says so on hover.
    *
    * The body of the Trade routes row since the simpler city screen. That row is
    * drawn only for a town that is an end of a route or holds a trading post
    * (`cityFoldRows`), so the "no caravan runs here" line below is now said only
-   * by a trading post whose routes have all ended. The slot figure that answers
-   * "why can I not start another route" is on the trade sheet as well.
+   * by a trading post whose routes have all ended.
+   *
+   * A tidy table since 2026-11-20 (the user: "lets fix the formatting here"):
+   * the head line has the post, the empire's route count and "All routes"; under
+   * it one row a route, where it goes on the left (← it pays here, → it set out
+   * from here) and what it pays the seat on the right, as the trade sheet
+   * reads it (`cityRouteRows`' `figures`). A long list scrolls inside the row.
    */
   function renderRoutes(city: City): HTMLElement | null {
     const { state } = getGame();
     if (city.ownerId !== localPlayerId()) return null;
     const rows = cityRouteRows(state, city);
-    const box = element('div', 'city-built');
-    // The post rides the first line of the body now that the heading is the
-    // disclosure's summary. Still a mark rather than a row, and still says what
-    // it is on hover — see the docblock.
+    const box = element('div', 'city-routes');
+    const head = element('div', 'city-routes-head');
     if (city.tradingPost === true) {
-      const post = element('p', undefined);
-      const mark = element('span', 'city-size', '⌂ trading post');
+      const post = itemChip('Trading post', 'is-post');
       noteOn(
-        mark,
+        post,
         'This town has been an end of a trade route. A post extends how far ' +
           'later caravans may be sent from or to it.',
       );
-      post.append(mark);
-      box.append(post);
+      head.append(post);
     }
-    box.append(element('p', 'hint', routeSlotsLineOf(state, localPlayerId())));
+    head.append(element('span', 'city-routes-count', routeSlotsLineOf(state, localPlayerId())));
     // A door to the Trade screen, and the one a player reaches from a *town*
     // rather than from a piece: this row already answers "why can I not start
-    // another route", and the screen is where that is acted on. Offered
-    // whether or not this town is an end of anything — an empire's trade is
-    // exactly what a town with no routes wants to look at.
+    // another route", and the screen is where that is acted on.
     if (onOpenTrade) {
       const all = element('button', 'btn btn-quiet btn-tiny', 'All routes');
       (all as HTMLButtonElement).type = 'button';
       noteOn(all, 'Every caravan and every partner');
       all.addEventListener('click', () => onOpenTrade());
-      box.append(all);
+      head.append(all);
     }
+    box.append(head);
     if (rows.length === 0) {
       box.append(element('p', 'hint', 'No caravan runs to or from this town.'));
       return box;
     }
     // Inbound first — those are the routes that pay *here* now (2026-08-27: the
-    // origin's buildings set the figure, the destination banks it), and
-    // `row.text` already carries the direction arrow and, for a paying route,
-    // its figures — see `cityRouteRows`.
+    // origin's buildings set the figure, the destination banks it).
+    const list = element('div', 'city-routes-list');
     for (const row of [...rows].sort((a, b) => Number(a.outbound) - Number(b.outbound))) {
-      box.append(element('p', 'hint', row.text));
+      const line = element('div', row.outbound ? 'city-route-row is-outbound' : 'city-route-row');
+      line.append(element('span', 'city-route-place', `${row.outbound ? '→' : '←'} ${row.place}`));
+      const pays = element('span', 'city-route-pays');
+      setYieldText(pays, row.figures);
+      line.append(pays);
+      noteOn(line, row.outbound ? `Sent from here to ${row.place}` : `Sent here from ${row.place}`);
+      list.append(line);
     }
+    box.append(list);
     return box;
   }
 
@@ -5364,6 +5557,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const focus = renderCitizenFocus(city);
     if (focus) clocks.append(focus);
 
+    // The levies, in view under the citizens they spend, whenever the seat's
+    // cards grant one (2026-11-20). Nothing for a town with no levy.
+    levyBox = null;
+    const levy = renderLevy(city);
+    if (levy) clocks.append(levy);
+
     // The rest of the town's facts, one fold row each.
     const folds = renderFolds(city, locked);
     if (folds) clocks.append(folds);
@@ -5391,8 +5590,6 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         return renderFaithCard(city);
       case 'routes':
         return renderRoutes(city);
-      case 'levy':
-        return renderLevy(city);
       default: {
         const unhandled: never = id;
         void unhandled;
@@ -5615,6 +5812,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (pinnedChip !== null && (city === null || pinnedChip.cityId !== city.id)) {
       pinnedChip = null;
       holdEscape(false);
+    }
+    // And an open levy confirm, with the keys it holds.
+    if (levyChoice !== null && (city === null || levyChoice.cityId !== city.id)) {
+      levyChoice = null;
+      holdLevyKeys(false);
     }
     const notice =
       refused !== null && refused.revision === drawing.revision ? refused.text : null;

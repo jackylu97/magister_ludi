@@ -497,10 +497,21 @@ describe('the city mode', () => {
       'return renderSpecialists(city, locked);',
       'return renderFaithCard(city);',
       'return renderRoutes(city);',
-      'return renderLevy(city);',
     ]) {
       expect(`${call}: ${body.includes(call)}`).toBe(`${call}: true`);
     }
+    // The levy left the fold rows on 2026-11-20 (the user: "lets move the
+    // levies to the top ... so it doesn't disappear with the rest of the
+    // menus"): it stands under the focus chips, in view.
+    expect(body).not.toContain('renderLevy');
+    const rail = fn('cityPanel.ts', 'renderTownRail');
+    expect(rail).toContain('const levy = renderLevy(city);');
+    expect(rail.indexOf('const levy = renderLevy(city);')).toBeGreaterThan(
+      rail.indexOf('clocks.append(renderFocusPane(city, locked));'),
+    );
+    expect(rail.indexOf('const levy = renderLevy(city);')).toBeLessThan(
+      rail.indexOf('const folds = renderFolds(city, locked);'),
+    );
     const defence = fn('cityPanel.ts', 'renderDefenceFigure');
     expect(defence).toContain('figure(defenseTotal(rows))');
     expect(defence).toContain('info.bind(defence, () => renderDefense(city));');
@@ -555,8 +566,14 @@ describe('the city mode', () => {
     // one line a rite, so a town keeping two under The Double Feast (Devotion
     // batch DV8) says both.
     expect(card).toContain('const plan = planRefusals(refused);');
-    expect(card).toContain('for (const held of cityRites(state, city)) {');
+    expect(card).toContain('const kept = cityRites(state, city);');
+    expect(card).toContain('for (const held of kept) {');
     expect(card).toContain('cityRiteTurnsLeft(state, city, held)');
+    // Under a thin rule and its own label, apart from the followers (the user,
+    // 2026-11-20: "lets label this as a rite, and give it som visual
+    // separation from the first half of the tab").
+    expect(card).toContain("rites.append(element('h4', 'city-faith-rites-head', kept.length > 1 ? 'Rites' : 'Rite'));");
+    expect(declaration('.city-faith-rites', 'border-top')).toBe('1px solid var(--rule)');
     expect(card).toContain('performRite(city.id, row.id)');
     // The rites not yet learnt fold away, each with what teaches it.
     expect(card).toContain("row.requiredTechName !== null");
@@ -1328,11 +1345,12 @@ describe('the citizen focus pane', () => {
     );
     expect(declaration('.city-focus-choice', 'letter-spacing')).toBe('normal');
     expect(declaration('.city-focus-avoid', 'letter-spacing')).toBe('normal');
-    // Four chips across the rail's width, so the row reads as one control.
-    // Each is as wide as its word since the simpler city screen: four equal
-    // columns of a 230 px panel cut "Production".
-    expect(declaration('.city-focus-choices', 'grid-template-columns')).toBe('repeat(4, auto)');
-    expect(declaration('.city-focus-choices', 'justify-content')).toBe('space-between');
+    // Four chips, each as wide as its word, from the left with an ordinary gap
+    // (the user, 2026-11-20: "could we have them left aligned, just make sure
+    // the chips don't overflow"). They wrap rather than run past the panel.
+    expect(declaration('.city-focus-choices', 'display')).toBe('flex');
+    expect(declaration('.city-focus-choices', 'justify-content')).toBe('flex-start');
+    expect(declaration('.city-focus-choices', 'flex-wrap')).toBe('wrap');
     expect(declaration('.city-focus-choice', 'white-space')).toBe('nowrap');
   });
 });

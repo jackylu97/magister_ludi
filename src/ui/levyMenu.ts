@@ -1,23 +1,23 @@
 /**
- * The levy control: the short menu the city screen's "Levy a citizen" row
- * opens (batch L; the interface the user picked is option A of the levies
- * sketch; a fold row of its own since the simpler city screen).
+ * The levy control (batch L; the interface the user picked is option A of the
+ * levies sketch). Since 2026-11-20 the city screen draws one button a levy line
+ * near the top of the town panel, and a press opens a small confirm
+ * (`renderLevyConfirm`) with what the levy gives and what it costs.
  *
- * One menu line per thing the player's held cards let a levy buy, each with its
- * exact figure on the right and the granting card's name underneath, and a cost
- * line under the lines: the population change and how long the town waits
- * before it may levy again. While no line can be chosen — most often because
- * the town is still waiting — the row opens on the reason, on a line. A town
- * whose owner holds no levy card gets no row at all.
+ * One line per thing the player's held cards let a levy buy, each with its
+ * exact figure and the granting card's name, and a cost line: the population
+ * change and how long the town waits before it may levy again. While no line
+ * can be chosen — most often because the town is still waiting — the panel
+ * says why on a line. A town whose owner holds no levy card gets nothing.
  *
- * The `rite` line (Human Sacrifice, batch DT19) has no one thing to buy. Pressing
- * it opens a small list of the rites the empire knows under the line, each with
- * what it does, or the rite gate's own refusal. Pressing a rite spends the citizen.
+ * The `rite` line (Human Sacrifice, batch DT19) has no one thing to buy. Its
+ * confirm lists the rites the empire knows, each with what it does, or the rite
+ * gate's own refusal. Pressing a rite spends the citizen.
  *
- * Split in two so the menu can later open from a citizen token (the user's
- * preferred version): `levyMenuModel` is pure and says what the menu holds;
- * `renderLevyMenu` draws it and hands the choice back through a callback. This
- * module never dispatches — the city panel does, through its own reporter.
+ * Split in two: `levyMenuModel` is pure and says what the control holds;
+ * `renderLevyConfirm` draws a line's confirm and hands the choice back through a
+ * callback. This module never dispatches — the city panel does, through its own
+ * reporter.
  */
 
 import { buildingDef, isBuildingId } from '../sim/buildingData';
@@ -32,7 +32,7 @@ import { riteOfferText } from './riteOffer';
 import { yieldElement as element } from './yieldMark';
 
 /** One line of the menu, already in the player's words. */
-interface LevyMenuLine {
+export interface LevyMenuLine {
   use: LevyUse;
   /** What the citizen buys: "Production here", "Raise a unit". */
   label: string;
@@ -178,45 +178,47 @@ export function levyMenuModel(
 }
 
 /**
- * The menu the city screen's "Levy a citizen" row opens (the simpler city
- * screen: the row is the menu's button, and its own button went with it): one
- * line per use, its figure on the right, and under it the granting card or,
- * for a line that cannot be chosen, the
- * reducer's own refusal. Both are printed, so neither needs a tooltip.
- * `onChoose` is handed the use a line was pressed for, and the rite when the line
- * was the `rite` line. That line only opens its list of rites; a rite spends the
- * citizen. The list is opened here, on the element, because nothing in the game
- * moved, and a repaint closes it again.
+ * The confirm under the city screen's levy buttons (the user, 2026-11-20:
+ * "lets move the levies to the top, and give it a different UX than a dropdown
+ * so it doesn't disappear with the rest of the menus"). A press on a levy's
+ * button opens it; it says what the levy gives (the figure, and the granting
+ * card with what it pays) and what it costs in citizens (`LevyMenuModel.cost`),
+ * and the levy is sent only from here: "Levy" sends it, "Cancel" shuts it.
+ *
+ * The `rite` line has no one thing to buy, so its confirm lists the rites the
+ * empire knows instead of a "Levy" button: pressing a rite spends the citizen,
+ * and a rite that cannot be chosen is greyed with the rite gate's own words.
+ * `onConfirm` is handed the rite for that line and nothing for any other.
  */
-export function renderLevyMenuBody(
+export function renderLevyConfirm(
   model: LevyMenuModel,
-  onChoose: (use: LevyUse, rite?: RiteId) => void,
+  line: LevyMenuLine,
+  onConfirm: (rite?: RiteId) => void,
+  onCancel: () => void,
 ): HTMLElement {
-  const menu = element('div', 'city-levy-menu');
-  for (const line of model.lines) {
-    const row = element('div', 'city-levy-row');
-    const choose = element('button', 'city-levy-choice', line.label);
-    choose.type = 'button';
-    choose.disabled = line.blocked !== null;
-    row.append(choose);
-    row.append(element('span', 'city-levy-figure num', line.figure));
-    row.append(element('p', 'city-levy-source', line.blocked ?? line.source));
-    if (line.rites === undefined) {
-      choose.addEventListener('click', () => onChoose(line.use));
-    } else {
-      const list = renderRiteList(line.rites, (rite) => onChoose(line.use, rite));
-      list.hidden = true;
-      choose.setAttribute('aria-expanded', 'false');
-      choose.addEventListener('click', () => {
-        list.hidden = !list.hidden;
-        choose.setAttribute('aria-expanded', list.hidden ? 'false' : 'true');
-      });
-      row.append(list);
-    }
-    menu.append(row);
+  const box = element('div', 'city-levy-confirm');
+  box.setAttribute('role', 'group');
+  box.setAttribute('aria-label', line.label);
+  const head = element('div', 'city-levy-row');
+  head.append(element('span', 'city-levy-label', line.label));
+  head.append(element('span', 'city-levy-figure num', line.figure));
+  head.append(element('p', 'city-levy-source', line.source));
+  box.append(head);
+  if (line.rites !== undefined) box.append(renderRiteList(line.rites, (rite) => onConfirm(rite)));
+  box.append(element('p', 'city-levy-cost', model.cost));
+  const actions = element('div', 'city-levy-actions');
+  if (line.rites === undefined) {
+    const levy = element('button', 'btn btn-primary btn-tiny city-levy-send', 'Levy');
+    levy.type = 'button';
+    levy.addEventListener('click', () => onConfirm());
+    actions.append(levy);
   }
-  menu.append(element('p', 'city-levy-cost', model.cost));
-  return menu;
+  const cancel = element('button', 'btn btn-quiet btn-tiny city-levy-cancel', 'Cancel');
+  cancel.type = 'button';
+  cancel.addEventListener('click', () => onCancel());
+  actions.append(cancel);
+  box.append(actions);
+  return box;
 }
 
 /** The rites under the `rite` line: a name to press, and what it does or the refusal. */
