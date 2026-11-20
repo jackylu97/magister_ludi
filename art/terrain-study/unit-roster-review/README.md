@@ -21,8 +21,8 @@ The current leader data has sixteen active leaders. Fifteen field a land unit. E
 
 ## Reused pieces
 
-- [Keshig](keshig.glb) uses the current mounted archer. Its roster id is `xiongnuHorseArcher`.
-- [Ballista Elephant](ballistaElephant.glb) uses the current `siegeElephant` model with its howdah and mounted ballista.
+- [Keshig](keshig.glb) uses the current mounted archer. Its roster id is `xiongnuHorseArcher`. Liu Guandao’s 1280 painting of Khubilai Khan’s hunting party provides a Yuan court reference for the horse and bow. The painting leaves the riders’ guard affiliations unidentified. [National Palace Museum, Khubilai Khan Hunting](https://theme.npm.edu.tw/selection/Article.aspx?lang=2&sNo=04000995)
+- [Ballista Elephant](ballistaElephant.glb) uses the current `siegeElephant` model. A Bayon relief shows a Khmer archer drawing a hand bow from a decorated platform on an elephant. The platform has a historical reference. The mounted ballista is the game’s addition to this scene. [Wolfarth, photograph of the Bayon relief, figure 11](https://etheses.whiterose.ac.uk/id/eprint/8907/2/Wolfarth_Faces%20of%20Cambodia_%202014_Redacted.pdf)
 
 ## Editing
 
