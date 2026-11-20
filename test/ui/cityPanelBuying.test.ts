@@ -13,8 +13,8 @@
  *
  * The rest are the batch's other promises: a shared refusal said once, a queued
  * building kept in the list at full price, no retired row, caravans as a line
- * to the trade sheet, a Faith shelf, the treasury in the band, and a refused
- * command said in the work rail.
+ * to the trade sheet, a Faith shelf, the treasury beside the prices it pays,
+ * and a refused command said in the work rail.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -553,14 +553,22 @@ describe('which rows print', () => {
   });
 });
 
-// --- the band and the work rail --------------------------------------------------
+// --- the head and the work rail --------------------------------------------------
 
-describe('the band and the work rail', () => {
-  it('shows the treasury in the band, just left of the six chips', () => {
-    const band = braceBody(uiSource('cityPanel.ts'), 'function renderBand(');
-    const banks = band.indexOf('band.append(bankLineElement(readBanks(state, localPlayerId())));');
-    expect(banks).toBeGreaterThan(band.indexOf('band.append(title);'));
-    expect(band.indexOf('band.append(renderYieldChips(city, quote));')).toBeGreaterThan(banks);
+describe('the head and the work rail', () => {
+  it('names what the seat holds where it is spent: the price heading and the Faith row', () => {
+    // The simpler city screen took the banks out of the head (the fourth-pass
+    // frame: "the build list says 'you have 555 gold', and the Faith row holds
+    // the faith"). The treasury still shows on the city screen (the user's
+    // ruling of 2026-10-12), beside the prices it pays.
+    const panel = uiSource('cityPanel.ts');
+    expect(braceBody(panel, 'function renderBand(')).not.toContain('bankLineElement');
+    expect(braceBody(panel, 'function renderBuildables(')).toContain(
+      'if (ordinary.length > 0) grid.append(priceHeadElement(ordinary.map(held)));',
+    );
+    expect(braceBody(panel, 'function renderFaithCard(')).toContain(
+      "bankLineElement(readBanks(state, localPlayerId()).filter((bank) => bank.bank === 'faith'))",
+    );
   });
 
   it('says a refused command in the work rail, in the reducer’s words', () => {

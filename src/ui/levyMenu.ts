@@ -1,14 +1,14 @@
 /**
- * The levy control: a "Levy a citizen" button and the short menu it opens
- * (batch L; the interface the user picked is option A of the levies sketch).
+ * The levy control: the short menu the city screen's "Levy a citizen" row
+ * opens (batch L; the interface the user picked is option A of the levies
+ * sketch; a fold row of its own since the simpler city screen).
  *
  * One menu line per thing the player's held cards let a levy buy, each with its
  * exact figure on the right and the granting card's name underneath, and a cost
  * line under the lines: the population change and how long the town waits
- * before it may levy again. The button is greyed while no line can be chosen —
- * most often because the town is still waiting — and the panel prints the
- * reason on a line under it. A town whose owner holds no levy card gets no
- * button at all.
+ * before it may levy again. While no line can be chosen — most often because
+ * the town is still waiting — the row opens on the reason, on a line. A town
+ * whose owner holds no levy card gets no row at all.
  *
  * The `rite` line (Human Sacrifice, batch DT19) has no one thing to buy. Pressing
  * it opens a small list of the rites the empire knows under the line, each with
@@ -178,30 +178,10 @@ export function levyMenuModel(
 }
 
 /**
- * The button, "Levy a citizen ▾". Since batch UX7 it stands on the town's
- * population line (`docs/plans/city-screen-iterations.md`, A1: the levy sits
- * beside the bank it spends, which is the town's people). `onToggle` flips the
- * menu, which the panel draws under the line (`renderLevyMenuBody`). A greyed
- * button's reason is a line the panel prints under it (`model.title`), never a
- * tooltip.
- */
-export function renderLevyTrigger(
-  model: LevyMenuModel,
-  open: boolean,
-  onToggle: () => void,
-): HTMLButtonElement {
-  const button = element('button', 'btn btn-quiet btn-tiny city-levy-button', 'Levy a citizen ▾');
-  button.type = 'button';
-  button.disabled = model.disabled;
-  button.setAttribute('aria-expanded', open && !model.disabled ? 'true' : 'false');
-  button.setAttribute('aria-description', model.title);
-  button.addEventListener('click', onToggle);
-  return button;
-}
-
-/**
- * The menu the button opens: one line per use, its figure on the right, and
- * under it the granting card or, for a line that cannot be chosen, the
+ * The menu the city screen's "Levy a citizen" row opens (the simpler city
+ * screen: the row is the menu's button, and its own button went with it): one
+ * line per use, its figure on the right, and under it the granting card or,
+ * for a line that cannot be chosen, the
  * reducer's own refusal. Both are printed, so neither needs a tooltip.
  * `onChoose` is handed the use a line was pressed for, and the rite when the line
  * was the `rite` line. That line only opens its list of rites; a rite spends the

@@ -200,21 +200,26 @@ describe('the rite line (Human Sacrifice, batch DT19)', () => {
 describe('the city panel wiring', () => {
   const PANEL = uiSource('cityPanel.ts');
 
-  it('mounts the levy control on the Growth card’s population line', () => {
-    // Since batch UX7 (A1: "the levy sits on the town's population line ...
-    // because it spends a citizen"), at the end of the citizen line, with its
-    // menu, or the reason it is greyed, under the line.
-    const growth = braceBody(PANEL, 'function renderGrowth(');
-    expect(growth).toContain('const levy = renderLevy(city);');
-    expect(growth).toContain('box.append(renderCitizens(city, levy?.trigger ?? null));');
-    expect(growth).toContain('if (levy?.below) box.append(levy.below);');
-    expect(braceBody(PANEL, 'function renderTownRail(')).not.toContain('renderLevy(city)');
+  it('opens the levy menu from its own fold row', () => {
+    // The simpler city screen (the fourth-pass frame: "The levy menu: opens
+    // from its row, as today's menu"). The row is drawn when the seat's cards
+    // grant a levy, and its body is the menu itself.
+    const body = braceBody(PANEL, 'function foldBody(');
+    expect(body).toContain("case 'levy':");
+    expect(body).toContain('return renderLevy(city);');
+    expect(braceBody(PANEL, 'function renderLevy(')).toContain(
+      'return renderLevyMenuBody(model, (use, rite) => {',
+    );
+    expect(braceBody(PANEL, 'export function cityFoldRows(')).toContain(
+      'const levy = levyMenuModel(state, seat, city);',
+    );
+    // The growth meter and the citizens' line no longer carry it.
+    expect(braceBody(PANEL, 'function renderGrowth(')).not.toContain('renderLevy(city)');
+    expect(braceBody(PANEL, 'function renderCitizens(')).not.toContain('levy');
   });
 
   it('says why a greyed levy is greyed on a line, never only in a tooltip', () => {
-    expect(PANEL).toContain(
-      "if (model.disabled) return { trigger, below: refusalLineElement(model.title, 'row') };",
-    );
+    expect(PANEL).toContain("if (model.disabled) return refusalLineElement(model.title, 'row');");
     expect(uiSource('levyMenu.ts')).not.toMatch(/\.title = /);
   });
 

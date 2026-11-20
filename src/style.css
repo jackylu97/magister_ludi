@@ -5880,35 +5880,63 @@ body.has-diplomatic-offers .end-turn-list {
   pointer-events: none;
 }
 
-/* The band: the town's name across the whole top edge, and the mode's entire
+/* The head: the town's name across the whole top edge, and the mode's entire
    top chrome. The empire's bar stands down beneath it (below) rather than
    sitting above it half-emptied, so what a player sees at the top of the screen
    while they are in a town is the town — which is what "the band owns the top
    edge" meant in the ruling. Nothing the bar carries is more than one keystroke
-   away: Escape and Leave the town both bring it straight back. */
+   away: Escape and the × both bring it straight back.
+
+   Ruled the kit's way since the simpler city screen (the fourth-pass frame's
+   `city_head`): an ink line over a gilt hairline, two pixels of paper between.
+   The hairline is a shadow rather than a second box, so the head stays in flow
+   and unpositioned. */
 .city-band {
   flex: 0 0 auto;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 10px;
-  padding: 6px 14px;
+  gap: 14px;
+  padding: 8px 14px 8px;
   pointer-events: auto;
-  border-bottom: var(--border) solid var(--ink);
+  border-bottom: 1px solid var(--ink);
   background: var(--parchment);
-  box-shadow: 0 4px 0 rgba(29, 26, 32, 0.18);
+  box-shadow:
+    0 2px 0 var(--parchment),
+    0 3px 0 var(--gilt),
+    0 8px 14px -10px rgba(29, 26, 32, 0.35);
 }
 
 /* The name announces in the display face — the one place on the board's own
    screen that a serif is allowed to be large. It overrides the panel's 21px
-   name voice deliberately: a band is a title, a panel had a heading. */
+   name voice deliberately: a head is a title, a panel had a heading. */
 .city-band h2 {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 11em;
+  margin: 0;
   font-family: var(--face-display);
   font-variation-settings: normal;
   font-weight: 400;
-  font-size: 24px;
+  font-size: 26px;
   line-height: 1;
   letter-spacing: 0;
+  /* The one thing in the head allowed to give is a long name: it ellipsises
+     past 11 em rather than pushing the yields off the edge. Newsreader (batch
+     SS1) sets wide, and a name cut to "Cus…" at 1440 px is worse than a short
+     fact line, so the name never shrinks before that. Clipped across only
+     (batch SS1b): the display face's baseline sits lower since
+     src/displayFace.css, and at this line height of 1 a clip on both axes cut
+     the tails of g, p, q and y. The ellipsis still works. */
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Its first letter in red ink, as every sheet title's is (the Type board). */
+.city-band h2::first-letter {
+  color: var(--rubric);
 }
 
 /* One row, at every width. The title's own contents used to wrap, which made
@@ -5934,66 +5962,72 @@ body.has-diplomatic-offers .end-turn-list {
   flex: 0 0 auto;
 }
 
-/* The two things in the band allowed to give: a long town name and a belief
-   line that names a faith, a congregation and a tide. Both ellipsise rather
-   than pushing the six chips off the edge, and both carry their whole text on
-   hover already (`renderBand`, `cityFaithHeadline`). */
-.city-band h2,
-.city-band .city-faith-head {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* "Size 12 · 190/190 hp · Defence 21": one fine line of facts, a dot between
+   each (the fourth-pass head). The first sits a little apart from the name. */
+.city-title > h2 + .city-size,
+.city-title > .city-step + .city-size {
+  margin-left: 4px;
 }
 
-/* The name gives last. Newsreader (batch SS1) sets wider than the condensed
-   face before it, and a town's name cut to "Cus…" at 1440 px is worse than a
-   shorter belief line. A very long name still ellipsises past 11 em. */
-.city-band h2 {
-  flex-shrink: 0;
-  max-width: 11em;
-  /* Clipped across only (batch SS1b). The display face's baseline sits lower
-     since src/displayFace.css, and at this line height of 1 a clip on both
-     axes cut the tails of g, p, q and y. The ellipsis still works. */
-  overflow-x: clip;
-  overflow-y: visible;
+.city-title > .city-size + .city-size::before {
+  margin-right: 8px;
+  color: var(--ink-faint);
+  content: '·';
 }
 
-/* The banks, just left of the six chips (batch UX5; the user, 2026-10-12: "The
-   treasury shows on the city screen"). A figure, so it never shrinks: the name
-   and the belief line are what give when the band is short of room. */
-.city-band .bank-line {
-  flex: 0 0 auto;
+/* The defence figure takes the keyboard for its ledger, so it says so when it
+   has it. */
+.city-defence:focus-visible {
+  outline: var(--border-thin) solid currentColor;
+  outline-offset: 2px;
 }
 
-/* The six chips take the far end of the band, where the empire's six sit one
+
+/* The six yields take the far end of the head, where the empire's six sit one
    bar up — same order, same inks, same marks, so the eye does not relearn them
-   when the mode opens. */
+   when the mode opens. A mark and a figure each, with no box (the fourth-pass
+   head). The head no longer prints the banks: the build list's price heading
+   and the Faith row say what the seat holds. */
 .city-band .city-yields {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-left: auto;
   flex: 0 0 auto;
-  grid-template-columns: repeat(6, minmax(46px, auto));
 }
 
-/* The six chips are the reason the band exists and are the last thing that may
-   be squeezed: below the fold breakpoint they lose the 46px floor rather than
-   the row. */
-@media (max-width: 860px) {
-  .city-band .city-yields {
-    grid-template-columns: repeat(6, minmax(38px, auto));
-  }
-}
-
-/* Each chip is a button (batch UX6): it raises its own list on hover or focus
-   (`chipLedgerRows`) and a click pins the list open. The button's own face is
-   set back to the chip's, so the six still read as figures. */
+/* Each yield is a button (batch UX6): it raises its own list on hover or focus
+   (`chipLedgerRows`) and a click pins the list open. The button's face is set
+   back to a plain figure. */
 .city-band .city-yield {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
   font: inherit;
   color: var(--ink);
   letter-spacing: normal;
   text-transform: none;
   cursor: pointer;
+}
+
+.city-band .city-yield-value {
+  font-size: var(--size-ui);
+  font-weight: 600;
+}
+
+/* The short name is kept for the markup and hidden from sight: the mark says
+   the voice in the head. */
+.city-band .city-yield-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .city-band .city-yield:hover,
@@ -6004,7 +6038,7 @@ body.has-diplomatic-offers .end-turn-list {
 /* A pinned chip keeps a solid underline of ink, so the one whose list is
    standing open can be told from the others without colour. */
 .city-band .city-yield[aria-pressed='true'] {
-  box-shadow: inset 0 -3px 0 var(--ink);
+  box-shadow: inset 0 -2px 0 var(--ink);
 }
 
 /* --- the band's middle: what the town is short of (batch UX6) --------------
@@ -6262,6 +6296,153 @@ body:has(.city-mode:not([hidden])) #hud-context {
   margin: 0 0 5px;
 }
 
+/* --- the town panel and its fold rows (the simpler city screen) ------------
+   The fourth-pass frame (`docs/plans/mockups/scholars-study/
+   quiet-table-fourth-pass/build.py`, `city4`): one plain panel with growth,
+   borders and the citizens' focus in view, then one row for each of the
+   town's other facts, shut at rest and opened one at a time in place. The rows
+   run to the panel's edges, ruled between, and an open row is a shade lighter
+   than the paper so the eye finds it. */
+.city-rail.is-left .city-town {
+  padding: 2px 12px 0;
+  overflow: hidden;
+}
+
+.city-town .city-meter {
+  margin-top: 8px;
+}
+
+/* The meters take the keyboard for their hover (the next citizen, the next
+   tile), so they say so when they have it. */
+.city-town .city-meter:focus-visible,
+.city-town .city-citizens:focus-visible {
+  outline: var(--border-thin) solid currentColor;
+  outline-offset: 2px;
+}
+
+/* A thinner bar than the work rail's: the frame's meter. */
+.city-town .city-bar {
+  height: 7px;
+  margin: 4px 0 2px;
+  border-width: 1px;
+}
+
+.city-folds {
+  margin: 10px -12px 0;
+}
+
+.city-fold {
+  border-top: 1px solid var(--rule);
+}
+
+.city-fold.is-open {
+  background: #fffaf0;
+}
+
+/* A row's head is the button that opens it: its name, what it says while shut,
+   and a mark that turns when it opens. */
+.city-fold-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: var(--size-ui);
+  font-weight: 600;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.city-fold-head:hover {
+  background: #fffdf4;
+}
+
+.city-fold-head:focus-visible {
+  outline: var(--border-thin) solid currentColor;
+  outline-offset: -2px;
+}
+
+.city-fold-name {
+  flex: 1 0 auto;
+}
+
+/* The one fact a shut row says: words in the copy face, figures in the mono. A
+   faith's name takes its founder's ink. */
+.city-fold-summary {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--size-label);
+  font-weight: 400;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.city-fold-summary.is-inked {
+  font-family: var(--face-display);
+  color: var(--seat-ink, var(--ink-soft));
+}
+
+.city-fold-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.city-fold-mark {
+  flex: none;
+  width: 10px;
+  color: var(--ink-faint);
+  text-align: center;
+  transition: transform 90ms ease-out;
+}
+
+.city-fold.is-open .city-fold-mark {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .city-fold-mark {
+    transition: none;
+  }
+}
+
+.city-fold-body {
+  padding: 0 12px 10px;
+}
+
+.city-fold-body[hidden] {
+  display: none;
+}
+
+/* A sentence inside a row: what an empire building is. */
+.city-fold-note {
+  margin: 4px 0 0;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+/* The work rail is one panel too: what is being built, then the list, ruled
+   apart. */
+.city-work .city-buildables {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+
+.city-work .city-buildables > h3 {
+  margin-top: 0;
+}
+
 /* --- a meter: one clock, folded ------------------------------------------
    Growth and Borders, and they are the same shape twice: a name, the rate, the
    bar, and the two small figures under it. Every breakdown they used to print
@@ -6325,26 +6506,15 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
 }
 
-/* "Citizens 11: 8 on land · 2 specialists · 1 idle" (batch UX6), a line of its
-   own under the Growth bar, in the qualifier's voice. */
+/* "Citizens 12" over the focus chips (the simpler city screen). Where they are
+   ("8 on land · 2 specialists · 1 idle", batch UX6) is the line's hover; an
+   idle citizen is also said beside the count, in the alarm ink. */
 .city-citizens {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 3px 8px;
-  margin: 3px 0 0;
-  font-family: var(--face-num);
-  font-size: var(--size-note);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-soft);
+  margin: 0;
 }
 
-/* The levy on the population line (batch UX7): it spends one of the citizens
-   the line counts, so it stands at the line's end rather than in a card of its
-   own. */
-.city-citizens .city-levy-button {
-  width: auto;
+.city-citizens-idle {
+  color: var(--vermilion);
 }
 
 /* --- the yield chips' card (batch UX6) ------------------------------------
@@ -6468,18 +6638,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-weight: 600;
 }
 
-/* --- a disclosure: a standing fact, folded ---------------------------------
-   Defence, Built, Routes and Faith. Closed by default with the fold in the
-   summary ("Built · 7"), and the section's whole contents inside — the
-   no-deletion rule's load-bearing case on this screen. The marker is the
-   house's own ▸ rather than the platform's triangle, which differs by browser
-   and is drawn in nobody's ink. */
-.city-discs {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
+/* --- a disclosure: a fact folded inside a fold row -------------------------
+   "Every faith here" in the Faith row. Closed by default with the fold in the
+   summary, and the section's whole contents inside. The marker is the house's
+   own ▸ rather than the platform's triangle, which differs by browser and is
+   drawn in nobody's ink. */
 .city-disc > summary {
   display: flex;
   align-items: baseline;
@@ -6630,49 +6793,41 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* --- the way out ----------------------------------------------------------
-   One wide button, bottom centre, and the only exit the mode has. Escape does
-   the same thing and the key rides the label, which is how every other primary
-   verb on this page says so. */
+   The × at the head's right end, and the only exit the mode has: the kit's ×
+   (`.statecraft-close`), in ink. It was a wide button at the bottom centre
+   until the simpler city screen (the user: "The bottom bar feels too busy").
+   Escape does the same thing, and the button's note says so. */
 .city-leave {
-  position: absolute;
-  left: 50%;
-  bottom: 14px;
-  transform: translateX(-50%);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 22px;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
   pointer-events: auto;
-  border: 1px solid var(--edge);
-  border-radius: 999px;
-  background: var(--parchment);
+  border: var(--border-thin) solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: var(--size-ui);
-  font-weight: 600;
+  font-size: 15px;
+  line-height: 1;
   letter-spacing: normal;
   text-transform: none;
-  box-shadow: var(--paper-shadow);
   cursor: pointer;
 }
 
 .city-leave:hover {
-  background: #fffdf4;
-}
-
-.city-leave:active {
-  transform: translateX(-50%) translateY(1px);
-  box-shadow: none;
+  border-color: var(--gilt);
+  color: var(--rubric);
 }
 
 /* The one instruction, and only while somebody is being taught or is shopping
-   for ground (`renderBoardCaption`). Above the exit rather than in the
-   bottom-left corner, which the tile readout owns. */
+   for ground (`renderBoardCaption`). At the bottom centre, which nothing else
+   of the panel holds since the way out moved to the head; the bottom-left
+   corner is the tile readout's. */
 .city-board-caption {
   position: absolute;
   left: 50%;
-  bottom: calc(14px + 46px);
+  bottom: 14px;
   transform: translateX(-50%);
   max-width: 34rem;
   margin: 0;
@@ -6861,45 +7016,21 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--y-faith);
 }
 
-/* The trades (ledger Entry XLVIII): the citizens' row's sibling, and set as one
-   so a player reads "assigned" and "in the trades" as two halves of the same
-   sentence. It wraps, because a late capital lists four families with a control
-   apiece and a row that scrolled sideways would hide the last of them. Absent
+/* The trades (ledger Entry XLVIII), in the Specialists row: one line a
+   family, what it pays on the left and its Dismiss on the right. Absent
    entirely until a town has a guild — see `renderSpecialists`. */
-.city-specialists {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 8px;
-  margin: 0 0 6px;
-  font-family: var(--face-name);
-  font-variant-numeric: lining-nums tabular-nums;
-  font-variant-caps: all-small-caps;
-  font-size: var(--size-label);
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--ink-soft);
-}
-
-.city-specialists-count {
-  font-size: var(--size-note);
-  letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-}
-
-/* One family: its name, what it pays, and the way out. `margin-right: auto` on
-   the count above would push these apart; they are meant to read as a list. */
 .city-specialist {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  text-transform: none;
-  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 3px 0;
 }
 
 .city-specialist-name {
-  font-size: var(--size-note);
+  font-family: var(--face-num);
+  font-size: var(--size-label);
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
@@ -6998,6 +7129,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-bar-fill.is-culture {
   background: var(--y-cul);
 }
+/* A kept rite's turns, in faith's ink. */
+.city-bar-fill.is-faith {
+  background: var(--y-faith);
+}
 /* Pacification (batch WC1): the bar a town in unrest fills toward settling. No
    yield fills it, so it takes no yield's ink; teal, the calm the town is
    filling toward, set against the alarm ink of the rate beside it. */
@@ -7027,11 +7162,14 @@ body:has(.city-mode:not([hidden])) #hud-context {
    the HUD's own reading of a mode toggle too — see `.hud-card
    button.lens-option`, which is sentence-case face-ui at 600 and marks "on"
    with ink rather than with capitals. */
+/* A small button at the bar's right end since the simpler city screen: the
+   control is still here, and it no longer takes a line of the panel's width. */
 .city-buy-tiles {
-  margin-top: 6px;
-  width: 100%;
-  padding: 5px 8px;
-  border: var(--border-thin) solid var(--ink);
+  display: block;
+  margin: 5px 0 0 auto;
+  width: auto;
+  padding: 2px 10px;
+  border: 1px solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--parchment);
   color: var(--ink);
@@ -7040,7 +7178,6 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
-  box-shadow: var(--paper-shadow);
   cursor: pointer;
 }
 
@@ -7072,21 +7209,26 @@ body:has(.city-mode:not([hidden])) #hud-context {
    control rather than as four buttons that happen to be adjacent. */
 .city-focus-pane {
   margin-top: 9px;
-  padding-top: 8px;
-  border-top: var(--border-thin) dotted color-mix(in srgb, var(--ink) 35%, transparent);
 }
 
+/* Four chips across the panel's width, each as wide as its word: at 230 px
+   four equal columns cut "Production". The spare room goes between them, so
+   the row still spans the panel and reads as one control. */
 .city-focus-choices {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, auto);
+  justify-content: space-between;
   gap: 3px;
   margin-top: 5px;
 }
 
+/* Chips since the simpler city screen (the frame's "Default · Food ·
+   Production · Gold"): a pill with the paper's edge, the chosen one in ink. */
 .city-focus-choice {
-  padding: 4px 2px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: var(--radius-sm);
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
@@ -7094,6 +7236,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -7102,6 +7245,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .city-focus-choice.is-active {
+  border-color: var(--ink);
   background: var(--ink);
   color: var(--parchment);
 }
@@ -7739,39 +7883,6 @@ p.city-trade-link {
   gap: 6px;
 }
 
-/* --- the Supply strip (batch UX7) ------------------------------------------
-   Every strategic resource the empire holds, spare/held, at the head of the
-   build list. One line that wraps, in the figures' face; the count with none
-   spare is vermilion (`.res-copies.is-none`). */
-.city-supply {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 10px;
-  margin: 0 0 8px;
-  padding: 0 0 6px;
-  border-bottom: 1px solid var(--rule);
-  font-family: var(--face-ui);
-  font-size: var(--size-note);
-  color: var(--ink);
-}
-
-.city-supply-label {
-  font-family: var(--face-name);
-  font-variant-caps: all-small-caps;
-  font-size: var(--size-label);
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--ink-soft);
-}
-
-.city-supply-item {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 2px;
-  white-space: nowrap;
-}
-
 /* --- "Not yet" and the folded Faith shelf (batch UX7) ----------------------
    A shelf's rows that wait on something the player can fix, folded under one
    line, each with its reason in the wanting voice. The folded Faith shelf
@@ -7968,12 +8079,41 @@ p.city-trade-link {
   color: var(--ink);
 }
 
+/* The rite the town keeps, as a small card (the fourth-pass frame's open
+   Faith row): its name, a bar of the turns gone, and the turns left. */
 .city-rite-kept {
-  margin: 4px 0;
+  margin: 6px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  background: var(--parchment);
+}
+
+.city-rite-kept-name {
+  display: block;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.city-rite-kept .city-bar {
+  height: 5px;
+  margin: 4px 0 3px;
+  border-width: 1px;
+}
+
+.city-rite-kept-left {
+  display: block;
   font-family: var(--face-num);
   font-size: var(--size-note);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
+}
+
+/* The faith the seat holds, over the Faith row's other lines. */
+.city-faith-card > .bank-line {
+  margin: 2px 0 2px;
 }
 
 .city-rites {
@@ -8014,15 +8154,12 @@ p.city-trade-link {
 }
 
 /* --- the levy (batch L) -----------------------------------------------------
-   A quiet button and the short menu it opens, set like the rites above: each
+   The short menu the "Levy a citizen" row opens, set like the rites above: each
    line is a choice on the left, its exact figure in tabular mono on the right,
    and the granting card's name under it in the copy face. The cost line closes
    the menu in the meter's small mono. */
-.city-levy-button {
-  width: 100%;
-}
 .city-levy-menu {
-  margin-top: 6px;
+  margin-top: 2px;
 }
 .city-levy-row {
   display: grid;
@@ -15436,9 +15573,9 @@ button.faith-rite-chip:hover:not(.is-on) {
   font-family: var(--face-display);
 }
 
-/* The header's belief badge (2026-08-28). It borrows `.city-size`'s whole voice
-   — a standing fact beside Size and hp — and adds only the ink on the faith's
-   own name, which is the one thing on the line that is about *whose* it is. */
+/* The faith's name in the Faith row's first line (the head's belief badge of
+   2026-08-28 until the simpler city screen): only the name takes ink, because
+   it is the one thing on the line that is about *whose* it is. */
 .city-faith-head-name {
   font-family: var(--face-display);
   color: var(--seat-ink, var(--ink));

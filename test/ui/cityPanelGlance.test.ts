@@ -30,8 +30,10 @@ import { pacificationTurnsLeft } from '../../src/sim/unrest';
 import { resetVisibility } from '../../src/sim/visibility';
 import { foldCity } from '../../src/sim/yields/town';
 import {
+  buildListModel,
   citizenLineText,
   citizenParts,
+  greyedForSupply,
   shortOfChips,
   steppedTownId,
   townsInOrder,
@@ -188,7 +190,11 @@ describe('what a town is short of', () => {
     );
   });
 
-  it('says No Iron spare when every copy is spoken for and a row here needs one', () => {
+  it('says nothing in the head when no Iron is spare: the unit’s own row is greyed instead', () => {
+    // The user, 2026-11-19: "the supply is already in the corner panel, could
+    // we gray out units we have access to, but can't because we don't have
+    // supply?" The head's "No Iron spare" chip said the same thing a second
+    // time, and the simpler head dropped it.
     const state = bench();
     const city = town(state, 0, 5, 5);
     city.queue = [{ kind: 'unit', id: 'warrior' }];
@@ -196,22 +202,26 @@ describe('what a town is short of', () => {
     const gate = gatingTech('unit', 'legionary');
     if (gate !== null) playerById(state, 0)!.techsResearched.push(gate);
     bumpRevision(state);
-    // One copy, held and spare: nothing to say.
-    expect(chips(state, city).map((chip) => chip.id)).not.toContain('resource');
-    // A legionary in the field speaks for it, and the legionary's row here wants one.
+    const legionaryRow = () =>
+      buildListModel(state, city, 0, 'unit', false)
+        .flatMap((shelf) => shelf.rows)
+        .find((row) => row.kind === 'unit' && row.id === 'legionary');
+    // One copy, held and spare: the row is not greyed for supply.
+    const spare = legionaryRow();
+    expect(spare).toBeDefined();
+    expect(greyedForSupply(spare!)).toBe(false);
+    // A legionary in the field speaks for it: no chip, and the row is greyed.
     createUnit(state, 0, 'legionary', 9, 5);
     bumpRevision(state);
-    expect(chips(state, city)).toContainEqual({
-      id: 'resource',
-      label: 'No Iron spare',
-      figure: '0/1',
-      why: 'Iron: 0 spare of 1. The Legionary needs one.',
-      // The Supply strip at the head of the build list, since batch UX7.
-      target: 'supply',
-    });
+    expect(chips(state, city).some((chip) => chip.label.includes('Iron'))).toBe(false);
+    const greyed = legionaryRow();
+    expect(greyed).toBeDefined();
+    expect(greyedForSupply(greyed!)).toBe(true);
+    // And nothing in the panel points at a Supply strip any more.
+    expect(uiSource('cityPanel.ts')).not.toContain("anchors.set('supply'");
   });
 
-  it('is drawn as links in the middle of the band, said in words for a screen reader', () => {
+  it('is drawn as links in the middle of the head, said in words for a screen reader', () => {
     const panel = uiSource('cityPanel.ts');
     expect(braceBody(panel, 'function renderBand(')).toContain('band.append(renderShortOf(city, quote));');
     const short = braceBody(panel, 'function renderShortOf(');
@@ -250,11 +260,15 @@ describe('the citizen line', () => {
     expect(parts.land + parts.specialists + parts.idle).toBe(parts.population);
   });
 
-  it('replaced "8/11 working" on the Growth row', () => {
+  it('replaced "8/11 working", and is the hover of the citizens’ head line', () => {
+    // The simpler city screen draws "Citizens 12" over the focus chips; the
+    // line saying where they are is that head's hover, and an idle citizen is
+    // said beside the count as well.
     const panel = uiSource('cityPanel.ts');
-    expect(braceBody(panel, 'function renderCitizens(')).toContain(
-      'citizenLineText(citizenParts(city))',
-    );
+    const citizens = braceBody(panel, 'function renderCitizens(');
+    expect(citizens).toContain('citizenLineText(citizenParts(city))');
+    expect(citizens).toContain("element('span', 'city-meter-name', 'Citizens')");
+    expect(citizens).toContain('if (parts.idle > 0)');
     expect(panel).not.toContain('working`');
   });
 });

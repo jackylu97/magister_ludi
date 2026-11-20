@@ -701,18 +701,21 @@ describe('the followers on a city sheet', () => {
     expect(panel).toContain('renderFollowers(city)');
     expect(panel).toContain('pressureLedgerText(row.ledger)');
     expect(panel).toContain('unconvertedCitizens(city)');
-    // Drawn in the town rail's Faith card since batch UX7, behind a disclosure
-    // whose summary is the count of claims — never dropped, and never a fact
-    // the sheet invents beside the list.
-    expect(fn('cityPanel.ts', 'renderTownRail')).toContain('renderFaithCard(city)');
+    // Drawn in the Faith row's body since the simpler city screen (the Faith
+    // card of batch UX7, folded), behind a disclosure whose summary is the
+    // count of claims — never dropped, and never a fact the sheet invents
+    // beside the list.
+    expect(fn('cityPanel.ts', 'foldBody')).toContain('return renderFaithCard(city);');
     const card = fn('cityPanel.ts', 'renderFaithCard');
     expect(card).toContain(
       "disclosure('Every faith here', figure(claims.length), renderFollowers(city))",
     );
     expect(card).toContain('cityFaithRows(state, city, localPlayerId())');
-    // And the header still carries the one-line answer the block is the
-    // argument for (the 2026-08-28 ruling), in the band now.
-    expect(fn('cityPanel.ts', 'renderBand')).toContain('renderFaithHeadline(city)');
+    // And the one-line answer the block is the argument for (the 2026-08-28
+    // ruling) is the row's first line, now that the head is simpler; the shut
+    // row names the faith most of the town follows (`cityFoldRows`).
+    expect(card).toContain("card.append(faithHeadlineNode(head, element('p', 'city-faith-headline')));");
+    expect(sourceOf('cityPanel.ts')).not.toContain('function renderFaithHeadline(');
   });
 });
 

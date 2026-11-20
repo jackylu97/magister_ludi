@@ -273,12 +273,18 @@ describe('cityFaithHeadline', () => {
     expect(cityFaithHeadline(state, state.cities[0]!, 0)).toBeNull();
   });
 
-  /** And the header actually prints it, beside the name rather than under it. */
-  it('is drawn in the city header, in the same voice as Size and hp', () => {
+  /**
+   * And the panel prints it. It stood in the city's head beside Size and hp
+   * until the simpler city screen (the user, 2026-11-19: "this is too
+   * cluttered"); it is the first line of the Faith row now, and the shut row
+   * names the faith most of the town follows.
+   */
+  it('is drawn as the Faith row’s first line, the faith’s name in its founder’s ink', () => {
     const panel = sourceOf('cityPanel.ts');
-    expect(panel).toContain('const belief = renderFaithHeadline(city);');
-    expect(panel).toContain("if (belief) title.append(belief);");
-    // And the block under the citizens keeps every word it had.
+    expect(panel).toContain("card.append(faithHeadlineNode(head, element('p', 'city-faith-headline')));");
+    expect(panel).toContain("name.style.setProperty('--seat-ink', head.founderColor);");
+    expect(panel).not.toContain('const belief = renderFaithHeadline(city);');
+    // And the block under it keeps every word it had.
     expect(panel).toContain('function renderFollowers(');
   });
 });

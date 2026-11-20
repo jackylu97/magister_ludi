@@ -262,17 +262,25 @@ describe("the panel's controls", () => {
 describe('the city mode', () => {
   const panel = (): string => source('cityPanel.ts');
 
-  it('mounts a band, two rails and one way out', () => {
+  it('mounts a head, two rails, and the way out in the head', () => {
     const text = panel();
     for (const call of [
       'container.append(renderBand(city, quote));',
       'const townRail = renderTownRail(city, locked, quote);',
       'const workRail = renderWorkRail(city, locked, puppet, quote, notice);',
       'body.append(townRail, workRail);',
-      'container.append(renderLeave());',
     ]) {
       expect(`${call}: ${text.includes(call)}`).toBe(`${call}: true`);
     }
+    // The simpler city screen (the user: "The bottom bar feels too busy"): the
+    // way out is the head's ×, its last control, and nothing of the panel but
+    // the board caption stands at the foot of the screen.
+    const head = fn('cityPanel.ts', 'renderBand');
+    expect(head).toContain('band.append(renderLeave());');
+    expect(head.indexOf('band.append(renderLeave());')).toBeGreaterThan(
+      head.indexOf('band.append(renderYieldChips(city, quote));'),
+    );
+    expect(fn('cityPanel.ts', 'render')).not.toContain('renderLeave()');
   });
 
   /**
@@ -303,18 +311,30 @@ describe('the city mode', () => {
     expect(declaration('.city-rail', 'position') ?? 'static').toBe('static');
   });
 
-  it('keeps the band one row, letting the name and the belief give', () => {
-    // A band that wrapped was a band twice as tall, which is what pushed the
-    // work rail into the chips in the first place. What gives is the name and
-    // the belief line — both ellipsise and both repeat in full on hover — and
-    // never the figures.
+  it('keeps the head one row, letting only the name give', () => {
+    // A head that wrapped was a head twice as tall, which is what pushed the
+    // work rail into the chips in the first place. What gives is a long name,
+    // which ellipsises, and never the figures. The belief line that also gave
+    // left the head with the simpler city screen: its sentence is the first
+    // line of the Faith row.
     expect(declaration('.city-band', 'flex-wrap')).toBe('nowrap');
     expect(declaration('.city-title', 'flex-wrap')).toBe('nowrap');
-    expect(declaration('.city-band h2,\n.city-band .city-faith-head', 'text-overflow')).toBe(
-      'ellipsis',
-    );
+    expect(declaration('.city-band h2', 'text-overflow')).toBe('ellipsis');
+    expect(declaration('.city-band h2', 'max-width')).toBe('11em');
+    expect(css()).not.toContain('.city-band .city-faith-head');
     expect(declaration('.city-title > .city-size', 'flex')).toBe('0 0 auto');
     expect(declaration('.city-band .city-yields', 'flex')).toBe('0 0 auto');
+  });
+
+  it('rules the head the kit’s way: ink over a gilt hairline, the name’s first letter in red', () => {
+    // The fourth-pass frame's `city_head`: the kit's sheet head (Quiet Table,
+    // build stage 1), drawn as a shadow so the head stays in flow.
+    expect(declaration('.city-band', 'border-bottom')).toBe('1px solid var(--ink)');
+    expect(declaration('.city-band', 'box-shadow')).toContain('0 3px 0 var(--gilt)');
+    expect(declaration('.city-band h2::first-letter', 'color')).toBe('var(--rubric)');
+    // A mark and a figure per voice, with no box: the short name is hidden.
+    expect(declaration('.city-band .city-yield', 'border')).toBe('0');
+    expect(declaration('.city-band .city-yield-label', 'clip-path')).toBe('inset(50%)');
   });
 
   it('stands the empire’s whole chrome down while the mode holds', () => {
@@ -366,13 +386,22 @@ describe('the city mode', () => {
   });
 
   it('has exactly one exit, and Escape is the same verb', () => {
-    // The panel's little × died with the panel — two exits in two corners is
-    // the thing one obvious exit was ruled to fix. `onClose` is the option
-    // `main.ts` wires to `controls.setOpenCity(null)`, which is precisely what
-    // Escape calls, so the button and the key cannot come apart.
+    // One exit, never two in two corners. Since the simpler city screen it is
+    // the kit's × at the head's right end rather than a wide button at the
+    // bottom centre. `onClose` is the option `main.ts` wires to
+    // `controls.setOpenCity(null)`, which is precisely what Escape calls, so
+    // the button and the key cannot come apart.
     const text = panel();
     expect(text).not.toContain("element('button', 'city-close'");
     expect(text).toContain("leave.addEventListener('click', onClose);");
+    const leave = fn('cityPanel.ts', 'renderLeave');
+    expect(leave).toContain("element('button', 'city-leave', '×')");
+    expect(leave).toContain("leave.setAttribute('aria-label', 'Leave the town');");
+    expect(leave).toContain("leave.setAttribute('aria-keyshortcuts', 'Escape');");
+    // In flow in the head, at the kit's size.
+    expect(declaration('.city-leave', 'position') ?? 'static').toBe('static');
+    expect(declaration('.city-leave', 'width')).toBe(declaration('.statecraft-close', 'width'));
+    expect(declaration('.city-leave', 'height')).toBe(declaration('.statecraft-close', 'height'));
   });
 
   it('gives each yield chip its own complete list, one hover deeper and pinned by a click', () => {
@@ -416,17 +445,30 @@ describe('the city mode', () => {
     }
   });
 
-  it('collapses the four standing facts without emptying any of them', () => {
-    // Closed by default with the fold in the summary, and the section's own
-    // contents inside. The four printers still exist and are still called.
-    // Since batch UX7 the faith's claims are one click deep in the Faith card
-    // rather than a disclosure of the rail's own (`renderFaithCard`).
+  it('folds the town’s standing facts into rows without emptying any of them', () => {
+    // The simpler city screen: one fold row each (Buildings, Empire buildings,
+    // Wonders, Specialists, Faith, Trade routes, Levy a citizen), and each
+    // row's body is the very printer that drew the section before. Defence is
+    // the head's figure, with the whole ledger as its hover card.
     const text = panel();
-    const rail = fn('cityPanel.ts', 'renderTownRail');
-    for (const call of ["disclosure('Defence'", "disclosure('Built'", "disclosure('Routes'"]) {
-      expect(`${call}: ${rail.includes(call)}`).toBe(`${call}: true`);
+    expect(fn('cityPanel.ts', 'renderTownRail')).toContain('const folds = renderFolds(city, locked);');
+    const body = fn('cityPanel.ts', 'foldBody');
+    for (const call of [
+      'return renderBuilt(city);',
+      'return renderEmpireBuildings(city);',
+      'return renderWonders(city);',
+      'return renderSpecialists(city, locked);',
+      'return renderFaithCard(city);',
+      'return renderRoutes(city);',
+      'return renderLevy(city);',
+    ]) {
+      expect(`${call}: ${body.includes(call)}`).toBe(`${call}: true`);
     }
-    expect(rail).toContain('const faith = renderFaithCard(city);');
+    const defence = fn('cityPanel.ts', 'renderDefenceFigure');
+    expect(defence).toContain('figure(defenseTotal(rows))');
+    expect(defence).toContain('info.bind(defence, () => renderDefense(city));');
+    expect(defence).toContain("anchors.set('defence', defence);");
+    expect(fn('cityPanel.ts', 'renderBand')).toContain('title.append(renderDefenceFigure(city));');
     expect(fn('cityPanel.ts', 'renderFaithCard')).toContain(
       "disclosure('Every faith here', figure(claims.length), renderFollowers(city))",
     );
@@ -510,15 +552,20 @@ describe('the city mode', () => {
     expect(built).not.toContain('[[');
   });
 
-  it('keeps the patron out of the Built figure, and the row alive without stones', () => {
-    // The fold in the summary counts buildings; a patron is not a building.
-    const rail = fn('cityPanel.ts', 'renderTownRail');
-    expect(rail).toContain("disclosure('Built', figure(city.buildings.length)");
+  it('keeps the patron out of the Buildings figure, and the row alive without stones', () => {
+    // The row's figure counts the ordinary buildings; a patron is not a
+    // building. `cityFoldRows` is pinned by behaviour in
+    // `cityPanelFolds.test.ts`; here, that the row asks both things.
+    const text = panel();
+    expect(text).toContain('if (groups.buildings.length > 0 || city.consecration !== undefined) {');
+    expect(text).toContain(
+      "summaries.set('buildings', { summary: figure(groups.buildings.length), ink: null });",
+    );
     // An empty list is no longer reason enough to print nothing: a town whose
     // stones were pulled down still kept the consecration the simulation still
     // pays for (`liveCityEffects`' consecration source).
     const built = fn('cityPanel.ts', 'renderBuilt');
-    expect(built).toContain('city.buildings.length === 0 && patron === undefined');
+    expect(built).toContain('buildings.length === 0 && patron === undefined');
   });
 
   it('addresses the patron where the book files it', () => {
@@ -804,8 +851,12 @@ describe('what the panel says at the foot of a list', () => {
     expect(list).toContain('Gold prices are the full cost, at ${RULES.production.goldPerHammer}');
     expect(list).toContain('however much has been built');
     expect(list).toContain('priceHeadElement(ordinary.map(held))');
-    expect(fn('cityPanel.ts', 'renderBand')).toContain(
-      'band.append(bankLineElement(readBanks(state, localPlayerId())));',
+    // The head's bank line went with the simpler city screen (the fourth-pass
+    // frame: "the build list says 'you have 555 gold', and the Faith row holds
+    // the faith").
+    expect(fn('cityPanel.ts', 'renderBand')).not.toContain('bankLineElement');
+    expect(fn('cityPanel.ts', 'renderFaithCard')).toContain(
+      "bankLineElement(readBanks(state, localPlayerId()).filter((bank) => bank.bank === 'faith'))",
     );
   });
 
@@ -1077,12 +1128,14 @@ describe('the citizen focus line', () => {
     const focus = text.indexOf('const focus = renderCitizenFocus(city);');
     expect(growth).toBeGreaterThanOrEqual(0);
     expect(focus).toBeGreaterThan(growth);
-    // And the count is on the Growth row itself rather than in a section — the
-    // one call, inside the one printer. Since batch UX6 it is the citizen line
-    // ("Citizens 11: 8 on land · 2 specialists · 1 idle") under the bar, and
-    // since UX7 the levy stands at its end, because a levy spends a citizen.
-    expect(fn('cityPanel.ts', 'renderGrowth')).toContain(
-      'box.append(renderCitizens(city, levy?.trigger ?? null));',
+    // And the count heads the focus pane — the one call, inside the one
+    // printer. Since the simpler city screen it is "Citizens 12" over the focus
+    // chips, with where they are ("8 on land · 2 specialists · 1 idle") on its
+    // hover; the levy is a fold row of its own.
+    expect(fn('cityPanel.ts', 'renderFocusPane')).toContain('box.append(renderCitizens(city));');
+    const rail = fn('cityPanel.ts', 'renderTownRail');
+    expect(rail.indexOf('const focus = renderCitizenFocus(city);')).toBeGreaterThan(
+      rail.indexOf('clocks.append(renderFocusPane(city, locked));'),
     );
   });
 });
@@ -1227,8 +1280,12 @@ describe('the citizen focus pane', () => {
     );
     expect(declaration('.city-focus-choice', 'letter-spacing')).toBe('normal');
     expect(declaration('.city-focus-avoid', 'letter-spacing')).toBe('normal');
-    // Four segments sharing the rail's width, so the row reads as one control.
-    expect(declaration('.city-focus-choices', 'grid-template-columns')).toBe('repeat(4, 1fr)');
+    // Four chips across the rail's width, so the row reads as one control.
+    // Each is as wide as its word since the simpler city screen: four equal
+    // columns of a 230 px panel cut "Production".
+    expect(declaration('.city-focus-choices', 'grid-template-columns')).toBe('repeat(4, auto)');
+    expect(declaration('.city-focus-choices', 'justify-content')).toBe('space-between');
+    expect(declaration('.city-focus-choice', 'white-space')).toBe('nowrap');
   });
 });
 

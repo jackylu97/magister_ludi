@@ -11,8 +11,8 @@
  * pressable row: each press is sent to the reducer and must be taken.
  *
  * The rest is the panel's wiring, read off the source because this suite has
- * no document: the Supply strip, the one yield mark, the folded Faith shelf, the
- * tab kept per seat, the work rail's card, the Faith card, Escape, the scroll,
+ * no document: no Supply strip, the one yield mark, the folded Faith shelf, the
+ * tab kept per seat, the work rail's card, the Faith row, Escape, the scroll,
  * and that no native tooltip is left.
  */
 
@@ -344,17 +344,21 @@ describe('one line a row', () => {
 
 // --- the panel's wiring ----------------------------------------------------------------
 
-describe('the Supply strip', () => {
-  it('heads the build list with the empire’s own counts, and is where “No Iron spare” points', () => {
+describe('no Supply strip (the user, 2026-11-19)', () => {
+  it('leaves supply to the corner panel, and puts the counts under the greyed row', () => {
+    // "the supply is already in the corner panel, could we gray out units we
+    // have access to, but can't because we don't have supply?" The city screen
+    // prints no Supply line of its own; a unit with no supply is greyed in the
+    // list with the requirement and the empire's counts on a line under it.
     const panel = uiSource('cityPanel.ts');
-    const supply = braceBody(panel, 'function renderSupply(');
-    expect(supply).toContain('strategicHoldings(getGame().state, localPlayerId())');
-    expect(supply).toContain('copiesFigureNode(count)');
-    expect(supply).toContain("anchors.set('supply', strip);");
+    expect(panel).not.toContain('function renderSupply(');
+    expect(panel).not.toContain('strategicHoldings');
+    expect(panel).not.toContain("anchors.set('supply'");
     const list = braceBody(panel, 'function renderBuildables(');
-    expect(list.indexOf('const supply = renderSupply();')).toBeLessThan(
-      list.indexOf("box.append(element('h3', undefined, 'Add to queue'));"),
-    );
+    expect(list.indexOf("box.append(element('h3', undefined, 'Add to queue'));")).toBeGreaterThan(-1);
+    expect(list).toContain("return reason === null ? null : reasonLine(reason, 'refusal-line is-row wanting');");
+    expect(list).toContain('line.append(requirementNodes(state, city.ownerId, reason.resources));');
+    expect(uiSource('style.css')).not.toContain('.city-supply');
     // It reads `resourceCopies.ts`, never the HUD's holdings rail.
     expect(panel).not.toContain('holdingsRail');
   });
@@ -389,13 +393,18 @@ describe('the work rail’s card and the Faith card', () => {
     );
   });
 
-  it('prices the rites on the Faith card and links to every town’s rites when it can', () => {
+  it('prices the rites in the Faith row and links to every town’s rites when it can', () => {
     const card = braceBody(uiSource('cityPanel.ts'), 'function renderFaithCard(');
     // Spoken as the act it is, with the visible price left bare (batch UX7b).
     expect(card).toContain("spokenLabel: 'Start',");
     expect(card).not.toContain("setAttribute('aria-label'");
     expect(card).toContain('const openRites = options.onOpenRites;');
-    expect(card).toContain("'Rites in every town →'");
+    // The fourth-pass frame's words for the link.
+    expect(card).toContain("'Every rite, in the Faith sheet →'");
+    // The rite the town keeps is a small card: its name, a bar of the turns
+    // gone against the rite's whole length, and the turns left.
+    expect(card).toContain('const whole = riteTurnsFor(state, city.ownerId, held) ?? left;');
+    expect(card).toContain("kept.append(bar(Math.max(0, whole - left), Math.max(whole, left), 'is-faith'));");
   });
 });
 
