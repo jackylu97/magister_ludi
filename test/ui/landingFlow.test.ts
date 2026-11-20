@@ -16,8 +16,10 @@
  * The claims, one section each:
  *
  *   · the three screens are **one `#landing`** with a `data-step`, and the
- *     masthead is the title screen's alone;
- *   · the title screen's menu, its four keys and its shelf of recent worlds;
+ *     title's painting and banner are the title screen's alone;
+ *   · the title screen's buttons, its four keys and its panel of recent worlds
+ *     (the painting, the stand-in and the fallback are
+ *     `titlePainting.test.ts`);
  *   · the world step: the switch writes the hot-seat checkbox, the summary strip
  *     reads the controls, Back keeps the seed by never touching it;
  *   · the civ step: Random deals by the seed, Begin's label follows the pick,
@@ -45,6 +47,7 @@ import { uiSource } from './sourceHelpers';
 const INDEX = uiSource('index.html');
 const MAIN = uiSource('main.ts');
 const CSS = uiSource('style.css');
+const TITLE_CSS = uiSource('titleScreen.css');
 const FLOW = uiSource('landingFlow.ts');
 
 describe('the three screens are one screen', () => {
@@ -60,7 +63,7 @@ describe('the three screens are one screen', () => {
     // One element, one attribute. Nothing routes, and — the whole reason — no
     // form field is rebuilt between steps, so `currentConfig` reads the same
     // controls it has always read.
-    expect(INDEX).toContain('<div id="landing" data-step="title">');
+    expect(INDEX).toContain('<div id="landing" data-step="title" data-title-art="painting">');
     expect(INDEX.match(/id="landing"/g)).toHaveLength(1);
     for (const step of LANDING_STEPS) {
       expect(INDEX, step).toContain(`data-step-for="${step}"`);
@@ -81,20 +84,32 @@ describe('the three screens are one screen', () => {
     // `.hud-card .row`'s flex over the UA's `[hidden]`, `.double-rule`'s 58%
     // measure, `.btn`'s `flex: 1`. Each fix is a selector that names enough, and
     // each is pinned here because no other test in the tree can see a cascade.
-    expect(CSS).toContain('> .landing-step.landing-title-grid {');
     expect(CSS).toContain('.landing-card .row.field[hidden],');
     expect(CSS).toContain('.landing-card .row.check[hidden]');
-    expect(CSS).toContain('.hud-card.landing-menu {');
-    expect(CSS).toContain('.landing-menu > .landing-menu-rule {');
     expect(CSS).toContain('.landing-foot > .btn,');
     expect(CSS).toContain('.btn.landing-next {');
+    // The title's buttons: two classes beat `.btn`'s `flex: 1`, and a third
+    // keeps Continue hidden over their own `display`.
+    expect(TITLE_CSS).toContain('.btn.title-button {');
+    expect(TITLE_CSS).toContain('.btn.title-button[hidden] {');
+    // The old menu card and its grid are gone with their rules.
+    for (const gone of ['.landing-title-grid', '.landing-menu', '.landing-key']) {
+      expect(CSS, gone).not.toContain(gone);
+      expect(INDEX, gone).not.toContain(gone.slice(1));
+    }
   });
 
-  it('shows the poster once, on the title step, and a breadcrumb after it', () => {
+  it('shows the title once, on the title step, and a breadcrumb after it', () => {
     // The ruling's own words: the poster lives on the title screen alone and
-    // never again on the way into a game.
-    const poster = INDEX.slice(INDEX.indexOf('<header class="marquee'));
-    expect(poster.slice(0, poster.indexOf('>'))).toContain('data-step-for="title"');
+    // never again on the way into a game. The painting, the banner it falls
+    // back to and the paper are one block of the title step.
+    const title = INDEX.slice(INDEX.indexOf('<div class="title-screen'));
+    expect(title.slice(0, title.indexOf('>'))).toContain('data-step-for="title"');
+    const block = title.slice(0, title.indexOf('data-step-for="world"'));
+    expect(block).toContain('class="title-head"');
+    expect(block).toContain('class="marquee marquee-poster title-banner"');
+    expect(block).toContain('class="title-paper"');
+    expect(INDEX.match(/class="title-screen/g)).toHaveLength(1);
     expect(STEP_CRUMB.title).toBe('');
     expect(STEP_CRUMB.world).toBe('new game · step one of two');
     expect(STEP_CRUMB.civ).toBe('new game · step two of two');
@@ -113,22 +128,15 @@ describe('the three screens are one screen', () => {
 });
 
 describe('the title screen', () => {
-  it('carries the menu the ruling lists, with the two unbuilt rows dark', () => {
-    for (const id of [
-      'continue-game',
-      'landing-new',
-      'landing-load',
-      'landing-multiplayer',
-      'landing-compendium',
-      'landing-settings',
-    ]) {
+  it('carries the four buttons of the frame, and says what comes later', () => {
+    for (const id of ['continue-game', 'landing-new', 'landing-load', 'landing-compendium']) {
       expect(INDEX, id).toContain(`id="${id}"`);
     }
-    // Multiplayer comes after the playable core; there is no settings screen
-    // yet. Both say so rather than being missing, and neither is pressable.
-    expect(INDEX).toMatch(/id="landing-multiplayer"[^>]*disabled/);
-    expect(INDEX).toMatch(/id="landing-settings"[^>]*disabled/);
-    expect(INDEX).toContain('coming after the playable core');
+    // Multiplayer comes after the playable core, and there is no settings
+    // screen yet. Frame a8 says so in one line in place of two dark buttons.
+    expect(INDEX).toContain('<p class="title-later">Multiplayer and settings come later.</p>');
+    expect(INDEX).not.toContain('id="landing-multiplayer"');
+    expect(INDEX).not.toContain('id="landing-settings"');
   });
 
   it('answers four keys, and only on the title step', () => {
@@ -139,10 +147,18 @@ describe('the title screen', () => {
     expect(landingKeyAction('?')).toBe('book');
     expect(landingKeyAction('x')).toBeNull();
     expect(landingKeyAction('Escape')).toBeNull();
-    // The keys printed on the menu are the keys the mapping answers.
-    for (const key of ['Enter', 'N', 'L', '?']) {
-      expect(INDEX, key).toContain(`<span class="landing-key">${key}</span>`);
-    }
+    // The keys printed on the buttons are keys the mapping answers. The frame
+    // prints N, L and ?; Enter is not printed, and the button names it to
+    // assistive technology instead.
+    const printed = [...INDEX.matchAll(/<kbd class="title-key" aria-hidden="true">([^<]+)<\/kbd>/g)].map(
+      (match) => match[1]!,
+    );
+    expect(printed).toEqual(['N', 'L', '?']);
+    for (const key of printed) expect(landingKeyAction(key), key).not.toBeNull();
+    expect(INDEX).toMatch(/id="landing-new"[^>]*aria-keyshortcuts="N"/);
+    expect(INDEX).toMatch(/id="continue-game"[^>]*aria-keyshortcuts="Enter"/);
+    expect(INDEX).toMatch(/id="landing-load"[^>]*aria-keyshortcuts="L"/);
+    expect(INDEX).toMatch(/id="landing-compendium"[^>]*aria-keyshortcuts="\?"/);
     // One guarded document listener, refused on the other two steps and while a
     // surface is standing over the landing.
     expect(FLOW).toContain("document.addEventListener('keydown', onKeyDown)");
@@ -180,7 +196,10 @@ describe('the title screen', () => {
     expect(MAIN).toContain('const worlds = recentWorlds(saveStorage)');
     expect(MAIN).toContain('const newest = worlds[0]');
     expect(MAIN).toContain('continueButton.hidden = newest === undefined');
-    expect(MAIN).toContain('`${newest.figure} · seed ${newest.slot.seed} · turn ${newest.slot.turn}`');
+    // Frame a8: the leader and the turn, with the turn in the counted face.
+    expect(MAIN).toContain('continueLabelEl.append(`${newest.figure} · turn `, turn);');
+    expect(MAIN).toContain("turn.className = 'title-figure';");
+    expect(MAIN).toContain('`${newest.figure} · would not open`');
     // A row is a button and it loads that world, through the same funnel
     // Continue uses.
     expect(MAIN).toContain("row.className = 'landing-shelf-row'");

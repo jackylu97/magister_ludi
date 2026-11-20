@@ -150,6 +150,7 @@ import {
 import { type DamageNumbers, createDamageNumbers } from './ui/damageNumbers';
 import { installFlourishMarks } from './ui/deviceMarks';
 import { dressFrontispiece } from './ui/frontispiece';
+import { dressTitlePainting } from './ui/titlePainting';
 import {
   type NotificationAction,
   type NotificationLog,
@@ -318,6 +319,13 @@ const frontispieceEls = {
   device: document.getElementById('landing-device'),
   epigraph: document.getElementById('landing-epigraph'),
 };
+/* The title screen's painting and its seam (frame a8 of the Quiet Table
+   boards). Once, at boot: the picture does not change between showings. */
+dressTitlePainting({
+  root: landingEl,
+  head: requireElement('title-head'),
+  seam: requireElement('title-seam'),
+});
 
 /**
  * The corner star, handed to the stylesheet.
@@ -547,7 +555,7 @@ const continueLabelEl = requireElement<HTMLElement>('continue-label');
 const landingLoadButton = requireElement<HTMLButtonElement>('landing-load');
 const shelfEl = requireElement<HTMLElement>('landing-shelf');
 const shelfEmptyEl = requireElement<HTMLElement>('landing-shelf-empty');
-/* The landing's three steps (batch L7): the title screen's two remaining rows,
+/* The landing's three steps (batch L7): two of the title screen's buttons,
    the world step's switch, its summary and the four ways between steps. */
 const newGameButton = requireElement<HTMLButtonElement>('landing-new');
 const compendiumMenuButton = requireElement<HTMLButtonElement>('landing-compendium');
@@ -1440,13 +1448,16 @@ let suspendGame: (() => void) | null = null;
  *
  * Continue is the newest save of any kind — the rolling autosave and a named
  * slot compete on one clock, because "where I was" is a question about time and
- * not about which button wrote it — and it names that world by its figure, its
- * seed and its turn. Nothing to resume hides the button rather than disabling
- * it: a first visit should see a menu with nothing dead on it.
+ * not about which button wrote it — and it names that world by its leader and
+ * its turn, as frame a8 of the Quiet Table boards does. Nothing to resume hides
+ * the button rather than disabling it: a first visit should see a menu with
+ * nothing dead on it.
  *
- * The shelf under it is the same list, a row a world, newest first, and a row
- * loads. Both come out of `recentWorlds` (`savesPanel.ts`), which is the one
- * reading of the shelf either surface makes.
+ * The panel of recent worlds beside it is the same list, a row a world, newest
+ * first, and a row loads. Each row is the leader and the turn; the save's name
+ * and how long ago it was saved are on the row's tooltip. Both come out of
+ * `recentWorlds` (`savesPanel.ts`), which is the one reading of the shelf
+ * either surface makes.
  *
  * A row that has already refused says so (`docs/flags.md` (yyyyy)): the load
  * list marks a broken file by leaving the row standing with the refusal printed
@@ -1463,12 +1474,16 @@ function refreshResumeRow(): void {
   // same thing about a save that has already refused: a player who presses it
   // twice should be told the second time before the press, not after it.
   const newestRefused = newest !== undefined && refusedSlots.has(newest.slot.id);
-  continueLabelEl.textContent =
-    newest === undefined
-      ? ''
-      : newestRefused
-        ? `${newest.figure} · seed ${newest.slot.seed} · would not open`
-        : `${newest.figure} · seed ${newest.slot.seed} · turn ${newest.slot.turn}`;
+  continueLabelEl.replaceChildren();
+  if (newest !== undefined && newestRefused) {
+    continueLabelEl.textContent = `${newest.figure} · would not open`;
+  } else if (newest !== undefined) {
+    // The turn is a number, so it is set in the counted face.
+    const turn = document.createElement('span');
+    turn.className = 'title-figure';
+    turn.textContent = String(newest.slot.turn);
+    continueLabelEl.append(`${newest.figure} · turn `, turn);
+  }
   continueButton.classList.toggle('is-refused', newestRefused);
   continueButton.title = newest === undefined ? '' : `Resume “${newest.slot.name}”`;
 
@@ -1479,13 +1494,13 @@ function refreshResumeRow(): void {
     row.className = 'landing-shelf-row';
     const who = document.createElement('span');
     who.className = 'landing-shelf-who';
-    who.textContent = `${world.figure} · seed ${world.slot.seed}`;
+    who.textContent = world.figure;
     const when = document.createElement('span');
     when.className = 'landing-shelf-when';
     const refusal = refusedSlots.get(world.slot.id);
     if (refusal === undefined) {
-      when.textContent = `turn ${world.slot.turn} · ${relativeWhen(world.slot.savedAt)}`;
-      row.title = `Load “${world.slot.name}”`;
+      when.textContent = `turn ${world.slot.turn}`;
+      row.title = `Load “${world.slot.name}” · ${relativeWhen(world.slot.savedAt)}`;
     } else {
       // The turn and the hour are what tells two good saves apart, and they are
       // beside the point on a row that will not open: the row says the one thing

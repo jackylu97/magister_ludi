@@ -216,6 +216,32 @@
   }
 }
 
+/* --- the seam: the ribbon's thin form ---
+   The title screen (`titlePainting.ts`, frame a8 of the Quiet Table boards)
+   uses the ribbon as the seam between its painting and the paper below. It is
+   the same ribbon with one line of marks, in the flow of the page rather than
+   across the middle of the window, and with no shadow, since nothing stands
+   behind it. `plateRibbonNode('seam')` builds it with the top edge only.
+
+   It is not inside an age plate's overlay, so it names the plate's three
+   values itself. */
+.plate-ribbon.is-seam {
+  --plate-gilt: var(--gilt);
+  --plate-gilt-lit: var(--y-gold-lit);
+  --plate-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  top: auto;
+  height: 27px;
+  border-top-width: 1px;
+  border-bottom-width: 1px;
+  transform: none;
+  box-shadow: none;
+}
+
+.plate-ribbon.is-seam .plate-ribbon-edge.is-top {
+  top: 4px;
+}
+
 /* A narrow window has no room beside the painting for the sun and the moon. */
 @media (max-width: 760px) {
   .plate-ribbon-mark {
