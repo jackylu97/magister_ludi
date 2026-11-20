@@ -5725,7 +5725,9 @@ body.has-diplomatic-offers .end-turn-list {
   flex-wrap: nowrap;
   align-items: center;
   gap: 14px;
-  padding: 8px 14px 8px;
+  /* 13 px above and below, from 8 (the user, 2026-11-20: "it feels a bit
+     narrow"): the head is a title bar, and it had no air. */
+  padding: 13px 14px;
   pointer-events: auto;
   border-bottom: 1px solid var(--ink);
   background: var(--parchment);
@@ -6104,12 +6106,13 @@ body:has(.city-mode:not([hidden])) .city-mode {
 
 .city-rail.is-right {
   flex: 0 0 auto;
-  /* 400 from 300 (the user, 2026-11-20: "we can make this panel slightly
-     wider if needed"; the frame's width): room for a name and two price
-     columns of one-size chips. The yield chips' card (`.city-chip-card`) and
-     the rows' card (`.city-row-card`) are written off this number; they move
-     together. */
-  width: 400px;
+  /* 360, from 400 (the user, 2026-11-20: "narrow the right panel a tad, so
+     that the city doesn't need to be so zoomed out"; it was 300 before the
+     frame's 400). It still holds a name and two price columns of one-size
+     chips. The yield chips' card (`.city-chip-card`) and the rows' card
+     (`.city-row-card`) are written off this number, and so are the camera's
+     two numbers in `data/view3d.json`; they move together. */
+  width: 360px;
 }
 
 /* The tile readout under the mode (batch UX6; the user, 2026-10-12: "The terrain
@@ -6177,6 +6180,17 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .city-folds {
   margin: 10px -12px 0;
+}
+
+/* The town card ends in air (the user, 2026-11-20: "the left panel needs a bit
+   of padding on the bottom"). When fold rows follow, they run to the card's
+   foot, so the air goes under the last thing above them instead. */
+.city-rail.is-left .city-town {
+  padding-bottom: 14px;
+}
+
+.city-rail.is-left .city-town:has(.city-folds) {
+  padding-bottom: 0;
 }
 
 .city-fold {
@@ -6686,7 +6700,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   top: 12px;
   right: 14px;
   z-index: 2;
-  width: 400px;
+  width: 360px;
   max-height: calc(100% - 12px - max(calc(14px + 46px), var(--end-turn-clearance)));
   overflow-y: auto;
   padding: 8px 10px 9px;
@@ -8098,7 +8112,7 @@ p.city-trade-link {
   top: 12px;
   right: 14px;
   z-index: 3;
-  width: 400px;
+  width: 360px;
   /* The rail's whole height at most: a long wonder may reach past the half it
      starts in rather than lose its buy line at the foot. */
   max-height: calc(100% - 12px - max(calc(14px + 46px), var(--end-turn-clearance)));
@@ -8129,7 +8143,7 @@ p.city-trade-link {
    put it over the board. */
 .city-row-card.is-note {
   width: auto;
-  max-width: 400px;
+  max-width: 360px;
   padding: 5px 8px;
   box-shadow: var(--paper-shadow);
 }

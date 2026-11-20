@@ -59,7 +59,8 @@
   align-items: center;
   flex: none;
   gap: 16px;
-  height: 46px;
+  /* 60 px, from 46 (the user, 2026-11-20: a bit more room above and below). */
+  height: 60px;
   padding: 0;
   border-bottom: 1px solid rgba(200, 144, 31, 0.45);
 }
