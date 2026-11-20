@@ -3110,3 +3110,30 @@ them".
   - Scientific + Magisterial: Sejong the Great (today Hypatia)
 - A design pass writes each candidate's abilities and pieces for the user to
   mark up. Nothing is built until the user picks.
+
+## A purchased unit appears beside a full city (ruled 2026-11-20, not built)
+
+The user, on the city screen's red line "A Horse Archer already stands in
+Aldermarch — move it first": "this red text is unclear. lets change the
+behavior - purchased units appear beside the city, but units cannot be
+purchased when a city is under siege if a unit is on the city. this should
+read 'city cannot purchase without free tiles'".
+
+- Today a city cannot buy a unit while a unit of the same stacking class
+  stands on its hex.
+- **New rule:** if the city's hex is free for the unit, the unit appears
+  there, as today. If it is not, the unit appears on a free hex beside the
+  city. The reading for "free" is the rule `canStopOn` already gives, and the
+  hex is chosen by a fixed order, never by chance (determinism).
+- **Refused only when there is no free hex:** the city's hex is taken and no
+  hex beside it is free. A city under siege with a unit on it is the usual
+  case. My reading of "under siege": a hex beside the city that an enemy
+  holds, or that an enemy's zone covers while the city is besieged
+  (`siegeField`), is not free. The builder confirms this reading against the
+  code and says so.
+- **The sentence:** "This city cannot purchase without free tiles."
+- It goes through `purchaseError` and `realiseItem` (`purchase.ts`), so the
+  list, the forecast and the reducer agree. The unit arrives through
+  `arriveOnTile`. Whether a produced unit (not bought) follows the same rule
+  is not ruled; it stays as it is.
+- Owner: Astra (a rule in `src/sim`).

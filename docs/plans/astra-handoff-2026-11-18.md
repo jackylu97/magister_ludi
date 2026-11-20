@@ -327,6 +327,14 @@ reasoning; they are not the spec.
   read cards that those passes change.
 - **Schema:** the roster changes saved games. Raise the schema.
 
+### 3.11 A purchased unit appears beside a full city (ready, small)
+
+The ruling is in `docs/flags.md`, "A purchased unit appears beside a full
+city (ruled 2026-11-20, not built)". It changes `purchaseError` and the
+purchase path in `src/sim/purchase.ts`, and the sentence the city screen
+prints. The city screen (`src/ui/cityPanel.ts`) prints whatever
+`purchaseError` returns, so it needs no change.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open
