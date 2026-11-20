@@ -206,3 +206,15 @@ A friendly unit swap checks the walk in both directions. Selecting the Swordsman
 On the M4, the median time spent calculating the Swordsman's range fell from 15.4 to 5.5 ms and from 21.0 to 6.3 ms in two Chrome comparisons. The time from clicking it to the next board draw fell from 91 to 61 ms and from 116 to 68 ms. The Warrior's click to draw fell from 49 to 28 ms and from 55 to 39 ms. Both units' highlights matched across all four runs. Timings include instrumentation.
 
 First-move timing varied. The two pairs went from 127 to 87 ms and from 113 to 154 ms. In the 154 ms case the browser spent 11 and 10 ms waiting for WebGL program queries during that first draw. Its move handler had already returned. The 113 ms baseline move had a 24 ms garbage collection pause. At the default 1.5× resolution the updated build presented 24–25 FPS while panning and 26–28 FPS while zooming, below the 60 FPS target. The movement change addresses the click handler. A full board draw, especially terrain and trees, remains a separate cost. [Fixture, CPU results and browser measurements](benchmarks/playtest-fps-2026-11-19/movement-range.json)
+
+### WebGL calls during a first move
+
+Two more runs traced the program, material, and rendering pass for each existing WebGL program query. Both moved the same Pikeman on turn 120 at the default 1.5× resolution. The M4 took 35.3 and 36.2 ms from the right-click to the end of the first board draw. Both runs linked two selection overlay programs before the right-click. The first walk linked zero new programs.
+
+In the first run, two checks on the walking unit's outline each took 1.1 ms. One ran in the water reflection and one in the main view. Both programs already existed when the player selected the unit. In the second run, every program check during that first draw took less than 1 ms. These runs did not reproduce the earlier 154 ms frame. The two long waits in that frame remain unattributed. [Settings, program counts and timings](benchmarks/playtest-fps-2026-11-19/first-move-passes.json)
+
+### Clipping fully hidden trees in the vertex shader
+
+On the earlier turn-120 panning fixture, 349 of 714 tree instances in visible batches were fully hidden at normal zoom. At wide zoom, 773 of 1,455 were hidden. Building footprints accounted for the largest share at both zooms. A shader experiment moved those instances outside the viewport before rasterization. The production shader discards their fragments.
+
+Six fixed camera views at 2205 × 1189 matched byte for byte, including the repeated controls. The test took 36 timing samples per shader at each zoom. At normal zoom the pooled median frame took 21.4 ms with the production shader and 21.2 ms with the experimental shader. At wide zoom the medians were 32.45 and 35.90 ms. The paired results varied, so the game keeps its production shader. [Counts, pixel checks and frame timings](benchmarks/playtest-fps-2026-11-19/tree-vertex-clipping.json)

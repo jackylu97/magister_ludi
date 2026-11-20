@@ -1,0 +1,95 @@
+{
+  "commit": "0a8e2e8e",
+  "fixture": {
+    "seed": 999,
+    "turn": 120,
+    "cities": 74,
+    "units": 489,
+    "boardPixels": [
+      2205,
+      1189
+    ],
+    "pixelRatio": 1.5,
+    "gpu": "Apple M4 using Chrome and Metal"
+  },
+  "measurement": "A real selection and right-click move. Timed WebGL calls already made by the renderer. First draw ends when the full board draw returns.",
+  "runs": [
+    {
+      "inputHandlerMs": 12.2,
+      "firstDrawMs": 35.3,
+      "cpuLoadBeforeRun": [
+        4.9814453125,
+        10.15673828125,
+        14.84326171875
+      ],
+      "target": [
+        54,
+        26
+      ],
+      "unitId": 1293,
+      "programsBeforeSelection": 72,
+      "programsAfterMove": 74,
+      "newPrograms": [
+        {
+          "pass": "painted/0-RenderPass",
+          "object": "overlays",
+          "startMsRelativeToRightClick": -799.5
+        },
+        {
+          "pass": "painted/0-RenderPass",
+          "object": "overlays",
+          "startMsRelativeToRightClick": -5.1
+        }
+      ],
+      "programQueriesAtLeastOneMsDuringFirstDraw": [
+        {
+          "pass": "reflection",
+          "method": "getProgramInfoLog",
+          "ms": 1.1,
+          "programWasAlreadyPresent": true,
+          "part": [
+            "unitShell"
+          ]
+        },
+        {
+          "pass": "painted/0-RenderPass",
+          "method": "getProgramInfoLog",
+          "ms": 1.1,
+          "programWasAlreadyPresent": true,
+          "part": [
+            "unitShell"
+          ]
+        }
+      ]
+    },
+    {
+      "inputHandlerMs": 10,
+      "firstDrawMs": 36.2,
+      "cpuLoadBeforeRun": [
+        5.59375,
+        9.8857421875,
+        14.60888671875
+      ],
+      "target": [
+        54,
+        26
+      ],
+      "unitId": 1293,
+      "programsBeforeSelection": 72,
+      "programsAfterMove": 74,
+      "newPrograms": [
+        {
+          "pass": "painted/0-RenderPass",
+          "object": "overlays",
+          "startMsRelativeToRightClick": -752.3
+        },
+        {
+          "pass": "painted/0-RenderPass",
+          "object": "overlays",
+          "startMsRelativeToRightClick": -11.6
+        }
+      ],
+      "programQueriesAtLeastOneMsDuringFirstDraw": []
+    }
+  ]
+}
