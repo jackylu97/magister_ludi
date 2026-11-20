@@ -80,8 +80,8 @@ type Recipe = {
   site?: string; step: number;
   props: Prop[]; patches: Patch[]; placements: PaintedWorksPlacement[];
 };
-type PropBatch = { geometry: BufferGeometry; material: MeshStandardMaterial; props: Prop[]; cells: number[] };
-type PatchBatch = { material: MeshStandardMaterial; geometries: BufferGeometry[]; cells: number[] };
+type PropBatch = { region: number; geometry: BufferGeometry; material: MeshStandardMaterial; props: Prop[]; cells: number[] };
+type PatchBatch = { region: number; material: MeshStandardMaterial; geometries: BufferGeometry[]; cells: number[] };
 const up = new Vector3(0, 1, 0);
 const core = new Set<string>(DRAWN_WORK_IMPROVEMENTS);
 /** Visual variants are independent of the simulation's counts-as rules. */
@@ -185,10 +185,12 @@ export class PaintedWorksLayer {
   private readonly art: ReturnType<typeof createSettlementArt>;
   private readonly recipes = new Map<number, Recipe>();
   private readonly merged = new Set<BufferGeometry>();
-  private readonly batches = new Map<string, { inputs: readonly unknown[]; meshes: Mesh[]; geometry?: BufferGeometry }>();
+  private drawn = new Map<number, { recipe: Recipe; level: number }>();
+  private readonly batches = new Map<string, { region: number; inputs: readonly unknown[]; meshes: Mesh[]; geometry?: BufferGeometry }>();
   private readonly explored = new Map<MeshStandardMaterial, MeshStandardMaterial>();
   private preparedMap: GameMap | undefined;
   private disposed = false;
+  private shadowsEnabled: boolean | undefined;
 
   private readonly terrace = terraceFarmGeometry();
   private readonly terraceMaterial = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: .95, flatShading: true });
@@ -215,6 +217,10 @@ export class PaintedWorksLayer {
     const props = new Map<string, PropBatch>(), patches = new Map<string, PatchBatch>();
     const sites = this.source?.entries(state, seat);
     const stepAt = workAgeSteps(state);
+    const regionsAcross = Math.ceil(preparedMap.width / 12);
+    const regionAt = (tile: Tile): number => Math.floor(tile.row / 12) * regionsAcross + Math.floor(tile.col / 12);
+    const dirty = new Set<number>();
+    const drawn = new Map<number, { recipe: Recipe; level: number }>();
     for (const original of state.map.tiles) {
       const cell = tileIndex(state.map, original.col, original.row);
       const level = levelAt(levels, state.map, original.col, original.row);
@@ -231,19 +237,37 @@ export class PaintedWorksLayer {
         this.deleteRecipe(cell); recipe = this.createRecipe(original, tile, entry); this.recipes.set(cell, recipe);
       }
       this.placements.push(...recipe.placements);
-      // Regions provide useful culling while all identical animals/rocks in a
-      // region share one draw. Visibility changes reuse the costly farm cuts.
-      const region = `${Math.floor(tile.col / 12)},${Math.floor(tile.row / 12)}`;
+      const previous = this.drawn.get(cell);
+      if (previous?.recipe === recipe && previous.level === level) {
+        drawn.set(cell, previous);
+      } else {
+        dirty.add(regionAt(tile));
+        drawn.set(cell, { recipe, level });
+      }
+    }
+    for (const [cell, previous] of this.drawn) {
+      if (!drawn.has(cell)) dirty.add(regionAt(previous.recipe.tile));
+    }
+    this.drawn = drawn;
+    if (dirty.size === 0) {
+      this.setShadows(shadows);
+      return;
+    }
+    // A fog change can move a few props between the visible and remembered
+    // materials. Only the affected regions need new batch inputs.
+    for (const [cell, { recipe, level }] of drawn) {
+      const region = regionAt(recipe.tile);
+      if (!dirty.has(region)) continue;
       for (const prop of recipe.props) {
         const material = this.materialAt(prop.material, level), key = `${region}:${prop.geometry.id}:${material.uuid}`;
         let batch = props.get(key);
-        if (!batch) { batch = { geometry: prop.geometry, material, props: [], cells: [] }; props.set(key, batch); }
+        if (!batch) { batch = { region, geometry: prop.geometry, material, props: [], cells: [] }; props.set(key, batch); }
         batch.props.push(prop); batch.cells.push(cell);
       }
       for (const patch of recipe.patches) {
         const material = this.materialAt(patch.material, level), key = `${region}:${material.uuid}`;
         let batch = patches.get(key);
-        if (!batch) { batch = { material, geometries: [], cells: [] }; patches.set(key, batch); }
+        if (!batch) { batch = { region, material, geometries: [], cells: [] }; patches.set(key, batch); }
         batch.geometries.push(patch.geometry); batch.cells.push(cell);
       }
     }
@@ -286,7 +310,7 @@ export class PaintedWorksLayer {
         this.addWrapCopy(mesh, offset, batch.cells, shadows);
         meshes.push(mesh);
       }
-      this.batches.set(key, {inputs: [...batch.props], meshes});
+      this.batches.set(key, { region: batch.region, inputs: batch.props, meshes });
     }
     // A patch is flat pigment on the hex top, and it is **not** the last thing
     // painted there: the ground layer's borders and roads cross it and stand
@@ -305,9 +329,11 @@ export class PaintedWorksLayer {
         this.addWrapCopy(mesh, offset, cells, shadows);
         meshes.push(mesh);
       }
-      this.batches.set(key, {inputs: [...batch.geometries], meshes, geometry});
+      this.batches.set(key, { region: batch.region, inputs: batch.geometries, meshes, geometry });
     }
-    for (const key of this.batches.keys()) if (!retained.has(key)) this.deleteBatch(key);
+    for (const [key, batch] of this.batches) {
+      if (dirty.has(batch.region) && !retained.has(key)) this.deleteBatch(key);
+    }
     // Over the reused batches too — they kept their buffers and so kept the flag
     // they were built with. See `setShadows`.
     this.setShadows(shadows);
@@ -375,6 +401,8 @@ export class PaintedWorksLayer {
    * (`paintedSites.ts`), and it was the half nothing rebuilt on a toggle at all.
    */
   setShadows(enabled: boolean): void {
+    if (this.shadowsEnabled === enabled) return;
+    this.shadowsEnabled = enabled;
     for (const batch of this.batches.values()) for (const mesh of batch.meshes) {
       mesh.receiveShadow = enabled;
       if (mesh instanceof InstancedMesh) mesh.castShadow = enabled;
@@ -445,7 +473,10 @@ export class PaintedWorksLayer {
     if (batch.geometry) { batch.geometry.dispose(); this.merged.delete(batch.geometry); }
     this.batches.delete(key);
   }
-  private clearMeshes(): void { for (const key of this.batches.keys()) this.deleteBatch(key); }
+  private clearMeshes(): void {
+    for (const key of this.batches.keys()) this.deleteBatch(key);
+    this.drawn.clear();
+  }
   private deleteRecipe(cell: number): void {
     const recipe = this.recipes.get(cell); if (!recipe) return;
     for (const patch of recipe.patches) patch.geometry.dispose(); this.recipes.delete(cell);

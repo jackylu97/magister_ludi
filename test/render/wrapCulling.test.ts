@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BoxGeometry, Frustum, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, OrthographicCamera, Vector3 } from 'three';
 
 import { createMap, type GameMap } from '../../src/sim/map';
-import { HIDDEN, VISIBLE } from '../../src/sim/visibility';
+import { EXPLORED, HIDDEN, VISIBLE } from '../../src/sim/visibility';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { PaintedBirdsLayer } from '../../src/render3d/paintedBirds';
 import { PaintedFlowLayer } from '../../src/render3d/paintedFlow';
@@ -113,6 +113,13 @@ describe('the river glints', () => {
     flow.build(prepared, null, map, true);
     const all = count();
     expect(all).toBeGreaterThan(0);
+    const mesh = flow.group.children[1];
+    flow.build(prepared, new Array(map.tiles.length).fill(EXPLORED), map, true);
+    expect(flow.group.children[1]).toBe(mesh);
+    flow.build(prepared, new Array(map.tiles.length).fill(VISIBLE), map, true);
+    expect(flow.group.children[1]).toBe(mesh);
+    flow.build(prepared, null, map, false);
+    expect(count()).toBe(0);
     flow.build(prepared, new Array(map.tiles.length).fill(HIDDEN), map, true);
     expect(count()).toBe(0);
     flow.build(prepared, new Array(map.tiles.length).fill(VISIBLE), map, true);
