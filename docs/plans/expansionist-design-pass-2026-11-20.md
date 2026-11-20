@@ -1326,3 +1326,25 @@ A builder follows this list once the fifth review is done. Each number is an ent
 
 - Round four proposed 14 changes (45 to 58): the cut of the wild cards, three charters (The Desert and the Snow, The Hammer Ponds, The Barays), three pay-offs, and seven cards for the core and the auxiliary themes.
 - Rows of change 45 with no comment are approved by your standing rule.
+
+## The user's rulings on round five (2026-11-20, comments on the page)
+
+The user: "ok commented on the expansionist pool, it looks good". In their
+words:
+
+| Thing | The user's words | Result |
+|---|---|---|
+| The baray's reading (r5-1), on the row "2 food, 8 production (10)" | "this one" | The baray gives +2 food, and +2 production for each farm beside it. |
+| The vineyard (60; the row "+1 gold for each hill beside it", and the heading of r5-4) | "cut, doesn't seem that useful tbh" and "cut" | The vineyard is cut. |
+| The hillfort (the third candidate of r5-4) | "i like this one the best" and "this can be a shared card with dominion" | **The hillfort takes the hammer pond's place, as a card shared with Dominion.** |
+| The stepwell (61) | "Cool, could we add +1 renown towards engineers?" | Approved, and a stepwell also gives +1 renown a turn toward great engineers. |
+| The inuksuk (59) | "i like this" | Approved. |
+| Pachacuti's terrace farm (in the table of unique improvements) | "let's update the terrace farm: can only be built adjacent to a mountain." | **A change to a leader's improvement:** a terrace farm may be built only beside a mountain. |
+| 62 The Totem Poles | "great" | Approved. |
+| 63 The keyword, unique improvement | "Great" | Approved. |
+| 64 The Timber Yards | "great" | Approved. |
+| 65 The base rule: a lumber mill gives +2 production | "great" | **Approved. A base rule for every deck.** |
+| 66 Bound to the Soil | "line 1" then "actually thats too strong. Lets do: workers gain +1 charge, farms gain +1 food and +1 prod" | Workers gain +1 charge. Farms gain +1 food and +1 production. |
+| 67 The Mansiones | "great" | Approved at +2 culture for each public work. |
+| 68 The Marching Roads | "cut" | Cut. |
+| 69 The Fyrd | "lets just make this a generic defensive card. Military units gain +1 combat strength in your territory for every 2 yields on the tile it occupies." | The user's line. |

@@ -3161,3 +3161,18 @@ bonuses, settle more flexibily, what do you think?"
   site and a coastal one. It also makes every coastal bonus more common, so
   the sea cards of the Commerce pass should be priced after it.
 - Owner once ruled: Astra (a rule in `src/sim`).
+
+## A lumber mill gives +2 production (ruled 2026-11-20, not built)
+
+From the Expansionist pass, change 65. The user had said of forests: "it
+feels like it's just better to chop them currently". The pass found that a
+chop pays 28 to 46 production in the first two ages and the cleared hex then
+farms for as much as a lumber mill yields, so a chop costs nothing later. The
+proposal: a lumber mill gives +2 production (from +1). The user: "great". It
+is a base rule in the improvement data, for every deck. Owner: Astra.
+
+## A terrace farm is built only beside a mountain (ruled 2026-11-20, not built)
+
+From the Expansionist pass, on Pachacuti's unique improvement: "let's update
+the terrace farm: can only be built adjacent to a mountain." Owner: Astra,
+with the leader roster build.
