@@ -4,6 +4,8 @@ A world wonder can finish once per game. When two cities compete, the first comp
 
 The builder receives the completion grant and renown. Recurring effects follow the city when another empire captures it. The Compendium lists the effects and site requirements of each wonder.
 
+The Great Library offers a great scholar and the Alhambra offers a great general. If a great-person offer is already open, you keep that offer and receive no second one. If all people of the requested family have been recruited across all ages, the wonder gives no offer. Its other completion rewards still apply.
+
 Wonders use the standard production cost for their technology column. A city must meet the wonder’s site requirement before it can queue it. A player cannot buy a wonder.
 
 The Great Sphinx grants free rerolls on completion. Each one pays for a draft reroll without increasing the next paid price. The Pyramid of the Sun pays faith for the city’s population before it spends the citizen. Its levy shares the waiting period with the other levies.

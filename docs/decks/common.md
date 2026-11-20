@@ -35,6 +35,8 @@ The generic Orders, by tier: name, rarity, status, ability and type. They belong
 | Tier IV | 1 | 1 | 1 | 1 |
 | **All** | **8** | **11** | **12** | **8** |
 
+If you draft The Office of Works with a great-person offer open, you keep that offer. The grant fills your renown pool to the current threshold. Choosing the waiting person raises the threshold, so you can still need more renown for your next offer. If all engineers have been recruited and you can call a great person, the grant can open an ordinary offer from the remaining families.
+
 ## Tier 0
 
 | Card | Rarity | Status | Ability | Type | Keyword | Id |
