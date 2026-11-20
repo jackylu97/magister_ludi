@@ -1961,11 +1961,13 @@ Eight root pages, all named in `vite.config.ts` inputs:
 - **The government banners** (`docs/plans/ui-critique-2026-10-16.md`, "Quiet
   Table, second pass", row 7: "Great, love it"; frames `frame-7-proposed` and
   `frame-7-fallback`, drawn by `gov()` and `gov_fallback()` in
-  `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/base.py`).
+  `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/base.py`; the
+  user's comments on the build, 2026-11-20).
   `src/ui/governmentBanner.ts` and `.css` draw a government in two forms:
   - **the row** on the government offer: a 3:1 window (330 by 110), the rules
     through the describers with the figures in mono, and a column with the
-    chairs and the stamp's seat under "With the cards you keep". The offer
+    chairs and, under them, the stamp's seat with no label. The seat shows
+    nothing until the pick, when the figure lands in it. The offer
     stands the three rows one under another (`Offer.stacked`, laid out by
     `stackedSpread` in `offerCard.ts`; the board's 856 by 130 at 1280 by 720
     and up). Every row in the hand is the tallest one's height
@@ -1973,10 +1975,15 @@ Eight root pages, all named in `vite.config.ts` inputs:
     wraps. The deal, the crown back, choose and Swear, the stamp and the
     `adoptGovernment` command are unchanged; a row turns over about its long
     axis. The foot says in one short line what adopting does;
-  - **the seat** on the Council screen: the same window heading a narrow card
-    the column's width (200, or 145 on a small window), then the rules, the
-    chairs the council has (`slotTypesOf`) and the pay plate
-    (`governmentLive`). Its lift shows the same card larger;
+  - **the seat** on the Council screen: the same window heading a card the
+    size of the Order cards in the chairs at every form (`COUNCIL_FORMS`: 210
+    by 258, 176 by 236, 187 by 180, 145 by 206), so the government's column is
+    the chair card's width (`CouncilLayout.government`). Under the window: the
+    rules, then at the foot the chairs the council has (`slotTypesOf`) as one
+    row of shapes, and the pay plate (`governmentLive`). The rules step down
+    from 13 px to 11 px as an Order face's effect does, and are cut with a
+    fade if they still do not fit (`fitGovernmentBanner`). Its lift shows the
+    card at the height of its content, larger;
   - **the window** (`governmentPicture`): the government's painting from
     `governmentPaintings.ts` (none yet; `public/art/splash/governments/`),
     with the name and the tier on a dark fade at its foot, or the drawn mark:

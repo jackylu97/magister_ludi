@@ -34,8 +34,6 @@ const FORM_ORDER: readonly CouncilForm[] = ['full', 'mid', 'compact', 'narrow'];
 export const COUNCIL_FRAME = {
   head: 62,
   side: 24,
-  /** The government card: the full face, or the narrow card with the compact forms. */
-  government: { wide: 200, narrow: 145 },
   columnGap: 25,
   /** From the head's rule to the top of the first chair: room for the chair labels. */
   chairsTop: 34,
@@ -77,7 +75,11 @@ export interface CouncilLayout {
   form: CouncilForm;
   rows: number;
   cols: number;
-  /** The government card's width: the full face, or the narrow card. */
+  /**
+   * The government card's width, which is the chair card's (`COUNCIL_FORMS`):
+   * the government's card is the same size as the cards in the chairs at
+   * every form (the user, 2026-11-20: "keep cards the same size").
+   */
   government: number;
   /** The chairs' block, frames and gaps included, in pixels. */
   chairs: { width: number; height: number };
@@ -128,7 +130,8 @@ export function councilLayout(window: { width: number; height: number }, chairs:
     const cols = Math.ceil(count / rows);
     const width = cols * (card.width + 2 * card.inset) + (cols - 1) * frame.slotGap;
     const height = rows * (card.height + 2 * card.inset) + (rows - 1) * frame.rowGap;
-    const government = form === 'full' || form === 'mid' ? frame.government.wide : frame.government.narrow;
+    // The government's card is the chair card's size, so its column is the card's width.
+    const government = card.width;
     const left = window.height - frame.head - frame.chairsTop - height - frame.band;
     const fanView = Math.min(left, frame.fanMax);
     const room = window.width - 2 * frame.side - government - frame.columnGap;

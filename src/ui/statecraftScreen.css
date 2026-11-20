@@ -302,12 +302,6 @@
   width: var(--council-gov-w, 200px);
 }
 
-/* The government's banner is the column's width, at the Council's text scale
-   (`governmentBanner.css`, the seat form). */
-.council-gov-card .gov-banner {
-  --gov-width: var(--council-gov-w, 200px);
-}
-
 .council-gov-card:focus-visible .gov-banner {
   outline: 2px solid var(--y-gold-lit);
   outline-offset: 4px;

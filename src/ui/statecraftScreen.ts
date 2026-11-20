@@ -1044,8 +1044,9 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * **The banner** (Quiet Table, frame 7: "The same banner can head the
    * government card on the Council screen later"): the banner window heads
    * the card, then the rules, the chairs this council has (`slotTypesOf`) and
-   * the plate (`governmentBanner.ts`). It is the column's width, the full
-   * column or the narrow one (`COUNCIL_FRAME.government`).
+   * the plate (`governmentBanner.ts`). The card is the chair card's size at
+   * every form (`COUNCIL_FORMS`; the user, 2026-11-20: "keep cards the same
+   * size"), and the column is its width (`CouncilLayout.government`).
    */
   function drawRegister(state: GameState, seat: number, sc: PlayerStatecraft, sheet: CardImpactSheet | undefined, ties: ChairTies): HTMLElement {
     const column = element('section', 'council-gov');
@@ -1058,7 +1059,15 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const plate: OrderFacePlate | null = law.plate;
     const card = element('div', 'council-gov-card');
     const face = element('div');
-    dressGovernmentBanner(face, sc.government, { form: 'seat', layout: slotTypesOf(sc), plate });
+    const chair = COUNCIL_FORMS[screenLayout.form];
+    dressGovernmentBanner(face, sc.government, {
+      form: 'seat',
+      layout: slotTypesOf(sc),
+      plate,
+      size: { width: chair.width, height: chair.height },
+    });
+    // The chair's form when it is not the full card, as the chairs' faces carry it.
+    if (screenLayout.form !== 'full') face.dataset.compact = screenLayout.form;
     face.dataset.card = sc.government;
     card.append(face);
     card.dataset.preview = 'register';

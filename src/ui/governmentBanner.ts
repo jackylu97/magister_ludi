@@ -12,12 +12,16 @@
  *   - **the government offer** (`main.ts`, through `offerFaces.ts`): one row
  *     for each government, as the frame draws it. The 3:1 banner window at the
  *     left, what the government does in the middle, and at the right its
- *     chairs and the figure it would pay with the cards you keep (the stamp's
- *     seat, which the offer fills);
+ *     chairs, with the stamp's seat under them. The seat shows nothing until
+ *     the pick, when the offer lands the figure in it. It has no label (the
+ *     user, 2026-11-20: "'with the cards you keep' is unneeded, and probably a
+ *     bit confusing");
  *   - **the Council screen's government seat** (`statecraftScreen.ts`): the
- *     same banner window heads a narrow card, with the rules, the chairs and
- *     the pay plate under it. The frame says "The same banner can head the
- *     government card on the Council screen later."
+ *     same banner window heads a card the size of the Order cards in the
+ *     chairs beside it (the user, 2026-11-20: "keep cards the same size"),
+ *     with the rules, the chairs and the pay plate at its foot. The frame says
+ *     "The same banner can head the government card on the Council screen
+ *     later."
  *
  * The parts:
  *
@@ -32,16 +36,19 @@
  *   - **the chairs**: one small card shape for each chair it lays out, in the
  *     chair type's ink with the type's own mark, and the mix in words under
  *     them;
- *   - **the figure**: on the offer, the stamp's seat under "With the cards you
- *     keep"; on the Council screen, the pay plate.
+ *   - **the figure**: on the offer, the stamp's seat, empty until the pick; on
+ *     the Council screen, the pay plate.
  *
  * Every word comes from the row, the describers or `chairs.ts`; the banner
  * writes none of its own beyond the labels in `GOVERNMENT_BANNER_WORDS`.
  *
  * Size: the row form is the frame's 856 px wide at one em to ten board pixels,
- * and `--gov-width` scales it. The seat form is as wide as its column and keeps
- * the Council's text scale. Inside the window every length is a share of the
- * window's own width, so the offer's window and the Council's are one drawing.
+ * and `--gov-width` scales it. The seat form keeps the Council's text scale.
+ * Given a size (`GovernmentBannerOptions.size`), it is exactly that size, and
+ * its rules step down as an Order face's effect does (`fitGovernmentBanner`);
+ * given none, as on the hover lift and in the flair gallery, it is as tall as
+ * its content. Inside the window every length is a share of the window's own
+ * width, so the offer's window and the Council's are one drawing.
  */
 
 import './governmentBanner.css';
@@ -53,7 +60,14 @@ import { chairMixOfLayout, chairMixWords } from './chairs';
 import { element } from './dom';
 import { governmentPaintingUrl } from './governmentPaintings';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
-import { GOVERNMENT_SUIT, type OrderFacePlate, deviceNode, plateFigureNode, rubricate } from './orderFace';
+import {
+  GOVERNMENT_SUIT,
+  ORDER_FACE_TEXT_SIZES,
+  type OrderFacePlate,
+  deviceNode,
+  plateFigureNode,
+  rubricate,
+} from './orderFace';
 
 // --- what is in the window ---------------------------------------------------
 
@@ -78,8 +92,6 @@ export const GOVERNMENT_BANNER_WORDS = {
   tier: 'tier',
   /** Over the chairs. */
   chairs: 'Its chairs',
-  /** Over the stamp's seat on the offer: what adopting would pay. */
-  keeps: 'With the cards you keep',
   /** The rules of a government with none (the Chiefdom). */
   noLaw: 'It has no rule of its own.',
   /** The word a reader hears after the name. */
@@ -148,6 +160,15 @@ export interface GovernmentBannerOptions {
    * one, to show a stand-in painting in the window.
    */
   picture?: GovernmentPicture;
+  /**
+   * The seat form's exact size in pixels: the Council screen passes the chair
+   * card's (`COUNCIL_FORMS`), so the government's card is the same size as the
+   * cards beside it. The banner's content fits inside it: the window, the
+   * rules (which step down and then cut, `fitGovernmentBanner`), the chairs
+   * without their label and words (a screen reader still hears the words),
+   * and the plate at the foot. Left out, the card is as tall as its content.
+   */
+  size?: { width: number; height: number };
 }
 
 /** "tier 18", with the number in mono. */
@@ -254,22 +275,23 @@ export function dressGovernmentBanner(
   host.classList.add('gov-banner');
   host.dataset.form = options.form;
   host.dataset.government = id;
+  if (options.size !== undefined) {
+    host.dataset.sized = 'true';
+    host.style.setProperty('--gov-width', `${options.size.width}px`);
+    host.style.setProperty('--gov-height', `${options.size.height}px`);
+  }
   host.append(element('span', 'sr-only', model.caption));
   host.append(windowNode(model, options.picture ?? model.picture));
   host.append(rulesNode(model, linked));
   const side = element('div', 'gov-side');
   side.append(chairsNode(model));
+  // The stamp's seat, under the chairs and with no label. The offer lands the
+  // figure in it on the pick; until then it shows nothing and takes no room.
   const seat = element('div', 'gov-seat');
-  if (options.form === 'row') {
-    // The frame's "With the cards you keep" and the figure under it. The label
-    // goes with the seat: an offer with no figure to show draws neither.
-    const keeps = element('div', 'gov-keeps');
-    keeps.append(element('span', 'gov-label', GOVERNMENT_BANNER_WORDS.keeps), seat);
-    side.append(keeps);
-  } else {
-    if (options.plate !== undefined && options.plate !== null) side.append(plateNode(options.plate));
-    side.append(seat);
+  if (options.form === 'seat' && options.plate !== undefined && options.plate !== null) {
+    side.append(plateNode(options.plate));
   }
+  side.append(seat);
   host.append(side);
   return seat;
 }
@@ -293,19 +315,45 @@ export function governmentBannerNode(
  */
 export const GOVERNMENT_NAME_SIZES: readonly [number, number] = [2.2, 1.9];
 
+/** What `fitGovernmentBanner` settled on: the rules' size in pixels, and whether they are cut. */
+export interface GovernmentBannerFit {
+  size: number;
+  over: boolean;
+}
+
 /**
- * **Fits a banner's name**, after it is laid out: the name wraps, and steps
- * down one size only if it would take a third line. Nothing else on the
- * banner changes size, so the rules keep one size on every banner.
+ * **Fits a banner**, after it is laid out. The name wraps, and steps down one
+ * size only if it would take a third line.
+ *
+ * A banner of a given size (the Council's seat, `GovernmentBannerOptions.size`)
+ * then fits its rules by the Order face's own rule for a long effect
+ * (`fitOrderFace`): the largest of the face's text sizes, 13 px down to
+ * 11 px (`ORDER_FACE_TEXT_SIZES`), at which the rules fit their room. If they
+ * still do not fit, the banner is marked `data-overflow`: the rules are cut
+ * with a fade at the foot, and the hover lift shows them whole. The window
+ * keeps its 3:1 shape, so the face's second step, a shorter picture, is not
+ * taken. Every other banner keeps one size of rules: the offer's rows, the
+ * lift and the gallery are as tall as their content.
  */
-export function fitGovernmentBanner(banner: HTMLElement): void {
+export function fitGovernmentBanner(banner: HTMLElement): GovernmentBannerFit {
   const name = banner.querySelector<HTMLElement>('.gov-name');
-  if (name === null) return;
-  banner.style.setProperty('--gov-name', `${GOVERNMENT_NAME_SIZES[0]}em`);
-  const line = Number.parseFloat(getComputedStyle(name).lineHeight);
-  if (Number.isFinite(line) && name.getBoundingClientRect().height > line * 2.2) {
-    banner.style.setProperty('--gov-name', `${GOVERNMENT_NAME_SIZES[1]}em`);
+  if (name !== null) {
+    banner.style.setProperty('--gov-name', `${GOVERNMENT_NAME_SIZES[0]}em`);
+    const line = Number.parseFloat(getComputedStyle(name).lineHeight);
+    if (Number.isFinite(line) && name.getBoundingClientRect().height > line * 2.2) {
+      banner.style.setProperty('--gov-name', `${GOVERNMENT_NAME_SIZES[1]}em`);
+    }
   }
+  const largest = ORDER_FACE_TEXT_SIZES[0]!;
+  const rules = banner.querySelector<HTMLElement>('.gov-rules');
+  if (banner.dataset.sized !== 'true' || rules === null) return { size: largest, over: false };
+  delete banner.dataset.overflow;
+  for (const size of ORDER_FACE_TEXT_SIZES) {
+    banner.style.setProperty('--gov-seat-text', `${size / 10}em`);
+    if (rules.scrollHeight <= rules.clientHeight + 1) return { size, over: false };
+  }
+  banner.dataset.overflow = 'true';
+  return { size: ORDER_FACE_TEXT_SIZES[ORDER_FACE_TEXT_SIZES.length - 1]!, over: true };
 }
 
 /**
