@@ -41,6 +41,7 @@ import {
   bumpRevision,
 } from '../../src/sim/state';
 import { getTileAt, mapRange, tileHex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
+import { recomputeAllVisibility } from '../../src/sim/visibility';
 import { findPath, isPassable } from '../../src/sim/pathfind';
 import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
 import { buildImprovementAt, improvementErrorAt } from '../../src/sim/improvements';
@@ -620,68 +621,32 @@ describe('the bot defends itself', () => {
   });
 
   it('marches a free soldier to the door of a held camp', () => {
-    // Batch BR1: a camp starts with its band, so its hex nearly always holds
-    // a warden, and no piece can walk onto a hex an enemy stands on. The hunt
-    // walks the piece to the free hex beside the camp, and the blow arm weighs
-    // the strike from there. Since batch BP8 the camp wants a force sized to
-    // its guard (`campForce`), so two more spare pieces stand by the town: the
-    // seat can make the force whole, and the first piece marches.
-    // Re-sited for bot batch BP13b: on its board at turn 12 a real camp five hexes
-    // off is worth more than the test's own, and the piece marches there. Turns
-    // 13 to 18 march to the test's camp; fifteen is the middle.
-    // Re-sited for bot batch BP16's phases: on the board played since, the free
-    // piece at turn 15 guards a worker of the seat beside it, and turns 13, 14
-    // and 16 march to the test's camp; fourteen is used.
-    const game = grownGame(14);
-    const { map } = game.state;
-    const city = firstCity(game.state, 0);
-    const home = getTileAt(map, city.col, city.row)!;
-    const empty = (tile: Tile): boolean =>
-      isPassable(tile) &&
-      !game.state.units.some((unit) => unit.col === tile.col && unit.row === tile.row) &&
-      !game.state.cities.some((town) => town.col === tile.col && town.row === tile.row);
-    // A free hex beside the town for the spare piece, and a camp two hexes on
-    // from it, three from the town: the first such pair in tile-index order.
-    let pair: { stand: Tile; campTile: Tile } | null = null;
-    for (const stand of tileNeighbors(map, home)) {
-      if (pair || !empty(stand)) continue;
-      for (const campTile of mapRange(map, tileHex(stand), 2)) {
-        if (pair || !empty(campTile)) continue;
-        if (wrappedDistance(map, tileHex(stand), tileHex(campTile)) !== 2) continue;
-        if (wrappedDistance(map, tileHex(home), tileHex(campTile)) !== 3) continue;
-        pair = { stand, campTile };
-      }
-    }
-    expect(pair).not.toBeNull();
-    const { stand, campTile } = pair!;
-    createUnit(game.state, 0, 'warrior', city.col, city.row);
-    const free = createUnit(game.state, 0, 'warrior', stand.col, stand.row);
-    let helpers = 0;
-    for (const spot of tileNeighbors(map, home)) {
-      if (helpers >= 2 || spot === stand || spot === campTile || !empty(spot)) continue;
-      createUnit(game.state, 0, 'warrior', spot.col, spot.row);
-      helpers += 1;
-    }
-    expect(helpers).toBe(2);
-    const camp = { col: campTile.col, row: campTile.row, foundedTurn: game.state.turn };
-    game.state.camps.push(camp);
-    const wild = game.state.players.find((other) => other.barbarian)!;
-    const warden = createUnit(game.state, wild.id, 'warrior', camp.col, camp.row);
-    warden.fortifiedTurns = 2;
-    // A full purse, so the disband arm has no arrears to answer first: on the
-    // fixture played since bot batch BP9 the seat stands at a coin a turn
-    // short, and the four new warriors are the reason this test adds.
-    seat(game.state, 0).gold = 1000;
-    bumpRevision(game.state);
-    expect(findPath(game.state, free, campTile)).toBeNull();
+    // A single visible camp keeps the choice of target independent of the opening economy.
+    const state = bareState(16, 10, true);
+    const game: Game = { config: CONFIG, state, log: [] };
+    foundCityAt(state, 0, at(state, 5, 5));
+    foundCityAt(state, 1, at(state, 13, 6));
+    seat(state, 0).gold = 1000;
+    createUnit(state, 0, 'warrior', 5, 5);
+    const free = createUnit(state, 0, 'warrior', 6, 5);
+    createUnit(state, 0, 'warrior', 5, 4);
+    createUnit(state, 0, 'warrior', 6, 6);
+
+    const campTile = at(state, 8, 5);
+    state.camps = [{ col: campTile.col, row: campTile.row, foundedTurn: state.turn }];
+    const wild = state.players.find((player) => player.barbarian)!;
+    createUnit(state, wild.id, 'warrior', campTile.col, campTile.row).fortifiedTurns = 2;
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    expect(findPath(state, free, campTile)).toBeNull();
 
     const order = nextBotCommandFor(game, 0, free.id);
-    expect(order).not.toBeNull();
-    expect(order!.type).toBe('moveUnit');
-    const target = order!.target as { col: number; row: number };
-    const door = getTileAt(game.state.map, target.col, target.row)!;
-    expect(mapRange(game.state.map, tileHex(campTile), 1)).toContain(door);
-    expect(door).not.toBe(campTile);
+    expect(order?.type).toBe('moveUnit');
+    if (order?.type !== 'moveUnit') throw new Error('The free soldier needs a move order');
+    const door = at(state, order.target.col, order.target.row);
+    expect(wrappedDistance(state.map, tileHex(campTile), tileHex(door))).toBe(1);
+    expect(dispatch(game, order).ok).toBe(true);
+    expect([free.col, free.row]).toEqual([door.col, door.row]);
   });
 });
 
@@ -995,12 +960,12 @@ function dispatchOne(game: Game, command: { type: string }): boolean {
 }
 
 /** What one named piece would be told to do, with every other blocker cleared. */
-function nextBotCommandFor(game: Game, playerId: number, unitId: number): { type: string; target?: unknown } | null {
+function nextBotCommandFor(game: Game, playerId: number, unitId: number): ReturnType<typeof nextBotCommand> {
   for (let step = 0; step < 60; step++) {
     const command = nextBotCommand(game.state, playerId);
     if (command === null) return null;
     if ('unitId' in command && command.unitId === unitId) {
-      return command as { type: string; target?: unknown };
+      return command;
     }
     if (!dispatchOne(game, command)) return null;
   }
