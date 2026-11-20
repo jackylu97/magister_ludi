@@ -72,3 +72,18 @@ Typecheck, the production build and all 12,497 tests passed at `d889c418`. The r
 The user asked for repeated measurement of the Three.js renderer. Use a saved late-game board at normal zoom. Record the camera, viewport, pixel ratio, renderer, active effects and quality settings. Measure a stationary board and repeat the same camera pan and zoom. Capture frame times, draw calls, triangles and textures. Where possible, separate the time spent preparing the scene from GPU execution.
 
 Use the most expensive measured operation to select the first experiment. Change one thing, repeat the scene and compare visible output. Use that result to select the second experiment. Keep changes with a repeatable gain and correct visuals. Record experiments that lose time or change appearance. Check controls, reduced motion and cleanup when a change affects them. [Three.js optimization skill](https://github.com/MengTo/Skills/blob/main/agent-skills/game-development/optimize-threejs-games/SKILL.md)
+
+### Measured results
+
+Chrome 156 used native Apple M4 Metal graphics. The viewport and drawing buffer were both 960 × 640. The camera used play radius 7, with the seat's usual fog, textures, shadows and reflections. The still and pan measurements used turn 120 of seeds 999 and 42. Timings through GPU readback include the wait for submitted draws to finish. Treat them as paired comparisons. All four quality-preserving prototypes produced identical still and pan captures on both boards.
+
+| Experiment | What changed | Result |
+|---|---|---|
+| Trim offscreen ends of unit batches | Saved roughly 6,500 to 10,400 triangles per pan frame. | Seed 999 took 24.2 ms against controls of 22.0 and 23.3 ms. Seed 42 stayed in its control range. |
+| Remove entirely fogged trees before submission | Saved 287,222 to 452,446 pan triangles, depending on the board. | Seed 999 pan rose to 25.2 ms. The seed 42 still view took 26.3 ms against controls of 24.0 and 25.2 ms. |
+| Skip the stencil copy after the main pass | Removed one buffer copy per frame while keeping color and depth copies. | Seed 999's still median improved to 22.1 ms, but its 95th percentile got worse. Seed 42 pan went from 24.1 to 26.9 ms. |
+| Skip ripple arithmetic at zero weight | Kept the water material's appearance and the submitted geometry. | Seed 999 gained 0.8 ms still and lost 0.3 ms panning. Seed 42 lost 0.3 ms still and gained 0.1 ms panning. |
+
+All four remain experiments. The main color pass had the highest individual GPU median on both boards, at 10.1 and 15.0 ms. Removing all three contact-shadow draws changed seed 999's panning median from 20.7 to 20.8 ms.
+
+As a diagnostic, flat shading isolated the cost of the full terrain and water materials. On the coastal seed 999, flat water saved 2.0 ms still and 1.15 ms panning. Flat land saved 0.85 and 0.70 ms. The two materials had similar costs on seed 42. A flat material changes the picture, so these figures bound the possible saving on these views. Each variant recorded 56 frames per scene and camera mode. The strict pan comparison used 32 matching pairs with the same draw and triangle counts.
