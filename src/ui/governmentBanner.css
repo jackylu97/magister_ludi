@@ -171,16 +171,18 @@
 
 .gov-tier {
   margin-top: 0.35em;
-  font-family: var(--face-num);
+  font-family: var(--face-name);
   font-size: max(1.1em, 9px);
   font-weight: 500;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-variant-caps: all-small-caps;
   white-space: nowrap;
   color: var(--ink-faint, #625e5b);
 }
 
 .gov-tier b {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 
@@ -259,12 +261,12 @@
 
 .gov-label {
   display: block;
-  font-family: var(--face-num);
+  font-family: var(--face-name);
   font-size: 1.1em;
   font-weight: 500;
   letter-spacing: 0.08em;
   line-height: 1.3;
-  text-transform: uppercase;
+  font-variant-caps: all-small-caps;
   color: var(--ink-faint, #625e5b);
 }
 
