@@ -1,0 +1,432 @@
+/* --- the title screen (frame a8 of the Quiet Table boards) -----------------
+
+   `src/ui/titlePainting.ts` owns this sheet, and `index.html` has the markup.
+   The frame is `title()` in
+   docs/plans/mockups/scholars-study/quiet-table-fourth-pass/base.py, with the
+   tag line of `title3()` in third.py. The user approved it on 2026-11-19.
+
+   From the top of the window:
+   - the painting, the full width of the window, with the title on its sky and
+     a soft fade behind the words;
+   - the ribbon as the seam (`plateRibbonNode('seam')`; its rules are in
+     plateRibbon.css);
+   - the paper: one row of plain buttons, a line about what comes later, and
+     the panel of recent worlds at the right.
+
+   `data-title-art` on #landing says what the head shows. `painting` is the
+   frame. `banner` is the fallback when no picture loads: the banner the page
+   had before (`.marquee-poster` in style.css), with the same paper under it.
+
+   The two setup steps keep their own layout (style.css). Everything here is
+   for the title step only. */
+
+/* The tag line is set in the card faces' small capitals. */
+@import '../cardFaces.css';
+
+#landing,
+.title-sample {
+  /* The left edge of the words and the buttons: the frame's 56 px of 1000. */
+  --title-gutter: clamp(16px, 5.6vw, 96px);
+  /* The paper under the ribbon: half way between the parchment and the table,
+     the ground the frame is drawn on. */
+  --title-paper: color-mix(in srgb, var(--parchment) 50%, var(--table));
+  /* The painting's height. The frame shows about 5:2 of a 16:9 picture, so the
+     height is the width over 2.45; on a short window it gives way, so that
+     the paper below always has room for the buttons and four recent worlds
+     and the page does not scroll. */
+  --title-painting-h: max(200px, min(calc(100vw / 2.45), calc(100vh - 240px)));
+}
+
+/* --- the page around it --- */
+
+/* The painting starts at the window's edge, so the leaf has no margin on this
+   step, and the paper colour runs to the foot of the window. */
+#landing[data-step='title'][data-title-art='painting'] {
+  padding: 0;
+  background: var(--title-paper);
+}
+
+#landing[data-step='title'][data-title-art='painting'] > .landing-stage {
+  width: 100%;
+  margin: 0;
+  gap: 0;
+}
+
+/* The one error line of the leaf (a save that would not open), on the paper
+   under the buttons. */
+#landing[data-step='title'][data-title-art='painting'] > .landing-stage > .landing-error {
+  margin: 0 var(--title-gutter) 20px;
+}
+
+/* Which head shows. `data-title-art` is on #landing, or on the flair gallery's
+   sample. The banner rule names three classes, so it is heavier than
+   `.marquee.marquee-poster`'s own `display` wherever the sheets load. */
+[data-title-art='painting'] .title-banner.marquee-poster,
+[data-title-art='banner'] .title-head,
+[data-title-art='banner'] .title-seam {
+  display: none;
+}
+
+/* The flair gallery's sample has no #landing around it to give it the paper. */
+.title-sample[data-title-art='painting'] {
+  background: var(--title-paper);
+}
+
+/* --- the painting and the title on its sky --- */
+
+.title-head {
+  position: relative;
+  height: var(--title-painting-h);
+  overflow: hidden;
+  /* The sky until the picture shows. */
+  background: var(--deep-lapis);
+  color: var(--parchment);
+}
+
+/* The picture covers the band, cut where its choice says
+   (`TitlePaintingChoice.position`). It fades in when it has loaded. */
+.title-painting {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--title-painting-position, 50% 50%);
+  opacity: 0;
+  transition: opacity 900ms ease-out;
+}
+
+.title-painting.is-loaded {
+  opacity: 1;
+}
+
+/* The soft fade behind the words: the frame's lapis wash from the left edge,
+   gone a little past the middle. */
+.title-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(20, 30, 70, 0.62),
+    rgba(20, 30, 70, 0.18) 46%,
+    rgba(20, 30, 70, 0) 62%
+  );
+  pointer-events: none;
+}
+
+/* The words sit on the sky, a little under a quarter of the way down. Every
+   size here follows the painting's height, as the frame's do. */
+.title-name {
+  position: absolute;
+  top: 23%;
+  left: var(--title-gutter);
+  right: var(--title-gutter);
+  z-index: 1;
+  animation: title-arrive 700ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+}
+
+.title-word {
+  margin: 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: clamp(40px, calc(var(--title-painting-h) * 0.19), 112px);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  color: var(--parchment);
+  text-shadow: 0 1px 0 rgba(15, 30, 80, 0.35), 0 0 24px rgba(15, 30, 80, 0.3);
+}
+
+.title-word em {
+  font-style: italic;
+  color: var(--y-gold-lit);
+}
+
+/* The small ornament: a gilt rule, the card corners' star, a gilt rule. */
+.title-ornament {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: clamp(10px, calc(var(--title-painting-h) * 0.034), 20px);
+  color: var(--y-gold-lit);
+}
+
+.title-ornament i {
+  width: clamp(40px, calc(var(--title-painting-h) * 0.146), 84px);
+  border-top: 1px solid currentColor;
+}
+
+.title-ornament b {
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  -webkit-mask: var(--title-star) center / contain no-repeat;
+  mask: var(--title-star) center / contain no-repeat;
+}
+
+.title-tagline {
+  margin: clamp(8px, calc(var(--title-painting-h) * 0.029), 16px) 0 0;
+  font-family: var(--face-card-title);
+  font-size: clamp(14px, calc(var(--title-painting-h) * 0.0364), 20px);
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  color: var(--parchment);
+  text-shadow: 0 1px 0 rgba(15, 30, 80, 0.35);
+}
+
+/* --- the seam --- */
+
+/* The ribbon's place. It keeps the ribbon's height before the script puts the
+   ribbon in, so nothing moves when it arrives. */
+.title-seam {
+  height: 29px;
+  background: var(--deep-lapis);
+}
+
+/* --- the paper --- */
+
+/* The buttons and the line under them at the left, the recent worlds at the
+   right. The second row takes any extra height of the panel, so the line
+   stays under the buttons. */
+.title-paper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'menu worlds'
+    'later worlds';
+  align-items: start;
+  gap: 12px 32px;
+  padding: 22px clamp(16px, 3.6vw, 56px) 22px var(--title-gutter);
+}
+
+.title-menu {
+  grid-area: menu;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* A plain button of the kit, at the frame's height. Both class names, so these
+   beat `.btn`'s `flex: 1` and its small type wherever the sheets load. */
+.btn.title-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 0 16px;
+  font-size: var(--size-ui);
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+/* New game is the next step: the kit's primary, larger. */
+.btn.btn-primary.title-button {
+  padding: 0 26px;
+  font-size: var(--size-name);
+  font-weight: 700;
+}
+
+/* `display` above would beat the browser's own rule for `hidden`. */
+.btn.title-button[hidden] {
+  display: none;
+}
+
+/* The key that does the same job, in the button's own colour. */
+.title-key {
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font-family: var(--face-num);
+  font-size: var(--size-note);
+  font-weight: 500;
+  line-height: 1.45;
+  opacity: 0.75;
+}
+
+/* What Continue resumes: the leader, and the turn in the counted face. */
+.title-button-sub {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.title-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Continue naming a save that this build's rules will not replay. The press
+   is still allowed; the line says so in the ink of a refusal. */
+#continue-game.is-refused .title-button-sub {
+  color: var(--rubric);
+}
+
+.title-later {
+  grid-area: later;
+  margin: 0;
+  font-size: var(--size-label);
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+/* --- the recent worlds --- */
+
+.title-worlds {
+  grid-area: worlds;
+  box-sizing: border-box;
+  width: clamp(220px, 22vw, 300px);
+  padding: 9px 12px 6px;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  background: var(--parchment);
+}
+
+.title-worlds > .eyebrow {
+  margin: 0 0 3px;
+}
+
+.title-worlds-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+/* A row is a button: the whole of it loads that world. The leader at the
+   left in the names face, the turn at the right in the counted face. */
+.landing-shelf-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 2px;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.landing-shelf-row:hover {
+  background: rgba(29, 26, 32, 0.05);
+}
+
+.landing-shelf-row:focus-visible {
+  outline: 2px solid var(--cobalt);
+  outline-offset: -2px;
+}
+
+.landing-shelf-who {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--face-name);
+  font-size: var(--size-ui);
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.landing-shelf-when {
+  flex: 0 0 auto;
+  font-family: var(--face-num);
+  font-size: var(--size-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A save this build's rules will not replay. The row stays and can still be
+   pressed (it is still the player's game), but it reads as spent, and its
+   right half says why instead of the turn. */
+.landing-shelf-row.is-refused .landing-shelf-who {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.landing-shelf-row.is-refused .landing-shelf-when {
+  color: var(--rubric);
+  font-family: var(--face-name);
+  font-variant-caps: small-caps;
+  letter-spacing: 0.04em;
+}
+
+.title-worlds-empty {
+  margin: 0 0 3px;
+  padding-top: 5px;
+  border-top: 1px solid var(--rule);
+  font-size: var(--size-label);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.title-worlds-empty[hidden] {
+  display: none;
+}
+
+/* --- the fallback: today's banner --- */
+
+/* The leaf keeps its own margin and width, as the page was before frame a8.
+   The paper is the table here, so only the gap under the banner is set. */
+[data-title-art='banner'] .title-paper {
+  padding: 15px 0 0;
+}
+
+/* --- a narrow window --- */
+
+/* The buttons wrap, and the recent worlds go under them. The painting gives
+   way sooner, so the buttons stay near the top of the window. */
+@media (max-width: 900px) {
+  #landing,
+  .title-sample {
+    --title-painting-h: max(180px, min(calc(100vw / 2.45), calc(100vh - 360px)));
+  }
+
+  .title-paper {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      'menu'
+      'later'
+      'worlds';
+  }
+
+  .title-worlds {
+    width: min(100%, 420px);
+  }
+}
+
+/* --- the arrival --- */
+
+/* The words come up as the painting fades in, and the ribbon draws out from
+   the middle (plateRibbon.css). With reduced motion, all of it is there at
+   once. */
+@keyframes title-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-name {
+    animation: none;
+  }
+
+  .title-painting {
+    transition: none;
+  }
+}

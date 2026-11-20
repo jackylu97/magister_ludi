@@ -1584,13 +1584,31 @@ Eight root pages, all named in `vite.config.ts` inputs:
   `index.html` lists every surface.
 - **The landing is three screens and one element** (batch L7, `docs/flags.md`
   (yyyy); the mockup is `mockups/new-game-flow.html`): `data-step` on `#landing`
-  is the whole of the screen state — **title** (the poster, shown here and
-  nowhere else, with the menu and the shelf of recent worlds on its edges;
-  Enter · N · L · ? are its keys), **world** (the mode switch, the map card, a
-  mono summary strip) and **civ** (the roster of figures and the detail card,
-  with Begin). Nothing routes and no field is rebuilt between steps, which is
-  what keeps `currentConfig` byte-identical for the same choices. The step walk,
-  the breadcrumbs, the summary and the keys are `src/ui/landingFlow.ts`.
+  is the whole of the screen state: **title**, **world** (the mode switch, the
+  map card, a mono summary strip) and **civ** (the roster of figures and the
+  detail card, with Begin). Nothing routes and no field is rebuilt between
+  steps, which is what keeps `currentConfig` byte-identical for the same
+  choices. The step walk, the breadcrumbs, the summary and the keys are
+  `src/ui/landingFlow.ts`.
+- **The title step** is frame a8 of the Quiet Table boards (approved
+  2026-11-19, `docs/plans/ui-critique-2026-10-16.md`):
+  - the painting across the full width of the window, with "Magister Ludi" on
+    its sky, a small ornament and the tag line "a game for the ages";
+  - the lapis ribbon as the seam (`plateRibbonNode('seam')`, the thin form of
+    the plates' ribbon in `src/ui/plateRibbon.ts`);
+  - on the paper: one row of plain buttons (New game is the primary, then
+    Continue, Load a game, Compendium), the line "Multiplayer and settings
+    come later", and the panel of recent worlds (`recentWorlds`, the newest
+    four saves, each a leader and a turn; a row loads that world).
+  - Its keys are Enter (Continue), N, L and ?. The buttons print N, L and ?.
+  - `src/ui/titlePainting.ts` chooses the picture and owns the step's
+    stylesheet (`src/ui/titleScreen.css`). The title painting is
+    `public/art/splash/title/title.jpg`, listed in `TITLE_PAINTINGS` and
+    synced to the folder by a test. Until it exists, the page shows a
+    stand-in, the painted town of the earlier banner (`TITLE_STAND_IN`). If no
+    picture loads, `data-title-art` on `#landing` becomes `banner` and the
+    page shows the earlier banner (`.marquee-poster`) over the same buttons.
+  - The flair gallery shows it (`flair.html#title-screen`).
 - **A seat is called by its figure** (`docs/flags.md` (ppppp)): `seatName(state,
   id)` and `seatPeople(state, id)` (`src/sim/leaderData.ts`) are the one reading
   — the figure's name where a seat sits under one, the ink's name where it does

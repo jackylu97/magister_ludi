@@ -827,7 +827,7 @@ body {
 
 /* The leaf: one column of blocks, of which the stylesheet shows the ones
    belonging to the step on screen. Each block lays out its own columns — the
-   title screen's two cards, the map card's two halves, the roster and its detail
+   title screen's paper (src/ui/titleScreen.css), the map card's two halves, the roster and its detail
    card — because the three screens want three different measures and a stage
    that tried to hold all of them would be a grid nobody could read. */
 .landing-stage {
@@ -854,13 +854,6 @@ body {
   display: block;
 }
 
-/* Both class names, and deliberately: the rule above it selects the same element
-   through `[data-step-for]` and is one attribute *heavier*, so a single-class
-   `display: grid` here loses to its `display: block` and the two cards stack. */
-#landing[data-step='title'] > .landing-stage > .landing-step.landing-title-grid {
-  display: grid;
-}
-
 #landing[data-step='world'] > .landing-stage > .landing-step[data-step-for='world'] {
   display: block;
 }
@@ -885,178 +878,9 @@ body {
 }
 
 /* --- the title screen ---
-   The menu at the left and the shelf of recent worlds at the right, on the
-   poster's own edges. The measure is the mockup's: a fixed column for the menu,
-   whatever is left for the shelf. */
-.landing-title-grid {
-  gap: 15px;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-}
-
-@media (min-width: 900px) {
-  .landing-title-grid {
-    grid-template-columns: 340px minmax(0, 1fr);
-  }
-}
-
-/* Both class names, for `.hud-card.landing-card`'s reason: that recipe declares
-   `display: block` with two classes, and a single-class column here would be
-   quietly beaten and the menu would stack as prose. */
-.hud-card.landing-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* A menu row: what it does at the left, the key that does it at the right. */
-.landing-menu-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  width: 100%;
-  padding: 9px 14px;
-  border-radius: 999px;
-  text-align: left;
-  font-size: 13.5px;
-}
-
-/* Continue is the one thing on the screen a returning player came for, so it is
-   the one ink row: the same weight Begin has on the last step, and for the same
-   reason — a screen has one strong action or none. */
-.landing-menu-item.is-strong {
-  background: var(--ink);
-  color: var(--parchment);
-  border-color: var(--ink);
-}
-
-.landing-menu-item.is-strong:hover:not(:disabled) {
-  background: #2c2830;
-}
-
-.landing-menu-item:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.landing-menu-text {
-  display: block;
-  min-width: 0;
-}
-
-/* The line under a verb — the world Continue resumes, or why a row is dark.
-   Mono, because half of what lands there is counted, and quiet either way: it is
-   the line under the verb, not the verb. */
-.landing-menu-sub {
-  display: block;
-  margin-top: 2px;
-  font-family: var(--face-name);
-  font-variant-caps: all-small-caps;
-  font-size: var(--size-label);
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  opacity: 0.82;
-}
-
-/* Continue naming a save this build's rules will not replay. The verb stays —
-   the press is still allowed, and it now says why on the sheet — but the line
-   under it counts nothing and says so in the one ink refusals wear. */
-#continue-game.is-refused .landing-menu-sub {
-  color: var(--vermilion);
-  opacity: 1;
-}
-
-.landing-key {
-  flex: 0 0 auto;
-  font-family: var(--face-num);
-  font-size: var(--size-note);
-  letter-spacing: 0.06em;
-  color: var(--ink-faint);
-}
-
-.landing-menu-item.is-strong .landing-key {
-  color: var(--parchment);
-  opacity: 0.66;
-}
-
-/* The rule between the game's verbs and the page's. Two class names and its own
-   air: `.double-rule` sets a 58% measure further down the file and would win on
-   source order, which printed this as a short bar tucked under the row above it
-   rather than a rule across the card. */
-.landing-menu > .landing-menu-rule {
-  width: 100%;
-  margin: 8px 0 7px;
-}
-
-/* --- the shelf of recent worlds ---
-   Ruled rows, the figure in the display face at the left and the counted half
-   in mono at the right. A row is a button: the whole of it loads that world. */
-.landing-shelf-rows {
-  display: flex;
-  flex-direction: column;
-}
-
-.landing-shelf-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-  width: 100%;
-  padding: 7px 4px;
-  border: 0;
-  border-bottom: var(--border-thin) solid var(--rule);
-  border-radius: 0;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.landing-shelf-row:last-child {
-  border-bottom: 0;
-}
-
-.landing-shelf-row:hover {
-  background: #fbf7ea;
-}
-
-.landing-shelf-row:focus-visible {
-  outline: 2px solid var(--cobalt);
-  outline-offset: -2px;
-}
-
-.landing-shelf-who {
-  font-family: var(--face-display);
-  font-size: 15px;
-  line-height: 1.2;
-}
-
-.landing-shelf-when {
-  flex: 0 0 auto;
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--size-note);
-  white-space: nowrap;
-  color: var(--ink-soft);
-}
-
-/* A save this build's rules will not replay (docs/flags.md (yyyyy)). The row
-   stays, and stays pressable — it is still the player's game, and it is not this
-   screen's business to decide it is gone — but it reads as spent, and its right
-   half says why instead of counting turns. */
-.landing-shelf-row.is-refused .landing-shelf-who {
-  color: var(--ink-faint);
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
-}
-
-.landing-shelf-row.is-refused .landing-shelf-when {
-  color: var(--vermilion);
-  font-variant-caps: small-caps;
-  letter-spacing: 0.04em;
-}
+   Its rules are in src/ui/titleScreen.css (frame a8 of the Quiet Table
+   boards): the painting, the seam, the row of buttons and the recent worlds.
+   The banner it falls back to is `.marquee-poster`, further down this file. */
 
 /* --- the world step's mode switch ---
    One segmented pill: the three ways a table can be filled, of which two exist.

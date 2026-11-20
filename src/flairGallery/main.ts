@@ -63,6 +63,7 @@ import { requireElement } from '../ui/dom';
 import { drawCourtMarks } from './courtMarks';
 import { drawInPlayForms } from './inPlayForms';
 import { drawAgePlate } from './agePlate';
+import { drawTitleScreen } from './titleScreen';
 
 const indexNav = requireElement<HTMLElement>('index');
 const sheet = requireElement<HTMLElement>('sheet');
@@ -142,13 +143,24 @@ drawOrderFaces(
   ),
 );
 
-// --- 4. the frontispiece ----------------------------------------------------
+// --- 4. the title screen and the frontispiece -------------------------------
 
+// Frame a8 of the Quiet Table boards: the title screen the game opens on.
+drawTitleScreen(
+  open(
+    'title-screen',
+    'Title Screen',
+    'The title screen the game opens on: the painting across the window, the title on its sky with a small ornament and the tag line, the ribbon as the seam, and the paper with the buttons and the recent worlds.',
+  ),
+);
+
+// The earlier title page's device and epigraphs. The title screen has not
+// shown them since 2026-09-14; the marks are kept here.
 drawFrontispiece(
   open(
     'frontispiece',
     'Frontispiece',
-    'The landing screen as a title page. The epigraph is drawn once per visit from a pool of six, so five of them are effectively unreadable in the game — here they cycle.',
+    'The earlier title page, with the printer’s device and the epigraphs. The title screen has not shown them since 2026-09-14. The six epigraphs cycle here.',
   ),
 );
 
