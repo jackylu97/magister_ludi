@@ -1697,3 +1697,21 @@ What follows:
 - **Still to draw:** how the board shows which hexes the citizens work (the
   user: "a bit unclear right now"). A design pass with pictures comes first.
 - **Pictures owed:** every fold row open.
+
+### Government banners as built: the user's comments (2026-11-20)
+
+Pictures: https://claude.ai/artifact/4Zc2jZanmY6vNZs2di6gCD. The user: "added
+some comments, otherwise great". In their words:
+
+| Picture | The user's comment |
+|---|---|
+| The government offer | "'with the cards you keep' is unneeded, and probably a bit confusing" |
+| The Council screen, the government seat | "keep cards the same size" |
+
+What follows:
+- **The offer's banner has no "With the cards you keep" label.** The figure
+  still lands in its seat when the player picks; the seat shows nothing before
+  that.
+- **On the Council screen the government's card is the same size as a chair's
+  card:** the same width and the same height as the Order cards beside it, at
+  every layout the screen has. The banner's content fits inside that size.
