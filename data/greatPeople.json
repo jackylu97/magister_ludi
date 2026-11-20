@@ -356,7 +356,7 @@
           "where": "city",
           "gold": 2,
           "scope": {
-            "test": "notCapital"
+            "test": "notTrueCapital"
           }
         }
       ]

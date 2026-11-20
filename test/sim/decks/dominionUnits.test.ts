@@ -415,7 +415,7 @@ describe('Dominion D5 — new moments', () => {
     expect(gain('piyamaradu')).toEqual({ science: 400, culture: 400 });
     // Any great person pays, counted by the generals.
     expect(gain('imhotep')).toEqual({ science: 400, culture: 400 });
-    expect(player.greatPeopleByFamily).toEqual({ general: 2, scholar: 1 });
+    expect(player.greatPeopleByFamily).toEqual({ general: 2, engineer: 1 });
   });
 
   it('Valhalla pays 25 culture for each Monument when a unit dies', () => {

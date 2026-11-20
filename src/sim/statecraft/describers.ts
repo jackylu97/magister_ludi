@@ -5416,6 +5416,7 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.adjectives.push('capital');
       return;
     case 'notCapital':
+    case 'notTrueCapital':
       // A qualifier and not an adjective: "every city but your capital" reads,
       // and "every non-capital city" is a form no ratified row uses.
       into.qualifiers.push('but your capital');

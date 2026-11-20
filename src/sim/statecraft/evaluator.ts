@@ -2703,9 +2703,8 @@ export function secondCapitalCity(state: GameState, playerId: number): City | un
  * from dozens of places. So the words in the data decide. `capital`, `notCapital`
  * and `where: 'capital'` mean this list, and only an Order or a Doctrine may write
  * them plainly. Every other row (a wonder, a building's site, a government, a belief,
- * a leader, a legacy, a luxury) names the scope `trueCapital`, which prints the same
- * words. A test in `test/sim/decks/scientificDoctrines.test.ts` walks every data
- * file, and fails if a row outside the Orders and Doctrines writes the plain form.
+ * a leader, a legacy, a luxury) uses `trueCapital` or `notTrueCapital` instead.
+ * The data test rejects the plain forms outside Orders and Doctrines.
  *
  * **What reads this:**
  *   - the `capital` and `notCapital` scope tests (`cityScopeAdmits`);
@@ -2714,7 +2713,7 @@ export function secondCapitalCity(state: GameState, playerId: number): City | un
  *   - the `capitalPopulation` count, unless the row names `trueCapital`.
  *
  * **What keeps to the true capital (`capitalCityOf`):**
- *   - the `trueCapital` scope;
+ *   - the `trueCapital` and `notTrueCapital` scopes;
  *   - the `capitalTerritory` combat condition and the `capitalGreatWorks` scale, which
  *     no Order or Doctrine reads today (the same test pins this);
  *   - a one-time `toCapital` grant, because one grant has one place to land;
@@ -2819,6 +2818,8 @@ export function cityScopeAdmits(
       // The Two Capitals speaks for Orders and Doctrines only (batch DT17). See
       // `cardCapitalIds`.
       return capitalCityOf(state, city.ownerId)?.id === city.id;
+    case 'notTrueCapital':
+      return capitalCityOf(state, city.ownerId)?.id !== city.id;
     case 'notCapital':
       // The negation asked of the same answer, rather than of a second lookup:
       // a realm with no capital at all (none founded yet) has no city standing
@@ -3205,6 +3206,7 @@ function scopeNote(scope?: CityScope): string | null {
     case 'trueCapital':
       return 'capital';
     case 'notCapital':
+    case 'notTrueCapital':
       return 'not the capital';
     case 'onHills':
       return 'hill city';

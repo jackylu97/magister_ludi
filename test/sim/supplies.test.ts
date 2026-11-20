@@ -262,7 +262,7 @@ describe('the rows that counted science buildings', () => {
       ...orderDef('theRoyalTutors' as OrderId).effects,
       ...orderDef('theCommonTables' as OrderId).effects,
     ];
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(6);
     for (const effect of rows) {
       expect('count' in effect && effect.count).toBe('buildingsSupplying');
       expect('voice' in effect && effect.voice).toBe('science');

@@ -488,14 +488,12 @@ describe('a card that pays on an occasion', () => {
     expect(ahmes.every((line) => line.kind !== 'occasion')).toBe(true);
   });
 
-  /**
-   * And a legacy that is neither — a combat percentage on melee pieces — is the
-   * **empty list**, which is what the hatched face is for. A zero would be a
-   * claim; nothing is the truth.
-   */
-  it('answers nothing at all for a card with no ledger footprint', () => {
+  it('shows gold from Ahmose on a kill and no income from a combat-only legacy', () => {
     const { state } = bench();
-    expect(explainCardImpact(state, 0, { kind: 'legacy', id: 'ahmoseSonOfEbana' })).toEqual([]);
+    const ahmose = explainCardImpact(state, 0, { kind: 'legacy', id: 'ahmoseSonOfEbana' });
+    expect(foldCardOccasions(ahmose).gold).toBe(10);
+    expect(hasPerTurnImpact(ahmose)).toBe(false);
+    expect(explainCardImpact(state, 0, { kind: 'legacy', id: 'piyamaradu' })).toEqual([]);
   });
 });
 

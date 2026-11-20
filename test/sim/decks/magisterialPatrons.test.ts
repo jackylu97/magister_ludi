@@ -46,6 +46,7 @@ import {
   type GameState,
   type Player,
   type Unit,
+  addBuilding,
   bumpRevision,
   createUnit,
   playerById,
@@ -423,39 +424,43 @@ describe('The Last Commission', () => {
 // --- The Immortals ---------------------------------------------------------------
 
 describe('The Immortals (reading 22)', () => {
-  /** A board whose seat has spent Copernicus: +4 science in every city (batch GP1 of 2026-11-12). */
+  /** Taqī al-Dīn pays science in each city with a Workshop. */
   function honoured(): { state: GameState; player: Player; capital: City } {
     const made = board();
-    made.player.legacies.push({ id: 'copernicus' as GreatPersonId, age: 1 });
+    made.player.legacies.push({ id: 'taqiAlDin', age: 4 });
+    addBuilding(made.state, made.capital, 'workshop');
     bumpRevision(made.state);
     return made;
   }
 
-  /** The science Copernicus' legacy pays this town, read off the town's own list. */
+  /** Read the legacy from the city's science breakdown. */
   function legacyScience(state: GameState, city: City): number {
     return explainCardCityYields(state, city)
-      .filter((line) => line.card === 'copernicus')
+      .filter((line) => line.card === 'taqiAlDin')
       .reduce((sum, line) => sum + line.science, 0);
   }
 
   it('reads each live legacy twice, the second time under the card’s name', () => {
     const { state, capital } = honoured();
     const other = town(state, 12, 5);
-    expect(legacyScience(state, capital)).toBe(4);
+    expect(legacyScience(state, capital)).toBe(3);
     seat(state, IMMORTALS);
-    expect(legacyScience(state, capital)).toBe(8);
-    expect(legacyScience(state, other)).toBe(8);
+    expect(legacyScience(state, capital)).toBe(6);
+    expect(legacyScience(state, other)).toBe(0);
+    addBuilding(state, other, 'workshop');
+    bumpRevision(state);
+    expect(legacyScience(state, other)).toBe(6);
     const sources = liveEffects(state, 0)
-      .filter((entry) => entry.card === 'copernicus')
+      .filter((entry) => entry.card === 'taqiAlDin')
       .map((entry) => entry.source);
-    expect(sources).toEqual(['Legacy · Copernicus', 'Legacy · Copernicus · The Immortals']);
+    expect(sources).toEqual(['Legacy · Taqī al-Dīn', 'Legacy · Taqī al-Dīn · The Immortals']);
   });
 
   it('reads a revoked legacy not at all, and does nothing from the collection', () => {
     const { state, player, capital } = honoured();
     player.statecraft.orders.push(IMMORTALS);
     bumpRevision(state);
-    expect(legacyScience(state, capital)).toBe(4);
+    expect(legacyScience(state, capital)).toBe(3);
     seat(state, IMMORTALS);
     player.legacies[0]!.revoked = true;
     bumpRevision(state);

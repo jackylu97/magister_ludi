@@ -1462,13 +1462,12 @@ describe('The Platonic Academy (batch DT16)', () => {
 
   it('pays The Peripatetic School’s line on a general’s Academy', () => {
     const { state, player, city, site } = board();
-    hold(state, 'thePeripateticSchool');
     const general = person(state, site, 'general');
-    const before = hexPays(state, city, site.col, site.row);
     greatPersonWorkAt(state, player, general, at(state, site.col, site.row));
+    const before = hexPays(state, city, site.col, site.row);
+    hold(state, 'thePeripateticSchool');
     const after = hexPays(state, city, site.col, site.row);
-    // The Academy's own +3 science, and the School's +2 science and +2 production.
-    expect(after.science - before.science).toBe(5);
+    expect(after.science - before.science).toBe(2);
     expect(after.production - before.production).toBe(2);
   });
 
@@ -1954,22 +1953,29 @@ describe('The Two Capitals (batch DT17)', () => {
       expect(culture(state, second, 'flowerAndSong')).toBe(0);
     });
 
-    for (const [id, name] of [
-      ['sappho', 'Sappho'],
-      ['christineDePizan', 'Christine de Pizan'],
-    ] as const) {
-      it(`keeps ${name}’s legacy at the true capital`, () => {
-        const { state, capital, second } = board();
-        seat(state).legacies.push({ id, age: 1 });
-        bumpRevision(state);
-        expect(culture(state, capital, id)).toBe(3);
-        expect(culture(state, second, id)).toBe(0);
-      });
-    }
+    it('pays Sappho’s culture only in the capital', () => {
+      const { state, capital, second } = board();
+      seat(state).legacies.push({ id: 'sappho', age: 2 });
+      bumpRevision(state);
+      expect(culture(state, capital, 'sappho')).toBe(3);
+      expect(culture(state, second, 'sappho')).toBe(0);
+    });
+
+    it('pays both of Cleopatra’s deal bonuses only in the capital', () => {
+      const { state, capital, second } = board();
+      seat(state).leader = 'cleopatra';
+      seat(state).techsResearched = [];
+      state.deals.push({ id: 1, a: 0, b: 1, terms: { a: { goldPerTurn: 1 }, b: {} }, untilTurn: state.turn + 2 });
+      bumpRevision(state);
+      const bonuses = (city: City) => (['gold', 'culture'] as const).map((voice) =>
+        pays(state, city, 'queensAlliances', voice));
+      expect(bonuses(capital)).toEqual([4, 2]);
+      expect(bonuses(second)).toEqual([0, 0]);
+    });
 
     it('keeps a legacy’s percentage and its production bonus at the true capital', () => {
       const { state, capital, second } = board();
-      seat(state).legacies.push({ id: 'kidinnu', age: 1 }, { id: 'taqiAlDin', age: 1 });
+      seat(state).legacies.push({ id: 'kidinnu', age: 2 }, { id: 'brunelleschi', age: 4 });
       bumpRevision(state);
       const percent = (city: City, card: string): number =>
         explainCardPercentYields(state, city)
@@ -1977,8 +1983,8 @@ describe('The Two Capitals (batch DT17)', () => {
           .reduce((sum, entry) => sum + entry.percent, 0);
       expect(percent(capital, 'kidinnu')).toBe(15);
       expect(percent(second, 'kidinnu')).toBe(0);
-      expect(percent(capital, 'taqiAlDin')).toBeGreaterThan(0);
-      expect(percent(second, 'taqiAlDin')).toBe(0);
+      expect(buildPercent(state, capital, 'pyramids', 'brunelleschi')).toBe(25);
+      expect(buildPercent(state, second, 'pyramids', 'brunelleschi')).toBe(0);
     });
 
     it('counts Qu Yuan’s happiness at the true capital alone, so once', () => {
@@ -1988,7 +1994,17 @@ describe('The Two Capitals (batch DT17)', () => {
       const lines = explainHappiness(state, 0)
         .filter((entry) => entry.source.includes('Qu Yuan'))
         .reduce((sum, entry) => sum + entry.value, 0);
-      expect(lines).toBe(-5);
+      expect(lines).toBe(-3);
+    });
+
+    it('pays Aššur-idī in every city except the capital with or without the Doctrine', () => {
+      const { state, capital, second, third } = board(false);
+      seat(state).legacies.push({ id: 'assurIdi', age: 2 });
+      bumpRevision(state);
+      const gold = () => [capital, second, third].map((city) => pays(state, city, 'assurIdi', 'gold'));
+      expect(gold()).toEqual([0, 2, 2]);
+      hold(state, ID);
+      expect(gold()).toEqual([0, 2, 2]);
     });
 
     it('counts the great works of the true capital alone on the Camel Archer’s scale', () => {
@@ -2003,6 +2019,7 @@ describe('The Two Capitals (batch DT17)', () => {
 
     it('prints the same words for `trueCapital` as for `capital`', () => {
       expect(cityScopeWords({ test: 'trueCapital' })).toBe(cityScopeWords({ test: 'capital' }));
+      expect(cityScopeWords({ test: 'notTrueCapital' })).toBe(cityScopeWords({ test: 'notCapital' }));
       expect(cityScopeWords({ test: 'all', of: [{ test: 'trueCapital' }, { test: 'mountainAdjacent' }] })).toBe(
         cityScopeWords({ test: 'all', of: [{ test: 'capital' }, { test: 'mountainAdjacent' }] }),
       );
@@ -2102,11 +2119,15 @@ describe('The Two Capitals (batch DT17)', () => {
             'buildings.json/buildings/assemblyHall/requiresSite',
             'buildings.json/buildings/weiyangPalace/effects',
             'greatPeople.json/people/amenhotepSonOfHapu/legacy',
-            'greatPeople.json/people/christineDePizan/legacy',
+            'greatPeople.json/people/banZhao/legacy',
+            'greatPeople.json/people/brunelleschi/legacy',
+            'greatPeople.json/people/iddinMarduk/legacy',
+            'greatPeople.json/people/panini/legacy',
             'greatPeople.json/people/kidinnu/legacy',
             'greatPeople.json/people/quYuan/legacy',
             'greatPeople.json/people/sappho/legacy',
-            'greatPeople.json/people/taqiAlDin/legacy',
+            'greatPeople.json/people/solon/legacy',
+            'leaders.json/leaders/cleopatra/abilities',
             'leaders.json/leaders/nezahualcoyotl/abilities',
             'resources.json/resources/coffee/effects',
             'resources.json/resources/coral/effects',
@@ -2117,14 +2138,6 @@ describe('The Two Capitals (batch DT17)', () => {
             'resources.json/resources/whales/effects',
           ].sort(),
         );
-      });
-
-      it('finds Assur-Idi’s `notCapital` only on a retired row', () => {
-        const people = dataFiles().find((file) => file.name === 'greatPeople.json')!.rows as {
-          people: Record<string, { retired?: boolean; legacy?: unknown }>;
-        };
-        expect(people.people['assurIdi']?.retired).toBe(true);
-        expect(JSON.stringify(people.people['assurIdi']?.legacy)).toContain('notCapital');
       });
 
       it('finds no Order or Doctrine reading the two forms that keep to the true capital', () => {

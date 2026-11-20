@@ -628,6 +628,8 @@ export type CityScope =
    * reads it too.
    */
   | { test: 'trueCapital' }
+  /** A legacy can pay every city except the capital, even under The Two Capitals. */
+  | { test: 'notTrueCapital' }
   /** The town is at least this large. */
   | { test: 'populationAtLeast'; value: number }
   /**
@@ -803,16 +805,7 @@ export type CityScope =
    * or not. Absent, one is enough.
    */
   | { test: 'terrainInBorders'; terrain: TerrainId; atLeast?: number }
-  /**
-   * The town is **not** this empire's capital — Aššur-idī's colony trade.
-   *
-   * `notFreshwater`'s precedent, and it is here for that member's reason
-   * exactly: there is no `not` composite and there will not be one, so a
-   * negation that the ratified table actually asks for earns its own named
-   * member. Two negations now, both of scopes whose positive half a card also
-   * uses, which is the shape of the rule — a negation is written down when a
-   * card needs it and never invented in advance.
-   */
+  /** Orders and Doctrines with this scope skip both cities under The Two Capitals. */
   | { test: 'notCapital' }
   /**
    * The town's **own hex** is this terrain — Petra's desert city.
