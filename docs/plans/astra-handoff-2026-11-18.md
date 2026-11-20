@@ -409,6 +409,8 @@ checked all thirteen leaders' units). The two units above are the only gaps.
 | Nazca lines, inuksuk, totem pole, stepwell, hillfort, baray | the Expansionist pass (3.14) | Final. Each needs a model. Root-crop grounds, hill groves, the date garden, the reindeer corral, the hammer pond and the vineyard were withdrawn: do not model them. |
 | The eight new wonders | the wonders rework (3.6) | In the data already. They need models only if the user decides wonders get their own. |
 
+**Unit art review, 20 November.** The user approved the white Nazca hummingbird with dark edges. For the remaining land units, use the [current roster studies](../../art/terrain-study/unit-roster-review/README.md) and the painted units in the game as the style reference. Check the leader and deck rosters for any missing pieces. Look up a historical visual reference for each new figure or siege engine before revising the model. Record what the source shows and which details the model uses. If a unit has a fictional name or combines historical elements, identify its closest documented reference. Keep the pieces readable at play zoom and show them for review before adding them to the game. Keshig keeps its existing mounted archer. Ballista Elephant uses the existing siege elephant.
+
 **A decision for the user, not for Astra to take alone:** whether wonders get
 their own models on the board. Today a town's wonders are three shared
 monuments.

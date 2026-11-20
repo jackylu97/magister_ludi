@@ -23,7 +23,8 @@ def render(path):
     size = struct.unpack_from('<I',data,12)[0]
     gltf = json.loads(data[20:20+size])
     binary = data[28+size:]
-    faces = []
+    depth = np.full((500,480), -np.inf)
+    pixels = np.full((500,480,3),[245,239,226],dtype=np.uint8)
     def read(index):
         a = gltf['accessors'][index]
         v = gltf['bufferViews'][a['bufferView']]
@@ -51,29 +52,38 @@ def render(path):
                 shade = .66+.43*np.maximum(0,norm@(basis@light))
                 rgb=(np.clip(color*shade[:,None],0,1)**(1/2.2)*255).astype('uint8')
                 for t,c in zip(tri,rgb):
-                    faces.append((t[:,2].mean(),t[:,:2],tuple(c)))
+                    xy=t[:,:2]*[324,-324]+[237,442]
+                    lo=np.maximum(np.floor(xy.min(axis=0)).astype(int),[0,0])
+                    hi=np.minimum(np.ceil(xy.max(axis=0)).astype(int)+1,[480,500])
+                    if np.any(lo>=hi): continue
+                    yy,xx=np.ogrid[lo[1]:hi[1],lo[0]:hi[0]]
+                    x=xx+.5-xy[0,0];y=yy+.5-xy[0,1]
+                    a=xy[1]-xy[0];b=xy[2]-xy[0]
+                    area=a[0]*b[1]-a[1]*b[0]
+                    u=(x*b[1]-y*b[0])/area
+                    v=(a[0]*y-a[1]*x)/area
+                    z=t[0,2]+u*(t[1,2]-t[0,2])+v*(t[2,2]-t[0,2])
+                    cut=np.s_[lo[1]:hi[1],lo[0]:hi[0]]
+                    update=(u>=0)&(v>=0)&(u+v<=1)&(z>depth[cut])
+                    depth[cut][update]=z[update]
+                    pixels[cut][update]=c
         for child in node.get('children',[]):walk(child,world)
     for root in gltf['scenes'][0]['nodes']:walk(root,np.eye(4))
-    canvas=Image.new('RGB',(480,500),paper)
-    draw=ImageDraw.Draw(canvas)
-    for _,points,color in sorted(faces,key=lambda t:t[0]):
-        coords=points*np.array([324,-324])+[237,442]
-        draw.polygon([tuple(v) for v in coords],fill=color)
-    return canvas.resize((240,250),Image.Resampling.LANCZOS)
+    return Image.fromarray(pixels).resize((240,250),Image.Resampling.LANCZOS)
 
 rows=[
- ('Current pieces',[('swordsman','Swordsman'),('horseman','Horseman'),('catapult','Catapult')]),
- ('Leader units',[('hypaspist','Hypaspist'),('janissary','Janissary'),('condottiere','Condottiere'),('qinCrossbowman','Qin Crossbowman'),('sparabara','Sparabara'),('hwacha','Hwacha')]),
- ('Deck units and existing models',[('numidianCavalry','Numidian Cavalry'),('companyGuard','Company Guard'),('ballistaElephant','Ballista Elephant'),('keshig','Keshig')])]
+ ('Current reference pieces and reused models',[('swordsman','Swordsman'),('horseman','Horseman'),('catapult','Catapult'),('ballistaElephant','Ballista Elephant'),('keshig','Keshig')]),
+ ('Leader units',[('hypaspist','Hypaspist'),('janissary','Janissary'),('condottiere','Condottiere'),('qinCrossbowman','Qin Crossbowman')]),
+ ('Leader and deck units',[('sparabara','Sparabara'),('hwacha','Hwacha'),('numidianCavalry','Numidian Cavalry'),('companyGuard','Company Guard')])]
 font='/System/Library/Fonts/Supplemental/GillSans.ttc'
-sheet=Image.new('RGB',(1472,910),paper);draw=ImageDraw.Draw(sheet)
+sheet=Image.new('RGB',(1240,910),paper);draw=ImageDraw.Draw(sheet)
 for r,(heading,items) in enumerate(rows):
     y=r*300+12
     draw.text((20,y),heading,font=ImageFont.truetype(font,25),fill=ink)
-    draw.line((20,y+34,1450,y+34),fill='#c7bfae')
+    draw.line((20,y+34,1220,y+34),fill='#c7bfae')
     for i,(id,label) in enumerate(items):
-        image=render((refs if r==0 else out)/(id+'.glb'))
-        x=14+i*242
+        image=render((refs if id in {'swordsman','horseman','catapult'} else out)/(id+'.glb'))
+        x=14+i*(1212//len(items))
         sheet.paste(image.crop((0,13,240,242)),(x,y+36))
         draw.text((x+120,y+277),label,font=ImageFont.truetype(font,21),fill=ink,anchor='mm')
 sheet.save(out/'roster.jpg',quality=95)
