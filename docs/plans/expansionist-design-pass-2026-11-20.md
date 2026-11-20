@@ -713,3 +713,77 @@ Under B tended land is a full theme. "Tended" is the quantity its cards read, th
 | 33 to 36, the Doctrines | All four stay with their texts, and the gate goes from three of them. |
 | The bots | They must learn to lay tended works before anything can be measured (a bot-track batch). |
 | The deck | 80 cards and 24 Doctrines. Three new cards, two new shapes, and the bot work. |
+
+## The user's first rulings (2026-11-20, comments on the page)
+
+Page: https://claude.ai/artifact/6cD6W4ym5WeUdMvUWDXaYf. The user commented on
+changes 05 to 36. Changes 01 to 04 and the five questions have no comment yet,
+and they are **not ruled**. The comments approve every wild-land rework of
+option C (12, 13, 23, 27, 34, 36), so option C is the working answer on tended
+land, and the user asks for more tended works (33, 35).
+
+| # | Card | The user's words | Result |
+|---|---|---|---|
+| 05 | The Burhs | "too strong, lets just cut" | Cut. |
+| 06 | Tinkers' Guild | "lets keep this one, i think it's good for early game tempo, and extra build charges is one of the best bonuses in civ 6. I'm considering a pass where we make units more expensive, and this will be even more important after that change." | Kept as it is today. |
+| 07 | The Land Hunger | "Rework: towns build settlers 50% faster." | Towns build settlers 50% faster. |
+| 08 | Outposts | "Sure sounds good" | Approved. |
+| 09 | The Road Towns | "great" | Approved. |
+| 10 | The Gleaners | "lets remove this, doesn't feel good enough to slot." | Cut. |
+| 11 | The Staked Claims | "sure" | Approved. |
+| 12 | The Standing Woods | "sure" | Approved. |
+| 13 | The Hedgerows | "sure" | Approved. |
+| 14 | The Wide Country | "remove" | Cut. |
+| 15 | The Great Colonies | "this is way too strong, i also don't think i've ever seen it in a game. lets make it a fifth of the citizens." | Tier II, rare: towns you found start with a fifth of the citizens of your largest town. |
+| 16 | The Great Households | "let's rework: +1 production for every 2 citizens in a city." | Each town gains +1 production for every 2 citizens. (Rarity as proposed, common, unless the user says otherwise.) |
+| 17 | The Thermae | "great" | Approved. |
+| 18 | The Beacons | "great" | Approved. |
+| 19 | The Seven Fat Years | "great" | Approved. |
+| 20 | Tier II rarities | "sure" | Approved. |
+| 21 | The Engineers' Yards | "great" | Approved. |
+| 22 | The General Levy | "great" and "let's nerf slightly: every 2 turns." | Tier III, uncommon. At war, a town may do it every 2 turns. |
+| 23 | The Long Tending | "great" | Approved. |
+| 24 | The Polders | "great" | Approved. |
+| 25 | The Mountain Terraces | "great" | Approved. |
+| 26 | Tier III rarities | "sure" | Approved. |
+| 27 | The Garden of the World | "great" | Approved. |
+| 28 | The Keeps | "Sure" | Approved. |
+| 29 | The Philosophers' Peaks | "sure" | Approved. |
+| 30 | The Water Boards | "great" | Approved. |
+| 31 | The Thousand Villages | "great" | Approved. |
+| 32 | Tier IV rarities | "sure" | Approved. |
+| 33 | Bound to the Soil | "for this to work, i think we need to make more unlockable tended tiles?" | **Open:** see below. |
+| 34 | The Wildwood Compact | "sure" | Approved. |
+| 35 | The Garden Peoples | "have this unlock a tended tile type too" | Approved, and it also opens a tended work. Which work: see below. |
+| 36 | Arcadia | "great" | Cut, as proposed. |
+
+The user then asked in chat: "do you think we need more tended improvement
+draws for some of these cards to make sense?"
+
+### Proposal in answer: more kinds of tended work, no more draws
+
+- **The fault to avoid** is the one this pass found: a pay-off that waits for a
+  card the seat is rarely dealt. So a new tended work never gets a card whose
+  only job is to open it. It rides on a card that is good without it.
+- **The need is real.** Under option C the two works are fish traps (coast and
+  lake) and orchards (forest and jungle). A seat on grassland, plains, hills or
+  desert has nothing to tend, so "tended" on a card means nothing there, and a
+  wild hex of open ground still yields too little to work.
+- **Proposed: four works on three cards.**
+  1. The Gathering Grounds (01, the charter, Tiers 0 and I): fish traps and
+     orchards, as proposed.
+  2. Bound to the Soil (33, Doctrine, Tier I) also opens **root-crop grounds**
+     on wild grassland and plains: +1 food and +1 production. This is the open
+     ground's work, from the design doc's own list ("the murnong yam-daisy
+     fields").
+  3. The Garden Peoples (35, Doctrine, Tier III) also opens **terraced groves**
+     on wild hills: +1 food and +1 culture. The user asked for a work on this
+     card.
+- A work stays what the design doc says: not an improvement, still wild,
+  permanent, one worker charge, no resource opened.
+- **Not proposed:** a work for desert, tundra or marsh (too few hexes), and
+  burning (the design doc makes it a town's decision on a cycle, which is a
+  new system).
+- With these, every "tended" line has a hex to act on in most starts, a seat
+  with only the charter can tend two terrains, and a seat that takes the
+  Doctrines can keep whole towns wild.
