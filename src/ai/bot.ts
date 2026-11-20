@@ -129,6 +129,7 @@ import {
 // it is one of the three folds the persona suite pins directly.
 export { explainNextTown };
 import {
+  type LevyReading,
   approachHexes,
   atWarWithAnybody,
   campaignTarget,
@@ -298,6 +299,7 @@ import { improvementDef } from '../sim/improvementData';
 import {
   type QueueItem,
   capitalCityOf,
+  citiesOf,
   cityById,
   hasEndedTurn,
   playerById,
@@ -654,11 +656,14 @@ export function valueContext(
   // makes gold dearer when the levy wants soldiers the income cannot pay for is
   // read off it.
   const army = armySupport(state, player, ai, ledger);
+  // All soldier prices in this book read the same army and city garrisons.
+  const levy = levyReading(staked);
+  const garrisons = new Map(citiesOf(state, player.id).map((city) => [city, garrisonAt(state, player.id, city)]));
   const book = wantBook(state, player, constrained, {
     wageReserve: goldReserveFor(state, player),
     goldRate: netGold,
     faithRate: rates.faithPerTurn ?? 0,
-    soldierWorth: (city, id) => garrisonWorth(state, player, city, id, staked, army),
+    soldierWorth: (city, id) => garrisonWorth(city, id, staked, army, levy, garrisons.get(city)!),
     army,
     recruit: () => recruitFor(state, player, staked),
     // **The draft plan's two readings** (batch 6): the clock the meter fills at,
@@ -672,7 +677,7 @@ export function valueContext(
     // **The levy the faith book charges a bought soldier against** (batch X3),
     // read at the prior for `soldierWorth`'s reason: the book is what sets the
     // live price, so every row in it is appraised before that price exists.
-    levy: levyReading(staked),
+    levy,
     // **A settler bought in a town** (bot batch BP10): the queue's own reading,
     // on the context the book is priced on, which holds the expansion chain.
     settlerWorth: (city) => settlerTerms(state, player, city, constrained),
@@ -1451,31 +1456,22 @@ function escortAvailable(state: GameState, player: Player): boolean {
  * which is symptom (3) of the audit bought with coin instead of hammers.
  */
 function garrisonWorth(
-  state: GameState,
-  player: Player,
   city: City,
   id: UnitTypeId,
   ctx: ValueContext,
-  /**
-   * What the seat's gold can pay for (batch BP1, P2). A soldier bought that the
-   * gold cannot pay for is worth nothing, by the build arm's own rule
-   * (`unpaidSoldier`). The row stays in the book at that worth, so the price of
-   * a coin does not jump when the forecast changes: batch X13's reason for
-   * keeping the garrison a term rather than a door.
-   */
-  army?: ArmySupport,
+  army: ArmySupport,
+  levy: LevyReading,
+  held: number,
 ): Appraisal | null {
   const def = unitDef(id);
   if (!isFieldSoldier(def)) return null;
   // A town in unrest is owed at least `military.unrestGarrison` (batch WC1).
   const wanted = garrisonOwed(ctx.ai, city);
-  const held = garrisonAt(state, player.id, city);
   const short = wanted <= 0 ? 0 : Math.max(0, Math.min(1, (wanted - held) / wanted));
   const soldier = explainSoldier(id, ctx);
-  const levy = levyReading(ctx);
   // The town's own floor first: a town short of its garrison buys its defender
   // whatever the books say, as the build arm trains it (`unpaidSoldier`).
-  const unpaid = army === undefined || short > 0 ? null : wageRefusal(id, army, ctx.ai);
+  const unpaid = short > 0 ? null : wageRefusal(id, army, ctx.ai);
   return appraise([
     nest('what this soldier is worth', soldier),
     {
