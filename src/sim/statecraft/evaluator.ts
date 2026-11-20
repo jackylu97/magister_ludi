@@ -567,6 +567,8 @@ let rateDepth = 0;
  * `readingAtRest`.
  */
 let restDepth = 0;
+type BuildingOutput = ReturnType<typeof foldBuildingPackage>;
+let supplyDuringRead: WeakMap<GameState, WeakMap<City, Map<BuildingId, BuildingOutput>>> | undefined;
 
 /**
  * **Run `read` as a reader at rest**: one that asks while no command and no phase
@@ -596,6 +598,7 @@ export function readingAtRest<T>(read: () => T): T {
     return read();
   } finally {
     restDepth -= 1;
+    if (restDepth === 0) supplyDuringRead = undefined;
   }
 }
 
@@ -2526,7 +2529,28 @@ function buildingSuppliesFrom(
   if (suppliesDepth > 0) return buildingRowSupplies(id, voice);
   suppliesDepth += 1;
   try {
-    return foldBuildingPackage(buildingPackage(state, city, id, readPayments))[voice] > 0;
+    // Several cards can ask about the same building during one HUD update.
+    // A recursive or conditional reading sees a different set of effects.
+    if (restDepth === 0 || conditionDepth || rateDepth || meterDepth || heldDepth) {
+      return foldBuildingPackage(buildingPackage(state, city, id, readPayments))[voice] > 0;
+    }
+    const states = supplyDuringRead ??= new WeakMap();
+    let towns = states.get(state);
+    if (!towns) {
+      towns = new WeakMap();
+      states.set(state, towns);
+    }
+    let buildings = towns.get(city);
+    if (!buildings) {
+      buildings = new Map();
+      towns.set(city, buildings);
+    }
+    let totals = buildings.get(id);
+    if (!totals) {
+      totals = foldBuildingPackage(buildingPackage(state, city, id, readPayments));
+      buildings.set(id, totals);
+    }
+    return totals[voice] > 0;
   } finally {
     suppliesDepth -= 1;
   }

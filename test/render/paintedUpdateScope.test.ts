@@ -1,6 +1,7 @@
-import { InstancedMesh, MeshBasicMaterial, OrthographicCamera, Quaternion, Vector3 } from 'three';
+import { InstancedMesh, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { Renderer3D } from '../../src/render3d/renderer3d';
+import { DioramaCamera } from '../../src/render3d/camera3d';
 import { layerVisibility } from '../../src/render3d/layerVisibility';
 import { badgeAnchors, signUnits, UnitLayer, unitVisualHeight } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -143,12 +144,12 @@ describe('incremental renderer updates', () => {
   });
   it('reuses badge positions across pointer samples and projects them through the current view', () => {
     const {state, unit, runtime} = fixture();
-    const camera = new OrthographicCamera(-12, 12, 8, -8, 0.1, 150);
-    camera.position.set(4, 25, 18);
-    camera.lookAt(4, 0, 3);
-    camera.updateMatrixWorld();
     const canvas = {clientWidth: 840, clientHeight: 560};
-    Object.assign(runtime, {view: {camera, facing: camera.quaternion}, canvas});
+    const view = new DioramaCamera();
+    view.resize(canvas.clientWidth, canvas.clientHeight);
+    view.openAt(4, 3);
+    const camera = view.camera;
+    Object.assign(runtime, {view, canvas});
     const samples = (seat: number) => badgeAnchors(state, seat, type => unitVisualHeight(type, null));
     const hit = (anchor: ReturnType<typeof samples>[number], seat: number) => {
       const p = new Vector3(anchor.x, anchor.y, anchor.z).project(camera);
@@ -160,8 +161,8 @@ describe('incremental renderer updates', () => {
     expect(scans).toHaveBeenCalledTimes(4);
     scans.mockClear();
     camera.zoom = 1.8;
-    camera.updateProjectionMatrix();
     canvas.clientWidth = 660;
+    view.resize(canvas.clientWidth, canvas.clientHeight);
     for (let sample = 0; sample < 20; sample++) {
       for (const anchor of initial) expect(hit(anchor, 0)).toBe(unit.id);
     }

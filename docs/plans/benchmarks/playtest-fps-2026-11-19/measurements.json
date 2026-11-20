@@ -1,0 +1,1103 @@
+{
+  "date": "2026-11-19",
+  "machine": "10-core Apple M4 GPU on a MacBook Air. Native Metal through ANGLE in visible Chrome 156.",
+  "refreshHz": 60.01,
+  "cssViewport": [
+    1470,
+    835
+  ],
+  "cssCanvas": [
+    1470,
+    793
+  ],
+  "devicePixelRatio": 2,
+  "buffers": {
+    "1.5": [
+      2205,
+      1189
+    ],
+    "1.35": [
+      1984,
+      1070
+    ],
+    "1.25": [
+      1837,
+      991
+    ]
+  },
+  "game": {
+    "fresh": {
+      "seed": 999,
+      "turn": 1,
+      "cities": 0,
+      "units": 12,
+      "visibleHexes": 61
+    },
+    "developed": {
+      "seed": 999,
+      "turn": 120,
+      "cities": 86,
+      "units": 520,
+      "visibleHexes": 704
+    }
+  },
+  "workloads": [
+    "The normal local game UI booted in a temporary profile. The fresh game used the normal new-game flow. The developed game used an in-memory turn-120 state snapshot and the normal resume UI. Seat zero fog, normal zoom, daylight, shadows, and normal UI labels were active.",
+    "Each measured interval ran for about 4.2 seconds. The camera panned back and forth at a fixed rate through the game camera input method. Walking used the normal movement animation with a visible unit on a loop. The idle case received no input. The rest case used the existing option to stop after three seconds.",
+    "Board draws were counted with the renderer timestamp. The window refresh was measured on the title. Selected runs also counted Chrome compositor Display::FrameDisplayed events between marker timestamps. Timed samples made no synchronous GPU readbacks. Screenshots were taken in separate runs.",
+    "Computer load varied between runs. Rows with compositor results include tracing overhead. Repeated runs alternated the quality setting. On turn 120 the closest untraced comparison is base4, 125c, 135c, base5, 135d, 125d, base6 in that order."
+  ],
+  "samples": [
+    {
+      "run": "fresh-125a",
+      "turn": 1,
+      "workload": "pan",
+      "boardDpr": 1.25,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 10.67,
+      "browserCallbackFps": 57.85,
+      "boardDrawFps": 57.85,
+      "boardDraws": 243,
+      "drawIntervalMsP50P95": [
+        16.7,
+        17.7
+      ],
+      "jsFrameMsP50P95": [
+        3.2,
+        4.6
+      ],
+      "drawCallsP50P95": [
+        72,
+        72
+      ],
+      "trianglesP50P95": [
+        620830,
+        620830
+      ],
+      "compositor": {
+        "presentedFrames": 243,
+        "presentedFps": 57.85,
+        "gapMsP50P95": [
+          16.67,
+          33.33
+        ],
+        "gapsLongerThan42ms": 0
+      }
+    },
+    {
+      "run": "fresh-125b",
+      "turn": 1,
+      "workload": "pan",
+      "boardDpr": 1.25,
+      "mirrorScale": 0.5,
+      "seconds": 4.2326,
+      "oneMinuteLoad": 9.88,
+      "browserCallbackFps": 59.54,
+      "boardDrawFps": 59.54,
+      "boardDraws": 252,
+      "drawIntervalMsP50P95": [
+        16.7,
+        17.1
+      ],
+      "jsFrameMsP50P95": [
+        3,
+        4.2
+      ],
+      "drawCallsP50P95": [
+        72,
+        72
+      ],
+      "trianglesP50P95": [
+        620830,
+        620830
+      ]
+    },
+    {
+      "run": "fresh-135a",
+      "turn": 1,
+      "workload": "pan",
+      "boardDpr": 1.35,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 10.45,
+      "browserCallbackFps": 50.44,
+      "boardDrawFps": 50.44,
+      "boardDraws": 212,
+      "drawIntervalMsP50P95": [
+        16.7,
+        33.4
+      ],
+      "jsFrameMsP50P95": [
+        3.4,
+        5.2
+      ],
+      "drawCallsP50P95": [
+        72,
+        72
+      ],
+      "trianglesP50P95": [
+        620830,
+        620830
+      ]
+    },
+    {
+      "run": "fresh-135b",
+      "turn": 1,
+      "workload": "pan",
+      "boardDpr": 1.35,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 9.85,
+      "browserCallbackFps": 56.16,
+      "boardDrawFps": 56.16,
+      "boardDraws": 236,
+      "drawIntervalMsP50P95": [
+        16.7,
+        33.3
+      ],
+      "jsFrameMsP50P95": [
+        3,
+        4.1
+      ],
+      "drawCallsP50P95": [
+        72,
+        72
+      ],
+      "trianglesP50P95": [
+        620830,
+        620830
+      ]
+    },
+    {
+      "run": "fresh-base1",
+      "turn": 1,
+      "workload": "pan",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2002,
+      "oneMinuteLoad": 13.15,
+      "browserCallbackFps": 51.15,
+      "boardDrawFps": 51.15,
+      "boardDraws": 215,
+      "drawIntervalMsP50P95": [
+        16.7,
+        33.4
+      ],
+      "jsFrameMsP50P95": [
+        2.4,
+        3.4
+      ],
+      "drawCallsP50P95": [
+        72,
+        72
+      ],
+      "trianglesP50P95": [
+        620830,
+        620830
+      ],
+      "compositor": {
+        "presentedFrames": 217,
+        "presentedFps": 51.31,
+        "gapMsP50P95": [
+          16.67,
+          33.33
+        ],
+        "gapsLongerThan42ms": 10
+      }
+    },
+    {
+      "run": "fresh-base2",
+      "turn": 1,
+      "workload": "pan",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 10.1,
+      "browserCallbackFps": 48.05,
+      "boardDrawFps": 48.05,
+      "boardDraws": 202,
+      "drawIntervalMsP50P95": [
+        16.7,
+        33.8
+      ],
+      "jsFrameMsP50P95": [
+        3.4,
+        4.5
+      ],
+      "drawCallsP50P95": [
+        72,
+        72
+      ],
+      "trianglesP50P95": [
+        620830,
+        620830
+      ]
+    },
+    {
+      "run": "fresh-base3",
+      "turn": 1,
+      "workload": "pan",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 9.41,
+      "browserCallbackFps": 47.81,
+      "boardDrawFps": 47.81,
+      "boardDraws": 201,
+      "drawIntervalMsP50P95": [
+        16.7,
+        33.8
+      ],
+      "jsFrameMsP50P95": [
+        1.9,
+        3.8
+      ],
+      "drawCallsP50P95": [
+        72,
+        72
+      ],
+      "trianglesP50P95": [
+        620830,
+        620830
+      ]
+    },
+    {
+      "run": "fresh-idle",
+      "turn": 1,
+      "workload": "idle",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2167,
+      "oneMinuteLoad": 12.65,
+      "browserCallbackFps": 59.52,
+      "boardDrawFps": 20.64,
+      "boardDraws": 87,
+      "drawIntervalMsP50P95": [
+        50,
+        50.5
+      ],
+      "jsFrameMsP50P95": [
+        2.5,
+        3.6
+      ],
+      "drawCallsP50P95": [
+        86,
+        87
+      ],
+      "trianglesP50P95": [
+        639510,
+        639546
+      ]
+    },
+    {
+      "run": "fresh-rest",
+      "turn": 1,
+      "workload": "rest",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2167,
+      "oneMinuteLoad": 11.8,
+      "browserCallbackFps": 60,
+      "boardDrawFps": 0,
+      "boardDraws": 0,
+      "drawIntervalMsP50P95": [
+        0,
+        0
+      ],
+      "jsFrameMsP50P95": [
+        0,
+        0
+      ],
+      "drawCallsP50P95": [
+        0,
+        0
+      ],
+      "trianglesP50P95": [
+        0,
+        0
+      ]
+    },
+    {
+      "run": "fresh-walk",
+      "turn": 1,
+      "workload": "walk",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2332,
+      "oneMinuteLoad": 9.05,
+      "browserCallbackFps": 50.99,
+      "boardDrawFps": 50.99,
+      "boardDraws": 216,
+      "drawIntervalMsP50P95": [
+        16.7,
+        17.6
+      ],
+      "jsFrameMsP50P95": [
+        4.5,
+        7
+      ],
+      "drawCallsP50P95": [
+        121,
+        122
+      ],
+      "trianglesP50P95": [
+        668766,
+        668802
+      ]
+    },
+    {
+      "run": "late-125a",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.25,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 11.01,
+      "browserCallbackFps": 37.77,
+      "boardDrawFps": 37.77,
+      "boardDraws": 159,
+      "drawIntervalMsP50P95": [
+        16.7,
+        100
+      ],
+      "jsFrameMsP50P95": [
+        4.4,
+        12.1
+      ],
+      "drawCallsP50P95": [
+        337,
+        341
+      ],
+      "trianglesP50P95": [
+        2345859,
+        2391438
+      ],
+      "compositor": {
+        "presentedFrames": 159,
+        "presentedFps": 37.72,
+        "gapMsP50P95": [
+          16.67,
+          100.0
+        ],
+        "gapsLongerThan42ms": 13
+      }
+    },
+    {
+      "run": "late-125b",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.25,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 20.81,
+      "browserCallbackFps": 34.42,
+      "boardDrawFps": 34.42,
+      "boardDraws": 145,
+      "drawIntervalMsP50P95": [
+        33,
+        50
+      ],
+      "jsFrameMsP50P95": [
+        3.4,
+        5.3
+      ],
+      "drawCallsP50P95": [
+        336,
+        341
+      ],
+      "trianglesP50P95": [
+        2351534,
+        2399649
+      ]
+    },
+    {
+      "run": "late-125c",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.25,
+      "mirrorScale": 0.5,
+      "seconds": 4.2323,
+      "oneMinuteLoad": 13.84,
+      "browserCallbackFps": 33.1,
+      "boardDrawFps": 33.1,
+      "boardDraws": 140,
+      "drawIntervalMsP50P95": [
+        17.5,
+        66.8
+      ],
+      "jsFrameMsP50P95": [
+        7.8,
+        24.8
+      ],
+      "drawCallsP50P95": [
+        336,
+        341
+      ],
+      "trianglesP50P95": [
+        2360236,
+        2399649
+      ]
+    },
+    {
+      "run": "late-125d",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.25,
+      "mirrorScale": 0.5,
+      "seconds": 4.2001,
+      "oneMinuteLoad": 11.28,
+      "browserCallbackFps": 31.45,
+      "boardDrawFps": 31.45,
+      "boardDraws": 132,
+      "drawIntervalMsP50P95": [
+        33,
+        50.8
+      ],
+      "jsFrameMsP50P95": [
+        5.8,
+        7.4
+      ],
+      "drawCallsP50P95": [
+        337,
+        341
+      ],
+      "trianglesP50P95": [
+        2352222,
+        2399649
+      ]
+    },
+    {
+      "run": "late-135a",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.35,
+      "mirrorScale": 0.5,
+      "seconds": 4.2166,
+      "oneMinuteLoad": 10.61,
+      "browserCallbackFps": 44.52,
+      "boardDrawFps": 44.52,
+      "boardDraws": 188,
+      "drawIntervalMsP50P95": [
+        16.8,
+        33.9
+      ],
+      "jsFrameMsP50P95": [
+        8.8,
+        11.8
+      ],
+      "drawCallsP50P95": [
+        336,
+        341
+      ],
+      "trianglesP50P95": [
+        2352222,
+        2391438
+      ]
+    },
+    {
+      "run": "late-135b",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.35,
+      "mirrorScale": 0.5,
+      "seconds": 4.2005,
+      "oneMinuteLoad": 23.01,
+      "browserCallbackFps": 45.41,
+      "boardDrawFps": 45.41,
+      "boardDraws": 191,
+      "drawIntervalMsP50P95": [
+        16.9,
+        33.8
+      ],
+      "jsFrameMsP50P95": [
+        9.4,
+        11
+      ],
+      "drawCallsP50P95": [
+        336,
+        341
+      ],
+      "trianglesP50P95": [
+        2352222,
+        2392038
+      ]
+    },
+    {
+      "run": "late-135c",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.35,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 13.06,
+      "browserCallbackFps": 30.12,
+      "boardDrawFps": 30.12,
+      "boardDraws": 127,
+      "drawIntervalMsP50P95": [
+        33.3,
+        66.1
+      ],
+      "jsFrameMsP50P95": [
+        4.4,
+        7.3
+      ],
+      "drawCallsP50P95": [
+        336,
+        341
+      ],
+      "trianglesP50P95": [
+        2351534,
+        2399649
+      ]
+    },
+    {
+      "run": "late-135d",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.35,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 11.74,
+      "browserCallbackFps": 32.88,
+      "boardDrawFps": 32.88,
+      "boardDraws": 138,
+      "drawIntervalMsP50P95": [
+        33.3,
+        50.6
+      ],
+      "jsFrameMsP50P95": [
+        5.3,
+        7.3
+      ],
+      "drawCallsP50P95": [
+        336,
+        341
+      ],
+      "trianglesP50P95": [
+        2352222,
+        2399649
+      ]
+    },
+    {
+      "run": "late-135trace",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.35,
+      "mirrorScale": 0.5,
+      "seconds": 4.234,
+      "oneMinuteLoad": 9.3,
+      "browserCallbackFps": 32.02,
+      "boardDrawFps": 32.02,
+      "boardDraws": 136,
+      "drawIntervalMsP50P95": [
+        33.3,
+        50.9
+      ],
+      "jsFrameMsP50P95": [
+        4,
+        6.9
+      ],
+      "drawCallsP50P95": [
+        337,
+        341
+      ],
+      "trianglesP50P95": [
+        2351534,
+        2399649
+      ],
+      "compositor": {
+        "presentedFrames": 136,
+        "presentedFps": 32.17,
+        "gapMsP50P95": [
+          33.33,
+          66.66
+        ],
+        "gapsLongerThan42ms": 41
+      }
+    },
+    {
+      "run": "late-base1",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2168,
+      "oneMinuteLoad": 11.73,
+      "browserCallbackFps": 29.52,
+      "boardDrawFps": 29.52,
+      "boardDraws": 125,
+      "drawIntervalMsP50P95": [
+        33.3,
+        66.5
+      ],
+      "jsFrameMsP50P95": [
+        4.8,
+        9.8
+      ],
+      "drawCallsP50P95": [
+        337,
+        341
+      ],
+      "trianglesP50P95": [
+        2352222,
+        2399649
+      ],
+      "compositor": {
+        "presentedFrames": 126,
+        "presentedFps": 29.95,
+        "gapMsP50P95": [
+          33.33,
+          66.67
+        ],
+        "gapsLongerThan42ms": 44
+      }
+    },
+    {
+      "run": "late-base2",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 10.56,
+      "browserCallbackFps": 41.83,
+      "boardDrawFps": 41.83,
+      "boardDraws": 176,
+      "drawIntervalMsP50P95": [
+        16.9,
+        34.1
+      ],
+      "jsFrameMsP50P95": [
+        8.7,
+        9.9
+      ],
+      "drawCallsP50P95": [
+        336,
+        341
+      ],
+      "trianglesP50P95": [
+        2351534,
+        2399649
+      ]
+    },
+    {
+      "run": "late-base3",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2339,
+      "oneMinuteLoad": 19.47,
+      "browserCallbackFps": 25.71,
+      "boardDrawFps": 25.71,
+      "boardDraws": 109,
+      "drawIntervalMsP50P95": [
+        17.6,
+        67.2
+      ],
+      "jsFrameMsP50P95": [
+        4.4,
+        9.3
+      ],
+      "drawCallsP50P95": [
+        336,
+        341
+      ],
+      "trianglesP50P95": [
+        2360394,
+        2399649
+      ],
+      "compositor": {
+        "presentedFrames": 116,
+        "presentedFps": 27.41,
+        "gapMsP50P95": [
+          33.33,
+          66.67
+        ],
+        "gapsLongerThan42ms": 33
+      }
+    },
+    {
+      "run": "late-base4",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.217,
+      "oneMinuteLoad": 14.49,
+      "browserCallbackFps": 25.3,
+      "boardDrawFps": 25.3,
+      "boardDraws": 106,
+      "drawIntervalMsP50P95": [
+        33.3,
+        83.4
+      ],
+      "jsFrameMsP50P95": [
+        4.9,
+        9.4
+      ],
+      "drawCallsP50P95": [
+        337,
+        341
+      ],
+      "trianglesP50P95": [
+        2352222,
+        2399649
+      ]
+    },
+    {
+      "run": "late-base5",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2333,
+      "oneMinuteLoad": 12.33,
+      "browserCallbackFps": 27.38,
+      "boardDrawFps": 27.38,
+      "boardDraws": 116,
+      "drawIntervalMsP50P95": [
+        33.4,
+        66.7
+      ],
+      "jsFrameMsP50P95": [
+        4.5,
+        7.8
+      ],
+      "drawCallsP50P95": [
+        337,
+        341
+      ],
+      "trianglesP50P95": [
+        2352222,
+        2399649
+      ]
+    },
+    {
+      "run": "late-base6",
+      "turn": 120,
+      "workload": "pan",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2166,
+      "oneMinuteLoad": 9.85,
+      "browserCallbackFps": 28.21,
+      "boardDrawFps": 28.21,
+      "boardDraws": 119,
+      "drawIntervalMsP50P95": [
+        33.3,
+        66.7
+      ],
+      "jsFrameMsP50P95": [
+        5.9,
+        7.7
+      ],
+      "drawCallsP50P95": [
+        337,
+        341
+      ],
+      "trianglesP50P95": [
+        2351534,
+        2399649
+      ]
+    },
+    {
+      "run": "late-idle",
+      "turn": 120,
+      "workload": "idle",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2,
+      "oneMinuteLoad": 11.11,
+      "browserCallbackFps": 59.27,
+      "boardDrawFps": 19.84,
+      "boardDraws": 83,
+      "drawIntervalMsP50P95": [
+        50,
+        51
+      ],
+      "jsFrameMsP50P95": [
+        6.4,
+        8.7
+      ],
+      "drawCallsP50P95": [
+        429,
+        429
+      ],
+      "trianglesP50P95": [
+        3048792,
+        3048792
+      ]
+    },
+    {
+      "run": "late-mirror1",
+      "turn": 120,
+      "workload": "walk",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.375,
+      "seconds": 4.2162,
+      "oneMinuteLoad": 16.78,
+      "browserCallbackFps": 30.96,
+      "boardDrawFps": 30.96,
+      "boardDraws": 131,
+      "drawIntervalMsP50P95": [
+        33.3,
+        50.1
+      ],
+      "jsFrameMsP50P95": [
+        5.5,
+        8.7
+      ],
+      "drawCallsP50P95": [
+        479,
+        479
+      ],
+      "trianglesP50P95": [
+        3221271,
+        3221271
+      ]
+    },
+    {
+      "run": "late-mirror2",
+      "turn": 120,
+      "workload": "walk",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.375,
+      "seconds": 4.2167,
+      "oneMinuteLoad": 15.05,
+      "browserCallbackFps": 29.29,
+      "boardDrawFps": 29.29,
+      "boardDraws": 124,
+      "drawIntervalMsP50P95": [
+        33.3,
+        50.4
+      ],
+      "jsFrameMsP50P95": [
+        5.6,
+        9.7
+      ],
+      "drawCallsP50P95": [
+        479,
+        479
+      ],
+      "trianglesP50P95": [
+        3221271,
+        3221271
+      ]
+    },
+    {
+      "run": "late-rest",
+      "turn": 120,
+      "workload": "rest",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2166,
+      "oneMinuteLoad": 9.79,
+      "browserCallbackFps": 60,
+      "boardDrawFps": 0,
+      "boardDraws": 0,
+      "drawIntervalMsP50P95": [
+        0,
+        0
+      ],
+      "jsFrameMsP50P95": [
+        0,
+        0
+      ],
+      "drawCallsP50P95": [
+        0,
+        0
+      ],
+      "trianglesP50P95": [
+        0,
+        0
+      ]
+    },
+    {
+      "run": "late-walk1",
+      "turn": 120,
+      "workload": "walk",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2332,
+      "oneMinuteLoad": 18.15,
+      "browserCallbackFps": 30.36,
+      "boardDrawFps": 30.36,
+      "boardDraws": 129,
+      "drawIntervalMsP50P95": [
+        33.3,
+        50.4
+      ],
+      "jsFrameMsP50P95": [
+        5.3,
+        9.1
+      ],
+      "drawCallsP50P95": [
+        479,
+        479
+      ],
+      "trianglesP50P95": [
+        3221271,
+        3221271
+      ]
+    },
+    {
+      "run": "late-walk125",
+      "turn": 120,
+      "workload": "walk",
+      "boardDpr": 1.25,
+      "mirrorScale": 0.5,
+      "seconds": 4.2005,
+      "oneMinuteLoad": 15.75,
+      "browserCallbackFps": 40.15,
+      "boardDrawFps": 40.15,
+      "boardDraws": 169,
+      "drawIntervalMsP50P95": [
+        16.8,
+        50
+      ],
+      "jsFrameMsP50P95": [
+        4.9,
+        6.6
+      ],
+      "drawCallsP50P95": [
+        479,
+        479
+      ],
+      "trianglesP50P95": [
+        3221271,
+        3221271
+      ]
+    },
+    {
+      "run": "late-walk2",
+      "turn": 120,
+      "workload": "walk",
+      "boardDpr": 1.5,
+      "mirrorScale": 0.5,
+      "seconds": 4.2166,
+      "oneMinuteLoad": 14.73,
+      "browserCallbackFps": 29.05,
+      "boardDrawFps": 29.05,
+      "boardDraws": 123,
+      "drawIntervalMsP50P95": [
+        33.4,
+        50.5
+      ],
+      "jsFrameMsP50P95": [
+        6.1,
+        9.4
+      ],
+      "drawCallsP50P95": [
+        479,
+        479
+      ],
+      "trianglesP50P95": [
+        3221271,
+        3221271
+      ]
+    }
+  ],
+  "menuCheck": {
+    "enable": [
+      {
+        "ratio": 1.25,
+        "sharp": false,
+        "url": "?light=day",
+        "pixels": [
+          1837,
+          991
+        ]
+      },
+      {
+        "ratio": 1.5,
+        "sharp": true,
+        "url": "?light=day&sharp=1",
+        "pixels": [
+          2205,
+          1189
+        ]
+      }
+    ],
+    "reloadAndDisable": [
+      {
+        "ratio": 1.5,
+        "sharp": true,
+        "url": "?light=day&sharp=1",
+        "pixels": [
+          2205,
+          1189
+        ]
+      },
+      {
+        "ratio": 1.25,
+        "sharp": false,
+        "url": "?light=day",
+        "pixels": [
+          1837,
+          991
+        ]
+      }
+    ]
+  },
+  "presentationPacing": {
+    "method": "Count distinct presentation times in each possible full, half-open one-second window between the start and end markers. Events within two milliseconds form one presentation on the 60 Hz screen. Longest gaps are between consecutive presentations inside the marked interval. The raw compositor counts under samples can include two events for one presentation. Board draws are measured separately.",
+    "runs": [
+      {
+        "run": "live-fresh-125a",
+        "displayedFramesInWorstSecond": 46,
+        "worstSecondBeginsAfterMs": 1070.77,
+        "longestFrameGapMs": 33.33,
+        "gapsAtLeast99ms": 0,
+        "uniqueDisplayEvents": 229,
+        "uniqueDisplayEventsPerSecond": 54.52
+      },
+      {
+        "run": "live-fresh-base1",
+        "displayedFramesInWorstSecond": 32,
+        "worstSecondBeginsAfterMs": 1839.5,
+        "longestFrameGapMs": 66.67,
+        "gapsAtLeast99ms": 0,
+        "uniqueDisplayEvents": 193,
+        "uniqueDisplayEventsPerSecond": 45.64
+      },
+      {
+        "run": "live-late-125a",
+        "displayedFramesInWorstSecond": 7,
+        "worstSecondBeginsAfterMs": 2038.68,
+        "longestFrameGapMs": 200.0,
+        "gapsAtLeast99ms": 10,
+        "uniqueDisplayEvents": 156,
+        "uniqueDisplayEventsPerSecond": 37.01
+      },
+      {
+        "run": "live-late-135trace",
+        "displayedFramesInWorstSecond": 23,
+        "worstSecondBeginsAfterMs": 0.0,
+        "longestFrameGapMs": 83.33,
+        "gapsAtLeast99ms": 0,
+        "uniqueDisplayEvents": 122,
+        "uniqueDisplayEventsPerSecond": 28.86
+      },
+      {
+        "run": "live-late-base1",
+        "displayedFramesInWorstSecond": 21,
+        "worstSecondBeginsAfterMs": 367.22,
+        "longestFrameGapMs": 83.33,
+        "gapsAtLeast99ms": 0,
+        "uniqueDisplayEvents": 112,
+        "uniqueDisplayEventsPerSecond": 26.62
+      },
+      {
+        "run": "live-late-base3",
+        "displayedFramesInWorstSecond": 5,
+        "worstSecondBeginsAfterMs": 744.48,
+        "longestFrameGapMs": 849.97,
+        "gapsAtLeast99ms": 1,
+        "uniqueDisplayEvents": 98,
+        "uniqueDisplayEventsPerSecond": 23.15
+      }
+    ]
+  }
+}

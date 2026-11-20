@@ -1543,6 +1543,8 @@ export interface GameControlsOptions {
   getGame: () => Game;
   /** Called after anything the panel displays may have changed. */
   onUpdate: (selected: Unit | null, hover: HoverInfo | null) => void;
+  /** An accepted walk can draw before the empire panels refresh. */
+  onAnimatedMove?: () => void;
 
   /**
    * The pointer moved over the board, and nothing else happened.
@@ -4182,7 +4184,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * with nothing selected, or after ending your turn, does nothing rather than
    * arming a mode whose next click would only be refused.
    */
-  function setMoveMode(on: boolean): void {
+  function setMoveMode(on: boolean, refresh: 'now' | 'afterOrder' = 'now'): void {
     const next = on && selectedUnit() !== null && canOrder();
     if (next === moveMode) return;
     moveMode = next;
@@ -4190,7 +4192,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     viewport.classList.toggle('is-move-mode', moveMode);
     renderer.setMoveModeHighlight?.(moveMode);
     publishNotice();
-    onUpdate(selectedUnit(), renderer.getHover());
+    if (refresh === 'now') onUpdate(selectedUnit(), renderer.getHover());
   }
 
   // --- buy mode ------------------------------------------------------------
@@ -7140,7 +7142,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (col === unit.col && row === unit.row) {
       // Ordering a unit onto its own tile is not an error, it is a no-op; say
       // nothing and leave the selection exactly as it was.
-      setMoveMode(false);
+      setMoveMode(false, 'afterOrder');
       onUpdate(unit, hover);
       return;
     }
@@ -7172,7 +7174,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return;
     }
 
-    setMoveMode(false);
+    // The order refreshes the panel after it starts the walk.
+    setMoveMode(false, 'afterOrder');
 
     // `unit` is a live reference into the state, so it is already at its
     // destination here; the walked prefix is the route up to that tile. A march
@@ -7191,7 +7194,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     reportArrivals(result, { col: unit.col, row: unit.row });
     renderer.invalidate();
     refreshOverlays();
-    onUpdate(selectedUnit(), hover);
+    if (walked.length > 0 && options.onAnimatedMove && (renderer.pendingAnimationMs?.() ?? 0) > 0) {
+      options.onAnimatedMove();
+    } else {
+      onUpdate(selectedUnit(), hover);
+    }
   }
 
   /**

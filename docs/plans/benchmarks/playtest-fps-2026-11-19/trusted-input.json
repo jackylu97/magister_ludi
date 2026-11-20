@@ -1,0 +1,1246 @@
+{
+  "date": "2026-11-19",
+  "fixture": {
+    "seed": 999,
+    "turn": 120,
+    "fogSeat": 0,
+    "cityCount": 86,
+    "units": 520,
+    "seen": 704,
+    "radius": 7,
+    "target": [
+      91.79869280115048,
+      42
+    ],
+    "device": 2,
+    "ratio": 1.5,
+    "rect": [
+      0,
+      42,
+      1470,
+      793
+    ],
+    "drawing": [
+      2205,
+      1189
+    ],
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "browser": "Chrome 156.0.8078.48",
+    "refreshHz": 60,
+    "perfReadback": false
+  },
+  "method": {
+    "board": "Unique drawn frames collected at requestAnimationFrame. Triples give average FPS, lowest count over any full second, and longest gap in ms.",
+    "display": "Chrome Display::FrameDisplayed events merged when less than 2 ms apart. The compositor can refresh a UI overlay without a new board draw.",
+    "inputNextDrawP95ms": "Time from observed DOM input dispatch to next observed board draw. Excludes event delivery and presentation. Static hover and selection draw on demand.",
+    "walk": "FPS = distinct draws inside the nominal walk interval / that interval. Durations are below one second. Includes the delay between starting the animation and the first observed draw.",
+    "hardwareLoad": "The user requested concurrent CPU-only Blender at nice 19, one thread. During the projection-only comparisons system load rose above 20. A Chrome renderer outside the benchmark used over three CPU cores. Clock and scheduling variability limit FPS inferences."
+  },
+  "inputs": {
+    "path": "DevTools Input.dispatchMouseEvent to the live normal game. Trusted DOM inputs and the expected camera, selection and movement outcome were checked for every row.",
+    "points": {
+      "center": {
+        "x": 833,
+        "y": 434
+      },
+      "units": [
+        {
+          "x": 882,
+          "y": 477
+        },
+        {
+          "x": 588,
+          "y": 352
+        }
+      ],
+      "ids": [
+        1000,
+        940
+      ],
+      "move": {
+        "x": 882,
+        "y": 632
+      },
+      "moveCell": [
+        54,
+        31
+      ],
+      "hover": [
+        {
+          "x": 882,
+          "y": 477
+        },
+        {
+          "x": 637,
+          "y": 697
+        },
+        {
+          "x": 588,
+          "y": 352
+        },
+        {
+          "x": 1029,
+          "y": 434
+        },
+        {
+          "x": 882,
+          "y": 477
+        },
+        {
+          "x": 588,
+          "y": 352
+        }
+      ]
+    },
+    "durationMs": 4280,
+    "samplesPerSecond": 60,
+    "pattern": {
+      "drag": "Two cycles, x amplitude 128 CSS pixels, y amplitude 25.",
+      "zoom-within": "Two 7 to 7.84 to 7 cycles.",
+      "zoom-cross": "Two 7 to 12.6 to 7 cycles, crossing both 90/100 pixels-per-hex transitions.",
+      "selection": "Eight alternating left clicks on units 1000 and 940, at 510 ms intervals.",
+      "move": "Left-click unit at 40 ms and issue genuine right-click at 540 ms.",
+      "hover": "Interpolate between listed points over 4200 ms."
+    },
+    "inputHash": {
+      "drag": "9d5b49b53738d2",
+      "zoom-within": "becaa89b80b3fc",
+      "zoom-cross": "985ff7bb8d8003",
+      "hover": "4045629c8c6098",
+      "selection": "a6226e5a4b2fa5",
+      "move": "f7c665dde7f155"
+    }
+  },
+  "controlAndHover": {
+    "original1": {
+      "drag": {
+        "board": [
+          53.0,
+          45,
+          50
+        ],
+        "display": [
+          50.7,
+          42,
+          50
+        ],
+        "loadAtStart": 4.6,
+        "durationMs": 4282.7,
+        "badgePickCalls": 1,
+        "msPerBadgePick": 0.3
+      },
+      "zoom-within": {
+        "board": [
+          52.5,
+          47,
+          38
+        ],
+        "display": [
+          52.1,
+          48,
+          33
+        ],
+        "loadAtStart": 4.9,
+        "durationMs": 4281.7,
+        "badgePickCalls": 233,
+        "msPerBadgePick": 0.3,
+        "detailChanges": 0
+      },
+      "zoom-cross": {
+        "board": [
+          41.6,
+          32,
+          73
+        ],
+        "display": [
+          42.3,
+          34,
+          50
+        ],
+        "loadAtStart": 4.8,
+        "durationMs": 4283.8,
+        "badgePickCalls": 172,
+        "msPerBadgePick": 0.381,
+        "detailChanges": 4
+      },
+      "hover": {
+        "board": [
+          24.1,
+          21,
+          63
+        ],
+        "display": [
+          59.6,
+          59,
+          33
+        ],
+        "loadAtStart": 5.5,
+        "durationMs": 4281.9,
+        "badgePickCalls": 219,
+        "msPerBadgePick": 0.14,
+        "inputNextDrawP95ms": 37.3
+      },
+      "selection": {
+        "board": [
+          23.1,
+          20,
+          58
+        ],
+        "display": [
+          59.1,
+          58,
+          33
+        ],
+        "loadAtStart": 5.2,
+        "durationMs": 4282.7,
+        "badgePickCalls": 32,
+        "msPerBadgePick": 0.363,
+        "inputNextDrawP95ms": 3.6,
+        "selectedIds": [
+          1000,
+          940
+        ]
+      },
+      "move": {
+        "board": [
+          19.4,
+          13,
+          336
+        ],
+        "display": [
+          55.1,
+          41,
+          117
+        ],
+        "loadAtStart": 4.9,
+        "durationMs": 4281.6,
+        "badgePickCalls": 6,
+        "msPerBadgePick": 0.483,
+        "walk": {
+          "nominalMs": 319.2,
+          "boardFrames": 0,
+          "boardFps": 0.0,
+          "firstBoardDrawMs": 322.7
+        }
+      }
+    },
+    "combined1": {
+      "drag": {
+        "board": [
+          48.1,
+          44,
+          45
+        ],
+        "display": [
+          50.6,
+          44,
+          50
+        ],
+        "loadAtStart": 6.1,
+        "durationMs": 4285,
+        "badgePickCalls": 1,
+        "msPerBadgePick": 0.1
+      },
+      "zoom-within": {
+        "board": [
+          46.6,
+          37,
+          73
+        ],
+        "display": [
+          47.8,
+          42,
+          50
+        ],
+        "loadAtStart": 11.6,
+        "durationMs": 4293,
+        "badgePickCalls": 176,
+        "msPerBadgePick": 0.073,
+        "detailChanges": 0
+      },
+      "zoom-cross": {
+        "board": [
+          43.2,
+          35,
+          61
+        ],
+        "display": [
+          42.5,
+          35,
+          67
+        ],
+        "loadAtStart": 11.0,
+        "durationMs": 4287,
+        "badgePickCalls": 183,
+        "msPerBadgePick": 0.071,
+        "detailChanges": 4
+      },
+      "hover": {
+        "board": [
+          24.1,
+          21,
+          52
+        ],
+        "display": [
+          59.6,
+          58,
+          17
+        ],
+        "loadAtStart": 10.9,
+        "durationMs": 4281,
+        "badgePickCalls": 217,
+        "msPerBadgePick": 0.025,
+        "inputNextDrawP95ms": 36.9
+      },
+      "selection": {
+        "board": [
+          22.9,
+          20,
+          58
+        ],
+        "display": [
+          59.3,
+          58,
+          33
+        ],
+        "loadAtStart": 10.2,
+        "durationMs": 4281.4,
+        "badgePickCalls": 32,
+        "msPerBadgePick": 0.025,
+        "inputNextDrawP95ms": 4.6,
+        "selectedIds": [
+          1000,
+          940
+        ]
+      },
+      "move": {
+        "board": [
+          22.7,
+          19,
+          129
+        ],
+        "display": [
+          59.6,
+          58,
+          17
+        ],
+        "loadAtStart": 9.5,
+        "durationMs": 4281.7,
+        "badgePickCalls": 6,
+        "msPerBadgePick": 0.133,
+        "walk": {
+          "nominalMs": 319.5,
+          "boardFrames": 15,
+          "boardFps": 46.9,
+          "firstBoardDrawMs": 98.8
+        }
+      }
+    },
+    "combined2": {
+      "drag": {
+        "board": [
+          50.9,
+          40,
+          45
+        ],
+        "display": [
+          42.5,
+          36,
+          50
+        ],
+        "loadAtStart": 8.2,
+        "durationMs": 4281.5,
+        "badgePickCalls": 1,
+        "msPerBadgePick": 0.0
+      },
+      "zoom-within": {
+        "board": [
+          52.8,
+          47,
+          35
+        ],
+        "display": [
+          52.6,
+          48,
+          33
+        ],
+        "loadAtStart": 7.9,
+        "durationMs": 4280.3,
+        "badgePickCalls": 226,
+        "msPerBadgePick": 0.029,
+        "detailChanges": 0
+      },
+      "zoom-cross": {
+        "board": [
+          49.3,
+          43,
+          41
+        ],
+        "display": [
+          48.8,
+          44,
+          33
+        ],
+        "loadAtStart": 7.6,
+        "durationMs": 4282,
+        "badgePickCalls": 210,
+        "msPerBadgePick": 0.03,
+        "detailChanges": 4
+      },
+      "hover": {
+        "board": [
+          24.3,
+          21,
+          57
+        ],
+        "display": [
+          59.6,
+          58,
+          17
+        ],
+        "loadAtStart": 7.3,
+        "durationMs": 4281.8,
+        "badgePickCalls": 218,
+        "msPerBadgePick": 0.017,
+        "inputNextDrawP95ms": 37.0
+      },
+      "selection": {
+        "board": [
+          22.9,
+          21,
+          54
+        ],
+        "display": [
+          59.3,
+          58,
+          33
+        ],
+        "loadAtStart": 7.0,
+        "durationMs": 4282.2,
+        "badgePickCalls": 32,
+        "msPerBadgePick": 0.025,
+        "inputNextDrawP95ms": 4.0,
+        "selectedIds": [
+          1000,
+          940
+        ]
+      },
+      "move": {
+        "board": [
+          22.9,
+          19,
+          120
+        ],
+        "display": [
+          59.6,
+          58,
+          17
+        ],
+        "loadAtStart": 6.7,
+        "durationMs": 4281.9,
+        "badgePickCalls": 6,
+        "msPerBadgePick": 0.1,
+        "walk": {
+          "nominalMs": 319.6,
+          "boardFrames": 15,
+          "boardFps": 46.9,
+          "firstBoardDrawMs": 91.8
+        }
+      }
+    },
+    "original2": {
+      "drag": {
+        "board": [
+          49.4,
+          44,
+          54
+        ],
+        "display": [
+          46.4,
+          40,
+          50
+        ],
+        "loadAtStart": 7.1,
+        "durationMs": 4289.3,
+        "badgePickCalls": 1,
+        "msPerBadgePick": 0.5
+      },
+      "zoom-within": {
+        "board": [
+          48.8,
+          45,
+          52
+        ],
+        "display": [
+          48.6,
+          46,
+          50
+        ],
+        "loadAtStart": 7.5,
+        "durationMs": 4282.7,
+        "badgePickCalls": 205,
+        "msPerBadgePick": 0.36,
+        "detailChanges": 0
+      },
+      "zoom-cross": {
+        "board": [
+          46.7,
+          42,
+          48
+        ],
+        "display": [
+          46.2,
+          42,
+          50
+        ],
+        "loadAtStart": 7.9,
+        "durationMs": 4281.6,
+        "badgePickCalls": 200,
+        "msPerBadgePick": 0.315,
+        "detailChanges": 4
+      },
+      "hover": {
+        "board": [
+          24.1,
+          21,
+          56
+        ],
+        "display": [
+          59.6,
+          59,
+          17
+        ],
+        "loadAtStart": 7.5,
+        "durationMs": 4281.6,
+        "badgePickCalls": 218,
+        "msPerBadgePick": 0.125,
+        "inputNextDrawP95ms": 36.9
+      },
+      "selection": {
+        "board": [
+          22.8,
+          20,
+          56
+        ],
+        "display": [
+          59.5,
+          58,
+          33
+        ],
+        "loadAtStart": 7.2,
+        "durationMs": 4289.3,
+        "badgePickCalls": 32,
+        "msPerBadgePick": 0.384,
+        "inputNextDrawP95ms": 4.8,
+        "selectedIds": [
+          1000,
+          940
+        ]
+      },
+      "move": {
+        "board": [
+          22.0,
+          19,
+          171
+        ],
+        "display": [
+          59.1,
+          58,
+          33
+        ],
+        "loadAtStart": 6.8,
+        "durationMs": 4281.4,
+        "badgePickCalls": 6,
+        "msPerBadgePick": 0.717,
+        "walk": {
+          "nominalMs": 319.3,
+          "boardFrames": 11,
+          "boardFps": 34.5,
+          "firstBoardDrawMs": 152.6
+        }
+      }
+    }
+  },
+  "projectionOnly": {
+    "projection1": {
+      "drag": {
+        "board": [
+          28.4,
+          20,
+          55
+        ],
+        "display": [
+          59.2,
+          57,
+          50
+        ],
+        "loadAtStart": 8.0,
+        "durationMs": 5814.4,
+        "badgePickCalls": 1,
+        "msPerBadgePick": 0.2
+      },
+      "zoom-within": {
+        "board": [
+          41.8,
+          32,
+          69
+        ],
+        "display": [
+          45.8,
+          37,
+          83
+        ],
+        "loadAtStart": 14.1,
+        "durationMs": 4304.9,
+        "badgePickCalls": 185,
+        "msPerBadgePick": 0.104,
+        "detailChanges": 0
+      },
+      "zoom-cross": {
+        "board": [
+          34.6,
+          25,
+          74
+        ],
+        "display": [
+          35.3,
+          25,
+          67
+        ],
+        "loadAtStart": 15.4,
+        "durationMs": 4300.3,
+        "badgePickCalls": 151,
+        "msPerBadgePick": 0.08,
+        "detailChanges": 4
+      }
+    },
+    "compare1": {
+      "drag": {
+        "board": [
+          37.4,
+          26,
+          57
+        ],
+        "display": [
+          54.6,
+          47,
+          33
+        ],
+        "loadAtStart": 19.9,
+        "durationMs": 4283.1,
+        "badgePickCalls": 1,
+        "msPerBadgePick": 0.6
+      },
+      "zoom-within": {
+        "board": [
+          36.6,
+          26,
+          80
+        ],
+        "display": [
+          39.0,
+          27,
+          67
+        ],
+        "loadAtStart": 23.2,
+        "durationMs": 4284.3,
+        "badgePickCalls": 159,
+        "msPerBadgePick": 0.442,
+        "detailChanges": 0
+      },
+      "zoom-cross": {
+        "board": [
+          30.8,
+          24,
+          67
+        ],
+        "display": [
+          30.8,
+          24,
+          67
+        ],
+        "loadAtStart": 22.3,
+        "durationMs": 4287.5,
+        "badgePickCalls": 135,
+        "msPerBadgePick": 0.316,
+        "detailChanges": 4
+      }
+    },
+    "compare2": {
+      "drag": {
+        "board": [
+          32.8,
+          24,
+          67
+        ],
+        "display": [
+          56.9,
+          49,
+          33
+        ],
+        "loadAtStart": 22.2,
+        "durationMs": 4478.5,
+        "badgePickCalls": 1,
+        "msPerBadgePick": 0.5
+      },
+      "zoom-within": {
+        "board": [
+          37.8,
+          28,
+          53
+        ],
+        "display": [
+          46.4,
+          29,
+          50
+        ],
+        "loadAtStart": 34.5,
+        "durationMs": 4291.1,
+        "badgePickCalls": 159,
+        "msPerBadgePick": 0.414,
+        "detailChanges": 0
+      },
+      "zoom-cross": {
+        "board": [
+          33.8,
+          25,
+          67
+        ],
+        "display": [
+          33.6,
+          25,
+          67
+        ],
+        "loadAtStart": 33.2,
+        "durationMs": 4285.9,
+        "badgePickCalls": 145,
+        "msPerBadgePick": 0.318,
+        "detailChanges": 4
+      }
+    },
+    "projection2": {
+      "drag": {
+        "board": [
+          44.3,
+          37,
+          54
+        ],
+        "display": [
+          49.5,
+          37,
+          50
+        ],
+        "loadAtStart": 27.5,
+        "durationMs": 4285.3,
+        "badgePickCalls": 1,
+        "msPerBadgePick": 0.2
+      },
+      "zoom-within": {
+        "board": [
+          36.2,
+          30,
+          52
+        ],
+        "display": [
+          36.6,
+          31,
+          50
+        ],
+        "loadAtStart": 26.6,
+        "durationMs": 4285.6,
+        "badgePickCalls": 158,
+        "msPerBadgePick": 0.106,
+        "detailChanges": 0
+      },
+      "zoom-cross": {
+        "board": [
+          31.3,
+          27,
+          61
+        ],
+        "display": [
+          31.5,
+          27,
+          67
+        ],
+        "loadAtStart": 28.0,
+        "durationMs": 4287.7,
+        "badgePickCalls": 138,
+        "msPerBadgePick": 0.076,
+        "detailChanges": 4
+      }
+    }
+  },
+  "menu": [
+    {
+      "url": "?light=day",
+      "ratio": 1.5,
+      "width": 2205
+    },
+    {
+      "url": "?light=day&boardResolution=reduced",
+      "ratio": 1.25,
+      "width": 1837
+    },
+    {
+      "url": "?light=day&boardResolution=reduced",
+      "ratio": 1.25,
+      "width": 1837
+    },
+    {
+      "url": "?light=day",
+      "ratio": 1.5,
+      "width": 2205
+    }
+  ],
+  "movementProfiles": {
+    "coldwarm": [
+      {
+        "unit": 1000,
+        "moveCell": [
+          54,
+          31
+        ],
+        "command": [
+          "moveUnit"
+        ],
+        "loadAtStart": 7.0,
+        "stagesMs": {
+          "endDrag": 0,
+          "issueMove": 73.8,
+          "applyCommand": 7,
+          "recomputeMarchSight": 4.1,
+          "updatePanel": 57.7,
+          "syncStateLayers": 29,
+          "rebuildPaintedWorks": 19.1,
+          "rebuildUnits": 3.4,
+          "scheduleBotPreparation": 0.1,
+          "Worker.postMessage": 3.8
+        },
+        "walk": {
+          "nominalMs": 319.3,
+          "boardFrames": 13,
+          "boardFps": 40.7,
+          "firstBoardDrawMs": 129.6
+        },
+        "staticShadowBakes": 0,
+        "counterShadowSubmitMs": 3.6,
+        "longTasksMs": [
+          77,
+          68
+        ]
+      },
+      {
+        "unit": 1147,
+        "moveCell": [
+          50,
+          27
+        ],
+        "command": [
+          "moveUnit"
+        ],
+        "loadAtStart": 6.3,
+        "stagesMs": {
+          "endDrag": 0,
+          "issueMove": 23.5,
+          "applyCommand": 1.4,
+          "recomputeMarchSight": 0.7,
+          "updatePanel": 19.2,
+          "syncStateLayers": 3.6,
+          "rebuildPaintedWorks": 0.6,
+          "rebuildUnits": 2.2,
+          "scheduleBotPreparation": 0,
+          "Worker.postMessage": 2.2
+        },
+        "walk": {
+          "nominalMs": 479.8,
+          "boardFrames": 28,
+          "boardFps": 58.4,
+          "firstBoardDrawMs": 30.2
+        },
+        "staticShadowBakes": 0,
+        "counterShadowSubmitMs": 6.2,
+        "longTasksMs": []
+      },
+      {
+        "unit": 759,
+        "moveCell": [
+          55,
+          32
+        ],
+        "command": [
+          "moveUnit"
+        ],
+        "loadAtStart": 6.1,
+        "stagesMs": {
+          "endDrag": 0,
+          "issueMove": 31.4,
+          "applyCommand": 1.2,
+          "recomputeMarchSight": 0.8,
+          "updatePanel": 28.2,
+          "syncStateLayers": 9.8,
+          "rebuildPaintedWorks": 7.1,
+          "rebuildUnits": 2,
+          "scheduleBotPreparation": 0,
+          "Worker.postMessage": 2.4
+        },
+        "walk": {
+          "nominalMs": 159.8,
+          "boardFrames": 9,
+          "boardFps": 56.3,
+          "firstBoardDrawMs": 47.0
+        },
+        "staticShadowBakes": 0,
+        "counterShadowSubmitMs": 1.1,
+        "longTasksMs": []
+      }
+    ],
+    "hudBefore": [
+      {
+        "unit": 1000,
+        "moveCell": [
+          54,
+          31
+        ],
+        "command": [
+          "moveUnit"
+        ],
+        "loadAtStart": 18.8,
+        "stagesMs": {
+          "endDrag": 0,
+          "issueMove": 51.1,
+          "applyCommand": 5.8,
+          "recomputeMarchSight": 3.4,
+          "updatePanel": 37.2,
+          "syncStateLayers": 20.1,
+          "rebuildPaintedWorks": 13.3,
+          "rebuildUnits": 2.5,
+          "scheduleBotPreparation": 0,
+          "Worker.postMessage": 1.8
+        },
+        "walk": {
+          "nominalMs": 319.5,
+          "boardFrames": 15,
+          "boardFps": 46.9,
+          "firstBoardDrawMs": 93.1
+        },
+        "staticShadowBakes": 0,
+        "counterShadowSubmitMs": 3.0,
+        "longTasksMs": [
+          55,
+          53
+        ]
+      },
+      {
+        "unit": 1147,
+        "moveCell": [
+          50,
+          27
+        ],
+        "command": [
+          "moveUnit"
+        ],
+        "loadAtStart": 17.6,
+        "stagesMs": {
+          "endDrag": 0,
+          "issueMove": 56.9,
+          "applyCommand": 2.5,
+          "recomputeMarchSight": 1.3,
+          "updatePanel": 49.3,
+          "syncStateLayers": 11.3,
+          "rebuildPaintedWorks": 0.9,
+          "rebuildUnits": 8.6,
+          "scheduleBotPreparation": 0.1,
+          "Worker.postMessage": 4.9
+        },
+        "walk": {
+          "nominalMs": 479.6,
+          "boardFrames": 19,
+          "boardFps": 39.6,
+          "firstBoardDrawMs": 76.9
+        },
+        "staticShadowBakes": 0,
+        "counterShadowSubmitMs": 7.8,
+        "longTasksMs": [
+          61
+        ]
+      },
+      {
+        "unit": 759,
+        "moveCell": [
+          55,
+          32
+        ],
+        "command": [
+          "moveUnit"
+        ],
+        "loadAtStart": 18.3,
+        "stagesMs": {
+          "endDrag": 0,
+          "issueMove": 78.3,
+          "applyCommand": 2.6,
+          "recomputeMarchSight": 1.9,
+          "updatePanel": 69.1,
+          "syncStateLayers": 33.3,
+          "rebuildPaintedWorks": 26.9,
+          "rebuildUnits": 4.9,
+          "scheduleBotPreparation": 0,
+          "Worker.postMessage": 6.8
+        },
+        "walk": {
+          "nominalMs": 158.3,
+          "boardFrames": 3,
+          "boardFps": 19.0,
+          "firstBoardDrawMs": 126.1
+        },
+        "staticShadowBakes": 0,
+        "counterShadowSubmitMs": 1.7,
+        "longTasksMs": [
+          84,
+          51
+        ]
+      }
+    ],
+    "hudPinned": [
+      {
+        "unit": 1000,
+        "moveCell": [
+          54,
+          31
+        ],
+        "command": [
+          "moveUnit"
+        ],
+        "loadAtStart": 12.8,
+        "stagesMs": {
+          "endDrag": 0,
+          "issueMove": 84.5,
+          "applyCommand": 7.9,
+          "recomputeMarchSight": 5.1,
+          "updatePanel": 64,
+          "syncStateLayers": 50.4,
+          "rebuildPaintedWorks": 38.6,
+          "rebuildUnits": 4.2,
+          "scheduleBotPreparation": 0.1,
+          "Worker.postMessage": 3.1
+        },
+        "walk": {
+          "nominalMs": 318.6,
+          "boardFrames": 4,
+          "boardFps": 12.6,
+          "firstBoardDrawMs": 177.5
+        },
+        "staticShadowBakes": 0,
+        "counterShadowSubmitMs": 1.6,
+        "longTasksMs": [
+          91,
+          109
+        ]
+      },
+      {
+        "unit": 1147,
+        "moveCell": [
+          50,
+          27
+        ],
+        "command": [
+          "moveUnit"
+        ],
+        "loadAtStart": 12.3,
+        "stagesMs": {
+          "endDrag": 0,
+          "issueMove": 14.2,
+          "applyCommand": 1.8,
+          "recomputeMarchSight": 0.9,
+          "updatePanel": 8.6,
+          "syncStateLayers": 6.7,
+          "rebuildPaintedWorks": 0.6,
+          "rebuildUnits": 4.7,
+          "scheduleBotPreparation": 0.1,
+          "Worker.postMessage": 2.7
+        },
+        "walk": {
+          "nominalMs": 479.7,
+          "boardFrames": 28,
+          "boardFps": 58.4,
+          "firstBoardDrawMs": 26.6
+        },
+        "staticShadowBakes": 0,
+        "counterShadowSubmitMs": 6.5,
+        "longTasksMs": []
+      },
+      {
+        "unit": 759,
+        "moveCell": [
+          55,
+          32
+        ],
+        "command": [
+          "moveUnit"
+        ],
+        "loadAtStart": 11.2,
+        "stagesMs": {
+          "endDrag": 0,
+          "issueMove": 51.4,
+          "applyCommand": 5,
+          "recomputeMarchSight": 2.9,
+          "updatePanel": 41.8,
+          "syncStateLayers": 22.6,
+          "rebuildPaintedWorks": 15.6,
+          "rebuildUnits": 5.3,
+          "scheduleBotPreparation": 0.1,
+          "Worker.postMessage": 4.2
+        },
+        "walk": {
+          "nominalMs": 159.5,
+          "boardFrames": 7,
+          "boardFps": 43.9,
+          "firstBoardDrawMs": 81.0
+        },
+        "staticShadowBakes": 0,
+        "counterShadowSubmitMs": 2.5,
+        "longTasksMs": [
+          55
+        ]
+      }
+    ],
+    "acceptedCommands": [
+      {
+        "unit": 1000,
+        "col": 54,
+        "row": 31,
+        "selected": [
+          1000
+        ],
+        "accepted": {
+          "type": "moveUnit",
+          "playerId": 0,
+          "unitId": 1000,
+          "target": {
+            "col": 54,
+            "row": 31
+          }
+        }
+      },
+      {
+        "unit": 1147,
+        "col": 50,
+        "row": 27,
+        "selected": [
+          1147
+        ],
+        "accepted": {
+          "type": "moveUnit",
+          "playerId": 0,
+          "unitId": 1147,
+          "target": {
+            "col": 50,
+            "row": 27
+          }
+        }
+      },
+      {
+        "unit": 759,
+        "col": 55,
+        "row": 32,
+        "selected": [
+          759
+        ],
+        "accepted": {
+          "type": "moveUnit",
+          "playerId": 0,
+          "unitId": 759,
+          "target": {
+            "col": 55,
+            "row": 32
+          }
+        }
+      }
+    ],
+    "notes": [
+      "coldwarm is the first baseline profile with the lighter machine load. hudBefore repeated that profile. hudPinned tested the revised city science reading, at a different system load. Each move followed the same trusted left-click and right-click gesture. All source stages and long tasks measure CPU or main-thread elapsed time, and include scheduling delays. Shadow submission does not time the GPU.",
+      "Sampled stacks place playerScience below researchGlance and beginPass before the change. Both repeat a full city fold. The revised run has neither stack."
+    ],
+    "sampledCpuMs": {
+      "description": "Inclusive CPU profile sample weights. Science and empire include only samples inside updatePanel while handling the accepted move. Rich tile effects include samples inside rebuildPaintedWorks. Each array lists the three consecutive moves.",
+      "hudBefore": {
+        "playerScience": [
+          12.6,
+          34.7,
+          21.4
+        ],
+        "readEmpire": [
+          12.9,
+          0,
+          30
+        ],
+        "rebuildYieldLight": [
+          6.9,
+          0,
+          21.2
+        ]
+      },
+      "hudPinned": {
+        "playerScience": [
+          0,
+          0,
+          0
+        ],
+        "readEmpire": [
+          30.2,
+          0,
+          23.8
+        ],
+        "rebuildYieldLight": [
+          21.5,
+          0,
+          13.9
+        ]
+      }
+    }
+  },
+  "sourceHashes": {
+    "original1": {
+      "controls": "6f8ff92c0fc3ae",
+      "camera3d": "7c875e3eb636e2",
+      "picking": "f845d3b5e26c57",
+      "renderer3d": "bd8c4b69ab373b"
+    },
+    "combined1": {
+      "controls": "a3b50bda5d3395",
+      "camera3d": "49f737b832abff",
+      "picking": "f845d3b5e26c57",
+      "renderer3d": "255d1553766ab9"
+    },
+    "projection1": {
+      "controls": "6f8ff92c0fc3ae",
+      "camera3d": "49f737b832abff",
+      "picking": "f845d3b5e26c57",
+      "renderer3d": "255d1553766ab9"
+    },
+    "compare1": {
+      "controls": "6f8ff92c0fc3ae",
+      "camera3d": "7c875e3eb636e2",
+      "picking": "f845d3b5e26c57",
+      "renderer3d": "bd8c4b69ab373b"
+    },
+    "hudBefore0": {
+      "readings.ts": "a6b075a3a3a9f0",
+      "controls": "6f8ff92c0fc3ae",
+      "empireDrawer.ts": "0f7955c7fc0623",
+      "techTree.ts": "68ec7b02b71916",
+      "camera3d": "7c875e3eb636e2",
+      "picking": "f845d3b5e26c57",
+      "renderer3d": "bd8c4b69ab373b"
+    },
+    "hudPinned0": {
+      "readings.ts": "aad1fa18606668",
+      "controls": "6f8ff92c0fc3ae",
+      "empireDrawer.ts": "3540f8bd3caf64",
+      "techTree.ts": "9c51436757448a",
+      "camera3d": "7c875e3eb636e2",
+      "picking": "f845d3b5e26c57",
+      "renderer3d": "bd8c4b69ab373b"
+    }
+  }
+}

@@ -11,7 +11,7 @@ them and the production build does not publish them as public assets.
 - `mounted-knight/sculpture.blend`: separate authoring meshes for further sculpting.
 - `mounted-knight/review-notes.md`: the earlier review and validation record, now historical.
 - `sculpted-units/`: the later Blender infantry, spearman and horse-head chess studies.
-- `reference-spearman/` contains the editable spearman and its GLB export, modeled from the painted reference.
+- `reference-spearman/` contains the approved spearman and its GLB export. Use its proportions, broad cloth planes and simple carved hands as the style guide for the set. Design each unit’s equipment around its job. The archer shares the spearman’s ivory tunic, player-color mantle and bronze clasp, with the drawing arm free of the cloak.
 - `carved-unit-roster/` contains the worker, archer and horseman GLBs. Open `carved-units.blend` to inspect all four units at the same scale, or `lineup.jpg` for the front view. The models use separate materials for player colors.
 
 The Blender authoring scripts remain in `scripts/terrain-study/`. Running

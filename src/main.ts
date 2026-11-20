@@ -3114,7 +3114,30 @@ async function boot(initial: Game | null): Promise<void> {
     }
   }
 
+  let movePanelFrame = 0;
+  let movePanelTimer = 0;
+  function cancelMovePanel(): void {
+    if (movePanelFrame) cancelAnimationFrame(movePanelFrame);
+    if (movePanelTimer) clearTimeout(movePanelTimer);
+    movePanelFrame = 0;
+    movePanelTimer = 0;
+  }
+  gameDisposers.push(cancelMovePanel);
+
+  /** Let the browser submit the first walking frame before computing the empire totals. */
+  function refreshAfterMove(): void {
+    if (movePanelFrame || movePanelTimer) return;
+    movePanelFrame = requestAnimationFrame(() => {
+      movePanelFrame = 0;
+      movePanelTimer = window.setTimeout(() => {
+        movePanelTimer = 0;
+        updatePanel(controls.selectedUnit(), renderer.getHover());
+      }, 0);
+    });
+  }
+
   function updatePanel(_selected: Unit | null, hover: HoverInfo | null): void {
+    cancelMovePanel();
     renderSeats();
     updateLensMenu();
     // Cities change on almost everything — founding, growth, production, a seat
@@ -4491,6 +4514,7 @@ async function boot(initial: Game | null): Promise<void> {
     renderer,
     getGame: () => game,
     onUpdate: updatePanel,
+    onAnimatedMove: refreshAfterMove,
     // And the pointer's own, narrow half — `updatePanel` minus everything that
     // prints the state. A mouse move can change what the readout says about the
     // hex under the cursor and nothing else on this page: the previews that

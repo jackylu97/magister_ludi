@@ -266,9 +266,17 @@ describe('painted resources and core improvements', () => {
     const f = fixtures(state); f.build();
     const herds = f.propMeshes().filter(mesh => mesh.geometry === f.assets.cattle);
     expect(herds).toHaveLength(3); expect(herds.map(mesh => mesh.count)).toEqual([6, 6, 6]);
-    expect(herds[0]!.instanceMatrix.array).toEqual(herds[1]!.instanceMatrix.array);
-    expect(herds[1]!.instanceMatrix.array).toEqual(herds[2]!.instanceMatrix.array);
     const period = wrapWidth(state.map); expect(herds.map(mesh => mesh.position.x).sort((a, b) => a - b)).toEqual([-period, 0, period]);
+    const centre = herds.find(mesh => mesh.position.x === 0)!;
+    expect(centre.instanceColor).not.toBeNull();
+    expect(centre.boundingBox?.isEmpty()).toBe(false);
+    for (const mesh of herds) {
+      expect(mesh.instanceMatrix).toBe(centre.instanceMatrix);
+      expect(mesh.instanceColor).toBe(centre.instanceColor);
+      expect(mesh.boundingBox).toBe(centre.boundingBox);
+      expect(mesh.boundingSphere).toBe(centre.boundingSphere);
+      expect(mesh.matrixWorld.elements[12]).toBe(mesh.position.x);
+    }
     const fieldGeometry = new Set(f.fields().map(mesh => mesh.geometry)); expect(fieldGeometry.size).toBe(1);
     const releasedFields = [...fieldGeometry].map(geometry => vi.spyOn(geometry, 'dispose'));
     const releasedInstances = f.propMeshes().map(mesh => vi.spyOn(mesh, 'dispose'));
@@ -300,10 +308,12 @@ describe('painted plantations, lumbermills and fishing boats', () => {
     const f = fixtures(state); f.build();
     const remote = f.propMeshes().filter(mesh => mesh.userData.paintedWorksCells.includes(18));
     expect(remote).toHaveLength(3);
+    const worldUpdates = remote.map(mesh => vi.spyOn(mesh, 'updateMatrixWorld'));
     const oldLocal = f.propMeshes().filter(mesh => mesh.userData.paintedWorksCells.includes(1));
     const disposed = oldLocal.map(mesh => vi.spyOn(mesh, 'dispose'));
-    state.visibility[0]![1] = HIDDEN; f.build();
+    state.visibility[0]![1] = HIDDEN; f.layer.build(state, f.prepared, state.visibility[0]!, 0);
     for (const mesh of remote) expect(f.layer.group.children).toContain(mesh);
+    for (const update of worldUpdates) expect(update).not.toHaveBeenCalled();
     for (const spy of disposed) expect(spy).toHaveBeenCalledOnce();
     state.map.tiles[1]!.resource = 'bison'; state.visibility[0]![1] = VISIBLE; f.build();
     for (const mesh of remote) expect(f.layer.group.children).toContain(mesh);

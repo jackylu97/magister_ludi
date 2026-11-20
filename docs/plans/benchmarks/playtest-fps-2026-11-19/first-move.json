@@ -1,0 +1,303 @@
+{
+  "fixture": {
+    "turn": 120,
+    "seed": 999,
+    "cities": 86,
+    "units": 520,
+    "fogSeat": 0,
+    "boardResolution": 1.5,
+    "boardBuffer": [
+      2205,
+      1189
+    ],
+    "gpu": "Apple M4"
+  },
+  "metric": "Milliseconds from the start of the right-click handler to the first completed board draw. Timings do not include display presentation latency. Walk FPS counts board draws during the scheduled animation.",
+  "webkit": {
+    "base-base1": {
+      "walks": [
+        {
+          "unitId": 1000,
+          "fromClickMs": 718,
+          "frames": 0,
+          "walkFps": 0
+        },
+        {
+          "unitId": 1147,
+          "fromClickMs": 114,
+          "frames": 7,
+          "walkFps": 14.6
+        },
+        {
+          "unitId": 759,
+          "fromClickMs": 178,
+          "frames": 0,
+          "walkFps": 0
+        }
+      ],
+      "camera": {}
+    },
+    "trial-supply1": {
+      "walks": [
+        {
+          "unitId": 1000,
+          "fromClickMs": 277,
+          "frames": 2,
+          "walkFps": 6.3
+        },
+        {
+          "unitId": 1147,
+          "fromClickMs": 140,
+          "frames": 7,
+          "walkFps": 14.6
+        },
+        {
+          "unitId": 759,
+          "fromClickMs": 181.0,
+          "frames": 0,
+          "walkFps": 0
+        }
+      ],
+      "camera": {}
+    },
+    "draw-draw1": {
+      "walks": [
+        {
+          "unitId": 1000,
+          "fromClickMs": 158,
+          "frames": 3,
+          "walkFps": 9.4
+        },
+        {
+          "unitId": 1147,
+          "fromClickMs": 92,
+          "frames": 6,
+          "walkFps": 12.5
+        },
+        {
+          "unitId": 759,
+          "fromClickMs": 79,
+          "frames": 2,
+          "walkFps": 12.6
+        }
+      ],
+      "camera": {}
+    },
+    "base-repeatbase": {
+      "walks": [
+        {
+          "unitId": 1000,
+          "fromClickMs": 277,
+          "frames": 3,
+          "walkFps": 9.4
+        },
+        {
+          "unitId": 1147,
+          "fromClickMs": 132,
+          "frames": 6,
+          "walkFps": 12.5
+        },
+        {
+          "unitId": 759,
+          "fromClickMs": 163,
+          "frames": 1,
+          "walkFps": 6.3
+        }
+      ],
+      "camera": {
+        "drag": 20.5,
+        "zoom": 19.5
+      }
+    },
+    "draw-repeatdraw": {
+      "walks": [
+        {
+          "unitId": 1000,
+          "fromClickMs": 362.0,
+          "frames": 1,
+          "walkFps": 3.2
+        },
+        {
+          "unitId": 1147,
+          "fromClickMs": 80,
+          "frames": 6,
+          "walkFps": 12.5
+        },
+        {
+          "unitId": 759,
+          "fromClickMs": 118,
+          "frames": 1,
+          "walkFps": 6.3
+        }
+      ],
+      "camera": {
+        "drag": 13.0,
+        "zoom": 14.0
+      }
+    }
+  },
+  "chrome": {
+    "sameA10-move": {
+      "unitId": 1000,
+      "clickToDrawMs": 158.2,
+      "handlerMs": 59.5,
+      "walkFps": 34.5,
+      "oneMinuteSystemLoad": 6.3,
+      "trusted": true
+    },
+    "sameA11-move": {
+      "unitId": 1147,
+      "clickToDrawMs": 92.2,
+      "handlerMs": 46.1,
+      "walkFps": 31.3,
+      "oneMinuteSystemLoad": 10.7,
+      "trusted": true
+    },
+    "sameA12-move": {
+      "unitId": 759,
+      "clickToDrawMs": 54.2,
+      "handlerMs": 27.6,
+      "walkFps": 50.1,
+      "oneMinuteSystemLoad": 10.2,
+      "trusted": true
+    },
+    "sameA20-move": {
+      "unitId": 1000,
+      "clickToDrawMs": 239.8,
+      "handlerMs": 84.7,
+      "walkFps": 15.7,
+      "oneMinuteSystemLoad": 22.4,
+      "trusted": true
+    },
+    "sameA21-move": {
+      "unitId": 1147,
+      "clickToDrawMs": 98.2,
+      "handlerMs": 45.7,
+      "walkFps": 31.4,
+      "oneMinuteSystemLoad": 25.6,
+      "trusted": true
+    },
+    "sameA22-move": {
+      "unitId": 759,
+      "clickToDrawMs": 161.1,
+      "handlerMs": 78.8,
+      "walkFps": 6.3,
+      "oneMinuteSystemLoad": 27.9,
+      "trusted": true
+    },
+    "sameB10-move": {
+      "unitId": 1000,
+      "clickToDrawMs": 171.1,
+      "handlerMs": 29.9,
+      "walkFps": 18.8,
+      "oneMinuteSystemLoad": 8.1,
+      "trusted": true
+    },
+    "sameB11-move": {
+      "unitId": 1147,
+      "clickToDrawMs": 90.9,
+      "handlerMs": 20.6,
+      "walkFps": 27.2,
+      "oneMinuteSystemLoad": 10.1,
+      "trusted": true
+    },
+    "sameB12-move": {
+      "unitId": 759,
+      "clickToDrawMs": 66.0,
+      "handlerMs": 11.2,
+      "walkFps": 12.6,
+      "oneMinuteSystemLoad": 12.7,
+      "trusted": true
+    },
+    "sameB20-move": {
+      "unitId": 1000,
+      "clickToDrawMs": 220.1,
+      "handlerMs": 34.3,
+      "walkFps": 9.4,
+      "oneMinuteSystemLoad": 156.3,
+      "trusted": true
+    },
+    "sameB21-move": {
+      "unitId": 1147,
+      "clickToDrawMs": 67.1,
+      "handlerMs": 12.8,
+      "walkFps": 22.9,
+      "oneMinuteSystemLoad": 163.3,
+      "trusted": true
+    },
+    "sameB22-move": {
+      "unitId": 759,
+      "clickToDrawMs": 78.4,
+      "handlerMs": 14.1,
+      "walkFps": 12.6,
+      "oneMinuteSystemLoad": 163.4,
+      "trusted": true
+    }
+  },
+  "cpu": {
+    "description": "Median and p95 milliseconds for 25 alternating warmed CPU readings, before and after each accepted move. The hash covers the complete empire reading.",
+    "rows": [
+      {
+        "file": "snap-999-120.json",
+        "digest": "29b2a0fd5a79b558525908cf067308cee0d23fc617b27b04235eeee8bee1993d",
+        "data": [
+          [
+            [
+              17.82775000000015,
+              18.813666000000012
+            ],
+            [
+              16.264541999999892,
+              17.85458299999982
+            ],
+            [
+              0.001291999999921245,
+              0.002250000000003638
+            ],
+            [
+              17.03387500000008,
+              18.541791999999987
+            ]
+          ],
+          [
+            [
+              12.079584000000068,
+              13.211416999999983
+            ],
+            [
+              11.605667000000267,
+              16.681041999999934
+            ],
+            [
+              0.0013330000001587905,
+              0.0022910000002411834
+            ],
+            [
+              10.910209000000123,
+              12.69741699999986
+            ]
+          ]
+        ]
+      },
+      {
+        "file": "snap-42-120.json",
+        "digest": "b14dd9a8429b50ec2ed6c4550758595113a46a675a40b7a64eab760784822bfa",
+        "data": [
+          [
+            [
+              3.544499999999971,
+              6.661292000000685
+            ]
+          ],
+          [
+            [
+              3.5869590000002063,
+              6.452041999999892
+            ]
+          ]
+        ]
+      }
+    ]
+  },
+  "comparison": "Chrome sameA used the original first-move handler, building calculations and three map copies. sameB used the deferred panel refresh, building cache and shared instance buffers. Results were collected A/B/A/B in one Chrome process. Each fresh trial used the same three unit IDs and destinations. Hardware load varied. The WebKit repeats use scripted camera motion and native right mouse events. Camera results are distinct board draws."
+}
