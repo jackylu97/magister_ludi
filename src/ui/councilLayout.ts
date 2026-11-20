@@ -32,7 +32,7 @@ const FORM_ORDER: readonly CouncilForm[] = ['full', 'mid', 'compact', 'narrow'];
  * that leaves goes round the government and its chairs (`CouncilLayout.spare`).
  */
 export const COUNCIL_FRAME = {
-  head: 62,
+  head: 72,
   side: 24,
   /** The government card: the full face, or the narrow card with the compact forms. */
   government: { wide: 200, narrow: 145 },

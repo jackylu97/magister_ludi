@@ -1788,3 +1788,20 @@ The user, on the age plate on the ribbon
 (https://claude.ai/artifact/W3aF5oXGwsE2dCAZmBggzj) and on build stage 3, the
 great person card, the setup's leader step and the faith sheet
 (https://claude.ai/artifact/C5Ht1Xz1KHVetC9JLgooZp): "both approved".
+
+### More air on the heads, and a narrower work panel (2026-11-20)
+
+The user, with a picture of the city screen's head and left panel: "i think
+the left panel needs a bit of padding on the bottom. Also, could we have the
+top bar of the city menu to be just a bit wider, it feels a bit narrow. Same
+for the orders page and the in-play page, just a bit of extra negative space
+on the top/bottom. Could we also narrow the right panel a tad, so that the
+city doesn't need to be so zoomed out?"
+
+- The city screen's head has 13 px above and below its line (8 before).
+- The left panel ends in 14 px of air when no fold row follows.
+- The Orders screen's head is 72 px tall (62 before), and the In play
+  screen's is 60 (46 before).
+- The city screen's right panel is 360 px wide (400 before). The camera's
+  two numbers follow it (`cityFrameBiasPx` 37, `cityFrameInsetPx` 702), so the
+  town is framed larger.
