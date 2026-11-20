@@ -1239,8 +1239,8 @@
   },
   "painted": {
     "canvas": {
-      "maxPixelRatio": 1.25,
-      "sharpPixelRatio": 1.5,
+      "maxPixelRatio": 1.5,
+      "reducedPixelRatio": 1.25,
       "pixelBudget": 4500000,
       "restUnderCover": true,
       "restUnderSheets": true

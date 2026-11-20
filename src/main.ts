@@ -2507,22 +2507,22 @@ function build3DPanel(renderer: Renderer3D): () => void {
       const url = new URL(location.href); url.searchParams.set('light', select.value); history.replaceState(null, '', url);
     };
     lightLabel.append(select); menuExtrasEl.append(lightLabel);
-    const sharpRow = document.createElement('div');
-    sharpRow.className = 'row check';
-    const sharp = document.createElement('input');
-    sharp.type = 'checkbox';
-    sharp.id = 'sharp-board';
-    sharp.checked = renderer.sharpBoardEnabled;
-    const sharpLabel = document.createElement('label');
-    sharpLabel.htmlFor = sharp.id;
-    sharpLabel.textContent = 'Sharp board';
-    sharpLabel.title = 'Draw finer detail on high-resolution displays.';
-    sharpRow.append(sharp, sharpLabel);
-    menuExtrasEl.append(sharpRow);
-    sharp.onchange = () => {
-      renderer.setSharpBoard(sharp.checked);
+    const resolutionRow = document.createElement('div');
+    resolutionRow.className = 'row check';
+    const reduced = document.createElement('input');
+    reduced.type = 'checkbox';
+    reduced.id = 'reduce-board-resolution';
+    reduced.checked = renderer.reducedBoardResolutionEnabled;
+    const resolutionLabel = document.createElement('label');
+    resolutionLabel.htmlFor = reduced.id;
+    resolutionLabel.textContent = 'Reduce board resolution';
+    resolutionLabel.title = 'Draw fewer board pixels for smoother movement on high-resolution displays.';
+    resolutionRow.append(reduced, resolutionLabel);
+    menuExtrasEl.append(resolutionRow);
+    reduced.onchange = () => {
+      renderer.setReducedBoardResolution(reduced.checked);
       const url = new URL(location.href);
-      if (sharp.checked) url.searchParams.set('sharp', '1'); else url.searchParams.delete('sharp');
+      if (reduced.checked) url.searchParams.set('boardResolution', 'reduced'); else url.searchParams.delete('boardResolution');
       history.replaceState(null, '', url);
     };
     // The option to stop the board's motion when idle (the user, 2026-11-17:
@@ -2671,7 +2671,7 @@ async function createRenderer(
     const { Renderer3D } = await import('./render3d/renderer3d');
     const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'), {
       painted: mode === 'painted',
-      sharpBoard: new URLSearchParams(location.search).get('sharp') === '1',
+      reducedBoardResolution: new URLSearchParams(location.search).get('boardResolution') === 'reduced',
     });
     try {
       if (mode === 'painted') {
