@@ -771,7 +771,7 @@ describe('a tile\'s yields are the last thing printed on it', () => {
  * border moves or a tech reveals a resource — is asserted the way
  * `test/sim/cities.test.ts` asserts `assignCitizens`' two callers and
  * `test/ui/seatRoster.test.ts` asserts the roster rule: by reading the source,
- * because the property lives in *which branch calls `rebuildLens`*, and that is
+ * because the property lives in *which branch calls `markLensDirty`*, and that is
  * exactly what a behavioural test cannot reach here.
  *
  * Every assertion below is therefore structural, not behavioural: it finds the
@@ -827,10 +827,10 @@ describe('the yields lens follows every trigger that can move a tile\'s number',
     throw new Error(`unterminated block at ${marker}`);
   }
 
-  const yieldsRebuild = /this\.lensView\.yields\)\s*this\.rebuildLens\(\)/;
+  const yieldsRebuild = /this\.lensView\.yields\)\s*this\.markLensDirty\(\)/;
 
   /** `this.lensView.mode === 'faith'` guarding a rebuild, however it is spelt. */
-  const faithRebuild = /mode === 'faith'\)\s*this\.rebuildLens\(\)/;
+  const faithRebuild = /mode === 'faith'\)\s*this\.markLensDirty\(\)/;
 
   it('rebuilds on the clearGround fingerprints — a farm, a mine or a chop', () => {
     // The one block keyed off `signImprovedCells`/`signFeatureCells`/the
@@ -859,7 +859,7 @@ describe('the yields lens follows every trigger that can move a tile\'s number',
     const idx = source.indexOf('const revealed = this.applyReveal();');
     expect(idx).toBeGreaterThan(-1);
     const after = source.slice(idx, idx + 400);
-    expect(after).toMatch(/revealed\s*&&\s*revealed\.cells\s*>\s*0\s*&&\s*this\.lensView\.yields\)\s*this\.rebuildLens\(\)/);
+    expect(after).toMatch(/revealed\s*&&\s*revealed\.cells\s*>\s*0\s*&&\s*this\.lensView\.yields\)\s*this\.markLensDirty\(\)/);
   });
 
   /**

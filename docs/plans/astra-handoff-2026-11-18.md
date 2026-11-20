@@ -286,6 +286,47 @@ two differ. A row the user did not comment on is approved as its table shows.
   picture.
 - **Schema:** the roster and the deal change saved games. Raise the schema.
 
+### 3.10 The leader roster (ready, on the readings listed here)
+
+The spec is `docs/plans/leader-roster-pass-2026-11-19.md`. Build from its
+sections 1 to 6. The parts headed "Record" are the first pass, kept for the
+reasoning; they are not the spec.
+
+- **Sixteen leaders:** one for each pair of decks, and Ibn Battuta for every
+  deck. Section 4 has each kit in full: two abilities, a unit, a building or
+  improvement, the capital and town list, the colours and the bot persona.
+- **Unchanged:** Joan of Arc, Pachacuti, Mansa Musa and Ibn Battuta keep the
+  kit they have today. Nezahualcoyotl changes one ability.
+- **New rows:** eleven leaders, seven units, seven buildings and one
+  improvement (section 6, "For the builder", lists them and the five small
+  extensions; the pass asks for no new effect shape).
+- **Eight leaders leave and their rows stay, hidden.** A save is
+  `{config, log}`, so a config that names a missing leader does not replay.
+  Add a `retired` flag to `LeaderDef`, and make the leader screen, the random
+  seat and the Compendium skip a retired row (section 5).
+- **Six code points to check before you build** are in "For the builder". If
+  one does not hold, say so before you bend a kit: a line that fits no shape
+  is deferred and annotated.
+- **Readings the user has not confirmed.** They are the plan's recommended
+  readings, and they stand unless the user changes them: Jayavarman VII's kit
+  as section 2 gives it; Lorenzo's bank capped at +40 renown; Cyrus's culture
+  paid in the capital only; one Paradise Garden in each city; the great person
+  Cosimo de' Medici replaced by Jacques Cœur (in the great people pass).
+- **The great person named Ibn Battuta** is renamed Ibn Jubayr (great people
+  change C25), since the leader keeps the name.
+- **UI that is already built:** the setup's leader step ("Choose your
+  leader") and the diplomacy sheet read the roster and need no change. Their
+  portrait windows read `src/ui/leaderPortraits.ts`; a portrait is
+  `public/art/splash/leaders/<leader id>.jpg`, and a leader with none shows
+  the seat's charge. Tell the Claude session the final leader ids, so the
+  portrait files can be named to match.
+- **Colours:** the table in section 6. The rule is 40 between primaries
+  (`inkDistance`); the closest pair is at 59. `test/render/seatInks.test.ts`
+  pins it.
+- **Order:** build this after the deck passes (3.5 and 3.7). Several kits
+  read cards that those passes change.
+- **Schema:** the roster changes saved games. Raise the schema.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open

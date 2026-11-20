@@ -475,8 +475,8 @@ Reference: **`docs/units.md`** (the roster; generated) and
   weariness is one cost line in the happiness list (`explainHappiness`), at
   `happinessPerPoint` (1) a point, and weariness touches nothing else. The
   `settleDiplomacy` phase prunes losses that have left the window. Every figure
-  is `rules.war.weariness`. The foreign courts screen shows the line on that
-  empire's table, and the Compendium has a concept entry.
+  is `rules.war.weariness`. The foreign courts screen shows the line in that
+  court's "Standing and deals" drawer, and the Compendium has a concept entry.
 - **Units earn ranks in combat** (batch WC3, `src/sim/ranks.ts`; reference
   `docs/war-diplomacy.md` §6b). A blow is a fight when it is struck at a unit
   that is not a civilian or at a town whose walls still stand; each side that
@@ -1795,7 +1795,27 @@ Eight root pages, all named in `vite.config.ts` inputs:
     record, the chronicle line and the renown are unchanged. If the plate
     cannot be shown, the Triumph gets its page. Continue flies the wonder to the
     In play door, and the door's count and dot land with it. The chronicle
-    keeps the line; another seat's wonder keeps its toast.
+    keeps the line; another seat's wonder keeps its toast. A wonder with a
+    painting is not on the lapis page: it stands on the ribbon plate (below).
+  - **The ribbon plate** (`src/ui/plateRibbon.ts` and `plateRibbon.css`): a
+    painting over the dimmed board on a lapis ribbon from edge to edge, with
+    a sun and a moon on the band and the words on the painting's foot over a
+    dark fade. The arrival is slow (about 1.8 seconds); reduced motion shows
+    it at once. The painted wonder plate and the age plate both use it
+    through `placeOnRibbon`, so its markup and rules exist once.
+  - **The age plate** (`src/ui/agePlate.ts`, frame A7 of the Quiet Table
+    boards): news when the world's age turns over, in front of the wager
+    sheet. It stands on the ribbon with the age's painting
+    (`public/art/splash/ages/<set><age>.jpg`). The set (`form`, `still` or
+    `abstract`) is one for the whole game, picked by `agePaintingSet` from a
+    hash of the game's seed in the UI, never from the sim's random numbers,
+    so a loaded game shows the same set (`src/ui/agePaintings.ts`). On the
+    foot: the numeral, the name and the line (`agePlateLine`) at the left;
+    the seat's deeds in at most two rows and Continue at the right, all inside
+    the painting's lower third. A deed that does not fit is not drawn. A
+    missing painting, or one that does not load, gives the full-screen lapis
+    page. A new game opens on the age I plate once, before the pamphlet and
+    the tutorial (`openNewGame` in `main.ts`); a loaded game never shows it.
 - **The Council screen's heights** (the user's comments on stage 3): the head
   is taller, the hand shows at most `COUNCIL_FRAME.fanMax` of each card, and
   the height left goes round the government and its chairs
@@ -1920,6 +1940,43 @@ Eight root pages, all named in `vite.config.ts` inputs:
     "Them", with the unit's name under each, and each side's health bar
     under its unit with the health after the blow. The card is wider while
     it shows a forecast, and the strength lines wrap rather than cut.
+- **The diplomacy screen: layout B with the strip of courts**
+  (`docs/plans/ui-critique-2026-10-16.md`, fourth pass; frames
+  `frame-2-strip` and `frame-2-drawer` in
+  `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/`;
+  `src/ui/diplomacyScreen.ts` and `.css`). One sheet on the modal shell, with
+  the kit's head ("Foreign courts", the turn and how many courts are met) and
+  three parts, left to right:
+  - **the strip of courts** (`courtStrip`): one small square mark for every
+    other real player at the table (`diplomaticSeats`: never the barbarians,
+    never the fallen), in seat order. A met court shows its picture, a war
+    red dot at war, a deep gilt dot in a truce, and a cinnabar dot while an
+    offer of theirs waits; the chosen court is ringed in ink. A court not yet
+    met is a blank, faded mark that cannot be chosen and says only "Not met
+    yet" (the met ruling of 2026-09-03). The strip is a list box: the chosen
+    court holds the tab stop, the arrow keys move between met courts
+    (`stripStep`), Enter or a click chooses, and a hover label names the
+    court. It scrolls when the courts do not fit, so eleven fit at any size;
+  - **the chosen court**: the setup step's 3:4 portrait window
+    (`leaderPortraitNode`; a portrait from `leaderPortraits.ts`, none yet,
+    or the seat's charge on its ink), as tall as the sheet allows. The name,
+    the people and where you stand sit over its foot, with the slip of the
+    court's last words under them (the envoy's answer, a counter, or "Here
+    is what I propose." while their offer is open);
+  - **the desk**: the act tabs (Exchange, Peace terms), one tray a side with
+    the gold in hand and the chips, "On the table" (the deal, one column a
+    side, each clause with a ×, and "Clear the table"), the two questions,
+    and the foot: Declare war (the kit's solid war red, not at war), then
+    "Standing and deals" with the count of deals in force and a dot when an
+    offer waits, and Propose (cinnabar). Their offer opens on the table with
+    Accept, Decline, "Change the terms" and "Back to your paper" in place of
+    the questions.
+  - **"Standing and deals"** opens a drawer over the desk
+    (`standingAndDeals`): the relation, both borders and the war weariness
+    line, the deals in force with their turns left, the offers waiting for
+    your answer (Read opens one on the table) and your own offers (Withdraw).
+    Its × and Escape close it back to the trays. Every command the screen
+    sends is the same as before.
 - **The simpler city screen** (`docs/plans/ui-critique-2026-10-16.md`,
   "City screen: simpler"; the fourth-pass frame is `city4` in
   `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/build.py`). The

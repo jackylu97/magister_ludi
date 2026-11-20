@@ -1274,7 +1274,9 @@ describe('the seat-filtered layers all follow the fog', () => {
       const call = loop.indexOf(`this.${layer}(`);
       expect(call, layer).toBeGreaterThan(0);
       const guard = loop.lastIndexOf('if (', call);
-      expect(loop.slice(guard, call), layer).toContain(`fogChanged('${layer.slice(7).toLowerCase()}')`);
+      const visibilityCheck = layer === 'rebuildUnits' ? 'signUnits(this.state, this.fogSeat)'
+        : `fogChanged('${layer.slice(7).toLowerCase()}')`;
+      expect(loop.slice(guard, call), layer).toContain(visibilityCheck);
     }
   });
 

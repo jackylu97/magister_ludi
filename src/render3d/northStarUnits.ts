@@ -41,24 +41,23 @@ export interface NorthStarUnitAsset {
 }
 
 /** The page that reviews the pieces may draw a type with another model, or with today's piece (`null`). */
-const overrides = new Map<string, string | null>();
-const turns = new Map<string, number>();
+const overrides = new Map<string, { model: string | null; turn?: number }>();
 
 /** For the review pages only: draw `type` with `model`, or with today's piece when `model` is null. */
 export function overrideNorthStarUnit(type: string, model: string | null, turn?: number): void {
   if (model !== null && !MODELS[model]) throw new Error(`No north-star unit model ${model}`);
-  overrides.set(type, model);
-  if (turn !== undefined) turns.set(type, turn);
+  overrides.set(type, { model, turn });
 }
 
 /** For the review pages only: the turn of a type's piece about the upright, in radians, when a page asked for one. */
 export function northStarUnitTurn(type: string): number | undefined {
-  return turns.get(type);
+  return overrides.get(type)?.turn;
 }
 
 /** The model that draws a unit type, or null when the type keeps today's piece. */
 export function northStarUnitModel(type: string): string | null {
-  if (overrides.has(type)) return overrides.get(type)!;
+  const override = overrides.get(type);
+  if (override) return override.model;
   return (NORTH_STAR_UNITS as Record<string, string>)[type] ?? null;
 }
 
@@ -85,6 +84,10 @@ export function buildNorthStarUnit(name: string): NorthStarUnitAsset {
   geometry.setAttribute('paintedIdle', new Float32BufferAttribute(idle, 3));
   geometry.setIndex(stored.index);
   geometry.computeVertexNormals();
+  geometry.name = `Painted unit ${name}`;
+  geometry.userData.paintedUnitAsset = name;
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
   // The piece rests on the rim of its base: a ring of points and the centre.
   const contacts: [number, number, number][] = [[0, 0, 0]];
   for (let i = 0; i < count; i++) {

@@ -591,8 +591,8 @@ export interface MapView {
    * turn's coins forever. `commit`, in `src/ui/controls.ts` — the one place a
    * command reaches the reducer — is the seam: it calls this once after every
    * *accepted* command (a rejection changes nothing, hard rule 1), and the
-   * renderer rebuilds the lens layer if it is up. Not a per-frame poll: the
-   * whole map's yields are only ever recomputed on a command, exactly once.
+   * renderer updates the open yield overlay before the next draw. Commands
+   * that finish in the same frame share one update.
    *
    * Optional for the usual reason — the 2D pipelines are frozen and have no
    * yields lens to keep honest.

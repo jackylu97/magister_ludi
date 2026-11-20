@@ -113,7 +113,6 @@ export class RendererBeat {
   /** Stands in for `Renderer3D.walkers`, whose values are meshes. */
   readonly walkers = new Set<number>();
   private unitsSignature = 0;
-  private fogSignature = -1;
 
   constructor(
     private readonly state: GameState,
@@ -140,8 +139,7 @@ export class RendererBeat {
       null,
     );
     for (const unitId of this.animations.activeUnits()) this.units.hide(unitId);
-    this.unitsSignature = signUnits(this.state);
-    this.fogSignature = this.signFog();
+    this.unitsSignature = signUnits(this.state, this.seat);
   }
 
   /** The hot-seat swap: a new pair of eyes over the same board. */
@@ -169,12 +167,11 @@ export class RendererBeat {
 
   /**
    * One drawn frame of `Renderer3D.loop`: the walks are stepped first, then the
-   * fog is re-applied, then the layer is rebuilt if either the fog or the piece
-   * fingerprint moved. Same order, same two triggers.
+   * layer rebuilds if the visible pieces changed.
    */
   frame(now: number): void {
     if (this.animations.pending || this.walkers.size > 0) this.stepAnimations(now);
-    if (this.signFog() !== this.fogSignature || signUnits(this.state) !== this.unitsSignature) {
+    if (signUnits(this.state, this.seat) !== this.unitsSignature) {
       this.rebuildUnits();
     }
   }
@@ -208,14 +205,6 @@ export class RendererBeat {
 
   private levels(): readonly number[] | null {
     return this.seat === null ? null : (this.state.visibility[this.seat] ?? null);
-  }
-
-  private signFog(): number {
-    const levels = this.levels();
-    if (!levels) return 0;
-    let h = 2166136261;
-    for (let i = 0; i < levels.length; i++) h = Math.imul(h ^ levels[i]!, 16777619);
-    return h >>> 0;
   }
 
   dispose(): void {

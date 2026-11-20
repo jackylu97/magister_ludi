@@ -62,6 +62,7 @@ import { block, checkbox, controls, element, section, select, slider } from './s
 import { requireElement } from '../ui/dom';
 import { drawCourtMarks } from './courtMarks';
 import { drawInPlayForms } from './inPlayForms';
+import { drawAgePlate } from './agePlate';
 
 const indexNav = requireElement<HTMLElement>('index');
 const sheet = requireElement<HTMLElement>('sheet');
@@ -432,6 +433,16 @@ drawInPlayForms(
     'in-play-forms',
     'In Play Forms',
     'Everything in force, as the In play screen draws it: a wonder’s plate, a belief’s tablet, a legacy’s medal, a temporary tag, the tucked edge and the “more” edge.',
+  ),
+);
+
+// --- the age plate on the ribbon, and the age paintings (2026-11-19) ---------
+
+drawAgePlate(
+  open(
+    'age-plate',
+    'The Age Plate',
+    'The age plate on the ribbon with each of the three sets of age paintings, the opening plate for age I, and the lapis page a plate without a painting shows.',
   ),
 );
 

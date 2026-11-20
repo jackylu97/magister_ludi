@@ -980,6 +980,7 @@ function disposeGameScreens(): void {
   agePlate = wonderPlate = opusClose = endTurnList = null;
   notifications = toasts = tutorialBoardAnchor = null;
   tutorialWaits = () => false;
+  pumpNews = () => {};
   graphicsResetting = false;
   graphicsFallbackNotice = null;
   notificationLog.clear();
@@ -1130,6 +1131,36 @@ let pendingCensus: CensusRecord | null = null;
 let agePlate: AgePlate | null = null;
 let pendingAgePlate: TechAge | null = null;
 /**
+ * What a new game does when its opening plate closes: the pamphlet and the
+ * tutorial (`beginOpening`). Held here and run by the plate's close, so the
+ * tutorial's first card never stands over the plate. `null` at any other time.
+ */
+let afterOpeningPlate: (() => void) | null = null;
+/**
+ * Asks the news queue for its next page. A holder `boot` fills, for
+ * `tutorialWaits`' reason. `beginGame` calls it once the landing is down,
+ * because the landing holds all news while it is up.
+ */
+let pumpNews: () => void = () => {};
+
+/**
+ * **A new game's first pages**: the opening plate for age I, then the pamphlet
+ * and the tutorial (2026-11-19, `docs/plans/ui-critique-2026-10-16.md`, "The
+ * UI buildout is the priority; the age plate build").
+ *
+ * The plate is news like every other age plate, so it is queued for
+ * `pumpBeadNews`, and it comes up when `beginGame` asks the queue once the
+ * landing is down. It is shown once, to the seat the game opens on (seat 0 in
+ * hot-seat). Only the two new-game sites call this; a loaded game takes
+ * `tutorial.resume()` instead, so a save never shows the plate.
+ */
+function openNewGame(): void {
+  // The last game's guide stops here. The new game's guide begins after the plate.
+  tutorial.close();
+  pendingAgePlate = 1;
+  afterOpeningPlate = beginOpening;
+}
+/**
  * The wonder plate (stage 4 of the Council and In play board, `wonderPlate.ts`)
  * and the local seat's finished wonders it waits to show, oldest first.
  * Queued through the same pump, last of the pages: a wonder is the seat's own
@@ -1156,6 +1187,7 @@ function clearBeadNews(): void {
   pendingBeadAge = null;
   pendingCensus = null;
   pendingAgePlate = null;
+  afterOpeningPlate = null;
   pendingWonders = [];
   beadSheet?.clear();
   agePlate?.clear();
@@ -1682,6 +1714,11 @@ async function beginGame(
     startButton.textContent = startLabel;
     landingForm.removeAttribute('aria-busy');
   }
+  // The landing is down and the loading sheet with it, so the news the landing
+  // held may come up: a new game's opening plate (`openNewGame`). A loaded
+  // game has no news waiting, and a failed press leaves the landing up, which
+  // blocks the queue.
+  pumpNews();
 }
 
 /**
@@ -3179,15 +3216,22 @@ async function boot(initial: Game | null): Promise<void> {
 
   /**
    * The age plate (batch SS7, `agePlate.ts`): news, raised by `pumpBeadNews`
-   * when the world's age turns over. Closing it lets the wager sheet behind it
-   * come up.
+   * when the world's age turns over, and once as a new game's opening plate.
+   * Closing it lets the wager sheet behind it come up. Closing the opening
+   * plate also begins the pamphlet and the tutorial (`openNewGame`).
    */
   agePlate = createAgePlate({
     overlay: agePlateOverlayEl,
     onOpen: () => screens.opening('agePlate'),
-    onClosed: () => pumpBeadNews(),
+    onClosed: () => {
+      const opening = afterOpeningPlate;
+      afterOpeningPlate = null;
+      opening?.();
+      pumpBeadNews();
+    },
   });
   gameDisposers.push(() => agePlate?.dispose());
+  pumpNews = pumpBeadNews;
 
   /**
    * The wonder plate (stage 4 of the Council and In play board,
@@ -4331,10 +4375,11 @@ async function boot(initial: Game | null): Promise<void> {
     // **The age plate first** (batch SS7): the numeral, the age's name and the
     // seat's deeds, in front of the wager sheet that the plate's line
     // announces. Its own close calls back here, so the wager sheet follows.
+    // The game's seed picks its set of paintings (`agePaintings.ts`).
     if (pendingAgePlate !== null && agePlate) {
       const age = pendingAgePlate;
       pendingAgePlate = null;
-      agePlate.show(agePlateReading(game.state, controls.localPlayerId(), age));
+      agePlate.show(agePlateReading(game.state, controls.localPlayerId(), age, game.config.seed));
       return;
     }
     // **The age's own sheet is the wager's now** (batch G2, `docs/wager.md`
@@ -6138,10 +6183,11 @@ async function boot(initial: Game | null): Promise<void> {
     updateMapInfo();
     updatePanel(null, null);
     // The guide, on the same two terms `boot` sets it on below: a fresh table
-    // gets the pamphlet-then-sequence opening (`beginOpening`), a resumed one
-    // never does (a save carries no tutorial state, so there is no way to know
-    // which of those steps were taken forty turns ago — see `Tutorial.resume`).
-    if (next === null) beginOpening();
+    // gets the age I plate and then the pamphlet-then-sequence opening
+    // (`openNewGame`), a resumed one never does (a save carries no tutorial
+    // state, so there is no way to know which of those steps were taken forty
+    // turns ago — see `Tutorial.resume`).
+    if (next === null) openNewGame();
     else tutorial.resume();
     backgroundPlansEnabled = true;
     scheduleBotPreparation('turn');
@@ -6447,9 +6493,10 @@ async function boot(initial: Game | null): Promise<void> {
   // refresh gave it (2026-08-30, the boot-camera ruling).
   if (initial === null) renderer.focusOpening?.(openingFocus(game.state, controls.localPlayerId()));
   // Last, after the camera has framed the board: the coach card is placed
-  // against elements the refresh above has just rebuilt. A brand-new player
-  // meets the pamphlet here first, and dismissing it begins the sequence.
-  if (initial === null) beginOpening();
+  // against elements the refresh above has just rebuilt. A brand-new game
+  // opens on the age I plate, and its close begins the pamphlet and the
+  // sequence (`openNewGame`).
+  if (initial === null) openNewGame();
   else tutorial.resume();
   backgroundPlansEnabled = true;
   scheduleBotPreparation('turn');

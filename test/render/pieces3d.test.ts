@@ -1832,7 +1832,7 @@ describe('the worker charge badge', () => {
     };
     const text = (name: string): string =>
       Object.entries(sources).find(([path]) => path.endsWith(name))![1];
-    expect(text('/renderer3d.ts')).toMatch(/signUnits\(this\.state\) !== this\.unitsSignature/);
+    expect(text('/renderer3d.ts')).toMatch(/signUnits\(this\.state, this\.fogSeat\) !== this\.unitsSignature/);
     const banners = text('/cityBanners.ts');
     expect(banners).toMatch(/import \{[^}]*signUnits[^}]*\} from '\.\.\/render3d\/pieces'/s);
     expect(banners).toMatch(/const stamp = signUnits\(state\);/);
@@ -1974,8 +1974,7 @@ describe('the worker charge badge', () => {
    * them, so without the war register in the hash the board would keep the old
    * rims until the next time somebody happened to move. CLAUDE.md's fingerprint
    * rule met deliberately: a new visual-affecting fact joins the hash on
-   * purpose. It is mixed in once, beside the roster length, because it is a fact
-   * about the world rather than about a unit.
+   * purpose. All units share the war register, so the hash reads it once.
    */
   it('moves when a war opens, and again when the peace comes', () => {
     const before = state([{ type: 'warrior' }]);
@@ -2004,7 +2003,7 @@ describe('the worker charge badge', () => {
     expect(signUnits(b)).toBe(signUnits(a));
   });
 
-  it('hashes exactly the twelve properties the trap names', () => {
+  it('hashes the fields that affect the unit and its badge', () => {
     // Read through Vite's raw glob rather than `node:fs` — the pattern
     // `test/sim/cities.test.ts` set for the same kind of assertion, and for the
     // same reason: this project has no node typings and a source read is not
@@ -2052,6 +2051,7 @@ describe('the worker charge badge', () => {
       // without moving would otherwise keep the old one. The rank, never the
       // raw experience: see `rankIndex`.
       'rankIndex(unit)',
+      'garrison',
     ]);
   });
 

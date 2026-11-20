@@ -38,7 +38,29 @@ painting shows are in `docs/splash-art.md`.
 
 The painting then shows on the full-screen wonder plate and on the wonder's
 piece on the In play screen. A wonder without a painting shows the engraved
-stand-in. Ages are not wired yet.
+stand-in.
+
+## The age paintings
+
+The twelve age paintings are wired. The age plate (`src/ui/agePlate.ts`)
+shows the painting for the age on the ribbon over the board: when the world's
+age turns over, and once for age I when a new game starts.
+
+- A game shows one set: `form`, `still` or `abstract`. The set comes from a
+  hash of the game's seed (`agePaintingSet` in `src/ui/agePaintings.ts`), so
+  the same game shows the same set after a load, and the next game may show
+  another.
+- The plate shows the whole 16:9 painting. The words take up to the lower
+  third: the age's numeral, name and line at the left, and the deeds and
+  Continue at the right. A dark fade under them starts a little higher, so
+  keep the subject of a painting out of its lower third.
+- `src/ui/agePaintings.ts` names the twelve files, and a test
+  (`test/ui/agePaintings.test.ts`) fails if the list and the folder disagree.
+  To add or replace a painting, run `python3 scripts/splashArt.py ages` and
+  keep the file name `<set><age>.jpg`. A new set also needs its name in
+  `AGE_PAINTING_SETS`.
+- If a painting is missing or does not load, the plate shows the lapis age
+  page without a picture.
 
 ## The ending paintings
 
