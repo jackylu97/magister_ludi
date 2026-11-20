@@ -3187,6 +3187,10 @@ improvements read it.
 
 The user confirmed “Discount Great People too”. Calculate the base gold price from the next Great Person’s renown cost at 10 gold per point. Apply The Open Market’s 20% discount using the same price for the offer and the payment. The faith offer keeps its existing price. [Commerce build list](plans/commerce-design-pass-2026-11-20.md#4-ready-for-the-build)
 
+## Merchant Princes waits for recruitment (ruled 2026-11-20)
+
+The user chose “Wait for recruitment to unlock”. Until a player can recruit Great People, Merchant Princes cannot take gold or open an offer. Use the ordinary recruitment ability, which Epic Poetry or a card can grant. The Reliquary shows the reason and the purchase command checks it before spending gold.
+
 ## Base science, culture and unit prices (ruled 2026-11-20, not built)
 
 The user: "I think base science and culture is a bit too strong, i think i
