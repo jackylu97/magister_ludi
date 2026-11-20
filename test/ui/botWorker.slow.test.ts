@@ -1,64 +1,15 @@
 /**
- * The bot worker over a long game: six seats on the Standard map, sixty turns,
- * played once with the bots thinking on the page and once with them thinking
- * in the worker (`botWorkerHelpers.ts`). By turn sixty on this seed the bots
- * have settled their land, fought, put deals to each other and to the person,
- * accepted a few and refused most of them (which fills the refusal memory the
- * worker must carry back), and called great people. Every turn's state digest
- * and the whole log must match.
- *
- * Seed 26 since batch B1, measured at schema 241: 21 towns founded, 64
- * attacks, 21 deals put, 2 of them accepted and 19 refused, 2 great people
- * called (the first on turn 50), 15 papers the person put to a bot, and 18
- * refusals in the deal memory.
- *
- * Seed 26 again since bot batch BP4 (riders priced at full value, and the
- * kill and capture rates read from each seat's war plans): 28 towns founded,
- * 85 attacks, 45 deals put, 2 of them accepted and 43 refused, 3 great people
- * called, 31 papers the person put to a bot, and 40 refusals in the deal
- * memory. Seed 30 no longer calls a great person in sixty turns; the page and
- * the worker still played it to the same log and the same digests. Of seeds 26
- * to 45, eight reach all six command kinds (26, 27, 31, 35, 36, 39, 43 and 45),
- * and seed 26 calls the most great people among them.
- *
- * Seed 30 since batch BP1 of bot pass 3 (the threat count and the soldiers a
- * seat can pay for): 22 towns founded, 93 attacks, 20 deals put, 3 of them
- * accepted and 17 refused, 1 great person called, 9 papers the person put to a
- * bot, and 17 refusals in the deal memory. On seed 26 the bots now put 32 deals
- * in sixty turns and accept none, so the game no longer reaches an accepted
- * deal; the page and the worker still played it to the same log and the same
- * digests. Of seeds 26 to 37, five reach all six command kinds (27, 30, 34, 35,
- * 37), and seed 30 has the most papers from the person among them.
- *
- * Seed 888, used before, no longer calls a great person in sixty turns. A
- * great person needs Ancestor Rites, which the Epic Poetry technology grants.
- * On seed 888 the first seat now learns it on turn 66, so the first call comes
- * on turn 67. Just before batch B1 (schema 240) the first call came on turn
- * 54, and at the fourteen commits from schema 227 to 240 it came between turn
- * 50 and turn 62. Renown does not hold it back: four seats bank the 75 renown
- * the first great person costs by turn 50. Batch B1 changed beliefs and two
- * faith buildings and no renown rule, so this is one game's path. Over seeds 1
- * to 20, 8 games called a great person within sixty turns at schema 227 and 7
- * did at schema 241. Of 40 seeds tried at schema 241, 10 did. Seed 26 is one
- * of the games with all six command kinds below, and it also has two great
- * people and papers from the person.
- *
- * Seed 888 came in with the movement fixes (`docs/flags.md` (xxxxxx)),
- * measured at schema 147: 23 towns founded, 21 attacks on the wild, 57 deals
- * put and 4 of them accepted, 3 great people called, and 26 papers the person
- * put to a bot. Seed 777, used before that, no longer reached an accepted deal
- * in sixty turns, because the fixes changed that game's path. Over fifteen
- * seeds the bots put about as many deals as before (468 before, 446 after) and
- * accepted a few fewer (43 before, 33 after), and 13 of the 15 games still
- * reached an accepted deal.
- *
- * Slow by kind: a multi-decade game played twice.
+ * Compare every command and turn digest in a six-seat game. After sixty turns,
+ * both games present the same tribute demand and Great Person offer.
  */
-
 import { describe, expect, it } from 'vitest';
-import { dealMemorySize } from '../../src/ai/dealMemory';
+import { copyDealMemory } from '../../src/ai/dealMemory';
+import { proposeDealError } from '../../src/sim/diplomacy';
+import { drawGreatPersonOffer } from '../../src/sim/greatPeople';
+import { dispatch, snapshotState } from '../../src/sim/game';
+import { bumpRevision, hasEndedTurn, realPlayers } from '../../src/sim/state';
 import { rosterFor } from '../../src/ui/gameSetup';
-import { playWithBotsThinking } from './botWorkerHelpers';
+import { askAudience, driveWithBotsThinking, playWithBotsThinking } from './botWorkerHelpers';
 
 const CONFIG = { seed: 26, sizeName: 'standard', players: rosterFor(6), barbarians: true };
 const TURNS = 60;
@@ -76,12 +27,45 @@ describe('sixty turns ended through the bot worker', () => {
       expect(JSON.stringify(worker.game.log)).toBe(JSON.stringify(page.game.log));
       expect([worker.audiences, worker.answered]).toEqual([page.audiences, page.answered]);
 
-      // The game is one where the worker had something to get wrong.
       const kinds = new Set(page.game.log.map((command) => command.type));
-      for (const kind of ['foundCity', 'attack', 'proposeDeal', 'acceptDeal', 'declineDeal', 'chooseGreatPerson']) {
+      for (const kind of ['foundCity', 'attack', 'proposeDeal', 'acceptDeal']) {
         expect(kinds, kind).toContain(kind);
       }
-      expect(dealMemorySize(page.game.state)).toBeGreaterThan(0);
+
+      const give = {};
+      const take = { goldPerTurn: 10 };
+      const state = page.game.state;
+      const recipient = realPlayers(state).find(seat =>
+        seat.id !== 0 && !seat.isHuman && !hasEndedTurn(state, seat.id) &&
+        proposeDealError(state, 0, seat.id, give, take) === null);
+      if (!recipient) throw new Error('The tribute demand needs an available bot at peace');
+      for (const [game, thinker] of [[page.game, 'page'], [worker.game, 'worker']] as const) {
+        expect(dispatch(game, { type: 'proposeDeal', playerId: 0, targetId: recipient.id, give, take }).ok).toBe(true);
+        const proposal = game.state.dealProposals.find(row => row.by === 0 && row.to === recipient.id)!;
+        const answer = askAudience(game, thinker, recipient.id, proposal.id);
+        expect(answer?.command).toEqual({ type: 'declineDeal', playerId: recipient.id, dealId: proposal.id });
+        expect(copyDealMemory(game.state)).toContainEqual(expect.objectContaining({
+          by: 0, to: recipient.id, turn: game.state.turn,
+        }));
+      }
+      for (const [game, thinker] of [[page.game, 'page'], [worker.game, 'worker']] as const) {
+        const seat = game.state.players[recipient.id]!;
+        // Draw from the played world's remaining roster. The choice is the worker's job.
+        seat.greatPersonOffer = drawGreatPersonOffer(game.state, seat);
+        expect(seat.greatPersonOffer.options.length).toBeGreaterThan(0);
+        bumpRevision(game.state);
+        const before = game.log.length;
+        const recruits = seat.greatPeopleRecruited;
+        const outcome = driveWithBotsThinking(game, thinker);
+        if (thinker === 'worker') expect(outcome).toBe('applied');
+        expect(game.log.slice(before)).toContainEqual(expect.objectContaining({
+          type: 'chooseGreatPerson', playerId: seat.id,
+        }));
+        expect(seat.greatPeopleRecruited).toBeGreaterThan(recruits);
+      }
+      expect(worker.game.log).toEqual(page.game.log);
+      expect(copyDealMemory(worker.game.state)).toEqual(copyDealMemory(page.game.state));
+      expect(snapshotState(worker.game.state)).toBe(snapshotState(page.game.state));
     },
     PATIENCE,
   );

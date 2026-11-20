@@ -38,6 +38,11 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { valueContext } from '../../src/ai/bot';
+import { voiceWeight } from '../../src/ai/prices';
+import { explainCardEffects, explainCardStamp } from '../../src/ai/value';
+import { orderDef } from '../../src/sim/statecraftData';
+
 import {
   availableCopies,
   canSpareAnyOf,
@@ -994,6 +999,25 @@ describe('a card that doubles what a realm’s own seams supply', () => {
     expect(resourceCopies(state, 0, 'gems')).toBe(1);
     // And it is this empire's law and nobody else's.
     expect(resourceCopies(state, 1, 'iron')).toBe(0);
+  });
+
+  it('prices the income Widow Qing gains from extra copies separately from their use for units and trade', () => {
+    const { state } = ironBench(2);
+    const player = state.players[0]!;
+    const id = 'strategicExports';
+    slot(state, id);
+    const effects = orderDef(id).effects;
+
+    for (const hasLegacy of [false, true]) {
+      if (hasLegacy) {
+        player.legacies.push({ id: 'widowQing', age: 3 });
+        bumpRevision(state);
+      }
+      const ctx = valueContext(state, player);
+      const income = hasLegacy ? 2 * 4 * voiceWeight(ctx, 'gold') : 0;
+      expect(explainCardStamp(ctx, id)?.total).toBeCloseTo(income);
+      expect(explainCardEffects(id, effects, ctx, 'stamp').total).toBeCloseTo(income + ctx.ai.score.unknownEffect);
+    }
   });
 
   it('writes nothing on the board', () => {

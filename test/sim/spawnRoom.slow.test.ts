@@ -83,8 +83,9 @@ describe('a unit waiting for room', () => {
       // garrison simply stays. Ordered before End Turn so the marches are this
       // seat's own, in the log, ahead of the phase that would settle the queue.
       pushOut();
-      if (productionAwaitingRoom(game.state, capital) !== null) waitedTurns += 1;
       expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+      waitedTurns = productionAwaitingRoom(game.state, capital) === 'warrior' ? waitedTurns + 1 : 0;
+      if (waitedTurns === 3) break;
     }
 
     // The run reached the state this file exists for, and stayed in it: a town
@@ -96,6 +97,17 @@ describe('a unit waiting for room', () => {
     expect(capital.queue[0]).toEqual({ kind: 'unit', id: 'warrior' });
     expect(capital.hammerBasket).toBeGreaterThan(0);
 
+    expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
+
+    // Make room through a logged command, then verify that the waiting warrior spawns.
+    const garrison = game.state.units.find(unit => unit.ownerId === 0 &&
+      unit.col === capital.col && unit.row === capital.row && unit.type === 'warrior')!;
+    expect(dispatch(game, { type: 'disbandUnit', playerId: 0, unitId: garrison.id }).ok).toBe(true);
+    expect(productionAwaitingRoom(game.state, capital)).toBeNull();
+    expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+    expect(capital.queue).toHaveLength(0);
+    expect(game.state.units.some(unit => unit.ownerId === 0 && unit.type === 'warrior' &&
+      unit.col === capital.col && unit.row === capital.row && unit.id !== garrison.id)).toBe(true);
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 });

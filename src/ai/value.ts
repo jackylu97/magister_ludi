@@ -5675,7 +5675,7 @@ export function stampSight(effect: CardEffect): StampSight {
     case 'meterRule':
       return meterRuleInBooks(effect.rule) ? 'books' : 'none';
     case 'effectAmplifier':
-      return amplifierInBooks(effect.target) ? 'books' : 'none';
+      return amplifierSight(effect.target);
     case 'rule':
       return flagRuleSight(effect);
     // --- split their own way (see `beyondTheStamp`) -------------------------
@@ -5811,6 +5811,9 @@ function ownBeyond(effect: CardEffect, ctx: ValueContext, card: CardId | undefin
     value = metaRuleBeyond(effect, ctx);
   } else if (effect.kind === 'rulePercent' && effect.rule === 'growthSurplus') {
     value = walkOne(effect, ctx, card) * (1 - surplusMovedShare(ctx));
+  } else if (effect.kind === 'effectAmplifier' && effect.target === 'strategicCopies') {
+    // The stamp includes income paid per copy. The walk prices spare copies for units and trade.
+    value = walkOne(effect, ctx, card);
   } else if (effect.kind === 'slotRider') {
     const closes = (effect.extra ?? 1) < 0 && card !== undefined && isDoctrineId(card);
     value = closes ? 0 : walkOne(effect, ctx, card);
@@ -5989,32 +5992,28 @@ function meterRuleInBooks(rule: Extract<CardEffect, { kind: 'meterRule' }>['rule
   }
 }
 
-/**
- * **Does the empire's books carry the figure this amplifier raises?** A route's
- * pay, the roads' coin and the luxuries' happiness and yields do. An act, a
- * rite's length, copies of a seam, riders, raids, a general's aura and the
- * renown a Triumph awards once do not.
- */
-function amplifierInBooks(target: Extract<CardEffect, { kind: 'effectAmplifier' }>['target']): boolean {
+/** A strategic copy can pay recurring income and can also supply a unit or a trade. */
+function amplifierSight(target: Extract<CardEffect, { kind: 'effectAmplifier' }>['target']): StampSight {
   switch (target) {
     case 'routeYields':
     case 'connectionYields':
     case 'luxuryHappiness':
     case 'luxuryDuplicates':
     case 'lentLuxuryCopies':
-      return true;
+      return 'books';
+    case 'strategicCopies':
+      return 'own';
     case 'triumphRenown':
     case 'greatPersonAct':
     case 'riteDuration':
-    case 'strategicCopies':
     case 'luxuryMineCopies':
     case 'depositWorkCopies':
     case 'captureRewards':
     case 'pillageRewards':
     case 'generalAura':
-      return false;
+      return 'none';
     default:
-      return unreadBooksRule(target);
+      return unreadSight(target);
   }
 }
 

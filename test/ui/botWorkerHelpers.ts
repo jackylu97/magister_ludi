@@ -41,7 +41,7 @@ function throughTheSeam(request: BotWorkerRequest) {
   return structuredClone(answerBotWorker(structuredClone(request)));
 }
 
-function askAudience(game: Game, thinker: Thinker, seatId: number, dealId?: number) {
+export function askAudience(game: Game, thinker: Thinker, seatId: number, dealId?: number) {
   const options = { seatId, askerId: 0, ...(dealId === undefined ? {} : { dealId }), warn: () => {} };
   if (thinker === 'page') return answerAudience(game, options);
   const reply = throughTheSeam({
@@ -92,30 +92,35 @@ function paperTarget(command: Command): number | null {
   return null;
 }
 
+/** Runs a bot turn through the same entry point used by the long game. */
+export function driveWithBotsThinking(game: Game, thinker: Thinker): TwinOutcome | null {
+  if (thinker === 'page') {
+    driveBots(game, { warn: () => {} });
+    return null;
+  }
+  const reply = throughTheSeam({
+    kind: 'drive',
+    id: 1,
+    config: game.config,
+    state: game.state,
+    logLength: game.log.length,
+    memory: readHarnessMemory(game.state),
+  });
+  if (reply.kind !== 'driven') throw new Error(`the worker did not drive: ${JSON.stringify(reply)}`);
+  return applyTwinReply(game, reply);
+}
+
 /** Plays `turns` turns with the bots thinking where `thinker` says. */
 export function playWithBotsThinking(config: GameConfig, turns: number, thinker: Thinker): PlayedTwice {
   const game = createGame(config);
   const tally = { audiences: 0, answered: 0 };
   const digests: string[] = [];
   const outcomes: TwinOutcome[] = [];
-  const quiet = { warn: () => {} };
   for (let turn = 0; turn < turns && game.state.winnerId === null; turn++) {
     const before = game.state.turn;
     playThePerson(game, thinker, tally);
-    if (thinker === 'page') {
-      driveBots(game, quiet);
-    } else {
-      const reply = throughTheSeam({
-        kind: 'drive',
-        id: 1,
-        config: game.config,
-        state: game.state,
-        logLength: game.log.length,
-        memory: readHarnessMemory(game.state),
-      });
-      if (reply.kind !== 'driven') throw new Error(`the worker did not drive: ${JSON.stringify(reply)}`);
-      outcomes.push(applyTwinReply(game, reply));
-    }
+    const outcome = driveWithBotsThinking(game, thinker);
+    if (outcome !== null) outcomes.push(outcome);
     let ended = dispatch(game, { type: 'endTurn', playerId: 0 });
     if (!ended.ok) {
       playThePerson(game, thinker, tally);
