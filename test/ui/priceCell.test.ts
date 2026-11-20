@@ -260,14 +260,14 @@ describe('a labelled cell (batch UX9)', () => {
 
   it('leaves a bare price exactly as the city screen reads it', () => {
     const name = 'Settler';
-    expect(priceCellSpoken({ look: 'buy', bank: 'gold', price: 112 }, { name })).toBe(
-      'Buy Settler outright for 112 gold',
+    expect(priceCellSpoken({ look: 'buy', bank: 'gold', price: 144 }, { name })).toBe(
+      'Buy Settler outright for 144 gold',
     );
-    expect(priceCellSpoken({ look: 'short', bank: 'gold', price: 112, need: 31 }, { name })).toBe(
-      'Settler costs 112 gold to buy outright; 31 more gold needed',
+    expect(priceCellSpoken({ look: 'short', bank: 'gold', price: 144, need: 31 }, { name })).toBe(
+      'Settler costs 144 gold to buy outright; 31 more gold needed',
     );
     expect(
-      priceCellSpoken({ look: 'none', bank: 'gold', price: 112, refusal: 'x' }, { name, reason: 'why' }),
+      priceCellSpoken({ look: 'none', bank: 'gold', price: 144, refusal: 'x' }, { name, reason: 'why' }),
     ).toBe('Settler cannot be bought here: why');
   });
 });

@@ -608,8 +608,10 @@ import {
  *
  * v250 changes Commerce offers and purchase prices, lumber mill yields and
  * the sites that can take a terrace. Replaying an older game would change its outcome.
+ *
+ * v251 changes citizen and building yields and the production prices of units.
  */
-export const SCHEMA_VERSION = 250;
+export const SCHEMA_VERSION = 251;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -182,7 +182,7 @@
       "production": 2,
       "gold": 0
     },
-    "sciencePerPop": 0.5,
+    "sciencePerPop": 0.25,
     "baseCulturePerCity": 1,
     "palaceGold": 2,
     "palaceScience": 1,
@@ -427,10 +427,10 @@
       "line": 14,
       "heavy": 20,
       "engine": 23,
-      "settler": 28,
+      "settler": 36,
       "free": 0
     },
-    "militaryPercent": 50,
+    "militaryPercent": 80,
     "columnRate": 1.31,
     "uniqueCostBreakeven": 4,
     "purchaseDiscountCap": 50,

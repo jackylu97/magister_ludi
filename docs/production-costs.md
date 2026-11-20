@@ -40,11 +40,11 @@ figure that produces.
 
 | Unit size | Base hammers | What it is |
 |---|---|---|
-| **light** | 10 | scout, warrior, archer, worker |
-| **line** | 14 | the infantry line and the early hulls |
+| **light** | 10 | scout, warrior, archer |
+| **line** | 14 | worker, infantry and early hulls |
 | **heavy** | 20 | the mounted, the late infantry, the light hulls |
 | **engine** | 23 | siege engines, the gun decks, the trader's cart |
-| **settler** | 28 | the settler, whose ladder rides on top |
+| **settler** | 36 | the settler, whose ladder rides on top |
 | **free** | 0 | the called pieces — the prophet and her sisters, the great person |
 
 `columnRate` **1.31** — ruled ("lets make it 1.31. I'll let you know if we need
@@ -91,7 +91,7 @@ Buildings, by the base each row printed before the standard: **small** ≤ 35 ·
 **wonder** every wonder and the Magnum Opus · **free** a row that is never built
 and never bought.
 
-Units, by the table in §2: the four light rows by name, then the infantry line,
+Units, by the table in §2: the light rows in the table, then the infantry line,
 the mounted and late infantry, the engines and gun decks. A row the sizing pass
 did not name took the nearest of the four bases to the figure it printed —
 the trader (28 → engine), the composite bowman (14 → line), the fire ship
@@ -141,8 +141,11 @@ about a price. The lines, in the order the arithmetic runs:
    reading 56). The Mouseion is the one row with a premium.
 
 `foldBuildingCost` is `buildingProductionCost`; `foldUnitCost` sums either list.
-`unitRosterCost` is lines 1–2 alone — what the roster charges before any empire
-touches the price, which is what the Compendium prints. Every surface prints the
+The unit roster adds the military surcharge after the column adjustment.
+For a unit that can attack, add 80% of its column-adjusted price, rounded down.
+A worker costs 14 hammers plus 4 per worker already built or bought.
+A settler costs 36 plus 9 per settler already built or bought.
+Free units do not advance either count. The Compendium shows the first price. Every surface prints the
 fold: the purchase (`goldPerHammer` × the folded price), the wonder refund, the
 build list, the star chart, the bot's chains.
 
@@ -303,72 +306,72 @@ stays whole. See `docs/trade.md`.
 
 | Row | Name | Size | Column | Hammers |
 |---|---|---|---|---|
-| `warrior` | Warrior | light | 1 | 15 |
-| `scout` | Scout | light | 1 | 15 |
-| `settler` | Settler | settler | 1 | 28 |
-| `worker` | Worker | light | 1 | 10 |
+| `warrior` | Warrior | light | 1 | 18 |
+| `scout` | Scout | light | 1 | 18 |
+| `settler` | Settler | settler | 1 | 36 |
+| `worker` | Worker | line | 1 | 14 |
 | `trader` | Trader | engine | 4 | 51 |
-| `archer` | Archer | light | 1 | 15 |
-| `bowman` | Bowman | line | 5 | 61 |
-| `spearman` | Spearman | line | 2 | 27 |
-| `horseman` | Horseman | heavy | 7 | 151 |
-| `chariot` | War Chariot | heavy | 3 | 51 |
-| `chariotArcher` | Chariot Archer | heavy | 3 | 51 |
-| `swordsman` | Swordsman | line | 4 | 46 |
-| `catapult` | Catapult | engine | 7 | 174 |
-| `compositeBowman` | Composite Bowman | line | 7 | 105 |
-| `pikeman` | Pikeman | line | 9 | 181 |
-| `crossbowman` | Crossbowman | line | 9 | 181 |
-| `knight` | Knight | heavy | 11 | 445 |
-| `longswordsman` | Longswordsman | heavy | 10 | 340 |
-| `trebuchet` | Trebuchet | engine | 10 | 391 |
-| `trireme` | Trireme | line | 2 | 27 |
-| `bireme` | Bireme | line | 5 | 61 |
-| `galley` | Galley | line | 7 | 105 |
-| `caravel` | Caravel | heavy | 11 | 445 |
-| `corvette` | Corvette | heavy | 11 | 445 |
-| `warGalley` | War Galley | heavy | 5 | 87 |
-| `towerShip` | Tower Ship | engine | 7 | 174 |
-| `carrack` | Carrack | engine | 11 | 513 |
-| `shipOfTheLine` | Ship of the Line | engine | 12 | 672 |
-| `fireShip` | Fire Ship | heavy | 7 | 151 |
-| `gunGalley` | Gun Galley | engine | 11 | 513 |
-| `frigate` | Frigate | engine | 12 | 672 |
+| `archer` | Archer | light | 1 | 18 |
+| `bowman` | Bowman | line | 5 | 73 |
+| `spearman` | Spearman | line | 2 | 32 |
+| `horseman` | Horseman | heavy | 7 | 181 |
+| `chariot` | War Chariot | heavy | 3 | 61 |
+| `chariotArcher` | Chariot Archer | heavy | 3 | 61 |
+| `swordsman` | Swordsman | line | 4 | 55 |
+| `catapult` | Catapult | engine | 7 | 208 |
+| `compositeBowman` | Composite Bowman | line | 7 | 126 |
+| `pikeman` | Pikeman | line | 9 | 217 |
+| `crossbowman` | Crossbowman | line | 9 | 217 |
+| `knight` | Knight | heavy | 11 | 534 |
+| `longswordsman` | Longswordsman | heavy | 10 | 408 |
+| `trebuchet` | Trebuchet | engine | 10 | 469 |
+| `trireme` | Trireme | line | 2 | 32 |
+| `bireme` | Bireme | line | 5 | 73 |
+| `galley` | Galley | line | 7 | 126 |
+| `caravel` | Caravel | heavy | 11 | 534 |
+| `corvette` | Corvette | heavy | 11 | 534 |
+| `warGalley` | War Galley | heavy | 5 | 104 |
+| `towerShip` | Tower Ship | engine | 7 | 208 |
+| `carrack` | Carrack | engine | 11 | 615 |
+| `shipOfTheLine` | Ship of the Line | engine | 12 | 806 |
+| `fireShip` | Fire Ship | heavy | 7 | 181 |
+| `gunGalley` | Gun Galley | engine | 11 | 615 |
+| `frigate` | Frigate | engine | 12 | 806 |
 | `prophet` | Prophet | free | 5 | 0 |
 | `apostle` | Apostle | free | 8 | 0 |
 | `inquisitor` | Inquisitor | free | 11 | 0 |
 | `greatPerson` | Great Person | free | 1 | 0 |
-| `phalanx` | Phalanx | line | 4 | 46 |
-| `legionary` | Legionary | line | 6 | 81 |
-| `horseArcher` | Horse Archer | heavy | 7 | 151 |
-| `spearWall` | Spear Wall | line | 6 | 81 |
-| `warElephant` | War Elephant | heavy | 7 | 151 |
-| `fireLance` | The Fire Lance | heavy | 12 | 583 |
-| `knightsTemplar` | Knights Templar | heavy | 11 | 445 |
-| `numidianCavalry` | Numidian Cavalry | heavy | 7 | 151 |
-| `companyGuard` | Company Guard | heavy | 11 | 445 |
-| `slinger` | Slinger | line | 5 | 61 |
-| `fubing` | Fubing | light | 2 | 19 |
-| `tangCavalry` | Tang Heavy Cavalry | heavy | 7 | 151 |
-| `whistlingArrow` | The Whistling Arrow | heavy | 3 | 51 |
-| `xiongnuHorseArcher` | Keshig | heavy | 7 | 151 |
-| `chanyuGuard` | The Chanyu's Guard | heavy | 11 | 445 |
-| `khopesh` | The Khopesh | line | 4 | 46 |
-| `camelArcher` | Camel Archer | heavy | 7 | 151 |
-| `ponticPeltast` | The Pontic Peltast | line | 2 | 27 |
-| `scythedChariot` | The Scythed Chariot | heavy | 8 | 198 |
-| `gendarme` | The Gendarme | heavy | 11 | 445 |
-| `mandekalu` | The Mandekalu | heavy | 7 | 151 |
-| `treasureShip` | The Treasure Ship | engine | 8 | 228 |
-| `eagleWarrior` | The Eagle Warrior | line | 5 | 61 |
-| `alexandrianGalley` | The Alexandrian Galley | line | 5 | 61 |
+| `phalanx` | Phalanx | line | 4 | 55 |
+| `legionary` | Legionary | line | 6 | 97 |
+| `horseArcher` | Horse Archer | heavy | 7 | 181 |
+| `spearWall` | Spear Wall | line | 6 | 97 |
+| `warElephant` | War Elephant | heavy | 7 | 181 |
+| `fireLance` | The Fire Lance | heavy | 12 | 700 |
+| `knightsTemplar` | Knights Templar | heavy | 11 | 534 |
+| `numidianCavalry` | Numidian Cavalry | heavy | 7 | 181 |
+| `companyGuard` | Company Guard | heavy | 11 | 534 |
+| `slinger` | Slinger | line | 5 | 73 |
+| `fubing` | Fubing | light | 2 | 23 |
+| `tangCavalry` | Tang Heavy Cavalry | heavy | 7 | 181 |
+| `whistlingArrow` | The Whistling Arrow | heavy | 3 | 61 |
+| `xiongnuHorseArcher` | Keshig | heavy | 7 | 181 |
+| `chanyuGuard` | The Chanyu's Guard | heavy | 11 | 534 |
+| `khopesh` | The Khopesh | line | 4 | 55 |
+| `camelArcher` | Camel Archer | heavy | 7 | 181 |
+| `ponticPeltast` | The Pontic Peltast | line | 2 | 32 |
+| `scythedChariot` | The Scythed Chariot | heavy | 8 | 237 |
+| `gendarme` | The Gendarme | heavy | 11 | 534 |
+| `mandekalu` | The Mandekalu | heavy | 7 | 181 |
+| `treasureShip` | The Treasure Ship | engine | 8 | 273 |
+| `eagleWarrior` | The Eagle Warrior | line | 5 | 73 |
+| `alexandrianGalley` | The Alexandrian Galley | line | 5 | 73 |
 | `canoness` | The Canoness | free | 8 | 0 |
 | `rihlaCaravan` | The Rihla Caravan | engine | 5 | 67 |
-| `hypaspist` | Hypaspist | line | 4 | 46 |
-| `janissary` | Janissary | heavy | 10 | 340 |
-| `qinCrossbowman` | Qin Crossbowman | light | 4 | 33 |
-| `ballistaElephant` | Ballista Elephant | heavy | 7 | 151 |
-| `sparabara` | Sparabara | line | 4 | 46 |
-| `condottiere` | Condottiere | heavy | 10 | 340 |
-| `hwacha` | Hwacha | engine | 10 | 391 |
-| `cataphract` | Cataphract | heavy | 7 | 151 |
+| `hypaspist` | Hypaspist | line | 4 | 55 |
+| `janissary` | Janissary | heavy | 10 | 408 |
+| `qinCrossbowman` | Qin Crossbowman | light | 4 | 39 |
+| `ballistaElephant` | Ballista Elephant | heavy | 7 | 181 |
+| `sparabara` | Sparabara | line | 4 | 55 |
+| `condottiere` | Condottiere | heavy | 10 | 408 |
+| `hwacha` | Hwacha | engine | 10 | 469 |
+| `cataphract` | Cataphract | heavy | 7 | 181 |

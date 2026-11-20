@@ -309,7 +309,8 @@ describe('what gold costs', () => {
     const player = playerById(g.state, 0)!;
     player.unitsBuilt.settler = (player.unitsBuilt.settler ?? 0) + 1;
     const second = explainPurchaseCost(g.state, 0, city.id, SETTLER, 'gold')!;
-    expect(second.total).toBeGreaterThan(first.total);
+    expect(first.total).toBe(144);
+    expect(second.total).toBe(180);
     expect(second.total).toBe(unitProductionCost(g.state, 0, 'settler') * RATE);
     // And the reason is a **line**, not an adjustment somebody made afterwards.
     expect(second.lines.length).toBeGreaterThan(first.lines.length);

@@ -237,6 +237,11 @@ improvement's entries alone, because the hex is one fold in which a hill
 out without a second sum of the remainder. The prophet's holy site carries the
 same marker and is **not** a great person's work: it stays with the land.
 
+Each citizen adds 0.25 science to the town before percentages. The Library
+adds 3 science, the University adds 6 science and the Amphitheater adds 4
+culture at any population. At ten citizens, the population, Library and
+University together supply 11.5 science before other sources and percentages.
+
 ### Inside step 9 — the building shares
 
 Two passes, in `cardBuildingPercents`' own order: the **ordinary** shares, each

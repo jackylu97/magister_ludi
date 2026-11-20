@@ -1583,7 +1583,7 @@ interface ProductionRules {
    *
    * | light | line | heavy | engine | settler |
    * |---|---|---|---|---|
-   * | 10 | 14 | 20 | 23 | 28 |
+   * | 10 | 14 | 20 | 23 | 36 |
    *
    * The roster rides the buildings' own curve at the buildings' own rate, ruled
    * 2026-09-07 ("this is ok, lets playtest first, because things felt way too
@@ -1596,13 +1596,8 @@ interface ProductionRules {
    */
   unitSizeHammers: Record<UnitSize, number>;
   /**
-   * **What a soldier costs over a civilian of the same size**, as a share of
-   * the sized-and-columned figure — the user's ruling of 2026-09-15 ("military
-   * units need to be ~50% more expensive"). A percent line rather than a second
-   * size table, because the sizes are shared: a worker is `light` beside the
-   * warrior and a trader is `engine` beside the catapult, and the ruling is
-   * about the soldiers alone. Read in one place — `unitRosterLines` — so the
-   * Compendium's empire-free reading and the city's own fold agree.
+   * The surcharge applies to a combat unit's column-adjusted hammer price.
+   * Both the Compendium and city purchases use the same roster price.
    */
   militaryPercent: number;
   /**

@@ -382,9 +382,9 @@
       "food": 0,
       "production": 0,
       "gold": 0,
-      "science": 2,
+      "science": 3,
       "culture": 0,
-      "sciencePerPop": 0.5,
+      "sciencePerPop": 0,
       "renown": {
         "family": "scholar",
         "perTurn": 1
@@ -494,26 +494,13 @@
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 2,
+      "culture": 4,
       "sciencePerPop": 0,
       "renown": {
         "family": "artist",
         "perTurn": 1
       },
-      "requiresBuilding": "monument",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "culture",
-          "amount": 1,
-          "count": "population",
-          "per": 2,
-          "within": "city"
-        }
-      ],
-      "note": "Every second citizen of this city is worth a further song."
+      "requiresBuilding": "monument"
     },
     "monastery": {
       "name": "Monastery",
@@ -535,9 +522,9 @@
       "food": 0,
       "production": 0,
       "gold": 0,
-      "science": 0,
+      "science": 6,
       "culture": 0,
-      "sciencePerPop": 0.75,
+      "sciencePerPop": 0,
       "renown": {
         "family": "scholar",
         "perTurn": 2

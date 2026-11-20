@@ -1549,12 +1549,7 @@ describe('city yields', () => {
       food: CITIES.baseCityYields.food + 2,
       production: CITIES.baseCityYields.production,
       gold: CITIES.baseCityYields.gold + CITIES.palaceGold,
-      // The base beaker is half a citizen's since the fewer-things pass
-      // (`docs/balance-turn.md` §4b), and it is **exact** since batch X — a town
-      // of one banks half a beaker where the old floor banked nothing.
-      // …plus the palace's beaker and note since 2026-09-08 (the user's ruling:
-      // the seat of government pays a little learning and a little song beside
-      // its coin), on the same line as the coin above.
+      // Citizens and the palace each supply science.
       science: city.population * CITIES.sciencePerPop + CITIES.palaceScience,
       culture: CITIES.baseCulturePerCity + CITIES.palaceCulture,
       faith: 0,
@@ -1586,11 +1581,9 @@ describe('city yields', () => {
     // The monument's two, the town's own one, and the palace's note (2026-09-08).
     expect(smallFlats.culture).toBe(CITIES.baseCulturePerCity + 2 + CITIES.palaceCulture);
     expect(smallFlats.food).toBe(CITIES.baseCityYields.food + granary.food);
-    // The population's own beaker, plus both of the library's terms — the flat
-    // one and the per-citizen one, exact on its own (batch X).
-    // …and the palace's beaker (2026-09-08): this one town is the capital.
+    // The Library supplies the same flat amount at either population.
     expect(smallFlats.science).toBe(
-      1 * CITIES.sciencePerPop + library.science + 1 * library.sciencePerPop + CITIES.palaceScience,
+      CITIES.sciencePerPop + library.science + CITIES.palaceScience,
     );
 
     city.population = 4;
@@ -1605,7 +1598,7 @@ describe('city yields', () => {
     // fraction that falls out is what the pool banks.
     const factor = yieldFactor(meterEffects(state, city.ownerId), 'science');
     expect(foldCity(state, city).science).toBe(
-      (4 * CITIES.sciencePerPop + library.science + 4 * library.sciencePerPop + CITIES.palaceScience) *
+      (4 * CITIES.sciencePerPop + library.science + CITIES.palaceScience) *
         factor,
     );
   });
@@ -2809,35 +2802,27 @@ describe('escalating settler cost', () => {
 });
 
 describe('escalating worker cost', () => {
-  // Ruling (user, 2026-08-28): "workers should slowly increase in cost the
-  // more they're built" — the settler ladder generalised rather than a second
-  // one invented. `escalation` on the worker's row is 2 (3 until the user
-  // turned both ladders down a step on 2026-08-29 — the settler's 8 → 7 in
-  // the same ruling), so the first three workers price 14 / 16 / 18.
-  const ROW = RULES.production.unitSizeHammers.light;
+  const ROW = RULES.production.unitSizeHammers.line;
   const STEP = unitDef('worker').escalation!;
   /** The settler suite's own reading of a rung — see the docblock there. */
   const priced = (built: number): number => ROW + built * STEP;
   const BASE = priced(0);
 
   it('reads the base off the row\'s size and climbs by the row\'s own step', () => {
-    // The worker is a `light` piece at the first column since batch P1, so its
-    // base is the light base and nothing on the row says a number.
-    expect(unitDef('worker').size).toBe('light');
-    expect(ROW).toBe(10);
-    expect(STEP).toBe(2);
-    expect(unitDef('settler').escalation).toBe(7);
+    expect(unitDef('worker').size).toBe('line');
+    expect(ROW).toBe(14);
+    expect(STEP).toBe(4);
+    expect(unitDef('settler').escalation).toBe(9);
   });
 
-  it('prices a first, second and third worker at 10 / 12 / 14', () => {
-    // The ladder is the whole of the climb at the first column: the curve
-    // multiplies by one there, so each rung is one increment over the last.
+  it('prices the first four workers and settlers from their own counts', () => {
     const state = flatState();
-    expect(unitProductionCost(state, 0, 'worker')).toBe(10);
-    state.players[0]!.unitsBuilt.worker = 1;
-    expect(unitProductionCost(state, 0, 'worker')).toBe(12);
-    state.players[0]!.unitsBuilt.worker = 2;
-    expect(unitProductionCost(state, 0, 'worker')).toBe(14);
+    for (const [built, worker, settler] of [[0, 14, 36], [1, 18, 45], [2, 22, 54], [3, 26, 63]] as const) {
+      state.players[0]!.unitsBuilt.worker = built;
+      state.players[0]!.unitsBuilt.settler = built;
+      expect(unitProductionCost(state, 0, 'worker')).toBe(worker);
+      expect(unitProductionCost(state, 0, 'settler')).toBe(settler);
+    }
   });
 
   it('climbs its own ladder independently of the settler\'s', () => {
@@ -3250,14 +3235,10 @@ describe('the turn pipeline over a live empire', () => {
     collectYields(state);
     const player = state.players[0]!;
     expect(city.hammerBasket).toBeGreaterThan(0);
-    // Exact per source since batch X: a town of one citizen banks half a beaker
-    // from the base line, where the old floor banked nothing at all — and the
-    // pools bank the staged figure, tier and all, rather than a floored one.
+    // Collection keeps the full yield after both percentage stages.
     const banked = foldCity(state, city);
     expect(banked.science).toBeGreaterThan(0);
     expect(player.sciencePool).toBe(banked.science);
-    // The citizen's half a beaker plus the palace's whole one (2026-09-08):
-    // this is the empire's only town, so it is the capital.
     expect(explainCity(state, city).flats.science).toBe(
       city.population * CITIES.sciencePerPop + CITIES.palaceScience,
     );

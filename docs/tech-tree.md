@@ -206,6 +206,9 @@ town): Palisade → Stone Walls → Castle · Monument → Amphitheater · Marke
 Bazaar and Bank · Harbour → Shipyard · Library → University → Observatory ·
 Workshop → Forge · Shrine → Temple.
 
+The Library adds 3 science and the University adds another 6. The Amphitheater
+adds 4 culture. Each building pays its full yield at any town size.
+
 ### Æra I — The Age of Omens (12 nodes, 5–50🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |

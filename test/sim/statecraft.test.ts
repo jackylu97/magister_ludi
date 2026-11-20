@@ -8053,12 +8053,9 @@ describe("the engine shapes", () => {
         city.population = 4;
         seat(g.state, 0, 0, "waysideShrines");
         const lines = explainCardBuildingYields(g.state, city);
-        // Only the Library, and its per-citizen beaker is in the base — the
-        // ruled "per-citizen lines included".
+        // Only the Library supplies science. Doubling its flat yield adds three.
         expect(lines).toHaveLength(1);
-        // The Library pays two flat and half a beaker a citizen since batch D,
-        // floored on its own — a doubling of 2 + 2.
-        expect(lines[0]!.science).toBe(2 + 2);
+        expect(lines[0]!.science).toBe(3);
         expect(lines[0]!.faith).toBe(0);
       },
     );

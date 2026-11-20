@@ -3183,7 +3183,7 @@ terrain. Fresh water alone does not qualify a hill.
 
 The user confirmed “Discount Great People too”. Calculate the base gold price from the next Great Person’s renown cost at 10 gold per point. Apply The Open Market’s 20% discount using the same price for the offer and the payment. The faith offer keeps its existing price. [Commerce build list](plans/commerce-design-pass-2026-11-20.md#4-ready-for-the-build)
 
-## Base science, culture and unit prices (ruled 2026-11-20, not built)
+## Base science, culture and unit prices (implemented in save version 251)
 
 The user: "I think base science and culture is a bit too strong, i think i
 want to nerf the passive science from population, and the base science and
@@ -3215,7 +3215,7 @@ too."
   150; units a seat; the turn of the first settler and the first war).
 - Owner: Astra (data rows and two rules).
 
-### Workers and settlers (ruled 2026-11-20, not built)
+### Workers and settlers (implemented in save version 251)
 
 The user: "I think workers and settlers probably need to become more
 expensive too." They are civilians, so the soldier's surcharge does not

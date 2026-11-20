@@ -77,25 +77,14 @@ function flatState(width = 16, height = 12): GameState {
 }
 
 describe('nothing rounds inside a fold', () => {
-  /**
-   * **The measurement that caused the ruling**, turned into an assertion.
-   *
-   * A village of one citizen at half a beaker a head banked *nothing* while the
-   * per-citizen line floored; it banks half a beaker now, and the pool carries
-   * the half rather than the panel inventing it.
-   */
-  it('banks half a beaker in a size-1 town at sciencePerPop 0.5', () => {
-    expect(CITIES.sciencePerPop).toBe(0.5);
+  it('banks the quarter science earned by one citizen', () => {
+    expect(CITIES.sciencePerPop).toBe(0.25);
     const state = flatState();
     const city = foundCityAt(state, 0, getTileAt(state.map, 8, 5)!);
     city.population = 1;
 
-    // The flats, which is where the per-citizen line lands. Entry XVII's stages
-    // multiply this afterwards and are asserted in their own section. The
-    // palace's own beaker sits beside the half (2026-09-08 — a founded first
-    // town is the capital); the claim here is the fraction, so it is read
-    // off the total less the palace's whole number.
-    expect(explainCity(state, city).flats.science - CITIES.palaceScience).toBe(0.5);
+    // The palace has its own line. Only the citizen contributes a fraction.
+    expect(explainCity(state, city).flats.science - CITIES.palaceScience).toBe(0.25);
     expect(Math.floor(1 * CITIES.sciencePerPop)).toBe(0);
 
     collectYields(state);

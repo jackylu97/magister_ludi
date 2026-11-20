@@ -186,11 +186,7 @@ function bench(): { state: GameState; playerId: number } {
   const made = game();
   const state = made.state;
   const city = found(state, 0);
-  // **Odd on purpose.** The two `sciencePerPop` terms are exact since batch X —
-  // half a beaker a citizen from the rules and half again from the library — and
-  // the mirror that floored them read the same as the fold on every even town,
-  // and this bench is why nobody saw it. The mirror is gone (batch E2); the
-  // bench stays, because the class of a line is still a claim about a figure.
+  // Five citizens produce fractional science, which the ledger must preserve.
   city.population = 5;
   city.buildings.push('monument', 'library');
   bumpRevision(state);

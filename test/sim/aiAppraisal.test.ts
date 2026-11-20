@@ -1908,33 +1908,9 @@ describe('the tech chain', () => {
 
   // --- batch X1d: the copies, and the whole road ------------------------------
 
-  /**
-   * **The library is worth what the town that raises it makes of it** — the
-   * user's ruling of 2026-09-09 (`docs/flags.md` item (ggg)): *"the value of a
-   * library is contingent on the city that builds it: a city in your capital with
-   * high population is worth a lot of science, and is built faster than a middling
-   * city."*
-   *
-   * The bench is the ruling read literally: one board, two towns, one of size
-   * twelve and one of size two, both lacking the row. The claim is that the two
-   * copies print *different* numbers and that the big town's is the bigger one —
-   * and it is made about the fold rather than about a figure, because a Library's
-   * `sciencePerPop` is a data row and the point is that the chain now reads it
-   * through `foldCity` instead of through the row's flat bag.
-   */
-  function libraryRow(): { id: BuildingId; tech: TechId } {
-    for (const id of BUILDING_IDS) {
-      const def = buildingDef(id);
-      if (def.sciencePerPop <= 0) continue;
-      const tech = gatingTech('building', id);
-      if (tech === null) continue;
-      return { id, tech };
-    }
-    throw new Error('no per-population science row in the table');
-  }
-
-  it('prices a row per copy — the big town’s fold and the hamlet’s, not one bag', () => {
-    const { id, tech } = libraryRow();
+  it('prices a population-based building separately for each town', () => {
+    const id = 'alchemicalSociety';
+    const tech = gatingTech('building', id)!;
     const { state, player, cities } = chained(2, tech);
     cities[0]!.population = 12;
     cities[1]!.population = 2;

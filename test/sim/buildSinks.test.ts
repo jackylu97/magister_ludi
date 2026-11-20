@@ -433,39 +433,33 @@ describe('the roster is priced by its size and its column', () => {
 
   it('prices the opening at the base and climbs the tree from there', () => {
     const state = flatState();
-    // **Re-pinned batch P1.** The opening kit stands at the first column, where
-    // the curve multiplies by one, so what a scout costs is the light base
-    // itself — the whole of the Æra I roster is three numbers in
-    // `data/rules.json` now rather than a printed figure on every row.
-    // The soldiers among them pay the `Soldier +50%` line on top since the
-    // user's ruling of 2026-09-15 — the worker, a civilian, does not.
-    expect(unitProductionCost(state, 0, 'scout')).toBe(15);
-    expect(unitProductionCost(state, 0, 'warrior')).toBe(15);
-    expect(unitProductionCost(state, 0, 'worker')).toBe(10);
-    expect(unitProductionCost(state, 0, 'archer')).toBe(15);
+    // The opening units share the first column. Only units that can attack pay the surcharge.
+    expect(unitProductionCost(state, 0, 'scout')).toBe(18);
+    expect(unitProductionCost(state, 0, 'warrior')).toBe(18);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(14);
+    expect(unitProductionCost(state, 0, 'archer')).toBe(18);
     // One column on, the spearman pays the rate once over the line base, then
-    // the soldier's half again.
-    expect(unitProductionCost(state, 0, 'spearman')).toBe(27);
+    // the military surcharge.
+    expect(unitProductionCost(state, 0, 'spearman')).toBe(32);
     // The mounted premium is the `heavy` size, and where a horse sits in the
     // tree is the rest of it: the chariot is The Wheel's in Æra I, the horseman
     // The Saddle's in Æra III since tree revision 4 (2026-09-02).
-    expect(unitProductionCost(state, 0, 'horseman')).toBe(151);
-    expect(unitProductionCost(state, 0, 'chariot')).toBe(51);
-    expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(51);
+    expect(unitProductionCost(state, 0, 'horseman')).toBe(181);
+    expect(unitProductionCost(state, 0, 'chariot')).toBe(61);
+    expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(61);
     // And the late roster, where the curve does its work: a closing-age piece
     // costs what a closing-age building costs, which is the reading the user
     // marked ("this is ok, lets playtest first").
-    expect(unitProductionCost(state, 0, 'phalanx')).toBe(46);
-    expect(unitProductionCost(state, 0, 'swordsman')).toBe(46);
-    expect(unitProductionCost(state, 0, 'bowman')).toBe(61);
-    expect(unitProductionCost(state, 0, 'catapult')).toBe(174);
-    // 181, not 238, since batch TT2 moved Castellany from column 10 to 9.
-    expect(unitProductionCost(state, 0, 'pikeman')).toBe(181);
-    expect(unitProductionCost(state, 0, 'knight')).toBe(445);
-    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(391);
+    expect(unitProductionCost(state, 0, 'phalanx')).toBe(55);
+    expect(unitProductionCost(state, 0, 'swordsman')).toBe(55);
+    expect(unitProductionCost(state, 0, 'bowman')).toBe(73);
+    expect(unitProductionCost(state, 0, 'catapult')).toBe(208);
+    expect(unitProductionCost(state, 0, 'pikeman')).toBe(217);
+    expect(unitProductionCost(state, 0, 'knight')).toBe(534);
+    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(469);
     // A hull that shipped ahead of its node carries its own column and is
     // priced by it, rather than falling to the first one.
-    expect(unitProductionCost(state, 0, 'frigate')).toBe(672);
+    expect(unitProductionCost(state, 0, 'frigate')).toBe(806);
   });
 
   it('is the fold of its own labelled lines, escalation included', () => {
@@ -495,7 +489,7 @@ describe('the roster is priced by its size and its column', () => {
     expect(explainUnitCost(state, 0, 'knight').map((line) => line.source)).toEqual([
       'Heavy unit',
       'Column 11 ×14.88',
-      'Soldier +50%',
+      'Soldier +80%',
     ]);
     expect(explainUnitCost(state, 0, 'knight')[0]!.amount).toBe(
       RULES.production.unitSizeHammers.heavy,
@@ -577,11 +571,11 @@ describe('a building is priced by its size and its column', () => {
       line: 14,
       heavy: 20,
       engine: 23,
-      settler: 28,
+      settler: 36,
     });
     expect(RULES.production.columnRate).toBe(1.31);
     expect(RULES_SOURCE).toContain('| 30 | 40 | 60 | 130 |');
-    expect(RULES_SOURCE).toContain('| 10 | 14 | 20 | 23 | 28 |');
+    expect(RULES_SOURCE).toContain('| 10 | 14 | 20 | 23 | 36 |');
     // Four rows read off the standard, one per size, across the tree.
     expect(buildingProductionCost('granary')).toBe(30);
     expect(buildingProductionCost('market')).toBe(89);

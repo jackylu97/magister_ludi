@@ -669,15 +669,20 @@ describe('the twelve legacies GP3 wired', () => {
     bear(g.state, 0, 'aristotle');
     const lines = buildingShare(g.state, city);
     expect(lines).toHaveLength(1);
-    // A quarter again of what the Library pays *this town* (a half until batch
-    // GP1 of 2026-11-12), **its per-citizen line included**. That is the
-    // shape's own claim and the reason the figure is not simply a quarter of
-    // the row. Nothing of the Monument's song: the selector is the voice a row
-    // **pays**, not the shelf it sits on.
-    const library = buildingDef('library');
-    const paid = library.science + (library.sciencePerPop ?? 0) * city.population;
-    expect(lines[0]!.science).toBeCloseTo(paid / 4, 6);
+    expect(lines[0]!.science).toBe(0.75);
     expect(lines[0]!.culture ?? 0).toBe(0);
+  });
+
+  it('doubles the Library including the science and culture Cai Lun adds', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('library');
+    bear(g.state, 0, 'ibnAlHaytham');
+    expect(buildingShare(g.state, city).map(line => line.science)).toEqual([3]);
+    bear(g.state, 0, 'caiLun');
+    const [share] = buildingShare(g.state, city);
+    expect(share!.science).toBe(5);
+    expect(share!.culture).toBe(1);
   });
 
   it('al-Jazarī raises the houses that supply work by two fifths', () => {

@@ -8235,8 +8235,8 @@
   ],
   "theForwardPlans": [
    {
-    "raw": "unlocks the [[building:university|University]] — +1 science for every citizen; +2 renown per turn, favouring scholars",
-    "text": "unlocks the University — +1 science for every citizen; +2 renown per turn, favouring scholars"
+    "raw": "unlocks the [[building:university|University]] — +6 science; +2 renown per turn, favouring scholars",
+    "text": "unlocks the University — +6 science; +2 renown per turn, favouring scholars"
    }
   ],
   "theDedications": [
@@ -11033,12 +11033,7 @@
    }
   ],
   "watermill": [],
-  "amphitheater": [
-   {
-    "raw": "+1 culture per 2 citizens in this city",
-    "text": "+1 culture per 2 citizens in this city"
-   }
-  ],
+  "amphitheater": [],
   "monastery": [],
   "university": [],
   "cathedral": [

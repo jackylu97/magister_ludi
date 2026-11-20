@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { buildingDef } from '../../src/sim/buildingData';
+import { type BuildingId, buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
 import { getTileAt } from '../../src/sim/map';
 import { LIVE_RITE_IDS } from '../../src/sim/religionData';
@@ -127,15 +127,16 @@ function suppliers(state: GameState, city: City, voice: CardPaysEffect['voice'])
 }
 
 describe('a building’s package', () => {
-  it('holds the row, with the per-citizen science taken at the town’s size', () => {
-    const { state, city } = town('library');
-    city.population = 4;
-    bumpRevision(state);
-    const lines = explainBuildingPackage(state, city, 'library');
-    expect(lines).toHaveLength(1);
-    expect(lines[0]!.building).toBe('library');
-    const row = buildingDef('library');
-    expect(foldBuildingPackage(lines).science).toBe(row.science + 4 * row.sciencePerPop);
+  it('keeps Library, University and Amphitheater yields flat at different town sizes', () => {
+    const { state, city } = town('library', 'university', 'amphitheater');
+    for (const population of [1, 4, 10, 12]) {
+      city.population = population;
+      bumpRevision(state);
+      const yields = (id: BuildingId) => foldBuildingPackage(explainBuildingPackage(state, city, id));
+      expect(yields('library').science).toBe(3);
+      expect(yields('university').science).toBe(6);
+      expect(yields('amphitheater').culture).toBe(4);
+    }
   });
 
   it('gives +4 science for a doubler on temples beside “+2 science on temples”, written by scope', () => {

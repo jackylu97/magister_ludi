@@ -461,8 +461,7 @@ those two sections first; the numbered changes above them carry a ruling each.
 
 ### 3.15 Base science, culture and unit prices (ready, small)
 
-`docs/flags.md`, "Base science, culture and unit prices (ruled 2026-11-20,
-not built)". Five figures: science for each citizen 0.25; the Library +3
+`docs/flags.md`, "Base science, culture and unit prices". Five figures: science for each citizen 0.25; the Library +3
 flat; the University +6 flat; the Amphitheater +4 flat; a soldier's
 surcharge 80%. Technology prices stay, so the tree is slower on purpose.
 Run the bots before and after, and report the measures that the flag lists.

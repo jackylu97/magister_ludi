@@ -1584,8 +1584,7 @@ export function explainCity(
     // card, which is exactly what `other` means.
     const centre = foldCentre(state, city, hypothetical, ctx);
     say(1, CENTRE_SOURCE, 'tiles', centre);
-    // Exact since batch X: at `sciencePerPop` 0.5 a size-1 town banks half a
-    // beaker, where the old floor banked nothing at all.
+    // Keep fractional science so even one citizen adds to the research pool.
     say(1, TOWN_ITSELF_SOURCE, 'other', {
       science: city.population * CITIES.sciencePerPop,
       culture: CITIES.baseCulturePerCity,

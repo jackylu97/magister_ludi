@@ -29,7 +29,7 @@ believed it, and Æra V goes past their own time.
 
 ## 1. What Æra IV introduces today (`data/techs.json`, age 4 — 14 nodes)
 
-- **Multipliers**: University (science per citizen), Bank (+20% gold where
+- The University adds 6 flat science. **Multipliers**: Bank (+20% gold where
   routes end), Printing House (routes ending here bring science and culture),
   Bourse, Mint, Bazaar (gold per luxury kind), Observatory, the Alchemical
   Society, the Garden (T5). The "increase the mult" half — already the spine.

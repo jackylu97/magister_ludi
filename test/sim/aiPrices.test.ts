@@ -250,18 +250,17 @@ describe('a line each town counts for itself is summed once', () => {
     expect(explainCounted(line, ctx).total).toBeCloseTo(4 * meterWeight(ctx, 'happiness'), 10);
   });
 
-  it('reads an ordinary building’s counted line in the town that raises it', () => {
+  it('prices the Specularium by the citizens in the town that raises it', () => {
     const { state, player, towns } = board([8, 20, 20]);
+    for (const town of towns) give(state, town, 'specularium');
     const ctx = valueContext(state, player);
-    const row = explainBuildingRow('amphitheater', ctx, towns[0]!);
-    const written = row.terms.find((term) => term.label === 'its written effects')!;
-    // +1 culture per two citizens, in the town of 8 raising it: 4 culture. The two towns
-    // of 20 do not come into it. The old reading gave 48 citizens / 2 × 3 towns = 72.
-    expect(written.value).toBeCloseTo(4 * voiceWeight(ctx, 'culture'), 10);
-    // With no town named it reads the mean town: 16 citizens, so 8 culture.
-    const middling = explainBuildingRow('amphitheater', ctx);
-    const mean = middling.terms.find((term) => term.label === 'its written effects')!;
-    expect(mean.value).toBeCloseTo(8 * voiceWeight(ctx, 'culture'), 10);
+    const row = explainBuildingRow('specularium', ctx, towns[0]!);
+    const written = row.terms.find(term => term.label === 'its written effects')!;
+    expect(written.value).toBeCloseTo(4 * voiceWeight(ctx, 'science'), 10);
+    // With no town selected, the estimate uses sixteen citizens.
+    const middling = explainBuildingRow('specularium', ctx);
+    const mean = middling.terms.find(term => term.label === 'its written effects')!;
+    expect(mean.value).toBeCloseTo(8 * voiceWeight(ctx, 'science'), 10);
   });
 
   it('reads a rite’s count in the town that says it', () => {

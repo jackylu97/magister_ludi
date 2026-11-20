@@ -169,9 +169,8 @@ Lighthouse); **Abbasid Baghdad, Umayyad Córdoba** (science by patronage);
 Tenochtitlan** (few cities, enormous ones, monumental building; engineered
 fields).
 
-What exists and already scales by size: Library 0.5 / Monastery 0.25 /
-University 0.75 / Alchemical Society 1 **science per citizen**; Amphitheatre
-**+1 culture per 2 citizens**; the Observatory and Capital of the World wagers;
+The Alchemical Society adds 1 science per citizen. The Library and University
+add 3 and 6 flat science. The Amphitheater adds 4 flat culture. Other rewards include the Observatory and Capital of the World wagers;
 wonders' renown; great people through the Reliquary; per-follower religion rows
 (§8). What does **not** scale by size: **happiness** (every building pays a flat
 figure; only the Assize Court's demand relief exists), **city strength**

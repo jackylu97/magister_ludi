@@ -885,10 +885,7 @@ describe('advanceResearch', () => {
 
   it('banks science for a player who has chosen nothing', () => {
     const state = flatState();
-    // **Two citizens, since the base beaker halved** (`docs/balance-turn.md`
-    // §4b, batch D): the rate is half a beaker a citizen and it is floored per
-    // town like every other per-citizen line, so a hamlet of one banks nothing
-    // at all. That is the ruled number and this fixture is about the banking.
+    // The town keeps its science while the player has no research selected.
     plant(state, 0, 8, 5).population = 2;
     for (let turn = 0; turn < 5; turn++) endRound(state);
     expect(state.players[0]!.sciencePool).toBeGreaterThan(0);
@@ -910,8 +907,8 @@ describe('advanceResearch', () => {
   it('runs inside the turn pipeline, on the science banked that same turn', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
-    // Half a beaker a citizen since batch D, so twice the crowd.
-    city.population = techDef('fletching').cost * 2 + 5; // a great many scientists
+    // Population alone supplies the full price in the first turn.
+    city.population = Math.ceil(techDef('fletching').cost / RULES.cities.sciencePerPop) + 5;
     applyCommand(state, choose(0, 'fletching'));
 
     endRound(state);
@@ -1783,9 +1780,6 @@ describe('the research queue', () => {
   it('schedules the plan cumulatively, one technology per turn at the floor', () => {
     const game = researchingGame();
     const state = game.state;
-    // A capital with citizens in it: at half a beaker each and a floor per town
-    // (batch D), a hamlet of one researches nothing at all and every step of
-    // the plan would honestly answer "never".
     for (const city of state.cities) city.population = 12;
     expect(applyCommand(state, queue(0, 'bronzePanoply', 'replace'))).toEqual({ ok: true });
     const steps = queueTurns(state, 0);
