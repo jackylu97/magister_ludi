@@ -444,12 +444,18 @@ export function warmPaintedSurface(map: GameMap, stop: () => boolean): boolean {
   const period = Math.sqrt(3) * radius * map.width;
   for (const entry of registration.meshes) {
     const { mesh, bounds } = entry;
-    if (entry.sample || mesh instanceof InstancedMesh || Array.isArray(mesh.material)) continue;
+    if (mesh instanceof InstancedMesh || Array.isArray(mesh.material)) continue;
     if (bounds.max.x < 0 || bounds.min.x > period) continue;
-    if (stop()) return false;
-    entry.sample = chunkSampler(mesh);
-    // And the chunk's pick grid (`PickGrid`), which the pointer's first pick over the chunk would otherwise build.
-    pickGridFor(mesh.geometry);
+    if (!entry.sample) {
+      if (stop()) return false;
+      entry.sample = chunkSampler(mesh);
+    }
+    // Placing a unit can build the height sampler before the first pointer event.
+    // The pointer still needs its own triangle index, which can wait for the next idle slice.
+    if (!currentPickGrid(mesh.geometry)) {
+      if (stop()) return false;
+      pickGridFor(mesh.geometry);
+    }
   }
   return true;
 }

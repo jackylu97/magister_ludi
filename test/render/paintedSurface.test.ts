@@ -326,6 +326,23 @@ describe('painted gameplay surface', () => {
     expect(warmPaintedSurface(map, () => false)).toBe(true);
   });
 
+  it('prepares pointer picks in idle time after unit placement has sampled the ground', () => {
+    const map = createMap({ width: 6, height: 4, terrain: 'grassland' });
+    buildFixture(map);
+    for (const tile of map.tiles) samplePaintedSurface(tile);
+    const gridsBefore = surfacePickGridBuilds();
+    expect(warmPaintedSurface(map, () => true)).toBe(false);
+    expect(surfacePickGridBuilds()).toBe(gridsBefore);
+    expect(warmPaintedSurface(map, () => false)).toBe(true);
+    const gridsReady = surfacePickGridBuilds();
+    expect(gridsReady).toBeGreaterThan(gridsBefore);
+    for (const tile of map.tiles) {
+      const { x, z } = cellCenter(tile.col, tile.row);
+      expect(paintedGroundHit(map, {origin: new Vector3(x, 10, z), direction: new Vector3(0, -1, 0)})).toBeDefined();
+    }
+    expect(surfacePickGridBuilds()).toBe(gridsReady);
+  });
+
   it('places stacked pieces and their badge targets at the surface under the actual offset', () => {
     const map = createMap({ width: 6, height: 4, terrain: 'grassland' });
     const cell = { col: 2, row: 2 }, fixture = buildFixture(map);

@@ -102,7 +102,7 @@ describe('a camera frame draws without re-reading the state', () => {
     expect(f.drawn()).toBe(3);
   });
 
-  it.each(['frame', 'unit pick'] as const)('builds the final selection and range once before the next %s', (consumer) => {
+  it('builds the final selection and range in the next frame even when a pick comes first', () => {
     const unit = {id: 7, col: 2, row: 3};
     const map = createMap({width: 8, height: 6, terrain: 'grassland'});
     const f = fixture({units: [unit]});
@@ -114,8 +114,12 @@ describe('a camera frame draws without re-reading the state', () => {
     f.runtime.setReachable(reachable);
     f.runtime.setAttackable(attackable);
     expect(f.buildOverlays).not.toHaveBeenCalled();
-    if (consumer === 'unit pick') f.runtime.pickUnitModel(0, 0, 0);
-    else f.frame();
+    const rebuildLens = vi.fn(() => Object.assign(f.runtime, {lensDirty: false}));
+    Object.assign(f.runtime, {lensDirty: true, rebuildLens});
+    f.runtime.pickUnitModel(0, 0, 0);
+    expect(rebuildLens).toHaveBeenCalledOnce();
+    expect(f.buildOverlays).not.toHaveBeenCalled();
+    f.frame();
     expect(f.buildOverlays).toHaveBeenCalledOnce();
     expect(f.buildOverlays.mock.calls[0]![1]).toMatchObject({
       selection: {col: unit.col, row: unit.row}, reachable, attackable,

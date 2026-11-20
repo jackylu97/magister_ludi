@@ -52,6 +52,20 @@ This cut about 77,000 submitted triangles at normal zoom and 42,000 at wide zoom
 
 ## Measurement conditions
 
+### Unit selection and first moves
+
+On the turn 120 save with 489 units and 74 cities, Chrome received a real click on the same unit and a real move order to the same tile. Bot preparation was on. The renderer now prepares picking grids during idle time, reuses the list of standing unit models and defers drawing movement highlights until the frame. The tutorial also skips measuring a card again when its contents and visibility stay the same.
+
+The move handler took 33.0, 33.8 and 38.4 ms before the changes. It took 29.6 and 31.1 ms after them. From the start of the move handler to the first observed board draw, the original took 99.8 to 137.8 ms. The updated version took 122.4 and 123.0 ms. These samples show less work inside the handler. They do not establish a shorter wait for the first visible movement.
+
+In the last capture the board drew 18.4 frames per second during a drag and 24.3 through a zoom transition. Chrome presented 27.9 and 29.7 frames per second over the same intervals. Presentation can include frames where the board did not redraw. The original drag samples drew about 29 board frames per second. Other applications were active and load varied across these runs. Further comparisons need matched host load. [Input samples and timings](board-interactions-2026-11-20.json)
+
+### Contact shadow render targets
+
+A temporary build stored contact shadow intensity in a single half-precision channel. It kept the resolution and intensity precision. Four fixed camera views matched every colour byte. Over 24 paired GPU samples per view, the normal city view took 2.65 ms longer and the wide city view took 2.22 ms longer. The inland view saved 1.30 ms and the seam view saved 0.25 ms. The city results ruled out this change for the M4. [Pixel checks and GPU timings](board-interactions-2026-11-20.json)
+
+### GPU measurement setup
+
 The renderer came from commit `ee54e8d1`, save version 251. The snapshot followed turn 150 on seed 20260832. It held 530 units and 91 cities. It used player 6's fog, the painted board and daylight. Headless Chrome used the Apple M4 through ANGLE Metal. The 1.5× drawing buffer measured 2205 × 1189.
 
 Both main views looked at Cinderhold (column 46, row 7). The camera radius was 7 or 14. The board had finished baking. The test held the water reflection in the state it uses while panning. An initial rotating block test also sampled an inland location. The inland control varied substantially. The main table uses the follow-up comparison at identical camera positions.

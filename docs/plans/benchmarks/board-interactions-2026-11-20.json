@@ -1,0 +1,377 @@
+{
+  "units": 489,
+  "cities": 74,
+  "turn": 120,
+  "seed": 999,
+  "player": 0,
+  "ratio": 1.5,
+  "framebuffer": [
+    2205,
+    1189
+  ],
+  "gpu": "Apple M4, Chrome ANGLE Metal",
+  "bots": "enabled",
+  "runNames": {
+    "base": "original renderer and tutorial",
+    "new": "updated renderer",
+    "detail": "updated renderer, original tutorial, extra reporting timers",
+    "final": "updated renderer and tutorial, extra reporting timers"
+  },
+  "clickMetric": "Time from the handler start until the first observed board draw after the handler finished. The sample does not include physical display latency.",
+  "activity": [
+    {"run": "base-1", "activity": "drag", "durationMs": 4282.0, "displayedFrames": 120, "boardDraws": 122, "displayedFps": 28.02, "modelPicks": {"n": 1, "ms": 0.5, "max": 0.5}},
+    {"run": "base-1", "activity": "move", "durationMs": 4293.0, "displayedFrames": 240, "boardDraws": 83, "displayedFps": 55.9, "modelPicks": {"n": 5, "ms": 38.5, "max": 17.6}, "clicks": [{"button": "left", "handlerMs": 50.9, "untilNextObservedBoardDrawMs": 98.1}, {"button": "right", "handlerMs": 38.4, "untilNextObservedBoardDrawMs": 137.8}], "reportsDuringMoveMs": {"reportCommand": 13.8, "commit": 31.9}, "commands": ["moveUnit"], "target": [54, 26]},
+    {"run": "base-1", "activity": "selection", "durationMs": 4283.2, "displayedFrames": 197, "boardDraws": 94, "displayedFps": 45.99, "modelPicks": {"n": 24, "ms": 206, "max": 35.3}, "clicks": [{"button": "left", "handlerMs": 30.7, "untilNextObservedBoardDrawMs": 76.5}, {"button": "left", "handlerMs": 7.6, "untilNextObservedBoardDrawMs": 26.6}, {"button": "left", "handlerMs": 13.3, "untilNextObservedBoardDrawMs": 31.4}, {"button": "left", "handlerMs": 7.4, "untilNextObservedBoardDrawMs": 19.0}, {"button": "left", "handlerMs": 12.5, "untilNextObservedBoardDrawMs": 31.0}, {"button": "left", "handlerMs": 6.1, "untilNextObservedBoardDrawMs": 16.6}, {"button": "left", "handlerMs": 12.2, "untilNextObservedBoardDrawMs": 30.0}, {"button": "left", "handlerMs": 6, "untilNextObservedBoardDrawMs": 15.5}]},
+    {"run": "base-1", "activity": "zoom-cross", "durationMs": 4280.8, "displayedFrames": 109, "boardDraws": 111, "displayedFps": 25.46, "modelPicks": {"n": 112, "ms": 82.7, "max": 8.1}},
+    {"run": "base-2", "activity": "drag", "durationMs": 4298.6, "displayedFrames": 125, "boardDraws": 127, "displayedFps": 29.08, "modelPicks": {"n": 1, "ms": 0.7, "max": 0.7}},
+    {"run": "base-2", "activity": "move", "durationMs": 4296.4, "displayedFrames": 238, "boardDraws": 87, "displayedFps": 55.4, "modelPicks": {"n": 5, "ms": 29.4, "max": 13.5}, "clicks": [{"button": "left", "handlerMs": 44.9, "untilNextObservedBoardDrawMs": 88.6}, {"button": "right", "handlerMs": 33, "untilNextObservedBoardDrawMs": 99.8}], "reportsDuringMoveMs": {"reportCommand": 8.7, "commit": 24.5}, "commands": ["moveUnit"], "target": [54, 26]},
+    {"run": "base-2", "activity": "selection", "durationMs": 4296.9, "displayedFrames": 235, "boardDraws": 77, "displayedFps": 54.69, "modelPicks": {"n": 24, "ms": 403.0, "max": 60.2}, "clicks": [{"button": "left", "handlerMs": 47.7, "untilNextObservedBoardDrawMs": 98.1}, {"button": "left", "handlerMs": 16.2, "untilNextObservedBoardDrawMs": 51.2}, {"button": "left", "handlerMs": 32.8, "untilNextObservedBoardDrawMs": 79.9}, {"button": "left", "handlerMs": 19.5, "untilNextObservedBoardDrawMs": 50.6}, {"button": "left", "handlerMs": 19.7, "untilNextObservedBoardDrawMs": 52.2}, {"button": "left", "handlerMs": 16.8, "untilNextObservedBoardDrawMs": 34.9}, {"button": "left", "handlerMs": 31.2, "untilNextObservedBoardDrawMs": 80.9}, {"button": "left", "handlerMs": 15.4, "untilNextObservedBoardDrawMs": 44.1}]},
+    {"run": "base-2", "activity": "zoom-cross", "durationMs": 4523.8, "displayedFrames": 124, "boardDraws": 117, "displayedFps": 27.41, "modelPicks": {"n": 115, "ms": 136.9, "max": 14.3}},
+    {"run": "base-3", "activity": "move", "durationMs": 4687.1, "displayedFrames": 218, "boardDraws": 85, "displayedFps": 46.51, "modelPicks": {"n": 5, "ms": 30.0, "max": 9.4}, "clicks": [{"button": "left", "handlerMs": 42.9, "untilNextObservedBoardDrawMs": 76.3}, {"button": "right", "handlerMs": 33.8, "untilNextObservedBoardDrawMs": 128.7}], "reportsDuringMoveMs": {"noteEnemySighting": 0, "noteMeterPain": 9.7, "reportCommand": 10.8, "commit": 23.1}, "commands": ["moveUnit"], "target": [54, 26]},
+    {"run": "detail-a", "activity": "move", "durationMs": 4441.5, "displayedFrames": 252, "boardDraws": 87, "displayedFps": 56.74, "modelPicks": {"n": 5, "ms": 17.5, "max": 5.4}, "clicks": [{"button": "left", "handlerMs": 34.4, "untilNextObservedBoardDrawMs": 73.1}, {"button": "right", "handlerMs": 32.4, "untilNextObservedBoardDrawMs": 108.9}], "reportsDuringMoveMs": {"noteEnemySighting": 5.3, "noteMeterPain": 5.8, "reportCommand": 12.4, "commit": 26.8}, "commands": ["moveUnit"], "target": [54, 26]},
+    {"run": "detail-b", "activity": "move", "durationMs": 4287.2, "displayedFrames": 238, "boardDraws": 80, "displayedFps": 55.51, "modelPicks": {"n": 5, "ms": 17.4, "max": 5.3}, "clicks": [{"button": "left", "handlerMs": 34.3, "untilNextObservedBoardDrawMs": 70.5}, {"button": "right", "handlerMs": 34.2, "untilNextObservedBoardDrawMs": 109.3}], "reportsDuringMoveMs": {"noteEnemySighting": 0, "noteMeterPain": 11.4, "reportCommand": 12.8, "commit": 29}, "commands": ["moveUnit"], "target": [54, 26]},
+    {"run": "final-1", "activity": "move", "durationMs": 4569.2, "displayedFrames": 240, "boardDraws": 87, "displayedFps": 52.53, "modelPicks": {"n": 5, "ms": 20.9, "max": 7.2}, "clicks": [{"button": "left", "handlerMs": 47.7, "untilNextObservedBoardDrawMs": 97.8}, {"button": "right", "handlerMs": 31.1, "untilNextObservedBoardDrawMs": 122.4}], "reportsDuringMoveMs": {"noteEnemySighting": 6.8, "noteMeterPain": 0.1, "reportCommand": 8.8, "commit": 24.5}, "commands": ["moveUnit"], "target": [54, 26]},
+    {"run": "final-2", "activity": "drag", "durationMs": 4522.5, "displayedFrames": 126, "boardDraws": 83, "displayedFps": 27.86, "modelPicks": {"n": 1, "ms": 1, "max": 1}},
+    {"run": "final-2", "activity": "move", "durationMs": 5199.6, "displayedFrames": 281, "boardDraws": 96, "displayedFps": 54.04, "modelPicks": {"n": 5, "ms": 29.3, "max": 15.3}, "clicks": [{"button": "left", "handlerMs": 43, "untilNextObservedBoardDrawMs": 85.5}, {"button": "right", "handlerMs": 29.6, "untilNextObservedBoardDrawMs": 123.0}], "reportsDuringMoveMs": {"noteEnemySighting": 0.1, "noteMeterPain": 5.2, "reportCommand": 6.7, "commit": 23.3}, "commands": ["moveUnit"], "target": [54, 26]},
+    {"run": "final-2", "activity": "selection", "durationMs": 4341.9, "displayedFrames": 141, "boardDraws": 60, "displayedFps": 32.47, "modelPicks": {"n": 24, "ms": 467.8, "max": 43.5}, "clicks": [{"button": "left", "handlerMs": 49.3, "untilNextObservedBoardDrawMs": 111.4}, {"button": "left", "handlerMs": 17.4, "untilNextObservedBoardDrawMs": 47.2}, {"button": "left", "handlerMs": 79.9, "untilNextObservedBoardDrawMs": 147.6}, {"button": "left", "handlerMs": 16.7, "untilNextObservedBoardDrawMs": 43.5}, {"button": "left", "handlerMs": 40.7, "untilNextObservedBoardDrawMs": 97.7}, {"button": "left", "handlerMs": 49.6, "untilNextObservedBoardDrawMs": 263.0}, {"button": "left", "handlerMs": 45.2, "untilNextObservedBoardDrawMs": 136.9}, {"button": "left", "handlerMs": 17.9, "untilNextObservedBoardDrawMs": 48.3}]},
+    {"run": "final-2", "activity": "zoom-cross", "durationMs": 4652.8, "displayedFrames": 138, "boardDraws": 113, "displayedFps": 29.66, "modelPicks": {"n": 93, "ms": 64.4, "max": 1.4}},
+    {"run": "new-1", "activity": "drag", "durationMs": 4282.9, "displayedFrames": 110, "boardDraws": 112, "displayedFps": 25.68, "modelPicks": {"n": 1, "ms": 0.3, "max": 0.3}},
+    {"run": "new-1", "activity": "move", "durationMs": 4290.6, "displayedFrames": 241, "boardDraws": 79, "displayedFps": 56.17, "modelPicks": {"n": 5, "ms": 18.7, "max": 6.2}, "clicks": [{"button": "left", "handlerMs": 49.5, "untilNextObservedBoardDrawMs": 90.7}, {"button": "right", "handlerMs": 52.9, "untilNextObservedBoardDrawMs": 152.0}], "reportsDuringMoveMs": {"reportCommand": 21.8, "commit": 44.8}, "commands": ["moveUnit"], "target": [54, 26]},
+    {"run": "new-1", "activity": "selection", "durationMs": 4284.6, "displayedFrames": 237, "boardDraws": 82, "displayedFps": 55.31, "modelPicks": {"n": 24, "ms": 309.9, "max": 24.4}, "clicks": [{"button": "left", "handlerMs": 41.3, "untilNextObservedBoardDrawMs": 97.7}, {"button": "left", "handlerMs": 36.3, "untilNextObservedBoardDrawMs": 74.6}, {"button": "left", "handlerMs": 33.1, "untilNextObservedBoardDrawMs": 90.5}, {"button": "left", "handlerMs": 17.5, "untilNextObservedBoardDrawMs": 48.8}, {"button": "left", "handlerMs": 31.2, "untilNextObservedBoardDrawMs": 79.1}, {"button": "left", "handlerMs": 16.5, "untilNextObservedBoardDrawMs": 46.7}, {"button": "left", "handlerMs": 26.4, "untilNextObservedBoardDrawMs": 60.8}, {"button": "left", "handlerMs": 6.6, "untilNextObservedBoardDrawMs": 17.9}]},
+    {"run": "new-1", "activity": "zoom-cross", "durationMs": 4293.6, "displayedFrames": 112, "boardDraws": 114, "displayedFps": 26.09, "modelPicks": {"n": 120, "ms": 57.0, "max": 1.7}},
+    {"run": "new-2", "activity": "drag", "durationMs": 4287.6, "displayedFrames": 123, "boardDraws": 134, "displayedFps": 28.69, "modelPicks": {"n": 1, "ms": 0.3, "max": 0.3}},
+    {"run": "new-2", "activity": "move", "durationMs": 4319.4, "displayedFrames": 234, "boardDraws": 76, "displayedFps": 54.17, "modelPicks": {"n": 5, "ms": 17.3, "max": 5.7}, "clicks": [{"button": "left", "handlerMs": 34.5, "untilNextObservedBoardDrawMs": 75.7}, {"button": "right", "handlerMs": 38.1, "untilNextObservedBoardDrawMs": 113.9}], "reportsDuringMoveMs": {"reportCommand": 13.8, "commit": 32.3}, "commands": ["moveUnit"], "target": [54, 26]},
+    {"run": "new-2", "activity": "selection", "durationMs": 4285.1, "displayedFrames": 180, "boardDraws": 78, "displayedFps": 42.01, "modelPicks": {"n": 35, "ms": 266.4, "max": 21}, "clicks": [{"button": "left", "handlerMs": 34.9, "untilNextObservedBoardDrawMs": 87.9}, {"button": "left", "handlerMs": 15.9, "untilNextObservedBoardDrawMs": 51.5}, {"button": "left", "handlerMs": 36.2, "untilNextObservedBoardDrawMs": 84}, {"button": "left", "handlerMs": 15.5, "untilNextObservedBoardDrawMs": 50.5}, {"button": "left", "handlerMs": 25.3, "untilNextObservedBoardDrawMs": 67.1}, {"button": "left", "handlerMs": 8.1, "untilNextObservedBoardDrawMs": 24.7}, {"button": "left", "handlerMs": 25.8, "untilNextObservedBoardDrawMs": 52.3}, {"button": "left", "handlerMs": 40.2, "untilNextObservedBoardDrawMs": 96.4}]},
+    {"run": "new-2", "activity": "zoom-cross", "durationMs": 4283.6, "displayedFrames": 119, "boardDraws": 119, "displayedFps": 27.78, "modelPicks": {"n": 121, "ms": 75.6, "max": 1.3}}
+  ],
+  "contactShadows": {
+  "format": "R16F in both contact shadow targets, same precision, no depth attachments",
+  "turn": 151,
+  "seed": 20260832,
+  "units": 530,
+  "cities": 91,
+  "ratio": 1.5,
+  "tests": [
+    {
+      "camera": [
+        46,
+        7,
+        7
+      ],
+      "intensity": 0.72,
+      "differentColourBytes": [
+        0,
+        0,
+        0
+      ],
+      "pairedGpuMs": [
+        [
+          20.82,
+          20.64
+        ],
+        [
+          26.14,
+          37.7
+        ],
+        [
+          23.66,
+          22.68
+        ],
+        [
+          21.3,
+          25.34
+        ],
+        [
+          22.74,
+          26.85
+        ],
+        [
+          23.53,
+          20.99
+        ],
+        [
+          19.99,
+          19.26
+        ],
+        [
+          21.58,
+          18.32
+        ],
+        [
+          22.89,
+          22.84
+        ],
+        [
+          22.01,
+          26.43
+        ],
+        [
+          19.37,
+          21.12
+        ],
+        [
+          29.89,
+          27.44
+        ],
+        [
+          23.68,
+          27.24
+        ],
+        [
+          27.44,
+          36.75
+        ],
+        [
+          21.11,
+          24.86
+        ],
+        [
+          28.9,
+          40.15
+        ]
+      ],
+      "medianSavingMs": -2.65
+    },
+    {
+      "camera": [
+        46,
+        7,
+        14
+      ],
+      "intensity": 0.72,
+      "differentColourBytes": [
+        0,
+        0,
+        0
+      ],
+      "pairedGpuMs": [
+        [
+          21.82,
+          25.99
+        ],
+        [
+          59.11,
+          50.15
+        ],
+        [
+          24.47,
+          27.51
+        ],
+        [
+          25.9,
+          27.31
+        ],
+        [
+          38.11,
+          42.86
+        ],
+        [
+          53.66,
+          44.35
+        ],
+        [
+          34.94,
+          37.98
+        ],
+        [
+          69.92,
+          65.59
+        ],
+        [
+          53.2,
+          43.33
+        ],
+        [
+          40.02,
+          65.29
+        ],
+        [
+          43.62,
+          51.19
+        ],
+        [
+          46.79,
+          47.17
+        ],
+        [
+          39.59,
+          51.96
+        ],
+        [
+          28.51,
+          32.94
+        ],
+        [
+          43.71,
+          37.39
+        ],
+        [
+          36.51,
+          37.58
+        ]
+      ],
+      "medianSavingMs": -2.22
+    },
+    {
+      "camera": [
+        53,
+        15,
+        7
+      ],
+      "intensity": 0.72,
+      "differentColourBytes": [
+        0,
+        0,
+        0
+      ],
+      "pairedGpuMs": [
+        [
+          36.14,
+          34.61
+        ],
+        [
+          33.11,
+          34.38
+        ],
+        [
+          60.88,
+          36.26
+        ],
+        [
+          24.92,
+          26.83
+        ],
+        [
+          40.92,
+          30.62
+        ],
+        [
+          24.53,
+          23.3
+        ],
+        [
+          25.19,
+          27.57
+        ],
+        [
+          38.22,
+          36.85
+        ],
+        [
+          36.72,
+          31.7
+        ],
+        [
+          48.64,
+          62.1
+        ],
+        [
+          37.42,
+          41.63
+        ],
+        [
+          28.1,
+          41.99
+        ],
+        [
+          37.5,
+          27.49
+        ],
+        [
+          56.62,
+          35.82
+        ],
+        [
+          44.14,
+          34.84
+        ],
+        [
+          30.94,
+          30.27
+        ]
+      ],
+      "medianSavingMs": 1.3
+    },
+    {
+      "camera": [
+        0,
+        7,
+        14
+      ],
+      "intensity": 0.72,
+      "differentColourBytes": [
+        0,
+        0,
+        0
+      ],
+      "pairedGpuMs": [
+        [
+          13.41,
+          11.28
+        ],
+        [
+          19.89,
+          26.12
+        ],
+        [
+          10.71,
+          9.42
+        ],
+        [
+          8.54,
+          7.72
+        ],
+        [
+          8.72,
+          16.32
+        ],
+        [
+          14.51,
+          16.18
+        ],
+        [
+          14.27,
+          10.26
+        ],
+        [
+          15.17,
+          7.02
+        ],
+        [
+          6.91,
+          8.72
+        ],
+        [
+          7.1,
+          7.43
+        ],
+        [
+          23.55,
+          16.73
+        ],
+        [
+          10.42,
+          11.01
+        ],
+        [
+          9.84,
+          9.57
+        ],
+        [
+          6.65,
+          6.41
+        ],
+        [
+          7.74,
+          7.17
+        ],
+        [
+          7.08,
+          7.19
+        ]
+      ],
+      "medianSavingMs": 0.25
+    }
+  ]
+}
+}

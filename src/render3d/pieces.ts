@@ -206,6 +206,7 @@ import { atWar } from '../sim/wars';
 import { isVisibleTo } from '../sim/visibility';
 import { DERIVED_SECONDARY, seatInks } from '../art/seatInks';
 import type { BadgeAnchor } from './picking';
+import type { UnitModelCandidate } from './unitModelPicking';
 import type { UnitSprites } from './sprites3d';
 import { type MaterialLibrary, computeHullNormals } from './toon';
 
@@ -1021,6 +1022,7 @@ export class UnitLayer {
    */
   private handles = new Map<number, InstanceHandle[]>();
   private bodies = new Map<number, InstanceHandle>();
+  private pickCandidates: UnitModelCandidate[] | null = null;
   private badgeRims = new Map<number, { handle: InstanceHandle; ink: number }>();
   private hoveredUnitId: number | null = null;
   /**
@@ -1711,9 +1713,15 @@ export class UnitLayer {
     InstanceCollector.setUnitOutline(handle, unitId === this.hoveredUnitId);
   }
 
-  modelCandidates() {
-    return [...this.bodies].flatMap(([unitId, handle]) =>
-      InstanceCollector.bodyInstances(handle).map(candidate => ({unitId, ...candidate})));
+  /** Pointer events share the same body slots until a walk or rebuild changes them. */
+  modelCandidates(): readonly UnitModelCandidate[] {
+    if (!this.pickCandidates) {
+      this.pickCandidates = [];
+      for (const [unitId, handle] of this.bodies) {
+        for (const slot of InstanceCollector.bodyInstances(handle)) this.pickCandidates.push({ unitId, ...slot });
+      }
+    }
+    return this.pickCandidates;
   }
 
   /**
@@ -1729,6 +1737,7 @@ export class UnitLayer {
   /** Puts a unit's resting visual back. Idempotent. */
   restore(unitId: number): void {
     if (!this.hidden.delete(unitId)) return;
+    this.pickCandidates = null;
     for (const handle of this.handles.get(unitId) ?? []) InstanceCollector.restore(handle);
     const sprite = this.spriteUnits.get(unitId);
     if (sprite) sprite.visible = true;
@@ -1740,6 +1749,7 @@ export class UnitLayer {
   }
 
   private applyHide(unitId: number): void {
+    this.pickCandidates = null;
     for (const handle of this.handles.get(unitId) ?? []) InstanceCollector.hide(handle);
     const sprite = this.spriteUnits.get(unitId);
     if (sprite) sprite.visible = false;
@@ -1763,6 +1773,7 @@ export class UnitLayer {
     else disposeInstancedGroup(this.group);
     this.handles.clear();
     this.bodies.clear();
+    this.pickCandidates = null;
     this.badgeRims.clear();
     this.restingShell.clear();
     this.spriteUnits.clear();

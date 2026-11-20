@@ -1034,6 +1034,7 @@ export function createTutorial(options: TutorialOptions): Tutorial {
     // It is raised first and the sequence still advances underneath it, so
     // putting the note away comes back to the step the deed had already reached.
     const raised = tip === null ? tipFor(signal, memory.seen) : null;
+    const previous = memory;
 
     // The sequence moves only while it runs in this game. Skip is one of the
     // signals that moves it: it ends this game's sequence and changes nothing
@@ -1052,7 +1053,9 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       memory = { ...memory, seen: [...memory.seen, raised.id] };
       save();
     }
-    draw();
+    // A board command can send several signals. Measuring the same card again
+    // forces browser layout before the first frame of the unit's move.
+    if (memory !== previous || (tip !== null && waitFor() !== card.hidden)) draw();
   }
 
   function advanceTip(): void {
@@ -1282,7 +1285,7 @@ export function createTutorial(options: TutorialOptions): Tutorial {
     },
     note,
     wantsTip(id) {
-      return memory.enabled && !memory.seen.includes(id);
+      return memory.enabled && tip === null && !memory.seen.includes(id);
     },
     refresh: () => place(true),
     reposition: () => place(false),

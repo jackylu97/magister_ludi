@@ -2909,12 +2909,6 @@ export class Renderer3D implements MapView {
     this.redraw();
   }
 
-  /** Both the frame and a unit pick need the latest visible board marks. */
-  private flushBoardMarks(): void {
-    if (this.overlaysDirty) this.rebuildOverlays();
-    if (this.lensDirty) this.rebuildLens();
-  }
-
   private rebuildOverlays(): void {
     this.overlaysDirty = false;
     if (!this.map) return;
@@ -3380,11 +3374,14 @@ export class Renderer3D implements MapView {
   /** Exact body triangles, including wrap copies and the current walking pose. */
   pickUnitModel(screenX: number, screenY: number, playerId: number): number | null {
     if (!this.state || !this.map) return null;
-    this.flushBoardMarks();
-    const candidates: UnitModelCandidate[] = this.units.modelCandidates();
+    // A standing lens marker can hide a piece. The flat movement marks never write depth.
+    if (this.lensDirty) this.rebuildLens();
+    const resting = this.units.modelCandidates();
+    const moving: UnitModelCandidate[] = [];
     for (const [unitId, group] of this.walkers) group.traverse(object => {
-      if (object instanceof Mesh && object.userData.unitBody) candidates.push({unitId, object});
+      if (object instanceof Mesh && object.userData.unitBody) moving.push({unitId, object});
     });
+    const candidates = moving.length ? resting.concat(moving) : resting;
     const id = pickUnitBody(this.view.screenRay(screenX, screenY), candidates, this.occluderRoots(), {
       layers: this.view.camera.layers,
       acceptsOccluderHit: hit => {
@@ -4558,7 +4555,8 @@ export class Renderer3D implements MapView {
     const refreshState = this.stateDirty;
     this.stateDirty = false;
     if (refreshState) this.syncStateLayers();
-    this.flushBoardMarks();
+    if (this.overlaysDirty) this.rebuildOverlays();
+    if (this.lensDirty) this.rebuildLens();
     // The sync may have rebuilt the unit layer, which lays every shell back at
     // rest. Writing the glows again keeps this frame from showing a flicker.
     if (hadGlows && refreshState) this.stepGlows(now);

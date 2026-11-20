@@ -152,6 +152,24 @@ describe('a tutorial note and the pages in front of it', () => {
     expect(title.textContent).toBe(said);
   });
 
+  it('checks for another note once the open note closes', () => {
+    const { tutorial, front, card, escape } = guide();
+    tutorial.note({ kind: 'event', event: 'starved' });
+    expect(tutorial.wantsTip('enemy')).toBe(false);
+    const measure = vi.fn(() => 320);
+    Object.defineProperty(card, 'offsetWidth', { get: measure });
+    tutorial.note({ kind: 'command', command: 'moveUnit' });
+    expect(measure).not.toHaveBeenCalled();
+    front.up = true;
+    tutorial.note({ kind: 'command', command: 'moveUnit' });
+    expect(card.hidden).toBe(true);
+    front.up = false;
+    tutorial.note({ kind: 'command', command: 'moveUnit' });
+    expect(card.hidden).toBe(false);
+    escape();
+    expect(tutorial.wantsTip('enemy')).toBe(true);
+  });
+
   it('leaves Escape to the page while the note waits', () => {
     // The plate closes on Escape. A note that took the key while it could not
     // be seen would swallow the plate's Escape and be put away unread.

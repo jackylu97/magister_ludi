@@ -111,6 +111,7 @@ describe('painted units through the production unit layer', () => {
       Math.fround(VIEW3D.units.outlineWidth), Math.fround(VIEW3D.units.hoverOutlineWidth),
     ]);
     expect(meshes(layer)).toEqual(before);
+    expect(layer.modelCandidates()).toBe(candidates);
     expect([...body.instanceMatrix.array]).toEqual(positions);
     expect([...shell.instanceColor!.array]).toEqual(inks);
     expect(kit.resolve(state.units[0]!)!.geometry.getAttribute('unitOutlineWidth')).toBeUndefined();
