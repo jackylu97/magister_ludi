@@ -140,7 +140,15 @@ import {
 import { STAMP_TIMING, stampCountAt } from './cardStamp';
 import { chairWord } from './chairs';
 import { dressGovernmentBanner, fitGovernmentBanner, governmentBannerNode } from './governmentBanner';
-import { type CouncilLayout, COUNCIL_FORMS, COUNCIL_FRAME, councilLayout, fanPlacement } from './councilLayout';
+import {
+  type CouncilLayout,
+  COUNCIL_FORMS,
+  COUNCIL_FRAME,
+  DOCTRINE_STACK,
+  councilLayout,
+  doctrineStackStep,
+  fanPlacement,
+} from './councilLayout';
 import {
   type CouncilFigures,
   COUNCIL_VOICES,
@@ -1044,13 +1052,16 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * **The banner** (Quiet Table, frame 7: "The same banner can head the
    * government card on the Council screen later"): the banner window heads
    * the card, then the rules, the chairs this council has (`slotTypesOf`) and
-   * the plate (`governmentBanner.ts`). The card is the chair card's size at
-   * every form (`COUNCIL_FORMS`; the user, 2026-11-20: "keep cards the same
-   * size"), and the column is its width (`CouncilLayout.government`).
+   * the plate (`governmentBanner.ts`). It is the column's width, the full
+   * column or the narrow one (`COUNCIL_FRAME.government`).
    */
   function drawRegister(state: GameState, seat: number, sc: PlayerStatecraft, sheet: CardImpactSheet | undefined, ties: ChairTies): HTMLElement {
     const column = element('section', 'council-gov');
     column.setAttribute('aria-label', 'Government and Doctrines');
+    // The compact column (145 px): the seat keeps its chair words for a
+    // screen reader only, and each Doctrine strip is one short line of name
+    // and one of figures (`statecraftScreen.css`).
+    if (screenLayout.government < COUNCIL_FRAME.government.wide) column.dataset.narrow = 'true';
     const label = element('div', 'council-label');
     label.append(element('span', undefined, ORDERS_WORDS.government));
     if (sc.doctrines.length > 0) label.append(element('span', undefined, ORDERS_WORDS.doctrineCount(sc.doctrines.length)));
@@ -1059,15 +1070,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const plate: OrderFacePlate | null = law.plate;
     const card = element('div', 'council-gov-card');
     const face = element('div');
-    const chair = COUNCIL_FORMS[screenLayout.form];
-    dressGovernmentBanner(face, sc.government, {
-      form: 'seat',
-      layout: slotTypesOf(sc),
-      plate,
-      size: { width: chair.width, height: chair.height },
-    });
-    // The chair's form when it is not the full card, as the chairs' faces carry it.
-    if (screenLayout.form !== 'full') face.dataset.compact = screenLayout.form;
+    dressGovernmentBanner(face, sc.government, { form: 'seat', layout: slotTypesOf(sc), plate });
     face.dataset.card = sc.government;
     card.append(face);
     card.dataset.preview = 'register';
@@ -1085,7 +1088,6 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const live = isDoctrineId(id) ? doctrineLive(state, seat, id, sheet, council ?? undefined) : null;
       const strip = tuckedDoctrineNode(id, live?.plate ?? null);
       strip.classList.add('council-tuck');
-      strip.style.setProperty('--tuck', String(index + 1));
       strip.style.zIndex = String(sc.doctrines.length - index);
       strip.dataset.card = id;
       strip.dataset.nav = `doctrine:${id}`;
@@ -1103,6 +1105,40 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     column.append(tucks);
     if (sc.doctrines.length === 0) column.append(element('p', 'orders-nodoctrine', ORDERS_WORDS.noDoctrine));
     return column;
+  }
+
+  /**
+   * **The Doctrine stack fits the room above the band** (the orchestrator's
+   * layout ruling, 2026-11-20): the column never covers the band over the
+   * hand, the draft pile or the hand. The room is the layout's band top
+   * (`CouncilLayout.bandTop`) less the government card's foot, which is as
+   * tall as its content and so is measured. When the strips at their usual
+   * overlap do not fit it, each tucks further under the one above by one even
+   * amount (`doctrineStackStep`), and the strips show their names only, at the
+   * foot of each strip, which is the part left in view. Every strip stays one
+   * size.
+   */
+  function fitDoctrineStack(): void {
+    const tucks = body.querySelector<HTMLElement>('.council-gov .council-tucks');
+    const card = body.querySelector<HTMLElement>('.council-gov .council-gov-card');
+    if (tucks === null || card === null || sheetNode === null) return;
+    const strips = [...tucks.querySelectorAll<HTMLElement>('.council-tuck')];
+    // Measured on the unfitted stack, whose rows are one height already: the
+    // tallest strip's (`grid-auto-rows: 1fr`).
+    delete tucks.dataset.fitted;
+    delete tucks.dataset.tight;
+    tucks.style.removeProperty('--tuck-overlap');
+    tucks.style.removeProperty('--tuck-h');
+    const first = strips[0];
+    if (first === undefined) return;
+    const strip = first.offsetHeight;
+    const foot = card.getBoundingClientRect().bottom - sheetNode.getBoundingClientRect().top - sheetNode.clientTop;
+    const room = screenLayout.bandTop - foot - DOCTRINE_STACK.clearance;
+    const step = doctrineStackStep(room, strips.length, strip);
+    tucks.dataset.fitted = 'true';
+    tucks.style.setProperty('--tuck-h', `${strip}px`);
+    tucks.style.setProperty('--tuck-overlap', `${strip - step}px`);
+    if (step < strip - DOCTRINE_STACK.overlap) tucks.dataset.tight = 'true';
   }
 
   // --- the table: the chairs ---------------------------------------------------
@@ -1494,12 +1530,15 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // once the card fonts have loaded.
     const faces = [...body.querySelectorAll<HTMLElement>('.orders-table .order-face, .council-gov-card .order-face')];
     for (const face of faces) fitOrderFace(face);
-    // The government's banner fits its name the same way.
+    // The government's banner fits its name the same way, and the Doctrine
+    // stack under it fits the room above the band.
     const banners = [...body.querySelectorAll<HTMLElement>('.council-gov-card .gov-banner')];
     for (const banner of banners) fitGovernmentBanner(banner);
+    fitDoctrineStack();
     void document.fonts?.ready.then(() => {
       for (const face of faces) if (face.isConnected) fitOrderFace(face);
       for (const banner of banners) if (banner.isConnected) fitGovernmentBanner(banner);
+      fitDoctrineStack();
     });
     const fan = body.querySelector<HTMLElement>('.council-fan-cards');
     if (fan !== null) layFan(fan);

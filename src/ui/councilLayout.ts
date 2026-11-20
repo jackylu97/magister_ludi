@@ -34,6 +34,8 @@ const FORM_ORDER: readonly CouncilForm[] = ['full', 'mid', 'compact', 'narrow'];
 export const COUNCIL_FRAME = {
   head: 62,
   side: 24,
+  /** The government card: the full face, or the narrow card with the compact forms. */
+  government: { wide: 200, narrow: 145 },
   columnGap: 25,
   /** From the head's rule to the top of the first chair: room for the chair labels. */
   chairsTop: 34,
@@ -75,11 +77,7 @@ export interface CouncilLayout {
   form: CouncilForm;
   rows: number;
   cols: number;
-  /**
-   * The government card's width, which is the chair card's (`COUNCIL_FORMS`):
-   * the government's card is the same size as the cards in the chairs at
-   * every form (the user, 2026-11-20: "keep cards the same size").
-   */
+  /** The government card's width: the full face, or the narrow card. */
   government: number;
   /** The chairs' block, frames and gaps included, in pixels. */
   chairs: { width: number; height: number };
@@ -101,6 +99,12 @@ export interface CouncilLayout {
   cluster: { width: number; centre: number } | null;
   /** True when no form fits the window, so the chairs take the narrow form and the fan what is left. */
   cramped: boolean;
+  /**
+   * The top of the band over the hand, in pixels from the top of the sheet:
+   * the head, the council's room and the spare height above the band. Nothing
+   * in the government's column may reach below it (`doctrineStackStep`).
+   */
+  bandTop: number;
 }
 
 /**
@@ -130,8 +134,7 @@ export function councilLayout(window: { width: number; height: number }, chairs:
     const cols = Math.ceil(count / rows);
     const width = cols * (card.width + 2 * card.inset) + (cols - 1) * frame.slotGap;
     const height = rows * (card.height + 2 * card.inset) + (rows - 1) * frame.rowGap;
-    // The government's card is the chair card's size, so its column is the card's width.
-    const government = card.width;
+    const government = form === 'full' || form === 'mid' ? frame.government.wide : frame.government.narrow;
     const left = window.height - frame.head - frame.chairsTop - height - frame.band;
     const fanView = Math.min(left, frame.fanMax);
     const room = window.width - 2 * frame.side - government - frame.columnGap;
@@ -148,6 +151,7 @@ export function councilLayout(window: { width: number; height: number }, chairs:
       // Its middle is the room's: right of the government's column and its gap.
       cluster: clustered ? { width: width + cols * 4, centre: frame.side + government + frame.columnGap + room / 2 } : null,
       cramped: false,
+      bandTop: frame.head + frame.chairsTop + height + Math.max(0, left - fanView),
     };
   };
   const room = (layout: CouncilLayout): number => window.width - 2 * frame.side - layout.government - frame.columnGap;
@@ -167,6 +171,42 @@ export function councilLayout(window: { width: number; height: number }, chairs:
     if (layout.chairs.width <= room(layout) || rows === most) return { ...layout, cramped: true };
   }
   return { ...measure('narrow', 1), cramped: true };
+}
+
+/**
+ * **The Doctrine stack under the government** (the user, 2026-11-20: "keep the
+ * cards lower in the stack the same size, so they don't shrink as you go
+ * down"; the orchestrator's layout ruling of the same day: the column never
+ * covers the band over the hand). Every strip is one size, and each tucks
+ * under the one above:
+ *
+ *   - `overlap`: how far a strip tucks under the one above when there is room,
+ *     and how far the first tucks under the government's card;
+ *   - `minStep`: the least of each strip left in view, which holds its name
+ *     line: the name, the strip's foot and its gilt band;
+ *   - `clearance`: the air kept between the stack's foot and the band.
+ */
+export const DOCTRINE_STACK = {
+  overlap: 4,
+  minStep: 24,
+  clearance: 8,
+} as const;
+
+/**
+ * **The step from one strip's top to the next**, in pixels: the strip's
+ * height less the usual overlap when the stack fits its room, or less, by one
+ * even amount for every strip, when it does not. `room` is the height from the
+ * government card's foot to the band's top, less the clearance; `strip` is one
+ * strip's height. The first strip starts `overlap` above the card's foot, so a
+ * stack of `count` strips ends `strip - overlap + (count - 1) * step` below it.
+ * The step is never less than `minStep`, so a name always shows; a stack that
+ * does not fit even then (more Doctrines than a seat can hold) runs on.
+ */
+export function doctrineStackStep(room: number, count: number, strip: number): number {
+  const natural = strip - DOCTRINE_STACK.overlap;
+  if (count <= 1) return natural;
+  const fits = Math.floor((room + DOCTRINE_STACK.overlap - strip) / (count - 1));
+  return Math.max(DOCTRINE_STACK.minStep, Math.min(natural, fits));
 }
 
 /** How the fan sets its cards: the step between two cards, and each card's place, turn and drop. */

@@ -1975,15 +1975,22 @@ Eight root pages, all named in `vite.config.ts` inputs:
     wraps. The deal, the crown back, choose and Swear, the stamp and the
     `adoptGovernment` command are unchanged; a row turns over about its long
     axis. The foot says in one short line what adopting does;
-  - **the seat** on the Council screen: the same window heading a card the
-    size of the Order cards in the chairs at every form (`COUNCIL_FORMS`: 210
-    by 258, 176 by 236, 187 by 180, 145 by 206), so the government's column is
-    the chair card's width (`CouncilLayout.government`). Under the window: the
-    rules, then at the foot the chairs the council has (`slotTypesOf`) as one
-    row of shapes, and the pay plate (`governmentLive`). The rules step down
-    from 13 px to 11 px as an Order face's effect does, and are cut with a
-    fade if they still do not fit (`fitGovernmentBanner`). Its lift shows the
-    card at the height of its content, larger;
+  - **the seat** on the Council screen: the same window heading a narrow card
+    the column's width (200, or 145 on a small window), then the rules, the
+    chairs the council has (`slotTypesOf`) and the pay plate
+    (`governmentLive`). It is as tall as its content. Its lift shows the same
+    card larger. The Doctrines stacked under it are all one size (the user,
+    2026-11-20: "keep the cards lower in the stack the same size"): each strip
+    is the full width of the column and as tall as the tallest, tucked 4 px
+    under the one above, here and on the In play screen. On the Council the
+    column never reaches the band over the hand: the room from the card's foot
+    to the band's top (`CouncilLayout.bandTop`) sets the step between strips
+    (`doctrineStackStep`, `fitDoctrineStack`), and a stack that does not fit
+    at 4 px tucks each strip further by one even amount, never past its name
+    line, and shows only the names. In the compact column (145) the seat's
+    chair words and their label are for a screen reader only, and each strip
+    is one fixed 46 px: its name on one line and its figures on one line at
+    12 px;
   - **the window** (`governmentPicture`): the government's painting from
     `governmentPaintings.ts` (none yet; `public/art/splash/governments/`),
     with the name and the tier on a dark fade at its foot, or the drawn mark:

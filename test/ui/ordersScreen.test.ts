@@ -30,7 +30,14 @@ import {
   orderDef,
   orderIsDealt,
 } from '../../src/sim/statecraftData';
-import { COUNCIL_FORMS, COUNCIL_FRAME, councilLayout, fanPlacement } from '../../src/ui/councilLayout';
+import {
+  COUNCIL_FORMS,
+  COUNCIL_FRAME,
+  DOCTRINE_STACK,
+  councilLayout,
+  doctrineStackStep,
+  fanPlacement,
+} from '../../src/ui/councilLayout';
 import { COUNCIL_VOICES } from '../../src/ui/councilTotals';
 import { METER_GLYPH, YIELD_GLYPH } from '../../src/ui/figures';
 import { firstFigure, orderFaceModel } from '../../src/ui/orderFace';
@@ -355,20 +362,7 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     // Six chairs are a cluster of two rows of three (the user, 2026-11-19), so a
     // short window takes the compact form rather than one row of six.
     expect(councilLayout({ width: 1440, height: 700 }, 6)).toMatchObject({ form: 'compact', rows: 2, cramped: false });
-    // The government's card is the chair card's size at every form (the user,
-    // 2026-11-20: "keep cards the same size"), so its column is the card's width.
-    expect(councilLayout({ width: 1180, height: 700 }, 11).government).toBe(COUNCIL_FORMS.narrow.width);
-    for (const [width, height] of [
-      [1180, 700],
-      [1280, 720],
-      [1440, 900],
-      [1920, 1080],
-    ] as const) {
-      for (const chairs of [3, 6, 8, 11, 13]) {
-        const layout = councilLayout({ width, height }, chairs);
-        expect(layout.government, `${width}x${height}, ${chairs} chairs`).toBe(COUNCIL_FORMS[layout.form].width);
-      }
-    }
+    expect(councilLayout({ width: 1180, height: 700 }, 11).government).toBe(COUNCIL_FRAME.government.narrow);
   });
 
   it('never runs the chairs off the window, and keeps the hand in view, from 1180 by 700 up', () => {
@@ -413,11 +407,9 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     const three = councilLayout({ width: 1440, height: 900 }, 3);
     expect([three.form, three.rows, three.cols]).toEqual(['full', 1, 3]);
     // The middle of the room right of the government (the user, 2026-11-19),
-    // right of the page's centre: 837.5 at 1440 wide, five pixels right of the
-    // board's six chairs, since the government's card is the chair card's 210
-    // (the user, 2026-11-20: "keep cards the same size").
-    expect(three.cluster!.centre).toBe(COUNCIL_FRAME.side + COUNCIL_FORMS.full.width + COUNCIL_FRAME.columnGap + (1440 - 2 * COUNCIL_FRAME.side - COUNCIL_FORMS.full.width - COUNCIL_FRAME.columnGap) / 2);
-    expect(three.cluster!.centre).toBe(837.5);
+    // right of the page's centre: 832.5 at 1440 wide, as the board's six chairs sat.
+    expect(three.cluster!.centre).toBe(COUNCIL_FRAME.side + COUNCIL_FRAME.government.wide + COUNCIL_FRAME.columnGap + (1440 - 2 * COUNCIL_FRAME.side - COUNCIL_FRAME.government.wide - COUNCIL_FRAME.columnGap) / 2);
+    expect(three.cluster!.centre).toBe(832.5);
     const five = councilLayout({ width: 1440, height: 900 }, 5);
     expect([five.form, five.rows, five.cols]).toEqual(['full', 2, 3]);
     expect(five.cluster).not.toBeNull();
@@ -520,12 +512,91 @@ describe('the screen fills the window, and the Council layout fits it (stage 1)'
     expect(SCREEN).toContain('if (compact !== null) face.dataset.compact = compact;');
   });
 
-  it('tucks every Doctrine under the government, each strip a little narrower (frame C6)', () => {
+  it('tucks every Doctrine under the government, every strip one size (the user: "keep the cards lower in the stack the same size")', () => {
     const register = braceBody(SCREEN, 'function drawRegister(');
     expect(register).toContain('sc.doctrines.forEach((id, index) => {');
     expect(register).toContain('const strip = tuckedDoctrineNode(id, live?.plate ?? null);');
     expect(register).toContain('const law = governmentLive(state, seat, sc.government, sheet, council ?? undefined);');
-    expect(style('statecraftScreen.css')).toContain('width: calc(var(--council-gov-w, 200px) - 2px - var(--tuck, 1) * 6px);');
+    // Each strip lower in the stack keeps its place under the one above.
+    expect(register).toContain('strip.style.zIndex = String(sc.doctrines.length - index);');
+    const css = style('statecraftScreen.css');
+    // Every strip the full width of the column, and every row one height.
+    const tuck = css.slice(css.indexOf('\n.council-tuck {'), css.indexOf('}', css.indexOf('\n.council-tuck {')));
+    expect(tuck).toContain('width: var(--council-gov-w, 200px);');
+    expect(tuck).toContain('margin-top: -4px;');
+    expect(css).toContain('.council-tucks {\n  display: grid;\n  grid-auto-rows: 1fr;\n}');
+    // No strip is narrower for its place in the stack, here or on In play.
+    expect(css).not.toContain('var(--tuck, 1)');
+    expect(SCREEN).not.toContain("'--tuck'");
+    expect(uiSource('inPlayScreen.ts')).not.toContain("'--tuck'");
+    // The Council fits its stack: one measured height for every strip, and
+    // the overlap its room allows.
+    expect(css).toContain('.council-tucks[data-fitted] .council-tuck {\n  height: var(--tuck-h, auto);\n  margin-top: calc(-1 * var(--tuck-overlap, 4px));');
+    expect(css).toContain('.council-tucks[data-fitted] .council-tuck:first-child {\n  margin-top: -4px;');
+  });
+
+  it('keeps the government column above the band over the hand, for one Doctrine to six (the layout ruling of 2026-11-20)', () => {
+    // The step from one strip to the next: the usual 4 px overlap when the
+    // stack fits, an even tighter step when it does not, never less than the
+    // name line.
+    expect(DOCTRINE_STACK).toEqual({ overlap: 4, minStep: 24, clearance: 8 });
+    expect(doctrineStackStep(300, 3, 46)).toBe(42);
+    expect(doctrineStackStep(150, 1, 46)).toBe(42);
+    expect(doctrineStackStep(180, 6, 46)).toBe(27);
+    expect(doctrineStackStep(100, 6, 46)).toBe(DOCTRINE_STACK.minStep);
+    // Wherever the room holds the stack at the least step, the stack ends
+    // inside the room, and every step is one even amount.
+    for (const strip of [46, 49, 66]) {
+      for (let count = 1; count <= 6; count += 1) {
+        for (let room = 60; room <= 420; room += 7) {
+          const step = doctrineStackStep(room, count, strip);
+          expect(step, `${strip} ${count} ${room}`).toBeGreaterThanOrEqual(Math.min(DOCTRINE_STACK.minStep, strip - DOCTRINE_STACK.overlap));
+          expect(step, `${strip} ${count} ${room}`).toBeLessThanOrEqual(strip - DOCTRINE_STACK.overlap);
+          const least = strip - DOCTRINE_STACK.overlap + (count - 1) * DOCTRINE_STACK.minStep;
+          if (least <= room) {
+            expect(strip - DOCTRINE_STACK.overlap + (count - 1) * step, `${strip} ${count} ${room}`).toBeLessThanOrEqual(room);
+          }
+        }
+      }
+    }
+    // The band's top is the layout's: the head, the council's room and the
+    // spare height, which is the window less the band and the hand.
+    for (const [width, height] of [
+      [1280, 720],
+      [1440, 900],
+      [1920, 1080],
+    ] as const) {
+      for (const chairs of [3, 6, 8, 11, 13]) {
+        const layout = councilLayout({ width, height }, chairs);
+        if (layout.cramped) continue;
+        const where = `${width}x${height}, ${chairs} chairs`;
+        expect(layout.bandTop, where).toBe(COUNCIL_FRAME.head + COUNCIL_FRAME.chairsTop + layout.chairs.height + layout.spare);
+        expect(layout.bandTop, where).toBe(height - COUNCIL_FRAME.band - layout.fanView);
+      }
+    }
+    // The screen measures the government card's foot, takes the band from the
+    // layout, and sets the step after every draw and when the fonts arrive.
+    const fit = braceBody(SCREEN, 'function fitDoctrineStack(');
+    expect(fit).toContain('const room = screenLayout.bandTop - foot - DOCTRINE_STACK.clearance;');
+    expect(fit).toContain('const step = doctrineStackStep(room, strips.length, strip);');
+    expect(fit).toContain("tucks.style.setProperty('--tuck-overlap', `${strip - step}px`);");
+    expect(SCREEN.match(/fitDoctrineStack\(\);/g)?.length).toBe(2);
+    // A stack tucked further shows each name at its strip's foot.
+    const css = style('statecraftScreen.css');
+    expect(css).toContain('.council-tucks[data-tight] .of-tuck-pay {\n  display: none;');
+  });
+
+  it('gives the compact column a seat with no chair words in sight and strips of one short line each', () => {
+    const register = braceBody(SCREEN, 'function drawRegister(');
+    expect(register).toContain("if (screenLayout.government < COUNCIL_FRAME.government.wide) column.dataset.narrow = 'true';");
+    const css = style('statecraftScreen.css');
+    // The chair words and their label stay for a screen reader only.
+    expect(css).toContain('.council-gov[data-narrow] .gov-chairs > .gov-label,\n.council-gov[data-narrow] .gov-chair-words {');
+    // One fixed short strip: the name on one line, the figures on one line, smaller.
+    expect(css).toContain('.council-gov[data-narrow] .council-tuck {\n  height: 46px;');
+    const pay = css.slice(css.indexOf('.council-gov[data-narrow] .council-tuck .of-tuck-pay {'));
+    expect(pay.slice(0, pay.indexOf('}'))).toContain('flex-wrap: nowrap;');
+    expect(pay.slice(0, pay.indexOf('}'))).toContain('font-size: var(--size-label);');
   });
 
   it('draws the screen again when the window changes size, and lets go of the listener', () => {

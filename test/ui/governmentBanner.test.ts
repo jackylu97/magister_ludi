@@ -14,9 +14,7 @@
  *      the tallest one's height.
  *   5. **The offer keeps its behaviour**: the reveal, choose and take, and the
  *      command it sends. Retired governments stay out.
- *   6. **The Council's seat** is the banner, the same size as the Order
- *      cards in the chairs (the user, 2026-11-20: "keep cards the same
- *      size"), and the flair gallery shows it.
+ *   6. **The Council's seat** is the banner, and the flair gallery shows it.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -155,11 +153,9 @@ describe('one size in a hand', () => {
     const row = rule(BANNER_CSS, ".gov-banner[data-form='row']");
     expect(row).toContain('width: 85.6em;');
     expect(row).toContain('font-size: calc(var(--gov-width, 856px) / 85.6);');
-    // The offer's rules are one size on every banner: only the Council's
-    // card of a given size steps its rules down (`--gov-seat-text`).
+    // The rules are one size on every banner: no fit writes their size.
     expect(rule(BANNER_CSS, '.gov-rules')).toContain('font-size: 1.3em;');
     expect(BANNER).not.toContain('--gov-text');
-    expect(rule(BANNER_CSS, ".gov-banner[data-form='row']")).not.toContain('--gov-seat-text');
     // A long name wraps, and steps down one size at most.
     expect(GOVERNMENT_NAME_SIZES).toHaveLength(2);
     // The row is the frame's 856 by 130.
@@ -218,46 +214,11 @@ describe('the government offer keeps its behaviour', () => {
 describe('the Council’s seat and the gallery', () => {
   it('draws the held government on its banner, with the council’s chairs and its plate', () => {
     const register = braceBody(SCREEN, 'function drawRegister(');
-    expect(register).toContain('dressGovernmentBanner(face, sc.government, {');
-    expect(register).toContain('layout: slotTypesOf(sc),');
-    expect(register).toContain('plate,');
+    expect(register).toContain("dressGovernmentBanner(face, sc.government, { form: 'seat', layout: slotTypesOf(sc), plate });");
     expect(register).not.toContain('dressOrderFace(face, sc.government');
-    // The lift shows the banner too, larger than the column holds it, at the
-    // height of its content.
-    const lift = braceBody(SCREEN, 'function liftNow(');
-    expect(lift).toContain('governmentBannerNode(card, {');
-    expect(lift).not.toContain('size:');
-  });
-
-  it('draws the government’s card the size of a chair’s card, at every form (the user: "keep cards the same size")', () => {
-    const register = braceBody(SCREEN, 'function drawRegister(');
-    expect(register).toContain('const chair = COUNCIL_FORMS[screenLayout.form];');
-    expect(register).toContain('size: { width: chair.width, height: chair.height },');
-    expect(register).toContain("if (screenLayout.form !== 'full') face.dataset.compact = screenLayout.form;");
-    // The banner takes that size exactly: the width and the height, in pixels.
-    const dress = braceBody(BANNER, 'export function dressGovernmentBanner(');
-    expect(dress).toContain("host.style.setProperty('--gov-width', `${options.size.width}px`);");
-    expect(dress).toContain("host.style.setProperty('--gov-height', `${options.size.height}px`);");
-    const seat = rule(BANNER_CSS, ".gov-banner[data-form='seat']");
-    expect(seat).toContain('width: var(--gov-width, 200px);');
-    expect(seat).toContain('height: var(--gov-height, auto);');
-    // The column is the card's width, so the layout makes room for it.
-    expect(uiSource('councilLayout.ts')).toContain('const government = card.width;');
-  });
-
-  it('fits the rules inside that size by the Order face’s own rule for a long effect', () => {
-    const fit = braceBody(BANNER, 'export function fitGovernmentBanner(');
-    expect(fit).toContain('for (const size of ORDER_FACE_TEXT_SIZES) {');
-    expect(fit).toContain("banner.style.setProperty('--gov-seat-text', `${size / 10}em`);");
-    expect(fit).toContain("banner.dataset.overflow = 'true';");
-    // Only a card of a given size steps down; the others keep one size.
-    expect(fit).toContain("if (banner.dataset.sized !== 'true' || rules === null) return { size: largest, over: false };");
-    // Rules still too long are cut with the Order face's fade.
-    expect(rule(BANNER_CSS, '.gov-banner[data-overflow] .gov-rules')).toContain(
-      'mask: linear-gradient(#000 calc(100% - 1.6em), transparent);',
-    );
-    // The chairs keep their words for a screen reader, out of sight.
-    expect(rule(BANNER_CSS, '.gov-banner[data-sized] .gov-chair-words')).toContain('clip-path: inset(50%);');
+    // The lift shows the banner too, larger than the column holds it.
+    expect(braceBody(SCREEN, 'function liftNow(')).toContain('governmentBannerNode(card, {');
+    expect(uiSource('statecraftScreen.css')).toContain('.council-gov-card .gov-banner {\n  --gov-width: var(--council-gov-w, 200px);');
   });
 
   it('shows the banner in the flair gallery, in both forms', () => {
@@ -266,9 +227,7 @@ describe('the Council’s seat and the gallery', () => {
     )[0] as string;
     expect(gallery).toContain('drawGovernmentBanners(into);');
     expect(gallery).toContain("form: 'row',");
-    expect(gallery).toContain(
-      "const { banner } = governmentBannerNode(id, { form: 'seat', size: { width: chair.width, height: chair.height } });",
-    );
+    expect(gallery).toContain("const { banner } = governmentBannerNode(id, { form: 'seat' });");
     expect(gallery).toContain('fitGovernmentHand(hand);');
   });
 });

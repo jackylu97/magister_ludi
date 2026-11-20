@@ -299,7 +299,6 @@ export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
       const figures = reading.plates.get(entry.key);
       const strip = tuckedDoctrineNode(entry.card!, figures === undefined || figures.length === 0 ? null : { kind: 'pays', figures });
       strip.classList.add('council-tuck', 'ip-piece');
-      strip.style.setProperty('--tuck', String(index + 1));
       strip.style.zIndex = String(doctrines.length - index);
       strip.dataset.key = entry.key;
       strip.tabIndex = 0;

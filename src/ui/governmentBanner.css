@@ -353,16 +353,13 @@
 
 /* The banner heading a narrow card: the window across the card's width, then
    the rules, the chairs and the pay plate. It keeps the Council's text scale
-   whatever the card's size. Given a size (`--gov-height`, the Council's chair
-   card), the rules take the room left and the chairs and the plate stand at
-   the foot; given none, the card is as tall as its content. */
+   whatever the column's width. */
 .gov-banner[data-form='seat'] {
   --gov-gap: var(--card-paper, #f8f1dc);
   display: flex;
   flex-direction: column;
   gap: 0.9em;
   width: var(--gov-width, 200px);
-  height: var(--gov-height, auto);
   padding: 0.7em 0.7em 0.9em;
   border: 1px solid var(--ink, #1d1a20);
   border-radius: 0.5em;
@@ -379,20 +376,9 @@
   aspect-ratio: 3 / 1;
 }
 
-/* The rules take the room the other parts leave. At a given size they step
-   down from 13 px to 11 px as an Order face's effect does
-   (`fitGovernmentBanner` writes `--gov-seat-text`), and are cut with a fade
-   only if 11 px does not fit. */
 .gov-banner[data-form='seat'] .gov-rules {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  font-size: var(--gov-seat-text, 1.3em);
-  line-height: 1.25;
-}
-
-.gov-banner[data-form='seat'] .gov-side {
-  flex: none;
+  font-size: 1.25em;
+  line-height: 1.3;
 }
 
 .gov-banner[data-form='seat'] .gov-side {
@@ -405,76 +391,6 @@
 
 .gov-banner[data-form='seat'] .gov-chair-words {
   font-size: 1em;
-}
-
-/* --- the seat at the chair card's size (the Council screen) --------------------
-   The same width and height as the Order cards in the chairs (the user,
-   2026-11-20: "keep cards the same size"). Tighter gaps, the chairs as one row
-   of shapes with no label (their words stay for a screen reader), and the
-   plate at the foot where an Order card has its figure. `data-compact` is the
-   chair's form when it is not the full card, as on the Order face. */
-.gov-banner[data-sized] {
-  gap: 0.55em;
-  padding: 0.55em 0.6em 0.45em;
-  overflow: hidden;
-}
-
-.gov-banner[data-sized] .gov-window {
-  margin-bottom: 0;
-}
-
-.gov-banner[data-sized] .gov-side {
-  gap: 0.45em;
-}
-
-.gov-banner[data-sized] .gov-chairs > .gov-label {
-  display: none;
-}
-
-.gov-banner[data-sized] .gov-chair-words {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.gov-banner[data-sized] .gov-chair-row {
-  justify-content: center;
-  gap: 0.3em 0.4em;
-}
-
-.gov-banner[data-sized] .gov-chair-group {
-  gap: 0.15em;
-}
-
-.gov-banner[data-sized] .gov-chair {
-  width: 1.2em;
-  height: 1.6em;
-}
-
-.gov-banner[data-sized][data-compact] .gov-chair {
-  width: 1em;
-  height: 1.35em;
-  border-width: 0.12em;
-}
-
-.gov-banner[data-sized][data-compact] .gov-pay {
-  font-size: 1.7em;
-}
-
-.gov-banner[data-sized][data-compact] .gov-pay[data-plate='idle'] {
-  font-size: 1.15em;
-}
-
-/* Rules that do not fit at 11 px: cut with a fade at the foot, as an Order
-   face's effect is; the hover lift shows them whole. */
-.gov-banner[data-overflow] .gov-rules {
-  -webkit-mask: linear-gradient(#000 calc(100% - 1.6em), transparent);
-  mask: linear-gradient(#000 calc(100% - 1.6em), transparent);
 }
 
 /* The pay plate: a heavy rule and the figures, as an Order's plate in a chair. */

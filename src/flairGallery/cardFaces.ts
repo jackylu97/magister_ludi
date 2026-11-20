@@ -50,7 +50,6 @@ import { scalerStartFace } from '../ui/scalerValue';
 import { chairNode, chairWord, emptyChairNode } from '../ui/chairs';
 import { DECK_SUIT, orderSuitFace } from '../ui/deckBadges';
 import { type OfferOption, suitHandCard } from '../ui/offerCard';
-import { COUNCIL_FORMS, type CouncilForm } from '../ui/councilLayout';
 import { fitGovernmentBanner, fitGovernmentHand, governmentBannerNode } from '../ui/governmentBanner';
 import { wonderPaintingUrl } from '../ui/wonderPaintings';
 import {
@@ -370,15 +369,14 @@ function drawCouncil(into: HTMLElement, picks: readonly OrderId[]): void {
  * **The government banner** (`governmentBanner.ts`; Quiet Table, frame 7),
  * through the game's own builder. The offer's row for one tier, the first
  * with a stand-in painting so the painted window can be seen before any
- * government has its own, then the Council's card for every government a
- * seat can hold, on the Council's dark cloth, at the size of the chair cards
- * in the form the knob picks (`COUNCIL_FORMS`), as the Council draws it.
+ * government has its own, then the Council's narrow card for every government
+ * a seat can hold, on the Council's dark cloth.
  */
 function drawGovernmentBanners(into: HTMLElement): void {
   const banners = block(
     into,
     'The government banner: governmentBanner.ts',
-    'The form a government wears on the offer and on the Council screen: a 3:1 window with the government’s painting, or the engraved seal with the crown while it has none; its rules; its chairs in their types’ inks and marks; and the figure. The first row shows a wonder painting as a stand-in. The cards under the rows are the Council’s card for every government a seat can hold, the same size as an Order card in a chair of the chosen form.',
+    'The form a government wears on the offer and on the Council screen: a 3:1 window with the government’s painting, or the engraved seal with the crown while it has none; its rules; its chairs in their types’ inks and marks; and the figure. The first row shows a wonder painting as a stand-in. The cards under the rows are the Council’s seat form, for every government a seat can hold.',
   );
   const knobs = controls(banners);
   const live = GOVERNMENT_IDS.filter((id) => governmentDef(id).retired !== true);
@@ -419,31 +417,12 @@ function drawGovernmentBanners(into: HTMLElement): void {
       redraw();
     },
   );
-  let form: CouncilForm = 'full';
-  const drawSeats = (): void => {
-    cloth.replaceChildren();
-    const chair = COUNCIL_FORMS[form];
-    for (const id of live) {
-      const { banner } = governmentBannerNode(id, { form: 'seat', size: { width: chair.width, height: chair.height } });
-      if (form !== 'full') banner.dataset.compact = form;
-      cloth.append(banner);
-      fitGovernmentBanner(banner);
-    }
-  };
-  select(
-    knobs,
-    'Council card',
-    (Object.keys(COUNCIL_FORMS) as CouncilForm[]).map(
-      (one) => [one, `${one}, ${COUNCIL_FORMS[one].width} by ${COUNCIL_FORMS[one].height}`] as const,
-    ),
-    form,
-    (value) => {
-      form = value as CouncilForm;
-      drawSeats();
-    },
-  );
   redraw();
-  drawSeats();
+  for (const id of live) {
+    const { banner } = governmentBannerNode(id, { form: 'seat' });
+    cloth.append(banner);
+    fitGovernmentBanner(banner);
+  }
 }
 
 /**

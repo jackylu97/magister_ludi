@@ -302,6 +302,12 @@
   width: var(--council-gov-w, 200px);
 }
 
+/* The government's banner is the column's width, at the Council's text scale
+   (`governmentBanner.css`, the seat form). */
+.council-gov-card .gov-banner {
+  --gov-width: var(--council-gov-w, 200px);
+}
+
 .council-gov-card:focus-visible .gov-banner {
   outline: 2px solid var(--y-gold-lit);
   outline-offset: 4px;
@@ -316,17 +322,89 @@
   outline-offset: 3px;
 }
 
-/* Each Doctrine tucked under the one above, a little narrower each time. */
+/* Each Doctrine tucked 4 px under the one above, every strip one size (the
+   user, 2026-11-20: "keep the cards lower in the stack the same size, so they
+   don't shrink as you go down"). Every strip is the full width of the
+   government's column, and every strip is as tall as the tallest one: the
+   grid's rows are one height (`1fr`), and a strip's paper fills its row. The
+   overlap and each strip's shadow show the depth. The In play screen draws
+   its stack with the same rules. */
 .council-tucks {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-auto-rows: 1fr;
 }
 
 .council-tuck {
-  width: calc(var(--council-gov-w, 200px) - 2px - var(--tuck, 1) * 6px);
+  display: flex;
+  flex-direction: column;
+  width: var(--council-gov-w, 200px);
   margin-top: -4px;
   cursor: default;
+}
+
+.council-tuck > .of-tuck-in {
+  flex: 1 1 auto;
+}
+
+/* **The Council fits its stack to the room above the band** (the
+   orchestrator's layout ruling, 2026-11-20; `fitDoctrineStack`): every strip
+   takes the one measured height (`--tuck-h`), and each tucks under the one
+   above by the stack's overlap (`--tuck-overlap`): 4 px, or more when the
+   stack would otherwise reach the band over the hand (`doctrineStackStep`).
+   The first strip tucks 4 px under the government's card, always. */
+.council-tucks[data-fitted] {
+  display: flex;
+  flex-direction: column;
+}
+
+.council-tucks[data-fitted] .council-tuck {
+  height: var(--tuck-h, auto);
+  margin-top: calc(-1 * var(--tuck-overlap, 4px));
+}
+
+.council-tucks[data-fitted] .council-tuck:first-child {
+  margin-top: -4px;
+}
+
+/* A stack tucked further than usual shows each name at the strip's foot, the
+   part left in view. The figures would lie under the next strip, so they are
+   left out; the hover lift shows the whole card. */
+.council-tucks[data-tight] .of-tuck-in {
+  justify-content: flex-end;
+}
+
+.council-tucks[data-tight] .of-tuck-pay {
+  display: none;
+}
+
+/* --- the compact column (145 px) ---
+   The seat keeps its chair shapes, and its chair words and their label are
+   for a screen reader only. Each Doctrine strip is one fixed short height
+   (the strip's own least height, `.order-tuck` in `orderFace.css`): its name
+   on one line, cut with an ellipsis, and its figures on one line at a smaller
+   size. */
+.council-gov[data-narrow] .gov-chairs > .gov-label,
+.council-gov[data-narrow] .gov-chair-words {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.council-gov[data-narrow] .council-tuck {
+  height: 46px;
+}
+
+.council-gov[data-narrow] .council-tuck .of-tuck-pay {
+  flex-wrap: nowrap;
+  justify-content: safe flex-end;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--size-label);
 }
 
 .council-tuck:hover,
