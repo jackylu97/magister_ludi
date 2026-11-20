@@ -335,6 +335,15 @@ purchase path in `src/sim/purchase.ts`, and the sentence the city screen
 prints. The city screen (`src/ui/cityPanel.ts`) prints whatever
 `purchaseError` returns, so it needs no change.
 
+### 3.12 The citizens' hexes on the board (ready)
+
+The spec is `docs/plans/citizen-hex-marks-2026-11-20.md`, with drawings in
+`docs/plans/mockups/citizen-hex-marks/`. While a city is open, worked hexes
+are bright and outlined, free hexes are lightly shaded, and the rest are dark,
+with yields on the hexes the city can use. A "Citizens" toggle adds one plain
+dot to each worked hex. It replaces the small rings in
+`src/render3d/overlays.ts`.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open
