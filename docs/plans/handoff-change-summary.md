@@ -2,6 +2,8 @@
 
 This list covers the implementation work from the November 18 handoff and the related playtest requests. Claude supplied the approved card and leader designs and built the setup, diplomacy and other interface screens. The items below describe the rules, rendering, bots, models and maintenance work in the playtest branch.
 
+The release passed the TypeScript checks, the production build and all 12,709 tests in 597 files. The full test run took 12 minutes and 3 seconds with three workers. A sustained 60 FPS during player interaction remains an open target.
+
 ## Cards, wonders and people
 
 | System | What changed |
@@ -39,6 +41,7 @@ The reference sheets give each effect, unit and named person. [Generic Orders](.
 - Reused unit badge positions and camera dimensions for pointer picking. Hidden enemy moves skip rebuilding the visible units. Several changes to tile yields in one frame now share a redraw.
 - Shared improvement instance data across the three map copies. After a move the renderer updates only the affected improvement regions and reuses unchanged river effects. Open water skips shoreline calculations beyond their reach.
 - Removed a duplicate 3D pick when selecting a unit. On the tested Swordsman, the first board update moved from 64–65 ms to about 50 ms. The Routes button now reads two counts directly. Off-screen forest batches can skip a draw after a conservative check for tree sway and shadows. [Matched click and frame measurements](benchmarks/playtest-fps-2026-11-19/unit-selection.json)
+- Unit picking now reuses the ground triangle index. When a piece stands in front of the terrain, the game can skip a full triangle search. Across 430 checks the same unit, or empty ground, was picked each time. Fog, a hill in front of a unit and wrapped map copies still affect selection.
 - Kept the high-density default at 1.5×. The Display setting offers a 1.25× option. The close-zoom terrain trial stays available for visual review. The Giant WebKit trial stopped during land construction before the texture could be measured. [Renderer audit and measurements](code-and-performance-audit-2026-11-19.md) · [Terrain comparison](close-terrain-trial-2026-11-19.md)
 
 ## Saves, maintenance and tests
@@ -48,4 +51,6 @@ The reference sheets give each effect, unit and named person. [Generic Orders](.
 - Startup releases listeners and other resources after a failed attempt. Shared types check both ends of terrain worker messages. Corrected stale comments and tests covering current screen behavior.
 - Shared deterministic bot fixtures and a 120-turn duel between tests. Switched large geometry comparisons to direct byte checks. In the matched six-worker core comparison, elapsed time fell from 376 to 207 seconds. The full suite also runs the slow tier. [Test measurements](test-suite-speed-2026-11-19.md)
 
-Great Person ratings and balance tuning remain open. Claude owns leader portraits. Until a portrait is available, the game displays the leader's emblem. The schema 249 build requires a fresh game or a save from that rules version.
+Great Person ratings and balance tuning remain open. Claude owns leader portraits. Until a portrait is available, the game displays the leader's emblem. The schema 249 build requires a fresh game or a save from that rules version. The shelf hides saves from version 248. Updating the build leaves their stored data in place.
+
+Two implementation choices affect the roster. The Ballista Elephant uses its listed strength of 50 for its range-two attack. The generic teal seat color moved from `#1f8a85` to `#208b85` to meet the game's color separation rule against Cyrus. The approved leader colors are in the roster sheet.

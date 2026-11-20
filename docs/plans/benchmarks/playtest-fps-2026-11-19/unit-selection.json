@@ -370,5 +370,602 @@
         "pairs": 10
       }
     ]
+  },
+  "terrainPick": {
+    "method": "The cached terrain grid can prove that no terrain triangle stands between the camera and the selected unit. Unsupported or stale geometry uses the full raycast. The CPU comparison uses the exact recorded rays and units. The separate Chrome comparison includes both the new grid path and the removal of the duplicate pick. Load varied between runs.",
+    "cpu": {
+      "parity": {
+        "ordinary": {
+          "n": 86,
+          "count": {
+            "818": 20,
+            "999": 11,
+            "null": 55
+          },
+          "different": 0,
+          "atCenter": [
+            818,
+            999
+          ]
+        },
+        "masked": {
+          "n": 86,
+          "count": {
+            "818": 20,
+            "999": 17,
+            "null": 49
+          },
+          "different": 0,
+          "atCenter": [
+            818,
+            999
+          ]
+        },
+        "all seen": {
+          "n": 86,
+          "count": {
+            "818": 18,
+            "999": 11,
+            "null": 57
+          },
+          "different": 0,
+          "atCenter": [
+            818,
+            999
+          ]
+        },
+        "wrapped -138.56406460551017": {
+          "n": 86,
+          "count": {
+            "818": 18,
+            "999": 11,
+            "null": 57
+          },
+          "different": 0,
+          "atCenter": [
+            818,
+            999
+          ]
+        },
+        "wrapped 138.56406460551017": {
+          "n": 86,
+          "count": {
+            "818": 18,
+            "999": 11,
+            "null": 57
+          },
+          "different": 0,
+          "atCenter": [
+            818,
+            999
+          ]
+        }
+      },
+      "counts": [
+        {
+          "on": false,
+          "rawCasts": 103,
+          "rawTris": 906200,
+          "skipped": 0,
+          "triSkipped": 0
+        },
+        {
+          "on": true,
+          "rawCasts": 82,
+          "rawTris": 95335,
+          "skipped": 21,
+          "triSkipped": 810865
+        }
+      ],
+      "time": {
+        "kind": "CPU model-pick milliseconds per point. Each value is the median of eight block means. Each block sampled each point eight times. Conditions alternate by block.",
+        "loadAverage": [
+          3.611328125,
+          4.71337890625,
+          5.61328125
+        ],
+        "units": {
+          "818": {
+            "baseline": {
+              "median": 10.053690062499982,
+              "min": 10.016791749999811,
+              "max": 10.117343750000146
+            },
+            "grid": {
+              "median": 0.6441770624999208,
+              "min": 0.6374322500000744,
+              "max": 0.6501771250000274
+            }
+          },
+          "999": {
+            "baseline": {
+              "median": 0.6891848750001373,
+              "min": 0.6797656250000728,
+              "max": 0.6946458749998783
+            },
+            "grid": {
+              "median": 0.6905208749999474,
+              "min": 0.6826771250002821,
+              "max": 0.6951406250000218
+            }
+          }
+        }
+      }
+    },
+    "chrome": [
+      {
+        "run": "oldgrid-1",
+        "modelPicks": 32,
+        "handlerMs": [
+          60.5,
+          17.6,
+          112.9,
+          29,
+          103.2,
+          26.7,
+          62.8,
+          13.8
+        ],
+        "clickToBoardDrawMs": [
+          89.6,
+          31.5,
+          157.3,
+          59.3,
+          136.0,
+          48.6,
+          90.5,
+          21.0
+        ],
+        "hostLoad": 6.7
+      },
+      {
+        "run": "grid-1",
+        "modelPicks": 24,
+        "handlerMs": [
+          63.2,
+          19.1,
+          31.9,
+          21.4,
+          25.1,
+          12,
+          29.5,
+          15.4
+        ],
+        "clickToBoardDrawMs": [
+          91.3,
+          31.0,
+          62.5,
+          43.0,
+          44.5,
+          21.2,
+          49.3,
+          28.8
+        ],
+        "hostLoad": 8.0
+      },
+      {
+        "run": "grid-2",
+        "modelPicks": 24,
+        "handlerMs": [
+          87,
+          28,
+          52.1,
+          13.7,
+          25.9,
+          17.4,
+          23.1,
+          12.4
+        ],
+        "clickToBoardDrawMs": [
+          117.8,
+          54.5,
+          90.0,
+          24.3,
+          42.8,
+          33.1,
+          36.8,
+          20.8
+        ],
+        "hostLoad": 11.1
+      },
+      {
+        "run": "oldgrid-2",
+        "modelPicks": 32,
+        "handlerMs": [
+          78.1,
+          15.3,
+          47.1,
+          14,
+          42.5,
+          14.1,
+          47.1,
+          15.1
+        ],
+        "clickToBoardDrawMs": [
+          107.7,
+          23.2,
+          66.7,
+          21.4,
+          63.5,
+          24.8,
+          69.2,
+          23.0
+        ],
+        "hostLoad": 11.5
+      }
+    ],
+    "nativeWebKit": {
+      "method": "Native WKWebView calls the production model picker at the same two CSS coordinates twelve times per version at 1.5\u00d7. These timings cover the 3D hit test on the loaded board, not mouse event delivery, overlays or the next draw. The follow-up repeated each pick immediately after the normal terrain pick at the same position.",
+      "runs": [
+        {
+          "run": "original",
+          "points": [
+            {
+              "x": 833,
+              "y": 434
+            },
+            {
+              "x": 882,
+              "y": 490
+            }
+          ],
+          "units": [
+            818,
+            999
+          ],
+          "timesMs": [
+            [
+              15,
+              3
+            ],
+            [
+              16,
+              2.000000000003638
+            ],
+            [
+              15,
+              2
+            ],
+            [
+              15,
+              2.000000000003638
+            ],
+            [
+              15,
+              2
+            ],
+            [
+              14.999999999996362,
+              2
+            ],
+            [
+              21.999999999996362,
+              5
+            ],
+            [
+              28,
+              4
+            ],
+            [
+              30,
+              3
+            ],
+            [
+              28,
+              3
+            ],
+            [
+              29,
+              5.000000000003638
+            ],
+            [
+              29,
+              4.000000000003638
+            ]
+          ]
+        },
+        {
+          "run": "grid",
+          "points": [
+            {
+              "x": 833,
+              "y": 434
+            },
+            {
+              "x": 882,
+              "y": 490
+            }
+          ],
+          "units": [
+            818,
+            999
+          ],
+          "timesMs": [
+            [
+              22,
+              3
+            ],
+            [
+              21.999999999996362,
+              3
+            ],
+            [
+              22,
+              3
+            ],
+            [
+              22,
+              3
+            ],
+            [
+              22,
+              3
+            ],
+            [
+              22.000000000003638,
+              3
+            ],
+            [
+              22,
+              3
+            ],
+            [
+              18,
+              3
+            ],
+            [
+              18,
+              3
+            ],
+            [
+              19,
+              3
+            ],
+            [
+              18,
+              3
+            ],
+            [
+              19,
+              2.000000000003638
+            ]
+          ]
+        },
+        {
+          "run": "originalrepeat",
+          "points": [
+            {
+              "x": 833,
+              "y": 434
+            },
+            {
+              "x": 882,
+              "y": 490
+            }
+          ],
+          "units": [
+            818,
+            999
+          ],
+          "timesMs": [
+            [
+              17.000000000003638,
+              3
+            ],
+            [
+              18,
+              2
+            ],
+            [
+              16.999999999996362,
+              2
+            ],
+            [
+              17,
+              3
+            ],
+            [
+              18,
+              2
+            ],
+            [
+              17,
+              3
+            ],
+            [
+              23,
+              5
+            ],
+            [
+              28,
+              5.000000000003638
+            ],
+            [
+              30,
+              4
+            ],
+            [
+              29,
+              4
+            ],
+            [
+              29.999999999996362,
+              4
+            ],
+            [
+              29,
+              4.000000000003638
+            ]
+          ],
+          "afterTerrainPickMs": [
+            [
+              30.000000000003638,
+              4
+            ],
+            [
+              29,
+              4
+            ],
+            [
+              29,
+              4
+            ],
+            [
+              30,
+              4
+            ],
+            [
+              30,
+              4
+            ],
+            [
+              30.999999999996362,
+              3
+            ],
+            [
+              29,
+              3
+            ],
+            [
+              31,
+              4
+            ],
+            [
+              30,
+              3
+            ],
+            [
+              29,
+              3
+            ],
+            [
+              30,
+              4.000000000003638
+            ],
+            [
+              29,
+              4
+            ]
+          ]
+        },
+        {
+          "run": "release",
+          "points": [
+            {
+              "x": 833,
+              "y": 434
+            },
+            {
+              "x": 882,
+              "y": 490
+            }
+          ],
+          "units": [
+            818,
+            999
+          ],
+          "timesMs": [
+            [
+              22.000000000014552,
+              3
+            ],
+            [
+              22,
+              3
+            ],
+            [
+              22,
+              3
+            ],
+            [
+              22,
+              3
+            ],
+            [
+              21,
+              3
+            ],
+            [
+              22.000000000014552,
+              3
+            ],
+            [
+              25,
+              3
+            ],
+            [
+              25,
+              4
+            ],
+            [
+              26,
+              4
+            ],
+            [
+              25.999999999985448,
+              5
+            ],
+            [
+              26,
+              4
+            ],
+            [
+              26,
+              5
+            ]
+          ],
+          "afterTerrainPickMs": [
+            [
+              12,
+              4
+            ],
+            [
+              12,
+              4
+            ],
+            [
+              12,
+              5
+            ],
+            [
+              14,
+              4
+            ],
+            [
+              15.000000000014552,
+              9
+            ],
+            [
+              16,
+              6
+            ],
+            [
+              12,
+              3
+            ],
+            [
+              12,
+              4
+            ],
+            [
+              10,
+              3
+            ],
+            [
+              11,
+              3
+            ],
+            [
+              9,
+              2.000000000014552
+            ],
+            [
+              9,
+              3
+            ]
+          ]
+        }
+      ]
+    }
   }
 }
