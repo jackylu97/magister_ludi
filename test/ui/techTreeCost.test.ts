@@ -68,15 +68,11 @@ function chartCode(): string {
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
-describe('the science rate is summed once a render', () => {
-  it('is called in exactly one place, and that place is beginPass', () => {
-    // The hard evidence for "one render, one sum". `playerScience` walks every
-    // city of the empire, so a second caller is a second sweep — and there used
-    // to be four of them (every node, the current node's bar, the strip's
-    // schedule, and the HUD's card), which is what made a forty-city chart
-    // think before it drew.
-    expect(calls('playerScience')).toBe(1);
-    expect(chartFunction('function beginPass(')).toContain('rate: playerScience(state, playerId)');
+describe('research estimates share the city science total', () => {
+  it('uses the cached total once when the chart starts a render', () => {
+    expect(calls('readEmpire')).toBe(1);
+    expect(chartFunction('function beginPass(')).toContain('rate: readEmpire(state, playerId).cityScience');
+    expect(chartCode()).not.toContain('playerScience(');
   });
 
   it('hands the rate to the sim rather than working the estimate out beside it', () => {

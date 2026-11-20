@@ -222,6 +222,8 @@ interface EmpireReading {
   playerId: number;
   /** In `state.cities` order — founding order, which is every phase's order. */
   towns: readonly TownReading[];
+  /** Research estimates use only the science produced by cities. */
+  cityScience: number;
   /** Steps 15–19: `explainEmpireLines`, the stage line included. */
   lines: readonly EmpireYieldLine[];
   /** The empire stage's own reconciliation lines, one per voice that moved. */
@@ -725,12 +727,14 @@ function empireReading(state: GameState, playerId: number): EmpireReading {
   for (const town of towns) {
     for (const key of CITY_YIELD_KEYS) totals[key] += town.total[key];
   }
+  const cityScience = totals.science;
   const banked = foldEmpireLines(lines);
   for (const key of CITY_YIELD_KEYS) totals[key] += banked[key];
 
   return {
     playerId,
     towns,
+    cityScience,
     lines,
     stage: lines.filter((line) => line.origin === 'stage'),
     empire,

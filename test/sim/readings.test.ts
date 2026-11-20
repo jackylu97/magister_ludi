@@ -50,6 +50,7 @@ import {
 import { LEDGER_CLASSES } from '../../src/sim/ledgerClass';
 import { readCity, readEmpire, readEmpirePercents, readRoutes } from '../../src/sim/readings';
 import { routePrice } from '../../src/sim/purchase';
+import { playerScience } from '../../src/sim/tech';
 import { EXPLORED, HIDDEN, isExploredBy, isVisibleTo } from '../../src/sim/visibility';
 import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYields';
 import {
@@ -702,6 +703,24 @@ describe('the economy clock is the coarser subscription', () => {
 });
 
 describe('the empire’s reading is what the surfaces read', () => {
+  it('preserves the city science rate when an Order adds empire science', () => {
+    const { state } = game();
+    const city = found(state, 0)!;
+    const council = state.players[0]!.statecraft;
+    council.orders.push('theBrickKilns');
+    council.slots.push({ card: 'theBrickKilns', sealedUntil: state.turn });
+    council.tallies.push({ card: 'theBrickKilns', count: 4 });
+    bumpRevision(state);
+    const first = readEmpire(state, 0);
+    expect(first.cityScience).toBe(playerScience(state, 0));
+    expect(first.totals.science).toBeGreaterThan(first.cityScience);
+    city.buildings.push('library');
+    bumpRevision(state);
+    const next = readEmpire(state, 0);
+    expect(next.cityScience).toBe(playerScience(state, 0));
+    expect(next.cityScience).toBeGreaterThan(first.cityScience);
+  });
+
   it('totals exactly what the top bar prints', () => {
     const { state } = game();
     const city = found(state, 0)!;
