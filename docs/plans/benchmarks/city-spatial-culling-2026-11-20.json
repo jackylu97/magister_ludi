@@ -1,0 +1,579 @@
+{
+  "gpu": {
+    "fixture": {
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+      "version": 251,
+      "seed": 20260832,
+      "stateTurn": 151,
+      "meshes": 18,
+      "draw": [
+        2205,
+        1189
+      ]
+    },
+    "pictures": [
+      {
+        "col": 46,
+        "row": 7,
+        "z": 7,
+        "shadow": true,
+        "reflected": false,
+        "seat": 5,
+        "passes": {
+          "base": {},
+          "native": {
+            "shadow": {
+              "seen": 18,
+              "omitted": 253196
+            },
+            "main": {
+              "seen": 12,
+              "omitted": 84532
+            }
+          },
+          "sorted": {
+            "shadow": {
+              "seen": 18,
+              "omitted": 240136
+            },
+            "main": {
+              "seen": 12,
+              "omitted": 154372
+            }
+          }
+        },
+        "nonzero": true,
+        "control": 0,
+        "restored": 0,
+        "native": 0,
+        "sorted": 0
+      },
+      {
+        "col": 46,
+        "row": 7,
+        "z": 14,
+        "shadow": false,
+        "reflected": true,
+        "seat": 5,
+        "passes": {
+          "base": {},
+          "native": {
+            "reflection": {
+              "seen": 12,
+              "omitted": 16916
+            },
+            "main": {
+              "seen": 12,
+              "omitted": 16916
+            }
+          },
+          "sorted": {
+            "reflection": {
+              "seen": 12,
+              "omitted": 86396
+            },
+            "main": {
+              "seen": 12,
+              "omitted": 83292
+            }
+          }
+        },
+        "nonzero": true,
+        "control": 0,
+        "restored": 0,
+        "native": 0,
+        "sorted": 0
+      },
+      {
+        "col": 53,
+        "row": 15,
+        "z": 7,
+        "shadow": false,
+        "reflected": false,
+        "seat": 5,
+        "passes": {
+          "base": {},
+          "native": {
+            "main": {
+              "seen": 12,
+              "omitted": 104836
+            }
+          },
+          "sorted": {
+            "main": {
+              "seen": 12,
+              "omitted": 83292
+            }
+          }
+        },
+        "nonzero": true,
+        "control": 0,
+        "restored": 0,
+        "native": 0,
+        "sorted": 0
+      },
+      {
+        "col": 0,
+        "row": 19,
+        "z": 14,
+        "shadow": true,
+        "reflected": true,
+        "seat": 2,
+        "passes": {
+          "base": {},
+          "native": {
+            "shadow": {
+              "seen": 10,
+              "omitted": 3830
+            },
+            "reflection": {
+              "seen": 10,
+              "omitted": 7660
+            },
+            "main": {
+              "seen": 10,
+              "omitted": 7660
+            }
+          },
+          "sorted": {
+            "shadow": {
+              "seen": 10,
+              "omitted": 11124
+            },
+            "reflection": {
+              "seen": 10,
+              "omitted": 24576
+            },
+            "main": {
+              "seen": 10,
+              "omitted": 24576
+            }
+          }
+        },
+        "nonzero": true,
+        "control": 0,
+        "restored": 0,
+        "native": 0,
+        "sorted": 0
+      }
+    ],
+    "views": {
+      "capital": {
+        "sham": {
+          "pairs": 24,
+          "gpuMedianMs": 0.763,
+          "positivePairs": 17,
+          "cpuSubmitSavingMs": -0.15,
+          "trianglesSaved": 0,
+          "drawsSaved": 0,
+          "wallSavingMs": 0.75,
+          "gpuByBlockMs": [
+            0.202,
+            1.329,
+            0.35
+          ],
+          "gpuMinusShamMs": 0.0
+        },
+        "native": {
+          "pairs": 24,
+          "gpuMedianMs": -0.566,
+          "positivePairs": 8,
+          "cpuSubmitSavingMs": -0.05,
+          "trianglesSaved": 42266,
+          "drawsSaved": 0,
+          "wallSavingMs": -0.65,
+          "gpuByBlockMs": [
+            -0.525,
+            -0.791,
+            -0.336
+          ],
+          "gpuMinusShamMs": -1.76
+        },
+        "sorted": {
+          "pairs": 24,
+          "gpuMedianMs": 0.829,
+          "positivePairs": 15,
+          "cpuSubmitSavingMs": 0.1,
+          "trianglesSaved": 77186,
+          "drawsSaved": 0,
+          "wallSavingMs": 0.9,
+          "gpuByBlockMs": [
+            0.027,
+            1.057,
+            0.92
+          ],
+          "gpuMinusShamMs": 0.123
+        }
+      },
+      "wide": {
+        "sham": {
+          "pairs": 24,
+          "gpuMedianMs": -0.042,
+          "positivePairs": 12,
+          "cpuSubmitSavingMs": -0.05,
+          "trianglesSaved": 0,
+          "drawsSaved": 0,
+          "wallSavingMs": -0.1,
+          "gpuByBlockMs": [
+            -0.746,
+            0.557,
+            0.264
+          ],
+          "gpuMinusShamMs": 0.0
+        },
+        "native": {
+          "pairs": 24,
+          "gpuMedianMs": 0.554,
+          "positivePairs": 15,
+          "cpuSubmitSavingMs": -0.15,
+          "trianglesSaved": 8458,
+          "drawsSaved": 0,
+          "wallSavingMs": 0.95,
+          "gpuByBlockMs": [
+            0.157,
+            1.485,
+            1.259
+          ],
+          "gpuMinusShamMs": -0.28
+        },
+        "sorted": {
+          "pairs": 24,
+          "gpuMedianMs": 0.862,
+          "positivePairs": 16,
+          "cpuSubmitSavingMs": 0.0,
+          "trianglesSaved": 41646,
+          "drawsSaved": 0,
+          "wallSavingMs": 0.55,
+          "gpuByBlockMs": [
+            0.275,
+            1.045,
+            1.158
+          ],
+          "gpuMinusShamMs": 0.271
+        }
+      },
+      "inland": {
+        "sham": {
+          "pairs": 24,
+          "gpuMedianMs": -0.475,
+          "positivePairs": 10,
+          "cpuSubmitSavingMs": 0.0,
+          "trianglesSaved": 0,
+          "drawsSaved": 0,
+          "wallSavingMs": -0.85,
+          "gpuByBlockMs": [
+            -0.932,
+            0.878,
+            -0.475
+          ],
+          "gpuMinusShamMs": 0.0
+        },
+        "native": {
+          "pairs": 24,
+          "gpuMedianMs": 0.287,
+          "positivePairs": 16,
+          "cpuSubmitSavingMs": 0.0,
+          "trianglesSaved": 52418,
+          "drawsSaved": 0,
+          "wallSavingMs": 0.85,
+          "gpuByBlockMs": [
+            0.045,
+            0.156,
+            0.713
+          ],
+          "gpuMinusShamMs": 0.835
+        },
+        "sorted": {
+          "pairs": 24,
+          "gpuMedianMs": 0.142,
+          "positivePairs": 13,
+          "cpuSubmitSavingMs": 0.0,
+          "trianglesSaved": 41646,
+          "drawsSaved": 0,
+          "wallSavingMs": 0.5,
+          "gpuByBlockMs": [
+            0.651,
+            0.522,
+            -0.214
+          ],
+          "gpuMinusShamMs": 0.469
+        }
+      }
+    }
+  },
+  "repeat": {
+    "fixture": {
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+      "version": 251,
+      "seed": 20260832,
+      "stateTurn": 151,
+      "meshes": 18,
+      "draw": [
+        2205,
+        1189
+      ]
+    },
+    "pictures": [
+      {
+        "col": 46,
+        "row": 7,
+        "z": 7,
+        "shadow": true,
+        "reflected": false,
+        "seat": 5,
+        "passes": {
+          "base": {},
+          "native": {
+            "shadow": {
+              "seen": 18,
+              "omitted": 253196
+            },
+            "main": {
+              "seen": 12,
+              "omitted": 84532
+            }
+          },
+          "sorted": {
+            "shadow": {
+              "seen": 18,
+              "omitted": 240136
+            },
+            "main": {
+              "seen": 12,
+              "omitted": 154372
+            }
+          }
+        },
+        "nonzero": true,
+        "control": 0,
+        "restored": 0,
+        "native": 0,
+        "sorted": 0
+      },
+      {
+        "col": 46,
+        "row": 7,
+        "z": 14,
+        "shadow": false,
+        "reflected": true,
+        "seat": 5,
+        "passes": {
+          "base": {},
+          "native": {
+            "reflection": {
+              "seen": 12,
+              "omitted": 16916
+            },
+            "main": {
+              "seen": 12,
+              "omitted": 16916
+            }
+          },
+          "sorted": {
+            "reflection": {
+              "seen": 12,
+              "omitted": 86396
+            },
+            "main": {
+              "seen": 12,
+              "omitted": 83292
+            }
+          }
+        },
+        "nonzero": true,
+        "control": 0,
+        "restored": 0,
+        "native": 0,
+        "sorted": 0
+      },
+      {
+        "col": 53,
+        "row": 15,
+        "z": 7,
+        "shadow": false,
+        "reflected": false,
+        "seat": 5,
+        "passes": {
+          "base": {},
+          "native": {
+            "main": {
+              "seen": 12,
+              "omitted": 104836
+            }
+          },
+          "sorted": {
+            "main": {
+              "seen": 12,
+              "omitted": 83292
+            }
+          }
+        },
+        "nonzero": true,
+        "control": 0,
+        "restored": 0,
+        "native": 0,
+        "sorted": 0
+      },
+      {
+        "col": 0,
+        "row": 19,
+        "z": 14,
+        "shadow": true,
+        "reflected": true,
+        "seat": 2,
+        "passes": {
+          "base": {},
+          "native": {
+            "shadow": {
+              "seen": 10,
+              "omitted": 3830
+            },
+            "reflection": {
+              "seen": 10,
+              "omitted": 7660
+            },
+            "main": {
+              "seen": 10,
+              "omitted": 7660
+            }
+          },
+          "sorted": {
+            "shadow": {
+              "seen": 10,
+              "omitted": 11124
+            },
+            "reflection": {
+              "seen": 10,
+              "omitted": 24576
+            },
+            "main": {
+              "seen": 10,
+              "omitted": 24576
+            }
+          }
+        },
+        "nonzero": true,
+        "control": 0,
+        "restored": 0,
+        "native": 0,
+        "sorted": 0
+      }
+    ],
+    "views": {
+      "capital": {
+        "sham": {
+          "pairs": 48,
+          "gpuMedianMs": 0.464,
+          "positivePairs": 29,
+          "cpuSubmitSavingMs": 0.0,
+          "trianglesSaved": 0,
+          "drawsSaved": 0,
+          "wallSavingMs": 0.5,
+          "gpuByBlockMs": [
+            0.565,
+            0.582,
+            0.938,
+            0.392,
+            -1.559,
+            -0.132
+          ],
+          "gpuMinusShamMs": 0.0
+        },
+        "sorted": {
+          "pairs": 48,
+          "gpuMedianMs": 0.049,
+          "positivePairs": 25,
+          "cpuSubmitSavingMs": -0.05,
+          "trianglesSaved": 77186,
+          "drawsSaved": 0,
+          "wallSavingMs": -0.0,
+          "gpuByBlockMs": [
+            -0.399,
+            -0.962,
+            -1.424,
+            0.673,
+            1.477,
+            -0.93
+          ],
+          "gpuMinusShamMs": -0.194
+        }
+      },
+      "wide": {
+        "sham": {
+          "pairs": 48,
+          "gpuMedianMs": 0.206,
+          "positivePairs": 26,
+          "cpuSubmitSavingMs": -0.05,
+          "trianglesSaved": 0,
+          "drawsSaved": 0,
+          "wallSavingMs": 0.0,
+          "gpuByBlockMs": [
+            -1.172,
+            0.053,
+            1.787,
+            -2.938,
+            1.519,
+            0.336
+          ],
+          "gpuMinusShamMs": 0.0
+        },
+        "sorted": {
+          "pairs": 48,
+          "gpuMedianMs": -0.877,
+          "positivePairs": 20,
+          "cpuSubmitSavingMs": 0.2,
+          "trianglesSaved": 41646,
+          "drawsSaved": 0,
+          "wallSavingMs": 0.1,
+          "gpuByBlockMs": [
+            0.72,
+            3.577,
+            -14.258,
+            -0.907,
+            -0.794,
+            -3.337
+          ],
+          "gpuMinusShamMs": -0.677
+        }
+      },
+      "inland": {
+        "sham": {
+          "pairs": 48,
+          "gpuMedianMs": -0.321,
+          "positivePairs": 22,
+          "cpuSubmitSavingMs": -0.05,
+          "trianglesSaved": 0,
+          "drawsSaved": 0,
+          "wallSavingMs": -0.35,
+          "gpuByBlockMs": [
+            -0.862,
+            -0.279,
+            0.556,
+            -0.129,
+            0.018,
+            0.626
+          ],
+          "gpuMinusShamMs": 0.0
+        },
+        "sorted": {
+          "pairs": 48,
+          "gpuMedianMs": -0.351,
+          "positivePairs": 22,
+          "cpuSubmitSavingMs": -0.05,
+          "trianglesSaved": 41646,
+          "drawsSaved": 0,
+          "wallSavingMs": -0.15,
+          "gpuByBlockMs": [
+            0.357,
+            0.074,
+            0.221,
+            -0.521,
+            0.383,
+            -0.834
+          ],
+          "gpuMinusShamMs": 0.535
+        }
+      }
+    }
+  }
+}
