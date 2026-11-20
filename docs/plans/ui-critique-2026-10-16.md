@@ -1644,3 +1644,56 @@ The user saw the build (https://claude.ai/artifact/Rtsfz6gPJrpH4fYWk6QPZF),
 where a court not yet met was a blank mark and the head read "9 of 11 courts
 met": "just hide them fully. this looks good to me." A court the seat has not
 met is not on the strip, and the head says only how many courts are met.
+
+### The city screen as built: the user's comments (2026-11-20)
+
+Pictures: https://claude.ai/artifact/6jmREmWA9AFbLGiZMSuuHL (the build of
+"City screen: simpler"). The user: "ok i added lots of comments to the city
+screen." The comments sit on the pictures and carry no position, so the
+"which part" column is my reading. In the user's words:
+
+| Picture | Which part (my reading) | The user's comment |
+|---|---|---|
+| Late town | the focus chips Default, Food, Production, Gold | "the citizen options are unaligned/overflowing" |
+| Late town | the red line "A Horse Archer already stands in Aldermarch — move it first" | "this red text is unclear. lets change the behavior - purchased units appear beside the city, but units cannot be purchased when a city is under siege if a unit is on the city. this should read 'city cannot purchase without free tiles'" |
+| Late town | the line "Buy outright · full price" | "this line is extraneous" |
+| Late town | the line "Caravans are hired on the trade sheet →" | "this line is unneeded (caravans)" |
+| Late town | the head's small line "Size 31 · 240/240 hp · Defence 122" | "this text feels awkward, it should probably be bigger and centered. Size is unneeded in the top bar" |
+| Late town | the "Idle" chip in the head | "\"Idle\" is unneeded. \"unhappy\" and whatever the term is for lacking authority is fine." |
+| Late town | the Buy tiles button | "let's have buy tiles appear at the bottom-center as its own button/interface." |
+| Late town | the citizen marks on the board's hexes | "could we do a design pass on the hex assignments? it's a bit unclear right now" |
+| Late town | the filter tabs All, Units, Buildings, Wonders, Projects, Faith | "the position here isn't great, it should be immediately above the \"units\" section" |
+| Late town | the line "You have 4.1k gold · 1.4k faith" | "probably need a better spot for the gold and faith inventory" |
+| Faith row open | the fold rows | "could you give previews of all these tabs?" |
+| Faith row open | the Faith row's body | "Could we clean up the faith tab? It should read 'your religion' instead of the full name, and the breakdown below can clarifythe name of your religion and other religions present in the city." |
+| New town | the price chips at the right of the build list | "lets fix these formatting issues, chips should be the same size and vertically centered." |
+| New town | "need 116" under a price | "instead of \"need X\" just highlight the cost in red, no need to show how much more is needed" |
+| Faith row open | a price chip with the figure above its mark | "number + icon should be inline. we can make this panel slightly wider if needed." |
+
+What follows:
+- **Head:** the name, then health and defence larger and centred in the bar's
+  height. Size leaves the head (the Citizens line has it). The head's chips
+  are only for unhappiness, the authority shortfall, unrest, siege and
+  starving. "Idle" leaves; the Citizens line already shows idle citizens in
+  red.
+- **Left panel:** the four focus chips fit their row with even gaps and never
+  overlap. The Buy tiles button leaves the panel.
+- **Buy tiles is its own control at the bottom centre of the screen:** a
+  button there, and when it is on, the price and the caption show there too.
+- **Right panel:** widen it to the frame's width (about 400 px; the left to
+  about 286), with the two camera numbers in `data/view3d.json` changed to
+  match. The filter tabs sit directly above the list. "Buy outright · full
+  price" and the caravans line are cut. The gold and faith in hand move to the
+  heads of the two price columns, above the price chips: the gold mark with
+  the gold, the faith mark with the faith.
+- **Price chips:** one size, centred on their row, with the figure and its
+  mark on one line. A price the player cannot pay is the same chip with the
+  figure in red, and no "need" line.
+- **Faith row:** it reads "Your religion" where it named the religion in
+  full. The list under it names each religion in the city, yours first with
+  its name, and its share.
+- **A purchased unit and the city's hex (a rule change, for Astra):** see
+  `docs/flags.md`.
+- **Still to draw:** how the board shows which hexes the citizens work (the
+  user: "a bit unclear right now"). A design pass with pictures comes first.
+- **Pictures owed:** every fold row open.
