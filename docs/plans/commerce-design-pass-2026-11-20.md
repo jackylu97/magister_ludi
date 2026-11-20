@@ -1322,3 +1322,69 @@ Kept so that each ruling can be read against what it ruled on. The line to build
 - **Shape:** Existing shapes: `effectAmplifier` on `lentLuxuryCopies` at 100 (the retired The Commenda has it at 50), and a negative `combatLine`.
 - **Confidence:** speculative
 - **Depends, joins and notes:** It depends on question 1.
+
+## The user's rulings on round two (2026-11-20, comments on the page)
+
+The user: "ok commerce pass done". In their words:
+
+### On the pass as a whole
+
+- "overall, these changes are in the right direction, but are missing some
+  teeth. lets go a bit bolder and fill even more cards and cut a few more
+  trade route related cards."
+- On the count of route and post cards (18): "we can cut this down, maybe
+  propose 4 cuts, of which i'll choose 2."
+- On the hex cards (6, and 3 shared): "maybe a few more here, particularly in
+  age 0/1".
+- On the sea cards (3, and 2 shared, and 1 Doctrine): "lets make this like,
+  3-4 in each age (includes shared, not including doctrines)".
+- On the bridges (5 shared): "more shared would be good tbh, lets make the
+  commerce deck a more flexible play style. Lets bump this up to like 15 and
+  cut from there."
+
+### The questions
+
+| Question | The user's words | Result |
+|---|---|---|
+| 1 Is 75 cards the right size? | "not concerned with this atm" | No size limit for now. |
+| 2 May this pass change four shared cards on other decks' sheets? | "yes" | Yes. |
+| 3 What should a great person cost in gold? | "answered above" | See 78. |
+| 4 What happens to The Pack Trail at Tier II? | "cut" | The Pack Trail is cut. |
+| 5 The Colleganza's rule | "once you trade away a luxury, you can no longer trade it to a second empire." | A luxury you have traded away cannot be traded to a second empire. |
+
+### The changes
+
+| # | Card | The user's words | Result |
+|---|---|---|---|
+| 50 | The Silphium Harvest | "don't like this one, i think its too cute" | Rejected. **A Tier 0 rare is still owed.** |
+| 51 | The Courts of Piepowder | "keep for now" | Kept as proposed. |
+| 52 | The League of Cities | "cool i like it, but don't we have a card like this already? maybe we make it shared with that deck" | Approved in idea. Find the like card and propose which deck shares it. |
+| 53 | The Merchant Consuls | "sure, great" | Approved. |
+| 54 | The Bonded Warehouses | "lets have this read 'on or beside a customs house' to also include the customs house hex" | Hexes on or beside a customs house gain +2 production and +2 gold. |
+| 55 | The Weigh House | "oh thats interesting, lets make this tier 2." | Approved, at Tier II. |
+| 56 | The Company of the Staple | "cool" | Approved. |
+| 57 | The Estate Lands | "nice" | Approved. |
+| 58 | The Wayside Inns | "nice" | Approved. |
+| 59 | The Latifundia | "great" | Approved. |
+| 60 | The Fishing Fleets | "Modify: +1 production and +1 faith. i dont think this deck has any early faith" | Fishing boats gain +1 production and +1 faith. |
+| 61 | The Salt Pans | "Sure, let's say +1 food and +1 prod" | Water hexes gain +1 food and +1 production in towns with a Lighthouse. |
+| 62 | The Stato da Mar | "cool i like it." | Approved. |
+| 63 | The Delian League | "i think this card is hard to take sometimes because the 10% is a much bigger penalty in the late game. Lets just remove the malice, this card isn't that good and is just good tempo." | Your coastal towns gain +3 production and +3 gold. No drawback. |
+| 64 | The Merchant Navigators | "Rework: lighthouses and harbours give fishing boats +2 science each." | A town's fishing boats gain +2 science for its Lighthouse and +2 for its Harbour. |
+| 65 | The Sutlers | "wow thats strong, i like it" | Approved. |
+| 66 | The Grain Merchants | "thats way too strong, lets make it 20%" | Towns gain gold equal to 20% of their food. |
+| 67 | The Relic Trade | "i think we can come up with something cooler for economic/devotion. What about a scaling card that scales everytime you make a purchase (includes faith purchasing rites, etc)" | Rework: a card that grows each time you make a purchase, with gold or with faith, a rite included. |
+| 68 | The Royal Patents | "wow thats so strong, lets make it 100 gold per age." | Researching a technology grants 100 gold for each age you have reached. |
+| 69 | The Collectors | "gold is pretty one-note, can we find a more interesting tie in to magisterial?" | Rework owed: the Magisterial bridge pays something other than gold. |
+| 70 | The Merchant Guilds | "great" | Cut. |
+| 71 | The Carters' Guild | "great" | Approved (cut). |
+| 72 | The Fondaci | "great" | Cut. |
+| 73 | Commission: The Great Fair | "great" | Cut. |
+| 74 | Caravanserai Cities | "great" | Cut. |
+| 75 | The Trade Winds | "great" | Approved (cut). |
+| 76 | The Neutral Flag | "great" | Cut. |
+| 77 | The Scholars' Roads | "hmm i like this card as a payoff, lets keep it" | Kept, as round one's 29 made it. |
+| 78 | The gold price of a great person | "lets have it scale based on renown, what's a good conversion here?" | The price follows renown. **A conversion is owed.** |
+
+On the readings list the user wrote the line quoted first above; the readings
+on it stand.
