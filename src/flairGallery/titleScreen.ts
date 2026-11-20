@@ -58,7 +58,7 @@ export function drawTitleScreen(into: HTMLElement): void {
   const root = block(
     into,
     'The title screen',
-    'The painting is the full width of the window, and the title is on its sky. The ribbon is the seam between the painting and the paper. Until the title painting exists, the stand-in is the Hanging Gardens. If no picture loads, the page shows the banner it had before.',
+    'The painting is the full width of the window, and the title is on its sky. The ribbon is the seam between the painting and the paper. Until the title painting exists, the stand-in is the painted town of the earlier banner. If no picture loads, the page shows the banner it had before.',
   );
 
   const sample = element('div', 'title-sample');

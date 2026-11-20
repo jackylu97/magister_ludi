@@ -1605,7 +1605,7 @@ Eight root pages, all named in `vite.config.ts` inputs:
     stylesheet (`src/ui/titleScreen.css`). The title painting is
     `public/art/splash/title/title.jpg`, listed in `TITLE_PAINTINGS` and
     synced to the folder by a test. Until it exists, the page shows a
-    stand-in, the Hanging Gardens wonder painting (`TITLE_STAND_IN`). If no
+    stand-in, the painted town of the earlier banner (`TITLE_STAND_IN`). If no
     picture loads, `data-title-art` on `#landing` becomes `banner` and the
     page shows the earlier banner (`.marquee-poster`) over the same buttons.
   - The flair gallery shows it (`flair.html#title-screen`).

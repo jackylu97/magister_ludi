@@ -91,10 +91,10 @@ game's name on its sky at the left. No title painting exists yet.
 - Add `'title'` to `TITLE_PAINTINGS` in `src/ui/titlePainting.ts`. A test
   (`test/ui/titlePainting.test.ts`) fails if the list and the folder disagree.
 
-Until the file exists, the page shows a stand-in: the Hanging Gardens wonder
-painting (`wonders/hangingGardens.jpg`), the picture the approved frame was
-drawn with. If no picture loads, the page shows the earlier banner
-(`/art/frontispiece.jpg`) with the same buttons under it.
+Until the file exists, the page shows the game's own title picture, the
+painted town of the earlier banner (`/art/frontispiece.jpg`). If no picture
+loads, the page shows that banner in its old form with the same buttons under
+it.
 
 ## How a great person's portrait gets into the game
 

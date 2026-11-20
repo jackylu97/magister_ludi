@@ -16,11 +16,11 @@
  * middle, so its subject goes in the middle band
  * (`public/art/splash/README.md`). The file does not exist yet.
  *
- * Until it exists, the page shows a **stand-in**: the Hanging Gardens wonder
- * painting, the picture the approved frame was drawn with, cut as the frame
- * cuts it. If no picture loads at all, the page shows the banner it had before
- * this frame (the poster with the painted town, `/art/frontispiece.jpg`): the
- * board names today's banner as the title painting's fallback.
+ * Until it exists, the page shows a **stand-in**: the game's own title
+ * picture, the painted town of the banner the title screen had before
+ * (`/art/frontispiece.jpg`). The user, 2026-11-20, on the first stand-in, a
+ * wonder's painting: "why not re-use the old banner image?" If no picture
+ * loads at all, the page shows that banner in its old form.
  *
  * The list of title paintings is written out, not read from the folder, for
  * the reason `wonderPaintings.ts` gives: a file in `public/` is not part of the
@@ -67,15 +67,14 @@ const TITLE_PAINTING: TitlePaintingChoice = {
 };
 
 /**
- * **The stand-in.** It is not a title painting: it is the Hanging Gardens
- * wonder painting, which the approved frame was drawn with. The page shows it
- * only until `title.jpg` exists. The window is cut as the frame cuts it: the
- * picture covers the window, a little above the middle (`background-position:
- * 50% 30%` in `base.py`), so the towers and the sky above them show.
+ * **The stand-in.** The painted town of the old banner, the game's own title
+ * picture. It is 7:3, close to the shape of the window, so it covers the
+ * window from its middle and loses very little. The page shows it until
+ * `title.jpg` exists.
  */
 export const TITLE_STAND_IN: TitlePaintingChoice = {
-  url: '/art/splash/wonders/hangingGardens.jpg',
-  position: '50% 30%',
+  url: '/art/frontispiece.jpg',
+  position: '50% 50%',
   standIn: true,
 };
 

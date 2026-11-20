@@ -46,9 +46,9 @@ const FILES = Object.keys(import.meta.glob('../../public/art/splash/title/*.jpg'
   .map((path) => path.split('/').pop()!.slice(0, -'.jpg'.length))
   .sort();
 
-/** The stand-in's file, if it is in the wonders folder. */
+/** The stand-in's file, if it is in the art folder. */
 const STAND_IN_FILE = Object.keys(
-  import.meta.glob('../../public/art/splash/wonders/hangingGardens.jpg', { query: '?url' }),
+  import.meta.glob('../../public/art/frontispiece.jpg', { query: '?url' }),
 );
 
 describe('the title painting and its folder', () => {
@@ -65,8 +65,8 @@ describe('the title painting and its folder', () => {
   it('names a stand-in that exists, and names it as a stand-in', () => {
     expect(STAND_IN_FILE).toHaveLength(1);
     expect(TITLE_STAND_IN).toEqual({
-      url: '/art/splash/wonders/hangingGardens.jpg',
-      position: '50% 30%',
+      url: '/art/frontispiece.jpg',
+      position: '50% 50%',
       standIn: true,
     });
   });
