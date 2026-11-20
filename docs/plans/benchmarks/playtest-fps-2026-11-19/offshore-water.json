@@ -1,0 +1,462 @@
+{
+  "fixture": "Seed 999, turn 120",
+  "board": {
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "ratio": 1.5,
+    "w": 2205,
+    "h": 1189,
+    "mouth": 1386,
+    "places": {
+      "play": [
+        91.79869280115042,
+        42
+      ],
+      "ocean": [
+        106.52112466548594,
+        37.5
+      ],
+      "coast": [
+        94.39676901250381,
+        46.5
+      ],
+      "lake": [
+        71.01408311032397,
+        36
+      ],
+      "mouth": [
+        77.07626093681503,
+        61.5
+      ]
+    },
+    "mats": 1,
+    "sea": true,
+    "turn": 120
+  },
+  "pictures": [
+    {
+      "camera": "play",
+      "radius": 7,
+      "mirror": true,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "play",
+      "radius": 7,
+      "mirror": false,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "ocean",
+      "radius": 7,
+      "mirror": true,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "ocean",
+      "radius": 7,
+      "mirror": false,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "coast",
+      "radius": 5,
+      "mirror": true,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "coast",
+      "radius": 5,
+      "mirror": false,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "mouth",
+      "radius": 14,
+      "mirror": true,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "mouth",
+      "radius": 14,
+      "mirror": false,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "lake",
+      "radius": 10,
+      "mirror": true,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "lake",
+      "radius": 10,
+      "mirror": false,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "coast",
+      "radius": 29,
+      "mirror": true,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    },
+    {
+      "camera": "coast",
+      "radius": 29,
+      "mirror": false,
+      "changedPixels": 0,
+      "repeatChangedPixels": 0,
+      "largestChannelDifference": 0
+    }
+  ],
+  "pixelArea": [
+    2205,
+    1189
+  ],
+  "coverage": {
+    "play": {
+      "total": 18216,
+      "water": 8333,
+      "away": 7101
+    },
+    "ocean": {
+      "total": 18216,
+      "water": 13432,
+      "away": 12720
+    },
+    "coast": {
+      "total": 18216,
+      "water": 8830,
+      "away": 7940
+    }
+  },
+  "syncFrameCost": "Real scene, 1.5 pixel ratio, main framebuffer. Each draw followed by synchronous one-pixel WebGL readback. The duration includes CPU and GPU and excludes physical display presentation.",
+  "seconds": {
+    "fixedClock": 100
+  },
+  "matchedOrderCheck": {
+    "framesPerCamera": 48,
+    "cameraCount": 3,
+    "variants": [
+      "original",
+      "offshore",
+      "independently compiled original"
+    ],
+    "allSixOrdersRepeated": 8,
+    "mismatchedDrawCounts": 0,
+    "units": "ms"
+  },
+  "differences": [
+    {
+      "label": "first control minus offshore",
+      "median": 0.95,
+      "blockBootstrap95": [
+        0.4,
+        1.3
+      ],
+      "byCamera": {
+        "play": 0.85,
+        "ocean": 0.9,
+        "coast": 1.05
+      }
+    },
+    {
+      "label": "second control minus offshore",
+      "median": 0.7,
+      "blockBootstrap95": [
+        0.1,
+        1.0
+      ],
+      "byCamera": {
+        "play": 0.75,
+        "ocean": -0.05,
+        "coast": 1.0
+      }
+    },
+    {
+      "label": "first minus second control",
+      "median": 0.1,
+      "blockBootstrap95": [
+        -0.4,
+        0.7
+      ],
+      "byCamera": {
+        "play": -0.55,
+        "ocean": 0.7,
+        "coast": -0.05
+      }
+    }
+  ],
+  "blockMedianTimes": {
+    "first": {
+      "play": [
+        {
+          "variant": 0,
+          "ms": 35.75
+        },
+        {
+          "variant": 1,
+          "ms": 30.25
+        },
+        {
+          "variant": 0,
+          "ms": 30.0
+        },
+        {
+          "variant": 1,
+          "ms": 27.55
+        },
+        {
+          "variant": 0,
+          "ms": 30.1
+        },
+        {
+          "variant": 1,
+          "ms": 28.2
+        },
+        {
+          "variant": 0,
+          "ms": 30.05
+        }
+      ],
+      "ocean": [
+        {
+          "variant": 0,
+          "ms": 27.7
+        },
+        {
+          "variant": 1,
+          "ms": 31.5
+        },
+        {
+          "variant": 0,
+          "ms": 28.7
+        },
+        {
+          "variant": 1,
+          "ms": 29.55
+        },
+        {
+          "variant": 0,
+          "ms": 30.65
+        },
+        {
+          "variant": 1,
+          "ms": 25.0
+        },
+        {
+          "variant": 0,
+          "ms": 27.25
+        }
+      ],
+      "mouth": [
+        {
+          "variant": 0,
+          "ms": 39.95
+        },
+        {
+          "variant": 1,
+          "ms": 27.4
+        },
+        {
+          "variant": 0,
+          "ms": 27.8
+        },
+        {
+          "variant": 1,
+          "ms": 27.8
+        },
+        {
+          "variant": 0,
+          "ms": 28.5
+        },
+        {
+          "variant": 1,
+          "ms": 32.55
+        },
+        {
+          "variant": 0,
+          "ms": 29.3
+        }
+      ]
+    },
+    "second": {
+      "ocean": [
+        {
+          "variant": 1,
+          "ms": 36.15
+        },
+        {
+          "variant": 2,
+          "ms": 36.6
+        },
+        {
+          "variant": 0,
+          "ms": 35.8
+        },
+        {
+          "variant": 1,
+          "ms": 27.8
+        },
+        {
+          "variant": 0,
+          "ms": 29.1
+        },
+        {
+          "variant": 2,
+          "ms": 29.3
+        },
+        {
+          "variant": 1,
+          "ms": 26.65
+        },
+        {
+          "variant": 0,
+          "ms": 28.05
+        },
+        {
+          "variant": 1,
+          "ms": 28.3
+        },
+        {
+          "variant": 2,
+          "ms": 30.8
+        },
+        {
+          "variant": 0,
+          "ms": 33.6
+        },
+        {
+          "variant": 1,
+          "ms": 26.5
+        }
+      ],
+      "play": [
+        {
+          "variant": 1,
+          "ms": 28.65
+        },
+        {
+          "variant": 2,
+          "ms": 32.6
+        },
+        {
+          "variant": 0,
+          "ms": 31.3
+        },
+        {
+          "variant": 1,
+          "ms": 34.5
+        },
+        {
+          "variant": 0,
+          "ms": 30.35
+        },
+        {
+          "variant": 2,
+          "ms": 36.2
+        },
+        {
+          "variant": 1,
+          "ms": 37.95
+        },
+        {
+          "variant": 0,
+          "ms": 31.3
+        },
+        {
+          "variant": 1,
+          "ms": 33.65
+        },
+        {
+          "variant": 2,
+          "ms": 30.45
+        },
+        {
+          "variant": 0,
+          "ms": 31.25
+        },
+        {
+          "variant": 1,
+          "ms": 29.95
+        }
+      ],
+      "coast": [
+        {
+          "variant": 1,
+          "ms": 29.9
+        },
+        {
+          "variant": 2,
+          "ms": 35.55
+        },
+        {
+          "variant": 0,
+          "ms": 36.15
+        },
+        {
+          "variant": 1,
+          "ms": 28.65
+        },
+        {
+          "variant": 0,
+          "ms": 31.75
+        },
+        {
+          "variant": 2,
+          "ms": 31.95
+        },
+        {
+          "variant": 1,
+          "ms": 30.45
+        },
+        {
+          "variant": 0,
+          "ms": 32.3
+        },
+        {
+          "variant": 1,
+          "ms": 28.85
+        },
+        {
+          "variant": 2,
+          "ms": 32.6
+        },
+        {
+          "variant": 0,
+          "ms": 34.65
+        },
+        {
+          "variant": 1,
+          "ms": 36.85
+        }
+      ]
+    }
+  },
+  "raw": [
+    "result.json",
+    "repeat.json",
+    "matched.json"
+  ]
+}

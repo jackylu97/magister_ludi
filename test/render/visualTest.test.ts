@@ -11,7 +11,7 @@ import type { GameMap } from '../../src/sim/map';
 import {
   RETIRED_SWITCH_IDS, VISUAL_SWITCHES, allOff, allOn, changedSwitches, formatVisualTest, parseVisualTest,
 } from '../../src/render3d/visualTest';
-import { pinScaleFor } from '../../src/render3d/visualTestLook';
+import { pinScaleFor, SEA_GLSL } from '../../src/render3d/visualTestLook';
 import { planPaintedRoads, territoryHoles, territoryRegion, type BorderStyle } from '../../src/render3d/paintedGround';
 import { LAKE, RIVER, createSeaField } from '../../src/render3d/seaField';
 import { VIEW3D } from '../../src/render3d/lookData';
@@ -160,6 +160,16 @@ describe('the border outline (switch 3)', () => {
 });
 
 describe('the sea field (switch 1)', () => {
+  it('evaluates shader derivatives and texture lookups outside the shore-distance branch', () => {
+    const shader = SEA_GLSL.fragmentHead;
+    const before = shader.indexOf('float soft = fwidth(shore)');
+    const gate = shader.indexOf('if (shore <= shorePaintReach + 2.0 * soft)');
+    expect(before).toBeGreaterThanOrEqual(0);
+    expect(gate).toBeGreaterThan(before);
+    const block = shader.slice(gate, shader.indexOf('// Ripples:', gate));
+    expect(block).toContain('wet = smoothstep(sandEdge, sandEdge + .03, reach)');
+    expect(block).not.toMatch(/\b(?:fwidth|dFdx|dFdy|texture\w*)\s*\(/);
+  });
   // Land on the left, a column of coast, then ocean; a lake in the land.
   const map = mapOf(['..ccoo', '.lccoo', '..ccoo', '..ccoo']);
   const field = createSeaField(map as never, { shoreReach: 1.2, edgeReach: 1.5, wraps: false });

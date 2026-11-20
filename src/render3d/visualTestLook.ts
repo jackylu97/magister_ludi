@@ -302,9 +302,16 @@ vec3 vtestSunRoad(vec3 paint, vec2 p, float time, float glare, float wet, float 
 float vtestSeaContour(vec2 q) {
   return vtestNoise(q) * .62 + vtestNoise(q * 2.3 + vec2(5.2, 1.3)) * .38;
 }
+// These are the furthest possible edges of the shore paint. Each noise is
+// between zero and one, and the rounded river-mouth join only raises deepWater.
+const float shoreWander = .5 * (abs(${bands.wander.toFixed(3)}) + abs(${(bands.wander * .3).toFixed(3)}));
+const float outerBandReach = abs(${bands.shallows.toFixed(3)}) + abs(${bands.line.toFixed(4)})
+  + .5 * (abs(${bands.shallowsWander.toFixed(3)}) + abs(${open.scallop.toFixed(3)})) + abs(${bands.shallowsMove.toFixed(4)});
+const float furthestSand = abs(${bands.sand.toFixed(3)}) * (1.0 + .5 * abs(${bands.sandVary.toFixed(3)})) + abs(${bands.lap.toFixed(4)});
+const float furthestFoam = abs(${bands.foam.toFixed(4)}) * max(4.3, 1.0 + .5 * abs(${bands.foamVary.toFixed(3)}));
+const float shorePaintReach = shoreWander + max(outerBandReach, furthestSand + max(.03, furthestFoam)) + 1e-4;
 vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
   float shore = max(water.x, 0.0), deep = water.z;
-  float slow = vtestNoise(p * 1.7) - .5, fine = vtestNoise(p * 4.3 + 3.7) - .5;
   vec3 paint;
   float mouth = 9.0, free = 0.0, cn = 0.0;
   vec2 cq = vec2(0.0);
@@ -388,40 +395,45 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
       paint = mix(paint, line, stroke);
     }
   }
-  float reach = shore + slow * ${bands.wander.toFixed(3)} + fine * ${(bands.wander * .3).toFixed(3)};
   float soft = fwidth(shore) * 1.2 + 1e-4;
-  // Shallows, with a pale drawn line at their outer edge.
-  // The shallows' outer edge takes a broader, slower wander of its own, so it does not copy the shore's shape.
-  float outer = reach + (vtestNoise(p * .62 + 11.0) - .5) * ${bands.shallowsWander.toFixed(3)};
-  // The shallows' outer edge moves in and out a little, each stretch in its own time (the user, 2026-11-16: "some slight motion to the light blue section").
-  outer += sin(time * ${(bands.lapSpeed * .6).toFixed(3)} + vtestNoise(p * .5 + 3.0) * 6.2832) * ${bands.shallowsMove.toFixed(4)};
-  // With a free coast the band at the shore is the only band, so its width is uneven at a second, smaller size.
-  outer += free * (vtestNoise(p * ${open.scallopScale.toFixed(3)} + 2.0) - .5) * ${open.scallop.toFixed(3)};
-  // At a river mouth the river's channel runs out through the shallows to the
-  // open water. The channel is joined to the open water with a rounded corner,
-  // so the shallows and their drawn line turn in along it and meet the river's
-  // own banks. Neither the foam line nor the painted sand crosses the mouth.
-  float channel = ${mouthBands.plume.toFixed(3)} - mouth - (vtestNoise(p * 2.3 + 7.0) - .5) * ${mouthBands.wander.toFixed(3)};
-  float beyond = outer - ${bands.shallows.toFixed(3)};
-  float blend = max(${mouthBands.round.toFixed(3)} - abs(beyond - channel), 0.0) / ${mouthBands.round.toFixed(3)};
-  float deepWater = max(beyond, channel) + blend * blend * ${mouthBands.round.toFixed(3)} * .25;
-  float clear = smoothstep(${mouthBands.gap.toFixed(3)} - .04, ${mouthBands.gap.toFixed(3)} + .04, mouth);
-  float shallows = 1.0 - smoothstep(-soft, soft, deepWater);
-  float rim = 1.0 - smoothstep(0.0, soft * 2.0, abs(deepWater) - ${bands.line.toFixed(4)});
-  paint = mix(paint, vtestSeaShallow, shallows);
-  paint = mix(paint, vtestSeaFoam, rim * ${bands.lineStrength.toFixed(3)});
-  // The waterline laps in and out, each stretch of shore in its own time.
-  float lap = sin(time * ${bands.lapSpeed.toFixed(3)} + vtestNoise(p * .8) * 6.2832) * ${bands.lap.toFixed(4)};
-  float sandEdge = ${bands.sand.toFixed(3)} * (1.0 + slow * ${bands.sandVary.toFixed(3)}) + lap;
-  // The foam's width varies along the shore and drifts slowly, as foam left by waves does (the user, 2026-11-16: "unbroken, but vary in depth").
-  float foamWide = ${bands.foam.toFixed(4)} * (1.0 - ${bands.foamVary.toFixed(3)} * .5 + ${bands.foamVary.toFixed(3)} * vtestNoise(p * 2.3 + vec2(time * .05, 5.0)));
-  float foam = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - foamWide * .5) - foamWide * .5);
-  foam *= step(${bands.foamGaps.toFixed(3)}, vtestNoise(p * 5.5 + vec2(time * .05, 0.0)));
-  // A second, fainter line a little further out, left by the last wave.
-  float trail = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${bands.foam.toFixed(4)} * 4.0) - ${bands.foam.toFixed(4)} * .3);
-  trail *= step(.55, vtestNoise(p * 4.1 + 9.3 + vec2(0.0, time * .04)));
-  paint = mix(paint, vtestSeaFoam, max(foam, trail * ${bands.trail.toFixed(3)}) * clear);
-  paint = mix(paint, vtestSeaSand, (1.0 - smoothstep(sandEdge - soft, sandEdge + soft, reach)) * clear);
+  float shallows = 0.0, wet = 1.0;
+  if (shore <= shorePaintReach + 2.0 * soft) {
+    float slow = vtestNoise(p * 1.7) - .5, fine = vtestNoise(p * 4.3 + 3.7) - .5;
+    float reach = shore + slow * ${bands.wander.toFixed(3)} + fine * ${(bands.wander * .3).toFixed(3)};
+    // Shallows, with a pale drawn line at their outer edge.
+    // The shallows' outer edge takes a broader, slower wander of its own, so it does not copy the shore's shape.
+    float outer = reach + (vtestNoise(p * .62 + 11.0) - .5) * ${bands.shallowsWander.toFixed(3)};
+    // The shallows' outer edge moves in and out a little, each stretch in its own time (the user, 2026-11-16: "some slight motion to the light blue section").
+    outer += sin(time * ${(bands.lapSpeed * .6).toFixed(3)} + vtestNoise(p * .5 + 3.0) * 6.2832) * ${bands.shallowsMove.toFixed(4)};
+    // With a free coast the band at the shore is the only band, so its width is uneven at a second, smaller size.
+    outer += free * (vtestNoise(p * ${open.scallopScale.toFixed(3)} + 2.0) - .5) * ${open.scallop.toFixed(3)};
+    // At a river mouth the river's channel runs out through the shallows to the
+    // open water. The channel is joined to the open water with a rounded corner,
+    // so the shallows and their drawn line turn in along it and meet the river's
+    // own banks. Neither the foam line nor the painted sand crosses the mouth.
+    float channel = ${mouthBands.plume.toFixed(3)} - mouth - (vtestNoise(p * 2.3 + 7.0) - .5) * ${mouthBands.wander.toFixed(3)};
+    float beyond = outer - ${bands.shallows.toFixed(3)};
+    float blend = max(${mouthBands.round.toFixed(3)} - abs(beyond - channel), 0.0) / ${mouthBands.round.toFixed(3)};
+    float deepWater = max(beyond, channel) + blend * blend * ${mouthBands.round.toFixed(3)} * .25;
+    float clear = smoothstep(${mouthBands.gap.toFixed(3)} - .04, ${mouthBands.gap.toFixed(3)} + .04, mouth);
+    shallows = 1.0 - smoothstep(-soft, soft, deepWater);
+    float rim = 1.0 - smoothstep(0.0, soft * 2.0, abs(deepWater) - ${bands.line.toFixed(4)});
+    paint = mix(paint, vtestSeaShallow, shallows);
+    paint = mix(paint, vtestSeaFoam, rim * ${bands.lineStrength.toFixed(3)});
+    // The waterline laps in and out, each stretch of shore in its own time.
+    float lap = sin(time * ${bands.lapSpeed.toFixed(3)} + vtestNoise(p * .8) * 6.2832) * ${bands.lap.toFixed(4)};
+    float sandEdge = ${bands.sand.toFixed(3)} * (1.0 + slow * ${bands.sandVary.toFixed(3)}) + lap;
+    // The foam's width varies along the shore and drifts slowly, as foam left by waves does (the user, 2026-11-16: "unbroken, but vary in depth").
+    float foamWide = ${bands.foam.toFixed(4)} * (1.0 - ${bands.foamVary.toFixed(3)} * .5 + ${bands.foamVary.toFixed(3)} * vtestNoise(p * 2.3 + vec2(time * .05, 5.0)));
+    float foam = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - foamWide * .5) - foamWide * .5);
+    foam *= step(${bands.foamGaps.toFixed(3)}, vtestNoise(p * 5.5 + vec2(time * .05, 0.0)));
+    // A second, fainter line a little further out, left by the last wave.
+    float trail = 1.0 - smoothstep(0.0, soft * 2.0, abs(reach - sandEdge - ${bands.foam.toFixed(4)} * 4.0) - ${bands.foam.toFixed(4)} * .3);
+    trail *= step(.55, vtestNoise(p * 4.1 + 9.3 + vec2(0.0, time * .04)));
+    paint = mix(paint, vtestSeaFoam, max(foam, trail * ${bands.trail.toFixed(3)}) * clear);
+    paint = mix(paint, vtestSeaSand, (1.0 - smoothstep(sandEdge - soft, sandEdge + soft, reach)) * clear);
+    wet = smoothstep(sandEdge, sandEdge + .03, reach);
+  }
   // Ripples: short pale strokes, few and slow, each fading in and out.
   vec2 q = p + vec2(time * vtestSeaGlintShape.y, time * vtestSeaGlintShape.y * .3);
   vec2 g = q * vec2(1.25, 3.1);
@@ -442,7 +454,6 @@ vec3 vtestSeaBands(vec3 water, vec2 p, float time) {
     // so the sun's road is placed on the screen and stays there while the
     // board moves under it. Calm water is deeper near the eye and paler far off.
     vec2 screen = gl_FragCoord.xy / vtestViewport;
-    float wet = smoothstep(sandEdge, sandEdge + .03, reach);
     paint = mix(paint, vtestSeaSky, smoothstep(${sun.skyFrom.toFixed(3)}, 1.0, screen.y) * ${sun.sky.toFixed(3)} * wet);
     paint *= 1.0 - (1.0 - smoothstep(0.0, ${sun.nearTo.toFixed(3)}, screen.y)) * ${sun.near.toFixed(3)} * wet;
     float glare = vtestSunGlare();
