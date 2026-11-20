@@ -13,7 +13,7 @@ STUDY.mkdir(parents=True, exist_ok=True)
 CYAN = pigment('Water in shade', '387e81')
 JADE = pigment('Reservoir water', '65aaa1')
 RIPPLE = pigment('Water highlights', 'abceab')
-BLEACH = pigment('Pale cut earth', 'edd59b')
+CUT_EARTH = pigment('Exposed red gravel', '81452e')
 DESERT = pigment('Desert varnish', 'ab704c')
 RUST = pigment('Laterite courses', 'a76547')
 SAND = pigment('Warm sandstone', 'd2986b')
@@ -88,8 +88,8 @@ def nazca():
                (.11,.177),(.045,.059),(.18,-.04),(.59,-.182),(.246,-.139),
                (.52,-.299),(.158,-.177),(.336,-.350),(.037,-.194),(-.115,-.174),
                (-.251,-.089),(-.34,-.017)]
-    stroke(outline,.031,.004,BLEACH)
-    mesh('Tapered bill',[(-.76,-.054,.004),(-.332,-.027,.004),(-.325,.038,.004)],[(0,1,2)],BLEACH)
+    stroke(outline,.048,.004,CUT_EARTH)
+    mesh('Tapered bill',[(-.76,-.054,.004),(-.332,-.027,.004),(-.325,.038,.004)],[(0,1,2)],CUT_EARTH)
     for x,y in [(-.63,.17),(.52,-.40),(.45,.04),(-.40,-.31)]:
         rock_slab('Gravel beside the cut',x,y,-.009,.020,.015,.014,DESERT,int((x+1)*50))
 
@@ -301,12 +301,17 @@ def tree(x,y,size,seed):
 
 
 def orchard():
-    tree(-.277,.105,1.21,3);tree(.258,.198,1.02,5);tree(.236,-.238,.81,7)
-    for x in [-.283,-.193]:
-        tube([(x,-.228,0),(x+.05,-.063,.405)],[.013,.01],WATTLE,6)
+    tree(-.277,.105,1.21,3);tree(.258,.198,1.02,5);tree(.353,-.118,.76,7)
+    # The wide feet stand clear of the canopy at the normal board angle.
+    for side in [-1,1]:
+        tube([(-.19+side*.127,-.52,.012),(-.21+side*.088,-.17,.58)],[.022,.017],HONEY,7)
     for i in range(1,6):
-        t=i/6;dx=.05*t;y=-.228+.165*t;z=.405*t
-        tube([(-.282+dx,y,z),(-.193+dx,y,z)],[.009,.009],REED,5)
+        t=i/6
+        x=-.19-.02*t
+        half=.127-.039*t
+        y=-.52+.35*t
+        z=.012+.568*t
+        tube([(x-half,y,z),(x+half,y,z)],[.017,.017],HONEY,7)
     for x,y in [(-.04,-.22),(.04,-.29)]:
         tube([(x,y,.004),(x,y,.071)],[.044,.061],WATTLE,8)
         for j in range(3):

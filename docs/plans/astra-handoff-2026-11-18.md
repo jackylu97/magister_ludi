@@ -349,6 +349,8 @@ dot to each worked hex. It replaces the small rings in
 
 ### 3.13 Models the board is missing (audit of 2026-11-20)
 
+Art review, 2026-11-20. Keep the current painted unit models. Use them as the style reference for the missing units below. The Court Reader was a separate study. Revise the Nazca Lines so the hummingbird reads on the game's sand, and move the Wild Orchard's ladder into view at normal zoom. Review these two improvements before moving on to the unit models. Show the new models for review before adding them to play.
+
 The user: "what are we missing in terms of 3d models? lets put that in the
 handoff doc for astra. off the top, fish traps is one, and unique units that
 we've since added to the game?" This is a read of the code on `decks`, for the

@@ -1,8 +1,8 @@
 # Improvement models for review
 
-[Review sheet](review.jpg) · [Editable Blender scene](improvements.blend)
+[Revised Nazca Lines and Wild Orchard at play zoom](revisions.jpg) · [Original review sheet](review.jpg) · [Editable Blender scene](improvements.blend)
 
-The [in-game views](on-board.jpg) show all nine improvements at normal play zoom on turn 151 of seed 20260832. The [full board screenshot](play-view.jpg) shows the same game with the HUD. For this review, the forest opens around the orchard and totem, the reservoir sluice faces the river, and the hillfort bank follows the slope.
+The original [in-game views](on-board.jpg) show all nine improvements at normal play zoom on turn 151 of seed 20260832. The [original full board screenshot](play-view.jpg) shows the same game with the HUD. For this review, the forest opens around the orchard and totem, the reservoir sluice faces the river, and the hillfort bank follows the slope.
 
 These are the first intact models for six Expansionist improvements and three works that currently borrow props. The review uses the same orthographic camera and hex size for all nine. Each GLB contains only the improvement. The terrain, lights and ground shadows belong to the review scene.
 
