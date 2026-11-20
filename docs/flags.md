@@ -3234,3 +3234,26 @@ costs 28 and each one built adds 7. Proposed first figures:
 The user: "ok lets do that for now, i'll see if we need a further pass." So
 the proposed figures are ruled as a first step. The worker moves to the
 `line` size with a ladder of 4; the settler's base is 36 with a ladder of 9.
+
+## A purchase discount is "gold buys more" (ruled 2026-11-20, not built)
+
+The user, in the Commerce pass: "instead of doing subtractive effects, to do
+additive ones aka your gold is 20% more effective instead of the cost is 20%
+less", then "25% more is good, every gold discount should take this form.
+devotion can take this too."
+
+- Every card, Doctrine, belief or building that makes a **purchase** cheaper
+  states it as buying power: "Your gold buys 25% more" (or faith, for a faith
+  purchase). The price is the full price divided by (1 + the sum of the
+  bonuses that apply), rounded up once.
+- Bonuses add to each other inside the sum. The price can never reach zero,
+  and no cap is needed: bonuses that sum to 90% give 47% off.
+- **Convert every live purchase discount** to this form. A row that reads
+  "20% less" becomes "buys 25% more", which is the same price for a seat that
+  holds only that row. List each converted row in the build report.
+- This is for purchases with gold and with faith. A discount on the
+  production cost of a thing (a cheaper settler to build) does not change.
+- The price chip shows the final price. `explainPurchaseCost` keeps its
+  ordered lines, with one line for the buying power.
+- Owner: Astra (`purchase.ts`, the describers and the data rows). The Claude
+  session then shows the full price struck through beside the final one.

@@ -1999,3 +1999,11 @@ Build from “Ready for the build” with these rulings.
   same rate?" Agreed: nothing is done, as point 3 says.
 - **r4-4 and 117:** "sounds good", "great".
 - **r4-5, The Herring Fleets:** "coast is strictly water tiles". Confirmed.
+
+## Discounts become "gold buys more" (ruled 2026-11-20)
+
+The user: "25% more is good, every gold discount should take this form.
+devotion can take this too." This replaces point 2 of "The pass is closed":
+**change 118 (the cap at half) is withdrawn.** The rule is in `docs/flags.md`,
+"A purchase discount is 'gold buys more'". The Open Market reads: "Your gold
+buys 25% more."
