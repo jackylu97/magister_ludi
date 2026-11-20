@@ -459,6 +459,17 @@ those two sections first; the numbered changes above them carry a ruling each.
   leader roster (3.10) comes after all the decks.
 - **Schema:** both passes change saved games. Raise the schema.
 
+### 3.15 Base science, culture and unit prices (ready, small)
+
+`docs/flags.md`, "Base science, culture and unit prices (ruled 2026-11-20,
+not built)". Five figures: science for each citizen 0.25; the Library +3
+flat; the University +6 flat; the Amphitheater +4 flat; a soldier's
+surcharge 80%. Technology prices stay, so the tree is slower on purpose.
+Run the bots before and after, and report the measures that the flag lists.
+The worker and settler prices in the same flag are a proposal: do not build
+them until the flag says ruled. The docs with sync tests
+(`docs/production-costs.md`, `docs/yields.md`) change with the data.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open

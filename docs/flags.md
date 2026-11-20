@@ -3186,3 +3186,49 @@ improvements read it.
 ## The Open Market discounts Great People (ruled 2026-11-20)
 
 The user confirmed “Discount Great People too”. Calculate the base gold price from the next Great Person’s renown cost at 10 gold per point. Apply The Open Market’s 20% discount using the same price for the offer and the payment. The faith offer keeps its existing price. [Commerce build list](plans/commerce-design-pass-2026-11-20.md#4-ready-for-the-build)
+
+## Base science, culture and unit prices (ruled 2026-11-20, not built)
+
+The user: "I think base science and culture is a bit too strong, i think i
+want to nerf the passive science from population, and the base science and
+culture buildings that scale off population. Also, i think units are still a
+bit too cheap". Then, on the figures proposed: "university should be 6 flat,
+but otherwise i agree. leave the tree slow for now. 80% surcharge sounds
+good. I think workers and settlers probably need to become more expensive
+too."
+
+| Thing | Today | Ruled |
+|---|---|---|
+| Science for each citizen (`rules.cities.sciencePerPop`) | 0.5 | 0.25 |
+| Library | +2 science, +0.5 for each citizen | +3 science, flat |
+| University | +0.75 science for each citizen | +6 science, flat |
+| Amphitheater | +2 culture, +1 for every 2 citizens | +4 culture, flat |
+| A soldier's surcharge (`rules.production.militaryPercent`) | 50 | 80 |
+
+- **Technology prices do not change.** The tree runs slower on purpose
+  ("leave the tree slow for now"), so that science is earned from cards,
+  great people, wonders and buildings.
+- Why: a city of 10 citizens with both buildings made 19.5 science, 17.5 of
+  it from the citizen count. Food was the best science yield.
+- Rows of a leader or a card that pay science for each citizen (for example
+  The Mithridatium) are not in this ruling. List them in the build report.
+- Cards and great people that read these buildings ("your Libraries pay
+  double") now read the flat figures. Check their arithmetic.
+- **Measure before and after** with the bots, on enough seeds to read it
+  (science a turn and the turn each age is reached, at turns 50, 100 and
+  150; units a seat; the turn of the first settler and the first war).
+- Owner: Astra (data rows and two rules).
+
+### Workers and settlers (proposed 2026-11-20, not ruled)
+
+The user: "I think workers and settlers probably need to become more
+expensive too." They are civilians, so the soldier's surcharge does not
+reach them. Today a worker costs 10 and each one built adds 2; a settler
+costs 28 and each one built adds 7. Proposed first figures:
+
+| Unit | Today (first, second, third, fourth) | Proposed |
+|---|---|---|
+| Worker | 10, 12, 14, 16 | base 14 (the `line` size), +4 each: 14, 18, 22, 26 |
+| Settler | 28, 35, 42, 49 | base 36, +9 each: 36, 45, 54, 63 |
+
+Waits for the user's yes on the figures.
