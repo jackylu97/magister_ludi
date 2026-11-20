@@ -876,3 +876,23 @@ A builder follows this list once the second review is done. Each number is an en
 - The page: https://claude.ai/artifact/6cD6W4ym5WeUdMvUWDXaYf. You commented on changes 05 to 36.
 - You then asked in chat: *"do you think we need more tended improvement draws for some of these cards to make sense?"* The answer was "more kinds of tended work, no more draws": four works on three cards, and no work on a card whose only job is to open it. It is section 2 of this file. Not proposed: a work for desert, tundra or marsh (too few hexes), and burning (a town's decision on a cycle, which is a new system).
 - Your second ruling: *"yup no comment means approved, please fold these in and i'll do another review"*. So changes 01 to 04 are approved as proposed, and the five questions take their recommended answers.
+
+## The user's rulings on the second review (2026-11-20)
+
+Comments on the nine "new" blocks of the page, in the user's words:
+
+| Block | The user's words | Result |
+|---|---|---|
+| new-1 Four tended works on three cards | "cool sounds good. How many cards today buff wild cards? For this to be meaningful, they need to pay off as much as improvements in the late game, which can get kind of busted with religious beliefs and great people." | Approved. **A question to answer, and a requirement:** late in the game a wild hex must pay as much as an improved hex does with beliefs and great people on it. |
+| new-2 Root-crop grounds | "lets make it even better, +1 food and +2 production. it needs to be clearly better than a regular farm." | Root-crop grounds: +1 food and +2 production. The advice to cut it to +1 food is rejected. |
+| new-3 Terraced groves | "make it +2 food +1 culture instead, same reason as my previous comment" | +2 food and +1 culture. (The name: the user did not answer; "hill grove" is taken as the recommended reading.) |
+| new-4 Change 37, The Beacons also in Tier I | "sure" | Approved. |
+| new-5 Change 38, The Old Songs names its terrain | "sure" | Approved. |
+| new-6 The Great Colonies | "ok, lets do a fourth." | Towns you found start with a fourth of the citizens of your largest town. |
+| new-7 The Land Hunger | "common" | Common, at 50%. |
+| new-8 The Burhs | "cut" | The card leaves the deck. |
+| new-9 The other two lines | "Yup sounds good" | The Great Households and The General Levy stand. |
+
+The rule the user states for tended works: **a tended work is clearly better
+than the plain improvement on the same ground.** This reverses the design
+doc's older line that a tended work yields less than an improvement.
