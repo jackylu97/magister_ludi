@@ -347,6 +347,68 @@ with yields on the hexes the city can use. A "Citizens" toggle adds one plain
 dot to each worked hex. It replaces the small rings in
 `src/render3d/overlays.ts`.
 
+### 3.13 Models the board is missing (audit of 2026-11-20)
+
+The user: "what are we missing in terms of 3d models? lets put that in the
+handoff doc for astra. off the top, fish traps is one, and unique units that
+we've since added to the game?" This is a read of the code on `decks`, for the
+painted look (the default; the toon look is only the fallback for weak
+graphics cards). Nobody ran the game for it, so how a borrowed prop looks on
+the painted board is not judged here.
+
+**How a model is chosen today.** A unit type draws its own model only if it is
+in `paintedUnitTypes` (`src/terrainStudy/unitCatalog.js:65`); a type that is
+not falls to the old toon class figure (`sculptFor`, `board3d.ts:590`). The
+painted works layer draws fifteen improvements (`paintedWorks.ts:36`); every
+other improvement is drawn by the toon layer's props (`board3d.ts:783-818`),
+and an improvement with no prop at all stops the game at load
+(`board3d.ts:831`). The Blender unit models in `art/terrain-study/` are not
+loaded by the game (`NORTH_STAR_UNIT_MODELS = false`,
+`src/terrainStudy/northStarAssets.js:108`).
+
+**Missing or borrowed today**
+
+| Thing | What draws now | Where |
+|---|---|---|
+| Fish traps | the toon fishing boat | `board3d.ts:799` |
+| Wild orchard | toon trellis rows | `board3d.ts:800` |
+| Floating gardens (Nezahualcoyotl) | toon farm furrows | `board3d.ts:783` |
+| Physic garden | a toon fence ring, tinted green | `board3d.ts:812` |
+| Qanat | the toon mine head | `board3d.ts:818` |
+| Town keep, polder, outpost | their own placeholders, in the old toon style | `board3d.ts:805-807` |
+| Plantation | the farm's barns | `northStarAssets.js:79` |
+| Numidian Cavalry | the toon mounted figure | not in `paintedUnitTypes` |
+| Company Guard | the toon melee figure | not in `paintedUnitTypes` |
+| All 34 wonders | each takes the next of three monuments (obelisk, ziggurat, armillary), which are also the shrine, the temple and the capital | `paintedCities.ts:39, 515` |
+| Twelve shrub resources | one shrub model, tinted | `settlementArt.js:279-317` |
+| Sixteen ore resources | one crag rock, tinted (obsidian has its own) | the same |
+| Wheat, rice, maize, reeds | one grain tuft, one colour | `settlementArt.js:54` |
+| Pearls and Tyrian dye | one shell in two colours | `settlementArt.js:70` |
+| Jungle | the forest's trees with another tint | `paintedBoard.js:666` |
+| A pillaged work | seven works have a ruin; every other one leaves an ash patch | `northStarAssets.js:84` |
+
+Buildings other than the palisade, shrine and temple are not drawn on the
+board at all, so the 21 leader buildings need nothing.
+
+**Every unique unit in the game today has its own painted model** (the audit
+checked all thirteen leaders' units). The two units above are the only gaps.
+
+**Coming, and will need a model**
+
+| Thing | From | State |
+|---|---|---|
+| Hypaspist, Janissary, Condottiere, Qin Crossbowman, Sparabara, Hwacha | the leader roster (3.10) | Final. Each new unit id must join `paintedUnitTypes` with a model, or it draws as a toon figure. |
+| Ballista Elephant | the leader roster | A `siegeElephant` model exists and no row uses it (`warElephantModel.js:131`). Map it to the new row. |
+| Keshig | the leader roster | It keeps the Xiongnu Horse Archer's model only if the row keeps its id. |
+| The School of Mieza, the other new leader buildings | the leader roster | Nothing: buildings are not drawn. |
+| The Paradise Garden (Cyrus's improvement) | the leader roster | Final. It needs a prop, or the game stops at load. |
+| New improvements for ground where none could be built (desert, tundra, mixed terrain) | the Expansionist pass, round four | **Not final.** Wait for "Ready for the build" in `docs/plans/expansionist-design-pass-2026-11-20.md`. Root-crop grounds and hill groves were withdrawn with the wild-land theme: do not model them. |
+| The eight new wonders | the wonders rework (3.6) | In the data already. They need models only if the user decides wonders get their own. |
+
+**A decision for the user, not for Astra to take alone:** whether wonders get
+their own models on the board. Today a town's wonders are three shared
+monuments.
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open
