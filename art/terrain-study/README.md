@@ -11,6 +11,8 @@ them and the production build does not publish them as public assets.
 - `mounted-knight/sculpture.blend`: separate authoring meshes for further sculpting.
 - `mounted-knight/review-notes.md`: the earlier review and validation record, now historical.
 - `sculpted-units/`: the later Blender infantry, spearman and horse-head chess studies.
+- `reference-spearman/` contains the editable spearman and its GLB export, modeled from the painted reference.
+- `carved-unit-roster/` contains the worker, archer and horseman GLBs. Open `carved-units.blend` to inspect all four units at the same scale, or `lineup.jpg` for the front view. The models use separate materials for player colors.
 
 The Blender authoring scripts remain in `scripts/terrain-study/`. Running
 `build_settlement_assets.py -- --units-only` writes the sculpted studies here.
