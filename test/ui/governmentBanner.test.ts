@@ -31,10 +31,9 @@ import {
 import { chairMixOfLayout, chairMixWords } from '../../src/ui/chairs';
 import {
   GOVERNMENT_BANNER_WORDS,
-  GOVERNMENT_NAME_STEPS,
+  GOVERNMENT_NAME_SIZES,
   governmentBannerModel,
   governmentHandHeight,
-  governmentNameFit,
   governmentPicture,
 } from '../../src/ui/governmentBanner';
 import { GOVERNMENT_HAND_SHAPE } from '../../src/ui/offerFaces';
@@ -63,52 +62,17 @@ describe('the window', () => {
     }
   });
 
-  it('draws the mark as the engraved seal with the crown, in a window of one size', () => {
+  it('draws the mark as the engraved seal with the crown, the name and the tier, in a window of one size', () => {
     const window = braceBody(BANNER, 'function windowNode(');
     expect(window).toContain('const device = deviceNode([GOVERNMENT_SUIT], true);');
-    // The painting takes the window's ground.
+    expect(window).toContain("title.append(element('span', 'gov-name', model.name), tierNode(model.tier));");
+    // The painting takes the window's ground, with the name on a fade at its foot.
     expect(window).toContain('window.style.backgroundImage = `url("${picture.url}")`;');
+    expect(window).toContain("const foot = element('span', 'gov-fall');");
     // The frame's 330 by 110 window in the row, and 3:1 in the Council's card.
     expect(rule(BANNER_CSS, ".gov-banner[data-form='row'] .gov-window")).toContain('width: 33em;');
     expect(rule(BANNER_CSS, ".gov-banner[data-form='row'] .gov-window")).toContain('height: 11em;');
     expect(rule(BANNER_CSS, ".gov-banner[data-form='seat'] .gov-window")).toContain('aspect-ratio: 3 / 1;');
-  });
-
-  it('shows the painting whole, with the name on a plate under the window and nothing over the picture', () => {
-    const window = braceBody(BANNER, 'function windowNode(');
-    // The window holds no words and no fade: only the picture or the seal.
-    expect(window).not.toContain('gov-name');
-    expect(window).not.toContain('tierNode');
-    expect(BANNER).not.toContain('gov-fall');
-    expect(BANNER_CSS).not.toContain('.gov-fall');
-    expect(BANNER_CSS).not.toContain('linear-gradient(transparent');
-    // The name and the tier are on the plate, and the plate follows the window in the head.
-    const plate = braceBody(BANNER, 'function namePlateNode(');
-    expect(plate).toContain("plate.append(element('span', 'gov-name', model.name), tierNode(model.tier));");
-    expect(braceBody(BANNER, 'function headNode(')).toContain('head.append(windowNode(picture), namePlateNode(model));');
-    expect(braceBody(BANNER, 'export function dressGovernmentBanner(')).toContain('host.append(headNode(model, options.picture ?? model.picture));');
-    // One line, never wrapped: cut with an ellipsis when the smallest size is too long.
-    const name = rule(BANNER_CSS, '.gov-name');
-    expect(name).toContain('white-space: nowrap;');
-    expect(name).toContain('text-overflow: ellipsis;');
-    expect(name).toContain('font-size: max(calc(var(--gov-name-size, 2em) * var(--gov-name-fit, 1)), 13px);');
-  });
-
-  it('steps a long name down in size, then cuts it and keeps the whole name in a tooltip', () => {
-    expect(GOVERNMENT_NAME_STEPS[0]).toBe(1);
-    for (let i = 1; i < GOVERNMENT_NAME_STEPS.length; i += 1) {
-      expect(GOVERNMENT_NAME_STEPS[i]!).toBeLessThan(GOVERNMENT_NAME_STEPS[i - 1]!);
-    }
-    const smallest = GOVERNMENT_NAME_STEPS[GOVERNMENT_NAME_STEPS.length - 1]!;
-    // A name that fits keeps the full size.
-    expect(governmentNameFit(() => true)).toEqual({ step: 1, cut: false });
-    // A name that fits at a smaller size takes the first size that fits.
-    expect(governmentNameFit((step) => step < 1)).toEqual({ step: GOVERNMENT_NAME_STEPS[1], cut: false });
-    // A name that never fits takes the smallest size and is cut.
-    expect(governmentNameFit(() => false)).toEqual({ step: smallest, cut: true });
-    const fit = braceBody(BANNER, 'export function fitGovernmentBanner(');
-    expect(fit).toContain("banner.style.setProperty('--gov-name-fit', String(step));");
-    expect(fit).toContain("if (cut) name.title = name.textContent ?? '';");
   });
 
   it('names the government from its row, with its tier', () => {
@@ -182,7 +146,7 @@ describe('one size in a hand', () => {
     expect(fit).toContain("for (const face of faces) face.style.removeProperty('--gov-row-h');");
     expect(fit).toContain('const height = governmentHandHeight(heights);');
     expect(fit).toContain("for (const face of faces) face.style.setProperty('--gov-row-h', `${height}em`);");
-    expect(rule(BANNER_CSS, ".gov-banner[data-form='row']")).toContain('min-height: var(--gov-row-h, 16.4em);');
+    expect(rule(BANNER_CSS, ".gov-banner[data-form='row']")).toContain('min-height: var(--gov-row-h, 13em);');
   });
 
   it('keeps one width and one text size, which wraps', () => {
@@ -192,9 +156,11 @@ describe('one size in a hand', () => {
     // The rules are one size on every banner: no fit writes their size.
     expect(rule(BANNER_CSS, '.gov-rules')).toContain('font-size: 1.3em;');
     expect(BANNER).not.toContain('--gov-text');
-    // The row is 856 by 164: the frame's 130 and the name plate under the window.
+    // A long name wraps, and steps down one size at most.
+    expect(GOVERNMENT_NAME_SIZES).toHaveLength(2);
+    // The row is the frame's 856 by 130.
     expect(GOVERNMENT_HAND_SHAPE.width).toBe(856);
-    expect(Math.round(GOVERNMENT_HAND_SHAPE.width * GOVERNMENT_HAND_SHAPE.ratio)).toBe(164);
+    expect(Math.round(GOVERNMENT_HAND_SHAPE.width * GOVERNMENT_HAND_SHAPE.ratio)).toBe(130);
   });
 });
 
@@ -255,30 +221,13 @@ describe('the Council’s seat and the gallery', () => {
     expect(uiSource('statecraftScreen.css')).toContain('.council-gov-card .gov-banner {\n  --gov-width: var(--council-gov-w, 200px);');
   });
 
-  it('draws the held government on the same banner on the In play screen, and lifts it there too', () => {
-    const inPlay = uiSource('inPlayScreen.ts');
-    const left = braceBody(inPlay, 'function drawLeft(');
-    expect(left).toContain("dressGovernmentBanner(face, law.card as GovernmentId, { form: 'seat', layout: governmentChairs(), plate: plate ?? null, inControl: true });");
-    expect(left).not.toContain('dressOrderFace(');
-    const lift = braceBody(inPlay, 'function onPreviewEnter(');
-    expect(lift).toContain('face = governmentBannerNode(entry.card as GovernmentId, {');
-    expect(lift).toContain("face.classList.add('is-lifted');");
-    expect(uiSource('inPlayScreen.css')).toContain('#inplay-overlay .ip-preview .gov-banner.is-lifted {\n  --gov-width: 280px;');
-    // The column keeps its width.
-    expect(uiSource('inPlayScreen.css')).toMatch(/\.ip-gov \{[^}]*--council-gov-w: 200px;[^}]*width: 200px;/);
-  });
-
   it('shows the banner in the flair gallery, in both forms', () => {
     const gallery = Object.values(
       import.meta.glob('../../src/flairGallery/cardFaces.ts', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
     )[0] as string;
     expect(gallery).toContain('drawGovernmentBanners(into);');
     expect(gallery).toContain("form: 'row',");
-    expect(gallery).toContain("governmentBannerNode(id, { form: 'seat' }).banner");
-    // Every row wears its own painting, and one row and one card show the drawn mark.
-    expect(gallery).not.toContain('wonderPaintingUrl');
-    expect(gallery).toContain("governmentBannerNode(unpainted, { form: 'row', picture: { kind: 'mark' } }).banner");
-    expect(gallery).toContain("governmentBannerNode(first, { form: 'seat', picture: { kind: 'mark' } }).banner");
+    expect(gallery).toContain("const { banner } = governmentBannerNode(id, { form: 'seat' });");
     expect(gallery).toContain('fitGovernmentHand(hand);');
   });
 });

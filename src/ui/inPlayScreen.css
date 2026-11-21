@@ -1173,13 +1173,6 @@
   cursor: default;
 }
 
-/* The government lifts its banner larger than the column holds it, at the
-   Council's lifted size (`statecraftScreen.css`). */
-#inplay-overlay .ip-preview .gov-banner.is-lifted {
-  --gov-width: 280px;
-  --gov-scale: 220px;
-}
-
 /* The arrival's flight (frame A2): over everything, the piece's own form. */
 .ip-flight {
   position: fixed;

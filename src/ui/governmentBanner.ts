@@ -23,17 +23,11 @@
  *
  * The parts:
  *
- *   - **the window** (`governmentPicture`): the government's painting, whole,
- *     with nothing over it; or, while no painting exists, the drawn mark. The
- *     mark is the engraved seal with the crown (the device the Order face
- *     draws for a government). The window is 3:1 either way;
- *   - **the name plate**: the name and the tier on the banner's own paper,
- *     under the window, on one line. The name was over the painting's foot
- *     while the window held a drawn mark. A painting often has its subject
- *     low (the Chiefdom's fire, the seated figures of The Estates), so the
- *     words moved off it (2026-11-21). A name too long for the line steps
- *     down in size, and is then cut with the whole name in its tooltip
- *     (`fitGovernmentBanner`);
+ *   - **the window** (`governmentPicture`): the government's painting with its
+ *     name and tier on a dark fade at the foot, or, while no painting exists,
+ *     the drawn mark. The mark is the engraved seal with the crown (the
+ *     device the Order face draws for a government), with the name and the
+ *     tier beside it. The window keeps its size either way;
  *   - **the rules**: the government's own clauses through the describers
  *     (`describeCard`, printed by `setDescriptorText`), with the figures set in
  *     mono as the frame sets them;
@@ -151,7 +145,7 @@ export interface GovernmentBannerOptions {
   plate?: OrderFacePlate | null;
   /**
    * A picture in place of the list's answer. Only the flair gallery passes
-   * one, to show the drawn mark on a government that has a painting.
+   * one, to show a stand-in painting in the window.
    */
   picture?: GovernmentPicture;
 }
@@ -164,41 +158,30 @@ function tierNode(tier: number): HTMLElement {
 }
 
 /**
- * **The window**: the painting, whole and with nothing over it; or the drawn
- * mark, the engraved seal with the crown, on hatched card paper. The same box
- * either way, so a hand can mix painted and unpainted banners.
+ * **The window**: the painting, with the name and the tier on a dark fade at
+ * its foot; or the drawn mark, the engraved seal with the crown, with the name
+ * and the tier beside it, on hatched card paper. The same box either way, so a
+ * hand can mix painted and unpainted banners.
  */
-function windowNode(picture: GovernmentPicture): HTMLElement {
+function windowNode(model: GovernmentBannerModel, picture: GovernmentPicture): HTMLElement {
   const window = element('div', 'gov-window');
   window.dataset.picture = picture.kind;
+  const title = element('span', 'gov-title');
+  title.append(element('span', 'gov-name', model.name), tierNode(model.tier));
   if (picture.kind === 'painted') {
     window.style.backgroundImage = `url("${picture.url}")`;
+    const foot = element('span', 'gov-fall');
+    foot.append(title);
+    window.append(foot);
     return window;
   }
   // In a box of its own, so its lengths can be shares of the window's width.
   const mark = element('span', 'gov-mark');
   const device = deviceNode([GOVERNMENT_SUIT], true);
   device.classList.add('gov-device');
-  mark.append(device);
+  mark.append(device, title);
   window.append(mark);
   return window;
-}
-
-/**
- * **The name plate**: the name and the tier on the banner's own paper, on one
- * line. It is never over the picture.
- */
-function namePlateNode(model: GovernmentBannerModel): HTMLElement {
-  const plate = element('div', 'gov-nameplate');
-  plate.append(element('span', 'gov-name', model.name), tierNode(model.tier));
-  return plate;
-}
-
-/** **The head**: the window, and the name plate under it. */
-function headNode(model: GovernmentBannerModel, picture: GovernmentPicture): HTMLElement {
-  const head = element('div', 'gov-head');
-  head.append(windowNode(picture), namePlateNode(model));
-  return head;
 }
 
 /** **The rules**: every clause through the describers, the figures in mono. */
@@ -272,7 +255,7 @@ export function dressGovernmentBanner(
   host.dataset.form = options.form;
   host.dataset.government = id;
   host.append(element('span', 'sr-only', model.caption));
-  host.append(headNode(model, options.picture ?? model.picture));
+  host.append(windowNode(model, options.picture ?? model.picture));
   host.append(rulesNode(model, linked));
   const side = element('div', 'gov-side');
   side.append(chairsNode(model));
@@ -300,40 +283,25 @@ export function governmentBannerNode(
 // --- the fit -------------------------------------------------------------------
 
 /**
- * The sizes a name may take on its plate, as shares of the form's own name
- * size (`--gov-name-size`, `governmentBanner.css`): the full size first, then
- * each step down, largest first.
+ * The name's size in the window, in em of the window's own scale (one em is
+ * ten board pixels at the frame's 330 px window), and the one step down a long
+ * name may take.
  */
-export const GOVERNMENT_NAME_STEPS: readonly number[] = [1, 0.92, 0.84];
+export const GOVERNMENT_NAME_SIZES: readonly [number, number] = [2.2, 1.9];
 
 /**
- * **Which size a name takes, and whether it is cut.** `fits` answers whether
- * the name fits its line at a step. The first step that fits wins. If none
- * fits, the name keeps the smallest step and is cut. Pure, so a test can
- * sweep it.
- */
-export function governmentNameFit(fits: (step: number) => boolean): { step: number; cut: boolean } {
-  for (const step of GOVERNMENT_NAME_STEPS) if (fits(step)) return { step, cut: false };
-  return { step: GOVERNMENT_NAME_STEPS[GOVERNMENT_NAME_STEPS.length - 1]!, cut: true };
-}
-
-/**
- * **Fits a banner's name to its plate**, after it is laid out. The name is one
- * line and never wraps. It steps down in size until it fits
- * (`GOVERNMENT_NAME_STEPS`). If the smallest size is still too long, the
- * stylesheet cuts it with an ellipsis, and the whole name goes in its tooltip.
- * Nothing else on the banner changes size.
+ * **Fits a banner's name**, after it is laid out: the name wraps, and steps
+ * down one size only if it would take a third line. Nothing else on the
+ * banner changes size, so the rules keep one size on every banner.
  */
 export function fitGovernmentBanner(banner: HTMLElement): void {
   const name = banner.querySelector<HTMLElement>('.gov-name');
   if (name === null) return;
-  name.removeAttribute('title');
-  const { step, cut } = governmentNameFit((share) => {
-    banner.style.setProperty('--gov-name-fit', String(share));
-    return name.scrollWidth <= name.clientWidth;
-  });
-  banner.style.setProperty('--gov-name-fit', String(step));
-  if (cut) name.title = name.textContent ?? '';
+  banner.style.setProperty('--gov-name', `${GOVERNMENT_NAME_SIZES[0]}em`);
+  const line = Number.parseFloat(getComputedStyle(name).lineHeight);
+  if (Number.isFinite(line) && name.getBoundingClientRect().height > line * 2.2) {
+    banner.style.setProperty('--gov-name', `${GOVERNMENT_NAME_SIZES[1]}em`);
+  }
 }
 
 /**

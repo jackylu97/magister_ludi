@@ -338,9 +338,8 @@ describe('a hand of drawn faces fits the stage', () => {
 
   /**
    * **A stacked hand** (the government banners, Quiet Table frame 7): the
-   * rows stand one under another, each 856 by 164 where there is room (the
-   * board's 130 and the name plate under the window), and the whole sheet
-   * inside the window.
+   * rows stand one under another, each the board's 856 by 130 where there is
+   * room, and the whole sheet inside the window.
    */
   for (const count of COUNTS) {
     for (const [stageName, stage] of Object.entries(STAGES)) {
@@ -354,17 +353,14 @@ describe('a hand of drawn faces fits the stage', () => {
     }
   }
 
-  it('draws the three government banners at the board’s width on the large stage, and a little under it on the small one', () => {
-    const large = stackedSpread(3, STAGES.large, GOVERNMENT_HAND_SHAPE);
-    expect(large.card).toBe(856);
-    expect(large.height).toBe(164);
-    // The board's sheet: the rows and a 16 px margin either side.
-    expect(large.sheet).toBe(888);
-    // At 1280 by 720 three rows of 164 are a few pixels too tall, so the hand is 849 wide.
-    const small = stackedSpread(3, STAGES.small, GOVERNMENT_HAND_SHAPE);
-    expect(small.card).toBe(849);
-    expect(small.height).toBe(163);
-    expect(small.sheet).toBe(881);
+  it('draws the three government banners at the board’s size on both stages', () => {
+    for (const stage of Object.values(STAGES)) {
+      const spread = stackedSpread(3, stage, GOVERNMENT_HAND_SHAPE);
+      expect(spread.card).toBe(856);
+      expect(spread.height).toBe(130);
+      // The board's sheet: the rows and a 16 px margin either side.
+      expect(spread.sheet).toBe(888);
+    }
   });
 
   it('draws the three-card draft and the great person offer at the board’s sizes where there is room', () => {
