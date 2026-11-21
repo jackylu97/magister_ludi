@@ -95,11 +95,13 @@ export function greatPersonOfferFace(id: GreatPersonId): DressedFace {
 }
 
 /**
- * **The government banner's row**, as the board draws it: 856 px wide and
- * 130 px tall at the board's size. A banner with a long rule is taller, and
- * the rest of its hand grows with it (`fitGovernmentHand`).
+ * **The government banner's row**: 856 px wide and 164 px tall at the board's
+ * size. The board drew it 130 px tall, with the name over the painting. The
+ * name plate under the window adds the rest (`governmentBanner.ts`). A banner
+ * with a long rule is taller, and the rest of its hand grows with it
+ * (`fitGovernmentHand`).
  */
-export const GOVERNMENT_HAND_SHAPE: OfferShape = { width: 856, ratio: 130 / 856 };
+export const GOVERNMENT_HAND_SHAPE: OfferShape = { width: 856, ratio: 164 / 856 };
 
 /**
  * **A government on offer**, on its banner: the window, the rules, the chairs

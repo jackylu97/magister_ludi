@@ -37,7 +37,8 @@
 
 /* The board's row: the banner, the rules, and the column of chairs and the
    figure. Every banner in a hand is one height, the tallest any of them needs
-   (`fitGovernmentHand` writes `--gov-row-h`); the board's 130 px until then. */
+   (`fitGovernmentHand` writes `--gov-row-h`); 164 px until then, which is the
+   board's 130 px and the name plate under the window. */
 .gov-banner[data-form='row'] {
   display: grid;
   /* The board's right column is 190 px; 210 here, so the eleven chairs of a
@@ -46,12 +47,17 @@
   align-items: center;
   column-gap: 1.6em;
   width: 85.6em;
-  min-height: var(--gov-row-h, 13em);
+  min-height: var(--gov-row-h, 16.4em);
   padding: 0.9em 1.2em 0.9em 0.9em;
   border: 1px solid var(--edge, rgba(29, 26, 32, 0.22));
   border-radius: 0.5em;
   background: var(--parchment, #f7f2e1);
   font-size: calc(var(--gov-width, 856px) / 85.6);
+}
+
+.gov-banner[data-form='row'] .gov-head {
+  --gov-name-size: 2em;
+  width: 33.6em;
 }
 
 .gov-banner[data-form='row'] .gov-window {
@@ -60,10 +66,23 @@
   margin: 0.3em;
 }
 
+.gov-banner[data-form='row'] .gov-nameplate {
+  margin: 0.5em 0.3em 0;
+}
+
 /* --- the window ----------------------------------------------------------------- */
 
+/* The head: the window, and the name plate under it on the banner's paper. */
+.gov-head {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  container-type: inline-size;
+}
+
 /* One window for a painting and for the mark: an ink line, a gap of paper,
-   then a gilt line (the board's painting window). */
+   then a gilt line (the board's painting window). A painting shows whole:
+   the window is 3:1, as the paintings are, and nothing is drawn over it. */
 .gov-window {
   position: relative;
   flex: none;
@@ -78,10 +97,10 @@
   background-size: cover;
 }
 
-/* The fallback: hatched card paper, the engraved seal with the crown, and the
-   name and the tier beside it, in the board's sizes at a 330 px window. The
-   seal and the words sit in a box of their own (`.gov-mark`), because a share
-   of the window's width (`cqw`) means the window's only inside it. */
+/* The fallback: hatched card paper and the engraved seal with the crown, in
+   the middle of the window. The seal sits in a box of its own (`.gov-mark`),
+   because a share of the window's width (`cqw`) means the window's only
+   inside it. */
 .gov-window[data-picture='mark'] {
   background:
     repeating-linear-gradient(0deg, rgba(29, 26, 32, 0.16) 0 1px, transparent 1px 4px),
@@ -143,34 +162,33 @@
   opacity: 0.3;
 }
 
-/* A narrow window has no room for the seal beside the name: the name stays. */
-@container (max-width: 150px) {
-  .gov-device {
-    display: none;
-  }
-}
-
-/* The name and the tier. One em is ten board pixels at a 330 px window. */
-.gov-title {
+/* The name plate: the name and the tier on one line, on the banner's own
+   paper under the window. The name never wraps: it steps down in size
+   (`fitGovernmentBanner` writes `--gov-name-fit`), and is cut with an ellipsis
+   if the smallest size is still too long. Never under 13 px. */
+.gov-nameplate {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8em;
   min-width: 0;
   color: var(--ink, #1d1a20);
-  font-size: 3.03cqw;
 }
 
 .gov-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   font-family: var(--face-card-title);
-  /* A long name wraps, and steps down one size only for a third line
-     (`fitGovernmentBanner`). Never under 13 px, so the name still reads in the
-     Council's narrow window. */
-  font-size: max(var(--gov-name, 2.2em), 13px);
+  font-size: max(calc(var(--gov-name-size, 2em) * var(--gov-name-fit, 1)), 13px);
   letter-spacing: 0.02em;
-  line-height: 1.02;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gov-tier {
-  margin-top: 0.35em;
+  flex: none;
   font-family: var(--face-name);
   font-size: max(1.1em, 9px);
   font-weight: 500;
@@ -186,27 +204,13 @@
   font-weight: 600;
 }
 
-/* With a painting: the name and the tier on a dark fade at the window's foot. */
-.gov-fall {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  padding: 7.9cqw 3cqw 1.5cqw;
-  background: linear-gradient(transparent, rgba(18, 14, 10, 0.86) 62%);
-}
-
-.gov-fall .gov-title {
-  flex-direction: row;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1em;
-  color: #fbf3e2;
-}
-
-.gov-fall .gov-tier {
-  margin-top: 0;
-  color: #e6dfcf;
+/* A narrow head (the Council's compact column) has no room for the tier
+   beside the name: the name stays. The tier is still in the banner's caption
+   for a screen reader, and on the lifted banner. */
+@container (max-width: 150px) {
+  .gov-tier {
+    display: none;
+  }
 }
 
 /* --- the rules -------------------------------------------------------------- */
@@ -360,9 +364,9 @@
   --gov-gap: var(--card-paper, #f8f1dc);
   display: flex;
   flex-direction: column;
-  gap: 0.9em;
+  gap: 0.5em;
   width: var(--gov-width, 200px);
-  padding: 0.7em 0.7em 0.9em;
+  padding: 0.3em 0.7em 0.35em;
   border: 1px solid var(--ink, #1d1a20);
   border-radius: 0.5em;
   background: var(--card-paper, #f8f1dc);
@@ -372,10 +376,31 @@
   font-size: calc(var(--gov-scale, 200px) / 20);
 }
 
+/* The window is the size it was when the name lay over it (178 by 59 px in
+   the 200 px column). The name plate's height comes out of the card's own
+   padding and gaps, so the card is as tall as before to within a pixel, and
+   the Doctrine stack under it starts where it did. */
+.gov-banner[data-form='seat'] .gov-head {
+  --gov-name-size: 1.35em;
+}
+
+/* The lifted banner is larger, and so is its name. */
+.gov-banner[data-form='seat'].is-lifted .gov-head {
+  --gov-name-size: 1.6em;
+}
+
 .gov-banner[data-form='seat'] .gov-window {
   width: calc(100% - 0.6em);
-  margin: 0.3em 0.3em 0.1em;
+  margin: 0.3em;
   aspect-ratio: 3 / 1;
+}
+
+.gov-banner[data-form='seat'] .gov-nameplate {
+  margin: 0 0.3em;
+}
+
+.gov-banner[data-form='seat'] .gov-name {
+  line-height: 1.1;
 }
 
 .gov-banner[data-form='seat'] .gov-rules {

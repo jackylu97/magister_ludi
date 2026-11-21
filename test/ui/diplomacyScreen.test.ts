@@ -472,7 +472,10 @@ describe('the sheet\'s frame (layout B with the strip of courts)', () => {
   });
 
   it('lays the strip, the 3:4 portrait and the desk side by side, the portrait sized by the sheet', () => {
-    expect(css).toContain('grid-template-columns: 44px var(--dp-pw) minmax(0, 1fr);');
+    expect(css).toContain('grid-template-columns: 60px var(--dp-pw) minmax(0, 1fr);');
+    // A court on the strip is 48 px square, framed on the head of the 3:4 portrait.
+    expect(css).toMatch(/\.dp-court \{[^}]*width: 48px;[^}]*height: 48px;/);
+    expect(css).toMatch(/\.dp-court \.leader-portrait\[data-picture='painted'\] \{[^}]*background-position: center 6%;[^}]*background-size: 130% auto;/);
     expect(css).toContain('grid-template-rows: minmax(0, 1fr);');
     // As tall as the room allows at 3:4, capped by the sheet's width.
     expect(css).toContain('--dp-pw: min(calc((100cqh - 80px - 32px) * 0.75), 38cqw);');

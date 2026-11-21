@@ -51,7 +51,6 @@ import { chairNode, chairWord, emptyChairNode } from '../ui/chairs';
 import { DECK_SUIT, orderSuitFace } from '../ui/deckBadges';
 import { type OfferOption, suitHandCard } from '../ui/offerCard';
 import { fitGovernmentBanner, fitGovernmentHand, governmentBannerNode } from '../ui/governmentBanner';
-import { wonderPaintingUrl } from '../ui/wonderPaintings';
 import {
   INK_IDS,
   type InkId,
@@ -367,16 +366,16 @@ function drawCouncil(into: HTMLElement, picks: readonly OrderId[]): void {
 
 /**
  * **The government banner** (`governmentBanner.ts`; Quiet Table, frame 7),
- * through the game's own builder. The offer's row for one tier, the first
- * with a stand-in painting so the painted window can be seen before any
- * government has its own, then the Council's narrow card for every government
- * a seat can hold, on the Council's dark cloth.
+ * through the game's own builder. The offer's rows for one tier, each with its
+ * own painting, and one more row with the drawn mark, which a government with
+ * no painting shows. Then the Council's narrow card for every government a
+ * seat can hold, and one with the drawn mark, on the Council's dark cloth.
  */
 function drawGovernmentBanners(into: HTMLElement): void {
   const banners = block(
     into,
     'The government banner: governmentBanner.ts',
-    'The form a government wears on the offer and on the Council screen: a 3:1 window with the government’s painting, or the engraved seal with the crown while it has none; its rules; its chairs in their types’ inks and marks; and the figure. The first row shows a wonder painting as a stand-in. The cards under the rows are the Council’s seat form, for every government a seat can hold.',
+    'The form a government wears on the offer and on the Council screen: a 3:1 window with the government’s painting, whole, or the engraved seal with the crown when it has none; the name and the tier on a plate under the window; its rules; its chairs in their types’ inks and marks; and the figure. The last row, and the last card, show the drawn mark in place of the painting. The cards under the rows are the Council’s seat form, for every government a seat can hold.',
   );
   const knobs = controls(banners);
   const live = GOVERNMENT_IDS.filter((id) => governmentDef(id).retired !== true);
@@ -389,15 +388,11 @@ function drawGovernmentBanners(into: HTMLElement): void {
   const redraw = (): void => {
     rows.replaceChildren();
     rows.style.setProperty('--gov-width', `${width}px`);
-    live
-      .filter((id) => governmentDef(id).tier === tier)
-      .forEach((id, index) => {
-        const { banner } = governmentBannerNode(id, {
-          form: 'row',
-          ...(index === 0 ? { picture: { kind: 'painted' as const, url: wonderPaintingUrl('forbiddenCity') ?? '' } } : {}),
-        });
-        rows.append(banner);
-      });
+    const offered = live.filter((id) => governmentDef(id).tier === tier);
+    for (const id of offered) rows.append(governmentBannerNode(id, { form: 'row' }).banner);
+    // One more with the drawn mark, as a government with no painting shows it.
+    const unpainted = offered[0];
+    if (unpainted !== undefined) rows.append(governmentBannerNode(unpainted, { form: 'row', picture: { kind: 'mark' } }).banner);
     const hand = [...rows.querySelectorAll<HTMLElement>('.gov-banner')];
     for (const banner of hand) fitGovernmentBanner(banner);
     // One size for the hand, as the offer fits it.
@@ -418,8 +413,10 @@ function drawGovernmentBanners(into: HTMLElement): void {
     },
   );
   redraw();
-  for (const id of live) {
-    const { banner } = governmentBannerNode(id, { form: 'seat' });
+  const seats = live.map((id) => governmentBannerNode(id, { form: 'seat' }).banner);
+  const first = live[0];
+  if (first !== undefined) seats.push(governmentBannerNode(first, { form: 'seat', picture: { kind: 'mark' } }).banner);
+  for (const banner of seats) {
     cloth.append(banner);
     fitGovernmentBanner(banner);
   }
@@ -498,14 +495,15 @@ function drawOfferBacks(into: HTMLElement): void {
 /**
  * **The leader's portrait window** (Quiet Table, build stage 3), through the
  * setup step's own builder (`leaderPortraitNode`): three leaders, the leader
- * who holds every deck, and the window under no leader. No portrait exists
- * yet, so each window shows the seat's charge on its ink.
+ * who holds every deck, and the window under no leader. A leader with a
+ * portrait shows it. The window under no leader shows the seat's charge on its
+ * ink.
  */
 function drawLeaderPortraits(into: HTMLElement): void {
   const portraits = block(
     into,
     'The leader portrait window: leaderPortraitNode in leaderSelect.ts',
-    'The 3:4 window beside the setup step’s list of leaders. When a portrait is in public/art/splash/leaders/ and named in leaderPortraits.ts, the window shows it. Until then it shows the seat’s charge on a parchment plate over the seat’s ink.',
+    'The 3:4 window beside the setup step’s list of leaders. A leader whose portrait is in public/art/splash/leaders/ and named in leaderPortraits.ts shows it. Without a portrait, and under no leader, the window shows the seat’s charge on a parchment plate over the seat’s ink.',
   );
   const knobs = controls(portraits);
   const row = element('div', 'face-portraits');
