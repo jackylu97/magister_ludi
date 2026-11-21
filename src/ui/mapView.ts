@@ -266,6 +266,9 @@ export interface MapView {
 
   /** Visible owned model under the pointer, including its sculpted silhouette. */
   pickUnitModel?(screenX: number, screenY: number, playerId: number): number | null;
+
+  /** A click and its final hover can share model hits while the board stays the same. */
+  withReleaseModelPick?(release: () => void): void;
   /** Strengthens one unit's outline without rebuilding the board or army. */
   setHoveredUnitId?(unitId: number | null): void;
 

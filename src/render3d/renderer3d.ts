@@ -557,6 +557,7 @@ export class Renderer3D implements MapView {
   private hover: HoverInfo | null = null;
   private selectedUnitId: number | null = null;
   private badgeTargets: { playerId: number; anchors: BadgeAnchor[] } | null = null;
+  private releasePick?: { model?: { x: number; y: number; playerId: number; id: number | null } };
   private reachable: readonly CellRef[] = [];
   /** Tiles the selected unit could attack. See `setAttackable`. */
   private attackable: readonly CellRef[] = [];
@@ -2998,7 +2999,8 @@ export class Renderer3D implements MapView {
   /** One click can change the selection, range and path before the board draws. */
   private markOverlaysDirty(): void {
     this.overlaysDirty = true;
-    this.redraw();
+    // The pick still sees the old geometry until rebuildOverlays runs in the next frame.
+    this.frameDirty = true;
   }
 
   private rebuildOverlays(): void {
@@ -3283,6 +3285,7 @@ export class Renderer3D implements MapView {
 
   /** Cards and other commands can change a yield on a tile whose ground stayed the same. */
   noteStateChanged(command?: Command['type']): void {
+    this.releasePick = undefined;
     this.badgeTargets = null;
     // Moving onto new ground, claiming a site and changing a standing yield all advance this revision.
     // Settler recommendations follow settlers, and an open city's marks follow its citizens.
@@ -3487,9 +3490,21 @@ export class Renderer3D implements MapView {
     return this.scene.children.filter(child => !(child as {isLight?: boolean}).isLight && !child.userData.unitVisual);
   }
 
+  /** The click and hover run in one event. A board or camera update during it cancels reuse. */
+  withReleaseModelPick(release: () => void): void {
+    this.releasePick = {};
+    try {
+      release();
+    } finally {
+      this.releasePick = undefined;
+    }
+  }
+
   /** Exact body triangles, including wrap copies and the current walking pose. */
   pickUnitModel(screenX: number, screenY: number, playerId: number): number | null {
     if (!this.state || !this.map) return null;
+    const hit = this.releasePick?.model;
+    if (hit && hit.x === screenX && hit.y === screenY && hit.playerId === playerId) return hit.id;
     const resting = this.units.modelCandidates();
     const moving: UnitModelCandidate[] = [];
     for (const [unitId, group] of this.walkers) group.traverse(object => {
@@ -3513,7 +3528,9 @@ export class Renderer3D implements MapView {
       },
     });
     const unit = this.state.units.find(piece => piece.id === id);
-    return unit?.ownerId === playerId && isVisibleTo(this.state, playerId, unit.col, unit.row) ? unit.id : null;
+    const visible = unit?.ownerId === playerId && isVisibleTo(this.state, playerId, unit.col, unit.row) ? unit.id : null;
+    if (this.releasePick) this.releasePick.model = { x: screenX, y: screenY, playerId, id: visible };
+    return visible;
   }
 
   /**
@@ -4318,6 +4335,7 @@ export class Renderer3D implements MapView {
    * frame, then draw. What the UI calls after a command. See `stateDirty`.
    */
   invalidate(): void {
+    this.releasePick = undefined;
     this.badgeTargets = null;
     this.stateDirty = true;
   }
@@ -4328,6 +4346,7 @@ export class Renderer3D implements MapView {
    * rebuilt its own layer directly. See `stateDirty`.
    */
   private redraw(): void {
+    this.releasePick = undefined;
     this.frameDirty = true;
   }
 

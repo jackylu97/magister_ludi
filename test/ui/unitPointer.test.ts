@@ -63,6 +63,7 @@ function controlsFixture(signal?: AbortSignal) {
   const renderer = {
     pick: vi.fn(() => target), getHover: () => hover, setHover: (next: HoverInfo | null) => { hover = next; },
     pickUnitBadge: vi.fn(() => badgeId), pickUnitModel: vi.fn(() => modelId),
+    withReleaseModelPick: vi.fn((release: () => void) => release()),
     setHoveredUnitId: vi.fn(), setSelectedUnitId: vi.fn(), setReachable: vi.fn(),
     setPathPreview: vi.fn(), invalidate: vi.fn(), panByScreen: vi.fn(), setBoardPointerHeld: vi.fn(),
     setLens: vi.fn(), setFogSeat: vi.fn(), skipAnimations: vi.fn(), animateMove: vi.fn(),
@@ -169,7 +170,7 @@ it('updates worker marks and hover advice together and discards replies after a 
 });
 
 describe('actual controls pointer gestures', () => {
-  it('picks once to select and once after the board updates on release', () => {
+  it('lets the renderer reuse a model hit only within the left release and accepts a changed hit', () => {
     const f = controlsFixture();
     f.point(3, 3, null, f.first.id);
     f.renderer.pickUnitModel.mockClear();
@@ -178,6 +179,7 @@ describe('actual controls pointer gestures', () => {
     expect(f.controls.selectedUnit()?.id).toBe(f.first.id);
     expect(f.renderer.setHoveredUnitId).toHaveBeenLastCalledWith(f.elsewhere.id);
     expect(f.renderer.pickUnitModel).toHaveBeenCalledTimes(2);
+    expect(f.renderer.withReleaseModelPick).toHaveBeenCalledOnce();
     // Moving the pointer again must pick the current screen, even at the same position.
     f.point(3, 3, null, f.second.id);
     expect(f.renderer.setHoveredUnitId).toHaveBeenLastCalledWith(f.second.id);

@@ -8554,7 +8554,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // Releasing a button other than the one that started the drag leaves the
     // drag running; the gesture is not over until its own button comes up.
     if (event.button !== dragButton) return;
-    endDrag(event, true);
+    if (event.button === 0 && !moveMode && renderer.withReleaseModelPick) {
+      renderer.withReleaseModelPick(() => endDrag(event, true));
+    } else {
+      endDrag(event, true);
+    }
   }, { signal: options.signal });
   viewport.addEventListener('pointercancel', (event) => endDrag(event, false), { signal: options.signal });
   viewport.addEventListener('lostpointercapture', (event) => endDrag(event, false), { signal: options.signal });

@@ -161,6 +161,58 @@ describe('a camera frame draws without re-reading the state', () => {
     expect(f.drawn()).toBe(1);
   });
 
+  it('casts one model ray for a stable release and casts again after a camera or board change', () => {
+    const map = createMap({width: 8, height: 6, terrain: 'grassland'});
+    const unit = {id: 7, ownerId: 0, col: 2, row: 3};
+    const f = fixture({map, units: [unit], visibility: [map.tiles.map(() => 2)]});
+    const geometry = new BoxGeometry(), material = new MeshBasicMaterial();
+    onTestFinished(() => { geometry.dispose(); material.dispose(); });
+    const body = new Mesh(geometry, material);
+    let x = 0;
+    const screenRay = vi.fn(() => ({origin: new Vector3(x, 0, 10), direction: new Vector3(0, 0, -1)}));
+    Object.assign(f.runtime, {map, units: {modelCandidates: () => [{unitId: unit.id, object: body}],
+      setBadgeSelection: vi.fn(), setHoveredUnitId: vi.fn()}});
+    Object.assign(f.view, {screenRay});
+    const pick = () => f.runtime.pickUnitModel(0, 0, 0);
+
+    f.runtime.withReleaseModelPick(() => {
+      expect(pick()).toBe(unit.id);
+      f.runtime.setSelectedUnitId(unit.id);
+      f.runtime.setReachable([unit]);
+      expect(pick()).toBe(unit.id);
+      expect(screenRay).toHaveBeenCalledTimes(1);
+    });
+    expect(pick()).toBe(unit.id);
+    expect(screenRay).toHaveBeenCalledTimes(2);
+
+    f.runtime.withReleaseModelPick(() => {
+      expect(pick()).toBe(unit.id);
+      f.view.pan.mockImplementationOnce(() => { x = 2; });
+      f.runtime.panByScreen(20, 0);
+      expect(pick()).toBeNull();
+    });
+    expect(screenRay).toHaveBeenCalledTimes(4);
+
+    f.runtime.withReleaseModelPick(() => {
+      expect(pick()).toBeNull();
+      body.position.x = 2;
+      f.runtime.invalidate();
+      expect(pick()).toBe(unit.id);
+    });
+    expect(screenRay).toHaveBeenCalledTimes(6);
+
+    const scene = new Group(), pin = new Mesh(geometry, material);
+    pin.position.set(2, 0, 2);
+    Object.assign(f.runtime, {scene, lensView: NO_LENS, lens: {build: () => scene.add(pin)}});
+    Object.assign(f.view, {facing: new Vector3(0, 0, 1)});
+    f.runtime.withReleaseModelPick(() => {
+      expect(pick()).toBe(unit.id);
+      f.runtime.setLens({...NO_LENS, resources: !NO_LENS.resources});
+      expect(pick()).toBeNull();
+    });
+    expect(screenRay).toHaveBeenCalledTimes(8);
+  });
+
   it('refreshes changed lens markers before deciding whether a body hit is visible', () => {
     const map = createMap({width: 8, height: 6, terrain: 'grassland'});
     const unit = {id: 7, ownerId: 0, col: 2, row: 3};
