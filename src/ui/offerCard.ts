@@ -266,22 +266,6 @@ export interface OfferOption {
    */
   emblem?: string;
   /**
-   * The same plate, drawn as a **glyph** rather than as a drawing.
-   *
-   * For a deck whose cards have no mark of their own: a belief's axis is a
-   * symbol (`AXIS_MARK` in `religionScreen.ts`) and deliberately not one of the
-   * Statecraft deck's seven drawings — lending a god the Wild Hunt's emblem
-   * would be saying something untrue about what it belongs to. Two fields rather
-   * than one because they are two mechanisms: `emblem` is a mask over the
-   * accent's ink, and this is a character set in it.
-   *
-   * A string, like everything else that crosses this boundary. Never both: a
-   * card with a drawing does not also want a letter in the middle of it.
-   *
-   * No offer passes one today: the belief offer passes a `picture`.
-   */
-  emblemGlyph?: string;
-  /**
    * **A picture window the caller draws**, set where the emblem goes. The
    * belief offer passes the belief's arched window (`beliefWindowNode`): its
    * vignette, or its drawn mark when it has none. This is the window the
@@ -292,7 +276,7 @@ export interface OfferOption {
    * not a string. This component only places it and sizes it: the window
    * spans the card's width, and every window in the hand is made shorter
    * when the hand would not fit on the screen (`fitPictures`). Never beside
-   * an emblem or a glyph.
+   * an emblem.
    */
   picture?: () => HTMLElement;
   /**
@@ -1608,10 +1592,10 @@ export function createOfferCard(
      * flag, read off the options themselves rather than declared by the caller,
      * because a caller that had to remember it is a caller that will forget.
      *
-     * **A glyph counts** (the ruling of 2026-09-05 — every draft of every card
-     * class is dealt as a card), and so does an A3 face and a government's
-     * chair mix, which stands where its emblem stood. A picture window (the
-     * belief offer's) counts too.
+     * Every draft of every card class is dealt as a card (the ruling of
+     * 2026-09-05), so an A3 face counts, and so does a government's chair mix,
+     * which stands where its emblem stood, and the belief offer's picture
+     * window.
      *
      * **A drawn face is a third dressing** (Quiet Table, build stage 2): the
      * Order draft's engraved cards and the great person cards keep their own
@@ -1623,7 +1607,6 @@ export function createOfferCard(
       offer.options.some(
         (option) =>
           option.emblem !== undefined ||
-          option.emblemGlyph !== undefined ||
           option.picture !== undefined ||
           option.suit !== undefined ||
           option.chairs !== undefined,
@@ -1756,14 +1739,6 @@ export function createOfferCard(
         const emblem = element('span', 'offer-emblem');
         emblem.setAttribute('aria-hidden', 'true');
         emblem.style.setProperty('--line-mark', option.emblem);
-        button.append(emblem);
-      } else if (option.emblemGlyph !== undefined) {
-        // The same plate, set rather than masked. `textContent` and not
-        // `element`'s writer: a glyph here is a mark of the votive deck and must
-        // not be mistaken for a yield's and swapped for a drawing of one.
-        const emblem = element('span', 'offer-emblem offer-emblem-glyph');
-        emblem.setAttribute('aria-hidden', 'true');
-        emblem.textContent = option.emblemGlyph;
         button.append(emblem);
       } else if (option.chairs !== undefined) {
         button.append(offerChairsNode(option.chairs));

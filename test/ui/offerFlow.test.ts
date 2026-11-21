@@ -281,10 +281,10 @@ describe('every draft deals a tarot face', () => {
     expect(at).toBeGreaterThan(-1);
     const flag = OFFER_CARD.slice(at, OFFER_CARD.indexOf(';', at));
     expect(flag).toContain('option.emblem !== undefined');
-    expect(flag).toContain('option.emblemGlyph !== undefined');
     // The belief offer's picture window is a plate too, so a belief hand is
-    // still dealt.
+    // still dealt. The glyph plate it replaced is gone with its last caller.
     expect(flag).toContain('option.picture !== undefined');
+    expect(OFFER_CARD).not.toContain('emblemGlyph');
     // A drawn face (Quiet Table, build stage 2) is a third dressing, and is
     // dealt too: the back rides both flags.
     expect(OFFER_CARD).toContain('const dressed = offer.options.some((option) => option.dress !== undefined);');
@@ -353,15 +353,17 @@ describe('every draft deals a tarot face', () => {
     );
   });
 
-  it('paints the glyph plate rather than a solid square of accent', () => {
-    // The masked plate fills with `currentColor` and shows only what the drawing
-    // covers; a plate with no drawing must therefore turn both off, or a belief's
-    // card wears a 56px block of ink where its symbol should be.
-    const at = STYLE.indexOf('.offer-emblem-glyph {');
+  it('keeps the ordinal on the corner of an emblem card, out of the flow', () => {
+    // The user, 2026-11-21: "spacing at the top of the card feels a bit
+    // awkward". The rule that lifts a tarot card's children above its ornament
+    // also made the ordinal a row of its own above the eyebrow. It stands on
+    // the corner again, and the card has one margin all round.
+    const at = STYLE.indexOf(".offer-options[data-face='tarot'] .offer-option > .offer-ordinal {");
     expect(at).toBeGreaterThan(-1);
-    const rule = STYLE.slice(at, STYLE.indexOf('}', at));
-    expect(rule).toContain('background-color: transparent');
-    expect(rule).toContain('mask-image: none');
+    expect(STYLE.slice(at, STYLE.indexOf('}', at))).toContain('position: absolute;');
+    const face = STYLE.indexOf(".offer-options[data-face='tarot'] .offer-option {");
+    expect(STYLE.slice(face, STYLE.indexOf('\n}', face))).toContain('padding: calc(16px * var(--offer-scale, 1));');
+    expect(STYLE).not.toContain('.offer-emblem-glyph');
   });
 });
 

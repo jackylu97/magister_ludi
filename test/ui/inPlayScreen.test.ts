@@ -113,6 +113,22 @@ describe('the forms', () => {
     expect(braceBody(css, '.ip-belief > .faith-window {')).toContain('border-color: var(--k);');
   });
 
+  it('draws the beliefs and the legacies thinner, rows and all', () => {
+    // The user, 2026-11-21: "could we make the card slightly thinner to fit
+    // the art better?", and the legacies "the same width as beliefs". The two
+    // stacks set one width that their head, pile, rows and empty place read.
+    const css = uiSource('inPlayScreen.css');
+    expect(css).toContain(".ip-stack[data-stack='beliefs'],\n.ip-stack[data-stack='legacies'] {\n  --ip-w: 150px;\n}");
+    for (const rule of ['.ip-legend {', '.ip-pile {', '.ip-empty {', '.ip-edge {']) {
+      expect(braceBody(css, rule), rule).toContain('width: var(--ip-w, 206px);');
+    }
+    expect(braceBody(css, '.ip-belief {')).toContain('width: 150px;');
+    expect(braceBody(css, '.ip-legacy {')).toContain('width: 150px;');
+    // One gap between every pair of columns, so the six fit at 1280 px.
+    expect(braceBody(css, '.ip-stacks {')).toContain('column-gap: var(--ip-gap);');
+    expect(braceBody(css, '.ip-cloth {')).toContain('gap: var(--ip-gap);');
+  });
+
   it('joins the flair cabinet', () => {
     const cabinet = uiSource('main.ts');
     expect(cabinet).toBeDefined();
