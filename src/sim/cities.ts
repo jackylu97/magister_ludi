@@ -4386,6 +4386,7 @@ export function turnsToBuild(
   item: QueueItem,
   index: number,
   quote?: CityReading,
+  production?: number,
 ): number | null {
   const cost = queueItemCost(state, city.ownerId, item);
   if (cost === null) return null;
@@ -4394,7 +4395,7 @@ export function turnsToBuild(
   // unit is at the front and at the plain rate otherwise, so an estimate that
   // divided by the city's unmodified production would promise a schedule the
   // basket beats. See `foldCity`'s `toward`.
-  return turnsToFill(cost - banked, foldCity(state, city, [], item, quote).production);
+  return turnsToFill(cost - banked, production ?? foldCity(state, city, [], item, quote).production);
 }
 
 /**

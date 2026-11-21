@@ -303,8 +303,15 @@ export function economyStamp(state: GameState): number {
   return ECONOMY.get(state) ?? 0;
 }
 
+const STANDING_YIELD_KEY = 'standingYieldRevision';
+
+/** A view can reuse its yields after a unit passes through a city and restores the same garrison. */
+export function standingYieldRevision(state: GameState): object {
+  return slateMemo(state, 'economy', STANDING_YIELD_KEY, '', () => ({}));
+}
+
 /** Keep only the published yield readings whose position dependencies movement checks. */
-const STANDING_READINGS = ['towns', 'townsAtCurrentProduction', 'empires', 'rates', 'percents', 'happiness', 'authority'];
+const STANDING_READINGS = ['towns', 'townsAtCurrentProduction', 'empires', 'rates', 'percents', 'happiness', 'authority', STANDING_YIELD_KEY];
 
 export interface CityGateReadings {
   cityId: number;

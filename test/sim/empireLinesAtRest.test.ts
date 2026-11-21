@@ -42,8 +42,8 @@ function town(state: GameState, col: number, row: number, population: number, bu
   city.largestSize = population;
   city.queue = [];
   for (const id of buildings) if (!city.buildings.includes(id as never)) city.buildings.push(id as never);
-  refreshCityDerived(state, city);
   bumpRevision(state);
+  refreshCityDerived(state, city);
   return city;
 }
 

@@ -48,24 +48,37 @@ import {
 import { improvementDef } from '../sim/improvementData';
 import type { GameMap, Tile } from '../sim/map';
 import type { GameState } from '../sim/state';
-import { VISIBLE } from '../sim/visibility';
 // @ts-expect-error The surface module is plain JavaScript with no declaration file.
 import { centre, hillMounds, onTileTop, riverStyleKey, surfaceHeight } from '../terrainStudy/surface.js';
-import { type FogLevels, levelAt } from './fog3d';
+import type { FogLevels } from './fog3d';
 import { hashUnit } from './hash';
-import { seenTileYields } from './lens3d';
+import { type TileYieldSample, seenTileYields, yieldLightTiles } from './boardTileYields';
 import { VIEW3D } from './lookData';
 import { VTEST_UNIFORMS } from './visualTestLook';
 import { cullWrapQuads } from './wrapCulling';
 
 const LIGHT = VIEW3D.visualTest.yieldLight;
+
+/** When sight shrinks, removing a tile with no light leaves every drawn instance in place. */
+export function sameVisibleLights(
+  before: TileYieldSample, after: TileYieldSample, shown: ReadonlyMap<number, YieldLightHex>, width: number,
+): boolean {
+  if (after.tiles.length > before.tiles.length) return false;
+  let kept = 0;
+  for (const [i, tile] of before.tiles.entries()) {
+    if (tile === after.tiles[kept]) {
+      if (before.values[i] !== after.values[kept]) return false;
+      kept++;
+    } else if (shown.has(tile.row * width + tile.col)) return false;
+  }
+  return kept === after.tiles.length;
+}
 export const YIELD_LIGHT_KINDS = ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const;
 export type YieldLightKind = typeof YIELD_LIGHT_KINDS[number];
 export type YieldLightPick = { kind: YieldLightKind; step: number };
 /** The systems `visualTest.yieldLight.show` may name. */
 export const YIELD_LIGHT_SHOWS = ['off', 'structures', 'a', 'b', 'c', 'd'] as const;
 export type YieldLightShow = typeof YIELD_LIGHT_SHOWS[number];
-const WATER = new Set(['ocean', 'coast', 'lake']);
 
 /** What a quad is. The shaders branch on it. */
 const MOTE = 0, GLOW = 1, POOL = 2, GLINT = 3, SHAPE = 4, MATTE = 5, WASH = 6;
@@ -430,7 +443,7 @@ export class PaintedYieldLightLayer {
   }
 
   /** `prepared` is the board's own map, whose tiles carry the ground's heights. `period` is the wrap width in world units. */
-  build(state: GameState, prepared: GameMap, levels: FogLevels, seat: number, period: number): void {
+  build(state: GameState, prepared: GameMap, levels: FogLevels, seat: number, period: number, sample?: TileYieldSample): void {
     this.clear();
     const settings = [riverStyleKey(), LIGHT.inner, LIGHT.outer, LIGHT.d.washRadius].join('/');
     if (this.groundMap !== prepared || this.groundSettings !== settings) {
@@ -441,11 +454,8 @@ export class PaintedYieldLightLayer {
     const show = LIGHT.show as YieldLightShow;
     if (show !== 'a' && show !== 'b' && show !== 'c' && show !== 'd') return;
     const width = state.map.width;
-    const cities = new Set(state.cities.map((city) => city.row * width + city.col));
-    // A hex the seat sees now, on land, with no town and no mountain on it. Remembered and uncharted ground shows nothing.
-    const watched = state.map.tiles.filter((tile, cell) => !WATER.has(tile.terrain) && tile.terrain !== 'mountain' && !cities.has(cell)
-      && (this.showcase?.has(cell) || levelAt(levels, state.map, tile.col, tile.row) === VISIBLE));
-    const yields = seenTileYields(state, seat, watched);
+    const watched = sample?.tiles ?? yieldLightTiles(state, levels, this.showcase);
+    const yields = sample?.values ?? seenTileYields(state, seat, watched);
     const colours = Object.fromEntries(YIELD_LIGHT_KINDS.map((kind) => [kind, new Color(LIGHT.colors[kind])])) as Record<YieldLightKind, Color>;
     const quads: Quad[] = [], tints: Color[] = [];
     const push = (quad: Quad, colour: Color): void => { quads.push(quad); tints.push(colour); };

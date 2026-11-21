@@ -126,14 +126,20 @@ describe('the empireYield count at rest (bot batch BP9)', () => {
     // A write that announces nothing, as one inside a handler might be: the
     // capital grows by a hundred citizens and no clock moves.
     capital.population += 100;
-    const after = Math.floor(goldMade(state) / 20);
+    const after = Math.floor(goldMade(structuredClone(state)) / 20);
     expect(after, 'the write moves the income').toBeGreaterThan(before);
     // Inside the scope the remembered fold answers, as it does for every other
     // reading on the economy clock.
-    expect(readingAtRest(() => science(state, other))).toBe(before);
-    // Outside the scope the count folds fresh, so a reader inside a write sees
-    // the write at once.
-    expect(science(state, other)).toBe(after);
+    const shadow = slateShadow();
+    if (shadow) expect(() => readingAtRest(() => science(state, other))).toThrow(/stale/);
+    try {
+      // This test deliberately reads an unannounced edit. Check what each scope returns in normal play.
+      setSlateShadow(false);
+      expect(readingAtRest(() => science(state, other))).toBe(before);
+      expect(science(state, other)).toBe(after);
+    } finally {
+      setSlateShadow(shadow);
+    }
     // The clock moves, and the scope reads the new books.
     bumpRevision(state);
     expect(readingAtRest(() => science(state, other))).toBe(after);

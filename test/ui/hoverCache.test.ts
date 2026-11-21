@@ -112,6 +112,41 @@ describe('hover work over one hex', () => {
     expect(f.work()).toEqual({ paths: 0, readouts: 0 });
   });
 
+  it('reuses paths and ranges until the board changes', () => {
+    const f = fixture();
+    const select = () => f.controls.selectPiece(f.soldier.id);
+    select();
+    f.point(4, 3);
+    const range = f.renderer.setReachable.mock.lastCall![0];
+    const path = f.renderer.setPathPreview.mock.lastCall![0];
+    expect(range).toContain(getTileAt(f.state.map, 4, 3));
+    expect(path).toEqual([{ col: 4, row: 3 }]);
+    select();
+    expect(f.renderer.setReachable.mock.lastCall![0]).toBe(range);
+    expect(f.renderer.setPathPreview.mock.lastCall![0]).toBe(path);
+
+    getTileAt(f.state.map, 4, 3)!.terrain = 'mountain';
+    bumpRevision(f.state);
+    select();
+    expect(f.renderer.setReachable.mock.lastCall![0]).not.toContain(getTileAt(f.state.map, 4, 3));
+    expect(f.renderer.setPathPreview.mock.lastCall![0]).toEqual([]);
+  });
+
+  it('keeps the waiting list on reselection and updates it when the player skips a unit', () => {
+    const f = fixture();
+    f.controls.selectPiece(f.soldier.id);
+    const before = f.controls.endTurnBlockers();
+    const idle = { kind: 'idleUnit', unitId: f.soldier.id };
+    expect(before).toContainEqual(idle);
+    f.controls.selectPiece(f.other.id);
+    f.controls.selectPiece(f.soldier.id);
+    expect(f.controls.endTurnBlockers()).toBe(before);
+    const revision = f.state.revision;
+    f.controls.skipUnit();
+    expect(f.state.revision).toBe(revision);
+    expect(f.controls.endTurnBlockers()).not.toContainEqual(idle);
+  });
+
   it('runs again for a new hex', () => {
     const f = fixture();
     f.controls.selectPiece(f.soldier.id);

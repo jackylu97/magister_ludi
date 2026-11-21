@@ -133,6 +133,7 @@ import {
 
 import { BUILDING_IDS, type BuildingId, buildingDef, isWonder } from '../sim/buildingData';
 import {
+  type CityYields,
   bestExpansionTile,
   borderGrowth,
   buildingProductionCost,
@@ -574,7 +575,9 @@ function purchasingPlan(
   // **The ground at the frontier** (batch 8): every hex a town of this empire
   // could buy today, priced by the sim's own ladder and appraised by what it
   // would pay the town that bought it. See `tileWants`.
-  for (const city of towns) wants.push(...tileWants(state, ctx, city));
+  for (const [index, city] of towns.entries()) {
+    if (!city.puppet) wants.push(...tileWants(state, ctx, city, folds.standing(index)));
+  }
 
   // **The route the treasury could hire** (batch R1). The caravan left the
   // build queue with the ruling of 2026-09-09, so the thing that used to be a
@@ -715,8 +718,7 @@ export function routeWant(state: GameState, player: Player, ctx: ValueContext): 
  * the bounded walk and the unbounded one cannot fold a hex differently: they
  * choose which hexes are quoted and nothing else.
  */
-function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
-  if (city.puppet === true) return [];
+function tileWants(state: GameState, ctx: ValueContext, city: City, standing: CityYields): Want[] {
   // **The town's own reading, hoisted** (batch 9): a context is a fact about the
   // town — its shelves, its rites, its scoped cards, the faith it follows — and
   // it was being rebuilt for every worked hex and again for every hex on offer.
@@ -748,7 +750,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
   // order is a coin spent on *sooner*, and a coin spent anywhere else is a coin
   // spent on *more*.
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
-  const wait = borderGrowth(state, city).turns;
+  const wait = borderGrowth(state, city, standing).turns;
   const next = bestExpansionTile(state, city);
   const soonShare = wait === null ? 1 : Math.min(1, wait / horizon);
   // **What a hex bought moves toward the seat's open commissions** (bot batch

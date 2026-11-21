@@ -579,7 +579,7 @@ describe('the third step: the user’s comments on the second step', () => {
     expect(routes).not.toContain("'city-size'");
     // What a route pays is the trade sheet's own reading of it.
     expect(braceBody(uiSource('tradeLines.ts'), 'export function cityRouteRows(')).toContain(
-      "const figures = routeReading(state, unit)?.figures ?? 'nothing yet';",
+      'routeReading(state, unit, pair)',
     );
     // A long list scrolls inside the row.
     const list = rule('.city-routes-list');

@@ -173,12 +173,9 @@ describe('the slip on a technology charter’s card', () => {
     expect(body).toContain("const stampOnSlip = option.slip !== undefined && option.stamp?.opened !== undefined;");
     expect(body).toContain('offerSlipNode(option.slip, stampOnSlip ? cardStampNode() : null)');
     expect(body).toContain('!stampIsEmpty(option.stamp) && !stampOnSlip');
-    // The draft spreads the slip after the impact stamp, so a charter's own
-    // stamp wins.
-    const main = uiSource('main.ts');
-    const order = main.indexOf("...cardStamp(seat, { kind: 'order', id }),");
-    expect(order).toBeGreaterThan(-1);
-    expect(main.indexOf('...charterOfferParts(game.state, seat, id),')).toBeGreaterThan(order);
+    const main = braceBody(uiSource('main.ts'), 'function showStatecraftOffer()');
+    expect(main).toContain('const charter = charterOfferParts(game.state, seat, id)');
+    expect(main).toContain("charter.stamp ? charter : cardStamp(seat, { kind: 'order', id }, sheet)");
   });
 
   it('draws the "Opened" face in the charter sepia, out of sight until the pick', () => {

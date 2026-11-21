@@ -510,7 +510,7 @@ describe('the table and its chairs', () => {
    */
   it('takes one shared reading of the board per draw, and lets go of it', () => {
     expect(SCREEN).toContain('cardImpactSheet(options.getState(), options.getPlayerId())');
-    expect(LIVE).toContain("explainCardImpact(state, seat, { kind: 'order', id }, sheet)");
+    expect(LIVE).toContain("councilImpact(state, seat, { kind: 'order', id }, sheet)");
     const draw = SCREEN.slice(SCREEN.indexOf('function draw(): void {'));
     expect(draw.slice(0, draw.indexOf('function paint('))).toContain('sheet = null;');
     // The Faith sheet keeps the same bargain, one screen over.
@@ -607,12 +607,12 @@ describe('the Doctrines carry their live line', () => {
     expect(REGISTER).toContain('const strip = tuckedDoctrineNode(id, live?.plate ?? null);');
   });
 
-  it('reads it from explainCardImpact for the doctrine id, in one module', () => {
-    expect(LIVE).toContain("explainCardImpact(state, seat, { kind: 'doctrine', id }, sheet)");
+  it('uses the shared Council comparison for the Doctrine, Order and government', () => {
+    expect(LIVE).toContain("councilImpact(state, seat, { kind: 'doctrine', id }, sheet)");
     // Three since stage 2: the Order, the Doctrine and the government in force,
     // which the stamp now measures with its law set aside.
-    expect(code(LIVE).match(/explainCardImpact\(/g) ?? []).toHaveLength(3);
-    expect(LIVE).toContain("explainCardImpact(state, seat, { kind: 'government', id }, sheet)");
+    expect(code(LIVE).match(/councilImpact\(/g) ?? []).toHaveLength(3);
+    expect(LIVE).toContain("councilImpact(state, seat, { kind: 'government', id }, sheet)");
     expect(code(SCREEN)).not.toContain('explainCardImpact(');
   });
 

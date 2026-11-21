@@ -170,7 +170,7 @@ describe('the Faith sheet has three tabs', () => {
     expect(paint).toContain('const tab = faithTabFor(seat);');
     expect(paint).toContain('drawRites(state, seat)');
     expect(paint).toContain('drawBonuses(state, seat)');
-    expect(paint).toContain('drawReligion(state, seat)');
+    expect(paint).toContain('drawReligion(state, seat, reading)');
     // Anything the last paint set moving is stopped before the next is built.
     expect(paint.indexOf('stopMotion();')).toBeGreaterThan(-1);
     expect(paint.indexOf('stopMotion();')).toBeLessThan(paint.indexOf('body.replaceChildren();'));
@@ -190,7 +190,7 @@ describe('the Faith sheet has three tabs', () => {
     expect(fn('religionScreen.ts', 'drawBonuses')).toContain('bonusesTabModel(state, seat)');
     expect(fn('religionScreen.ts', 'drawBonuses')).toContain('drawBonusesTab(');
     expect(fn('religionScreen.ts', 'drawReligion')).toContain(
-      'followersTabModel(state, seat, religionReading(state, seat), aimedCityId)',
+      'followersTabModel(state, seat, reading, aimedCityId)',
     );
     expect(fn('religionScreen.ts', 'drawReligion')).toContain('drawFollowersTab(state, seat, model, {');
     // The old drawings are gone from the frame, not kept beside the new ones.

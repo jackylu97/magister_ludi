@@ -2061,19 +2061,21 @@ export function pathTurnMarks(
   state: GameState,
   unit: Unit,
   path: readonly Cell[],
-  purse: MovePurse = movePurse(state, unit),
+  purse?: MovePurse,
 ): PathTurnMark[] {
+  if (path.length === 0) return [];
+  const allowance = purse ?? movePurse(state, unit);
   const { map } = state;
   const mover = moveProfile(state, unit);
   const field = zocField(state, unit.ownerId);
   let from = getTileAt(map, unit.col, unit.row);
   let turns = 0;
-  let budget = purse.left;
+  let budget = allowance.left;
   const marks: PathTurnMark[] = [];
   for (const cell of path) {
     if (budget <= 0) {
       turns += 1;
-      budget = purse.refill;
+      budget = allowance.refill;
     }
     const to = getTileAt(map, cell.col, cell.row);
     if (!from || !to) break;

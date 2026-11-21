@@ -222,10 +222,9 @@ export interface RouteReading {
  * No turn count: a route has no term since batch TR2, and runs until it is
  * cancelled or something else ends it.
  */
-export function routeReading(state: GameState, unit: Unit): RouteReading | null {
+export function routeReading(state: GameState, unit: Unit, pair = routeCities(state, unit)): RouteReading | null {
   const route = unit.trade;
   if (!route) return null;
-  const pair = routeCities(state, unit);
   const fromName = pair ? cityDisplayName(state, pair.from) : 'a lost city';
   const toName = pair ? cityDisplayName(state, pair.to) : 'a lost city';
   // **Whose sheet this is** decides which fold it prints (the international
@@ -280,23 +279,32 @@ interface CityRouteRow {
  * Walked in `state.units` order like every other sweep, so the list is a fact
  * about the state rather than about who happened to ask.
  */
-export function cityRouteRows(state: GameState, city: City): CityRouteRow[] {
-  const rows: CityRouteRow[] = [];
+function* routesAtCity(state: GameState, city: City) {
   for (const unit of state.units) {
     const route = unit.trade;
-    if (!route) continue;
-    if (unit.ownerId !== city.ownerId) continue;
+    if (!route || unit.ownerId !== city.ownerId || (route.from !== city.id && route.to !== city.id)) continue;
     const pair = routeCities(state, unit);
-    if (!pair) continue;
-    if (route.from !== city.id && route.to !== city.id) continue;
+    if (pair) yield { unit, route, pair };
+  }
+}
+
+/** The closed summary needs only the count of valid routes. */
+export function cityRouteCount(state: GameState, city: City): number {
+  return Array.from(routesAtCity(state, city)).length;
+}
+
+export function cityRouteRows(state: GameState, city: City): CityRouteRow[] {
+  const rows: CityRouteRow[] = [];
+  for (const { unit, route, pair } of routesAtCity(state, city)) {
     // What it pays the seat, read as the trade sheet reads it (`routeReading`).
-    const figures = routeReading(state, unit)?.figures ?? 'nothing yet';
+    const reading = routeReading(state, unit, pair)!;
+    const figures = reading.figures;
     if (route.from === city.id) {
       const place = cityDisplayName(state, pair.to);
       rows.push({ outbound: true, text: `→ ${place}`, place, figures });
     } else {
       const place = cityDisplayName(state, pair.from);
-      const here = routeFigures(foldRouteYield(explainRouteYield(state, unit)));
+      const here = reading.foreign ? routeFigures(foldRouteYield(explainRouteYield(state, unit))) : figures;
       rows.push({ outbound: false, text: `← ${place} · ${here}`, place, figures });
     }
   }

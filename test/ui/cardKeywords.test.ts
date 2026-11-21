@@ -201,7 +201,7 @@ describe('a Scaler’s value on its face', () => {
 
   it('is printed on the hand, the collection and the Compendium page, in tabular mono', () => {
     expect(braceBody(uiSource('main.ts'), 'function showStatecraftOffer()')).toContain(
-      'scaler: scalerFace(game.state, seat, id)!',
+      'const scaler = scalerFace(game.state, seat, id)',
     );
     expect(braceBody(uiSource('offerCard.ts'), 'function faceBody(')).toContain(
       'if (option.scaler !== undefined) nodes.push(scalerFigureNode(option.scaler));',

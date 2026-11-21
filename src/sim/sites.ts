@@ -228,6 +228,15 @@ function stepsToOwnTown(state: GameState, playerId: number, tile: Tile): number 
  * ranking be explicable a line at a time.
  */
 export function explainSite(state: GameState, playerId: number, tile: Tile): SiteReading {
+  return appraiseSite(state, playerId, tile);
+}
+
+function appraiseSite(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+  ringYields?: Map<Tile, TileYield>,
+): SiteReading {
   const knobs = RULES.sites;
   const ground = groundContext(state, playerId);
   const player = playerById(state, playerId);
@@ -240,7 +249,11 @@ export function explainSite(state: GameState, playerId: number, tile: Tile): Sit
   let centre: SiteRingHex | null = null;
   let hills = 0;
   for (const near of mapRange(state.map, here, Math.max(0, knobs.ringRadius))) {
-    const yields = foldTileLines(explainTileYield(near, ground));
+    let yields = ringYields?.get(near);
+    if (yields === undefined) {
+      yields = foldTileLines(explainTileYield(near, ground));
+      ringYields?.set(near, yields);
+    }
     const steps = wrappedDistance(state.map, here, tileHex(near));
     const row: SiteRingHex = {
       col: near.col,
@@ -363,6 +376,8 @@ export function rankSites(state: GameState, playerId: number): SiteCandidate[] {
     const tile = getTileAt(state.map, unit.col, unit.row);
     if (tile !== undefined) anchors.push(tile);
   }
+  // Neighbouring sites share ground. This map lasts for one ranking by one player.
+  const ringYields = new Map<Tile, TileYield>();
   const looked = new Set<number>();
   const candidates: SiteCandidate[] = [];
   for (const anchor of anchors) {
@@ -372,7 +387,7 @@ export function rankSites(state: GameState, playerId: number): SiteCandidate[] {
       looked.add(at);
       if (!isExploredBy(state, playerId, tile.col, tile.row)) continue;
       if (foundingErrorAt(state, playerId, tile) !== null) continue;
-      const reading = explainSite(state, playerId, tile);
+      const reading = appraiseSite(state, playerId, tile, ringYields);
       if (reading.total < knobs.scoreFloor) continue;
       candidates.push({ col: tile.col, row: tile.row, reading });
     }

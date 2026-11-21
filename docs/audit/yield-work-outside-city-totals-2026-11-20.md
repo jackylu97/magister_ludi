@@ -50,3 +50,40 @@ A smaller bot change has a clear target. Tile purchase scoring asked `borderGrow
 Each timed sample restored the same snapshot. For player-facing measurements I warmed the seat's empire reading first, except when explicitly measuring a repeat lookup. Nine timed samples followed three warm-ups. Collection used five samples after three warm-ups. Bot planning used five samples after two warm-ups, with a fresh private board for each plan. The figures above are median elapsed times for synchronous functions in Node. A separate build counted function calls without affecting the timed runs. I checked the fixture's actual pending offer for stamp equality and accepted commands for both visibility and the Order reproduction. The controlled charter preview used its real card and the game's own offer functions.
 
 For the next browser measurement, capture the legionary's sight change and the Dawnreach route separately. Record tiles repriced, time spent building mote geometry and the first frame with visible movement. Compare the two routes with bot preparation both on and off. [Browser measurement instructions](../../scripts/input-latency/README.md)
+
+## Changes and verification
+
+The updated build reuses each city's current total across the top bar, city banners and yield chips. Order previews share the real board across the offer. Each hypothetical board still calculates its own city contributions. A change to happiness, authority or debt can then apply new percentages to those contributions. Opening a technology charter skips the ordinary Order preview and uses the research screen's current science rate.
+
+| Turn 120 operation | Earlier calculation count | Updated count | Median CPU time before and after |
+|---|---:|---:|---:|
+| Technology charter, current income already available | 136 city breakdowns and 1,386 tile breakdowns | 0 and 0 | 45.06 → 0.03 ms |
+| Actual three-card draft for seat 2 | 126 city breakdowns and 774 tile breakdowns | 18 and 186 | 26.30 → 12.05 ms |
+| First Council total for seat 0, current income available | 102 city breakdowns and 1,102 tile breakdowns | 17 and 392 | 34.34 → 12.98 ms |
+| Repeat the same Council total | 102 city breakdowns and 1,102 tile breakdowns | 0 and 0 | 31.54 → 0.01 ms |
+| Rank 61 settlement sites for seat 0 | 1,159 tile breakdowns | 259, one per distinct tile | 3.04 → 2.57 ms |
+| Refresh the 35 visible city banners | 29 city sums | 0 city sums | 1.11 → 0.93 ms |
+
+Each timing used eleven alternating pairs after three warm-ups. Each build started with an independent copy of the save and a current empire reading. Function counts came from separate instrumented runs.
+
+City trade summaries count eligible routes without pricing them. Workers share the existing tile reading across their build options. A bot estimating border growth uses the city total it already calculated for that decision. The religion screen shares its reading between the title and the followers tab.
+
+### Movement and display
+
+Reselecting a unit can reuse its reachable tiles and attack targets. Hovering a destination and then moving there can reuse the displayed path for the animation. The reducer independently checks the command. A board revision expires the UI path and range. The waiting list for End Turn also depends on units the user skipped and whether they closed the religion screen this turn. The UI includes those choices in its cache key. Dismissing a census advances the command revision and preserves cached income.
+
+The yield symbols and motes now use one price per tile and viewer. Sight changes can hide a tile without changing its yield. An economic change can also affect a tile while it stays visible. The renderer checks the owning city's yield rules before reusing a price across a garrison or citizen-focus change. Unknown or position-dependent inputs take a fresh reading. A board replacement or a data reset also expires the readings. If a soldier enters and leaves the same city in one move and nothing else affects income, the simulation restores the earlier yield readings. The renderer uses the same signal and still checks for changes in sight.
+
+| Move on the same starting save | Earlier CPU time | Updated CPU time | Visible result |
+|---|---:|---:|---|
+| Legionary 364 from (59,7) to (59,6), sight only | 4.20 ms | 1.17 ms | One lit tile disappeared. The other 253 needed zero new tile calculations. |
+| Legionary 256 from (54,18) to (54,19), leaving a garrison | 5.43 ms | 4.62 ms | No remaining tile changed and the disappearing tile had no light. The geometry stayed in place. |
+
+These medians cover choosing visible tiles, calculating their yields and building mote geometry in Node. Fifteen alternating pairs followed five warm-ups, with each variant starting from its own restored board. They exclude other board layers, the GPU and waiting for a frame. A garrison exit must still check city rules. In a separate test with The Soldier-Farmers active, that exit correctly reduced gold and production on resource tiles. Removing The Highlands updated all 14 tiles whose mote level changed. [Renderer regression cases](../../test/render/boardTileYields.test.ts)
+
+### Correctness checks and remaining work
+
+- For all six playable seats, the earlier and updated builds produced identical full bot plans, decision explanations and settlement rankings. All 56 sampled Council and Order comparisons matched line by line.
+- At six successive states on the late-game board, all 74 city breakdowns and all six empires' totals, income lines, base rates, happiness and authority matched fresh calculations. The sequence covered two ordinary movement commands, a garrison exit, a focus change and removing The Highlands.
+- The simulation still expires some readings for a whole empire. Changing a city's worked tiles can affect another city through trade or an empire-wide Order. Hypothetical buildings in bot research and the costs of turn collection remain separate opportunities.
+- On a board update, the renderer still walks the map to check whether the artwork for improvements changed. That walk examines resource reveals, the owning player's age, damaged improvements, terrain features and cities. Animation-only frames normally skip it. A narrower key must also account for the display settings that choose improvement models. [Improvement change check](../../src/render3d/paintedWorks.ts) · [Renderer update](../../src/render3d/renderer3d.ts)

@@ -359,7 +359,7 @@ export function readEmpire(state: GameState, playerId: number): EmpireReading {
 }
 
 /** Both the headline and the base rates price production against the current queue item. */
-function currentTownReading(state: GameState, city: City): TownReading {
+export function readCurrentTown(state: GameState, city: City): TownReading {
   return slateMemo(state, 'economy', 'townsAtCurrentProduction', String(city.id), () => {
     const reading = readCity(state, city);
     return { city, reading, total: foldCity(state, city, [], city.queue[0], reading) };
@@ -398,7 +398,7 @@ export function readEmpireRates(state: GameState, playerId: number): Readonly<Em
     readingAtRest(() =>
       foldEmpireRates(state, playerId, {
         percents: readEmpirePercents(state, playerId),
-        totalOf: (city) => currentTownReading(state, city).total,
+        totalOf: (city) => readCurrentTown(state, city).total,
       }),
     ),
   );
@@ -749,7 +749,7 @@ function empireReading(state: GameState, playerId: number): EmpireReading {
   const towns: TownReading[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    towns.push(currentTownReading(state, city));
+    towns.push(readCurrentTown(state, city));
   }
   // A `pays` rate card reads the empire's books (bot batch BP15). This reading is
   // at rest, so the books are `readEmpireRates`, folded off the town lists read

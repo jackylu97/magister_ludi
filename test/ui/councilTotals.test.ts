@@ -11,6 +11,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { cardImpactSheet } from '../../src/sim/cardImpact';
 import { snapshotState } from '../../src/sim/game';
 import { bumpRevision, playerById } from '../../src/sim/state';
 import { COUNCIL_VOICES, councilChange, councilFigures, explainCouncil, foldImpactVoices } from '../../src/ui/councilTotals';
@@ -21,6 +22,12 @@ import { found, game } from '../sim/statecraftHelpers';
 describe('the totals line of the Council screen', () => {
   it('reads nine whole figures off a real board, in the board’s order, renown last', () => {
     const g = game();
+    const current = () => explainCouncil(g.state, 0, cardImpactSheet(g.state, 0));
+    const initial = current();
+    expect(current()).toBe(initial);
+    bumpRevision(g.state);
+    expect(current()).not.toBe(initial);
+    expect(current()).toEqual(explainCouncil(g.state, 0));
     const figures = councilFigures(foldImpactVoices(explainCouncil(g.state, 0)));
     expect(Object.keys(figures)).toEqual([...COUNCIL_VOICES]);
     expect(COUNCIL_VOICES[COUNCIL_VOICES.length - 1]).toBe('renown');

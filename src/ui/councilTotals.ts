@@ -31,9 +31,10 @@
  * total, and the screen says so in its hint.
  */
 
-import { type CardImpactLine, type CardImpactSheet, explainCardImpact, foldCardImpact } from '../sim/cardImpact';
+import { type CardImpactLine, type CardImpactSheet, type CardImpactSubject, explainCardImpact, foldCardImpact } from '../sim/cardImpact';
 import type { MeterId } from '../sim/meters';
 import { CITY_YIELD_KEYS } from '../sim/resourceData';
+import { slateMemo } from '../sim/slate';
 import type { GameState } from '../sim/state';
 import { roundYield } from '../sim/yieldFormat';
 import type { PlateFigure, PlateVoice } from './orderFace';
@@ -73,9 +74,23 @@ export function foldImpactVoices(lines: readonly CardImpactLine[]): CouncilFigur
   return figures;
 }
 
+/** One confirmed comparison can appear on several draws while the player rearranges cards. */
+export function councilImpact(
+  state: GameState,
+  seat: number,
+  subject: Extract<CardImpactSubject, { kind: 'order' | 'government' | 'doctrine' | 'council' }>,
+  sheet?: CardImpactSheet,
+): CardImpactLine[] {
+  if (sheet?.state !== state || sheet.revision !== state.revision || sheet.playerId !== seat) {
+    return explainCardImpact(state, seat, subject);
+  }
+  const key = `${seat}/${subject.kind}/${'id' in subject ? subject.id : ''}`;
+  return slateMemo(state, 'revision', 'uiCouncilImpact', key, () => explainCardImpact(state, seat, subject, sheet));
+}
+
 /** **What the whole council pays each turn**, as the labelled list the totals are the fold of. */
 export function explainCouncil(state: GameState, seat: number, sheet?: CardImpactSheet): CardImpactLine[] {
-  return explainCardImpact(state, seat, { kind: 'council' }, sheet);
+  return councilImpact(state, seat, { kind: 'council' }, sheet);
 }
 
 /** The totals line's nine figures, rounded once, as the line prints them. */
