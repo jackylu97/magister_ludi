@@ -1805,3 +1805,46 @@ city doesn't need to be so zoomed out?"
 - The city screen's right panel is 360 px wide (400 before). The camera's
   two numbers follow it (`cityFrameBiasPx` 37, `cityFrameInsetPx` 702), so the
   town is framed larger.
+
+## City screen marks, lenses and recommendations: the user's rulings on the mocks (2026-11-21)
+
+The mocks: https://claude.ai/artifact/8r4aM7sG2QDyWnrjiZdovn (eight ideas for
+the worked hexes, two redesigns of each lens, three city site markers, worker
+recommendations). The user's comments, word for word:
+
+- **Worked hexes on the city screen:** "lets do e. i think c may be trying to
+  do too much, i want this to feel unintrusive. I agree with your assessment,
+  f is super cool but also confusing." So: **build e, "the yields are the
+  mark".** A worked hex's yields sit on a small parchment plaque; a free hex's
+  yields are faint with no plaque; a pinned hex's plaque has a pin head in the
+  seat colour. The rounded inset outlines go.
+- **Settler lens, mock 1 (the surveyor's sheet):** "too intrusive". Not
+  adopted.
+- **Settler lens, mock 2:** "i want the player to still be able to see at a
+  glance freshwater, coastal and illegal spots, its just that the previous
+  washes were too difficult to read. Could we try something where we're
+  keeping the original design largely intact but just changing the visual
+  language?" So: keep what the lens shows; change how it is drawn. Another
+  mock.
+- **Explorer lens:** "same as above, i dont think we need a fog border,
+  althought thats intresting. could we just redo the visual language to make
+  it inline with the newest graphics? I'd like to do some kind of
+  highlighting of important squares for players as they're exploring."
+  Another mock.
+- **City site marker 3, the town pin with pips:** "this one is the closest
+  for me, i like that it's more subdued and easy to ignore if the player has
+  other ideas about where to settle. Generally, i notice the city
+  recommendations are all close to one another, in my head i was imagining
+  some kind of obvious tile indicator; lets fold this in with the settler lens
+  changes, the two designs should be complementary." So: the pin with pips,
+  designed together with the settler lens; and the recommended sites should
+  not all sit close to one another (a note for the ranking, Astra's).
+- **Worker recommendations:** "in general i dont like banners on the map, and
+  i think the panel is too heavy handed. I was thinking some way of
+  highlighting a tile along with something in the tile tooltip that says 'we
+  recommend you build X here'. Lets do another iteration but i'm not entirely
+  opposed to the banner icon idea". Another mock: a highlighted hex, and a
+  line in the hex's tooltip.
+
+The principle across all of these, in the user's words: "i want this to feel
+unintrusive", "subdued and easy to ignore".
