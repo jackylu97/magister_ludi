@@ -1,0 +1,102 @@
+/* The problem report sheet (`problemReport.ts`). A narrow sheet on the shared
+   parchment (`.statecraft-overlay`, `.statecraft-sheet`): one field, one line
+   about what the file holds, two buttons and a status line. */
+
+#report-overlay {
+  place-items: center;
+}
+
+#report-overlay .report-sheet {
+  width: min(560px, 100%);
+}
+
+.report-body {
+  gap: 10px;
+}
+
+.report-label {
+  font-family: var(--face-name);
+  font-size: var(--size-name);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.report-note,
+.report-summary {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 7.5em;
+  padding: 8px 10px;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--paper-radius);
+  background: #fffdf4;
+  color: var(--ink);
+  font: 400 var(--size-body) / 1.45 var(--face-ui);
+  resize: vertical;
+}
+
+.report-note:focus-visible,
+.report-summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.report-summary {
+  min-height: 0;
+  font: 400 var(--size-label) / 1.45 var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.report-summary[hidden] {
+  display: none;
+}
+
+.report-includes {
+  margin: 0;
+  font: 400 var(--size-ui) / 1.5 var(--face-ui);
+  color: var(--ink-soft);
+}
+
+/* The build, the save version and the turn: figures, so the mono face. */
+.report-facts {
+  margin: 0;
+  font: 400 var(--size-note) var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.report-actions .btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 14px;
+}
+
+/* The file's size, once it is known. Empty until then, so it takes no room. */
+.report-size {
+  font: 500 var(--size-label) var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.report-size:empty {
+  display: none;
+}
+
+.report-status {
+  min-height: 1.4em;
+  margin: 0;
+  font: 400 var(--size-label) / 1.4 var(--face-ui);
+  color: var(--ink);
+}
+
+.report-reopen {
+  color: var(--ink-faint);
+}

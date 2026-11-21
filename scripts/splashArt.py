@@ -51,21 +51,21 @@ PEOPLE = {
     'shikibu': 'murasakiShikibu', 'subutai': 'subutai', 'vitruvius': 'vitruvius',
     'zhangqian': 'zhangQian',
     # The 137 people with no portrait yet (2026-11-21). The master's name is the person's own
-    # name, so a picture is never named after another person. Eighteen row ids kept an older
-    # name: ibn_jubayr, jacques_coeur, and the sixteen people who changed on 2026-11-21
+    # name, so a picture is never named after another person. Thirteen row ids kept an older
+    # name: ibn_jubayr, jacques_coeur, and the eleven people who changed on 2026-11-21
     # (docs/plans/great-people-cultures-2026-11-21.md), for example amanitore and piye.
     'ahmes': 'ahmes', 'kidinnu': 'kidinnu', 'thales_of_miletus': 'thales', 'tapputi': 'tapputi',
-    'panini': 'panini', 'hippocrates': 'hippocrates', 'varahamihira': 'anaximander',
+    'panini': 'panini', 'hippocrates': 'hippocrates', 'anaximander': 'anaximander',
     'baudhayana': 'baudhayana', 'peseshet': 'peseshet', 'solon': 'solon',
-    'sin_leqi_unninni': 'sinLeqiUnninni', 'ilimilku': 'ilimilku', 'yamanoue_no_okura': 'hesiod',
-    'aesop': 'aesop', 'aj_maxam': 'exekias', 'macuilxochitzin': 'telesilla',
+    'sin_leqi_unninni': 'sinLeqiUnninni', 'ilimilku': 'ilimilku', 'hesiod': 'hesiod',
+    'aesop': 'aesop', 'exekias': 'exekias', 'telesilla': 'telesilla',
     'thutmose_the_sculptor': 'thutmoseTheSculptor', 'senenmut': 'senenmut',
     'amenhotep_son_of_hapu': 'amenhotepSonOfHapu', 'bezalel': 'bezalel', 'pushyagupta': 'eupalinos',
     'lu_ban': 'luBan', 'anacharsis': 'theodorusOfSamos',
     'artachaees': 'mandrocles', 'ineni': 'ineni', 'sunshu_ao': 'sunshuAo',
     'kushim': 'kushim', 'assur_idi': 'assurIdi', 'lamassi': 'lamassi',
     'hanno_the_navigator': 'hanno', 'fan_li': 'fanLi', 'harkhuf': 'harkhuf',
-    'sulayman_al_tajir': 'colaeus', 'wenamun': 'wenamun', 'iddin_marduk': 'iddinMarduk',
+    'colaeus_of_samos': 'colaeus', 'wenamun': 'wenamun', 'iddin_marduk': 'iddinMarduk',
     'ahmose_son_of_ebana': 'ahmoseSonOfEbana', 'piyamaradu': 'piyamaradu', 'sinuhe': 'sinuhe',
     'deborah': 'deborah', 'fu_hao': 'fuHao', 'sun_tzu': 'sunTzu', 'leonidas': 'leonidas',
     'djehuty': 'djehuty', 'piye': 'artemisia', 'tomyris': 'tomyris',

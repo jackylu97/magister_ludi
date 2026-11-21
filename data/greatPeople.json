@@ -2774,12 +2774,12 @@
       ]
     },
     "anaximander": {
-      "name": "Varāhamihira",
+      "name": "Anaximander",
       "family": "scholar",
       "age": 2,
       "tier": "situational",
-      "epigram": "A foreigner who knows the stars is to be honoured.",
-      "kernel": "An astronomer of Ujjain. He set five older systems of astronomy side by side, two of them from the Greek and Roman world, and wrote that foreign scholars deserve honour for their science.",
+      "epigram": "The earth hangs on nothing.",
+      "kernel": "He drew the first Greek map of the whole world and said the earth floats free in space.",
       "legacy": [
         {
           "kind": "pays",
@@ -2852,12 +2852,12 @@
       ]
     },
     "hesiod": {
-      "name": "Yamanoue no Okura",
+      "name": "Hesiod",
       "family": "artist",
       "age": 2,
       "tier": "strong",
-      "epigram": "What are silver and gold beside a child?",
-      "kernel": "A court official and provincial governor in Japan. His poems speak of what other court poets left out: hungry farmers, the tax collector at the door, old age and love for his children.",
+      "epigram": "Work, foolish Perses.",
+      "kernel": "A farmer poet. Works and Days tells his brother when to plough, when to sail and why to work.",
       "legacy": [
         {
           "kind": "pays",
@@ -2893,12 +2893,12 @@
       }
     },
     "exekias": {
-      "name": "Aj Maxam",
+      "name": "Exekias",
       "family": "artist",
       "age": 2,
       "tier": "situational",
-      "epigram": "This is the painting of Aj Maxam.",
-      "kernel": "A Maya vase painter of the royal house of Naranjo. He signed his cups and named his parents on them. Painted cups like his were given as gifts from one court to another.",
+      "epigram": "Exekias made me.",
+      "kernel": "The best of the black-figure vase painters. His pots were sold from Etruria to the Black Sea, and he signed them.",
       "legacy": [
         {
           "kind": "pays",
@@ -2908,12 +2908,12 @@
       ]
     },
     "telesilla": {
-      "name": "Macuilxochitzin",
+      "name": "Telesilla",
       "family": "artist",
       "age": 2,
       "tier": "situational",
-      "epigram": "The women spoke, and the wounded man lived.",
-      "kernel": "A Mexica poet, daughter of the counsellor Tlacaelel. Her one surviving song tells of a war in which an enemy warrior wounded the ruler, and of the women who pleaded for that warrior’s life. The song was written down after the conquest, and some doubt that it is hers.",
+      "epigram": "The women took the spears down from the temple.",
+      "kernel": "A poet. When Sparta killed the army of Argos, the story says she armed the women and held the walls. The story is from later writers.",
       "legacy": [
         {
           "kind": "cityStat",
@@ -3015,12 +3015,12 @@
       ]
     },
     "colaeus": {
-      "name": "Sulayman al-Tajir",
+      "name": "Colaeus of Samos",
       "family": "merchant",
       "age": 2,
       "tier": "situational",
-      "epigram": "In that country they drink a leaf in hot water.",
-      "kernel": "A merchant of the Gulf port of Siraf who sailed to India and China. The first Arabic account of China, of its tea and its fine clay cups, names him as its witness. Nothing else about him is known.",
+      "epigram": "The wind was wrong, and made him rich.",
+      "kernel": "A ship’s master blown past the Pillars of Hercules to Tartessos. He came home with the richest cargo of silver the Greeks had seen.",
       "legacy": [
         {
           "kind": "pays",

@@ -89,6 +89,9 @@ describe('the game-screen disposal register', () => {
       // the boot's `controls`, so a list left bound would send a press to a
       // game that has been replaced.
       'endTurnList?.dispose()',
+      // Report a problem (beta checklist row 10). Its sheet binds the shell's
+      // capturing Escape, and it holds the moment it was opened on.
+      'problemReport?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);
     }

@@ -880,7 +880,7 @@ Every person also has the family’s act and work, printed above.
 
 ### The new people (74; ★ marks the 15 strongest of round 1, ☆ the best new person of each cell in round 2)
 
-Note, 2026-11-21: eleven names in this table changed when sixteen rows got a new person (`docs/plans/great-people-cultures-2026-11-21.md`). The table shows the new names, because a sync test reads it. The sections below still describe the people of 2026-11-19.
+Note, 2026-11-21: six names in this table changed when eleven rows got a new person (`docs/plans/great-people-cultures-2026-11-21.md`). The table shows the new names, because a sync test reads it. The sections below still describe the people of 2026-11-19.
 
 | No. | Name | Family | Age | Rating | Effect | Shape |
 |---|---|---|---|---|---|---|
@@ -920,19 +920,19 @@ Note, 2026-11-21: eleven names in this table changed when sixteen rows got a new
 | A34 | Aḥmad ibn Mājid | Merchant | Æra IV | ○ situational | you may send 1 more trade route · all units: +1 movement while embarked | existing (routeRider; unitStat, embarked) |
 | A35 | Fatima al-Fihri | Merchant | Æra IV | ◆ strong | buildings that supply science or faith cost 30% less to buy | small extension (purchaseRider on buildings, filtered by yield) |
 | A36 | ☆ Hippocrates | Scholar | Æra II | ◆ strong | +15% food surplus stored toward growth, in every city | existing (the growth percentage that The Bourgs uses) |
-| A37 | Varāhamihira | Scholar | Æra II | ○ situational | +1 science for each foreign city you have seen | existing (pays, empire, count sightedCities) |
+| A37 | Anaximander | Scholar | Æra II | ○ situational | +1 science for each foreign city you have seen | existing (pays, empire, count sightedCities) |
 | A38 | Baudhāyana | Scholar | Æra II | ○ situational | +2 science in every city with a Shrine | existing (pays, city, hasBuilding) |
 | A39 | Peseshet | Scholar | Æra II | ○ situational | +2 happiness · +1 food in every city | existing (happiness; pays, city) |
 | A40 | Solon | Scholar | Æra II | ◆ strong | +2 authority capacity · +2 science in your capital | existing (authority; pays, city, trueCapital) |
-| A41 | ☆ Yamanoue no Okura | Artist | Æra II | ◆ strong | +1 food and +1 culture in every city with a Granary | existing (pays, city, hasBuilding) |
+| A41 | ☆ Hesiod | Artist | Æra II | ◆ strong | +1 food and +1 culture in every city with a Granary | existing (pays, city, hasBuilding) |
 | A42 | Aesop | Artist | Æra II | ○ situational | +1 culture and +1 gold in every city with a Market | existing (pays, city, hasBuilding) |
-| A43 | Aj Maxam | Artist | Æra II | ○ situational | +2 culture on every trade route you send | existing (pays, route) |
-| A44 | Macuilxochitzin | Artist | Æra II | ○ situational | +5 to the defence of your cities · +1 culture in every city with a garrison | existing (cityStat, defense; pays, city, garrisoned) |
+| A43 | Exekias | Artist | Æra II | ○ situational | +2 culture on every trade route you send | existing (pays, route) |
+| A44 | Telesilla | Artist | Æra II | ○ situational | +5 to the defence of your cities · +1 culture in every city with a garrison | existing (cityStat, defense; pays, city, garrisoned) |
 | A45 | Thutmose the Sculptor | Artist | Æra II | ◆ strong | +2 culture on every hex with a Quarry | existing (pays, hex) |
 | A46 | Artachaees | Engineer | Æra II | ○ situational | all units: +1 movement while embarked · +1 production in every coastal city | existing (unitStat, embarked; pays, city, coastal) |
 | A47 | Ineni | Engineer | Æra II | ○ situational | +1 production on every hex with a Quarry | existing (pays, hex) |
 | A48 | ☆ Sunshu Ao | Engineer | Æra II | ◆ strong | +2 food in every city on fresh water | existing (pays, city, freshwater) |
-| A49 | ☆ Sulayman al-Tajir | Merchant | Æra II | ○ situational | +1 gold for each foreign city you have seen | existing (pays, empire, count sightedCities) |
+| A49 | ☆ Colaeus of Samos | Merchant | Æra II | ○ situational | +1 gold for each foreign city you have seen | existing (pays, empire, count sightedCities) |
 | A50 | Wenamun | Merchant | Æra II | ○ situational | +1 gold and +1 production on every hex with a Lumbermill | existing (pays, hex) |
 | A51 | Iddin-Marduk | Merchant | Æra II | ○ situational | +1 gold on every hex with a Farm, in your capital | existing (pays, hex, with the trueCapital scope) |
 | A52 | ☆ Leonidas | General | Æra II | ◆ strong | +4 combat strength when defending while fortified | existing (combatLine, fortified) |

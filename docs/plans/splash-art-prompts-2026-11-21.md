@@ -4,7 +4,7 @@ The user, 2026-11-21: *"can you give me prompts for all remaining splash art, i'
 
 - This page has one Midjourney prompt for each painting that has a picture window and no painting.
 - It changes no game data and no code.
-- Sixteen people changed on 2026-11-21 (`docs/plans/great-people-cultures-2026-11-21.md`). Their prompts here are for the new people. The row ids did not change.
+- Eleven people changed on 2026-11-21 (`docs/plans/great-people-cultures-2026-11-21.md`). Their prompts here are for the new people. The row ids did not change.
 - A web page with a Copy button for each prompt was made from the same text, for the user to work from.
 - The style is not new. Section 1 says where each style block came from.
 
@@ -78,7 +78,7 @@ flat gouache painting on grained paper, simplified hard-edged planes of colour, 
 
 - `scripts/splashArt.py` already knows every name on this page: 137 in `PEOPLE`, 33 in `BELIEFS`, and a `title` kind (16:9, at most 1600 wide, `title.jpg`), added 2026-11-21. It maps the name to the row id and writes `public/art/splash/<kind>/<row id>.jpg`.
 - Run `python3 scripts/splashArt.py people` (or `beliefs`, or `title`). Then add the row id of each new picture to `src/ui/greatPersonPaintings.ts`, `src/ui/beliefPictures.ts` or `TITLE_PAINTINGS` in `src/ui/titlePainting.ts`. A test fails if a list and its folder disagree.
-- Eighteen rows kept the id of an earlier person: `ibn_jubayr` maps to `ibnBattuta`, `jacques_coeur` to `cosimoDeMedici`, and the sixteen rows of `docs/plans/great-people-cultures-2026-11-21.md` (for example `amanitore` maps to `heroOfAlexandria` and `piye` to `artemisia`). `hero_of_alexandria` maps to `heronOfAlexandria`. The table is `PEOPLE` in `scripts/splashArt.py`.
+- Thirteen rows kept the id of an earlier person: `ibn_jubayr` maps to `ibnBattuta`, `jacques_coeur` to `cosimoDeMedici`, and the eleven rows of `docs/plans/great-people-cultures-2026-11-21.md` (for example `amanitore` maps to `heroOfAlexandria` and `piye` to `artemisia`). `hero_of_alexandria` maps to `heronOfAlexandria`. The table is `PEOPLE` in `scripts/splashArt.py`.
 - The ids on this page's anchors are `gp-<row id>`, `fb-<row id>`, `eb-<row id>`, `title-1` to `title-3`.
 
 </details>
@@ -162,12 +162,12 @@ Scholar, age II · **First 20**. Greek physician of Kos, about 460 to 370 BC. An
 Hippocrates, a Greek physician of the island of Kos in the fifth century BC, a bald old man with a full white beard, a cream cloak over one shoulder, a small bronze cup in one hand and a bundle of green herbs in the other, low behind him a great plane tree and the white terraces of a healing sanctuary above the sea, cream and olive green lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Varāhamihira
+#### Anaximander
 
-Scholar, age II. Indian astronomer of Ujjain, about 505 to 587. No likeness. Save as: `art-masters/people/varahamihira.png`.
+Scholar, age II. Greek philosopher of Miletus, about 610 to 546 BC. No likeness. Save as: `art-masters/people/anaximander.png`.
 
 ```text
-Varahamihira, an Indian astronomer of the city of Ujjain in the sixth century, a man of about fifty with brown skin, a trimmed beard and hair in a knot, a white lower cloth and a deep red shawl, a bronze water bowl in both hands with a small cup floating in it, low behind him a stone temple terrace with steps down to a river, deep red and white lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Anaximander, a Greek philosopher of Miletus in the sixth century BC, a man of about sixty with a grey beard, a blue-grey cloak, bending to set an upright bronze pointer on a smooth round stone dial, watching its shadow, low behind him a rocky headland and the open sea, blue-grey and pale stone lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Baudhāyana
@@ -210,12 +210,12 @@ Artist, age II. Scribe of Ugarit who wrote down the stories of the storm god, ab
 Ilimilku, a scribe of a Bronze Age port city in Syria about 1300 BC, a man of about thirty-five with a short beard and a headband, a long wrapped robe with a red and blue border, a smooth clay tablet held against his chest, low behind him a stone harbour town and one dark storm cloud far out over the sea, red and deep blue lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Yamanoue no Okura
+#### Hesiod
 
-Artist, age II. Japanese court official and poet, about 660 to 733. His poems are in the first great book of Japanese verse. No likeness. Save as: `art-masters/people/yamanoue_no_okura.png`.
+Artist, age II. Greek farmer and poet of Boeotia, about 700 BC. The busts are imagined. Save as: `art-masters/people/hesiod.png`.
 
 ```text
-Yamanoue no Okura, a Japanese provincial governor and poet of the early eighth century, a thin old man of about seventy with a grey wisp of beard, a black gauze court cap and a round-collared robe in faded green, a narrow blank wooden writing slip and a brush in his hands, low behind him a thatched farmhouse with thin smoke among wet rice fields under far hills, faded green and straw lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Hesiod, a farmer and poet of early Greece about 700 BC, a weathered man of about fifty with a rough beard, a short wool tunic and a sheepskin over his shoulders, leaning on a shepherd's staff held low, a laurel branch in his hand, low behind him a ploughed field with a tiny ox team below a mountain, earth brown and olive lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Aesop
@@ -226,20 +226,20 @@ Artist, age II · **First 20**. Teller of fables in Greek tradition, sixth centu
 Aesop, a teller of fables in sixth-century BC Greece, a short stooped man of about fifty with a lively lined face, a plain brown tunic, seated on a low stone wall with one hand raised as he tells a story, a tortoise on the wall beside him, low behind him a village well and a vineyard, brown and vine green lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Aj Maxam
+#### Exekias
 
-Artist, age II. Maya vase painter of the royal house of Naranjo, active about 750 to 800. He signed his work. No likeness. Save as: `art-masters/people/aj_maxam.png`.
+Artist, age II. Athenian potter and vase painter, about 540 BC. No likeness. Save as: `art-masters/people/exekias.png`.
 
 ```text
-Aj Maxam, a Maya court painter of the eighth century, a man of about thirty with brown skin and long hair tied up in a white headwrap, jade ear ornaments and a white loincloth with a red sash, seated cross-legged, painting a tall cream clay cup with a fine brush, a shell paint pot beside him, low behind him a steep stone temple above forest, cream, orange and jade green lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Exekias, a potter and vase painter of Athens about 540 BC, a man of about forty with a short beard, a working tunic that leaves one shoulder bare, painting a black figure with a fine brush on a large orange clay jar held on his knee, low behind him a kiln with thin smoke and a shelf of pots, terracotta orange and black lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Macuilxochitzin
+#### Telesilla
 
-Artist, age II. Mexica poet, born about 1435, daughter of Tlacaelel. One song is given to her. No likeness. Save as: `art-masters/people/macuilxochitzin.png`.
+Artist, age II. Poet of Argos, about 500 BC. Later writers say she armed the women and held the walls. Save as: `art-masters/people/telesilla.png`.
 
 ```text
-Macuilxochitzin, a Mexica noblewoman and poet of fifteenth-century Tenochtitlan, a woman of about forty with brown skin, hair wound into two small horns above the forehead, a long white blouse with a red and yellow border over a wrapped skirt, five marigold flowers in one hand, the other hand raised as she sings, low behind her a stone causeway across a lake to an island city, white, red and marigold yellow lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Telesilla, a poet of the Greek city of Argos about 500 BC, a woman of about thirty-five with dark hair bound up, a long pleated dress in deep red, a bronze helmet held under one arm and a small lyre hung at her side, low behind her a stone city wall with tiny women holding spears, deep red and bronze lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Thutmose the Sculptor
@@ -370,12 +370,12 @@ Merchant, age II. Governor of Elephantine who led four caravans into Nubia, abou
 Harkhuf, an Egyptian governor and caravan leader about 2250 BC, a man of about forty-five with brown skin, a short wig and a white kilt, a long staff held low, an elephant tusk and logs of black ebony beside him, low behind him a file of tiny loaded donkeys among granite boulders by the Nile, white and ebony black lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Sulayman al-Tajir
+#### Colaeus of Samos
 
-Merchant, age II. Merchant of Siraf on the Persian Gulf who sailed to India and China, about 850. No likeness. Save as: `art-masters/people/sulayman_al_tajir.png`.
+Merchant, age II. Ship's master of Samos, blown past the Pillars of Hercules to Tartessos, about 630 BC. No likeness. Save as: `art-masters/people/colaeus_of_samos.png`.
 
 ```text
-Sulayman, a merchant of the Persian Gulf port of Siraf in the ninth century, a sun-browned man of about forty-five with a dark beard, a white turban and a long indigo robe with a sash, holding up a small pale green glazed bowl, bales and jars at his feet, low behind him the deck of a sewn-plank ship with a great sail and a far green coast, indigo and pale green lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Colaeus, a Greek ship's master of Samos about 630 BC, a sun-browned man of about forty with a short beard, a simple tunic and a felt cap, lifting a silver ingot from a heap of them on the deck, low behind him a square sail and two great rocky headlands with the open western sea between them, silver and sea blue lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Wenamun
@@ -1632,6 +1632,6 @@ one steady flame in a deep round-topped niche in a cream stone wall, black soot 
 
 - **The style reference and the values.** They are not in the repo or in the transcript. Only the user has them.
 - **Likenesses.** Most of these people have no portrait from life. The age and the face in each prompt are my choice for a dignified figure.
-- **Dress of the less recorded people.** Tapputi, Peseshet, Kushim, Piyamaradu, Ilimilku, Lamassī, Widow Qing, Yarhai, Auvaiyar, Amina, Tlacaelel, Anacharsis, Artachaees, Pushyagupta, Zoskales, Anāthapiṇḍika, Aj Maxam, Macuilxochitzin and Sulayman al-Tajir are described from their place and period.
+- **Dress of the less recorded people.** Tapputi, Peseshet, Kushim, Piyamaradu, Ilimilku, Lamassī, Widow Qing, Yarhai, Auvaiyar, Amina, Tlacaelel, Anacharsis, Artachaees, Pushyagupta, Zoskales and Anāthapiṇḍika are described from their place and period.
 - **Dates.** They are the usual ones, from memory. Many are approximate.
 - **Names in a prompt.** If Midjourney refuses a name or gives a modern face, delete the name. The rest of the subject part still describes the person.
