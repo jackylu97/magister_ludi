@@ -15,6 +15,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BoxGeometry, BufferGeometry, Group, Mesh, MeshStandardMaterial } from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import { VIEW3D } from '../../src/render3d/lookData';
 // @ts-expect-error The shared study asset loader has no standalone declaration.
 import { loadVegetation, describeVegetationBundle, VEGETATION_BUNDLE_VERSION, VEGETATION_BUNDLE_URL, VEGETATION_SPECIES } from '../../src/terrainStudy/vegetation.js';
 // @ts-expect-error The shared study asset loader has no standalone declaration.
@@ -54,7 +55,7 @@ function serve(buffer: ArrayBuffer | null, expected: string = VEGETATION_BUNDLE_
   }) as unknown as typeof fetch);
 }
 
-type Asset = { geometry: BufferGeometry; shoulderGeometry: BufferGeometry | null; material: MeshStandardMaterial };
+type Asset = { geometry: BufferGeometry; shoulderGeometry: BufferGeometry | null; normalGeometry?: BufferGeometry; material: MeshStandardMaterial };
 type Kit = { broadleaves: Asset[]; cypresses: Asset[]; escarpments: Asset[]; limestone: Asset; materials: MeshStandardMaterial[] };
 type Described = { header: { version: string; species: { name: string }[] }; chunks: Uint8Array[]; bytes: number };
 
@@ -73,29 +74,32 @@ function describeGeometry(geometry: BufferGeometry | null) {
 }
 
 function release(kit: Kit): void {
-  for (const asset of ordered(kit)) { asset.geometry.dispose(); asset.shoulderGeometry?.dispose(); }
+  for (const asset of ordered(kit)) { asset.geometry.dispose(); asset.shoulderGeometry?.dispose(); asset.normalGeometry?.dispose(); }
   for (const material of kit.materials) material.dispose();
 }
 
 /** The fallback's own output, and a bundle describing it. */
-async function prepared(): Promise<{ live: Kit; described: Described }> {
+async function prepared(normalTreeCells?: { x: number; y: number; z: number }): Promise<{ live: Kit; described: Described }> {
   vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(async () => asset());
   serve(null);
-  const live: Kit = await loadVegetation({ value: 0 }, null, null, { indexed: true });
+  const live: Kit = await loadVegetation({ value: 0 }, null, null, { indexed: true, normalTreeCells });
   return { live, described: describeVegetationBundle(live) as Described };
 }
 
 describe('prepared vegetation bundle', () => {
   it('reproduces the live GLB path attribute for attribute, for every species', async () => {
-    const { live, described } = await prepared();
+    const normalTreeCells = VIEW3D.painted.lod.normalTrees.cells;
+    const { live, described } = await prepared(normalTreeCells);
     expect(ordered(live)).toHaveLength(VEGETATION_SPECIES.length);
     expect(described.header.version).toBe(VEGETATION_BUNDLE_VERSION);
     expect(described.header.species.map(row => row.name)).toEqual(VEGETATION_SPECIES.map((row: { name: string }) => row.name));
 
     serve(encodeBundle(described));
-    const bundled: Kit = await loadVegetation({ value: 0 }, null, null, { indexed: true });
+    const bundled: Kit = await loadVegetation({ value: 0 }, null, null, { indexed: true, normalTreeCells });
     for (const [i, species] of VEGETATION_SPECIES.entries()) {
       const a = ordered(live)[i], b = ordered(bundled)[i];
+      expect(!!b.normalGeometry).toBe(species.family === 'groves');
+      expect(describeGeometry(b.normalGeometry ?? null)).toEqual(describeGeometry(a.normalGeometry ?? null));
       expect(describeGeometry(b.geometry), `${species.name} geometry`).toEqual(describeGeometry(a.geometry));
       expect(describeGeometry(b.shoulderGeometry), `${species.name} shoulder`).toEqual(describeGeometry(a.shoulderGeometry));
       // The rock/foliage association travels in the species order, not the geometry.

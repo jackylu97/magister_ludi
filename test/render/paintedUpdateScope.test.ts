@@ -3,6 +3,9 @@ import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { Renderer3D } from '../../src/render3d/renderer3d';
 import { DioramaCamera } from '../../src/render3d/camera3d';
 import { layerVisibility } from '../../src/render3d/layerVisibility';
+import { FogView } from '../../src/render3d/fog3d';
+import { NO_LENS } from '../../src/render3d/lens3d';
+import { applyCommand } from '../../src/sim/commands';
 import { badgeAnchors, signUnits, UnitLayer, unitVisualHeight } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { VIEW3D } from '../../src/render3d/lookData';
@@ -58,6 +61,62 @@ function fixture() {
 }
 
 describe('incremental renderer updates', () => {
+  it.each([
+    {mode: 'explorer', chartNewCell: false, rebuild: false},
+    {mode: 'none', chartNewCell: false, rebuild: false},
+    {mode: 'explorer', chartNewCell: true, rebuild: true},
+    {mode: 'settler', chartNewCell: false, rebuild: true},
+    {mode: 'faith', chartNewCell: false, rebuild: true},
+  ] as const)('updates a $mode lens after a move when its inputs change (new chart cell: $chartNewCell)', ({mode, chartNewCell, rebuild}) => {
+    const {state, runtime, unit, calls} = fixture(), levels = state.visibility[0]!;
+    const fog = new FogView(state.map, { own: new Map(), shared: [] });
+    onTestFinished(() => fog.dispose());
+    // This distant farm, ruin and city's borders will fade into memory when the mover's sight is recomputed.
+    state.map.tiles[0]!.improvement = 'farm';
+    state.map.tiles[1]!.discovery = 'ruins';
+    if (chartNewCell) levels[3 + 12] = 0;
+    fog.apply(levels);
+    const workFog = vi.fn(() => true);
+    const view = Object.assign(runtime as unknown as {
+      syncStateLayers(): void; lensDirty: boolean;
+    }, {
+      lens: {glyphValuesChanged: () => false},
+      lensView: {...NO_LENS, mode, yields: true, resources: true},
+      clearedImprovementsSignature: signImprovedCells(state),
+      rebuildPaintedWorks: workFog,
+      applyFog: () => fog.apply(levels),
+    });
+    view.syncStateLayers();
+    view.lensDirty = false;
+    calls.sites.mockClear();
+    calls.improvements.mockClear();
+    const result = applyCommand(state, {type: 'moveUnit', playerId: 0, unitId: unit.id, target: {col: 3, row: 2}});
+    expect(result.ok).toBe(true);
+    runtime.noteStateChanged('moveUnit');
+    view.syncStateLayers();
+    expect(levels[0]).toBe(1);
+    expect(calls.sites).toHaveBeenCalled();
+    expect(calls.improvements).toHaveBeenCalled();
+    expect(view.lensDirty).toBe(rebuild);
+  });
+
+  it('updates pins with yields off when a resource becomes known or its city disappears', () => {
+    const {runtime, state} = fixture();
+    const view = Object.assign(runtime as unknown as {syncStateLayers(): void; lensDirty: boolean}, {
+      lensView: {...NO_LENS, resources: true},
+      applyReveal: () => ({cells: 1, matrixWrites: 0}),
+    });
+    view.syncStateLayers();
+    expect(view.lensDirty).toBe(true);
+    view.lensDirty = false;
+    view.applyReveal = () => ({cells: 0, matrixWrites: 0});
+    view.syncStateLayers();
+    expect(view.lensDirty).toBe(false);
+    state.cities.length = 0;
+    view.syncStateLayers();
+    expect(view.lensDirty).toBe(true);
+  });
+
   it('moves and damages a unit without rebuilding unrelated scenery', () => {
     const f = fixture(); f.unit.col++;
     f.runtime.setGameState(f.state);

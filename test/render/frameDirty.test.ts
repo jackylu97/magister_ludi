@@ -38,7 +38,7 @@ function fixture(state: unknown = null) {
   const remove = vi.fn();
   const rebuildUnits = vi.fn();
   const buildOverlays = vi.fn();
-  const view = { pan: vi.fn(), zoomByFactor: vi.fn(), stepPan: () => false, camera: { right: 1, left: -1 } };
+  const view = { pan: vi.fn(), zoomByFactor: vi.fn(() => true), stepPan: () => false, camera: { right: 1, left: -1 } };
   const data: Record<string, unknown> = {
     running: true, stateDirty: false, frameDirty: false,
     state, map: null, fogSeat: null, hover: null, hoveredUnitId: null,
@@ -78,12 +78,43 @@ describe('a camera frame draws without re-reading the state', () => {
     expect(f.sync).not.toHaveBeenCalled();
   });
 
+  it('keeps the hover outline and waits for another reason to draw at a zoom limit', () => {
+    const f = fixture();
+    f.runtime.setHoveredUnitId(4);
+    f.frame();
+    const hover = vi.spyOn(f.runtime, 'setHoveredUnitId');
+    f.view.zoomByFactor.mockReturnValue(false);
+    f.runtime.zoomBy(1.05, 400, 300);
+    f.frame();
+    expect(hover).not.toHaveBeenCalled();
+    expect(f.drawn()).toBe(1);
+  });
+
   it('a hover move draws a frame and runs no state sweep', () => {
     const f = fixture();
     const tile = (n: number) => ({ tile: { col: n, row: 0 } }) as never;
     for (let i = 0; i < 5; i++) { f.runtime.setHover(tile(i)); f.frame(); }
     expect(f.drawn()).toBe(5);
     expect(f.sync).not.toHaveBeenCalled();
+  });
+
+  it('draws the first walking pose at the time the board finishes its updates', () => {
+    const f = fixture();
+    const map = createMap({ width: 8, height: 6, terrain: 'grassland' });
+    Object.assign(f.runtime, { map });
+    const now = vi.spyOn(performance, 'now').mockReturnValue(100);
+    onTestFinished(() => now.mockRestore());
+    const from = { col: 2, row: 3 }, to = { col: 3, row: 3 };
+    f.animations.start(7, from, [to], 100);
+    const walker = new Group();
+    f.walkers.set(7, walker);
+    f.sync.mockImplementationOnce(() => { now.mockReturnValue(125); });
+    f.runtime.invalidate();
+    f.frame();
+    const sample = f.animations.sample(7, 125, map)!;
+    expect(walker.position.x).toBeCloseTo(sample.x, 8);
+    expect(walker.position.z).toBeCloseTo(sample.z, 8);
+    expect(f.drawn()).toBe(1);
   });
 
   it('selection patches badge rims and draws a frame without rebuilding units', () => {

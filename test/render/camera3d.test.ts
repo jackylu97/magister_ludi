@@ -54,6 +54,19 @@ function seated(): DioramaCamera {
   return camera;
 }
 
+it.each([100, 0.01])('cancels a pan while further zoom at the limit leaves the camera still (%s)', factor => {
+  const camera = seated();
+  expect(camera.zoomByFactor(factor, 470, 180)).toBe(true);
+  camera.panTo(camera.target.x + 4, camera.target.z + 4, true, 0);
+  expect(camera.isPanning).toBe(true);
+  const revision = camera.projectionRevision;
+  const target = camera.target.clone();
+  for (let i = 0; i < 48; i++) expect(camera.zoomByFactor(factor, 470, 180)).toBe(false);
+  expect(camera.stepPan(CAMERA.panMs)).toBe(false);
+  expect(camera.target).toEqual(target);
+  expect(camera.projectionRevision).toBe(revision);
+});
+
 it('projects each wrap copy into the CSS viewport used for picking', () => {
   const view = seated();
   let revision = view.projectionRevision;

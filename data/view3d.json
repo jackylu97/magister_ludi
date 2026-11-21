@@ -1299,6 +1299,11 @@
     "lod": {
       "nearPixels": 25,
       "farPixels": 29,
+      "normalTrees": {
+        "closeRadius": 6,
+        "normalRadius": 6.5,
+        "cells": { "x": 5, "y": 7, "z": 5 }
+      },
       "distantCells": {
         "groves": {
           "x": 2,

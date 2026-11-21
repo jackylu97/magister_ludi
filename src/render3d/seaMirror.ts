@@ -27,7 +27,7 @@
  */
 
 import {
-  HalfFloatType, LinearFilter, type Material, Matrix4, type Object3D, OrthographicCamera, Plane, type Scene, Vector2, Vector3,
+  HalfFloatType, LinearFilter, type Material, Matrix4, type Object3D, OrthographicCamera, Plane, Scene, Vector2, Vector3,
   type WebGLRenderer, WebGLRenderTarget,
 } from 'three';
 
@@ -38,12 +38,60 @@ import { VTEST_UNIFORMS } from './visualTestLook';
 
 const MIRROR = VIEW3D.visualTest.coast.open.mirror;
 const LEVEL = WATER_LEVEL as number;
+const aboveWater = new Plane(new Vector3(0, 1, 0), -(LEVEL + .006));
+
+interface LinkedProgram {
+  program?: unknown;
+  isReady(): boolean;
+  getUniforms(): unknown;
+}
+
+/** Compile a walking piece for both views while the loading sheet still covers the board.
+ * Three reads shader diagnostics, uniforms and attributes on first use, after linking. */
+export async function prepareWalkerPrograms(
+  renderer: WebGLRenderer, scene: Scene, camera: OrthographicCamera, walker: Object3D, live: () => boolean,
+): Promise<void> {
+  const programs = new Set<LinkedProgram>();
+  const properties = renderer.properties;
+  const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType });
+  const previous = renderer.getRenderTarget(), planes = renderer.clippingPlanes;
+  const empty = new Scene();
+  try {
+    renderer.setRenderTarget(target);
+    for (const clipping of [[aboveWater], planes]) {
+      renderer.clippingPlanes = clipping;
+      // Three updates its active clipping count in render(), including for
+      // an empty scene. compile() reads that count and the real scene lights.
+      renderer.render(empty, camera);
+      for (const material of renderer.compile(walker, camera, scene)) {
+        const { currentProgram } = properties.get(material) as { currentProgram?: LinkedProgram };
+        if (currentProgram) programs.add(currentProgram);
+      }
+    }
+  } finally {
+    renderer.clippingPlanes = planes;
+    renderer.setRenderTarget(previous);
+    target.dispose();
+  }
+
+  while (programs.size) {
+    // Always leave the draw call first. If parallel linking is available,
+    // isReady() checks completion without waiting for the driver.
+    await new Promise<void>(resolve => setTimeout(resolve, 10));
+    if (!live() || properties !== renderer.properties) return;
+    for (const program of programs) {
+      if (program.program) {
+        if (!program.isReady()) continue;
+        program.getUniforms();
+      }
+      programs.delete(program);
+    }
+  }
+}
 
 export class SeaMirror {
   private readonly target = new WebGLRenderTarget(4, 4, { type: HalfFloatType, minFilter: LinearFilter, magFilter: LinearFilter, depthBuffer: true });
   private readonly camera = new OrthographicCamera();
-  /** Keeps everything at or under the water out of the mirror's picture, the water itself included. */
-  private readonly above = new Plane(new Vector3(0, 1, 0), -(LEVEL + .006));
   private readonly size = new Vector2();
   private readonly position = new Vector3();
   private readonly ahead = new Vector3();
@@ -152,7 +200,7 @@ export class SeaMirror {
     // The water must not read the picture while it is being drawn.
     VTEST_UNIFORMS.vtestMirrorOn.value = 0;
     scene.background = null;
-    renderer.clippingPlanes = [this.above];
+    renderer.clippingPlanes = [aboveWater];
     renderer.setRenderTarget(this.target);
     renderer.setClearAlpha(0);
     renderer.clear();

@@ -67,6 +67,10 @@
     wrap(renderer, 'loop', 'board frame');
     wrap(renderer, 'stepAnimations', 'walking pose');
     wrap(renderer.paintedLook, 'updateDynamicShadows', 'moving shadows');
+    // The mirror is created on the first frame that sees water.
+    const { SeaMirror } = await import('/src/render3d/seaMirror.ts');
+    wrap(SeaMirror.prototype, 'render', 'water reflection');
+    wrap(renderer.renderer.getContext(), 'getProgramInfoLog', 'shader diagnostics');
     wrap(renderer, 'animateMove', 'start walk', ([id, from]) => {
       if (active.expected.unit === id) active.from = cellCenter(from.col, from.row);
     });

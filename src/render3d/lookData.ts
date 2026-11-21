@@ -1963,6 +1963,8 @@ interface PaintedCanvasSpec {
 interface PaintedLodSpec {
   nearPixels: number;
   farPixels: number;
+  /** Camera radius keeps the close-up trees available at every display resolution. */
+  normalTrees: { closeRadius: number; normalRadius: number; cells: { x: number; y: number; z: number } };
   /**
    * The grid a prop family's sculpt is clustered on to make the map-scale
    * stand-in the far batches draw (`farSculpt`, `terrainStudy/vegetation.js`):

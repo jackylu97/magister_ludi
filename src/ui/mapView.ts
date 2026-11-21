@@ -21,6 +21,7 @@
  */
 
 import type { Hex } from '../sim/hex';
+import type { Command } from '../sim/commands';
 import type { Tile } from '../sim/map';
 import type { GameState } from '../sim/state';
 import type { UnitTypeId } from '../sim/unitData';
@@ -603,11 +604,12 @@ export interface MapView {
    * turn's coins forever. `commit`, in `src/ui/controls.ts` — the one place a
    * command reaches the reducer — is the seam: it calls this once after every
    * *accepted* command (a rejection changes nothing, hard rule 1), and the
-   * renderer updates the open yield overlay before the next draw. Commands
-   * that finish in the same frame share one update.
+   * renderer updates the open yield overlay before the next draw if needed.
+   * The command type lets the renderer reuse the overlay when a unit moves
+   * across known ground and the standing yields stay the same.
    *
    * Optional for the usual reason — the 2D pipelines are frozen and have no
    * yields lens to keep honest.
    */
-  noteStateChanged?(): void;
+  noteStateChanged?(command?: Command['type']): void;
 }

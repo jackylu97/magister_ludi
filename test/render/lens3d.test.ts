@@ -859,7 +859,7 @@ describe('the yields lens follows every trigger that can move a tile\'s number',
     const idx = source.indexOf('const revealed = this.applyReveal();');
     expect(idx).toBeGreaterThan(-1);
     const after = source.slice(idx, idx + 400);
-    expect(after).toMatch(/revealed\s*&&\s*revealed\.cells\s*>\s*0\s*&&\s*this\.lensView\.yields\)\s*this\.markLensDirty\(\)/);
+    expect(after).toMatch(/revealed\s*&&\s*revealed\.cells\s*>\s*0\s*&&\s*\(this\.lensView\.yields\s*\|\|\s*this\.lensView\.resources\)\)\s*this\.markLensDirty\(\)/);
   });
 
   /**
@@ -897,9 +897,9 @@ describe('the yields lens follows every trigger that can move a tile\'s number',
     // A card or belief's `tileYield` effect moves no tile, improvement or
     // border, so nothing above catches it; this is the seam `commit`
     // (`src/ui/controls.ts`) calls once per accepted command.
-    const block = ifBlockAt('noteStateChanged(): void {');
+    const block = ifBlockAt("noteStateChanged(command?: Command['type']): void {");
     expect(yieldsRebuild.test(block)).toBe(true);
     // And the interface declares the optional hook it implements.
-    expect(code(MAP_VIEW_SOURCE)).toContain('noteStateChanged?(): void;');
+    expect(code(MAP_VIEW_SOURCE)).toContain("noteStateChanged?(command?: Command['type']): void;");
   });
 });

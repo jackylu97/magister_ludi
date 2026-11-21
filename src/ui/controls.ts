@@ -3068,7 +3068,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       clearUnitHover();
       // A card or a belief can change what a hex pays with no board fingerprint to
       // move; the yields lens is told once per accepted command (`MapView`, optional).
-      renderer.noteStateChanged?.();
+      renderer.noteStateChanged?.(command.type);
       pollSightings();
       reportReligion();
       reportConsecrations(result);
@@ -5432,14 +5432,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const cell = { col: hex.col, row: hex.row };
       const preview = previewCombat(state, unit.id, { col: tile.col, row: tile.row }, { from: cell });
       const stand: CombatReading = { preview, comparison: true, from: cell };
+      // Ranged units use the nearest legal shot. The other positions are already farther away or tied.
+      if (ranged && preview.ok) return stand;
       if (chosen === null || !chosen.preview.ok) {
         chosen = stand;
         continue;
       }
       if (!preview.ok) continue;
-      // Nearest-first has already answered for the bow; the sword takes the
-      // strongest stance it found, and the ties are the sort order's.
-      if (!ranged && preview.attackerStrength > chosen.preview.attackerStrength) chosen = stand;
+      // Melee units compare all legal positions and keep the first one on a tie.
+      if (preview.attackerStrength > chosen.preview.attackerStrength) chosen = stand;
     }
     return chosen;
   }

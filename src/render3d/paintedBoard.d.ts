@@ -8,6 +8,8 @@ export interface PaintedVegetationAsset<G = BufferGeometry, M = MeshStandardMate
   shoulderGeometry?: G | null;
   /** The map-scale stand-in, where the distance sheet names this family. */
   farGeometry?: G | null;
+  /** The page applies the normal tree sculpt after it receives the worker's placement data. */
+  normalGeometry?: G | null;
   farShoulderGeometry?: G | null;
   material: M;
 }
@@ -117,7 +119,7 @@ export interface PaintedBoard extends BuiltBoard {
   createChartTable(register?: (material: MeshStandardMaterial) => unknown): Mesh;
   reserveFootprints(radii: ReadonlyMap<number,number>, woodedWorks?: ReadonlySet<number>): number;
   isCellVisible(cell: number, grade?: number): boolean;
-  updateDetail(pixels: number): boolean;
+  updateDetail(pixels: number, radius?: number): boolean;
   /** Raises near geometry for the static depth pass alone. True when it moved. */
   setBakeDetail(active: boolean): boolean;
   /** Flips the world's cast flags on the built board. True when the state changed. */

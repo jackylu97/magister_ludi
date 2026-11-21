@@ -140,8 +140,49 @@ All 10,486,980 colour bytes matched in every fixed view, including after a shado
 
 A separate trial clustered each sculpt into a 5 × 7 × 5 grid. It kept the tree positions, instance attributes and wind. At radius 13, the five-city view submitted 720,866 fewer triangles per frame. Across 24 paired draws the median GPU time saved was 4.58 ms. All 24 pairs improved. Drawing the current trees twice gave a median difference of −0.09 ms.
 
-The crowns had broader facets at normal zoom. Restoring the original meshes reproduced every colour byte in the reference image. A separate run measured panning on the game's normal animation loop. After a warm-up with each mesh, the camera made the same 1.9-second pan three times with each model in alternating order. With the current trees it drew 29.5–29.9 FPS. With the simpler trees it drew 29.9–30.0 FPS. The playtest update uses the original crowns. [Paired timings, camera runs and image comparison](turn73-render-costs-2026-11-21.json)
+The crowns had broader facets at normal zoom. Restoring the original meshes reproduced every colour byte in the reference image. A separate run measured panning on the game's normal animation loop. After a warm-up with each mesh, the camera made the same 1.9-second pan three times with each model in alternating order. With the current trees it drew 29.5–29.9 FPS. With the simpler trees it drew 29.9–30.0 FPS. The playtest still used the original crowns during that trial. [Paired timings, camera runs and image comparison](turn73-render-costs-2026-11-21.json)
 
 A control found that the default headless browser delivered 30 animation callbacks per second even on an empty page. The game also ran at 29.8–30.0 callbacks per second while panning with its final board draw skipped. This setup cannot establish an upper limit for the game on a display.
 
 A second browser disabled the frame-rate limit and GPU vertical sync. In three runs per mesh, the current board submitted 53.2–56.1 frames per second. The simpler trees raised this to 58.9–60.8. The slow intervals also grew. The 95th-percentile gap between submissions was 31.0–35.7 ms with the current trees and 42.8–47.9 ms with simpler trees. This measures throughput in a headless browser. It does not establish the display rate, input latency or smoother motion in the playtest.
+
+**Art decision, November 21.** Use the approved 5 × 7 × 5 crowns by default at normal board zoom. Keep the original close-up sculpts and the existing distant trees. Keep the board at 1.5×. Tree positions, wind, fog and the rules for clearing trees still apply at every zoom.
+
+## What stalls a drag and a unit move
+
+These tests use a private headless Chrome session on the Apple M4. The exported turn 73 position has 231 units and 28 cities. The five-city view uses the Explorer lens, resources and yields at 1.5×. The tests end when the game submits a frame. They do not time its arrival at the monitor. Background bot planning was off.
+
+### Dragging the board
+
+The test sent trusted mouse events through the viewport at 60 per second. It repeated a 1.9-second drag six times, three times with the approved trees and three times with the final Three.js draw skipped. Each run delivered at least 89 pan commands. The control kept input, game logic, camera updates and the other frame callbacks running.
+
+| Measurement, 95th percentile in each run | Full board | Board draw skipped |
+|---|---:|---:|
+| Gap between frame submissions | 25.8–42.1 ms | 18.7–20.4 ms |
+| Time from the camera accepting the pan to the next frame submission | 10.1–11.1 ms | 1.1–1.6 ms |
+| Delay before the page received the pointer event | 9.4–11.1 ms | 0.6–1.7 ms |
+
+The same drag got farther behind with the full draw. Measuring the input handler alone misses both the wait for input delivery and the cost of drawing the new camera position. Some gaps also remained with drawing skipped.
+
+Across the three full-board runs, the 95th-percentile time inside the render loop was 9.4–10.9 ms. The larger gaps between submissions include time outside that loop. These traces cannot assign the rest to the GPU, browser scheduling or other processes.
+
+A fresh browser repeated the drag with Chrome tracing on. Every run delivered all 114 pan commands. The 95th-percentile gap was 17.9 and 18.7 ms with the full board, and 17.7 ms with the draw skipped. This time the full render loop took 3.2–3.6 ms at the 95th percentile. The scene and resolution alone do not predict when the longer gaps occur.
+
+In 24 matched GPU pairs after the tree change, omitting water saved a median 2.04 ms, land 2.00 ms and contact shadows 1.51 ms. Omitting trees saved 0.98 ms and removed 182,460 triangles, down from 926,165 in the earlier full-tree test. Omitting units saved 0.14 ms and won only 12 of 24 pairs. These costs depend on what each layer covers and cannot be added. [Measurements and controls](turn73-input-and-render-2026-11-21.json)
+
+### Moving a unit
+
+Swordsman 516 moved from (24,41) to (25,41). Four cells changed between visible and remembered. All four were already charted. Rebuilding the Explorer, Yields and Resources overlay produced the same bytes for 42 meshes containing 6,240 instances. The renderer can reuse that overlay. Newly charted tiles, real changes to yields and modes that depend on current sight still update. The walk now samples the unit's position after the board updates. An expensive update can no longer leave the figure drawn at its old time.
+
+In a separate instrumented replay, the first visible movement took 162.1 ms after the page received the release. The water-reflection pass accounted for 116.1 ms in its first walking frame. A timed WebGL call spent 109.0 ms in `getProgramInfoLog` for the moving swordsman's painted body. An independent CPU sampling profile in the same capture attributed 111 ms to that call inside the reflection. No shader compilation or program link was requested during the move. Three.js first read the previously linked program's diagnostics and shader inputs when it needed them for the reflection. The next unit's first reflection took 1.6 ms. [Reflection implementation](../../../src/render3d/seaMirror.ts)
+
+The loading screen now prepares the walking piece for both views and reads the linked shader inputs when they are ready. Two fresh browser sessions loaded the same position and repeated the moves. Neither move called `getProgramInfoLog` in either session.
+
+| Measurement | Before | After, first run | After, repeat |
+|---|---:|---:|---:|
+| Swordsman, release to first visible move | 162.1 ms | 29.2 ms | 31.3 ms |
+| First reflection during the swordsman's move | 116.1 ms | 2.7 ms | 2.6 ms |
+| Second unit, release to first visible move | 20.7 ms | 33.2 ms | 34.9 ms |
+| Time in the loading step, including the first board frame | — | 483.8 ms | 415.8 ms |
+
+The large first-use wait disappeared in both repeats. The second unit had already used the same shader before the change. The measured loading step overlaps other work and does not give the change in total load time. [Turn 73 input and render timings](turn73-input-and-render-2026-11-21.json)
