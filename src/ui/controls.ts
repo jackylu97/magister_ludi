@@ -253,6 +253,7 @@ import {
   repairImprovementError,
   removeImprovementError,
 } from '../sim/improvements';
+import { createWorkerAdviceReader, type WorkerAdvice } from './workerAdvice';
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { authorityOf, happinessOf } from '../sim/meters';
@@ -1005,14 +1006,15 @@ export function lensForSelection(def: UnitDef | null, manual: LensMode): LensMod
  * applies, pulled out pure so it can be pinned without a `GameControls`
  * instance behind it (see `effectiveLens`'s own docblock for the reasoning).
  *
- * Three things can turn the glyphs on, independently: the player's own
- * switch, an open city panel, and — as of the settler-lens fix below — the
- * settler lens itself, auto or manual. `yieldsOn` is untouched by any of
- * this; the caller decides what to do with it, this only decides whether the
- * glyphs show *this frame*.
+ * Two things turn the glyphs on: the player's own switch, and an open city
+ * panel. The settler lens used to turn them on as well. It does not now (the
+ * user, 2026-11-21: the lens "looks too busy"): the lens tints each hex, and
+ * a figure on every hex in view was the busiest part of it. A player who
+ * wants the figures under the lens has the switch.
  */
 export function lensShowsYields(mode: LensMode, yieldsOn: boolean, cityOpen: boolean): boolean {
-  return yieldsOn || cityOpen || mode === 'settler';
+  void mode;
+  return yieldsOn || cityOpen;
 }
 
 /**
@@ -1980,6 +1982,13 @@ export interface GameControls {
    * moment a prophet raised the lens without the menu.
    */
   boardLens(): LensMode;
+
+  /**
+   * What worker advice says about this hex, or `null`: the selected piece is
+   * not a worker of the local seat, or the hex is not one of its best. The
+   * advice panel asks on each hover.
+   */
+  workerAdviceAt(col: number, row: number): WorkerAdvice | null;
 
   /** Puts a lens up, or takes it down with `'none'`. The menu's rows. */
   setLens(lens: LensMode): void;
@@ -5001,6 +5010,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // little and lights the worked hexes.
       yields: lensShowsYields(mode, yieldsOn, looked !== null),
       yieldCells: null,
+      // The hexes worker advice names wear corner ticks while the worker is selected.
+      advice: workerAdviceList().map((job) => ({ col: job.col, row: job.row })),
       // A worked hex's yields on a plaque are the one mark of a city's hexes
       // (idea e, the user's choice of 2026-11-21). The pointer on a city on the
       // main map shows the same plaques, with no shade.
@@ -5011,6 +5022,37 @@ export function createGameControls(options: GameControlsOptions): GameControls {
           : undefined,
       playerId,
     };
+  }
+
+  // The marks and the hover panel share one answer per selection and revision.
+  const adviceReader = createWorkerAdviceReader();
+  let adviceSelection: {
+    state: GameState; revision: number; playerId: number; unitId: number; rows: readonly WorkerAdvice[];
+  } | null = null;
+
+  function workerAdviceList(): readonly WorkerAdvice[] {
+    const unit = selectedUnit();
+    if (!unit || !buildsImprovements(unit) || !canOrder() || options.signal?.aborted) {
+      if (adviceSelection) adviceReader.cancel();
+      adviceSelection = null;
+      return [];
+    }
+    const { state } = getGame();
+    if (adviceSelection?.unitId === unit.id && adviceSelection.state === state &&
+        adviceSelection.playerId === localPlayerId && adviceSelection.revision === state.revision) {
+      return adviceSelection.rows;
+    }
+    const selected = { state, revision: state.revision, playerId: localPlayerId, unitId: unit.id, rows: [] as readonly WorkerAdvice[] };
+    adviceSelection = selected;
+    void adviceReader.read(state, selected.playerId, unit.id).then(rows => {
+      if (rows === null || selected !== adviceSelection || options.signal?.aborted ||
+          selected.state !== getGame().state || selected.revision !== state.revision ||
+          selected.playerId !== localPlayerId || selectedUnit()?.id !== selected.unitId || !canOrder()) return;
+      selected.rows = rows;
+      refreshLens();
+      onHover?.();
+    });
+    return [];
   }
 
   function refreshLens(): void {
@@ -8401,6 +8443,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   // screen, and that is a fact about the page rather than about one element.
 
   options.signal?.addEventListener('abort', () => {
+    adviceSelection = null;
+    adviceReader.dispose();
     if (dragButton !== null) renderer.setBoardPointerHeld?.(false);
     cancelHandOver();
     window.clearTimeout(rejectionTimer);
@@ -8797,6 +8841,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setLocalPlayer,
     lens: () => manualLens,
     boardLens: () => effectiveLens().mode,
+    workerAdviceAt: (col, row) => workerAdviceList().find((job) => job.col === col && job.row === row) ?? null,
     setLens,
     yieldsShown: () => yieldsOn,
     setYields,

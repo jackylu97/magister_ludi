@@ -1260,3 +1260,7 @@ across eleven newly constructed layers was 2.6 ms for the mine and 3.1 ms to
 add the farm, pasture and fishing site together. Expiring the fire took 0.02 ms
 at the median. This measures CPU setup alone. Browser texture uploads and the
 rest of the board redraw are outside this timing.
+
+## Turn 73 drag input, 21 November
+
+At 1.5× resolution, the renderer submitted the first frame with a new camera position within 7.1 to 8.5 ms at the 95th percentile across three controlled drags. An earlier recording also showed long pauses between pointer events. The repeat test could not reproduce those pauses. See [the camera trace and city shading comparison](benchmarks/turn73-drag-and-city-shade-2026-11-21.md).

@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { foundCityAt } from '../../src/sim/cities';
 import { snapshotState } from '../../src/sim/game';
 import { createMap, getTileAt, tileHex, tileIndex } from '../../src/sim/map';
-import { createUnit } from '../../src/sim/state';
+import { bumpRevision, createUnit } from '../../src/sim/state';
+import { emptyTileYield } from '../../src/sim/terrainData';
+import type { WorkerAdvice } from '../../src/ai/bot';
+import type { AdviceRequest, AdviceReply } from '../../src/ui/workerAdvice.worker';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { openWar } from '../../src/sim/wars';
 import { createGameControls } from '../../src/ui/controls';
@@ -48,7 +51,7 @@ class PointerSurface {
   }
 }
 
-function controlsFixture() {
+function controlsFixture(signal?: AbortSignal) {
   const f = fixture(), viewport = new PointerSurface();
   let blocked = false;
   let keyListener: ((event: KeyboardEvent) => void) | undefined;
@@ -62,10 +65,10 @@ function controlsFixture() {
     pickUnitBadge: vi.fn(() => badgeId), pickUnitModel: vi.fn(() => modelId),
     setHoveredUnitId: vi.fn(), setSelectedUnitId: vi.fn(), setReachable: vi.fn(),
     setPathPreview: vi.fn(), invalidate: vi.fn(), panByScreen: vi.fn(), setBoardPointerHeld: vi.fn(),
-    setFogSeat: vi.fn(), skipAnimations: vi.fn(), animateMove: vi.fn(),
+    setLens: vi.fn(), setFogSeat: vi.fn(), skipAnimations: vi.fn(), animateMove: vi.fn(),
   };
   const onUpdate = vi.fn(), onHover = vi.fn();
-  const controls = createGameControls({ viewport: viewport as unknown as HTMLElement,
+  const controls = createGameControls({ signal, viewport: viewport as unknown as HTMLElement,
     renderer: renderer as unknown as MapView, getGame: () => f.game, onUpdate, onHover, lensOrder: [],
     inputBlocked: () => blocked, onToggleTechTree: () => { blocked = true; } });
   function point(col: number, row: number, badge: number | null = null, model: number | null = null) {
@@ -117,6 +120,52 @@ describe('shared unit pointer resolution', () => {
       badgeId: first.id, modelId: first.id, tile: first,
     })).toBeNull();
   });
+});
+
+it('updates worker marks and hover advice together and discards replies after a move or deselection', async () => {
+  const requests: AdviceRequest[] = [];
+  let deliver!: (rows: WorkerAdvice[]) => void;
+  const terminate = vi.fn();
+  class AdviceWorker {
+    onmessage: ((event: { data: AdviceReply }) => void) | null = null;
+    terminate = terminate;
+    postMessage(request: AdviceRequest) {
+      requests.push(request);
+      deliver = (rows) => this.onmessage?.({ data: { id: request.id, rows } });
+    }
+  }
+  vi.stubGlobal('Worker', AdviceWorker);
+  const abort = new AbortController();
+  const f = controlsFixture(abort.signal);
+  const mark: WorkerAdvice = { col: 4, row: 3, improvement: 'farm', action: 'repair', distance: 1,
+    delta: { ...emptyTileYield(), food: 2 }, score: 5 };
+  const marks = () => f.renderer.setLens.mock.lastCall?.[0]?.advice;
+  expect(f.controls.selectPiece(f.second.id)).toBe(true);
+  expect(requests).toHaveLength(1);
+  expect(marks()).toEqual([]);
+  deliver([mark]);
+  await Promise.resolve();
+  expect(marks()).toEqual([{ col: 4, row: 3 }]);
+  expect(f.controls.workerAdviceAt(4, 3)).toEqual(mark);
+  expect(f.onHover).toHaveBeenCalled();
+  f.controls.repaint();
+  expect(requests).toHaveLength(1);
+  bumpRevision(f.state);
+  f.controls.repaint();
+  expect(requests).toHaveLength(2);
+  expect(marks()).toEqual([]);
+  expect(f.controls.workerAdviceAt(4, 3)).toBeNull();
+  expect(f.controls.selectPiece(f.first.id)).toBe(true);
+  deliver([mark]);
+  await Promise.resolve();
+  expect(marks()).toEqual([]);
+  expect(f.controls.workerAdviceAt(4, 3)).toBeNull();
+  f.controls.selectPiece(f.second.id);
+  abort.abort();
+  deliver([mark]);
+  await Promise.resolve();
+  expect(terminate).toHaveBeenCalledOnce();
+  expect(f.controls.workerAdviceAt(4, 3)).toBeNull();
 });
 
 describe('actual controls pointer gestures', () => {

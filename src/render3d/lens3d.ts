@@ -125,9 +125,12 @@ import { resourceDef } from '../sim/resourceData';
 import { type GameState, type ReligionId, cityReligion, foundedReligion } from '../sim/state';
 import { readSites } from '../sim/readings';
 import { visibleResourceAt } from '../sim/tech';
+import { explorerTargets } from '../sim/lookouts';
+import { isWaterTerrain } from '../sim/terrainData';
 import { hasFreshWater, isCoastal } from '../sim/water';
 import type { CellRef, LensView } from '../ui/mapView';
 
+import { type TickStyle, addCornerTicks, addEye, addPips, addRuinLight, pipsFor } from './adviceMarks';
 import { type TileIcons, YIELD_KEYS } from './badges3d';
 import { type BoardTileYields, type TileYieldSample, sameTileYieldSamples, seenTileYields } from './boardTileYields';
 export { seenTileYields } from './boardTileYields';
@@ -138,12 +141,13 @@ import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
 import { seatSeesKind } from './sites3d';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
-import { VIEW3D, mixColor } from './lookData';
+import { VIEW3D } from './lookData';
 import type { MaterialLibrary } from './toon';
 import { visualOn } from './visualTest';
 import { shareUniforms } from './visualTestLook';
 
 const LENS = VIEW3D.lens;
+const ADVICE = LENS.advice;
 const OVERLAY = VIEW3D.overlay;
 const PINS = VIEW3D.visualTest.pins;
 
@@ -187,6 +191,31 @@ function quietPins(icons: TileIcons): { normal: MeshBasicMaterial; faded: MeshBa
   return made;
 }
 
+/** Which of the settler lens's three tints a legal hex takes. Fresh water is the better fact, so it wins over coast. */
+export function siteTintOf(map: GameMap, tile: Tile): 'fresh' | 'coast' | 'dry' {
+  return hasFreshWater(tile) ? 'fresh' : isCoastal(map, tile) ? 'coast' : 'dry';
+}
+
+/** The numbers `PaintedBoard.applySetBack` takes for the settler lens. */
+export const SITE_GROUND = { none: 0, refused: 1, fresh: 4, coast: 5, dry: 6 } as const;
+
+/**
+ * The settler lens's ground for `PaintedBoard.applySetBack`, one number for
+ * each cell: a tint for a hex of land that would take a city, "set back" for
+ * a hex of land where the rules refuse one, and nothing for every other hex.
+ * Water is never tinted or set back: nobody tries to found a city on it, and
+ * a darker sea would change the whole board.
+ */
+export function settlerGroundKinds(state: GameState, playerId: number, tiles: readonly Tile[]): Uint8Array {
+  const ground = new Uint8Array(state.map.tiles.length);
+  for (const tile of tiles) {
+    if (isWaterTerrain(tile.terrain)) continue;
+    ground[tileIndex(state.map, tile.col, tile.row)] =
+      foundingErrorAt(state, playerId, tile) !== null ? SITE_GROUND.refused : SITE_GROUND[siteTintOf(state.map, tile)];
+  }
+  return ground;
+}
+
 /** The plain board: what the renderer starts with and falls back to. */
 export const NO_LENS: LensView = {
   mode: 'none',
@@ -218,6 +247,7 @@ export function sameLens(a: LensView, b: LensView): boolean {
   if (a.mode !== b.mode || a.playerId !== b.playerId) return false;
   if (a.citizens?.cityId !== b.citizens?.cityId || a.citizens?.manage !== b.citizens?.manage || a.citizens?.hover !== b.citizens?.hover) return false;
   if (a.yields !== b.yields || a.resources !== b.resources) return false;
+  if (!sameCells(a.advice ?? null, b.advice ?? null)) return false;
   // A restriction only means anything while the half it scopes is up; comparing
   // it when that half is down would rebuild the layer for a change nobody can
   // see.
@@ -256,6 +286,13 @@ export class LensLayer {
    */
   citizenGround: Uint8Array | null = null;
   citizenManage = false;
+  /**
+   * While the settler lens is up: one number for each cell, for the same
+   * set-back path. A hex of land that takes no city is set back, and every
+   * other hex is left alone. Null otherwise. The renderer reads it after each
+   * `build`.
+   */
+  settlerGround: Uint8Array | null = null;
   private faintSource: MeshBasicMaterial | null = null;
   private faintGlyphs: MeshBasicMaterial | null = null;
   private drawCallCount = 0;
@@ -303,10 +340,14 @@ export class LensLayer {
       this.citizenGround = null;
       this.citizenManage = false;
     }
+    // The settler lens sets back the land that takes no city. An open city screen has the ground to itself.
+    this.settlerGround = state && lens.mode === 'settler' && !this.citizenGround
+      ? settlerGroundKinds(state, lens.playerId, resolveTiles(state.map, lens.cells, levels))
+      : null;
     if (!state) return;
     // Every half is independent and any of them may be off; with all of them off
     // there is nothing to build and no collector worth allocating.
-    if (lens.mode === 'none' && !lens.yields && !lens.resources) return;
+    if (lens.mode === 'none' && !lens.yields && !lens.resources && !lens.advice?.length) return;
 
     const { map } = state;
     const collector = new InstanceCollector({
@@ -322,17 +363,13 @@ export class LensLayer {
     // The resource markers are not in that argument at all; they stand up and
     // are sorted by the depth buffer like everything else in the diorama.
     if (lens.mode === 'settler') {
-      this.addSiteWash(
-        state,
-        lens.playerId,
-        resolveTiles(map, lens.cells, levels),
-        collector,
-        geometry,
-      );
-      // And the recommendation itself, over the wash that says what is *legal*.
-      // Only in this lens, which is the whole of the ruling: a marker the board
-      // wore all the time would be advice nobody asked for.
-      if (icons) this.addSettleMarkers(state, lens.playerId, collector, geometry, icons, faceCamera, levels);
+      // The painted board tints its own ground (`settlerGround`). The frozen toon board has no such path and takes decals.
+      if (!groundShaded) {
+        this.addSiteWash(state, lens.playerId, resolveTiles(map, lens.cells, levels), collector, geometry);
+      }
+      // The recommended sites, over the tints. Only in this lens: a mark the
+      // board wore all the time would be advice nobody asked for.
+      this.addSettleMarkers(state, lens.playerId, collector, levels);
     }
     if (lens.mode === 'faith') {
       this.addFaithWash(
@@ -352,8 +389,10 @@ export class LensLayer {
         geometry,
         levels,
         lens.playerId,
+        faceCamera,
       );
     }
+    if (lens.advice && lens.advice.length > 0) this.addAdviceTicks(state, lens.advice, collector, levels);
     if (lens.resources && icons) {
       this.addResourceMarkers(
         state,
@@ -364,6 +403,8 @@ export class LensLayer {
         icons,
         faceCamera,
         lens.revealResources ?? false,
+        // A settler chooses a site by its luxuries and strategic resources. The other badges only add to a busy board.
+        lens.mode === 'settler',
       );
     }
     if (lens.yields && icons) {
@@ -586,6 +627,8 @@ export class LensLayer {
     icons: TileIcons,
     faceCamera: Quaternion,
     reveal: boolean,
+    /** True under the settler lens: only a luxury or a strategic resource keeps its badge. */
+    sitesOnly = false,
   ): void {
     const upright = new Quaternion();
     const disc = new Vector3(LENS.resourceIconSize, LENS.resourceIconSize, 1);
@@ -601,6 +644,7 @@ export class LensLayer {
       // rule, and the only viewer allowed past it is one that is not a seat.
       const id = reveal ? (tile.resource ?? null) : visibleResourceAt(state, playerId, tile);
       if (id === null) continue;
+      if (sitesOnly && resourceDef(id).kind !== 'luxury' && resourceDef(id).kind !== 'strategic') continue;
       // A town on the tile wears no pin. See the docblock: the *readout* still
       // answers, because that question is asked of the simulation and not of
       // this layer.
@@ -641,106 +685,77 @@ export class LensLayer {
   }
 
   /**
-   * **The recommended sites**, one staked pennant apiece.
+   * **The recommended sites**: gilt corner ticks, and one to three pips.
    *
-   * The whole of the decision is the simulation's (`readSites`, `readings.ts`,
-   * over `explainSite` in `sites.ts`): which hexes this seat has charted, which
-   * of them the rules would take a city on, which of those are worth saying at
-   * all and in what order — and the same list the settler's own appraisal is
-   * built from, so the marker and the bot cannot disagree about what good ground
-   * is. This layer draws it and decides nothing.
+   * The user's ruling of 2026-11-21: "lets have settler recommendations also
+   * use the corner ticks, with the advice panel". So a site wears the same mark
+   * as a worker's recommended hex, with no pin and no banner. The best site's
+   * ticks are heavier. The pips at the foot of the hex say how near the best
+   * score a site is (`pipsFor`). The words are the advice panel's
+   * (`src/ui/advicePanel.ts`), shown while the pointer rests on the hex.
    *
-   * **The fog is asked twice, and the two questions are different.** The reading
-   * gates on the seat's own chart (`isExploredBy`), which is a fact about the
-   * *game*; this gates on `knowsCell`, which is a fact about the **fog view
-   * being painted** — a spectator's, a replay's, or a seat other than the local
-   * one. A marker that skipped the second would draw on black ground the moment
-   * the board was painted for somebody else, which is the audit
-   * `test/render/fog3d.test.ts` exists to catch.
+   * The list is the simulation's (`readSites`, over `explainSite`). This layer
+   * draws it and decides nothing.
    *
-   * Planted on the hex's **upper right**, because the lens's own resource
-   * roundel takes the upper left and the yield glyphs (which this lens forces
-   * on) take the middle. Three marks, three shoulders, and none of them ever
-   * driven into the same spot — `sites3d.ts`' rule, one layer over.
+   * The fog is asked twice. The reading gates on the seat's own chart. This
+   * gates on `knowsCell`, the fog view being painted, so that a board painted
+   * for another viewer draws no mark on black ground.
    */
   private addSettleMarkers(
     state: GameState,
     playerId: number,
     collector: InstanceCollector,
-    geometry: BoardGeometry,
-    icons: TileIcons,
-    faceCamera: Quaternion,
     levels: FogLevels,
   ): void {
-    const upright = new Quaternion();
-    const disc = new Vector3(LENS.settleMarkSize, LENS.settleMarkSize, 1);
-    const lift = LENS.settleMarkLift;
-
-    for (const candidate of readSites(state, playerId)) {
+    const sites = readSites(state, playerId);
+    const best = sites[0]?.reading.total ?? 0;
+    sites.forEach((candidate, rank) => {
       const tile = getTileAt(state.map, candidate.col, candidate.row);
-      if (tile === undefined) continue;
-      if (!knowsCell(levels, state.map, tile.col, tile.row)) continue;
-      const centre = cellCenter(tile.col, tile.row);
-      // −z is up-screen and +x is right under this camera (see `atlasDecal`).
-      const x = centre.x + LENS.settleMarkOffsetX;
-      const z = centre.z - LENS.settleMarkOffset;
-      const ground = tileTopY(tile);
-      const cell = tileIndex(state.map, tile.col, tile.row);
-
-      // The pin first, so the mark's own paper is drawn over the top of it in
-      // the one bucket where draw order still decides anything.
-      collector.add(
-        geometry.resourceStem,
-        [LENS.settleStemColor],
-        new Matrix4().compose(
-          new Vector3(x, ground + LENS.glyphLift, z),
-          upright,
-          new Vector3(LENS.resourceStemRadius, lift, LENS.resourceStemRadius),
-        ),
-        { outlined: false, tile: cell },
-      );
-      collector.add(
-        geometry.settleMarkers.goodSite,
-        // No ink of its own: the disc *is* the texture, as on every atlas quad.
-        [],
-        new Matrix4().compose(new Vector3(x, ground + lift, z), faceCamera, disc),
-        { material: icons.standingMaterial, tile: cell },
-      );
-    }
+      if (tile === undefined) return;
+      if (!knowsCell(levels, state.map, tile.col, tile.row)) return;
+      const centre = cellCenter(tile.col, tile.row), y = tileTopY(tile) + OVERLAY.lift;
+      addCornerTicks(collector, centre.x, y, centre.z, { best: rank === 0 });
+      addPips(collector, centre.x, y, centre.z, pipsFor(candidate.reading.total, best));
+    });
   }
 
   /**
-   * The settler wash: refused tiles in the refusal ink, allowed tiles coloured
-   * by what kind of site they are — and, over either, a ring on any hex whose
-   * luxury a settler ought to be walking toward.
+   * The settler lens: one flat tint on each hex that would take a city, and no
+   * tint on a hex that would not.
    *
-   * Four states and no ramp (see the module docblock for why the old
-   * desirability grade went):
+   * The user's ruling of 2026-11-21, on the marks of the second mocks: "could
+   * we take inspiration from civ 6/7, and look at how they do their tile
+   * highlighting? ... if we simplified the coloring in the way they do it'd be
+   * easier." And before that: "i want the player to still be able to see at a
+   * glance freshwater, coastal and illegal spots".
    *
-   *   · refused   — **crimson**, by the reducer's own rule. It used to be a
-   *                 darkening, and a darkening is the one thing this board must
-   *                 not use to mean "no": the fog already darkens, so a refused
-   *                 hex read as unexplored ground rather than as a rule. Crimson
-   *                 is the ink this interface says no in everywhere else (the
-   *                 attack tint, a camp under the explorer lens), and it stays
-   *                 legible on remembered ground, where a shade of ink does not.
-   *   · coastal   — blue. A neighbouring `coast` tile: this city can reach the sea.
-   *   · fresh     — green. `hasFreshWater`, so it can drink and grow.
-   *   · both      — the two blended, plus a ring in the same ink at full
-   *                 strength. A wash alone cannot say "this one is special" in a
-   *                 field of washes; the ring can, and it costs one more bucket.
+   * So each legal land hex has one of three tints, all flat and each at one
+   * strength:
    *
-   * A tile that is none of those gets no wash at all. Silence is the honest
-   * answer for ground that is merely legal, and it also keeps an inland map from
-   * being painted edge to edge in a colour that means nothing.
+   *   - fresh water (`hasFreshWater`): a dark blue-green;
+   *   - coast (`isCoastal`), with no fresh water: a sky blue;
+   *   - neither: a straw yellow.
    *
-   * The luxury ring is the exception to the "one grade per tile" shape above,
-   * and deliberately so: it does not answer *may a city go here* — it answers
-   * *what is on this ground* — so it is drawn on refused hexes too. A settler
-   * aims at a luxury from a legal hex nearby, which means the ring has to be
-   * visible on the very tiles the crimson is refusing. Asked of
-   * `visibleResourceAt`, the simulation's own gate, so the lens can never ring a
-   * dye the seat has no word for yet — the same rule the roundels obey.
+   * A hex with fresh water and coast takes the fresh water tint, because that
+   * is the better fact. The three differ in lightness as well as hue, so that a
+   * colour-blind player can tell them apart.
+   *
+   * A hex the rules refuse (`foundingErrorAt`, the reducer's own rule) has no
+   * tint. Water has no tint.
+   *
+   * **This method is the fallback.** The painted board tints its own ground in
+   * its shader, from `settlerGroundKinds` (`SET_BACK_PAINT` in
+   * `paintedFogLook.ts`, "The tints"), and sets the refused land back a little.
+   * That leaves no gap and no overlap where neighbours differ in height, and
+   * the trees take the tint with the ground. The frozen toon board has no such
+   * path, so it gets one decal a hex from here, at the hex's full size so that
+   * neighbours meet edge to edge.
+   *
+   * The crimson wash, the estuary ring and the luxury ring are gone. A luxury
+   * or a strategic resource keeps its badge under this lens, and the other
+   * resources lose theirs (`addResourceMarkers`).
+   *
+   * Cost: nothing on the painted board (texels and one uniform). Here, three buckets of one instanced draw each.
    */
   private addSiteWash(
     state: GameState,
@@ -750,66 +765,18 @@ export class LensLayer {
     geometry: BoardGeometry,
   ): void {
     const identity = new Quaternion();
-    const unit = new Vector3(1, 1, 1);
-    const luxuryRing = new Vector3(
-      LENS.siteLuxuryRingScale,
-      1,
-      LENS.siteLuxuryRingScale,
-    );
-
-    const anchor = (tile: Tile): Vector3 => {
-      const centre = cellCenter(tile.col, tile.row);
-      return new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift, centre.z);
-    };
-
-    const estuary = mixColor(LENS.siteCoastColor, LENS.siteFreshColor, LENS.siteEstuaryMix);
-
-    /** The grape ring, for a luxury this seat may be told about. */
-    const markLuxury = (tile: Tile): void => {
-      const id = visibleResourceAt(state, playerId, tile);
-      if (id === null || resourceDef(id).kind !== 'luxury') return;
-      collector.add(
-        geometry.ring,
-        [LENS.siteLuxuryColor],
-        new Matrix4().compose(anchor(tile), identity, luxuryRing),
-        { onTop: true, opacity: LENS.siteLuxuryRingOpacity },
-      );
-    };
-
-    // The grade first and the luxury ring after it, on every path through the
-    // loop: a ring collected before the wash it sits on would be dulled by it.
+    const scale = new Vector3(1, 1, 1);
     for (const tile of tiles) {
-      if (foundingErrorAt(state, playerId, tile) !== null) {
-        collector.add(
-          geometry.territory,
-          [LENS.siteRefusedColor],
-          new Matrix4().compose(anchor(tile), identity, unit),
-          { onTop: true, opacity: LENS.siteRefusedOpacity },
-        );
-      } else {
-        const coastal = isCoastal(state.map, tile);
-        const fresh = hasFreshWater(tile);
-        const both = coastal && fresh;
-        if (coastal || fresh) {
-          const color = both ? estuary : coastal ? LENS.siteCoastColor : LENS.siteFreshColor;
-          const at = anchor(tile);
-          collector.add(
-            geometry.territory,
-            [color],
-            new Matrix4().compose(at, identity, unit),
-            { onTop: true, opacity: both ? LENS.siteEstuaryOpacity : LENS.siteOpacity },
-          );
-          if (both) {
-            collector.add(
-              geometry.ring,
-              [color],
-              new Matrix4().compose(at, identity, unit),
-              { onTop: true, opacity: LENS.siteEstuaryRingOpacity },
-            );
-          }
-        }
-      }
-      markLuxury(tile);
+      if (isWaterTerrain(tile.terrain)) continue;
+      if (foundingErrorAt(state, playerId, tile) !== null) continue;
+      const kind = siteTintOf(state.map, tile);
+      const centre = cellCenter(tile.col, tile.row);
+      collector.add(
+        geometry.territory,
+        [kind === 'fresh' ? LENS.siteFreshColor : kind === 'coast' ? LENS.siteCoastColor : LENS.siteDryColor],
+        new Matrix4().compose(new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift, centre.z), identity, scale),
+        { onTop: true, opacity: kind === 'dry' ? LENS.siteDryOpacity : LENS.siteOpacity },
+      );
     }
   }
 
@@ -1004,37 +971,35 @@ export class LensLayer {
   }
 
   /**
-   * The explorer wash: every unclaimed discovery site the seat has charted, and
-   * — in a hostile ink — every barbarian camp it has charted.
+   * The explorer lens: corner ticks and a soft tint on each hex that matters
+   * to an explorer.
    *
-   * The settler lens's opposite number, and it is deliberately the *thin* one.
-   * That lens grades a whole map, because every legal hex is a candidate and the
-   * question is which is best. This one marks a handful of hexes on a board of
-   * thousands, because the question is not "which of these" but "where are
-   * they" — a discovery is three or four sites on a duel map, and the failure it
-   * exists to fix is a player walking past one. So there is no grade and no
-   * ramp: a ring at full strength over a wash, twice, in two inks.
+   * The user's ruling of 2026-11-21, on the mock with corner ticks and no
+   * pins: "i like this one. Could we add a slight highlight, a bit more toned
+   * down than what we had before. Could we also do a lighting effect to make
+   * the ruins more obvious?"
    *
-   * Two answers, and they are not two grades of one thing:
+   * Four kinds of hex, and nothing else:
    *
-   *   discovery  gold. Go here. A ruin or a village still standing — which is
-   *              exactly `tile.discovery`, because the field is *deleted* on the
-   *              claim (`claimDiscoveryAt`), so "unclaimed" needs no second
-   *              test and a site claimed by a rival goes dark on this seat's
-   *              board the moment the seat can see that it has.
-   *   camp       crimson. Do not walk into that. A barbarian camp is the other
-   *              thing an explorer meets alone in the dark, and marking it is
-   *              nearly free — the plumbing for the ring is already here.
+   *   - a discovery the seat can name (`tile.discovery`, which a claim deletes;
+   *     gated by `seatSeesKind`, the site layer's own gate): gilt ticks, a gilt
+   *     tint, and a still light (`addRuinLight`) so that it shows from far out;
+   *   - a barbarian camp the seat has charted: ticks and a tint in the alert
+   *     colour, and no light;
+   *   - a hill that sees far into uncharted ground: pale ticks, a pale tint
+   *     and a small eye;
+   *   - a hex beside uncharted ground that would reveal the most: pale ticks
+   *     and a pale tint.
    *
-   * The fog rule is the *site layer's* rule, and it has to be: this lens must
-   * never ring a hex the board is not drawing the thing on. Both tenants
-   * therefore cut at `hidden` and keep remembered ground — the discoveries
-   * through `resolveTiles`, the camps through `knowsCell` on the list they are
-   * actually stored in. The camps used to be asked `seesCell` instead, because
-   * the board used to draw one only in live sight; that reading is gone
-   * (playtest, 2026-08-27: camps are persistent), and the two halves have to
-   * move together or the lens starts refusing to mark palisades standing in
-   * plain view on the diorama.
+   * The last two come from `explorerTargets` (`src/sim/lookouts.ts`), a few
+   * hexes at most, and only for a real seat.
+   *
+   * The tint is `advice.tintOpacity`, well under the old wash
+   * (`discoveryOpacity`, `campOpacity`), and the full ring is gone.
+   *
+   * The fog rule is the site layer's: this lens never marks a hex the board is
+   * not drawing the thing on. Discoveries come through `resolveTiles`, camps
+   * through `knowsCell` on the list they are stored in.
    */
   private addDiscoveryWash(
     state: GameState,
@@ -1043,46 +1008,63 @@ export class LensLayer {
     geometry: BoardGeometry,
     levels: FogLevels,
     viewerId: number | null,
+    faceCamera: Quaternion,
   ): void {
     const identity = new Quaternion();
-    const unit = new Vector3(1, 1, 1);
+    const scale = new Vector3(ADVICE.tintScale, 1, ADVICE.tintScale);
+    const marked = new Set<number>();
 
-    const mark = (tile: Tile, color: number, wash: number, ring: number): void => {
+    const mark = (tile: Tile, color: number, opacity: number, style: TickStyle): Vector3 | null => {
+      const cell = tileIndex(state.map, tile.col, tile.row);
+      if (marked.has(cell)) return null;
+      marked.add(cell);
       const centre = cellCenter(tile.col, tile.row);
       const at = new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift, centre.z);
-      collector.add(
-        geometry.territory,
-        [color],
-        new Matrix4().compose(at, identity, unit),
-        { onTop: true, opacity: wash },
-      );
-      collector.add(
-        geometry.ring,
-        [color],
-        new Matrix4().compose(at, identity, unit),
-        { onTop: true, opacity: ring },
-      );
+      collector.add(geometry.territory, [color], new Matrix4().compose(at, identity, scale), { onTop: true, opacity });
+      addCornerTicks(collector, at.x, at.y, at.z, style);
+      return at;
     };
 
     for (const tile of tiles) {
       if (tile.discovery === undefined) continue;
-      // The site layer's gate, asked here too (the trap's own words: this lens
-      // must never ring a hex the board is not drawing the thing on) — a
-      // barrow the seat has no word for is not a place to send anybody.
       if (!seatSeesKind(state, viewerId, tile.discovery)) continue;
-      mark(tile, LENS.discoveryColor, LENS.discoveryOpacity, LENS.discoveryRingOpacity);
+      const at = mark(tile, LENS.discoveryColor, ADVICE.tintOpacity, {});
+      if (at) addRuinLight(collector, at.x, at.y, at.z, faceCamera);
     }
 
-    // Walked over `state.camps` rather than over the tiles, because a camp is
-    // not on the map — it lives in the state, with a history (see
-    // `GameState.camps`) — and because that is the list the site layer draws
-    // from, so the two cannot disagree about which camps exist.
+    // Walked over `state.camps`, the list the site layer draws from, so the two
+    // cannot disagree about which camps exist.
     for (const camp of state.camps) {
       if (!knowsCell(levels, state.map, camp.col, camp.row)) continue;
       const tile = getTileAt(state.map, camp.col, camp.row);
-      if (!tile) continue;
-      mark(tile, LENS.campColor, LENS.campOpacity, LENS.campRingOpacity);
+      if (tile) mark(tile, LENS.campColor, ADVICE.tintOpacity, { color: LENS.campColor });
     }
+
+    if (viewerId === null || state.players[viewerId] === undefined) return;
+    const targets = explorerTargets(state, viewerId, {
+      sight: ADVICE.lookoutSight, minUnseen: ADVICE.lookoutMinUnseen, spacing: ADVICE.lookoutSpacing,
+      hills: ADVICE.lookoutHills, edges: ADVICE.lookoutEdges,
+    });
+    for (const [list, eye] of [[targets.hills, true], [targets.edges, false]] as const) {
+      for (const { tile } of list) {
+        if (!knowsCell(levels, state.map, tile.col, tile.row)) continue;
+        const at = mark(tile, ADVICE.paleColor, ADVICE.paleTintOpacity, { pale: true });
+        if (at && eye) addEye(collector, at.x, at.y, at.z);
+      }
+    }
+  }
+
+  /**
+   * Worker advice: corner ticks on the hexes the advice names, the best first
+   * and heavier (`LensView.advice`). The words are the advice panel's.
+   */
+  private addAdviceTicks(state: GameState, cells: readonly CellRef[], collector: InstanceCollector, levels: FogLevels): void {
+    cells.forEach((cell, rank) => {
+      const tile = getTileAt(state.map, cell.col, cell.row);
+      if (!tile || !knowsCell(levels, state.map, tile.col, tile.row)) return;
+      const centre = cellCenter(tile.col, tile.row);
+      addCornerTicks(collector, centre.x, tileTopY(tile) + OVERLAY.lift, centre.z, rank === 0 ? { best: true } : { pale: true });
+    });
   }
 
   get drawCalls(): number {

@@ -1879,3 +1879,85 @@ Also on 2026-11-21, in chat: the forest under a great person's work stays
 "tended" leaves the Compendium after Astra's deck builds. The Claude session
 rewrites the data notes on units and buildings, and "You're free to modify
 tests at your pleasure."
+
+## Lenses, corner ticks and the advice panel: what was built (2026-11-22)
+
+This is the build of the third mocks, after the two sections of rulings above.
+It is in a worktree and is not committed. The pictures are in the review page
+`lenses-built.html` (the mock beside a real screenshot for each part).
+
+**The settler lens** (`addSiteWash`, `settlerGroundKinds` in
+`src/render3d/lens3d.ts`):
+
+- Each hex of land that would take a city has one flat tint: fresh water, else
+  coast, else no water. A hex with fresh water and coast takes the fresh water
+  tint. Land that takes no city has no tint and is set back. Water has no tint.
+- The painted board tints its own ground in its shader, by hex
+  (`SET_BACK_PAINT` in `paintedFogLook.ts`, "The tints"). It reads the same
+  texels as the city screen's set-back ground, through
+  `PaintedBoard.applySetBack` (kinds 4, 5 and 6, and a fifth argument for the
+  strength). So two tinted neighbours meet on one edge with no gap and no
+  darker seam, a slope takes the colour of its own hex, the trees take the
+  tint with the ground, and it costs no draw call. The frozen toon board gets
+  one decal a hex at the hex's full size.
+- Palette a, in `data/view3d.json` (`lens`): `siteFreshColor` `#0f7f6e` and
+  `siteCoastColor` `#6cc6ec` at `siteOpacity` 0.42; `siteDryColor` `#f2cf62`
+  at `siteDryOpacity` 0.36; `siteSetBack` 0.85. The user has not chosen
+  between palette a and palette b. Palette b is two colours in the same keys.
+- The lens no longer turns the yield figures on (`lensShowsYields`). Under it,
+  only luxury and strategic resources keep their badges.
+- The crimson wash, the estuary ring and the luxury ring are gone. Their
+  knobs (`siteRefused…`, `siteEstuary…`, `siteLuxury…`, `settleMark…`) and the
+  pennant's atlas cell are still in the data and are read by nothing.
+- The legend is a card above the lens button (`mountLensLegend`).
+
+**Corner ticks** (`src/render3d/adviceMarks.ts`): six short ticks at the
+corners of a hex, as flat geometry in one colour over a dark backing. They are
+on the three recommended city sites (with one to three pips for how near the
+best score a site is), on a worker's recommended hexes, and on the explorer
+lens's hexes. The best hex has heavier ticks. All knobs are in `lens.advice`.
+
+**The explorer lens** (`addDiscoveryWash`): ticks and a tint at 0.2 on each
+discovery the seat can name and on each camp (the old wash was 0.5 and 0.42,
+with a full ring). A discovery also has a still light, a glow on the ground and
+an upright shaft. A camp is in the alert colour and has no light. A hill that
+sees far into uncharted ground has pale ticks and an eye, and the hex that
+would reveal the most has pale ticks. Those two come from `explorerTargets`
+(`src/sim/lookouts.ts`), which counts uncharted hexes in sight and is an
+estimate. The light does not move: the renderer rests when nothing moves.
+
+**The advice panel** (`src/ui/advicePanel.ts`, `.advice-panel` in
+`src/style.css`): one line at the bottom centre while the pointer rests on a
+recommended hex, in the family of the city screen's bottom bar. For a site:
+"We recommend a city here:" and at most three reasons from `siteReasons`
+(`tileReadout.ts`), which writes them from `explainSite`. For a worker:
+"Advice: build a lumbermill here" and the change in the hex's yields, a loss in
+the alert colour. It has a slot for a warning, and nothing fills it: the site
+reading has no line for danger. The tile readout's "Recommended" row is gone.
+The panel is as wide as its words, up to the screen's width less 788 px, so it
+clears the tile readout, the lens button and End Turn at 1280 px and wider.
+
+**Worker advice** (`workerAdvice` in `src/ui/workerAdvice.ts`): a wrapper over
+the bots' `buildImprovementPlan` and `rankPlanFor`, with the yield change from
+`improvementYieldDelta`. It names up to three hexes within four hexes, and a
+second hex only when its score is at least 0.6 of the best. It took 12 to 17 ms
+a call in a turn-77 game. The controls load the module when a worker is first
+selected, ask once, and keep the answer until the state changes. Nothing in
+`src/ai/` changed.
+
+**The city screen**: the pin head is larger (`plaque.pinSize` 0.30,
+`pinRim` 0.2). The plaque and its figures sit a little above the centre of the
+hex (`yieldOffset` -0.1). `citizenOutlines` and its call in `overlays.ts` are
+deleted. The Worked and Pinned keys of the dock use `noteOn` and no native
+tooltip.
+
+**Still open:**
+
+- Forest under the "no water" tint turns olive, and a large dry forest reads
+  as one flat field.
+- At the farthest zoom the ruin's light is a small spark, and city banners
+  cover much of the land.
+- The game's hover outline covers most of the ticks on the hovered hex.
+- Three reasons do not fit the panel at 1280 px. Shorter clauses would.
+- The site ranking still puts its three sites close together (Astra's).
+- The frozen toon board's decals were tested and not looked at in a browser.

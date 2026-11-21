@@ -1,6 +1,7 @@
 import { workerAdvice, type WorkerAdvice } from '../ai/bot';
+import { VIEW3D } from '../render3d/lookData';
 import type { GameState } from '../sim/state';
-import { installBotTuning, type BotTuning } from './botPlanProtocol';
+import { installBotTuning, type BotTuning } from './botTuning';
 
 export interface AdviceRequest {
   id: number;
@@ -22,7 +23,8 @@ export function answerAdviceRequests(): (request: AdviceRequest) => AdviceReply 
     if (!board) return { id: request.id, rows: null };
     const restore = installBotTuning(board.tuning);
     try {
-      return { id: request.id, rows: workerAdvice(board.state, request.playerId, request.unitId) };
+      const { workerCount: count, workerWalk: walk, workerNear: near } = VIEW3D.lens.advice;
+      return { id: request.id, rows: workerAdvice(board.state, request.playerId, request.unitId, { count, walk, near }) };
     } finally {
       restore();
     }

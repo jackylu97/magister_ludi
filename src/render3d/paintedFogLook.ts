@@ -226,6 +226,12 @@ export function paintedFogUniforms(light: PaintedLightField): PaintedFogUniforms
     // manages citizens, and the shader skips the whole block at 0.
     paintedBackOn: { value: 0 },
     paintedRimOn: { value: 0 },
+    // The settler lens's three tints (`SET_BACK_PAINT`, "The tints"). 0 unless that lens is up.
+    paintedTintOn: { value: 0 },
+    paintedTintFresh: { value: new Color(VIEW3D.lens.siteFreshColor) },
+    paintedTintCoast: { value: new Color(VIEW3D.lens.siteCoastColor) },
+    paintedTintDry: { value: new Color(VIEW3D.lens.siteDryColor) },
+    paintedTintStrength: { value: new Vector3(VIEW3D.lens.siteOpacity, VIEW3D.lens.siteOpacity, VIEW3D.lens.siteDryOpacity) },
     paintedBackEdge: { value: SET_BACK.edge },
     paintedBackFree: { value: new Vector3(SET_BACK.freeShade, SET_BACK.freeGrey, SET_BACK.freeCool) },
     paintedBackFar: { value: new Vector3(SET_BACK.farShade, SET_BACK.farGrey, SET_BACK.farCool) },
@@ -305,6 +311,11 @@ uniform float paintedFogShadowedCool;
 uniform float paintedFogShadowedShade;
 uniform float paintedBackOn;
 uniform float paintedRimOn;
+uniform float paintedTintOn;
+uniform vec3 paintedTintFresh;
+uniform vec3 paintedTintCoast;
+uniform vec3 paintedTintDry;
+uniform vec3 paintedTintStrength;
 uniform float paintedBackEdge;
 uniform vec3 paintedBackFree;
 uniform vec3 paintedBackFar;
@@ -377,9 +388,29 @@ outgoingLight = mix(paintedCool, outgoingLight, paintedLit);
  * each 0 to 1. A city screen with the mode off shows a lighter shade and the
  * full rim; the mode shows the full shade and a fainter rim under its
  * outlines. Both move over `PAINTED_SET_BACK_MS` (`applySetBack`).
+ *
+ * **The tints.** The settler lens colours each hex that would take a city
+ * with one flat tint (the user, 2026-11-21: simple tile colouring "in the way
+ * they do it" in Civ VI and VII, and "make sure there's no awkward spacing on
+ * the tiles"). It is done here and not with a decal on each hex, for the same
+ * reason the shade is: a decal leaves a sliver of bare ground or a darker seam
+ * where two neighbours differ in height, and it lies as a film over a unit.
+ * Here a fragment takes the tint of the hex its own ground position is in, so
+ * two tinted neighbours meet on one edge with no gap and no overlap, a slope
+ * or a cliff takes the colour of the hex it stands in, and the trees take it
+ * with the ground. Units, cities and badges are not the board's materials, so
+ * they keep their own colours.
+ *
+ * The tint reads the alpha channel at the fragment's own hex centre, which is
+ * exact, so the edge of a tint is the edge of the hex. On a hex that is not set
+ * back (blue 0), alpha is 0 for no tint, one third for fresh water, two thirds
+ * for coast and 1 for dry ground. `paintedTintOn` is 0 unless the settler lens
+ * is up, so the city screen's own use of alpha (its own hex) is never read as
+ * a tint. A hex is either tinted or set back, never both, so no hex is darker
+ * because two things were drawn on it.
  */
 const SET_BACK_PAINT = `
-if (paintedBackOn > 0.0) {
+if (paintedBackOn > 0.0 || paintedTintOn > 0.0) {
   vec2 paintedHexCentre = paintedCellCentre(vPaintedWorld.xz);
   vec2 paintedOff = vPaintedWorld.xz - paintedHexCentre;
   float paintedHexEdge = max(abs(paintedOff.x), max(abs(paintedOff.x * .5 + paintedOff.y * .8660254),
@@ -403,6 +434,13 @@ if (paintedBackOn > 0.0) {
   outgoingLight = mix(outgoingLight, paintedFarTone, paintedFar * paintedBackOn);
   outgoingLight = outgoingLight * (1.0 + paintedRim.w * paintedRimBand)
     + paintedRimColor * (paintedRim.z * paintedRimBand);
+  if (paintedTintOn > 0.0) {
+    float paintedTintKind = paintedOwn.a * (1.0 - step(.5, paintedOwn.b));
+    vec3 paintedTint = paintedTintKind < .5 ? paintedTintFresh : (paintedTintKind < .84 ? paintedTintCoast : paintedTintDry);
+    float paintedTintWeight = paintedTintKind < .5 ? paintedTintStrength.x
+      : (paintedTintKind < .84 ? paintedTintStrength.y : paintedTintStrength.z);
+    outgoingLight = mix(outgoingLight, paintedTint, step(.17, paintedTintKind) * paintedTintWeight * paintedTintOn);
+  }
 }
 `;
 

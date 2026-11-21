@@ -3,15 +3,13 @@ import {
   type BufferGeometry, type Material, type Texture,
 } from 'three';
 import { assignableTiles, takeableTiles } from '../sim/cities';
-import { getTileAt, type GameMap } from '../sim/map';
+import type { GameMap } from '../sim/map';
 import type { City, GameState } from '../sim/state';
 import { knowsCell, type FogLevels } from './fog3d';
 import { hexDecal } from './geometry';
 import { disposeInstancedGroup, InstanceCollector, RENDER_ORDER } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D } from './lookData';
-import { frontierRibbon } from './movementBoundary';
-import { samplePaintedWorld } from './paintedSurface';
 import type { MaterialLibrary } from './toon';
 
 /*
@@ -51,8 +49,7 @@ import type { MaterialLibrary } from './toon';
  *      hexes, and the ground set back fully. Another town's hex has that
  *      town's name in the city banner's face. A click pins or unpins.
  *
- * `citizenOutlines` is what the outlines were. `overlays.ts` still imports it
- * and is now handed no hexes; it can be deleted with that call.
+ * The outlines are deleted, with their call in `overlays.ts`.
  *
  * The frozen toon board has no painted materials. There situation 3 draws one
  * plain wash decal for each hex (`groundShaded` false).
@@ -95,68 +92,6 @@ export function citizenGroundKinds(map: GameMap, cells: CitizenCells): Uint8Arra
   const ground = new Uint8Array(map.tiles.length).fill(GROUND_KIND.unavailable);
   for (const [cell, kind] of cells.kinds) ground[cell] = GROUND_KIND[kind];
   return ground;
-}
-
-// --- the outlines -------------------------------------------------------------
-
-const STATIONS_PER_EDGE = 3;
-
-/**
- * One closed, level ring a little inside each of these hexes, for
- * `frontierRibbon`. `round` is the share of each edge's end that the corner's
- * curve takes. The ring's height is the mean of the ground under it, read
- * from the painted terrain, or the hex's top where there is no painted
- * terrain (the toon board, a test).
- */
-function insetLoops(map: GameMap, cells: readonly Cell[], inset: number, round: number) {
-  const radius = VIEW3D.board.hexRadius * (1 - inset);
-  const at = (k: number) => ({ x: radius * Math.sin((k * Math.PI) / 3), z: radius * Math.cos((k * Math.PI) / 3) });
-  const mix = (a: { x: number; z: number }, b: { x: number; z: number }, t: number) => ({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t });
-  const ring: { x: number; z: number }[] = [];
-  for (let k = 0; k < 6; k++) {
-    const a = at(k), b = at(k + 1), c = at(k + 2);
-    for (let i = 0; i <= STATIONS_PER_EDGE; i++) ring.push(mix(a, b, round + (1 - 2 * round) * (i / STATIONS_PER_EDGE)));
-    // The corner at b: a curve from the end of this edge to the start of the next, with b as its control point.
-    const from = mix(a, b, 1 - round), to = mix(b, c, round);
-    for (const t of [0.25, 0.5, 0.75]) ring.push(mix(mix(from, b, t), mix(b, to, t), t));
-  }
-  const loops = [];
-  for (const cell of cells) {
-    const tile = getTileAt(map, cell.col, cell.row);
-    if (!tile) continue;
-    const centre = cellCenter(tile.col, tile.row);
-    let sum = 0, count = 0;
-    for (const p of ring) {
-      const ground = samplePaintedWorld(map, centre.x + p.x, centre.z + p.z);
-      if (ground !== undefined) { sum += ground; count++; }
-    }
-    const y = (count > 0 ? sum / count : tileTopY(tile)) + ART.outlineLift;
-    loops.push({ stations: ring.map((p) => ({ x: centre.x + p.x, z: centre.z + p.z, y })) });
-  }
-  return loops;
-}
-
-/** One strip of the outlines: a shape, its colour, its opacity, and where it stands in the draw order. */
-export interface OutlineStrip { geometry: BufferGeometry; color: number; opacity: number; order: number }
-
-/**
- * The outlines of a city's worked hexes: one ring on each worked hex, and a
- * second ring inside the first on each pinned hex. `pinned` is a subset of
- * `worked`. Each ring is two strips, the ink over its dark backing. The caller
- * owns the geometries and disposes them.
- */
-export function citizenOutlines(map: GameMap, worked: readonly Cell[], pinned: readonly Cell[]): OutlineStrip[] {
-  const strips: OutlineStrip[] = [];
-  const rings: [readonly Cell[], number][] = [[worked, ART.outlineInset], [pinned, ART.outlineInset + ART.doubleGap]];
-  rings.forEach(([cells, inset], layer) => {
-    if (cells.length === 0) return;
-    const loops = insetLoops(map, cells, inset, ART.outlineRound);
-    strips.push(
-      { geometry: frontierRibbon(loops, ART.outlineWidth + ART.outlineBackingExtra), color: ART.outlineBacking, opacity: ART.outlineBackingOpacity, order: RENDER_ORDER.onTop - 2 + layer * 0.2 },
-      { geometry: frontierRibbon(loops, ART.outlineWidth), color: ART.outlineColor, opacity: ART.outlineOpacity, order: RENDER_ORDER.onTop - 1.9 + layer * 0.2 },
-    );
-  });
-  return strips;
 }
 
 // --- the plaque and the pin head ----------------------------------------------

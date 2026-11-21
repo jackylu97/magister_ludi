@@ -23300,3 +23300,83 @@ body.compendium-page {
 .loading-refusal-out {
   align-self: flex-end;
 }
+
+/* The advice panel (`src/ui/advicePanel.ts`): one line at the bottom centre,
+   shown while the pointer rests on a hex the board recommends. It is the city
+   screen's bottom bar in small (`.city-buy-dock`): paper, an ink line on top, a
+   line of paper and a gilt line above it. The pointer passes through it, as it
+   does through the tile readout, because hovering the board is what shows it.
+   Its width stops short of the tile readout on the left (14 + 252 px) and of
+   the lens button and End Turn on the right (382 px), with 12 px of clear
+   ground on each side, so it covers neither at 1280 px or wider. */
+.advice-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  box-sizing: border-box;
+  max-width: calc(100vw - 2 * 394px);
+  padding: 7px 16px 8px;
+  pointer-events: none;
+  border: 1px solid var(--edge);
+  border-top: 1px solid var(--ink);
+  border-radius: var(--paper-radius);
+  background: var(--parchment);
+  box-shadow:
+    0 -2px 0 var(--parchment),
+    0 -3px 0 var(--gilt),
+    var(--paper-shadow);
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  line-height: 1.35;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.advice-panel[hidden] { display: none; }
+.advice-panel .advice-lead { font-weight: 600; flex: none; }
+.advice-panel .advice-reasons { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.advice-panel .advice-figures { display: inline-flex; gap: 8px; flex: none; }
+.advice-panel .tile-yield.is-loss,
+.advice-panel .advice-warning { color: var(--rubric); }
+.advice-panel .advice-warning { font-weight: 600; flex: none; }
+
+/* The settler lens's legend (`mountLensLegend` in `src/ui/advicePanel.ts`): a
+   small card above the lens button and End Turn, shown while that lens is up. */
+.lens-legend {
+  position: fixed;
+  right: 14px;
+  bottom: 74px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 12px;
+  pointer-events: none;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  background: var(--parchment);
+  box-shadow: var(--paper-shadow);
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  line-height: 1.2;
+  color: var(--ink);
+}
+.lens-legend[hidden] { display: none; }
+.lens-legend-row { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.lens-legend-swatch {
+  flex: none;
+  width: 14px;
+  height: 12px;
+  border: 1px solid var(--ink-line);
+  /* The tint over a sample of grass, as the board shows it. */
+  background: linear-gradient(color-mix(in srgb, var(--tint) 62%, transparent), color-mix(in srgb, var(--tint) 62%, transparent)), #7c9a56;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+.lens-legend-swatch.is-none { background: #8d8f86; }
+/* The city screen has the bottom of the screen to itself. */
+body:has(.city-mode:not([hidden])) .lens-legend,
+body:has(.city-mode:not([hidden])) .advice-panel { display: none; }

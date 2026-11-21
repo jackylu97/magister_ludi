@@ -32,7 +32,7 @@ import type { BotDecision } from '../../src/ai/decision';
 import { type ImprovementPlan, buildImprovementPlan, explainWorkerCraving, rankPlanFor } from '../../src/ai/plan';
 import { foundCityAt, refreshCityDerived, tileContextAt } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
-import { type GameMap, type Tile, createMap, getTileAt, tileIndex, tileNeighbors } from '../../src/sim/map';
+import { type GameMap, type Tile, createMap, getTileAt, tileIndex, tileNeighbors, tileHex, wrappedDistance } from '../../src/sim/map';
 import { HIDDEN, VISIBLE } from '../../src/sim/visibility';
 import { improvementErrorAt, improvementYieldDelta } from '../../src/sim/improvements';
 import { findPath } from '../../src/sim/pathfind';
@@ -212,6 +212,20 @@ describe("the worker's choice shares the city's rule (bot batch BP13b)", () => {
     state.visibility[0]![tileIndex(state.map, 5, 4)] = HIDDEN;
     bumpRevision(state);
     expect(workerAdvice(state, 0, worker.id)).toEqual([]);
+  });
+
+  it('includes a four-hex route when the display asks for that range', () => {
+    const state = bench('plains');
+    wheatTown(state);
+    const target = at(state.map, 5, 4);
+    const from = state.map.tiles.find(tile => wrappedDistance(state.map, tileHex(tile), tileHex(target)) === 4)!;
+    const worker = createUnit(state, 0, 'worker', from.col, from.row);
+    state.visibility[0]!.fill(VISIBLE);
+    bumpRevision(state);
+    expect(workerAdvice(state, 0, worker.id, { walk: 3, count: 3, near: 0.6 })).toEqual([]);
+    expect(workerAdvice(state, 0, worker.id, { walk: 4, count: 3, near: 0.6 })[0]).toMatchObject({
+      col: 5, row: 4, distance: 4, improvement: 'farm',
+    });
   });
 
   it('places Nazca lines beside existing lines and includes the gain on the existing tile', () => {

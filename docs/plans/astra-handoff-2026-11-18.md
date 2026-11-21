@@ -10,13 +10,13 @@ and the rules of the repository. Read `CLAUDE.md` (or `AGENTS.md`, the same
 text) and `docs/README.md` first. They are the briefing. This document does not
 repeat them.
 
-## 0. Status on 2026-11-21: what waits on Astra
+## 0. Build status on 2026-11-21
 
 The Claude session checked the data and the history on `decks` on
 2026-11-21. Read this section first. The numbered sections below hold the
 detail of each item.
 
-### 0.1 Waiting on Astra
+### 0.1 Handoff items
 
 | # | Work | Spec | State |
 |---|---|---|---|
@@ -28,14 +28,14 @@ detail of each item.
 | 6 | **Strategic resources may be traded** | the same flag | The sim accepts `give.strategics` and `take.strategics`. The bot can propose and accept these terms. Claude owns the diplomacy controls. |
 | 7 | **The Volley Fire** | `docs/plans/scientific-design-pass-2026-11-20.md`, change 59; `docs/flags.md`, "The percentages of combat strength that remain" | Archers can attack twice and lose four strength when defending against a melee attack. The combat preview shows the loss. |
 | 8 | **City site ranking** | section 0.3 below | The site ranking spaces legal settlements, caps the extra hill score and charges for proximity to known camps. |
-| 9 | **Values for worker advice** | section 0.3 below | Claude can call `createWorkerAdviceReader` from `src/ui/workerAdvice.ts`. The reader returns the improvement or repair and its yield changes. See the worker advice benchmark. |
-| 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The prior version 252 replay pins were already refreshed at `8886505e`. The two deck passes and bot changes require new version 254 results. |
-| 11 | **The unit kit** | 3.16 | In your hands (you refined the archer and the spearman). Show the user the pair beside the reference before more units. |
+| 9 | **Values for worker advice** | section 0.3 below | Selecting a worker requests advice in a background worker. The board marks up to three hexes. The hover panel shows the recommended build or repair and its yield changes. |
+| 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The prior version 252 replay pins were already refreshed at `8886505e`. Both six-player maps reached turn 121 with no warnings or stalls on version 254. The replay tests record their expected results. |
+| 11 | **The unit kit** | 3.16 | The [spearman and archer comparison](../../art/unit-kit-trial/astra-review/renders/comparison.png) is ready for review. The game keeps its current pieces. |
 | 12 | **Wonders on the board** | 3.13 | The user confirmed the three shared models on the city tile. |
 
-**Integration with the playtest branch.** The first 21 November playtest already had Claude’s Fortify until healed command at save version 253. This deck build uses version 254 and keeps that command.
+**Integration with the playtest branch.** The first 21 November playtest already had Claude’s Fortify until healed command at save version 253. Save version 254 includes that command, the settler and explorer lenses, the worker advice panel, and both deck passes.
 
-**Performance.** See [the turn 73 camera trace](benchmarks/turn73-drag-and-city-shade-2026-11-21.md) and [worker advice timings and integration](benchmarks/turn73-worker-advice-2026-11-21.md). The camera trace measured submission to the graphics driver. The worker reader keeps a cold recommendation off the input thread. Claude owns drawing advice, the strategic offer controls and the price display. Scientific and Devotion still need a closed design pass, except for Volley Fire and the shared purchase rule.
+**Performance.** See [the turn 73 camera trace](benchmarks/turn73-drag-and-city-shade-2026-11-21.md) and [worker advice timings and integration](benchmarks/turn73-worker-advice-2026-11-21.md). The camera trace measured submission to the graphics driver. The worker reader keeps a cold recommendation off the input thread. Claude owns the remaining UI work for composing strategic resource offers, displaying the original and discounted price together, and offering a gold payment for The Brokers’ Redraw. Scientific and Devotion still need a closed design pass, except for Volley Fire and the shared purchase rule.
 
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
@@ -60,17 +60,12 @@ notice the city recommendations are all close to one another" and
   sites should be three places a seat can hold together;
 - thirteen hills scored 26, more than fresh water, the coast and a luxury
   together at 24.
-The Claude session is redesigning how the sites are DRAWN (a quiet pin with
-pips, with the settler lens). The ranking is yours.
+The settler lens now draws corner marks and pips on the ranked sites. The hover panel explains why each site qualifies.
 
 **Worker advice.** The user wants a selected worker to show the best two or
 three hexes to improve, as a quiet ground mark and one line in the hex's
 tooltip ("Advice: Build a Camp here", with the gains and losses in yields).
-The Claude session will build the drawing. It needs one pure function from
-the bots, so that the advice and the bots agree: for a seat and a worker,
-the best few hexes with the improvement and its change in yields.
-`buildImprovementPlan` and `rankPlanFor` in `src/ai/plan.ts` already price a
-hex with `improvementYieldDelta`. Say how you want the UI to call it.
+The board and the hover panel read the same answer from `createWorkerAdviceReader`. It runs the bot’s improvement planner in a background worker. A change of seat, selection, game or revision prevents an old reply from drawing marks.
 
 **Deck passes still in design, not ready for you:** Devotion (round two with
 the user) and Scientific (round two with the user):

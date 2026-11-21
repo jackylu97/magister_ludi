@@ -1,0 +1,171 @@
+/**
+ * The advice panel: one line at the bottom centre of the screen, shown only
+ * while the pointer rests on a hex the board recommends.
+ *
+ * The user's ruling of 2026-11-21 (docs/plans/ui-critique-2026-10-16.md): "add
+ * a new panel that appears on hover in the middle bottom that reads 'advice:
+ * build a camp here *yields*'. We can have advice appear there, applying to
+ * the settler recommendations too (mousing over a settler location reads 'we
+ * recommend you build a city here: *reasons*')".
+ *
+ * It has two forms:
+ *
+ *   - a city site: "We recommend a city here:" and at most three reasons, from
+ *     `siteReasons` (`tileReadout.ts`), which writes them from `explainSite`;
+ *   - a worker's hex: "Advice: build a camp here" and the change in the hex's
+ *     yields as figures, a loss in the alert colour.
+ *
+ * Both forms have a slot for one warning in the alert colour. Nothing fills it
+ * today: the site reading has no line for a danger such as a camp nearby.
+ *
+ * The panel is in the family of the city screen's bottom bar (`.city-buy-dock`
+ * in `style.css`): paper, an ink line on top, a gilt rule above it. It has no
+ * close button and takes no pointer events, because the hover on the board
+ * drives it. Its width is limited in the CSS so that it stays clear of the tile
+ * readout on the left and of the lens button and End Turn on the right.
+ *
+ * It listens to nothing itself. The caller tells it what the pointer is on,
+ * and `dispose` removes the element. The caller puts `dispose` in
+ * `gameDisposers`.
+ */
+
+import type { WorkerAdvice } from '../ai/bot';
+import { improvementDef } from '../sim/improvementData';
+import { aRow } from '../sim/improvements';
+import type { TileYield } from '../sim/terrainData';
+import { TILE_YIELD_KEYS } from '../sim/terrainData';
+import { roundYield } from '../sim/yieldFormat';
+
+import { VIEW3D } from '../render3d/lookData';
+
+import { YIELD_NAME } from './figures';
+import { yieldFigureNodes } from './yieldMark';
+
+/** What the panel says. `null` hides it. */
+export type Advice =
+  | { kind: 'site'; reasons: readonly string[]; warning?: string }
+  | { kind: 'work'; action: 'build' | 'repair'; phrase: string; change: TileYield; warning?: string };
+
+export interface AdvicePanel {
+  show(advice: Advice | null): void;
+  dispose(): void;
+}
+
+/** The hover panel describes the same job the selected worker's map mark represents. */
+export function adviceForWork(job: WorkerAdvice): Advice {
+  return { kind: 'work', action: job.action, phrase: aRow(improvementDef(job.improvement)), change: job.delta };
+}
+
+/** The most reasons a city site prints. The panel is one line. */
+export const SITE_REASON_LIMIT = 3;
+
+/** The words of an advice, without the figures: what the panel prints, and what a screen reader hears. */
+export function adviceText(advice: Advice): string {
+  if (advice.kind === 'work') return `Advice: ${advice.action} ${advice.phrase} here`;
+  const reasons = advice.reasons.slice(0, SITE_REASON_LIMIT);
+  return reasons.length > 0 ? `We recommend a city here: ${reasons.join(', ')}` : 'We recommend a city here';
+}
+
+/** The voices of a yield change that are not zero, in the game's order, as signed whole figures. */
+export function adviceFigures(change: TileYield): { key: keyof TileYield; text: string; loss: boolean }[] {
+  return TILE_YIELD_KEYS.map((key) => ({ key, amount: roundYield(change[key]) }))
+    .filter((row) => row.amount !== 0)
+    .map((row) => ({ key: row.key, text: (row.amount > 0 ? '+' : '−') + Math.abs(row.amount), loss: row.amount < 0 }));
+}
+
+export function mountAdvicePanel(host: HTMLElement): AdvicePanel {
+  const panel = document.createElement('div');
+  panel.className = 'advice-panel';
+  panel.setAttribute('role', 'status');
+  panel.hidden = true;
+  host.append(panel);
+  let shown = '';
+
+  return {
+    show(advice) {
+      // The pointer moves often and the advice changes seldom, so an unchanged advice touches nothing.
+      const key = advice === null ? '' : JSON.stringify(advice);
+      if (key === shown) return;
+      shown = key;
+      if (advice === null) { panel.hidden = true; panel.replaceChildren(); return; }
+      const lead = document.createElement('strong');
+      lead.className = 'advice-lead';
+      const parts: Node[] = [lead];
+      if (advice.kind === 'site') {
+        const reasons = advice.reasons.slice(0, SITE_REASON_LIMIT);
+        lead.textContent = reasons.length > 0 ? 'We recommend a city here:' : 'We recommend a city here';
+        if (reasons.length > 0) {
+          const body = document.createElement('span');
+          body.className = 'advice-reasons';
+          body.textContent = reasons.join(', ');
+          parts.push(body);
+        }
+      } else {
+        lead.textContent = adviceText(advice);
+        const figures = document.createElement('span');
+        figures.className = 'advice-figures';
+        for (const row of adviceFigures(advice.change)) {
+          const span = document.createElement('span');
+          span.className = `tile-yield is-${row.key}${row.loss ? ' is-loss' : ''}`;
+          span.append(yieldFigureNodes(row.text, row.key));
+          span.setAttribute('aria-label', `${row.text} ${YIELD_NAME[row.key]}`);
+          figures.append(span);
+        }
+        if (figures.childElementCount > 0) parts.push(figures);
+      }
+      if (advice.warning) {
+        const warning = document.createElement('span');
+        warning.className = 'advice-warning';
+        warning.textContent = advice.warning;
+        parts.push(warning);
+      }
+      panel.replaceChildren(...parts);
+      panel.hidden = false;
+    },
+    dispose() { panel.remove(); },
+  };
+}
+
+/** The settler lens's legend: what each tint means, in the order best to worst. */
+export const SITE_LEGEND: readonly { key: 'fresh' | 'coast' | 'dry' | 'none'; label: string }[] = [
+  { key: 'fresh', label: 'Fresh water' },
+  { key: 'coast', label: 'Coast' },
+  { key: 'dry', label: 'No water' },
+  { key: 'none', label: 'No city here' },
+];
+
+export interface LensLegend {
+  show(on: boolean): void;
+  dispose(): void;
+}
+
+/**
+ * The legend of the settler lens: a small card above the lens button, shown
+ * while that lens is up. Four rows, a swatch and a word each. The three tints
+ * are the lens's own colours from `data/view3d.json`, so the card cannot drift
+ * from the board. The fourth swatch is the grey of ground that is set back.
+ * Like the advice panel, it takes no pointer events.
+ */
+export function mountLensLegend(host: HTMLElement): LensLegend {
+  const card = document.createElement('div');
+  card.className = 'lens-legend';
+  card.hidden = true;
+  const css = (color: number): string => '#' + color.toString(16).padStart(6, '0');
+  const tint = { fresh: VIEW3D.lens.siteFreshColor, coast: VIEW3D.lens.siteCoastColor, dry: VIEW3D.lens.siteDryColor };
+  for (const row of SITE_LEGEND) {
+    const line = document.createElement('div');
+    line.className = 'lens-legend-row';
+    const swatch = document.createElement('span');
+    swatch.className = `lens-legend-swatch is-${row.key}`;
+    if (row.key !== 'none') swatch.style.setProperty('--tint', css(tint[row.key]));
+    const word = document.createElement('span');
+    word.textContent = row.label;
+    line.append(swatch, word);
+    card.append(line);
+  }
+  host.append(card);
+  return {
+    show(on) { if (card.hidden === on) card.hidden = !on; },
+    dispose() { card.remove(); },
+  };
+}

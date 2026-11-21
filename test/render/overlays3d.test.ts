@@ -33,17 +33,9 @@ import { foundCityAt } from '../../src/sim/cities';
 import {
   createMap,
   getTileAt,
-  tileHex,
   tileIndex,
-  wrappedDistance,
   type Tile,
 } from '../../src/sim/map';
-import {
-  type ResourceDef,
-  type ResourceId,
-  withExtraResources,
-} from '../../src/sim/resourceData';
-import { RULES } from '../../src/sim/rulesData';
 import { type GameState } from '../../src/sim/state';
 import { DIRECTION_COUNT, computeFreshwater, neighborInDirection } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -271,19 +263,14 @@ describe('board overlays draw over the board', () => {
       materials,
     );
     expectDrawnOverTheBoard(layer.group);
+    // The worked hexes no longer draw an outline here: a city's hexes are the
+    // lens layer's plaques now, and the outlines are deleted.
     const pinned = [{ col: 6, row: 1 }];
     layer.build(state.map, {
       reachable: [], attackable: [], path: [], committed: [], hover: null, selection: null,
       worked: pinned, locked: pinned,
     }, geometry, materials);
-    const strips = decals(layer.group);
-    expect(strips).toHaveLength(4);
-    for (const { mesh, material } of strips) {
-      expect(material.depthTest).toBe(false);
-      expect(material.depthWrite).toBe(false);
-      expect(mesh.renderOrder).toBeGreaterThan(RENDER_ORDER.silhouette);
-      expect(mesh.renderOrder).toBeLessThan(RENDER_ORDER.onTop);
-    }
+    expect(decals(layer.group)).toHaveLength(0);
     layer.dispose();
   });
 
@@ -1030,7 +1017,11 @@ describe('board overlays draw over the board', () => {
   });
 });
 
-describe('the settler lens reads a site rather than scoring it', () => {
+describe('the settler lens tints a site rather than scoring it', () => {
+  // The user's ruling of 2026-11-21: one flat tint a hex, "in the way they do
+  // it" in Civ VI and VII. The painted board tints its own ground in its
+  // shader (`settlerGroundKinds`, pinned in `adviceMarks.test.ts`). These tests
+  // are the frozen toon board's fallback, which draws one decal a hex.
   const geometry = new BoardGeometry();
   const materials = new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
   const LENS = VIEW3D.lens;
@@ -1051,148 +1042,51 @@ describe('the settler lens reads a site rather than scoring it', () => {
     return colors;
   }
 
-  it('paints a coastal tile blue', () => {
+  it('tints a coastal tile in the coast colour', () => {
     const state = flatState();
     at(state, 3, 3).terrain = 'coast';
     computeFreshwater(state.map);
     expect(washOver(state, 4, 3)).toEqual([LENS.siteCoastColor]);
   });
 
-  it('paints a fresh-water tile green', () => {
+  it('tints a fresh-water tile in the fresh water colour', () => {
     const state = flatState();
     at(state, 3, 5).terrain = 'lake';
     computeFreshwater(state.map);
     expect(washOver(state, 4, 5)).toEqual([LENS.siteFreshColor]);
   });
 
-  it('marks an estuary — both at once — with a blend and a ring', () => {
+  it('gives a tile with both one tint, the fresh water one, and no ring', () => {
     const state = flatState();
     at(state, 3, 3).terrain = 'coast';
     at(state, 5, 3).terrain = 'lake';
     computeFreshwater(state.map);
-
-    const colors = washOver(state, 4, 3);
-    // Two decals, both in the blended ink: the wash and the ring that makes a
-    // premium site findable in a field of washes.
-    expect(colors).toHaveLength(2);
-    expect(new Set(colors).size).toBe(1);
-    expect(colors[0]).not.toBe(LENS.siteCoastColor);
-    expect(colors[0]).not.toBe(LENS.siteFreshColor);
+    expect(washOver(state, 4, 3)).toEqual([LENS.siteFreshColor]);
   });
 
-  it('says nothing about ground that is merely legal', () => {
+  it('tints legal ground with no water in the dry colour', () => {
     const state = flatState();
-    // Dry, inland, and perfectly foundable: no mark at all.
+    computeFreshwater(state.map);
+    expect(washOver(state, 6, 4)).toEqual([LENS.siteDryColor]);
+  });
+
+  it('draws nothing on ground the rules refuse, and nothing on water', () => {
+    const state = flatState();
+    foundCityAt(state, 0, at(state, 5, 4));
+    expect(washOver(state, 5, 4)).toEqual([]);
     expect(washOver(state, 6, 4)).toEqual([]);
+    at(state, 9, 6).terrain = 'coast';
+    expect(washOver(state, 9, 6)).toEqual([]);
   });
 
-  it('washes ground the reducer would refuse in crimson, not in shade', () => {
-    const state = flatState();
-    at(state, 6, 4).terrain = 'mountain';
-    computeFreshwater(state.map);
-    expect(washOver(state, 6, 4)).toEqual([LENS.siteRefusedColor]);
-    // The point of the change: refusal is stated in an ink, never as a
-    // darkening. The fog already darkens, and a refused hex that read as
-    // unexplored ground was the bug.
-    expect(LENS.siteRefusedColor).not.toBe(VIEW3D.palette.ink);
-  });
-
-  it('refuses the whole ring the spacing rule reserves around a city', () => {
-    // The lens is the reducer's own rule painted (`foundingErrorAt`), so the
-    // hexes it refuses are exactly the ones the command would: everything
-    // within `minCitySpacing − 1` of a town, anyone's.
-    const state = flatState(16, 12);
-    foundCityAt(state, 1, at(state, 8, 6));
-    const spacing = RULES.cities.minCitySpacing;
-    for (const tile of state.map.tiles) {
-      const distance = wrappedDistance(state.map, tileHex(tile), tileHex(at(state, 8, 6)));
-      if (distance >= spacing) continue;
-      expect(`${tile.col},${tile.row}: ${washOver(state, tile.col, tile.row)[0]}`).toBe(
-        `${tile.col},${tile.row}: ${LENS.siteRefusedColor}`,
-      );
-    }
-  });
-
-  it('rings a luxury in grape, on refused ground as much as on legal ground', () => {
-    // The ring answers "what is on this hex", not "may I settle here" — a
-    // settler aims at a luxury from a legal tile *beside* it, so the mark has to
-    // survive the crimson.
-    const state = flatState();
-    at(state, 6, 4).resource = 'gems';
-    at(state, 6, 5).resource = 'gems';
-    at(state, 6, 5).terrain = 'mountain';
-    computeFreshwater(state.map);
-
-    expect(washOver(state, 6, 4)).toEqual([LENS.siteLuxuryColor]);
-    expect(washOver(state, 6, 5)).toEqual([LENS.siteRefusedColor, LENS.siteLuxuryColor]);
-  });
-
-  it('leaves a bonus resource unringed — the ring is for luxuries', () => {
+  it('adds no ring for a resource: the badge names it', () => {
     const state = flatState();
     at(state, 6, 4).resource = 'wheat';
     computeFreshwater(state.map);
-    expect(washOver(state, 6, 4)).toEqual([]);
+    expect(washOver(state, 6, 4)).toEqual([LENS.siteDryColor]);
   });
 
-  it('says nothing about a luxury this seat has no word for yet', () => {
-    // The roundels' own gate (`visibleResourceAt`), asked of the simulation so
-    // the lens cannot ring a dye the player has not heard of. No shipped luxury
-    // is tech-gated today, so the row is invented at runtime — which is also the
-    // honest form of the claim: the gate is data, and the lens asks one
-    // function about it either way.
-    withExtraResources(
-      {
-        tyrianDye: {
-          name: 'Tyrian Dye',
-          kind: 'luxury',
-          yields: { food: 0, production: 0, gold: 3 },
-          validTerrain: ['grassland'],
-          validFeatures: ['none'],
-          frequency: 1,
-          clusterSize: [1, 1],
-          emoji: '🐚',
-          requiresTech: 'bronzeWorking',
-        } as unknown as ResourceDef,
-      },
-      () => {
-        const state = flatState();
-        at(state, 6, 4).resource = 'tyrianDye' as ResourceId;
-        computeFreshwater(state.map);
-
-        const player = state.players[0]!;
-        player.techsResearched = player.techsResearched.filter((id) => id !== 'bronzeWorking');
-        expect(washOver(state, 6, 4)).toEqual([]);
-
-        // And the moment the seat can name it, the ring is there — the reveal
-        // reaches the lens exactly as it reaches the roundel and the yield.
-        player.techsResearched = [...player.techsResearched, 'bronzeWorking'];
-        expect(washOver(state, 6, 4)).toEqual([LENS.siteLuxuryColor]);
-      },
-    );
-  });
-
-  it('shows the yield glyphs and the settler wash at the same time', () => {
-    const state = flatState();
-    at(state, 3, 3).terrain = 'coast';
-    computeFreshwater(state.map);
-
-    const layer = new LensLayer();
-    layer.build(
-      state,
-      lensView({
-        mode: 'settler',
-        cells: [{ col: 4, row: 3 }],
-        yields: true,
-        yieldCells: [{ col: 4, row: 3 }],
-      }),
-      geometry,
-      materials,
-      fakeIcons,
-      faceCamera,
-    );
-    // The wash *and* the grassland's two food glyphs: the two are independent.
-    expect(colorsOf(layer.group)).toContain(LENS.siteCoastColor);
-    expect(shapesOf(layer.group)).toContain(geometry.yieldGlyphs.food);
-    layer.dispose();
+  it('uses three colours that differ from each other', () => {
+    expect(new Set([LENS.siteFreshColor, LENS.siteCoastColor, LENS.siteDryColor]).size).toBe(3);
   });
 });

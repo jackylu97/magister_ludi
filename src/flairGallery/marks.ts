@@ -74,6 +74,8 @@ import { RANK_MARK_IDS, rankMark, rankMarkDataUri } from '../art/rankMarks';
 import { siteMark } from '../art/siteMarks';
 import { SURVEY_MARK_IDS, surveyMark, surveyMarkDataUri } from '../art/surveyMarks';
 import { SETTLE_MARK_IDS, settleMark, settleMarkDataUri } from '../art/settleMarks';
+import { adviceShapes, cornerTicks, ruinLightMaterials } from '../render3d/adviceMarks';
+import { pinHeadMaterial, plaqueMaterial } from '../render3d/citizenMarks';
 import { YIELD_MARKS, yieldMarkDataUri } from '../art/yieldMarks';
 import {
   BADGE_ICON_FILES,
@@ -140,6 +142,7 @@ export function drawMarkFamilies(into: HTMLElement): void {
   siteFamily(into);
   surveyFamily(into);
   settleFamily(into);
+  adviceFamily(into);
   pantheonFamily(into);
   deviceFamily(into);
   badgeFamily(into);
@@ -418,6 +421,131 @@ function settleFamily(into: HTMLElement): void {
       // swatch answers the question the knob asks rather than a pixel one.
       preview.style.setProperty('--mark-size', `${Math.round(value * 96)}px`);
     },
+  );
+}
+
+/**
+ * The advice marks (`src/render3d/adviceMarks.ts`) and the city screen's plaque
+ * (`src/render3d/citizenMarks.ts`), drawn from the shapes and textures the
+ * board itself uses.
+ *
+ * Each stall is a small canvas of one hex of ground, seen from above, with the
+ * mark on it at the board's own proportions. The slider drives the shipped
+ * knob for the width of a tick and redraws the three tick stalls.
+ */
+function adviceFamily(into: HTMLElement): void {
+  const panel = block(
+    into,
+    'Advice marks — src/render3d/adviceMarks.ts',
+    'Six corner ticks mean "the board recommends this hex": a city site (with pips for how good it is), a worker\'s best hexes, and the explorer lens\'s finds. A ruin also has a still light. The last stall is the city screen\'s plaque with its pin head.',
+  );
+  const row = element('div', 'mark-row');
+  panel.append(row);
+  const advice = VIEW3D.lens.advice, unit = 52, size = 132;
+  const css = (color: number): string => '#' + color.toString(16).padStart(6, '0');
+  type Flat = { getAttribute(name: 'position'): { count: number; getX(i: number): number; getZ(i: number): number } };
+
+  /** One stall: a hex of ground, and whatever `draw` puts on it. */
+  const stall = (label: string, ground: string, draw: (ctx: CanvasRenderingContext2D, fill: (shape: Flat, color: string, dz?: number, dx?: number) => void) => void): (() => void) => {
+    const cell = element('figure', 'mark-cell');
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size * 2;
+    canvas.style.width = canvas.style.height = `${size}px`;
+    const caption = element('figcaption', '', label);
+    cell.append(canvas, caption);
+    row.append(cell);
+    const paint = (): void => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.setTransform(2, 0, 0, 2, 0, 0);
+      ctx.clearRect(0, 0, size, size);
+      ctx.translate(size / 2, size / 2);
+      ctx.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const x = unit * VIEW3D.board.hexRadius * Math.sin((k * Math.PI) / 3), y = unit * VIEW3D.board.hexRadius * Math.cos((k * Math.PI) / 3);
+        if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath(); ctx.fillStyle = ground; ctx.fill();
+      draw(ctx, (shape, color, dz = 0, dx = 0) => {
+        const at = shape.getAttribute('position');
+        ctx.fillStyle = color; ctx.beginPath();
+        for (let i = 0; i < at.count; i += 3) {
+          ctx.moveTo((at.getX(i) + dx) * unit, (at.getZ(i) + dz) * unit);
+          ctx.lineTo((at.getX(i + 1) + dx) * unit, (at.getZ(i + 1) + dz) * unit);
+          ctx.lineTo((at.getX(i + 2) + dx) * unit, (at.getZ(i + 2) + dz) * unit);
+        }
+        ctx.fill();
+      });
+    };
+    paint();
+    return paint;
+  };
+
+  const ticks = (color: number, best: boolean) => (_: CanvasRenderingContext2D, fill: (shape: Flat, color: string, dz?: number, dx?: number) => void): void => {
+    const width = best ? advice.tickWidthBest : advice.tickWidth;
+    fill(cornerTicks(width, advice.tickBackingExtra), css(advice.tickBackingColor));
+    fill(cornerTicks(width), css(color));
+  };
+  const pips = (count: number) => (_: CanvasRenderingContext2D, fill: (shape: Flat, color: string, dz?: number, dx?: number) => void): void => {
+    const shapes = adviceShapes(), foot = VIEW3D.board.hexRadius * advice.pipOffset;
+    fill(shapes.plate, css(advice.pipPlateColor), foot);
+    for (let i = 0; i < 3; i++) fill(shapes.pip, css(i < count ? advice.tickColor : advice.pipEmptyColor), foot, (i - 1) * advice.pipGap);
+  };
+  const repaint = [
+    stall('ticks, the best hex', '#7c9a56', (ctx, fill) => { ticks(advice.tickColor, true)(ctx, fill); pips(3)(ctx, fill); }),
+    stall('ticks, a second hex', '#5f7f4a', (ctx, fill) => { ticks(advice.tickPaleColor, false)(ctx, fill); pips(2)(ctx, fill); }),
+    stall('a camp', '#6d8a52', ticks(VIEW3D.lens.campColor, false)),
+  ];
+  stall('a far-seeing hill', '#8a8f6a', (ctx, fill) => {
+    ticks(advice.tickPaleColor, false)(ctx, fill);
+    const shapes = adviceShapes(), foot = VIEW3D.board.hexRadius * advice.eyeOffset;
+    fill(shapes.eyeBack, css(advice.eyeInkColor), foot); fill(shapes.eye, css(advice.eyePaperColor), foot); fill(shapes.pupil, css(advice.eyeInkColor), foot);
+  });
+  stall('the light on a ruin', '#4f6a44', (ctx, fill) => {
+    ticks(advice.tickColor, false)(ctx, fill);
+    // The two light textures, added over the ground as the board adds them.
+    const light = ruinLightMaterials();
+    const stamp = (material: { map: { image: { data: Uint8Array; width: number; height: number } } | null }, x: number, y: number, w: number, h: number, flip: boolean): void => {
+      const image = material.map?.image; if (!image) return;
+      const scratch = document.createElement('canvas'); scratch.width = image.width; scratch.height = image.height;
+      const pen = scratch.getContext('2d'); if (!pen) return;
+      const pixels = pen.createImageData(image.width, image.height), glow = advice.ruinGlowColor;
+      for (let i = 0; i < image.width * image.height; i++) {
+        pixels.data[i * 4] = (glow >> 16) & 255; pixels.data[i * 4 + 1] = (glow >> 8) & 255; pixels.data[i * 4 + 2] = glow & 255; pixels.data[i * 4 + 3] = image.data[i * 4 + 3]!;
+      }
+      pen.putImageData(pixels, 0, 0);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      if (flip) { ctx.translate(x, y + h); ctx.scale(1, -1); ctx.drawImage(scratch, 0, 0, w, h); } else ctx.drawImage(scratch, x, y, w, h);
+      ctx.restore();
+    };
+    const glow = unit * VIEW3D.board.hexRadius * advice.ruinGlowSize, wide = unit * VIEW3D.board.hexRadius * advice.ruinShaftWidth, tall = unit * VIEW3D.board.hexRadius * advice.ruinShaftHeight * 0.6;
+    stamp(light.glow as never, -glow / 2, -glow / 2, glow, glow, false);
+    stamp(light.shaft as never, -wide / 2, -tall, wide, tall, true);
+  });
+  // The plaque and its pin head are textures already: the gallery shows the textures themselves.
+  const plaqueCell = element('figure', 'mark-cell');
+  const plaque = plaqueMaterial(0.42, 0.5)?.map?.image as HTMLCanvasElement | undefined;
+  const board = document.createElement('canvas'); board.width = board.height = size * 2; board.style.width = board.style.height = `${size}px`;
+  const pen = board.getContext('2d');
+  if (pen && plaque) {
+    pen.fillStyle = '#7c9a56'; pen.fillRect(0, 0, size * 2, size * 2);
+    const w = plaque.width * 0.9, h = plaque.height * 0.9;
+    pen.drawImage(plaque, size - w / 2, size - h / 2 + 10, w, h);
+    const seats = [0xb5301f, 0xead98b], pinSize = VIEW3D.territory.citizens.plaque.pinSize * 300 * 0.9;
+    seats.forEach((seat, i) => {
+      const pin = pinHeadMaterial(seat)?.map?.image as HTMLCanvasElement | undefined;
+      if (pin) pen.drawImage(pin, size - pinSize / 2 + (i === 0 ? -pinSize * 0.6 : pinSize * 0.6), size - h / 2 + 10 - pinSize / 2 + 8, pinSize, pinSize);
+    });
+  }
+  plaqueCell.append(board, element('figcaption', '', 'the plaque, with a red and a pale yellow pin head'));
+  row.append(plaqueCell);
+
+  slider(
+    controls(panel),
+    'tick width (board units)',
+    { min: 0.02, max: 0.1, step: 0.005, value: advice.tickWidth },
+    (value) => value.toFixed(3),
+    (value) => { advice.tickWidth = value; for (const paint of repaint) paint(); },
   );
 }
 

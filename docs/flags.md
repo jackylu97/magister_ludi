@@ -3223,7 +3223,7 @@ The user: "ok lets do that for now, i'll see if we need a further pass." So
 the proposed figures are ruled as a first step. The worker moves to the
 `line` size with a ladder of 4; the settler's base is 36 with a ladder of 9.
 
-## A purchase discount is "gold buys more" (ruled 2026-11-20, not built)
+## A purchase discount is "gold buys more" (ruled 2026-11-20)
 
 The user, in the Commerce pass: "instead of doing subtractive effects, to do
 additive ones aka your gold is 20% more effective instead of the cost is 20%
@@ -3245,6 +3245,7 @@ devotion can take this too."
   ordered lines, with one line for the buying power.
 - Owner: Astra (`purchase.ts`, the describers and the data rows). The Claude
   session then shows the full price struck through beside the final one.
+- Save version 254 implements the purchase rule. The [Commerce sheet](decks/commerce.md#buying-power) lists all fifteen sources and what each can buy.
 
 ## Attacking across a river is a flat −3 (ruled 2026-11-21)
 
@@ -3261,7 +3262,7 @@ strength on cards (2026-11-19).
 
 | Where | What | State |
 |---|---|---|
-| The Volley Fire (Scientific Doctrine) | melee units −10% combat strength | Already ruled to change in the Scientific pass, change 59: "your archer line may attack twice a turn, they lose 4 combat strength when defending against a melee attack". Not built. |
+| The Volley Fire (Scientific Doctrine) | melee units −10% combat strength | Save version 254 implements change 59 from the Scientific pass. An archer can attack twice and loses four strength when defending against a melee attack. |
 | `rules.naval.landRangedVsShipPercent` | a land bow shoots a ship at −50% | **Ruled 2026-11-21: a flat −6.** |
 | `rules.naval.landSiegeVsShipPercent` | a land siege engine shoots a ship at +50% | **Ruled 2026-11-21: a flat +6.** |
 

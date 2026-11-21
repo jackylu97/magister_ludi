@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Quaternion } from 'three';
-import { citizenCells, citizenGroundKinds, citizenOutlines, CitizenMarks, GROUND_KIND, pinHeadMaterial, plaqueMargin, plaqueMaterial } from '../../src/render3d/citizenMarks';
+import { citizenCells, citizenGroundKinds, CitizenMarks, GROUND_KIND, pinHeadMaterial, plaqueMargin, plaqueMaterial } from '../../src/render3d/citizenMarks';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { createPaintedLightField } from '../../src/render3d/paintedFogLook';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -100,25 +100,6 @@ describe('citizen marks', () => {
     expect(plaqueMaterial(0.5, 0.4)).toBeNull();
     expect(pinHeadMaterial(0xb5301f)).toBeNull();
     expect(plaqueMargin()).toBeGreaterThan(VIEW3D.territory.citizens.plaque.shadow);
-  });
-
-  it('outlines a worked hex once and a pinned hex twice, a little inside the hex', () => {
-    const { state, id } = fixture();
-    void id;
-    const worked = [{ col: 0, row: 4 }, { col: 1, row: 3 }], pinned = [{ col: 1, row: 3 }];
-    const strips = citizenOutlines(state.map, worked, pinned);
-    // Ink over backing for the outer rings, and the same pair for the pinned hex's second ring.
-    expect(strips).toHaveLength(4);
-    expect(citizenOutlines(state.map, worked, [])).toHaveLength(2);
-    expect(citizenOutlines(state.map, [], [])).toHaveLength(0);
-    const art = VIEW3D.territory.citizens;
-    expect(strips.map((strip) => strip.color)).toEqual([art.outlineBacking, art.outlineColor, art.outlineBacking, art.outlineColor]);
-    // Every point of the outer ring is inside the hex, clear of the territory border's band and stitch.
-    const reach = (strip: (typeof strips)[number]): number => { strip.geometry.computeBoundingBox(); const box = strip.geometry.boundingBox!; return (box.max.z - box.min.z) / 2; };
-    const border = VIEW3D.territory.borderWidth + VIEW3D.territory.stitchWidth;
-    expect(reach(strips[1]!)).toBeLessThan(VIEW3D.board.hexRadius * (1 - border) * 2);
-    expect(reach(strips[3]!)).toBeLessThan(reach(strips[1]!));
-    for (const strip of strips) strip.geometry.dispose();
   });
 
   it('tells the board which ground to set back', () => {

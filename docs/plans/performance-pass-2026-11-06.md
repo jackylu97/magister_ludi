@@ -4015,3 +4015,9 @@ A research review still considers the same goals every turn. Each seat checks ho
 The comparison used six seats on each of five Standard maps after ten turns (seeds 42, 999, 1, 7 and 2026), plus four archived turn-90 and turn-120 boards from the first two seeds. All 54 research tables matched in full, including all 1,980 candidate scores and explanations. Every ordered prerequisite list matched. Both 120-turn replay tests also kept their published final states.
 
 The isolated path check ran ten sweeps of all goals for all six seats per board, six times after warmup, alternating the two versions. Summing median process CPU time over the nine boards gave 256 ms before and 91 ms after. These times cover only the prerequisite lists. They exclude scoring the goals and the rest of the bot turn.
+
+## Settlement advice on turn 73, 21 November
+
+Opening the settler lens ranks sites on the player's chart. The renderer and hover panel reuse that list until the game revision changes. On the archived turn 73 map, the first call in a fresh Node process took 10.8 ms. Across seven further copies of the same board it took 2.6 to 5.9 ms. Reading the same list again took at most 0.004 ms. Each of the eight lists matched a fresh calculation, including scores and order. These timings exclude browser rendering. Selecting a soldier with the settler lens closed does not ask for this list.
+
+Worker advice uses the bot's improvement planner. The [turn 73 measurement](benchmarks/turn73-worker-advice-2026-11-21.md) records that cost separately.

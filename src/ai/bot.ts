@@ -9917,6 +9917,12 @@ function holdAfterStepBack(state: GameState, unit: Unit, choice: UnitChoice | nu
   );
 }
 
+export interface WorkerAdviceLimits {
+  count: number;
+  walk: number;
+  near: number;
+}
+
 export interface WorkerAdvice {
   col: number;
   row: number;
@@ -9924,6 +9930,7 @@ export interface WorkerAdvice {
   action: 'build' | 'repair';
   /** Change to this tile if a citizen works it. The score also includes benefits elsewhere. */
   delta: TileYield;
+  distance: number;
   score: number;
 }
 
@@ -9967,28 +9974,33 @@ function adviceSitting(state: GameState, playerId: number): BotSitting {
 }
 
 /** Return nearby build or repair targets for a selected worker. The board may request this several times per frame. */
-export function workerAdvice(state: GameState, playerId: number, unitId: number): readonly WorkerAdvice[] {
+export function workerAdvice(
+  state: GameState, playerId: number, unitId: number,
+  { count, walk, near }: WorkerAdviceLimits = { count: RULES.ui.workerAdviceCount, walk: RULES.ui.workerAdviceRadius, near: 0 },
+): readonly WorkerAdvice[] {
+  if (count <= 0 || walk < 0) return [];
   const worker = unitById(state, unitId);
   const player = playerById(state, playerId);
   if (!worker || !player || worker.ownerId !== playerId || worker.hp <= 0 || !buildsImprovements(worker)) return [];
-  return slateMemo(state, 'revision', 'workerAdvice', String(unitId), () => withFieldsHeld(() => inDecision(() => {
+  return slateMemo(state, 'revision', 'workerAdvice', `${unitId}/${count}/${walk}/${near}`, () => withFieldsHeld(() => inDecision(() => {
     const sitting = adviceSitting(state, playerId);
     const guarded = workerGuard(state, player, worker, sitting);
     const immediate = guarded !== null && guarded.threat.turns <= 1;
     if (immediate && guarded.job === null) return [];
     if (civilianDanger(state, player, worker, guarded?.job?.soldier ?? civilianCover(state, player, worker)) !== null) return [];
     const ctx = seatContext(state, player, sitting);
-    const plan = nearbyImprovementPlan(state, player, worker, ctx, RULES.ui.workerAdviceRadius);
+    const plan = nearbyImprovementPlan(state, player, worker, ctx, walk);
     const rows: WorkerAdvice[] = [];
     const budget = { used: 0 };
     for (const row of rankPlanFor(plan, state, worker, ctx)) {
+      if (rows.length > 0 && row.score < rows[0]!.score * near) break;
       const { col, row: y, improvement, repair } = row.entry;
       if (improvement === null || (immediate && row.distance !== 0)) continue;
       if (workerTargetError(state, player, worker, row.entry, ctx.ai, budget, sitting, true) !== null) continue;
       const tile = getTileAt(state.map, col, y)!;
       rows.push({ col, row: y, improvement, action: repair ? 'repair' : 'build',
-        delta: explainImprovementPreview(state, player.id, tile, improvement, undefined, repair).delta, score: row.score });
-      if (rows.length >= RULES.ui.workerAdviceCount) break;
+        delta: explainImprovementPreview(state, player.id, tile, improvement, undefined, repair).delta, distance: row.distance, score: row.score });
+      if (rows.length >= count) break;
     }
     return rows;
   })));

@@ -117,6 +117,9 @@ function flatState(width = 10, height = 8): GameState {
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
   resetVisibility(state);
+  // The seat has charted the whole board, so the explorer lens has no uncharted ground to point at
+  // (`explorerTargets`), and these tests count only what they place.
+  for (const chart of state.visibility) chart.fill(EXPLORED);
   state.units = [];
   state.cities = [];
   state.camps = [];
@@ -148,11 +151,13 @@ const fakeIcons = {
 } as unknown as TileIcons;
 
 /**
- * Instances per marked hex: a wash and a ring, each replicated at the three wrap
- * offsets every collector on this board uses. Written as its two factors so the
- * arithmetic in the assertions stays readable as "this many hexes are marked".
+ * Instances per marked hex, each replicated at the three wrap offsets every
+ * collector on this board uses. A camp is a tint and the corner ticks (the
+ * ticks and their dark backing). A discovery is the same and its light (a glow
+ * and a shaft).
  */
-const PER_MARK = 2 * 3;
+const PER_CAMP = 3 * 3;
+const PER_RUIN = 5 * 3;
 
 /** Scratch matrix for reading an instance's baked position back out. */
 const matrixScratch = new Matrix4();
@@ -517,7 +522,7 @@ describe('the explorer lens', () => {
     at(state, 5, 3).discovery = 'village';
 
     const layer = build(state, grid(state, VISIBLE));
-    expect(countInstances(layer.group)).toBe(2 * PER_MARK);
+    expect(countInstances(layer.group)).toBe(2 * PER_RUIN);
     layer.dispose();
   });
 
@@ -533,7 +538,7 @@ describe('the explorer lens', () => {
 
     state.players[0]!.techsResearched.push('prospecting');
     const learned = build(state, grid(state, VISIBLE));
-    expect(countInstances(learned.group)).toBe(PER_MARK);
+    expect(countInstances(learned.group)).toBe(PER_RUIN);
     learned.dispose();
   });
 
@@ -553,7 +558,7 @@ describe('the explorer lens', () => {
     const state = flatState();
     at(state, 2, 2).discovery = 'ruins';
     const lit = build(state, grid(state, VISIBLE));
-    expect(countInstances(lit.group)).toBe(PER_MARK);
+    expect(countInstances(lit.group)).toBe(PER_RUIN);
     lit.dispose();
 
     delete at(state, 2, 2).discovery;
@@ -569,7 +574,7 @@ describe('the explorer lens', () => {
     at(state, 2, 2).discovery = 'ruins';
 
     const remembered = build(state, grid(state, EXPLORED));
-    expect(countInstances(remembered.group)).toBe(PER_MARK);
+    expect(countInstances(remembered.group)).toBe(PER_RUIN);
     remembered.dispose();
 
     const unknown = build(state, grid(state, HIDDEN));
@@ -587,11 +592,11 @@ describe('the explorer lens', () => {
     state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
 
     const watched = build(state, grid(state, VISIBLE));
-    expect(countInstances(watched.group)).toBe(PER_MARK);
+    expect(countInstances(watched.group)).toBe(PER_CAMP);
     watched.dispose();
 
     const remembered = build(state, grid(state, EXPLORED));
-    expect(countInstances(remembered.group)).toBe(PER_MARK);
+    expect(countInstances(remembered.group)).toBe(PER_CAMP);
     remembered.dispose();
 
     const unknown = build(state, grid(state, HIDDEN));
@@ -608,12 +613,12 @@ describe('the explorer lens', () => {
     state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
 
     const layer = build(state, grid(state, VISIBLE));
-    expect(countInstances(layer.group)).toBe(2 * PER_MARK);
+    expect(countInstances(layer.group)).toBe(PER_RUIN + PER_CAMP);
     const meshes = layer.group.children.filter(
       (child): child is InstancedMesh => child instanceof InstancedMesh,
     );
-    // Four buckets: wash and ring, in each of the two inks.
-    expect(meshes).toHaveLength(4);
+    // The tint and the ticks in each of the two inks, one dark backing that both share, and the two parts of the light.
+    expect(meshes).toHaveLength(7);
     expect(VIEW3D.lens.campColor).not.toBe(VIEW3D.lens.discoveryColor);
     layer.dispose();
   });
@@ -624,7 +629,7 @@ describe('the explorer lens', () => {
     at(state, 2, 2).discovery = 'ruins';
     state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
     const layer = build(state, null);
-    expect(countInstances(layer.group)).toBe(2 * PER_MARK);
+    expect(countInstances(layer.group)).toBe(PER_RUIN + PER_CAMP);
     layer.dispose();
   });
 

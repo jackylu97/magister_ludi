@@ -3069,8 +3069,13 @@ export class Renderer3D implements MapView {
     // fully in the Manage citizens mode. This writes texels and two uniforms,
     // and rebuilds nothing.
     const ground = VIEW3D.territory.citizens.ground, managing = this.lens.citizenManage;
-    this.paintedBoard?.applySetBack(this.lens.citizenGround, performance.now(),
-      managing ? 1 : ground.openLevel, managing ? ground.manageRim : ground.openRim);
+    // The settler lens uses the same path: its three tints, and a light shade on the land that takes no city.
+    if (this.lens.citizenGround === null && this.lens.settlerGround !== null) {
+      this.paintedBoard?.applySetBack(this.lens.settlerGround, performance.now(), VIEW3D.lens.siteSetBack, 0, 1);
+    } else {
+      this.paintedBoard?.applySetBack(this.lens.citizenGround, performance.now(),
+        managing ? 1 : ground.openLevel, managing ? ground.manageRim : ground.openRim);
+    }
     this.redraw();
   }
 

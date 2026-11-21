@@ -108,9 +108,10 @@ export interface PaintedBoard extends BuiltBoard {
    * `shade` and `rim` are the strengths of the shade and of a worked hex's
    * warm rim, each 0 to 1 (1 if left out). With `at` (milliseconds) the change
    * fades; `advanceSetBack` moves the fade and returns true while it was
-   * still moving.
+   * still moving. The settler lens passes 4, 5 and 6 for a hex that takes the
+   * fresh water, coast or dry tint, and `tint` for the strength of the tints.
    */
-  applySetBack(kinds: ArrayLike<number> | null, at?: number, shade?: number, rim?: number): number;
+  applySetBack(kinds: ArrayLike<number> | null, at?: number, shade?: number, rim?: number, tint?: number): number;
   advanceSetBack(now: number): boolean;
   revealMs: number;
   readonly revealStamps: number;

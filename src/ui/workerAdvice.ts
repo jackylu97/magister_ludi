@@ -1,6 +1,7 @@
 import type { WorkerAdvice } from '../ai/bot';
+export type { WorkerAdvice } from '../ai/bot';
 import type { GameState } from '../sim/state';
-import { readBotTuning } from './botPlanProtocol';
+import { readBotTuning } from './botTuning';
 import type { AdviceReply, AdviceRequest } from './workerAdvice.worker';
 
 type Answer = readonly WorkerAdvice[] | null;
