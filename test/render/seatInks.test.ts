@@ -378,7 +378,10 @@ describe('every roster surface prints the pair', () => {
       const page = shelf.entries.find((entry) => entry.id === `leader:${id}`)!;
       const printed = page.clauses.map((clause) => clause.text).join('\n');
       const [first, second] = leaderDef(id).colors.names;
-      expect(printed, id).toContain(`Its colours are ${first} and ${second}.`);
+      // The Compendium pass of 2026-11-21 (3e93b2dd) made this a short label
+      // on the leader's last clause, beside the city names. What matters is
+      // that both words from the row are printed, in the row's order.
+      expect(printed, id).toContain(`Colours: ${first} and ${second}.`);
       // A hex is an identifier and never reaches a reader (hard rule 7).
       expect(printed, id).not.toMatch(/#[0-9a-f]{6}/i);
     }
