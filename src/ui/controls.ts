@@ -513,11 +513,6 @@ function riteShelvesClause(city: City): string {
   return parts.join(', ');
 }
 
-/** And while the city screen's Buy Tiles mode is up. */
-const BUY_MODE_NOTICE = 'Buy tiles — click a priced hex to purchase it (Esc cancels)';
-
-/** And while the city screen's Manage citizens mode is on. */
-const CITIZEN_MODE_NOTICE = 'Manage citizens: click a hex to pin a citizen there, or a pinned hex to free it (Esc stops)';
 
 /**
  * A line for the context card: the standing description of a mode the player
@@ -2825,7 +2820,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // disarms a move order (see `setOpenCity`) and buy mode lives inside an open
     // city — but the order is stated rather than assumed, so the line stays
     // right if that ever stops being true.
-    else onNotice?.(buyMode ? BUY_MODE_NOTICE : citizenMode && openCity() ? CITIZEN_MODE_NOTICE : null, 'mode');
+    // The city screen's two modes print no line here (the user, 2026-11-21:
+    // "there's way too much text"). The pressed button in the dock says which
+    // mode is on, and its note says what a click does.
+    else onNotice?.(null, 'mode');
   }
 
   /** Reports an order the game would not take, visibly and briefly. */

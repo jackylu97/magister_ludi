@@ -230,7 +230,8 @@ describe("the panel's controls", () => {
     // The user: "let's have buy tiles appear at the bottom-center as its own
     // button/interface". The dock takes the pointer; the mode does not.
     expect(declaration('.city-buy-dock', 'position')).toBe('absolute');
-    expect(declaration('.city-buy-dock', 'left')).toBe('50%');
+    // Centred on the gap between the rails: half of (360 - 286) left of the screen's middle.
+    expect(declaration('.city-buy-dock', 'left')).toBe('calc(50% - 37px)');
     expect(declaration('.city-buy-dock', 'bottom')).toBe('14px');
     expect(declaration('.city-buy-dock', 'transform')).toBe('translateX(-50%)');
     expect(declaration('.city-buy-dock', 'pointer-events')).toBe('auto');
@@ -243,7 +244,7 @@ describe("the panel's controls", () => {
     expect(dock).toContain('if (caption) drawer.append(caption);');
     expect(dock.indexOf('dock.append(drawer)')).toBeLessThan(dock.indexOf('dock.append(row)'));
     // One bar of the screen's own paper, as the rails' cards are.
-    for (const property of ['border', 'border-radius', 'box-shadow']) {
+    for (const property of ['border', 'border-radius']) {
       expect(`${property}: ${declaration('.city-buy-dock', property)}`).toBe(`${property}: ${declaration('.city-card', property)}`);
     }
     expect(fn('cityPanel.ts', 'render')).toContain('container.append(renderBuyDock(city));');
@@ -736,10 +737,10 @@ describe('the city mode', () => {
     // player who manages citizens.
     const printer = fn('cityPanel.ts', 'renderBoardCaption');
     expect(printer).toContain('isBuyMode()');
-    expect(printer).toContain('isCitizenMode()');
-    expect(printer).toContain('isTutorialActive()');
-    expect(printer).toContain('A lit hex is a tile this city works');
-    expect(printer).toContain('Press Manage citizens to see which hexes this city works');
+    // The citizen mode has no caption (the user, 2026-11-21: "way too much text").
+    expect(printer).toContain('if (isCitizenMode() || !isTutorialActive()) return null;');
+    expect(printer).toContain('Manage citizens shows which hexes this city works.');
+    expect(printer).not.toContain('Esc stops');
   });
 });
 
@@ -909,7 +910,10 @@ describe('what the panel says at the foot of a list', () => {
     const text = source('cityPanel.ts');
     expect(text).not.toContain('Dots on the map');
     expect(text).not.toContain('An outlined hex');
-    expect(text).toContain('A lit hex is a tile this city works');
+    expect(text).not.toContain('A lit hex is a tile');
+    // What the marks mean is two keys in the dock, each one word.
+    const keys = fn('cityPanel.ts', 'renderCitizenKeys');
+    expect(keys).toContain("['Worked', [0.7]], ['Pinned', [0.74, 0.44]]");
   });
 
   it('says what a gold price is, and leaves the treasury to the price columns’ heads', () => {

@@ -6955,7 +6955,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
    pointer; the rest of the mode does not. */
 .city-buy-dock {
   position: absolute;
-  left: 50%;
+  /* Centred on the gap between the two rails, as the city is: the work rail
+     (360px) is wider than the town rail (286px), so the gap's middle is half
+     the difference left of the screen's (`cityFrameBiasPx`, 37). */
+  left: calc(50% - 37px);
   bottom: 14px;
   transform: translateX(-50%);
   z-index: 2;
@@ -6964,23 +6967,28 @@ body:has(.city-mode:not([hidden])) #hud-context {
   align-items: stretch;
   gap: 0;
   width: max-content;
-  /* It is centred on the screen, so its half width must clear the wider rail
-     (the work rail, 360px, and the gaps beside it). */
-  max-width: min(36rem, calc(100vw - 2 * (360px + 28px)));
-  padding: 5px;
+  /* The gap between the rails, less their margins and a little air. */
+  max-width: calc(100vw - 286px - 360px - 64px);
+  padding: 7px 8px 8px;
   pointer-events: auto;
+  /* The head band's own rule, turned over: an ink line, a line of paper, and
+     a gilt line, so the bar is the foot of the same frame. */
   border: 1px solid var(--edge);
+  border-top: 1px solid var(--ink);
   border-radius: var(--paper-radius);
-  background: color-mix(in srgb, var(--parchment) 96%, transparent);
-  box-shadow: var(--paper-shadow);
+  background: var(--parchment);
+  box-shadow:
+    0 -2px 0 var(--parchment),
+    0 -3px 0 var(--gilt),
+    var(--paper-shadow);
 }
 
 .city-buy-dock-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: stretch;
   justify-content: center;
-  gap: 5px;
+  gap: 8px;
 }
 
 /* The thin rule that sets Leave city apart from the two modes. */
@@ -6990,15 +6998,83 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--ink-line);
 }
 
-/* Inside the bar the three controls are flat: the bar has the shadow. */
+/* The three controls are the kit's buttons, as End Turn's is: a heavy ink
+   edge, the paper's square corner and a hard ink shadow. A mode that is on is
+   pressed in: filled with ink, moved onto its shadow. Leave city is the quiet
+   one (the kit's quiet button: the paper's soft edge and no shadow). */
 .city-buy-dock .city-buy-tiles {
-  box-shadow: none;
-}
-
-.city-dock-leave {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  padding: 6px 14px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--paper-radius);
+  box-shadow: 2px 2px 0 var(--ink);
+  white-space: nowrap;
+  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+}
+
+.city-buy-dock .city-buy-tiles.is-active,
+.city-buy-dock .city-buy-tiles:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.city-buy-dock .city-buy-tiles:disabled {
+  box-shadow: none;
+}
+
+.city-buy-dock .city-dock-leave {
+  border: 1px solid var(--edge);
+  box-shadow: none;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.city-buy-dock .city-dock-leave:hover {
+  color: var(--ink);
+  border-color: var(--ink-line);
+}
+
+/* The small hex before "Manage citizens": the outline the mode draws. */
+.city-dock-glyph.is-hex {
+  width: 0.78em;
+  height: 0.9em;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%, 50% 0, 50% 18%, 16% 34%, 16% 66%, 50% 82%, 84% 66%, 84% 34%, 50% 18%);
+  background: currentColor;
+}
+
+/* The two keys of the Manage citizens mode (`renderCitizenKeys`): a small hex
+   with one inset outline, and one with two, each with its word in the
+   screen's small-caps label face. They stand at the left end of the row,
+   set off by the same thin rule as Leave city, while the mode is on. */
+.city-citizen-keys {
+  --citizen-ground: #a9bb62;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 10px;
+  border-right: 1px solid var(--ink-line);
+}
+
+.city-citizen-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.citizen-key-mark { display: inline-flex; }
+.citizen-key-ground { fill: var(--citizen-ground); stroke: var(--ink); stroke-width: 1; stroke-linejoin: round; }
+.citizen-key-backing { fill: none; stroke: var(--ink); stroke-opacity: 0.45; stroke-width: 3; stroke-linejoin: round; }
+.citizen-key-line { fill: none; stroke: var(--citizen-outline); stroke-width: 1.7; stroke-linejoin: round; }
+
+.citizen-key-word {
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-ui);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
 }
 
 /* The drawer: what the mode that is on has to say, inside the bar. It opens
@@ -7008,8 +7084,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  padding: 3px 4px 7px;
-  margin-bottom: 5px;
+  padding: 0 4px 6px;
+  margin-bottom: 7px;
   border-bottom: 1px solid var(--edge);
   overflow: hidden;
 }
@@ -7039,9 +7115,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
   margin: 0;
   padding: 0 4px;
   pointer-events: none;
+  font-variant-numeric: tabular-nums;
   font-size: var(--size-label);
   text-align: center;
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 /* Why the board's dashed plates are dashed (batch UX7b): the tile gate's own
@@ -23142,55 +23219,3 @@ body.compendium-page {
 .loading-refusal-out {
   align-self: flex-end;
 }
-
-/* The key to the board's citizen marks (`renderCitizenLegend`), shown only
-   while Manage citizens is on. Each swatch is a small hex of meadow drawn like
-   the thing it names. The panel sets the outline colour, the rim colour and the
-   two set-back tones from `territory.citizens` in `data/view3d.json`, which is
-   what the board reads, so only the meadow colour is this sheet's own. It
-   stands in the dock's drawer, on the dock's paper. */
-.city-citizen-legend {
-  --citizen-ground: #a9bb62;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 5px 16px;
-  padding: 0 4px;
-  color: var(--ink);
-  font-family: var(--face-ui);
-  font-size: var(--size-label);
-}
-.city-citizen-key { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
-/* A filter on the clipped hex itself would be clipped away, so the thin dark
-   edge that keeps a pale swatch off the paper is the frame's. */
-.citizen-key-frame { position: relative; display: inline-flex; filter: drop-shadow(0 0 .6px var(--citizen-ink)); }
-.citizen-key {
-  position: relative;
-  display: inline-block;
-  width: 1.56em;
-  height: 1.8em;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  background: var(--citizen-ground);
-}
-/* Worked and pinned: lit ground with the warm rim inside its edge. */
-.citizen-key.is-worked,
-.citizen-key.is-pinned {
-  background: radial-gradient(closest-side, transparent 48%, color-mix(in srgb, var(--citizen-rim) 50%, transparent) 100%), var(--citizen-ground);
-}
-/* The outline: two hexes laid over the swatch leave a ring a little inside its
-   edge, in the board's own neutral ink. A pinned hex has a second ring inside
-   the first, made the same way by one more element. */
-.citizen-key.is-worked::before, .citizen-key.is-worked::after,
-.citizen-key.is-pinned::before, .citizen-key.is-pinned::after,
-.citizen-key-second, .citizen-key-second::after {
-  content: '';
-  position: absolute;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-}
-.citizen-key.is-worked::before, .citizen-key.is-pinned::before { inset: 2.5px; background: var(--citizen-outline); }
-.citizen-key.is-worked::after, .citizen-key.is-pinned::after { inset: 3.8px; background: var(--citizen-ground); }
-.citizen-key-second { inset: 5.6px; z-index: 1; background: var(--citizen-outline); }
-.citizen-key-second::after { inset: 1.3px; background: var(--citizen-ground); }
-/* Free and not available: the same ground, set back as the board sets it back. */
-.citizen-key.is-free { filter: var(--citizen-free); }
-.citizen-key.is-far { filter: var(--citizen-far); }

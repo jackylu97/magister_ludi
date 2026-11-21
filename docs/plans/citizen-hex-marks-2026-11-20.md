@@ -289,3 +289,29 @@ on the bottom, like before."
   as a ×). The × in the head stays. Both call the one `onClose`.
 - The dock is centred on the screen, and its width is capped so that it clears
   the work rail: `min(36rem, 100vw - 2 * (360px + 28px))`.
+
+### The dock, second pass (2026-11-21)
+
+The user's words: "could we massively simplify the hints, there's way too
+much text. it also looks plain compared to the other UX, but the layout is
+fine. I think just the 'worked' and 'pinned' icons need to exist to show the
+player what those mean, but they look a bit awkward where they sit."
+
+This replaces the lines above about the drawer's content, the legend and the
+dock's position.
+
+- **Text.** The Manage citizens mode has no caption and no drawer. The buy
+  mode's drawer has the treasury ("N on hand") and, if there is one, why a
+  purchase is refused. How to use a mode is its button's note (`noteOn`). The
+  tile readout at the bottom left prints no line for either mode
+  (`publishNotice` in `controls.ts`).
+- **The keys.** `renderCitizenKeys` draws two keys, Worked and Pinned: a small
+  hex with one inset outline and one with two, as SVG. They stand at the left
+  end of the dock's row while the mode is on. The four-key legend is removed.
+- **Styling.** The buttons are the kit's, as End Turn's is: a heavy ink edge,
+  the paper's square corner and a hard ink shadow. A mode that is on is filled
+  with ink and pressed onto its shadow. Leave city is the kit's quiet button.
+  Buy tiles has the gold mark and Manage citizens a small hex. The bar has the
+  head band's rule turned over (ink, paper, gilt).
+- **Position.** Centred on the gap between the two rails: `left: calc(50% -
+  37px)`, the camera's `cityFrameBiasPx`. Its width is capped at the gap.

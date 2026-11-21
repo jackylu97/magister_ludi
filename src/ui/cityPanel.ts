@@ -3677,42 +3677,34 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * a note.
    */
   /**
-   * The key to the board's citizen marks, shown only while the player manages
-   * citizens. Each swatch is a small hex of meadow drawn like the thing it
-   * names. How far the free and the unavailable ground are set back, and the
-   * colours, come from the same `territory.citizens` data the board reads
-   * (`citizenMarks.ts`, `paintedFogLook.ts`), so the key cannot disagree with
-   * the board.
+   * The two keys of the Manage citizens mode: what a worked hex and a pinned
+   * hex look like on the board (the user, 2026-11-21: "I think just the
+   * 'worked' and 'pinned' icons need to exist to show the player what those
+   * mean"). Each is the real mark, small: a hex with one inset outline, and a
+   * hex with two. They stand in the dock's row, at its left end, while the
+   * mode is on. The outline's colour is the board's own (`territory.citizens`).
    */
-  function renderCitizenLegend(): HTMLElement {
-    const art = VIEW3D.territory.citizens, ground = art.ground;
-    const hex = (color: number): string => '#' + color.toString(16).padStart(6, '0');
-    // The board darkens light before its tone curve, and a CSS filter darkens
-    // the screen's own values. The exponent turns the board's factor into the
-    // screen's. The two were set by eye against the board; ground the city
-    // cannot work is also outside the city screen's own wash, so it is darker.
-    const tone = (shade: number, grey: number, power: number): string =>
-      `brightness(${(shade ** power).toFixed(3)}) saturate(${(1 - grey).toFixed(3)})`;
-    const legend = element('div', 'city-citizen-legend');
-    legend.setAttribute('role', 'group');
-    legend.setAttribute('aria-label', 'Citizen marks on the board');
-    legend.style.setProperty('--citizen-ink', hex(art.outlineBacking));
-    legend.style.setProperty('--citizen-rim', hex(ground.rim));
-    legend.style.setProperty('--citizen-outline', hex(art.outlineColor));
-    legend.style.setProperty('--citizen-free', tone(ground.freeShade, ground.freeGrey, 0.7));
-    legend.style.setProperty('--citizen-far', tone(ground.farShade, ground.farGrey, 1.3));
-    for (const [kind, label] of [['worked', 'worked'], ['pinned', 'pinned'], ['free', 'free'], ['far', 'not yours']] as const) {
-      const item = element('span', 'city-citizen-key');
-      const swatch = element('i', `citizen-key is-${kind}`);
-      swatch.setAttribute('aria-hidden', 'true');
-      // A pinned hex has a second outline inside the first.
-      if (kind === 'pinned') swatch.append(element('b', 'citizen-key-second'));
-      const frame = element('span', 'citizen-key-frame');
-      frame.append(swatch);
-      item.append(frame, document.createTextNode(label));
-      legend.append(item);
+  function renderCitizenKeys(): HTMLElement {
+    const art = VIEW3D.territory.citizens;
+    const keys = element('span', 'city-citizen-keys');
+    keys.setAttribute('role', 'group');
+    keys.setAttribute('aria-label', 'Citizen marks on the board');
+    keys.style.setProperty('--citizen-outline', '#' + art.outlineColor.toString(16).padStart(6, '0'));
+    // A pointed-top hex in a 26 by 30 box, and the same hex drawn smaller about the centre for each outline.
+    const hexAt = (scale: number): string =>
+      [[13, 1], [25, 8], [25, 22], [13, 29], [1, 22], [1, 8]]
+        .map(([x, y]) => `${(13 + (x! - 13) * scale).toFixed(1)},${(15 + (y! - 15) * scale).toFixed(1)}`).join(' ');
+    for (const [label, rings] of [['Worked', [0.7]], ['Pinned', [0.74, 0.44]]] as const) {
+      const key = element('span', 'city-citizen-key');
+      const outlines = rings.map((scale) =>
+        `<polygon class="citizen-key-backing" points="${hexAt(scale)}"/><polygon class="citizen-key-line" points="${hexAt(scale)}"/>`).join('');
+      const mark = element('span', 'citizen-key-mark');
+      mark.setAttribute('aria-hidden', 'true');
+      mark.innerHTML = `<svg viewBox="0 0 26 30" width="20" height="23"><polygon class="citizen-key-ground" points="${hexAt(1)}"/>${outlines}</svg>`;
+      key.append(mark, element('span', 'citizen-key-word', label));
+      keys.append(key);
     }
-    return legend;
+    return keys;
   }
 
   function renderBuyDock(city: City): HTMLElement {
@@ -3721,9 +3713,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // the bottom better? I also like having a 'leave city screen' button on
     // the bottom, like before."). It is one bar of the screen's own paper,
     // with three controls of one height in a fixed order: the two modes, then
-    // Leave city behind a thin rule. What a mode has to say (the caption, the
-    // legend, why buying is refused) is a drawer inside the same bar, over
-    // the buttons, so that nothing floats beside the dock.
+    // Leave city behind a thin rule.
+    //
+    // It says little (the user, the same day: "could we massively simplify
+    // the hints, there's way too much text"). Manage citizens shows two keys
+    // at the left end of the row and has no drawer. Buy tiles has a drawer
+    // with the treasury and, if there is one, why a purchase is refused. How
+    // to use a mode is its button's note.
     const dock = element('div', 'city-buy-dock');
     const active = isBuyMode();
     const managing = options.setCitizenMode !== undefined && isCitizenMode();
@@ -3734,13 +3730,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const row = element('div', 'city-buy-dock-row');
     // A mode button is a toggle: its name stays, and the pressed state says it is on.
     if (options.setCitizenMode) {
-      if (managing) drawer.append(renderCitizenLegend());
-      const manage = element('button', 'city-buy-tiles city-manage-citizens', 'Manage citizens');
+      if (managing) row.append(renderCitizenKeys());
+      const manage = element('button', 'city-buy-tiles city-manage-citizens');
       manage.type = 'button';
+      manage.append(element('span', 'city-dock-glyph is-hex'), document.createTextNode('Manage citizens'));
       manage.setAttribute('aria-pressed', managing ? 'true' : 'false');
       manage.classList.toggle('is-active', managing);
       noteOn(manage, managing
-        ? 'Stop managing citizens (Esc)'
+        ? 'Click a hex to pin a citizen there, or a pinned hex to free it (Esc stops)'
         : 'Show which hexes this city works, and pin citizens to hexes');
       manage.addEventListener('click', () => {
         options.setCitizenMode?.(!isCitizenMode());
@@ -3748,7 +3745,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       });
       row.append(manage);
     }
-    const buy = element('button', 'city-buy-tiles', 'Buy tiles');
+    const buy = element('button', 'city-buy-tiles', `${YIELD_GLYPH.gold} Buy tiles`);
     buy.type = 'button';
     buy.classList.toggle('is-active', active);
     buy.setAttribute('aria-pressed', active ? 'true' : 'false');
@@ -3758,7 +3755,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const refusal = ended ? null : tileBuyingError(state, localPlayerId(), city.id);
     const blocker = ended ? `You have ended turn ${state.turn}` : refusal;
     buy.disabled = blocker !== null;
-    noteOn(buy, blocker ?? (active ? 'Stop buying ground (Esc)' : 'Show what the ground around this city costs in gold'));
+    noteOn(buy, blocker ?? (active ? 'Click a priced hex to buy it (Esc stops)' : 'Show what the ground around this city costs in gold'));
     buy.addEventListener('click', () => {
       setBuyMode(!isBuyMode());
       onChanged();
@@ -5830,10 +5827,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const caption = element(
         'p',
         'city-board-caption',
-        // Leads with the treasury a tag's price is checked against, because in
-        // this one mode the prices are on the board rather than beside a bank.
-        `${figure(playerById(state, localPlayerId())?.gold ?? 0)}${YIELD_GLYPH.gold} on hand · ` +
-          'every price on the board is what that hex costs now · Esc stops buying',
+        // Only the treasury a tag's price is checked against: in this one mode
+        // the prices are on the board, not beside a bank. How the mode works
+        // is the button's note.
+        `${figure(playerById(state, localPlayerId())?.gold ?? 0)}${YIELD_GLYPH.gold} on hand`,
       );
       // **Why a plate shows a dash** (batch UX7b). A plate the treasury is short
       // for says "need N" on the board itself; one refused for anything else is
@@ -5848,24 +5845,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       }
       return caption;
     }
-    // While the player manages citizens, the caption says what a click does.
-    // The legend under it names the marks.
-    if (isCitizenMode()) {
-      return element(
-        'p',
-        'city-board-caption',
-        'A lit hex is a tile this city works. Click a hex to pin a citizen ' +
-          'there, or a pinned hex to free it.',
-      );
-    }
-    if (!isTutorialActive()) return null;
-    return element(
-      'p',
-      'city-board-caption',
-      'Press Manage citizens to see which hexes this city works and to pin a ' +
-        'citizen to a hex. A unit standing near the city is selected by ' +
-        'clicking its badge.',
-    );
+    // The Manage citizens mode has no caption: its two keys are in the dock's
+    // row, and what a click does is the button's note.
+    if (isCitizenMode() || !isTutorialActive()) return null;
+    return element('p', 'city-board-caption', 'Manage citizens shows which hexes this city works.');
   }
 
   /**
