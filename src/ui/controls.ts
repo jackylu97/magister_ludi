@@ -187,6 +187,7 @@ import {
   type SiegeReport,
   attackTargetAt,
   fortifyError,
+  fortifyUntilHealedError,
   isCombatant,
   isRanged,
   previewCombat,
@@ -2167,6 +2168,17 @@ export interface GameControls {
   fortifyBlocker(): string | null | undefined;
   /** Digs the selected unit in. The unit sheet's button and the `F` key. */
   fortify(): void;
+  /**
+   * Why the selected unit cannot be told to fortify until healed, or `null`
+   * when it can. `undefined` with nothing selected. `fortifyBlocker`'s shape,
+   * answered by `fortifyUntilHealedError`.
+   */
+  fortifyUntilHealedBlocker(): string | null | undefined;
+  /**
+   * Digs the selected unit in until it is healed: the `fortify` command with
+   * `untilHealed: true`. The unit sheet's button and the `U` key.
+   */
+  fortifyUntilHealed(): void;
 
   /**
    * Why the selected unit cannot be told to sleep, or `null` when it can.
@@ -5779,6 +5791,39 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onUpdate(selectedUnit(), renderer.getHover());
   }
 
+  /**
+   * Why the selected unit cannot fortify until healed. `fortifyBlocker`'s
+   * split: the seat's question here, the unit's delegated to
+   * `fortifyUntilHealedError`, which the reducer asks too.
+   */
+  function fortifyUntilHealedBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return fortifyUntilHealedError(unit, getGame().state);
+  }
+
+  /** `fortify` with the flag that ends the order at full health. */
+  function fortifyUntilHealed(): void {
+    const unit = selectedUnit();
+    if (!unit || fortifyUntilHealedBlocker() !== null) return;
+
+    const command: Command = {
+      type: 'fortify',
+      playerId: localPlayerId,
+      unitId: unit.id,
+      untilHealed: true,
+    };
+    const result = commit(command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
   // --- sleeping ------------------------------------------------------------
 
   /**
@@ -8572,6 +8617,19 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       fortify();
       return;
     }
+    if (
+      (event.key === 'u' || event.key === 'U') &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
+      // Fortify until healed. `H` opens the faith screen, so the order takes
+      // `U`, for "until". Silent with nothing selected or on a unit that may not
+      // take the order: the blocker decides, as the button's disabled state does.
+      // With a modifier held the key is the browser's (Cmd + U shows the source).
+      fortifyUntilHealed();
+      return;
+    }
     if (event.key === 'z' || event.key === 'Z') {
       // Fortify's civilian twin gets the key beside it in spirit if not on the
       // board: `S` is taken by nothing yet but reads as "settle", and Civ has
@@ -8753,6 +8811,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     cancelOrderBlocker,
     fortify,
     fortifyBlocker,
+    fortifyUntilHealed,
+    fortifyUntilHealedBlocker,
     sleepBlocker,
     sleepUnit,
     autoExploreBlocker,

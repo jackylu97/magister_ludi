@@ -8724,6 +8724,46 @@ p.city-trade-link {
   opacity: 1;
 }
 
+/* A label with a short second line under it: the Fortify button's "+X HP",
+   what a hurt unit in its trench heals at the end of this turn. The label
+   stacks only when it carries one, so every other row lays out as before. */
+.unit-action-label.has-figure {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  text-align: left;
+}
+
+.unit-action-figure {
+  font-family: var(--face-num);
+  font-size: var(--size-note);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+/* On the grey button the figure takes the soft ink, so a real heal still reads
+   on the table colour the disabled state paints. */
+.unit-action:disabled .unit-action-figure {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+/* A hurt unit that heals nothing: "+0 HP" in the faint ink, live or grey. The
+   reason is on the row's card. */
+.unit-action-figure.is-faint,
+.unit-action:disabled .unit-action-figure.is-faint {
+  color: var(--ink-line);
+  opacity: 1;
+}
+
+.unit-action:not(:disabled) .unit-action-figure.is-faint {
+  color: var(--parchment);
+  opacity: 0.5;
+}
+
 /* Worn on the button that does the same job, exactly as End Turn wears ⏎. */
 .unit-action-key {
   border-color: rgba(247, 242, 225, 0.75);

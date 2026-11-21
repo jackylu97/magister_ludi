@@ -9615,23 +9615,32 @@ export function ownerAgeOf(state: GameState, playerId: number): number {
  * `where: 'ownTerritory'` is asked of the hex the unit is standing on, which is
  * the only reading a per-turn allowance can have: Imperium's legions march
  * further because they set out from home.
+ *
+ * `lines` is an optional list to fill with one labelled line per card that adds
+ * to the stat. The return value is always the sum of those lines.
+ * `explainCardUnitStat` passes a list; hot callers such as `fullMovement` pass
+ * none, so they allocate nothing.
  */
 export function cardUnitStat(
   state: GameState,
   unit: Unit,
   stat: 'movement' | 'sight' | 'heal' | 'range',
   groundOwner?: number | null,
+  lines?: CardUnitStatLine[],
 ): number {
   let total = 0;
   if (stat === 'movement') {
     const owner = groundOwner === undefined ? tileOwnerPlayerId(state, unit.col, unit.row) : groundOwner;
     if (owner !== null && atWar(state, owner, unit.ownerId)) {
-      for (const { effect } of effectsOfKind(state, owner, 'unitStat')) {
-        if (effect.enemyOccupant && effect.stat === stat && unitMatches(unit.type, effect.class)) total += effect.amount;
+      for (const { effect, source } of effectsOfKind(state, owner, 'unitStat')) {
+        if (effect.enemyOccupant && effect.stat === stat && unitMatches(unit.type, effect.class)) {
+          total += effect.amount;
+          lines?.push({ label: source, amount: effect.amount });
+        }
       }
     }
   }
-  for (const { effect } of effectsOfKind(state, unit.ownerId, 'unitStat')) {
+  for (const { effect, source } of effectsOfKind(state, unit.ownerId, 'unitStat')) {
     if (effect.enemyOccupant || effect.stat !== stat) continue;
     if (!unitMatches(unit.type, effect.class)) continue;
     // The Keshik's Veterans and Elites (Dominion batch D2): a fact about the
@@ -9682,8 +9691,34 @@ export function cardUnitStat(
       if (!cityScopeAdmits(state, town, { test: 'connected' })) continue;
     }
     total += effect.amount;
+    lines?.push({ label: source, amount: effect.amount });
   }
   return total;
+}
+
+/** One card's share of a unit's stat: the card's display label and its amount. */
+export interface CardUnitStatLine {
+  label: string;
+  amount: number;
+}
+
+/**
+ * What this empire's cards add to one stat of one unit, one line per card.
+ *
+ * The labelled list behind `cardUnitStat`, which is its sum. Both walk the same
+ * loop, so the list and the number cannot disagree. The heal a unit gets this
+ * turn (`explainUnitHeal`, `healing.ts`) prints these lines under their card
+ * names.
+ */
+export function explainCardUnitStat(
+  state: GameState,
+  unit: Unit,
+  stat: 'movement' | 'sight' | 'heal' | 'range',
+  groundOwner?: number | null,
+): CardUnitStatLine[] {
+  const lines: CardUnitStatLine[] = [];
+  cardUnitStat(state, unit, stat, groundOwner, lines);
+  return lines;
 }
 
 /**

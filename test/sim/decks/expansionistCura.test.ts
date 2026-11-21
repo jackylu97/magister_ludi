@@ -469,7 +469,7 @@ const MOVED_READERS: Record<string, string> = {
   'statecraft/evaluator.ts › townShelf': 'the reading',
   'statecraft/evaluator.ts › cardPressureSources': 'a building\'s pressure',
   'trade.ts › explainRouteSlots': 'the route slots',
-  'turn.ts › keepHeal': 'the heal beside a town',
+  'healing.ts › keepHealLines': 'the heal beside a town',
   'unrest.ts › explainPacification': 'the buildings that ease unrest',
   'visibility.ts › sightSources': 'the sight',
   'yields/hex.ts › cityContext': 'the ground\'s lines and the irrigation',

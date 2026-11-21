@@ -85,7 +85,13 @@ import {
   unitProductionCost,
   openWaitingDoctrineOffer,
 } from './cities';
-import { type CombatOutcome, type SiegeReport, applyCombat, fortifyError } from './combat';
+import {
+  type CombatOutcome,
+  type SiegeReport,
+  applyCombat,
+  fortifyError,
+  fortifyUntilHealedError,
+} from './combat';
 import { discoveryChoiceError, settleDiscovery } from './discoveries';
 import { type ExploreEndReport, aimExplorer, autoExploreError } from './explore';
 import { type ImprovementId, improvementDef } from './improvementData';
@@ -632,10 +638,24 @@ interface AttackCommand extends PlayerCommand {
  * entry in the save that says nothing. There is no "unfortify" command either —
  * moving is how a unit stands up, and a second verb for it would be a second way
  * to say the same thing.
+ *
+ * **`untilHealed: true` is "fortify until healed"** (the ruling of 2026-11-21,
+ * `docs/flags.md`). The unit digs in as usual and does not ask for orders while
+ * it heals; it starts to ask again when its health is full, when an enemy comes
+ * into its sight, or when it is attacked, and it stays dug in when it does
+ * (`Unit.untilHealed`). A flag on this command rather than a command of its
+ * own, because it is the same order with a different end: the same handler,
+ * the same clock (`COMMAND_CLOCKS`), and the same arm of `orderedUnitId`. The
+ * key is `true` or absent; any other value is refused.
+ *
+ * A unit that is already dug in may take the flagged order if it is hurt
+ * (`fortifyUntilHealedError`), and a woken one may take either order
+ * (`fortifyError`). Both keep the trench and its bonus.
  */
 interface FortifyCommand extends PlayerCommand {
   type: 'fortify';
   unitId: number;
+  untilHealed?: true;
 }
 
 /**
@@ -3068,7 +3088,9 @@ function applyAttack(state: GameState, command: AttackCommand): CommandResult {
  *
  * The seat's questions here, the unit's delegated to `fortifyError` — the same
  * function the unit sheet enables its Fortify button with, so a live button and
- * an accepted command are one rule. The mutation is a single field.
+ * an accepted command are one rule. With `untilHealed: true` the unit's
+ * questions are `fortifyUntilHealedError`'s, which the sheet's "Fortify until
+ * healed" button asks. The mutation is the trench and the order's end.
  */
 function applyFortify(state: GameState, command: FortifyCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
@@ -3077,17 +3099,31 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot fortify`);
   }
 
+  // `true` or absent, and nothing else: a log entry must say one thing.
+  const flag: unknown = (command as { untilHealed?: unknown }).untilHealed;
+  if (flag !== undefined && flag !== true) {
+    return fail('untilHealed must be true or absent');
+  }
+  const untilHealed = flag === true;
+
   const unit = unitById(state, command.unitId);
   if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
   if (unit.ownerId !== actor.id) {
     return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
   }
-  const problem = fortifyError(unit, state);
+  const problem = untilHealed ? fortifyUntilHealedError(unit, state) : fortifyError(unit, state);
   if (problem) return fail(problem);
 
   // Zero, not one: the bonus is paid for turns *survived* dug in, and
   // `advanceFortify` raises this at the end of every turn the unit stays put.
-  unit.fortifiedTurns = 0;
+  // A unit already dug in keeps its count, so a woken unit told to fortify
+  // again, or a fortified one told to wait until healed, keeps its bonus.
+  if (unit.fortifiedTurns === undefined) unit.fortifiedTurns = 0;
+  // The order's end (`Unit.untilHealed`). Written here and nowhere else in a
+  // command: `applyCommand`'s seam clears it for every other order, and leaves
+  // it alone for this one.
+  if (untilHealed) unit.untilHealed = 'waiting';
+  else delete unit.untilHealed;
   // A fortified unit is a line of the cards' counts and hex tests (Dominion
   // batch D7, `slate.ts`), so the write announces if this seat's law reads one.
   if (lawReadsTrenches(state, unit.ownerId)) bumpEconomy(state);
@@ -5103,6 +5139,11 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       // `setAutoExplore` that erased what it just wrote would be a switch
       // that cannot be turned on.
       if (command.type !== 'setAutoExplore') delete unit.autoExplore;
+      // "Fortify until healed" ends the same way (`Unit.untilHealed`): any
+      // other accepted order that names the unit clears it. The one excused
+      // verb is `fortify`, which writes the key itself, for `setAutoExplore`'s
+      // reason: a command must not erase its own work.
+      if (command.type !== 'fortify') delete unit.untilHealed;
     }
   }
   // **The world moved** (batch E2). Last, after every mutation this command

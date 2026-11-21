@@ -326,7 +326,11 @@ export function isRested(unit: Unit, state?: GameState): boolean {
 export function unitAwaitsOrders(unit: Unit): boolean {
   if (unit.movesLeft <= 0) return false;
   if (unit.path !== undefined && unit.path.length > 0) return false;
-  if (unit.fortifiedTurns !== undefined) return false;
+  // A dug-in unit has its orders, unless it was told to fortify until healed
+  // and that wait has ended (`Unit.untilHealed` is `'woken'`). Such a unit is
+  // still dug in, but it has no orders and asks for them. One waiting to heal
+  // is silent like any fortified unit.
+  if (unit.fortifiedTurns !== undefined && unit.untilHealed !== 'woken') return false;
   if (unit.sleeping === true) return false;
   // Ranging ahead is a standing order the resolution itself renews
   // (`marchExplorers` in `turn.ts`), so the piece is busy even on the turn it

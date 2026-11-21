@@ -569,6 +569,8 @@ describe('who asks the empire', () => {
   const SOURCES: readonly string[] = [
     '../../src/sim/combat.ts',
     '../../src/sim/turn.ts',
+    // The heal a unit gets this turn, moved out of `turn.ts`'s heal phase.
+    '../../src/sim/healing.ts',
     '../../src/sim/tech.ts',
     '../../src/sim/religion.ts',
     '../../src/sim/greatPeople.ts',
