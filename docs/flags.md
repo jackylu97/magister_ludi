@@ -3302,3 +3302,11 @@ attacking embarked units should take no damage."
   strength 12 and 20 points at strength 40.
 - After these and The Volley Fire, no percentage of combat strength is left
   in the game.
+
+### The Chevauchée (a note for whoever revives it, 2026-11-21)
+
+The Chevauchée (Dominion, `retired: true`) strikes towns near a pillaged hex
+with 50% of the raider's strength (`strikeTownsNear` in `src/sim/combat.ts`).
+It is in no pool, so the percentage reaches no game, and the code is left
+alone. If the card returns, give it a flat form: the raider's strength less
+6. The user: "sounds good".

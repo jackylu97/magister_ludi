@@ -227,8 +227,9 @@ mean those things.
   `spendLeftoverMovement` sits immediately before `resetMovement` (both halves
   load-bearing); a move ordered at zero movement is accepted as orders.
 - **Combat is flat points on one ledger** (`planCombat`): terrain, fortification,
-  general aura are labelled strength lines, never multipliers (only attacker-side
-  percentages remain). City strength = `cityBaseStrength` (best buildable unit);
+  general aura are labelled strength lines, never multipliers (the only
+  percentage of strength left is the cards', through `cardCombatPercent`). A
+  melee attack across a river is a flat `riverAttackPenaltyPoints`. City strength = `cityBaseStrength` (best buildable unit);
   max hp = `cityMaxHp` (never compare against `cityBaseHp`). `siegeField` ≠
   `zocField` (Great Wall's `rule: 'borders'` would besiege by nobody); `underSiege`
   derived, never stored. Cities are attacked in three beats (walls → garrison →
@@ -237,9 +238,10 @@ mean those things.
   kill leaves it to be walked into); `canAdvanceOnto`/`canStopOn` refuse
   foreign city hexes. The waterline (N1, `rules.naval`): a land piece that
   closes may not strike a water hex, an embarked piece may not strike a ship
-  (`waterlineError`, one clause for tint/forecast/reducer), land bows fight a
-  hull at `landRangedVsShipPercent`, land siege at `landSiegeVsShipPercent`,
-  a hull boarding a column takes `embarkedCounterPercent` of the counter.
+  (`waterlineError`, one clause for tint/forecast/reducer), a land bow shoots
+  a hull at a flat `landRangedVsShipPoints`, land siege at
+  `landSiegeVsShipPoints`, and a hull that boards a column takes no
+  counter-blow.
   The wild never captures. A unit's escalation ladder is its row's
   (`UnitDef.escalation`, `Player.unitsBuilt`, raised in `realiseItem`, never for
   a free unit). A chop's printed base is `chopBaseFor` (aged before
