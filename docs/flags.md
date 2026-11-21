@@ -3274,8 +3274,8 @@ strength on cards (2026-11-19).
 | Where | What | State |
 |---|---|---|
 | The Volley Fire (Scientific Doctrine) | melee units −10% combat strength | Already ruled to change in the Scientific pass, change 59: "your archer line may attack twice a turn, they lose 4 combat strength when defending against a melee attack". Not built. |
-| `rules.naval.landRangedVsShipPercent` | a land bow shoots a ship at −50% | Open: the user has not ruled. |
-| `rules.naval.landSiegeVsShipPercent` | a land siege engine shoots a ship at +50% | Open: the user has not ruled. |
+| `rules.naval.landRangedVsShipPercent` | a land bow shoots a ship at −50% | **Ruled 2026-11-21: a flat −6.** |
+| `rules.naval.landSiegeVsShipPercent` | a land siege engine shoots a ship at +50% | **Ruled 2026-11-21: a flat +6.** |
 
 Not percentages of strength, so not in the list: the damage roll's band of
 ±20%; a hull that boards an embarked column takes half of the counter-blow
@@ -3283,3 +3283,22 @@ Not percentages of strength, so not in the list: the damage roll's band of
 of banked production). No unit row and no other card carries a percentage of
 strength. The `combatPercent` stat stays in the vocabulary until The Volley
 Fire changes, and then nothing reads it.
+
+### The naval rulings (2026-11-21)
+
+The user: "land bow against a ship: -6. Land siege against a ship +6. Ships
+attacking embarked units should take no damage."
+
+- A land bow that shoots a ship: one flat line of −6 on the attacker's side.
+- A land siege engine that shoots a ship: one flat line of +6.
+- A ship that attacks an embarked unit takes no damage from the counter-blow
+  (`rules.naval.embarkedCounterPercent` 50 becomes no counter at all).
+- Why flat is right here, in the user's words: "Isn't damage calculation
+  based on the difference of combat strengths, so -6 would be the same
+  regardless of absolute strength?" It is. Damage is
+  `baseDamage · e^(0.04 · (attacker − defender))`, so 6 points change damage
+  by the same factor (about 0.79 or 1.27) at every strength. The old
+  percentages were the rule that changed with the ages: −50% was 6 points at
+  strength 12 and 20 points at strength 40.
+- After these and The Volley Fire, no percentage of combat strength is left
+  in the game.
