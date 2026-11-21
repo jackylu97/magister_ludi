@@ -186,3 +186,18 @@ The loading screen now prepares the walking piece for both views and reads the l
 | Time in the loading step, including the first board frame | — | 483.8 ms | 415.8 ms |
 
 The large first-use wait disappeared in both repeats. The second unit had already used the same shader before the change. The measured loading step overlaps other work and does not give the change in total load time. [Turn 73 input and render timings](turn73-input-and-render-2026-11-21.json)
+
+## One model pick per click, 21 November
+
+Clicking a unit can ask twice which body is under the pointer. The first answer selects the unit. The second updates its hover outline. The renderer can now share the model hit for the duration of that release. A change to the camera, board or lens geometry clears the answer. Stack cycling still reads the new selection.
+
+The browser test clicked the body of swordsman 818 on the turn 120 board at 1.5× resolution, with 489 units, 74 cities and background bot planning enabled. All twelve clicks selected the swordsman without issuing a game command. Four warmup clicks preceded four measured clicks per condition, with the order counterbalanced.
+
+| Per pointer release | Reuse disabled | Reuse enabled |
+| --- | ---: | ---: |
+| Model picks that traced the scene | 2 | 1 |
+| Mesh raycasts | 4 | 2 |
+| Median time in the model picker | 2.30 ms | 1.25 ms |
+| Median time in the release handler | 3.65 ms | 2.55 ms |
+
+This saved about one millisecond on a warm click in this test. The earlier 17.1 ms picking time did not repeat. See the [per-click measurements](turn120-model-pick-2026-11-21.json) and [first worker selection timings](turn73-worker-advice-2026-11-21.md).

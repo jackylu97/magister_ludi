@@ -1,0 +1,296 @@
+{
+  "fixture": "scripts/input-latency/fixtures/turn120.json.gz",
+  "viewport": [
+    1470,
+    835
+  ],
+  "dpr": 2,
+  "errors": [],
+  "samples": [
+    {
+      "mode": "off",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.700000286102295
+        },
+        {
+          "id": 818,
+          "ms": 1.9000000953674316
+        }
+      ],
+      "exactPasses": 2,
+      "meshCasts": 4,
+      "releaseAt": 9748.10000038147,
+      "entered": 9751.60000038147,
+      "end": 9759.60000038147,
+      "selected": 818,
+      "log": 9171,
+      "warmup": true,
+      "pickMs": 3.6000003814697266
+    },
+    {
+      "mode": "on",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.4000000953674316
+        },
+        {
+          "id": 818,
+          "ms": 0
+        }
+      ],
+      "exactPasses": 1,
+      "meshCasts": 2,
+      "releaseAt": 9799.400000095367,
+      "entered": 9802.10000038147,
+      "end": 9805.10000038147,
+      "selected": 818,
+      "log": 9171,
+      "warmup": true,
+      "pickMs": 1.4000000953674316
+    },
+    {
+      "mode": "on",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.3000001907348633
+        },
+        {
+          "id": 818,
+          "ms": 0
+        }
+      ],
+      "exactPasses": 1,
+      "meshCasts": 2,
+      "releaseAt": 9849.400000095367,
+      "entered": 9852.10000038147,
+      "end": 9854.900000095367,
+      "selected": 818,
+      "log": 9171,
+      "warmup": true,
+      "pickMs": 1.3000001907348633
+    },
+    {
+      "mode": "off",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.3000001907348633
+        },
+        {
+          "id": 818,
+          "ms": 1.0999999046325684
+        }
+      ],
+      "exactPasses": 2,
+      "meshCasts": 4,
+      "releaseAt": 9885.5,
+      "entered": 9888.300000190735,
+      "end": 9892.400000095367,
+      "selected": 818,
+      "log": 9171,
+      "warmup": true,
+      "pickMs": 2.4000000953674316
+    },
+    {
+      "mode": "on",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.9000000953674316
+        },
+        {
+          "id": 818,
+          "ms": 0
+        }
+      ],
+      "exactPasses": 1,
+      "meshCasts": 2,
+      "releaseAt": 9934.300000190735,
+      "entered": 9937.5,
+      "end": 9941.10000038147,
+      "selected": 818,
+      "log": 9171,
+      "warmup": false,
+      "pickMs": 1.9000000953674316
+    },
+    {
+      "mode": "off",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.0999999046325684
+        },
+        {
+          "id": 818,
+          "ms": 1.0999999046325684
+        }
+      ],
+      "exactPasses": 2,
+      "meshCasts": 4,
+      "releaseAt": 9985.800000190735,
+      "entered": 9988.5,
+      "end": 9992,
+      "selected": 818,
+      "log": 9171,
+      "warmup": false,
+      "pickMs": 2.1999998092651367
+    },
+    {
+      "mode": "off",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.1000003814697266
+        },
+        {
+          "id": 818,
+          "ms": 1.3000001907348633
+        }
+      ],
+      "exactPasses": 2,
+      "meshCasts": 4,
+      "releaseAt": 10036,
+      "entered": 10038.200000286102,
+      "end": 10042.10000038147,
+      "selected": 818,
+      "log": 9171,
+      "warmup": false,
+      "pickMs": 2.40000057220459
+    },
+    {
+      "mode": "on",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.0999999046325684
+        },
+        {
+          "id": 818,
+          "ms": 0
+        }
+      ],
+      "exactPasses": 1,
+      "meshCasts": 2,
+      "releaseAt": 10085.200000286102,
+      "entered": 10087.700000286102,
+      "end": 10090.200000286102,
+      "selected": 818,
+      "log": 9171,
+      "warmup": false,
+      "pickMs": 1.0999999046325684
+    },
+    {
+      "mode": "off",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.1999998092651367
+        },
+        {
+          "id": 818,
+          "ms": 1.1999998092651367
+        }
+      ],
+      "exactPasses": 2,
+      "meshCasts": 4,
+      "releaseAt": 10135.10000038147,
+      "entered": 10137.60000038147,
+      "end": 10141.400000095367,
+      "selected": 818,
+      "log": 9171,
+      "warmup": false,
+      "pickMs": 2.3999996185302734
+    },
+    {
+      "mode": "on",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.299999713897705
+        },
+        {
+          "id": 818,
+          "ms": 0
+        }
+      ],
+      "exactPasses": 1,
+      "meshCasts": 2,
+      "releaseAt": 10185.400000095367,
+      "entered": 10188,
+      "end": 10190.60000038147,
+      "selected": 818,
+      "log": 9171,
+      "warmup": false,
+      "pickMs": 1.299999713897705
+    },
+    {
+      "mode": "on",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1.1999998092651367
+        },
+        {
+          "id": 818,
+          "ms": 0
+        }
+      ],
+      "exactPasses": 1,
+      "meshCasts": 2,
+      "releaseAt": 10235,
+      "entered": 10237.5,
+      "end": 10239.900000095367,
+      "selected": 818,
+      "log": 9171,
+      "warmup": false,
+      "pickMs": 1.1999998092651367
+    },
+    {
+      "mode": "off",
+      "requests": [
+        {
+          "id": 818,
+          "ms": 1
+        },
+        {
+          "id": 818,
+          "ms": 1
+        }
+      ],
+      "exactPasses": 2,
+      "meshCasts": 4,
+      "releaseAt": 10284.5,
+      "entered": 10286.900000095367,
+      "end": 10290.200000286102,
+      "selected": 818,
+      "log": 9171,
+      "warmup": false,
+      "pickMs": 2
+    }
+  ],
+  "setup": {
+    "pick": {
+      "x": 833,
+      "y": 421,
+      "historical": true
+    },
+    "other": {
+      "x": 784,
+      "y": 347,
+      "historical": false
+    },
+    "turn": 120,
+    "units": 489,
+    "cities": 74,
+    "log": 9171,
+    "pixelRatio": 1.5,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+  },
+  "ok": true,
+  "uncompressedSha256": "d4c94d9b86025e090e4cbada41453cae1277f5551d7375f79b1406d8cfdc6c96",
+  "build": "e0ca75ab"
+}
