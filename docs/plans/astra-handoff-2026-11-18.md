@@ -100,6 +100,23 @@ of the file.
   Tower. A missing board prop stops the game at load.
 - Nothing in the deck needs age 5.
 
+### 0.1c A change in the bots and the save version, by the Claude session (2026-11-21)
+
+The user ruled that plain Fortify wakes for an enemy in sight. The build is
+on `decks` (the commit "A fortified unit asks for orders when an enemy comes
+into its sight").
+
+- **`SCHEMA_VERSION` is 255.** `Unit.untilHealed` became `Unit.dugIn`
+  ('untilHealed' | 'awake'), with `enemyInSight` beside it. The state digests
+  in `aiDigestPins.ts` and the replay pins need a new recording.
+- **One edit in `src/ai/bot.ts`** (about 30 lines): the bots pass over an
+  awake dug-in piece as they pass over a skipped one. Without it, a bot unit
+  that rests to heal would have hidden every blocker behind it in
+  `firstBlocker`. The bots' decisions should not change. Eight core bot test
+  files pass (`aiBot`, `aiDecision`, `aiDriverRepeat`, `aiEndCheckLoops`,
+  `aiDriverEliminated`, `aiGarrison`, `aiEscorts`, `aiFrozenBoard`). No bot
+  game was run: please run your six-seat maps once and say if a seat stalls.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
