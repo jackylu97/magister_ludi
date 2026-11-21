@@ -194,7 +194,7 @@
         ]
       },
       "flavor": "We question the sky, and learn the habit of questions.",
-      "note": "A shrine is where a people first listen, and the first of your gods arrives of its own accord once the realm's faith runs deep enough."
+      "note": "Your first god comes when your empire has saved enough faith."
     },
     "letters": {
       "name": "Writing",
@@ -250,7 +250,7 @@
         }
       ],
       "flavor": "Nobody expected the circle to be useful.",
-      "note": "Every worker made from now on has an extra charge of work. Chariots may be trained if you have improved horses or camels."
+      "note": "Each worker you make after this has an extra charge. Workers you have already do not change."
     },
     "siegecraft": {
       "name": "Siegecraft",
@@ -273,8 +273,7 @@
           "ironPillar"
         ]
       },
-      "flavor": "A wall is only a promise about time.",
-      "note": "Your soldiers may besiege an enemy town: a town they surround cannot heal and loses health each turn. Towns may raise stone walls, and workers may build lumber mills."
+      "flavor": "A wall is only a promise about time."
     },
     "irrigation": {
       "name": "Irrigation",
@@ -292,8 +291,7 @@
           "petra"
         ]
       },
-      "flavor": "Water is taught where to go.",
-      "note": "A farm standing beside fresh water feeds its city better than it did."
+      "flavor": "Water is taught where to go."
     },
     "wayfinding": {
       "name": "Wayfinding",
@@ -340,7 +338,7 @@
         ]
       },
       "flavor": "The dead are given a metre, and stop being dead.",
-      "note": "Renown now brings great people. Before you know this, renown still builds up, but no great person comes."
+      "note": "Great people come only after you research this. Renown you earn before then is kept."
     },
     "currency": {
       "name": "Currency",
@@ -392,7 +390,7 @@
         }
       ],
       "flavor": "One name at the top of the list, and a list.",
-      "note": "A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's authority reaches further too: your realm may hold more cities in hand than it could."
+      "note": "Your empire can govern more cities."
     },
     "theLongCount": {
       "name": "Chronology",
@@ -441,7 +439,7 @@
         }
       ],
       "flavor": "A season the realm owns, taken from each in turn.",
-      "note": "Every worker made from now on has an extra charge of work.",
+      "note": "Each worker you make after this has an extra charge. Workers you have already do not change.",
       "columnShift": 1
     },
     "theHighTemple": {
@@ -487,7 +485,7 @@
         ]
       },
       "flavor": "A shield is only a wall if it stands beside another.",
-      "note": "Phalanxes and swordsmen may be trained if you have improved copper or obsidian. When you do, your spearmen become phalanxes and your warriors become swordsmen. Iron now shows on the map."
+      "note": "Your spearmen become phalanxes and your warriors become swordsmen, if you have improved copper or obsidian."
     },
     "shipwrights": {
       "name": "Shipwrights",
@@ -544,8 +542,7 @@
           "bourse"
         ]
       },
-      "flavor": "A note that is worth something because everyone agrees it is.",
-      "note": "Notes, ledgers and a floor to shout them across: the realm's coin can be turned into song at the Bourse."
+      "flavor": "A note that is worth something because everyone agrees it is."
     },
     "artisanry": {
       "name": "Guildhalls",
@@ -562,8 +559,7 @@
           "greatMosqueOfDjenne"
         ]
       },
-      "flavor": "The guild decides what a thing is worth by how long it took.",
-      "note": "Towns may build a Workshop."
+      "flavor": "The guild decides what a thing is worth by how long it took."
     },
     "mathematics": {
       "name": "Mathematics",
@@ -599,8 +595,7 @@
           "forbiddenCity"
         ]
       },
-      "flavor": "The message arrives before the rumour does.",
-      "note": "Opens the Forbidden City."
+      "flavor": "The message arrives before the rumour does."
     },
     "theExaminationHall": {
       "name": "The Civil Service",
@@ -619,7 +614,6 @@
         ]
       },
       "flavor": "The clerk is chosen by the paper, not by the father.",
-      "note": "A town you have taken by force may build a Courthouse.",
       "columnShift": 1
     },
     "colonialCharters": {
@@ -643,7 +637,7 @@
         }
       ],
       "flavor": "A city, written down before it is built.",
-      "note": "Every town you found starts with its Town Charter already built."
+      "note": "Each city you found after this starts with a Town Charter."
     },
     "theology": {
       "name": "Theology",
@@ -665,7 +659,7 @@
         ]
       },
       "flavor": "The library, copied by candlelight, one page a day.",
-      "note": "The enhancing beliefs open here: a faith may now be deepened as well as spread.",
+      "note": "Your religion can take enhancer beliefs after this.",
       "columnShift": 1
     },
     "ironWorking": {
@@ -688,7 +682,7 @@
         ]
       },
       "flavor": "Every age is named for what it kills with.",
-      "note": "Legionaries and spear walls may be trained. Your phalanxes become spear walls. When you have improved iron, your swordsmen become legionaries."
+      "note": "Your phalanxes become spear walls. Your swordsmen become legionaries if you have improved iron."
     },
     "education": {
       "name": "Scholarship",
@@ -723,8 +717,7 @@
           "chichenItza"
         ]
       },
-      "flavor": "The hour stops being a guess.",
-      "note": "Opens Chichen Itza."
+      "flavor": "The hour stops being a guess."
     },
     "engineering": {
       "name": "Engineering",
@@ -761,8 +754,7 @@
           "warElephant"
         ]
       },
-      "flavor": "Man and horse, both in iron, both surprised by it.",
-      "note": "Horsemen, horse archers and war elephants may be trained, and every pasture your towns work gives more production."
+      "flavor": "Man and horse, both in iron, both surprised by it."
     },
     "prospecting": {
       "name": "Geomancy",
@@ -775,8 +767,7 @@
         "horology"
       ],
       "unlocks": {},
-      "flavor": "The hill is asked again, and this time it answers.",
-      "note": "Every mine your towns work gives more production. Workers and scouts may also search a hill for a buried seam."
+      "flavor": "The hill is asked again, and this time it answers."
     },
     "silkRoad": {
       "name": "The Silk Road",
@@ -793,8 +784,7 @@
           "greatStelaeOfAksum"
         ]
       },
-      "flavor": "Nobody has walked it. Everything has.",
-      "note": "Towns may build a Caravanserai, which lets your empire run more trade routes."
+      "flavor": "Nobody has walked it. Everything has."
     },
     "banking": {
       "name": "The Counting Houses",
@@ -828,8 +818,7 @@
           "crossbowman"
         ]
       },
-      "flavor": "A crank is a servant that never sleeps.",
-      "note": "Crossbowmen may be trained."
+      "flavor": "A crank is a servant that never sleeps."
     },
     "theAstrolabe": {
       "name": "The Astrolabe",
@@ -872,7 +861,7 @@
         }
       ],
       "flavor": "No one walks all of it; the cloth does.",
-      "note": "Your empire may run an extra trade route at once."
+      "note": "Your empire can run another trade route."
     },
     "feudalism": {
       "name": "Castellany",
@@ -891,8 +880,7 @@
           "castle"
         ]
       },
-      "flavor": "Everyone kneels to someone and calls it order.",
-      "note": "Towns may build a Castle, and pikemen may be trained."
+      "flavor": "Everyone kneels to someone and calls it order."
     },
     "theHolyOffice": {
       "name": "The Holy Office",
@@ -932,8 +920,7 @@
           "forge"
         ]
       },
-      "flavor": "Iron, taught patience by fire.",
-      "note": "Longswordsmen may be trained, and towns may build a Forge."
+      "flavor": "Iron, taught patience by fire."
     },
     "alchemy": {
       "name": "Alchemy",
@@ -959,7 +946,7 @@
       },
       "paysBead": "theClosingWork",
       "flavor": "The stone is never found; everything else is.",
-      "note": "Niter is named, and the first soldier who carries fire may be trained where it is dug. Completing this pays a glass bead, and the first empire in the world to complete it opens the Magnum Opus for everybody."
+      "note": "Finishing this pays a bead. When any empire finishes it, every empire with a full rod of beads can begin the Magnum Opus."
     },
     "movableType": {
       "name": "Movable Type",
@@ -976,8 +963,7 @@
           "printingHouse"
         ]
       },
-      "flavor": "One carved character, used a thousand times.",
-      "note": "Opens the Printing House, which makes the town that holds it learn and build faster."
+      "flavor": "One carved character, used a thousand times."
     },
     "physics": {
       "name": "Natural Philosophy",

@@ -1079,17 +1079,20 @@ describe('the Faith concept’s prose', () => {
     // named a redraft that was retired with Entry LVIII and said every agent
     // carried a single charge. It now says the *rule* — two acts take the piece,
     // two spend its voice — and carries no figure at all (the digit test below).
+    // Since the rules pages rewrite of 2026-11-21 the page links to the pages
+    // that hold the acts, and the Prophet's entry gives each act's cost from
+    // `rules.religion.prophetCosts`. The links are what is pinned.
     const all = prose.join(' ');
-    for (const act of [
-      'Founding your religion',
-      'drawing another belief',
-      'a proclamation',
-      'a rite said over every city you own',
+    for (const link of [
+      '[[unit:prophet|',
+      '[[concept:foundingReligion|',
+      '[[concept:proclamation|',
+      '[[rite:about|',
+      '[[improvement:holySite|',
     ]) {
-      expect(`${act}: ${all.includes(act)}`).toBe(`${act}: true`);
+      expect(`${link}: ${all.includes(link)}`).toBe(`${link}: true`);
     }
-    expect(all).toContain('takes every charge the prophet has');
-    expect(all).toContain('Speaking costs less');
+    expect(all).toContain('its entry gives what each act costs');
     expect(all).not.toContain('gives a pool');
     expect(all).not.toContain('single charge');
   });

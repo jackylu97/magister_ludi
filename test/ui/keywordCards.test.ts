@@ -73,7 +73,9 @@ const EVERY_CARD: CardId[] = [
 
 describe('the short definition', () => {
   it('keeps an entry\'s figures and rules, and leaves its notes and flavour to the full entry', () => {
-    const scout = entryOf('unit:scout');
+    // The Temple: its page has a note. A unit page has none since the notes
+    // rewrite of 2026-11-21, so the Scout no longer shows the cut.
+    const scout = entryOf('building:temple');
     const definition = shortDefinition(scout);
     expect(definition.name).toBe(scout.name);
     expect(definition.eyebrow).toBe(scout.eyebrow);
@@ -683,8 +685,11 @@ describe('mounting and disposing', () => {
 describe('the register', () => {
   it('prints every definition through the one renderer and the one figure printer', () => {
     const layerSource = uiSource('keywordCards.ts');
-    expect(layerSource).toContain('setDescriptorText(');
-    expect(layerSource).toContain('setYieldText(');
+    // One printer for the rows and the clauses: `setDescriptorText` draws the
+    // yield glyphs as `setYieldText` does, and a row can name a thing
+    // ("Upgrades to") since the Compendium pass of 2026-11-21.
+    expect(layerSource).toContain('setDescriptorText(value, row.figures, { linked })');
+    expect(layerSource).toContain('setDescriptorText(item, line.text, { linked })');
     expect(layerSource).not.toContain('innerHTML');
     // And composes no words of its own about a card: the definitions module
     // only selects, so it never reads a clause's text at all.

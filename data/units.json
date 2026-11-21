@@ -150,8 +150,7 @@
       ],
       "upgradesTo": "knight",
       "modelClass": "mounted",
-      "glyph": "H",
-      "note": "Light shock cavalry, and the rung The Saddle hands over. It climbs to the knight: the cataphract that used to stand between the two is a row no node opens any more."
+      "glyph": "H"
     },
     "chariot": {
       "name": "War Chariot",
@@ -948,8 +947,7 @@
       "minCityPop": 0,
       "upgradesTo": "knight",
       "modelClass": "mounted",
-      "glyph": "N",
-      "note": "Light horse paid for by trade. It fights harder for every kind of luxury its empire controls."
+      "glyph": "N"
     },
     "companyGuard": {
       "name": "Company Guard",
@@ -972,8 +970,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "modelClass": "melee",
-      "glyph": "G",
-      "note": "A trading company's own soldiers. Hired with gold in a city with a Barracks, and never trained."
+      "glyph": "G"
     },
     "slinger": {
       "name": "Slinger",
@@ -1015,7 +1012,6 @@
           "where": "garrison"
         }
       ],
-      "note": "A militia farmed between musters. It costs the realm nothing at all while it stands in a city of its own.",
       "combatLines": [
         {
           "label": "Against mounted",
@@ -1056,7 +1052,6 @@
           }
         }
       ],
-      "note": "Lamellar and a long lance, and it fights best with foot beside it.",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1104,7 +1099,6 @@
           }
         }
       ],
-      "note": "It shoots and rides on: a kill leaves it with its feet still moving.",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1137,7 +1131,6 @@
           }
         }
       ],
-      "note": "The Chanyu’s own household, and the archers riding next to it shoot harder for the company.",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1167,7 +1160,6 @@
           }
         }
       ],
-      "note": "A sickle sword, and it fights hardest on ground that keeps its king’s god.",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1204,7 +1196,6 @@
           }
         }
       ],
-      "note": "It shoots the keener for every great work standing in the capital it was raised for.",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1233,7 +1224,6 @@
           }
         }
       ],
-      "note": "Javelins and a physician’s training. A kill leaves it better than it was.",
       "combatLines": [
         {
           "label": "Against mounted",
@@ -1293,8 +1283,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "modelClass": "mounted",
-      "glyph": "D",
-      "note": "Heavy lance, and it is walls it was bred for: it strikes a town harder than it strikes anything standing in the field."
+      "glyph": "D"
     },
     "mandekalu": {
       "name": "The Mandekalu",
@@ -1321,8 +1310,7 @@
         }
       ],
       "modelClass": "mounted",
-      "glyph": "W",
-      "note": "Mail under a quilted coat, and a long way from home. What it tears down it carries back twice over."
+      "glyph": "W"
     },
     "treasureShip": {
       "name": "The Treasure Ship",
@@ -1343,9 +1331,8 @@
       "modelClass": "navalHeavy",
       "glyph": "Z",
       "deferred": [
-        "It does not yet carry a second passenger."
-      ],
-      "note": "Nine masts and a crew of a small town. It sees further than any hull afloat and is very hard to sink."
+        "It cannot carry a second land unit yet."
+      ]
     },
     "eagleWarrior": {
       "name": "The Eagle Warrior",
@@ -1375,8 +1362,7 @@
         }
       ],
       "modelClass": "melee",
-      "glyph": "E",
-      "note": "It needs no iron, and every kill is a song somebody will still be singing in a hundred years."
+      "glyph": "E"
     },
     "alexandrianGalley": {
       "name": "The Alexandrian Galley",
@@ -1403,8 +1389,7 @@
       "minCityPop": 0,
       "upgradesTo": "caravel",
       "modelClass": "navalLight",
-      "glyph": "A",
-      "note": "A lookout on the masthead and the Pharos behind it. It finds the coast before the coast finds it."
+      "glyph": "A"
     },
     "canoness": {
       "name": "The Canoness",
@@ -1431,9 +1416,8 @@
       "modelClass": "worker",
       "glyph": "Q",
       "deferred": [
-        "Her preaching does not yet set the whole realm building."
-      ],
-      "note": "She travels with a choir and a book of her own composing, and she preaches as an apostle does."
+        "Her proclamation does not speed up building in your empire yet."
+      ]
     },
     "rihlaCaravan": {
       "name": "The Rihla Caravan",
@@ -1462,8 +1446,7 @@
         }
       ],
       "modelClass": "worker",
-      "glyph": "R",
-      "note": "It has crossed everything there is to cross and knows whom to pay. Nobody robs it, and it comes home richer than it left."
+      "glyph": "R"
     },
     "hypaspist": {
       "name": "Hypaspist",

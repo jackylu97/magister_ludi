@@ -280,9 +280,9 @@ describe('the Cathedral School', () => {
     ]);
     // The page stopped printing the row's note in the Compendium pass of
     // 2026-11-21: on a row with effects the note says the lines above again.
-    // The note is player prose: no number and no identifier.
-    expect(buildingDef('cathedralSchool').note).not.toMatch(/\d/);
-    expect(buildingDef('cathedralSchool').note).not.toMatch(/[a-z][A-Z]/);
+    // The row's note said the two lines above again, and it was deleted in the
+    // notes rewrite of 2026-11-21.
+    expect(buildingDef('cathedralSchool').note).toBeUndefined();
   });
 });
 

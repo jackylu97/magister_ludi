@@ -579,6 +579,8 @@ describe('the word a player reads for the surveying hand', () => {
     const note = techDef(prospectDef().tech).note ?? '';
     expect(note).not.toMatch(/survey/i);
     expect(note).not.toMatch(/sleeps/i);
-    expect(note).toMatch(/mine/i);
+    // The note that said the mine's further production was deleted on
+    // 2026-11-21: the node prints that line itself.
+    expect(note).not.toMatch(/buried seam/i);
   });
 });

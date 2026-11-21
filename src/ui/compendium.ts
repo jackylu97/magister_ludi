@@ -1203,10 +1203,11 @@ function unitEntry(type: UnitTypeId): CompendiumEntry {
   const bought = absent ? null : unitPurchaseWords(def);
   if (bought !== null) clauses.push({ text: bought });
   clauses.push({ ...queueOpening('unit', type), ...(absent ? { standing: true } : {}) });
-  // The row's `note` is not printed. Every unit note in the data says a line
-  // of the row again in looser words, or is history or flavour, and the lines
-  // above are the exact ones. `docs/plans/compendium-pass-2026-11-21.md` lists
-  // the notes: when the data has plain ones, print them here again.
+  // The row's own note: a fact a player needs that no field of the row can
+  // print. The notes were rewritten on 2026-11-21 (the user: "Please rewrite
+  // the notes, yes"), and a note that said a generated line again was deleted,
+  // so what is left is printed, after the effects.
+  if (def.note !== undefined && !absent) clauses.push({ text: def.note, note: true });
   for (const waiting of def.deferred ?? []) clauses.push({ text: waiting, deferred: true });
   return {
     id: compendiumId('unit', type),
@@ -1479,12 +1480,6 @@ function buildingMarkers(id: BuildingId): CompendiumClause[] {
   return out;
 }
 
-/**
- * How many lines `describeBuildingRow` prints for a renown that also pays on
- * completion: the line for each turn and the line for the turn it is finished.
- */
-const RENOWN_LINES_WITH_GRANT = ['each turn', 'on completion'].length;
-
 function buildingEntry(id: BuildingId): CompendiumEntry {
   const def = buildingDef(id);
   const wonder = isWonder(id);
@@ -1514,8 +1509,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   // as a row (the pass of 2026-11-21: each was printed two times before). The
   // clauses lead the page because an Order that unlocks a building prints the
   // same list on its own face, and the two must not differ.
-  const described = describeBuildingRow(id);
-  const clauses: CompendiumClause[] = described.map((entry) => ({
+  const clauses: CompendiumClause[] = describeBuildingRow(id).map((entry) => ({
     text: entry.text,
     deferred: entry.deferred,
   }));
@@ -1525,21 +1519,12 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   // What technologies later do for this building: the lines that pay the
   // building's ground more, read out of `techGifts`.
   clauses.push(...laterGifts(id));
-  const markers = buildingMarkers(id);
-  clauses.push(...markers);
-  // The row's own note is printed only where it is the one place a fact is
-  // said: on a row whose generated lines are its flat yields and its renown
-  // and nothing more (the Temple's guard against other religions, the Relic's
-  // limit). On every other row the note says the generated lines again in
-  // looser words. `docs/plans/compendium-pass-2026-11-21.md` lists the notes.
-  const flatLines = [def.food, def.production, def.gold, def.science, def.culture, def.faith ?? 0]
-    .some((amount) => amount !== 0)
-    ? 1
-    : 0;
-  const renownLines =
-    def.renown === undefined ? 0 : (def.renown.onComplete ?? 0) !== 0 ? RENOWN_LINES_WITH_GRANT : 1;
-  const saysMore = described.length > flatLines + renownLines || markers.length > 0;
-  if (def.note !== undefined && !saysMore && def.grantedOnly !== true && !buildingIsAbsent(id)) {
+  clauses.push(...buildingMarkers(id));
+  // The row's own note: a fact a player needs that no field of the row can
+  // print (the Temple's guard against other religions, the Relic's limit). The
+  // notes were rewritten on 2026-11-21, and a note that said the generated
+  // lines again was deleted from the data.
+  if (def.note !== undefined && !buildingIsAbsent(id)) {
     clauses.push({ text: def.note, note: true });
   }
   return {

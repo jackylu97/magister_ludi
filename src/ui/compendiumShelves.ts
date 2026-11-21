@@ -36,9 +36,16 @@
  * a bead count typed into this file, and on a retired system named in it.
  */
 
+import { techDef } from '../sim/techData';
 import { WAGER_RULES } from '../sim/wagerData';
 import type { CompendiumEntry, CompendiumSectionId } from './compendium';
 import { numberWords } from './numberWords';
+
+/**
+ * The technology that lets an empire pay faith for a new hand of Orders, as a
+ * link with the name the data gives it.
+ */
+const LONG_COUNT = `[[tech:theLongCount|${techDef('theLongCount').name}]]`;
 
 /** The id every lead page carries on its shelf: `unit:about`, `tech:about`. */
 export const SHELF_INTRO_KEY = 'about';
@@ -93,7 +100,7 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'Each entry below gives the figures of a unit, then what it does, then how you get it. The rules in the list below are true of every unit, so an entry does not say them again.',
     'Price: the production cost on an entry is the base price. A city can pay more, because each settler costs more than the last and cards change prices. The city screen shows the price your city pays.',
     'Upkeep: a military unit costs gold each turn. A civilian, a trader and a scout cost nothing, and a unit the game gave you costs nothing.',
-    'Upgrades: when you can build the unit that an older unit upgrades to, the older unit leaves the build list. If the new unit needs a resource and you have no spare copy, the older unit stays on the list.',
+    'Upgrades: when you research the technology of a better unit, your units of the older kind become the better unit, and the older unit leaves the build list. If the better unit needs a resource and you have no spare copy, the units stay as they are and the older unit stays on the list.',
     'Resources: a unit that needs a resource takes one spare improved copy when you add it to a build queue. It holds the copy for as long as it lives, and the copy comes back when the unit dies or is disbanded.',
     'Charges: a worker spends one or more charges on each improvement, and it is used up when it has none left.',
     'Exploring: you can tell any military unit to explore. It moves to unexplored land on its own until it can reach no more, and any other order stops it.',
@@ -137,18 +144,22 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'A short rule is printed on the technology itself, on the star chart and on its page here. A long one would not fit on a node, so it is given a name, the name is printed on the node in bold, and the whole of it is written down on this shelf. The name is the technology’s own.',
     'Each entry below gives the rule in full, says which technology brings it, and explains in ordinary words what it is for.',
   ]),
+  // Rewritten on 2026-11-21 to the standard of the Compendium pass: one topic a
+  // paragraph, the topic named first, short sentences, and links to the pages
+  // a paragraph names.
   order: lead('order', 'About Orders', '❧', [
-    'An Order is a policy card. Culture is what earns them: when enough has accumulated a draft opens, the game offers a small hand of Orders, and you keep the one you pick.',
-    'An Order does nothing while it sits in your collection. You place it in one of your government’s chairs on the Statecraft screen, and it works for exactly as long as it stays there. A newly placed Order is locked for a few turns, meaning it cannot be moved yet.',
-    'Every card and every chair has a type: Military, Economic, Civic or Wildcard. A Military, Economic or Civic card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. A card from a deck that has not been sorted into types yet fits any chair. A government decides how many chairs you have and of which types, and a better form of government has more of them. When you adopt a new one, each placed Order keeps its chair if that chair is still there and still fits it; the rest move to free chairs that fit them, and any that fit none go back to your collection.',
-    'Each government of the last tier makes one type of card stronger. While it is your government, every yield, percentage and strength that a placed card of its type gives grows by the share the government names, rounded to the nearest whole number, and always by at least one where the figure is one or more. Each rise is shown as a line of its own beside the card’s. A card in your collection is not raised, and neither are its costs, its rules, its happiness, its authority or its renown. A card from a deck not sorted yet counts as the type of its chair.',
-    'Your leader decides which cards you will ever be offered. Every card belongs to a deck — Dominion, Expansionist, Commerce, Devotion, Scientific or Magisterial — and a leader holds two of them for the whole game. Beside those, two kinds of card are open to you whatever you play: the ones two decks share, which you may draw if you hold either, and the ones that belong to no deck at all, which everybody may draw. One leader is the exception and draws from all six. This shelf is arranged the same way, a heading to a deck, so the cards you can be dealt are the cards you can find.',
-    'Each card also names a band: early, middle, late, advanced or final. The band says how many drafts a realm must have taken before that card can turn up. Each band opens at the same draft as a new tier of governments, and the age your research has reached does not matter. You are only ever offered cards from the latest band you have reached. When a new band opens, the cards of earlier bands stop being offered, though any you already hold stay yours. Until then, a card you passed on may be offered again.',
-    'A draft gives you three answers, not one. You may take a card; you may pass, which spends the hand and makes your next draft likelier to offer rarer cards; or, once your calendars can call for a second reading, you may pay faith to have the same draft dealt again. The reroll costs more every time you use it and more in later ages, and the button always prints what the next one will cost before you press it. At a few points along the ladder of reforms you are also dealt a hand of nothing but the cards your decks hold back. That one is free, it waits until you open it, and passing it costs you nothing.',
-    'A charter is the one card that is never placed. It is drafted like any other, and taking it opens what it names — a study your scholars could not otherwise begin, a building your masons could not otherwise raise, a rite your temples could not otherwise perform. It takes no chair and can never be turned out of one, and it hands nothing over free: what it opens still has to be researched or built.',
-    'A few phrases on these cards mean something exact. Authority is the meter that limits how many cities you can govern, and it can go negative. Border expansion is how fast a city claims its next hex, fed by that city’s own culture — banked separately from the culture that earns you drafts. Leftover production is what is left in a city’s basket when something finishes. A unique luxury means each different kind of luxury resource you have improved, however many copies of it you hold. A fortification level counts the turns a unit has spent dug in, up to its cap. Authority capacity is the ceiling the meter measures against, not the meter itself — a card that raises it lets you govern more cities.',
-    'Two kinds of card here cannot be drawn, and each says which it is at the top of its page. A card marked not dealt yet is one whose wording is settled and whose rule the game cannot yet carry out; it is printed so you can read it, and it joins its deck the day that rule is built. A card marked withdrawn is one the design has taken out for good — an empire that took one before it went keeps it, and it still pays what it says. The withdrawn cards are the last shelf below, behind everything a draft can still deal.',
-    'Each entry below gives an Order’s deck, its band, how often it turns up, and exactly what it does.',
+    'An Order is a card that gives your empire a bonus while it sits in a chair of your government. Culture earns Orders: when you have saved enough, a draft opens.',
+    `Draft: the game offers a hand of Orders. Take one, or pass. A pass makes rarer cards more likely in your next draft. After you research ${LONG_COUNT} you can also pay faith for a new hand. That price rises each time, and it starts over with each new government.`,
+    'Chairs: an Order works only while it is in a chair. Each chair and each card has a type: Military, Economic, Civic or Wildcard. A card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. A card from a deck with no types yet fits any chair. A newly seated Order is locked for a few turns.',
+    'Governments: a government sets how many chairs you have and their types. When you adopt a new one, each Order keeps its chair if the chair is still there and still fits. The others move to free chairs that fit them. An Order that fits no chair goes back to your collection.',
+    'The last governments: each government of the last tier makes the cards of one type stronger. While it is your government, the yields, percentages and strengths of a seated card of that type rise by the share the government names. Costs, rules, happiness, authority and renown do not rise.',
+    'Decks: each card is in a deck: Dominion, Expansionist, Commerce, Devotion, Scientific or Magisterial. Your [[leader:about|leader]] has two decks. You are offered the cards of those two decks, the cards that one of them shares with another deck, and the cards of no deck. One leader draws from all six. This shelf has a heading for each deck.',
+    'Bands: each card has a band: early, middle, late, advanced or final. A band opens after a number of drafts, at the same draft as a new tier of governments. Your age does not matter. You are offered only the cards of the latest band you have reached, and the cards you hold stay yours.',
+    'The held-back hand: at a few drafts you are also dealt a free hand of the cards your decks hold back. It waits until you open it, and a pass costs nothing.',
+    'Keywords: [[concept:commission|Commission]], [[concept:charter|Charter]], [[concept:scaler|Scaler]] and [[concept:boon|Boon]] are printed first on a card, and each has a page. A Charter and a Boon take no chair.',
+    'Words on cards: authority limits how many cities you can govern, and authority capacity is its ceiling. Border expansion is how fast a city claims its next hex. Leftover production is what is left in a city when a thing is finished. A unique luxury is one kind of luxury you have improved, however many copies you hold. A fortification level is one turn a unit has stayed dug in, up to a cap.',
+    'Cards you cannot draw: a card marked not dealt yet has a rule the game cannot do yet. A withdrawn card is out of the game, and an empire that took one keeps it. The withdrawn cards are under the last heading.',
+    'Each entry below gives the deck, the band and the rarity of an Order, and what it does.',
   ]),
   doctrine: lead('doctrine', 'About Doctrines', '✦', [
     'A Doctrine is a permanent bonus for your whole empire. It takes no chair, it is held for the rest of the game, and it can never be lost or replaced.',

@@ -2358,7 +2358,8 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     // The ladder's door and the reroll's, said in plain words with no number in
     // them — `docs/history/tech-gifts.md` §2. The rule they describe is C1's; what E owes
     // is that the card the player reads says so.
-    expect(techDef('divination').note).toMatch(/faith runs deep enough/);
+    // Reworded plainly in the notes rewrite of 2026-11-21.
+    expect(techDef('divination').note).toMatch(/first god comes when your empire has saved enough faith/);
     expect(techDef('theLongCount').note).toMatch(/spend faith to draw a new hand of Orders/);
     for (const id of TECH_IDS) {
       const note = techDef(id).note;
