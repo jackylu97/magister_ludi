@@ -435,7 +435,7 @@
         "padX": 0.07, "padZ": 0.05, "step": 0.04, "pixelsPerUnit": 300,
         "radius": 0.05, "edge": 0.012, "edgeOpacity": 0.7, "shadow": 0.035, "shadowOpacity": 0.45,
         "pinSize": 0.3, "pinRim": 0.2, "pinShine": 0.3,
-        "style": "a",
+        "style": "b",
         "styles": {
           "a": { "layout": "stack", "back": "paper", "offsetZ": -0.1, "pin": "top" },
           "b": { "layout": "stack", "back": "scrim", "offsetZ": -0.1, "pin": "top" },
