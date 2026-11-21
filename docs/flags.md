@@ -3322,3 +3322,32 @@ The user's comments on the Compendium pass's page:
     for orders, and wakes at full health, with an enemy in sight, or when
     attacked. A woken unit keeps its trench and bonus and asks for orders
     again. The reference is `docs/units.md`, "Fortify until healed".
+
+## Rulings before the beta (2026-11-21, evening, in chat)
+
+The user: "Single player for now yeah. … fish traps should not be a normal
+improvement, should be gated by expansionist card. I'm 50/50 on the coastal
+city rule, what do you think? i think astra made models for the new
+improvements, not including the devotion and scientific ones. For wonders:
+how about if a city has a wonder, it gains a wonder model, but doesn't gain
+one for each one it has. 118 to 150 turns sounds reasonable. age 5 will come
+after the beta. plain fortify should wake if an enemy is in sight. use the
+current game pieces. Could we add cathedral rework to the beta checklist".
+
+- **The beta is single-player** against bots.
+- **Fish traps stay behind an Expansionist card.** This REVERSES the ruling
+  of earlier the same day ("fish traps should just be a normal improvement").
+  The Expansionist plan's form stands: a card opens them, and they are a
+  unique improvement. Owner: Astra, only if the earlier ruling was already
+  built.
+- **A city that holds a wonder shows one wonder model,** and only one,
+  however many wonders it holds. Owner: Astra (rendering).
+- **The unit pieces:** the game keeps the pieces it has. The unit kit in
+  `art/unit-kit-trial/` is shelved.
+- **Game length:** 118 to 150 turns is right. **Age 5 comes after the beta.**
+- **Plain Fortify wakes for an enemy in sight,** as "Fortify until healed"
+  does. Owner: the Claude session.
+- **The coastal city rule:** the user is undecided ("50/50"). See the beta
+  checklist, `docs/plans/beta-checklist-2026-11-21.md`.
+- **A "cathedral rework"** joins the beta checklist. Its content is not
+  recorded anywhere yet: the Claude session has asked the user what it holds.
