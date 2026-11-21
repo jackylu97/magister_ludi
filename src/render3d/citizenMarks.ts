@@ -124,6 +124,67 @@ export function plaqueMaterial(width: number, depth: number): MeshBasicMaterial 
   return made ? made.material : null;
 }
 
+/** What stands behind a worked hex's yield figures, by variant (`plaque.styles` in `data/view3d.json`). */
+export type PlaqueBack = 'paper' | 'scrim' | 'pill' | 'tag';
+
+/**
+ * The backing of a plaque variant, `width` by `depth` in board units, in the
+ * same quad as `plaqueMaterial` (the paper plaque, variant a).
+ *
+ * The user, 2026-11-22, on the built paper plaque: "Could we do a couple
+ * variations on the yield plaques, they look a bit awkward". So the backing is
+ * one of four, chosen by one value in the data:
+ *
+ *   - `paper`: the plaque as first built, paper with a thin ink edge.
+ *   - `scrim`: no paper. A soft dark shape with a feathered edge, so the
+ *     figures read on any ground and the ground shows around them.
+ *   - `pill`: a low paper bar with fully round ends. On a pinned hex its edge
+ *     is the seat's colour (`seat`).
+ *   - `tag`: a paper label with a pointed foot at its lower edge, `plaque.foot`
+ *     long. The quad is deeper than the paper by the foot, and the foot points
+ *     at the hex's centre.
+ *
+ * Null where there is no canvas.
+ */
+export function plaqueBackMaterial(back: PlaqueBack, width: number, depth: number, seat: number | null = null): MeshBasicMaterial | null {
+  if (back === 'paper') return plaqueMaterial(width, depth);
+  const px = PLAQUE.pixelsPerUnit, margin = Math.ceil(PLAQUE.shadow * px * 1.6);
+  const w = Math.round(width * px), body = Math.round(depth * px), foot = back === 'tag' ? Math.round(PLAQUE.foot * px) : 0;
+  const made = canvasStamp(w + margin * 2, body + foot + margin * 2, (ctx) => {
+    const edge = PLAQUE.edge * px;
+    if (back === 'scrim') {
+      ctx.filter = `blur(${Math.max(1, PLAQUE.scrimBlur * px)}px)`;
+      ctx.beginPath(); ctx.roundRect(margin, margin, w, body, Math.min(w, body) * 0.35);
+      ctx.globalAlpha = PLAQUE.scrimOpacity; ctx.fillStyle = css(ART.ink); ctx.fill();
+      return;
+    }
+    const outline = (inset: number): void => {
+      ctx.beginPath();
+      if (back === 'pill') { ctx.roundRect(margin + inset, margin + inset, w - inset * 2, body - inset * 2, (body - inset * 2) / 2); return; }
+      // The tag: a rounded label, and a foot at the middle of its lower edge.
+      const radius = Math.max(0, PLAQUE.radius * px - inset), left = margin + inset, right = margin + w - inset, top = margin + inset, low = margin + body - inset;
+      const mid = margin + w / 2, half = Math.min(foot * 0.8, w * 0.22);
+      ctx.moveTo(left + radius, top); ctx.arcTo(right, top, right, low, radius); ctx.arcTo(right, low, mid, low, radius);
+      ctx.lineTo(mid + half, low); ctx.lineTo(mid, low + foot - inset); ctx.lineTo(mid - half, low);
+      ctx.arcTo(left, low, left, top, radius); ctx.arcTo(left, top, right, top, radius); ctx.closePath();
+    };
+    outline(0);
+    ctx.shadowColor = css(ART.ink); ctx.shadowBlur = PLAQUE.shadow * px; ctx.shadowOffsetY = PLAQUE.shadow * px * 0.35;
+    ctx.globalAlpha = PLAQUE.shadowOpacity; ctx.fillStyle = css(ART.ink); ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.shadowOffsetY = 0; ctx.globalAlpha = 1;
+    ctx.fillStyle = css(ART.paper); ctx.fill();
+    if (seat !== null) {
+      // The seat's colour as the edge, inside a thin ink line so that a pale seat still has an edge.
+      const band = PLAQUE.seatEdge * px;
+      outline(band / 2); ctx.lineWidth = band; ctx.strokeStyle = css(seat); ctx.stroke();
+      outline(edge / 2); ctx.lineWidth = edge; ctx.globalAlpha = 0.85; ctx.strokeStyle = css(ART.ink); ctx.stroke();
+    } else {
+      outline(edge / 2); ctx.globalAlpha = PLAQUE.edgeOpacity; ctx.lineWidth = edge; ctx.strokeStyle = css(ART.ink); ctx.stroke();
+    }
+  });
+  return made ? made.material : null;
+}
+
 /** How much wider and deeper than the plaque its quad is: the room its shadow takes on each side, in board units. */
 export function plaqueMargin(): number {
   return Math.ceil(PLAQUE.shadow * PLAQUE.pixelsPerUnit * 1.6) / PLAQUE.pixelsPerUnit;

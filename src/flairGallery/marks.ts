@@ -75,7 +75,7 @@ import { siteMark } from '../art/siteMarks';
 import { SURVEY_MARK_IDS, surveyMark, surveyMarkDataUri } from '../art/surveyMarks';
 import { SETTLE_MARK_IDS, settleMark, settleMarkDataUri } from '../art/settleMarks';
 import { adviceShapes, cornerTicks, ruinLightMaterials } from '../render3d/adviceMarks';
-import { pinHeadMaterial, plaqueMaterial } from '../render3d/citizenMarks';
+import { pinHeadMaterial, plaqueBackMaterial, plaqueMaterial } from '../render3d/citizenMarks';
 import { YIELD_MARKS, yieldMarkDataUri } from '../art/yieldMarks';
 import {
   BADGE_ICON_FILES,
@@ -539,6 +539,20 @@ function adviceFamily(into: HTMLElement): void {
   }
   plaqueCell.append(board, element('figcaption', '', 'the plaque, with a red and a pale yellow pin head'));
   row.append(plaqueCell);
+  // The other backings a plaque variant may use (`plaque.styles`), as their own textures on a patch of ground.
+  for (const [back, width, depth, label] of [['scrim', 0.42, 0.5, 'variant b: the scrim'], ['pill', 0.7, 0.2, 'variant c: the cartouche'], ['tag', 0.5, 0.34, 'variant d: the tag']] as const) {
+    const cell = element('figure', 'mark-cell');
+    const patch = document.createElement('canvas'); patch.width = patch.height = size * 2; patch.style.width = patch.style.height = `${size}px`;
+    const ink = patch.getContext('2d');
+    const image = plaqueBackMaterial(back, width, depth, back === 'pill' ? 0xb5301f : null)?.map?.image as HTMLCanvasElement | undefined;
+    if (ink && image) {
+      ink.fillStyle = '#7c9a56'; ink.fillRect(0, 0, size * 2, size * 2);
+      const w = image.width * 0.9, h = image.height * 0.9;
+      ink.drawImage(image, size - w / 2, size - h / 2, w, h);
+    }
+    cell.append(patch, element('figcaption', '', label));
+    row.append(cell);
+  }
 
   slider(
     controls(panel),

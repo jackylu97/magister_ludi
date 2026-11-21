@@ -1961,3 +1961,37 @@ tooltip.
 - Three reasons do not fit the panel at 1280 px. Shorter clauses would.
 - The site ranking still puts its three sites close together (Astra's).
 - The frozen toon board's decals were tested and not looked at in a browser.
+
+
+## The advice panel, the ticks and five plaque variants (2026-11-22)
+
+The user's words on the built lenses: "i like the city reasons, could we just
+have the panel expand to accomodate a longer reason? #1 is fine #3 is probably
+fine #4 the ticks should probably lay on top of highlighting. ... Could we do a
+couple variations on the yield plaques, they look a bit awkward". So the olive
+tint on dry forest and the small ruin light at the farthest zoom stay.
+
+Built on top of the lens build, not committed by the builder:
+
+- **The advice panel never cuts a reason.** It stands in a dock that spans the
+  free width between the tile readout and the lens button (`.advice-dock` in
+  `src/style.css`). A short line is centred on the screen. A longer line grows
+  to the dock's whole width (608 px at 1280, 768 px at 1440). A line that
+  still does not fit wraps, and the panel grows upward. It keeps three reasons.
+- **The corner ticks show over the hover and selection rings.** They draw
+  later (`ORDER` in `adviceMarks.ts`) and stand outside the band the rings
+  take (`lens.advice.tickInset` 0.025). Before, they were on top and could not
+  be seen: pale ticks over a pale ring in the same place.
+- **The yield plaque has five variants**, chosen by one value,
+  `territory.citizens.plaque.style`. A variant is data (`plaque.styles`): a
+  layout (`plaqueLayout` in `lens3d.ts`: stack, column, row or grid), a
+  backing (`plaqueBackMaterial` in `citizenMarks.ts`: paper, scrim, pill or
+  tag), a place and where the pin head sits. All of a city's hexes use the
+  variant's layout and place, worked or free.
+  - a: the paper plaque as first built. It is the value in the data now.
+  - b: the scrim. No paper, a soft shadow behind the coins.
+  - c: the cartouche. One low bar in the lower third of the hex, one row.
+  - d: the tag. A label with a foot on the hex's centre, a grid of two columns.
+  - e: the ledger strip. The paper plaque with a coin and a figure a row.
+- The builder's pick is c. The user has not chosen. The pictures are in
+  `plaque-variants.html`.
