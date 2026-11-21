@@ -84,16 +84,27 @@ blow read the same plan.
   terrain.
 - **Fortification** — turns dug in × `rules.combat.fortifyBonusPerTurn`, capped
   at `fortifyMax` (`fortifyBonus`). Presence of the counter *is* the state.
-- **Fortify until healed** (ruled 2026-11-21, `docs/flags.md`; schema 253) —
-  the `fortify` command with `untilHealed: true`, offered to a hurt unit that
-  may fortify (`fortifyUntilHealedError`). The unit digs in as usual and does
-  not ask for orders while `Unit.untilHealed` is `'waiting'`.
-  - It wakes (`'woken'`) when its health is full or a foreign combatant is in
-    its own sight (`wakeSleepers`), or when it is attacked (`applyCombat`).
-  - A woken unit stays dug in with its bonus and asks for orders again
-    (`unitAwaitsOrders`). A plain fortify keeps the trench and stops the asking.
-  - Any other order clears the key (`applyCommand`'s seam); `breakFortify`
-    clears it with the trench.
+- **A dug-in unit wakes** (ruled 2026-11-21, `docs/flags.md`, "Rulings
+  before the beta"; schema 255). A fortified unit, plain or not, asks for
+  orders again when a foreign soldier comes into its own sight
+  (`foreignSoldierInSight`, in `wakeSleepers`) or when it is attacked
+  (`applyCombat`). It stays dug in with its bonus; `Unit.dugIn` becomes
+  `'awake'` and `unitAwaitsOrders` asks for it.
+  - One alert per threat: the enemy wake fires only when the unit's sight
+    held no foreign soldier the last time it looked (`Unit.enemyInSight`).
+    The mark is deleted at the end of a turn on which the sight is clear.
+  - To quiet it, give it Fortify again: the trench and bonus stay. An order
+    given while an enemy is in sight writes the mark, so the unit stays quiet
+    until its sight is clear and an enemy next enters it. A sleeper keeps the
+    older rule and wakes every turn an enemy is in sight.
+  - Any other order clears `dugIn` (`applyCommand`'s seam); `breakFortify`
+    clears both marks with the trench. The wild's pieces are never marked.
+  - The bots pass their awake pieces to `firstBlocker` as skipped
+    (`awakeTrenches`, `src/ai/bot.ts`), so the rule changes no bot decision.
+- **Fortify until healed** (ruled 2026-11-21; schema 253) — the `fortify`
+  command with `untilHealed: true`, offered to a hurt unit that may fortify
+  (`fortifyUntilHealedError`). The unit is quiet while `Unit.dugIn` is
+  `'untilHealed'`, and also wakes when its health is full.
   - The unit sheet: `U` is its key, and the dug-in Fortify button shows
     "+X HP", the fold of `explainUnitHeal`.
 - **Healing** — one labelled list, `explainUnitHeal` (`src/sim/healing.ts`),

@@ -1100,6 +1100,8 @@ describe('never hand-written prose about a number', () => {
     expect(prose).toContain('fortifying adds more each turn it stays');
     // The order of 2026-11-21, said without a number (hard rule 7).
     expect(prose).toContain('can fortify until healed');
+    // Plain fortify wakes for an enemy (the ruling before the beta, 2026-11-21).
+    expect(prose).toContain('asks for orders again when an enemy comes into its sight');
     // The river crossing is a fixed amount since 2026-11-21, and the words say
     // so without a number (hard rule 7).
     expect(prose).toContain('attacks across a river loses a fixed amount of strength');

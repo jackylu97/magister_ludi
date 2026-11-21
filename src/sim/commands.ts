@@ -292,7 +292,7 @@ import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
 import { type UnitTypeId, isCivilian, isCombatant, isUnitTypeId, unitDef } from './unitData';
 import { caravanTypeFor } from './routes';
 import { hasStackingRoom, sleepError } from './units';
-import { recomputeMarchSight, recomputeVisibility } from './visibility';
+import { foreignSoldierInSight, recomputeMarchSight, recomputeVisibility } from './visibility';
 
 // --- command types ----------------------------------------------------------
 
@@ -639,17 +639,22 @@ interface AttackCommand extends PlayerCommand {
  * moving is how a unit stands up, and a second verb for it would be a second way
  * to say the same thing.
  *
- * **`untilHealed: true` is "fortify until healed"** (the ruling of 2026-11-21,
- * `docs/flags.md`). The unit digs in as usual and does not ask for orders while
- * it heals; it starts to ask again when its health is full, when an enemy comes
- * into its sight, or when it is attacked, and it stays dug in when it does
- * (`Unit.untilHealed`). A flag on this command rather than a command of its
- * own, because it is the same order with a different end: the same handler,
- * the same clock (`COMMAND_CLOCKS`), and the same arm of `orderedUnitId`. The
- * key is `true` or absent; any other value is refused.
+ * **A dug-in unit wakes** (the rulings of 2026-11-21, `docs/flags.md`). Plain
+ * or not, it asks for orders again when a foreign soldier comes into its own
+ * sight or when it is attacked, and it stays dug in with its bonus when it
+ * does (`Unit.dugIn`). An order given while an enemy is already in sight is
+ * the player's answer to that threat: the handler marks it
+ * (`Unit.enemyInSight`), so the unit stays quiet until its sight is clear and
+ * an enemy next enters it.
+ *
+ * **`untilHealed: true` is "fortify until healed"**. The unit also wakes when
+ * its health is full. A flag on this command rather than a command of its own,
+ * because it is the same order with one more end: the same handler, the same
+ * clock (`COMMAND_CLOCKS`), and the same arm of `orderedUnitId`. The key is
+ * `true` or absent; any other value is refused.
  *
  * A unit that is already dug in may take the flagged order if it is hurt
- * (`fortifyUntilHealedError`), and a woken one may take either order
+ * (`fortifyUntilHealedError`), and an awake one may take either order
  * (`fortifyError`). Both keep the trench and its bonus.
  */
 interface FortifyCommand extends PlayerCommand {
@@ -3116,14 +3121,19 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
 
   // Zero, not one: the bonus is paid for turns *survived* dug in, and
   // `advanceFortify` raises this at the end of every turn the unit stays put.
-  // A unit already dug in keeps its count, so a woken unit told to fortify
+  // A unit already dug in keeps its count, so an awake unit told to fortify
   // again, or a fortified one told to wait until healed, keeps its bonus.
   if (unit.fortifiedTurns === undefined) unit.fortifiedTurns = 0;
-  // The order's end (`Unit.untilHealed`). Written here and nowhere else in a
-  // command: `applyCommand`'s seam clears it for every other order, and leaves
-  // it alone for this one.
-  if (untilHealed) unit.untilHealed = 'waiting';
-  else delete unit.untilHealed;
+  // What the unit does about orders (`Unit.dugIn`). Written here and nowhere
+  // else in a command: `applyCommand`'s seam clears it for every other order,
+  // and leaves it alone for this one. A plain fortify makes the unit quiet.
+  if (untilHealed) unit.dugIn = 'untilHealed';
+  else delete unit.dugIn;
+  // An enemy in sight as the order is given is the threat the player is
+  // answering, so it raises no alert of its own (`Unit.enemyInSight`). The
+  // unit wakes for an enemy again once its sight has been clear.
+  if (foreignSoldierInSight(state, unit)) unit.enemyInSight = true;
+  else delete unit.enemyInSight;
   // A fortified unit is a line of the cards' counts and hex tests (Dominion
   // batch D7, `slate.ts`), so the write announces if this seat's law reads one.
   if (lawReadsTrenches(state, unit.ownerId)) bumpEconomy(state);
@@ -5139,11 +5149,12 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       // `setAutoExplore` that erased what it just wrote would be a switch
       // that cannot be turned on.
       if (command.type !== 'setAutoExplore') delete unit.autoExplore;
-      // "Fortify until healed" ends the same way (`Unit.untilHealed`): any
-      // other accepted order that names the unit clears it. The one excused
-      // verb is `fortify`, which writes the key itself, for `setAutoExplore`'s
-      // reason: a command must not erase its own work.
-      if (command.type !== 'fortify') delete unit.untilHealed;
+      // A dug-in unit's state (`Unit.dugIn`) ends the same way: any other
+      // accepted order that names the unit clears it, so an awake unit given
+      // an order stops asking and one waiting to heal stops waiting. The one
+      // excused verb is `fortify`, which writes the key itself, for
+      // `setAutoExplore`'s reason: a command must not erase its own work.
+      if (command.type !== 'fortify') delete unit.dugIn;
     }
   }
   // **The world moved** (batch E2). Last, after every mutation this command

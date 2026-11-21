@@ -3347,6 +3347,12 @@ current game pieces. Could we add cathedral rework to the beta checklist".
 - **Game length:** 118 to 150 turns is right. **Age 5 comes after the beta.**
 - **Plain Fortify wakes for an enemy in sight,** as "Fortify until healed"
   does. Owner: the Claude session.
+  - Built (schema 255), not yet play-tested. A fortified unit asks for orders
+    again when an enemy soldier comes into its own sight or attacks it, and
+    keeps its trench and bonus. One alert per threat: Fortify again quiets it,
+    and it stays quiet until its sight is clear and an enemy next enters it.
+    Sleep keeps its older rule. The bots set awake pieces aside, so their play
+    does not change. The reference is `docs/units.md`, "A dug-in unit wakes".
 - **The coastal city rule:** the user is undecided ("50/50"). See the beta
   checklist, `docs/plans/beta-checklist-2026-11-21.md`.
 - **A "cathedral rework"** joins the beta checklist. Its content is not
