@@ -2232,3 +2232,20 @@ approved.
 
 The user will comment on unit abilities (r2-3) and on the empire building
 (r2-6) "below", which the rows above carry.
+
+## The user's last rulings (2026-11-21, in chat)
+
+"lets tone down the night watch slightly, maybe just +1 science per
+population. #2, you can place where you think it makes sense on the tech
+tree, i'm not too concerned with this. qanat is a good point, I'll take a
+look later on. For now, i want the game to be fun over balanced for
+playtesters."
+
+- **The Night Watch:** for ten turns the city gains +1 science for each
+  citizen (from twice its population). Shared with Devotion.
+- **The four new charter technologies** (Smelting, Astronomy,
+  Record-Keeping, Ciphers): the Claude session places them on the chart.
+- **The qanat against the stepwell:** left for playtest.
+- **The name of change 71:** the user did not choose; The Barber-Surgeons,
+  the recommended name, stands.
+- **A principle for the first playtest build:** fun before balance.

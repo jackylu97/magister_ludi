@@ -1933,3 +1933,35 @@ theme, religious builds can break the authority rules, and maybe there could
 be some interaction with spare authority?" Q3 "great" (Devotion may open
 unique improvements). Q4 "see above" (05 approved, 06 narrowed). Q5 "great"
 (the pass may change shared cards on other decks' sheets).
+
+## The user's rulings on round two (2026-11-21, comments on the page)
+
+The user: "ok commented on devotion." A row with no comment is approved. In
+chat on the same day: "For now, i want the game to be fun over balanced for
+playtesters."
+
+| # | Card | The user's words | Result |
+|---|---|---|---|
+| 62 | The Megaliths stays this deck's own card, in two tiers | "y"; on the question: "sg" | Approved. |
+| 63 | Rite lengths add | "y"; on r2-3: "lgtm" | Approved. |
+| 64 | The Processions | "cut" | Cut. |
+| 65 | The Bell Towers | "make this a charter" | A charter. |
+| 66 | The Call to Prayer | "great, make this a charter, because its hard to slot" | A charter. |
+| 67 | The Hallowed Ground | "maybe rework: improved tiles gain +1 faith." | Rework: a rite under which the town's improved hexes gain +1 faith. |
+| 67, on rites as a whole | | "my thinking with rites: we should add a rule that rites can't be activated once one has already started (this might already be in). Rite should ideally give a bonus throughout the rite so it doesn't have anti-synergy with longer rites, and rites that have been started should count as having been started to avoid anti-synergy with active rite abilities." | **Three rules for every rite.** (1) A town that keeps a rite cannot start another. (2) A rite pays through its whole length, not once at its start, so that a longer rite is always better. (3) A rite that is kept counts as started for every card that reads "starting a rite", so that longer rites and such cards do not work against each other. |
+| 68 | The Vigil of Arms | "Rework: All units within three hexes of this town gain +4 strength. They keep this bonus while the rite is active." | The user's line. |
+| 69 | The Consecration Feast | "Sure. should apply to purchased buildings too." | Approved; it pays for a faith building that is bought too. |
+| 70 | The Offered Stones | "Ok sure, this will be first on my list of cards to cut after playtesting though if we need to cut cards" | Approved. First to cut after playtest. |
+| 71 | The Poor Tables | "no cap." | +1 happiness for every 20 faith a turn, with no cap. |
+| 72 | The Field Mass | "great" | Approved. |
+| 73 | The Blessed Forges | "tier 1 is fine" | Tier I, kept. The same as the Scientific pass. |
+| 74 | The House of Worship | "what does the 'whatever beliefs your religion holds' line mean? I like this doctrine, great card for faith building builds." | Approved. **A question to answer,** and the phrase to make plain. |
+| 75 | The Two Swords | "sure", "no cap" | +1 happiness for every two points of spare authority, with no cap. |
+| 76 | The Commander of the Faithful | "no cap" | +3 faith and +3 culture for each point of spare authority, with no cap. |
+| 77 | Commission: The Anointing | "Sure" | Approved. |
+| 78 | The Caliphate | "ok i like this change"; on the question: "y" | Devout towns cost 1 authority. |
+| 79 | Faith discounts as "faith buys more" | "great" | Approved. |
+| 80 | Rarities | "great" | Approved. |
+
+Questions: The Megaliths "sg"; The Offering Chests at Tier II as a rare "y";
+The Rites Commonwealth as the only rare of Tier I "y"; The Caliphate "y".
