@@ -321,3 +321,34 @@ dock's position.
   tooltip and `aria-label`) and the buttons' side padding is 10px. The cap is
   the gap less 32px on each side. Measured at 1280x800 and 1280x720: 9px of
   paper round every part, and 75px or more to each rail.
+
+## Idea e, "the yields are the mark" (2026-11-21)
+
+This section is the current state of the marks. It replaces the inset
+outlines of "The final design" above. The shade, the rim, the mode and the
+dock stay.
+
+The user's words, on eight mocks: "lets do e. i think c may be trying to do
+too much, i want this to feel unintrusive."
+
+- **A worked hex:** its yield figures sit on a small parchment plaque (paper,
+  a thin ink edge, a soft shadow, slightly rounded corners), sized to them.
+- **A pinned hex:** the same plaque with a pin head in the seat's colour on
+  its top edge (a dark rim and a small highlight, so that a pale seat reads).
+- **A free hex:** faint yields and no plaque, and only in the Manage citizens
+  mode. With the mode off only worked hexes show their plaques.
+- **The pointer on a city on the main map:** the same plaques, with no shade.
+  If the player has the yields on, the plaques join them.
+- **How it is drawn.** `addPlaque` in `src/render3d/lens3d.ts` adds one flat
+  quad behind the figures, in the yields' own collector. Sizes are rounded up
+  to `plaque.step`, and each size has one small canvas texture
+  (`plaqueMaterial` in `citizenMarks.ts`), kept until the layer is disposed.
+  The pin heads are one more texture for each seat colour. The figures are
+  today's atlas glyphs; dark ink glyphs were not tried.
+- **Tunables:** `territory.citizens.plaque` in `data/view3d.json`.
+- **The dock's keys** are a small plaque (Worked) and a plaque with the pin
+  head (Pinned).
+- **Left behind:** `citizenOutlines` and its tunables. `overlays.ts` still
+  imports it and `controls.ts` hands it no hexes. Another developer had
+  `overlays.ts` open, so it was not edited. Delete both together later.
+- **Tests** were updated to agree and were not run.

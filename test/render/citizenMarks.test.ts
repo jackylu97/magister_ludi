@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Quaternion } from 'three';
-import { citizenCells, citizenGroundKinds, citizenOutlines, CitizenMarks, GROUND_KIND } from '../../src/render3d/citizenMarks';
+import { citizenCells, citizenGroundKinds, citizenOutlines, CitizenMarks, GROUND_KIND, pinHeadMaterial, plaqueMargin, plaqueMaterial } from '../../src/render3d/citizenMarks';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { createPaintedLightField } from '../../src/render3d/paintedFogLook';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -64,36 +64,42 @@ describe('citizen marks', () => {
     expect(yieldTiles.some(t => fog[id(t.col,t.row)] === HIDDEN)).toBe(false);
   });
 
-  it('draws the outlines only in the mode, reuses them, and rebuilds for a pin', () => {
+  it('draws the mode\'s wash only on the toon board, and nothing with the mode off', () => {
     const { state, city, fog } = fixture(), marks = new CitizenMarks();
     const materials = new MaterialLibrary(3, 0x222222), face = new Quaternion();
     const update = (manage: boolean, groundShaded: boolean) =>
       marks.update(state, city, citizenCells(state, city, fog), face, materials, manage, groundShaded);
     try {
-      // A city screen with the mode off: the ground is the board's job, and there is no mark.
+      // The plaques are the lens layer's, with the yields. On the painted board the
+      // mode's marks here are only the other towns' names, which need a canvas.
       update(false, true);
       expect(marks.group.children).toHaveLength(0);
       update(true, true);
-      const first = marks.group.children[0], shaded = marks.group.children.length;
-      // One worked and one pinned hex: two strips for the outer rings, two for the pinned hex's second ring.
-      expect(shaded).toBe(4);
-      update(true, true);
-      expect(marks.group.children[0]).toBe(first);
+      expect(marks.group.children).toHaveLength(0);
       // The frozen toon board has no painted ground, so the marks add a wash decal there.
       update(true, false);
-      expect(marks.group.children.length).toBeGreaterThan(shaded);
+      const first = marks.group.children[0];
+      expect(marks.group.children.length).toBeGreaterThan(0);
+      update(true, false);
+      expect(marks.group.children[0]).toBe(first);
       city.lockedTiles = [];
-      update(true, true);
+      update(true, false);
       expect(marks.group.children[0]).not.toBe(first);
-      expect(marks.group.children).toHaveLength(2);
-      // The lens's `citizens` field: no city, a city open, and the mode are three pictures.
+      // The lens's `citizens` field: no city, a city open, the mode, and the pointer on a city are four pictures.
       const open = { ...NO_LENS, citizens: { cityId: 1, manage: false } };
       expect(sameLens(open, NO_LENS)).toBe(false);
       expect(sameLens(open, { ...NO_LENS, citizens: { cityId: 1, manage: true } })).toBe(false);
+      expect(sameLens(open, { ...NO_LENS, citizens: { cityId: 1, manage: false, hover: 'only' } })).toBe(false);
       expect(sameLens(open, { ...NO_LENS, citizens: { cityId: 1, manage: false } })).toBe(true);
       marks.clear();
       expect(marks.group.children).toHaveLength(0);
     } finally { marks.dispose(); materials.dispose(); }
+  });
+
+  it('has no plaque and no pin head where there is no canvas, and a plaque quad wider than its paper', () => {
+    expect(plaqueMaterial(0.5, 0.4)).toBeNull();
+    expect(pinHeadMaterial(0xb5301f)).toBeNull();
+    expect(plaqueMargin()).toBeGreaterThan(VIEW3D.territory.citizens.plaque.shadow);
   });
 
   it('outlines a worked hex once and a pinned hex twice, a little inside the hex', () => {

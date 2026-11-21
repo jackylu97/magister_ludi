@@ -7047,12 +7047,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: currentColor;
 }
 
-/* The two keys of the Manage citizens mode (`renderCitizenKeys`): a small hex
-   with one inset outline, and one with two, each with its word in the
+/* The two keys of the Manage citizens mode (`renderCitizenKeys`): a small
+   plaque, and a plaque with the pin head, each with its word in the
    screen's small-caps label face. They stand at the left end of the row,
    set off by the same thin rule as Leave city, while the mode is on. */
 .city-citizen-keys {
-  --citizen-ground: #a9bb62;
   display: inline-flex;
   align-items: center;
   gap: 12px;
@@ -7068,9 +7067,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .citizen-key-mark { display: inline-flex; }
-.citizen-key-ground { fill: var(--citizen-ground); stroke: var(--ink); stroke-width: 1; stroke-linejoin: round; }
-.citizen-key-backing { fill: none; stroke: var(--ink); stroke-opacity: 0.45; stroke-width: 3; stroke-linejoin: round; }
-.citizen-key-line { fill: none; stroke: var(--citizen-outline); stroke-width: 1.7; stroke-linejoin: round; }
+.citizen-key-plaque { fill: var(--parchment); stroke: var(--ink); stroke-width: 1; filter: drop-shadow(0 1px 1px rgba(29, 26, 32, 0.35)); }
+.citizen-key-disc.is-food { fill: var(--yield-food, #5d9a3c); }
+.citizen-key-disc.is-work { fill: var(--yield-production, #b9762f); }
+.citizen-key-pin { fill: var(--citizen-seat); stroke: var(--ink); stroke-width: 1.1; }
+.citizen-key-shine { fill: var(--parchment); fill-opacity: 0.65; }
 
 .citizen-key-word {
   font-family: var(--face-name);

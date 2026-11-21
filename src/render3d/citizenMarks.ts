@@ -24,29 +24,35 @@ import type { MaterialLibrary } from './toon';
  * management screen, option 2 when citizen management is active. The inset
  * outlines replace the mouseover effect when you mouse over a city".
  *
- * So there are three situations:
+ * Then, on eight mocks of other ideas, the user chose idea e, "the yields are
+ * the mark" (2026-11-21): "lets do e. i think c may be trying to do too much,
+ * i want this to feel unintrusive." So the inset outlines are gone from the
+ * city screen and from the pointer on a city, and one mark is used in all
+ * three situations:
  *
- *   1. **The pointer rests on a city on the main map.** Each worked hex has
- *      one outline a little smaller than the hex. A pinned hex has two. No
- *      shade and no tokens. `overlays.ts` draws these with `citizenOutlines`.
- *   2. **A city screen is open and Manage citizens is off.** The ground the
- *      city does not work is set back a little, in the painted board's own
- *      materials, and each worked hex keeps the sun and has a warm rim inside
- *      its edge (`SET_BACK_PAINT` in `paintedFogLook.ts`; this file only says
- *      which hex is which, `citizenGroundKinds`). The yields of the city's
- *      hexes show. No outline, and a click does not pin. A pinned hex looks like a worked hex. The user
- *      removed the tokens that an earlier round put here.
- *   3. **Manage citizens is on.** The outlines of 1. The ground is set back
- *      fully and the rim is fainter. Another town's hex has that town's name
- *      in the city banner's face.
+ *   - **A worked hex**: its yield figures sit on a small parchment plaque
+ *     (`plaqueMaterial`).
+ *   - **A pinned hex**: the same plaque with a pin head in the seat's colour
+ *     at its top edge (`pinHeadMaterial`).
+ *   - **A free hex**: its yields print faint with no plaque, and only in the
+ *     Manage citizens mode.
+ * The lens layer draws all three with the yields (`addYieldGlyphs` in
+ * `lens3d.ts`), because the plaque is sized to the figures on it.
  *
- * **The outline** is the movement range's ink (`frontierRibbon`): joined at
- * the corners, in a neutral parchment colour over a faint dark backing. Its
- * corners are rounded so that it reads as drawn and not as a selection box.
- * It is inset so that a gap of ground shows between it and the territory
- * border. It is level, at the mean height of the ground under it: a ring laid
- * over a hill's slopes came out bent, and a ring at the height of the hex's
- * centre stood above the ground and looked shifted up the screen.
+ * The three situations:
+ *   1. **The pointer rests on a city on the main map.** The plaques of its
+ *      worked hexes. No shade.
+ *   2. **A city screen is open and Manage citizens is off.** The plaques, and
+ *      the ground the city does not work set back a little, in the painted
+ *      board's own materials, with a warm rim on each worked hex
+ *      (`SET_BACK_PAINT` in `paintedFogLook.ts`; this file only says which
+ *      hex is which, `citizenGroundKinds`). A click does not pin.
+ *   3. **Manage citizens is on.** The plaques, the faint yields of the free
+ *      hexes, and the ground set back fully. Another town's hex has that
+ *      town's name in the city banner's face. A click pins or unpins.
+ *
+ * `citizenOutlines` is what the outlines were. `overlays.ts` still imports it
+ * and is now handed no hexes; it can be deleted with that call.
  *
  * The frozen toon board has no painted materials. There situation 3 draws one
  * plain wash decal for each hex (`groundShaded` false).
@@ -153,6 +159,60 @@ export function citizenOutlines(map: GameMap, worked: readonly Cell[], pinned: r
   return strips;
 }
 
+// --- the plaque and the pin head ----------------------------------------------
+
+const PLAQUE = ART.plaque;
+
+/**
+ * **The plaque**: the small piece of the UI's paper that a worked hex's yield
+ * figures sit on (the user, 2026-11-21, on idea e, "the yields are the mark":
+ * "lets do e ... i want this to feel unintrusive"). It is paper with a thin
+ * ink edge, slightly rounded corners and a soft shadow, `width` by `depth` in
+ * board units. It lies flat on the hex under the figures, as they do.
+ *
+ * One texture for each size. The sizes are rounded up to `plaque.step`, so a
+ * city uses a handful of them. Null where there is no canvas (a test).
+ */
+export function plaqueMaterial(width: number, depth: number): MeshBasicMaterial | null {
+  const px = PLAQUE.pixelsPerUnit, margin = Math.ceil(PLAQUE.shadow * px * 1.6);
+  const w = Math.round(width * px), h = Math.round(depth * px);
+  const made = canvasStamp(w + margin * 2, h + margin * 2, (ctx) => {
+    const edge = PLAQUE.edge * px, radius = PLAQUE.radius * px;
+    ctx.beginPath(); ctx.roundRect(margin, margin, w, h, radius);
+    ctx.shadowColor = css(ART.ink); ctx.shadowBlur = PLAQUE.shadow * px; ctx.shadowOffsetY = PLAQUE.shadow * px * 0.35;
+    ctx.globalAlpha = PLAQUE.shadowOpacity; ctx.fillStyle = css(ART.ink); ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.shadowOffsetY = 0; ctx.globalAlpha = 1;
+    ctx.fillStyle = css(ART.paper); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(margin + edge / 2, margin + edge / 2, w - edge, h - edge, Math.max(0, radius - edge / 2));
+    ctx.globalAlpha = PLAQUE.edgeOpacity; ctx.lineWidth = edge; ctx.strokeStyle = css(ART.ink); ctx.stroke();
+  });
+  return made ? made.material : null;
+}
+
+/** How much wider and deeper than the plaque its quad is: the room its shadow takes on each side, in board units. */
+export function plaqueMargin(): number {
+  return Math.ceil(PLAQUE.shadow * PLAQUE.pixelsPerUnit * 1.6) / PLAQUE.pixelsPerUnit;
+}
+
+/**
+ * **The pin head** on a pinned hex's plaque: a round head in the seat's
+ * colour, with a dark rim and a small highlight, so that it reads on a pale
+ * seat colour and on pale paper. Null where there is no canvas.
+ */
+export function pinHeadMaterial(seat: number): MeshBasicMaterial | null {
+  const made = canvasStamp(64, 64, (ctx) => {
+    const r = 32 * (1 - PLAQUE.pinRim) - 3;
+    ctx.beginPath(); ctx.arc(32, 32, r, 0, Math.PI * 2);
+    ctx.shadowColor = css(ART.ink); ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
+    ctx.fillStyle = css(seat); ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.shadowOffsetY = 0;
+    ctx.lineWidth = 32 * PLAQUE.pinRim; ctx.strokeStyle = css(ART.ink); ctx.stroke();
+    ctx.beginPath(); ctx.arc(32 - r * 0.32, 32 - r * 0.34, r * PLAQUE.pinShine, 0, Math.PI * 2);
+    ctx.globalAlpha = 0.6; ctx.fillStyle = css(ART.paper); ctx.fill();
+  });
+  return made ? made.material : null;
+}
+
 // --- the names -------------------------------------------------
 
 const css = (color: number): string => '#' + color.toString(16).padStart(6, '0');
@@ -199,8 +259,9 @@ export class CitizenMarks {
   private keep<T extends BufferGeometry | Material | Texture>(thing: T): T { this.owned.push(thing); return thing; }
 
   /**
-   * The marks of the Manage citizens mode: the outlines, the names, and (on
-   * the toon board) the fallback wash. With the mode off this draws nothing.
+   * The marks of the Manage citizens mode that are not yields: the other
+   * towns' names, and (on the toon board) the fallback wash. With the mode off
+   * this draws nothing. The plaques are the lens layer's, with the yields.
    *
    * `groundShaded` says that the painted board sets the ground back itself
    * (`citizenGroundKinds`). When it is false the mode draws a wash decal on
@@ -224,15 +285,9 @@ export class CitizenMarks {
     const wash = groundShaded ? null : this.keep(hexDecal(VIEW3D.board.hexRadius));
     const stamps = new Map<string, ReturnType<typeof canvasStamp>>();
 
-    const worked: Cell[] = [], pinned: Cell[] = [];
     for (const [cell, tile] of map.tiles.entries()) {
       const kind = cells.kinds.get(cell) ?? 'unavailable';
-      if (kind === 'centre') continue;
-      if (kind === 'worked' || kind === 'pinned') {
-        worked.push(tile);
-        if (kind === 'pinned') pinned.push(tile);
-        continue;
-      }
+      if (kind === 'centre' || kind === 'worked' || kind === 'pinned') continue;
       const c = cellCenter(tile.col, tile.row);
       position.set(c.x, tileTopY(tile) + VIEW3D.overlay.lift, c.z);
       if (wash) {
@@ -251,9 +306,6 @@ export class CitizenMarks {
       if (!label) continue;
       scale.set(ART.nameHeight * label.aspect, ART.nameHeight, 1);
       collector.add(paper, [], matrix.compose(position, facing, scale), { material: label.material, order: RENDER_ORDER.tileIcon });
-    }
-    for (const strip of citizenOutlines(map, worked, pinned)) {
-      collector.add(this.keep(strip.geometry), [strip.color], matrix.identity(), { onTop: true, opacity: strip.opacity, order: strip.order });
     }
     collector.flush(this.group, materials, false);
   }

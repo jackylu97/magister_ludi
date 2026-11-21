@@ -133,7 +133,17 @@ export interface LensView {
    * `manage` true (the Manage citizens mode) it sets that ground back fully
    * and draws the outlines.
    */
-  citizens?: { cityId: number; manage: boolean };
+  citizens?: {
+    cityId: number;
+    manage: boolean;
+    /**
+     * Set when no city screen is open and the pointer rests on this city: the
+     * board shows the plaques of its worked hexes and no shade. 'only' shows
+     * just those hexes' yields; 'over' is for a player who has the yields on,
+     * and adds the plaques to what already shows.
+     */
+    hover?: 'only' | 'over';
+  };
   mode: LensMode;
   /**
    * Restrict the mode's wash to these cells, or `null` for the whole map.

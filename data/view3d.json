@@ -431,6 +431,11 @@
       "outlineColor": "sand", "outlineInset": 0.27, "outlineRound": 0.2, "outlineLift": 0.012,
       "outlineWidth": 0.04, "outlineOpacity": 0.95, "doubleGap": 0.09,
       "outlineBacking": "walnutInk", "outlineBackingExtra": 0.035, "outlineBackingOpacity": 0.38,
+      "plaque": {
+        "padX": 0.07, "padZ": 0.05, "step": 0.04, "pixelsPerUnit": 300,
+        "radius": 0.05, "edge": 0.012, "edgeOpacity": 0.7, "shadow": 0.035, "shadowOpacity": 0.45,
+        "pinSize": 0.21, "pinRim": 0.14, "pinShine": 0.3
+      },
       "yieldOffset": 0, "freeYieldOpacity": 0.72, "nameHeight": 0.27
     }
   },

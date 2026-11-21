@@ -913,7 +913,10 @@ describe('what the panel says at the foot of a list', () => {
     expect(text).not.toContain('A lit hex is a tile');
     // What the marks mean is two keys in the dock, each one word.
     const keys = fn('cityPanel.ts', 'renderCitizenKeys');
-    expect(keys).toContain("['Worked', [0.7]], ['Pinned', [0.74, 0.44]]");
+    expect(keys).toContain("[['Worked', false], ['Pinned', true]]");
+    // Each key is the board's own mark: the plaque, and the plaque with the pin head (idea e).
+    expect(keys).toContain('citizen-key-plaque');
+    expect(keys).toContain('citizen-key-pin');
   });
 
   it('says what a gold price is, and leaves the treasury to the price columns’ heads', () => {

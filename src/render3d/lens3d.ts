@@ -112,7 +112,7 @@
  * both — so it stays four buckets however large the map is.
  */
 
-import { Color, Group, Matrix4, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
+import { Color, Group, Matrix4, MeshBasicMaterial, PlaneGeometry, Quaternion, Vector3 } from 'three';
 
 import {
   cityAt,
@@ -132,7 +132,7 @@ import { type TileIcons, YIELD_KEYS } from './badges3d';
 import { type BoardTileYields, type TileYieldSample, sameTileYieldSamples, seenTileYields } from './boardTileYields';
 export { seenTileYields } from './boardTileYields';
 import { playerColor } from './cities3d';
-import { citizenCells, citizenGroundKinds, CitizenMarks } from './citizenMarks';
+import { citizenCells, citizenGroundKinds, CitizenMarks, pinHeadMaterial, plaqueMargin, plaqueMaterial } from './citizenMarks';
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
@@ -216,7 +216,7 @@ function sameCells(
 /** Are two lens views asking for the same picture? */
 export function sameLens(a: LensView, b: LensView): boolean {
   if (a.mode !== b.mode || a.playerId !== b.playerId) return false;
-  if (a.citizens?.cityId !== b.citizens?.cityId || a.citizens?.manage !== b.citizens?.manage) return false;
+  if (a.citizens?.cityId !== b.citizens?.cityId || a.citizens?.manage !== b.citizens?.manage || a.citizens?.hover !== b.citizens?.hover) return false;
   if (a.yields !== b.yields || a.resources !== b.resources) return false;
   // A restriction only means anything while the half it scopes is up; comparing
   // it when that half is down would rebuild the layer for a change nobody can
@@ -245,6 +245,9 @@ export class LensLayer {
   }
   readonly group = new Group();
   private citizenMarks: CitizenMarks | null = null;
+  /** The plaques' and pin heads' textures by size and by seat colour (`addPlaque`), and the one quad they are drawn on. */
+  private readonly plaques = new Map<string, MeshBasicMaterial | null>();
+  private plaqueQuad: PlaneGeometry | null = null;
   /**
    * While a city screen is open: one number for each cell, for the painted
    * board's set-back ground (`PaintedBoard.applySetBack`). Null otherwise.
@@ -285,9 +288,11 @@ export class LensLayer {
     this.lastGlyphs = undefined;
     disposeInstancedGroup(this.group);
     this.drawCallCount = 0;
-    const city = lens.citizens && state?.cities.find(town => town.id === lens.citizens!.cityId && town.ownerId === lens.playerId);
+    // A city screen is the local seat's own city. The pointer may rest on anybody's.
+    const hover = lens.citizens?.hover;
+    const city = lens.citizens && state?.cities.find(town => town.id === lens.citizens!.cityId && (hover !== undefined || town.ownerId === lens.playerId));
     const citizens = city && state ? citizenCells(state, city, levels) : null;
-    if (citizens && city && state) {
+    if (citizens && city && state && hover === undefined) {
       this.citizenMarks ??= new CitizenMarks();
       this.citizenMarks.update(state, city, citizens, faceCamera, materials, lens.citizens!.manage, groundShaded);
       this.group.add(this.citizenMarks.group);
@@ -363,7 +368,11 @@ export class LensLayer {
     }
     if (lens.yields && icons) {
       this.addYieldGlyphs(
-        citizens?.yieldTiles ?? resolveTiles(map, lens.yieldCells, levels),
+        // A city's own hexes replace the general set, but not under the pointer
+        // when the player has the yields on: there the plaques join what shows.
+        citizens && hover !== 'over'
+          ? citizens.yieldTiles.filter((tile) => lens.citizens!.manage || citizens.kinds.get(tileIndex(map, tile.col, tile.row)) !== 'free')
+          : resolveTiles(map, lens.yieldCells, levels),
         collector,
         geometry,
         icons,
@@ -374,7 +383,7 @@ export class LensLayer {
         // cached per owning city inside, because building one is a fold.
         state,
         lens.playerId,
-        citizens?.kinds,
+        citizens && city ? { kinds: citizens.kinds, seat: playerColor(state, city.ownerId), faintFree: hover === undefined } : undefined,
       );
     }
 
@@ -417,8 +426,14 @@ export class LensLayer {
     icons: TileIcons,
     state: GameState,
     playerId: number,
-    kinds?: ReturnType<typeof citizenCells>['kinds'],
+    /**
+     * While a city is looked at (its screen is open, or the pointer rests on
+     * it): which of its hexes are worked and pinned, so that their figures get
+     * a plaque and a pin head, and the seat's colour for the pin.
+     */
+    marks?: { kinds: ReturnType<typeof citizenCells>['kinds']; seat: number; faintFree: boolean },
   ): void {
+    const kinds = marks?.kinds;
     const identity = new Quaternion();
     const glyph = new Vector3(LENS.glyphSize, 1, LENS.glyphSize);
     const numeral = new Vector3(LENS.numeralSize, 1, LENS.numeralSize);
@@ -436,12 +451,17 @@ export class LensLayer {
     }
     for (const [index, tile] of tiles.entries()) {
       const value = values[index]!;
-      const material = kinds?.get(tileIndex(state.map, tile.col, tile.row)) === 'free' ? this.faintGlyphs! : icons.material;
+      const kind = kinds?.get(tileIndex(state.map, tile.col, tile.row));
+      const material = kind === 'free' && marks!.faintFree ? this.faintGlyphs! : icons.material;
       const rows = YIELD_KEYS.filter((key) => value[key] > 0);
       if (rows.length === 0) continue;
 
       const centre = cellCenter(tile.col, tile.row);
       const y = tileTopY(tile) + OVERLAY.lift + LENS.glyphLift;
+      if (kind === 'worked' || kind === 'pinned') {
+        this.addPlaque(collector, centre.x, y, centre.z + VIEW3D.territory.citizens.yieldOffset,
+          rows.map((key) => value[key]), kind === 'pinned' ? marks!.seat : null);
+      }
       rows.forEach((key, rowIndex) => {
         const z = centre.z + (kinds ? VIEW3D.territory.citizens.yieldOffset : 0) + (rowIndex - (rows.length - 1) / 2) * LENS.rowSpacing;
         const row = yieldRowLayout(value[key]);
@@ -469,6 +489,43 @@ export class LensLayer {
         }
       });
     }
+  }
+
+  /**
+   * The plaque under a worked hex's yield figures, and the pin head of a pinned
+   * hex (idea e, "the yields are the mark"; see `citizenMarks.ts`).
+   *
+   * The plaque is one more flat quad behind the figures, in the same collector,
+   * sized to them: the widest row plus `plaque.padX` each side, the rows plus
+   * `plaque.padZ`. Sizes are rounded up to `plaque.step`, and each size has one
+   * small texture, kept until the layer is disposed. So a city adds one draw
+   * call for each size its hexes need (a handful) and one for the pin heads.
+   */
+  private addPlaque(collector: InstanceCollector, x: number, y: number, z: number, amounts: readonly number[], pinSeat: number | null): void {
+    const spec = VIEW3D.territory.citizens.plaque, disc = yieldDiscWidth();
+    const rowWidth = (amount: number): number => {
+      const count = Math.max(0, Math.round(amount));
+      return count <= LENS.yieldStackMax
+        ? disc + (count - 1) * disc * LENS.yieldStackStep
+        : disc + LENS.numeralGap + digitsOf(count).length * LENS.numeralSize;
+    };
+    const snap = (size: number): number => Math.ceil(size / spec.step - 1e-6) * spec.step;
+    const width = snap(Math.max(...amounts.map(rowWidth)) + spec.padX * 2);
+    const depth = snap((amounts.length - 1) * LENS.rowSpacing + disc + spec.padZ * 2);
+    const key = `${width.toFixed(3)}x${depth.toFixed(3)}`;
+    if (!this.plaques.has(key)) this.plaques.set(key, plaqueMaterial(width, depth));
+    const plaque = this.plaques.get(key);
+    if (!plaque) return;
+    this.plaqueQuad ??= new PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    const margin = plaqueMargin() * 2, flat = new Quaternion();
+    collector.add(this.plaqueQuad, [], new Matrix4().compose(new Vector3(x, y, z), flat, new Vector3(width + margin, 1, depth + margin)),
+      { material: plaque, order: RENDER_ORDER.tileIcon - 0.5 });
+    if (pinSeat === null) return;
+    if (!this.plaques.has(`pin:${pinSeat}`)) this.plaques.set(`pin:${pinSeat}`, pinHeadMaterial(pinSeat));
+    const pin = this.plaques.get(`pin:${pinSeat}`);
+    // The pin head sits on the plaque's top edge, as the camera sees it.
+    if (pin) collector.add(this.plaqueQuad, [], new Matrix4().compose(new Vector3(x, y, z - depth / 2), flat, new Vector3(spec.pinSize, 1, spec.pinSize)),
+      { material: pin, order: RENDER_ORDER.tileIcon + 0.5 });
   }
 
   /**
@@ -1035,6 +1092,9 @@ export class LensLayer {
   dispose(): void {
     this.citizenMarks?.dispose();
     this.faintGlyphs?.dispose();
+    for (const material of this.plaques.values()) { material?.map?.dispose(); material?.dispose(); }
+    this.plaques.clear();
+    this.plaqueQuad?.dispose();
     disposeInstancedGroup(this.group);
   }
 }
