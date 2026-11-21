@@ -114,8 +114,14 @@ export function adviceShapes(): Readonly<Shapes> { return made(); }
 
 const still = new Quaternion(), one = new Vector3(1, 1, 1);
 const at = (x: number, y: number, z: number): Matrix4 => new Matrix4().compose(new Vector3(x, y, z), still, one);
-/** Just under the yield figures and the plaques, over the washes. */
-const ORDER = RENDER_ORDER.onTop + 0.4;
+/**
+ * Over the washes, the movement range, and the hover and selection rings (all at
+ * `RENDER_ORDER.onTop`), and just under the yield figures and the plaques. The
+ * ticks also sit outside the band those rings take (`overlay.ringOuter` less
+ * `ringWidth`, to `ringOuter`): a tick drawn over a pale ring in a pale colour
+ * was on top and still could not be seen. So `tickInset` keeps them beyond it.
+ */
+const ORDER = RENDER_ORDER.onTop + 0.6;
 
 /** Which ticks a hex wears: `best` is heavier, `pale` is the quiet colour of a second choice or a lookout. */
 export interface TickStyle { best?: boolean; pale?: boolean; color?: number }

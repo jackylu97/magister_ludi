@@ -23301,27 +23301,44 @@ body.compendium-page {
   align-self: flex-end;
 }
 
-/* The advice panel (`src/ui/advicePanel.ts`): one line at the bottom centre,
-   shown while the pointer rests on a hex the board recommends. It is the city
-   screen's bottom bar in small (`.city-buy-dock`): paper, an ink line on top, a
-   line of paper and a gilt line above it. The pointer passes through it, as it
-   does through the tile readout, because hovering the board is what shows it.
-   Its width stops short of the tile readout on the left (14 + 252 px) and of
-   the lens button and End Turn on the right (382 px), with 12 px of clear
-   ground on each side, so it covers neither at 1280 px or wider. */
-.advice-panel {
+/* The advice panel (`src/ui/advicePanel.ts`): at the bottom centre, shown while
+   the pointer rests on a hex the board recommends. It is the city screen's
+   bottom bar in small (`.city-buy-dock`): paper, an ink line on top, a line of
+   paper and a gilt line above it. The pointer passes through it, as it does
+   through the tile readout, because hovering the board is what shows it.
+
+   The dock is the free width at the foot of the screen: from the tile readout
+   (14 + 252 px, and 12 px of clear ground) to the lens button and End Turn
+   (382 px, and 12 px). The panel is as wide as its words. A short line is
+   centred on the screen: the dock's free width is 116 px longer on the right
+   side of the screen's centre than on the left, and the spacer before the panel
+   takes that up. The spacer gives way first, so a longer line grows to the
+   dock's whole width. A line that still does not fit wraps, and the panel grows
+   upward, because the dock holds it by its foot. No reason is ever cut. */
+.advice-dock {
   position: fixed;
-  left: 50%;
+  left: 278px;
+  right: 394px;
   bottom: 14px;
-  transform: translateX(-50%);
   z-index: 10;
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  box-sizing: border-box;
-  max-width: calc(100vw - 2 * 394px);
-  padding: 7px 16px 8px;
+  align-items: flex-end;
+  justify-content: center;
   pointer-events: none;
+}
+.advice-dock::before {
+  content: '';
+  flex: 0 1000 116px;
+}
+.advice-panel {
+  flex: 0 1 auto;
+  min-width: 0;
+  /* One run of text, so a long line breaks between words and not between its parts. */
+  display: block;
+  text-align: center;
+  text-wrap: balance;
+  box-sizing: border-box;
+  padding: 7px 16px 8px;
   border: 1px solid var(--edge);
   border-top: 1px solid var(--ink);
   border-radius: var(--paper-radius);
@@ -23332,17 +23349,17 @@ body.compendium-page {
     var(--paper-shadow);
   font-family: var(--face-ui);
   font-size: var(--size-label);
-  line-height: 1.35;
+  line-height: 1.4;
   color: var(--ink);
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 .advice-panel[hidden] { display: none; }
-.advice-panel .advice-lead { font-weight: 600; flex: none; }
-.advice-panel .advice-reasons { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.advice-panel .advice-figures { display: inline-flex; gap: 8px; flex: none; }
+.advice-panel > * + * { margin-left: 8px; }
+.advice-panel .advice-lead { font-weight: 600; }
+.advice-panel .advice-figures { display: inline-flex; gap: 8px; vertical-align: baseline; white-space: nowrap; }
 .advice-panel .tile-yield.is-loss,
 .advice-panel .advice-warning { color: var(--rubric); }
-.advice-panel .advice-warning { font-weight: 600; flex: none; }
+.advice-panel .advice-warning { font-weight: 600; }
 
 /* The settler lens's legend (`mountLensLegend` in `src/ui/advicePanel.ts`): a
    small card above the lens button and End Turn, shown while that lens is up. */
@@ -23379,4 +23396,4 @@ body.compendium-page {
 .lens-legend-swatch.is-none { background: #8d8f86; }
 /* The city screen has the bottom of the screen to itself. */
 body:has(.city-mode:not([hidden])) .lens-legend,
-body:has(.city-mode:not([hidden])) .advice-panel { display: none; }
+body:has(.city-mode:not([hidden])) .advice-dock { display: none; }

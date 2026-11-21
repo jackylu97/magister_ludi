@@ -135,7 +135,7 @@ import { type TileIcons, YIELD_KEYS } from './badges3d';
 import { type BoardTileYields, type TileYieldSample, sameTileYieldSamples, seenTileYields } from './boardTileYields';
 export { seenTileYields } from './boardTileYields';
 import { playerColor } from './cities3d';
-import { citizenCells, citizenGroundKinds, CitizenMarks, pinHeadMaterial, plaqueMargin, plaqueMaterial } from './citizenMarks';
+import { type PlaqueBack, citizenCells, citizenGroundKinds, CitizenMarks, pinHeadMaterial, plaqueBackMaterial, plaqueMargin } from './citizenMarks';
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
@@ -490,6 +490,7 @@ export class LensLayer {
       this.faintGlyphs.transparent = true;
       this.faintGlyphs.opacity = VIEW3D.territory.citizens.freeYieldOpacity;
     }
+    const style = kinds ? plaqueStyle() : null;
     for (const [index, tile] of tiles.entries()) {
       const value = values[index]!;
       const kind = kinds?.get(tileIndex(state.map, tile.col, tile.row));
@@ -499,73 +500,63 @@ export class LensLayer {
 
       const centre = cellCenter(tile.col, tile.row);
       const y = tileTopY(tile) + OVERLAY.lift + LENS.glyphLift;
-      if (kind === 'worked' || kind === 'pinned') {
-        this.addPlaque(collector, centre.x, y, centre.z + VIEW3D.territory.citizens.yieldOffset,
-          rows.map((key) => value[key]), kind === 'pinned' ? marks!.seat : null);
+      // A city's hexes use the plaque variant's layout and place, worked or free, so that all of them line up.
+      const laid = plaqueLayout(style?.layout ?? 'stack', rows.map((key) => value[key]));
+      const anchor = style ? plaqueAnchor(style, laid.depth) : 0;
+      if (style && (kind === 'worked' || kind === 'pinned')) {
+        this.addPlaque(collector, centre.x, y, centre.z + anchor, laid, style, kind === 'pinned' ? marks!.seat : null);
       }
       rows.forEach((key, rowIndex) => {
-        const z = centre.z + (kinds ? VIEW3D.territory.citizens.yieldOffset : 0) + (rowIndex - (rows.length - 1) / 2) * LENS.rowSpacing;
-        const row = yieldRowLayout(value[key]);
+        const cell = laid.cells[rowIndex]!;
+        const x = centre.x + cell.x, z = centre.z + anchor + cell.z;
         const shape = geometry.yieldGlyphs[key];
-
         // The glyphs first and in order, left to right: the instances of one
         // mesh draw in the order they are collected, so each coin of a stack is
         // laid over the one to its left along with the shadow that separates
         // them.
-        for (const offset of row.glyphs) {
-          collector.add(
-            shape,
-            [],
-            new Matrix4().compose(new Vector3(centre.x + offset, y, z), identity, glyph),
-            { material, order: RENDER_ORDER.tileIcon },
-          );
+        for (const offset of cell.row.glyphs) {
+          collector.add(shape, [], new Matrix4().compose(new Vector3(x + offset, y, z), identity, glyph), { material, order: RENDER_ORDER.tileIcon });
         }
-        for (const mark of row.numerals) {
-          collector.add(
-            geometry.numerals[mark.digit]!,
-            [],
-            new Matrix4().compose(new Vector3(centre.x + mark.x, y, z), identity, numeral),
-            { material, order: RENDER_ORDER.tileIcon },
-          );
+        for (const mark of cell.row.numerals) {
+          collector.add(geometry.numerals[mark.digit]!, [], new Matrix4().compose(new Vector3(x + mark.x, y, z), identity, numeral), { material, order: RENDER_ORDER.tileIcon });
         }
       });
     }
   }
 
   /**
-   * The plaque under a worked hex's yield figures, and the pin head of a pinned
-   * hex (idea e, "the yields are the mark"; see `citizenMarks.ts`).
+   * The backing under a worked hex's yield figures, and the pin head of a
+   * pinned hex (idea e, "the yields are the mark"; see `citizenMarks.ts`).
    *
-   * The plaque is one more flat quad behind the figures, in the same collector,
-   * sized to them: the widest row plus `plaque.padX` each side, the rows plus
-   * `plaque.padZ`. Sizes are rounded up to `plaque.step`, and each size has one
-   * small texture, kept until the layer is disposed. So a city adds one draw
-   * call for each size its hexes need (a handful) and one for the pin heads.
+   * The backing is one more flat quad behind the figures, in the same
+   * collector, sized to them: the content plus `plaque.padX` each side and
+   * `plaque.padZ` above and below. Sizes are rounded up to `plaque.step`, and
+   * each size has one small texture, kept until the layer is disposed. So a
+   * city adds one draw call for each size its hexes need (a handful) and one
+   * for the pin heads. Which backing, which layout and where it sits are the
+   * variant's (`plaque.styles`, chosen by `plaque.style`).
    */
-  private addPlaque(collector: InstanceCollector, x: number, y: number, z: number, amounts: readonly number[], pinSeat: number | null): void {
-    const spec = VIEW3D.territory.citizens.plaque, disc = yieldDiscWidth();
-    const rowWidth = (amount: number): number => {
-      const count = Math.max(0, Math.round(amount));
-      return count <= LENS.yieldStackMax
-        ? disc + (count - 1) * disc * LENS.yieldStackStep
-        : disc + LENS.numeralGap + digitsOf(count).length * LENS.numeralSize;
-    };
+  private addPlaque(collector: InstanceCollector, x: number, y: number, z: number, laid: PlaqueLayout, style: PlaqueStyle, pinSeat: number | null): void {
+    const spec = VIEW3D.territory.citizens.plaque;
     const snap = (size: number): number => Math.ceil(size / spec.step - 1e-6) * spec.step;
-    const width = snap(Math.max(...amounts.map(rowWidth)) + spec.padX * 2);
-    const depth = snap((amounts.length - 1) * LENS.rowSpacing + disc + spec.padZ * 2);
-    const key = `${width.toFixed(3)}x${depth.toFixed(3)}`;
-    if (!this.plaques.has(key)) this.plaques.set(key, plaqueMaterial(width, depth));
+    const width = snap(laid.width + spec.padX * 2), depth = snap(laid.depth + spec.padZ * 2);
+    // Only the pill wears the seat's colour on its edge. The others say "pinned" with the pin head alone.
+    const edgeSeat = style.back === 'pill' ? pinSeat : null;
+    const key = `${style.back}:${width.toFixed(3)}x${depth.toFixed(3)}:${edgeSeat ?? ''}`;
+    if (!this.plaques.has(key)) this.plaques.set(key, plaqueBackMaterial(style.back, width, depth, edgeSeat));
     const plaque = this.plaques.get(key);
     if (!plaque) return;
     this.plaqueQuad ??= new PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-    const margin = plaqueMargin() * 2, flat = new Quaternion();
-    collector.add(this.plaqueQuad, [], new Matrix4().compose(new Vector3(x, y, z), flat, new Vector3(width + margin, 1, depth + margin)),
+    const margin = plaqueMargin() * 2, flat = new Quaternion(), foot = style.back === 'tag' ? spec.foot : 0;
+    // The tag's quad is deeper than its paper by the foot, which is below the paper.
+    collector.add(this.plaqueQuad, [], new Matrix4().compose(new Vector3(x, y, z + foot / 2), flat, new Vector3(width + margin, 1, depth + foot + margin)),
       { material: plaque, order: RENDER_ORDER.tileIcon - 0.5 });
     if (pinSeat === null) return;
     if (!this.plaques.has(`pin:${pinSeat}`)) this.plaques.set(`pin:${pinSeat}`, pinHeadMaterial(pinSeat));
     const pin = this.plaques.get(`pin:${pinSeat}`);
-    // The pin head sits on the plaque's top edge, as the camera sees it.
-    if (pin) collector.add(this.plaqueQuad, [], new Matrix4().compose(new Vector3(x, y, z - depth / 2), flat, new Vector3(spec.pinSize, 1, spec.pinSize)),
+    // The pin head sits on the backing's top edge, as the camera sees it, or at its left end.
+    const at = style.pin === 'left' ? new Vector3(x - width / 2, y, z) : new Vector3(x, y, z - depth / 2);
+    if (pin) collector.add(this.plaqueQuad, [], new Matrix4().compose(at, flat, new Vector3(spec.pinSize, 1, spec.pinSize)),
       { material: pin, order: RENDER_ORDER.tileIcon + 0.5 });
   }
 
@@ -1081,6 +1072,99 @@ export class LensLayer {
   }
 }
 
+/** One variant of the plaque: how the figures are laid out, what is behind them, and where they sit. */
+export interface PlaqueStyle {
+  /** `stack`: one row a yield, coins fanned. `column`: one row a yield, a coin and a figure. `row`: all in one row. `grid`: in columns. */
+  layout: 'stack' | 'column' | 'row' | 'grid';
+  back: PlaqueBack;
+  /** Where the figures' centre sits, in hex radii down the screen from the hex's centre. The tag ignores it: its foot is at the centre. */
+  offsetZ: number;
+  /** Where a pinned hex's pin head sits on the backing. */
+  pin: 'top' | 'left';
+}
+
+/** The plaque variant the data names (`territory.citizens.plaque.style`). An unknown name is the first variant. */
+export function plaqueStyle(): PlaqueStyle {
+  const spec = VIEW3D.territory.citizens.plaque;
+  const styles = spec.styles as Record<string, PlaqueStyle>;
+  return styles[spec.style] ?? styles.a!;
+}
+
+/** Where each yield's figures go, about the content's centre, and the size of the content. */
+export interface PlaqueLayout {
+  cells: { x: number; z: number; row: YieldRowLayout }[];
+  width: number;
+  depth: number;
+}
+
+/**
+ * The layout of a city hex's yield figures, for one variant. `amounts` are the
+ * yields that are not zero, in the game's order.
+ *
+ * One function for the four layouts, so that a variant is data and not a
+ * second code path:
+ *
+ *   - `stack`: the board's own readout. One row a yield, the coins fanned, and
+ *     a figure past `yieldStackMax`. The width follows the widest row.
+ *   - `column`: one row a yield, always one coin and a figure. Every row has
+ *     the same width, so the backing is the same width on every hex.
+ *   - `row`: one coin and a figure for each yield, side by side. The height is
+ *     the same on every hex.
+ *   - `grid`: the same cells in `plaque.columns` columns.
+ */
+export function plaqueLayout(layout: PlaqueStyle['layout'], amounts: readonly number[]): PlaqueLayout {
+  const spec = VIEW3D.territory.citizens.plaque, disc = yieldDiscWidth(), count = amounts.length;
+  if (layout === 'stack') {
+    const rows = amounts.map((amount) => yieldRowLayout(amount));
+    return {
+      cells: rows.map((row, i) => ({ x: 0, z: (i - (count - 1) / 2) * LENS.rowSpacing, row })),
+      width: Math.max(0, ...rows.map((row) => yieldRowWidth(row))),
+      depth: (count - 1) * LENS.rowSpacing + disc,
+    };
+  }
+  const rows = amounts.map((amount) => numberedRowLayout(amount));
+  const widths = rows.map((row) => yieldRowWidth(row)), widest = Math.max(0, ...widths);
+  if (layout === 'column') {
+    return { cells: rows.map((row, i) => ({ x: 0, z: (i - (count - 1) / 2) * LENS.rowSpacing, row })), width: widest, depth: (count - 1) * LENS.rowSpacing + disc };
+  }
+  const columns = layout === 'row' ? count : Math.min(count, Math.max(1, spec.columns));
+  const lines = Math.ceil(count / columns), pitch = widest + spec.cellGap;
+  if (layout === 'row') {
+    // Each cell takes its own width, so a hex with one yield has a short bar and a hex with four has a long one.
+    const total = widths.reduce((sum, w) => sum + w, 0) + spec.cellGap * (count - 1);
+    let x = -total / 2;
+    return { cells: rows.map((row, i) => { const at = x + widths[i]! / 2; x += widths[i]! + spec.cellGap; return { x: at, z: 0, row }; }), width: total, depth: disc };
+  }
+  return {
+    cells: rows.map((row, i) => {
+      const line = Math.floor(i / columns), inLine = Math.min(columns, count - line * columns), col = i % columns;
+      return { x: (col - (inLine - 1) / 2) * pitch, z: (line - (lines - 1) / 2) * LENS.rowSpacing, row };
+    }),
+    width: columns * widest + (columns - 1) * spec.cellGap,
+    depth: (lines - 1) * LENS.rowSpacing + disc,
+  };
+}
+
+/**
+ * Where the content's centre sits, down the screen from the hex's centre, in
+ * board units. A tag stands above the centre with the tip of its foot on it.
+ * Every other variant sits at its own fixed place.
+ */
+export function plaqueAnchor(style: PlaqueStyle, depth: number): number {
+  const spec = VIEW3D.territory.citizens.plaque;
+  if (style.back === 'tag') return -(depth / 2 + spec.padZ + spec.foot);
+  return style.offsetZ * VIEW3D.board.hexRadius;
+}
+
+/** The width of one row as laid out: from the left edge of its first mark to the right edge of its last. */
+function yieldRowWidth(row: YieldRowLayout): number {
+  const disc = yieldDiscWidth();
+  let left = Infinity, right = -Infinity;
+  for (const x of row.glyphs) { left = Math.min(left, x - disc / 2); right = Math.max(right, x + disc / 2); }
+  for (const mark of row.numerals) { left = Math.min(left, mark.x - LENS.numeralSize / 2); right = Math.max(right, mark.x + LENS.numeralSize / 2); }
+  return right > left ? right - left : 0;
+}
+
 /** Where one row's marks sit along x, as offsets from the tile's centre. */
 interface YieldRowLayout {
   /** One centre per disc of the stack, left to right. A single entry when the
@@ -1125,6 +1209,14 @@ export function yieldRowLayout(amount: number): YieldRowLayout {
     return { glyphs, numerals: [] };
   }
 
+  return numberedRowLayout(count);
+}
+
+/** One coin and the amount as a figure, laid out about x = 0. What `yieldRowLayout` uses past `yieldStackMax`. */
+export function numberedRowLayout(amount: number): YieldRowLayout {
+  const disc = yieldDiscWidth();
+  const count = Math.max(0, Math.round(amount));
+  if (count === 0) return { glyphs: [], numerals: [] };
   const digits = digitsOf(count);
   const width = disc + LENS.numeralGap + digits.length * LENS.numeralSize;
   const glyphX = -width / 2 + disc / 2;

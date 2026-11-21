@@ -21,8 +21,14 @@
  * The panel is in the family of the city screen's bottom bar (`.city-buy-dock`
  * in `style.css`): paper, an ink line on top, a gilt rule above it. It has no
  * close button and takes no pointer events, because the hover on the board
- * drives it. Its width is limited in the CSS so that it stays clear of the tile
- * readout on the left and of the lens button and End Turn on the right.
+ * drives it.
+ *
+ * It never cuts a reason (the user, 2026-11-22: "could we just have the panel
+ * expand to accomodate a longer reason?"). It stands in a dock that spans the
+ * free width between the tile readout on the left and the lens button and End
+ * Turn on the right. A short line is centred on the screen. A longer line
+ * grows wider, up to the whole of that free width. A line that still does not
+ * fit wraps, and the panel grows upward: its foot stays where it is.
  *
  * It listens to nothing itself. The caller tells it what the pointer is on,
  * and `dispose` removes the element. The caller puts `dispose` in
@@ -74,11 +80,15 @@ export function adviceFigures(change: TileYield): { key: keyof TileYield; text: 
 }
 
 export function mountAdvicePanel(host: HTMLElement): AdvicePanel {
+  // The dock is the free width at the foot of the screen. The panel is as wide as its words inside it.
+  const dock = document.createElement('div');
+  dock.className = 'advice-dock';
   const panel = document.createElement('div');
   panel.className = 'advice-panel';
   panel.setAttribute('role', 'status');
   panel.hidden = true;
-  host.append(panel);
+  dock.append(panel);
+  host.append(dock);
   let shown = '';
 
   return {
@@ -122,7 +132,7 @@ export function mountAdvicePanel(host: HTMLElement): AdvicePanel {
       panel.replaceChildren(...parts);
       panel.hidden = false;
     },
-    dispose() { panel.remove(); },
+    dispose() { dock.remove(); },
   };
 }
 

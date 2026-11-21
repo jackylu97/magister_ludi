@@ -434,9 +434,18 @@
       "plaque": {
         "padX": 0.07, "padZ": 0.05, "step": 0.04, "pixelsPerUnit": 300,
         "radius": 0.05, "edge": 0.012, "edgeOpacity": 0.7, "shadow": 0.035, "shadowOpacity": 0.45,
-        "pinSize": 0.3, "pinRim": 0.2, "pinShine": 0.3
+        "pinSize": 0.3, "pinRim": 0.2, "pinShine": 0.3,
+        "style": "a",
+        "styles": {
+          "a": { "layout": "stack", "back": "paper", "offsetZ": -0.1, "pin": "top" },
+          "b": { "layout": "stack", "back": "scrim", "offsetZ": -0.1, "pin": "top" },
+          "c": { "layout": "row", "back": "pill", "offsetZ": 0.4, "pin": "left" },
+          "d": { "layout": "grid", "back": "tag", "offsetZ": 0, "pin": "top" },
+          "e": { "layout": "column", "back": "paper", "offsetZ": -0.1, "pin": "top" }
+        },
+        "cellGap": 0.045, "columns": 2, "foot": 0.1, "scrimOpacity": 0.42, "scrimBlur": 0.05, "seatEdge": 0.026
       },
-      "yieldOffset": -0.1, "freeYieldOpacity": 0.72, "nameHeight": 0.27
+      "freeYieldOpacity": 0.72, "nameHeight": 0.27
     }
   },
   "look": {
@@ -687,7 +696,7 @@
     "campRingOpacity": 0.9,
     "advice": {
       "tickColor": "#f8e29a", "tickPaleColor": "#f1dfa0", "tickBackingColor": "#241a17", "tickBackingOpacity": 0.6,
-      "tickInset": 0.08, "tickLength": 0.26, "tickWidth": 0.045, "tickWidthBest": 0.07, "tickBackingExtra": 0.035,
+      "tickInset": 0.025, "tickLength": 0.26, "tickWidth": 0.045, "tickWidthBest": 0.07, "tickBackingExtra": 0.022,
       "pipRadius": 0.05, "pipGap": 0.15, "pipOffset": 0.6, "pipPlateColor": "#2a2320", "pipEmptyColor": "#6f665c",
       "pipPlateWidth": 0.5, "pipPlateDepth": 0.17, "pipNear": 0.03, "pipMid": 0.1,
       "tintOpacity": 0.2, "paleTintOpacity": 0.14, "paleColor": "#f6ecc8", "tintScale": 0.9,
