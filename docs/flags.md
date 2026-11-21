@@ -3310,3 +3310,30 @@ with 50% of the raider's strength (`strikeTownsNear` in `src/sim/combat.ts`).
 It is in no pool, so the percentage reaches no game, and the code is left
 alone. If the card returns, give it a flat form: the raider's strength less
 6. The user: "sounds good".
+
+## Three rulings from the Compendium review (2026-11-21)
+
+The user's comments on the Compendium pass's page:
+
+- **Strategic resources may be traded** (on Iron's entry): "we should probably
+  allow players to trade strategics." Today a deal can lend a luxury and not a
+  strategic resource. Not built. Owner: Astra (deals in `src/sim`, and the
+  diplomacy screen's offers, which the Claude session owns). To settle in the
+  build: a copy that is lent is counted for the units that need it, as a
+  luxury's lent copy is counted for happiness; what happens to a unit that
+  needs the copy when the deal ends.
+- **Fish traps are a normal improvement** (on Fish Traps' entry): "didn't we
+  determine that we wanted to replace 'tended work' with unique improvement?
+  That said, fish traps should just be a normal improvement." So fish traps
+  need no charter and no card: a worker builds them once the seat has the
+  technology that suits them (the builder proposes it). This changes the
+  Expansionist pass, where fish traps were a unique improvement opened by a
+  card: that card needs another job or a cut, and the unique-improvement
+  pay-offs no longer read fish traps. Not built. Owner: Astra, with the
+  Expansionist build. The word "tended" leaves the game in that build too;
+  until then the Compendium prints what the data says.
+- **Fortify until healed** (on the combat page): "could we add a 'fortify
+  until healed option' and in the grey fortified button on the unit panel, it
+  currently says +3 fortify, could we add a short line that says +X HP for how
+  much it will heal that turn?" The Claude session builds this (a unit order
+  and the unit panel).

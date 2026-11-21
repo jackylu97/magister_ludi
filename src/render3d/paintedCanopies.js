@@ -2,7 +2,7 @@ import { BufferGeometry } from 'three';
 
 /** Keep the complete grove for export and for restoring a tree when its tile
  * becomes visible. All three map copies draw the same ordered list of trees. */
-export function createCanopyBatch(meshes) {
+export function createCanopyBatch(meshes, normalSculpt) {
   const middle = meshes[1];
   const source = {
     geometry: middle.geometry, matrix: middle.instanceMatrix, color: middle.instanceColor, count: middle.count,
@@ -28,6 +28,21 @@ export function createCanopyBatch(meshes) {
   for (const [name, attribute] of Object.entries(attributes)) {
     geometry.setAttribute(name, attribute.isInstancedBufferAttribute ? drawBuffer(attribute) : attribute);
   }
+  // Only the vertices differ between the two zooms. Fog compacts the same
+  // instance attributes, transforms and colours for both shapes.
+  let normalGeometry = null;
+  if (normalSculpt) {
+    normalGeometry = new BufferGeometry();
+    normalGeometry.setIndex(normalSculpt.index);
+    normalGeometry.boundingBox = normalSculpt.boundingBox;
+    normalGeometry.boundingSphere = normalSculpt.boundingSphere;
+    for (const [name, attribute] of Object.entries(normalSculpt.attributes)) normalGeometry.setAttribute(name, attribute);
+    for (const [name, attribute] of Object.entries(geometry.attributes))
+      if (attribute.isInstancedBufferAttribute) normalGeometry.setAttribute(name, attribute);
+    // The simpler crown can reach past the original sphere. The grove box
+    // encloses both shapes and their wind motion on every instance.
+    for (const mesh of meshes) mesh.boundingBox.getBoundingSphere(mesh.boundingSphere);
+  }
   const matrix = drawBuffer(source.matrix);
   const color = source.color && drawBuffer(source.color);
   for (const mesh of meshes) {
@@ -40,7 +55,7 @@ export function createCanopyBatch(meshes) {
   // the old tail lets a newly visible tree reuse a slot that still holds it.
   const slots = Uint32Array.from({ length: source.count }, (_, i) => i);
   return {
-    source, geometry,
+    source, geometry, normalGeometry,
     refresh(fog) {
       let count = 0, changed = false;
       for (let i = 0; i < source.count; i++) {

@@ -1,0 +1,1433 @@
+{
+  "fixture": {
+    "turn": 73,
+    "units": 231,
+    "cities": 28,
+    "visibleView": "Five Persian cities, Explorer lens, resource markers and yields",
+    "cameraRadius": 13,
+    "pixelRatio": 1.5,
+    "boardBuffer": [
+      2205,
+      1189
+    ],
+    "gpu": "Apple M4 Metal",
+    "browser": "Isolated headless Chrome, frame-rate limit and vsync disabled. Measurements end at CPU submission, not monitor presentation."
+  },
+  "dragControl": {
+    "method": "Repeat the same 1.9-second trusted CDP pointer drag at 60 input events per second. Keep the main game running and alternate normal draws with a control that skips the final painted board draw. These were real drag pans: each accepted run delivered at least 89 camera commands. Elapsed draw gaps and input delivery include waits in the browser. Mesh timers were disabled. Bot preparation was off.",
+    "runs": [
+      {
+        "mode": "drag-full",
+        "valid": true,
+        "submittedFrames": 140,
+        "panCommands": 105,
+        "medianTriangles": 1016574,
+        "p95FrameGapMs": 25.8,
+        "p95CpuLoopMs": 9.4,
+        "p95PanToNextBoardSubmissionMs": 10.1,
+        "p95InputDeliveryMs": 9.4,
+        "maxFrameGapMs": 40.1
+      },
+      {
+        "mode": "drag-skip",
+        "valid": true,
+        "submittedFrames": 162,
+        "panCommands": 114,
+        "medianTriangles": 0,
+        "p95FrameGapMs": 18.7,
+        "p95CpuLoopMs": 0.8,
+        "p95PanToNextBoardSubmissionMs": 1.3,
+        "p95InputDeliveryMs": 0.6,
+        "maxFrameGapMs": 38.8
+      },
+      {
+        "mode": "drag-skip",
+        "valid": true,
+        "submittedFrames": 156,
+        "panCommands": 111,
+        "medianTriangles": 0,
+        "p95FrameGapMs": 20.4,
+        "p95CpuLoopMs": 1.3,
+        "p95PanToNextBoardSubmissionMs": 1.6,
+        "p95InputDeliveryMs": 1.7,
+        "maxFrameGapMs": 43.2
+      },
+      {
+        "mode": "drag-full",
+        "valid": true,
+        "submittedFrames": 146,
+        "panCommands": 98,
+        "medianTriangles": 1016574,
+        "p95FrameGapMs": 42.1,
+        "p95CpuLoopMs": 10.6,
+        "p95PanToNextBoardSubmissionMs": 11.1,
+        "p95InputDeliveryMs": 11.1,
+        "maxFrameGapMs": 43.9
+      },
+      {
+        "mode": "drag-full",
+        "valid": true,
+        "submittedFrames": 129,
+        "panCommands": 89,
+        "medianTriangles": 1016353,
+        "p95FrameGapMs": 40.2,
+        "p95CpuLoopMs": 10.9,
+        "p95PanToNextBoardSubmissionMs": 10.3,
+        "p95InputDeliveryMs": 10.5,
+        "maxFrameGapMs": 49.7
+      },
+      {
+        "mode": "drag-skip",
+        "valid": true,
+        "submittedFrames": 158,
+        "panCommands": 114,
+        "medianTriangles": 0,
+        "p95FrameGapMs": 19.9,
+        "p95CpuLoopMs": 0.8,
+        "p95PanToNextBoardSubmissionMs": 1.1,
+        "p95InputDeliveryMs": 0.7,
+        "maxFrameGapMs": 27.3
+      }
+    ],
+    "freshSession": {
+      "runs": [
+        {
+          "mode": "drag-full",
+          "panCommands": 114,
+          "valid": true,
+          "p95FrameGapMs": 17.9,
+          "p95CpuLoopMs": 3.2,
+          "p95InputDeliveryMs": 1.7
+        },
+        {
+          "mode": "drag-skip",
+          "panCommands": 114,
+          "valid": true,
+          "p95FrameGapMs": 17.7,
+          "p95CpuLoopMs": 0.5,
+          "p95InputDeliveryMs": 0.4
+        },
+        {
+          "mode": "drag-full",
+          "panCommands": 114,
+          "valid": true,
+          "p95FrameGapMs": 18.7,
+          "p95CpuLoopMs": 3.6,
+          "p95InputDeliveryMs": 1.6
+        }
+      ],
+      "method": "Fresh browser with Chrome tracing on. A verified press on the open board preceded each drag. All three runs delivered every one of the 114 pan commands. Values come from complete game-side timestamps. The browser trace buffer filled during the second run. This session did not reproduce the worst gaps from the first six runs."
+    }
+  },
+  "moves": {
+    "method": "Start a fresh session per build. Run the same eight trusted clicks on the same saved turn. Count the first board submission with at least one CSS pixel of walking displacement. GPU timing queries are off. Neither capture nor rendering involves the live playtest tab.",
+    "runs": {
+      "move-old-a": [
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 61.7,
+          "msReleaseQueue": 9.0,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 45.2,
+          "msReleaseQueue": 7.4,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 27.7,
+          "msReleaseQueue": 0.7,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 29.6,
+          "msReleaseQueue": 7.0,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 30.0,
+          "msReleaseQueue": 6.6,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "move",
+          "unit": 516,
+          "target": {
+            "col": 25,
+            "row": 41
+          },
+          "msFromReleaseHandlerToDraw": 169.2,
+          "msReleaseQueue": 0.6,
+          "walkSubmissions": [
+            [
+              126.4,
+              0.36
+            ],
+            [
+              169.2,
+              46.09
+            ]
+          ],
+          "lensRebuildsMs": [
+            18.7
+          ],
+          "rulesMs": 11.1,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 33.7,
+          "msReleaseQueue": 16.3,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "move",
+          "unit": 323,
+          "target": {
+            "col": 22,
+            "row": 42
+          },
+          "msFromReleaseHandlerToDraw": 120.2,
+          "msReleaseQueue": 5.9,
+          "walkSubmissions": [
+            [
+              88.0,
+              0.06
+            ],
+            [
+              120.2,
+              34.52
+            ]
+          ],
+          "lensRebuildsMs": [
+            29.1
+          ],
+          "rulesMs": 8.6,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        }
+      ],
+      "move-new-a": [
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 61.2,
+          "msReleaseQueue": 35.2,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 39.3,
+          "msReleaseQueue": 11.7,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 37.5,
+          "msReleaseQueue": 1.6,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 28.2,
+          "msReleaseQueue": 0.7,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 31.9,
+          "msReleaseQueue": 7.0,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "move",
+          "unit": 516,
+          "target": {
+            "col": 25,
+            "row": 41
+          },
+          "msFromReleaseHandlerToDraw": 222.1,
+          "msReleaseQueue": 0.7,
+          "walkSubmissions": [
+            [
+              222.1,
+              2.48
+            ]
+          ],
+          "lensRebuildsMs": [],
+          "rulesMs": 17.4,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 38.8,
+          "msReleaseQueue": 4.1,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "move",
+          "unit": 323,
+          "target": {
+            "col": 22,
+            "row": 42
+          },
+          "msFromReleaseHandlerToDraw": 57.0,
+          "msReleaseQueue": 7.1,
+          "walkSubmissions": [
+            [
+              57.0,
+              3.03
+            ]
+          ],
+          "lensRebuildsMs": [],
+          "rulesMs": 3.6,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        }
+      ],
+      "move-new-b": [
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 55.0,
+          "msReleaseQueue": 4.3,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 47.2,
+          "msReleaseQueue": 1.1,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 39.7,
+          "msReleaseQueue": 19.1,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 50.4,
+          "msReleaseQueue": 10.8,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 32.2,
+          "msReleaseQueue": 22.9,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "move",
+          "unit": 516,
+          "target": {
+            "col": 25,
+            "row": 41
+          },
+          "msFromReleaseHandlerToDraw": 236.5,
+          "msReleaseQueue": 0.7,
+          "walkSubmissions": [
+            [
+              236.5,
+              3.1
+            ]
+          ],
+          "lensRebuildsMs": [],
+          "rulesMs": 10.7,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 36.6,
+          "msReleaseQueue": 0.5,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "move",
+          "unit": 323,
+          "target": {
+            "col": 22,
+            "row": 42
+          },
+          "msFromReleaseHandlerToDraw": 64.7,
+          "msReleaseQueue": 0.5,
+          "walkSubmissions": [
+            [
+              64.7,
+              7.28
+            ]
+          ],
+          "lensRebuildsMs": [],
+          "rulesMs": 3.4,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        }
+      ],
+      "move-old-b": [
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 87.4,
+          "msReleaseQueue": 31.9,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 43.4,
+          "msReleaseQueue": 9.5,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 24.7,
+          "msReleaseQueue": 8.9,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 29.8,
+          "msReleaseQueue": 4.9,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 516,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 23.6,
+          "msReleaseQueue": 10.8,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "move",
+          "unit": 516,
+          "target": {
+            "col": 25,
+            "row": 41
+          },
+          "msFromReleaseHandlerToDraw": 461.5,
+          "msReleaseQueue": 0.9,
+          "walkSubmissions": [
+            [
+              461.5,
+              1.03
+            ]
+          ],
+          "lensRebuildsMs": [
+            61.4
+          ],
+          "rulesMs": 51.9,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "select",
+          "unit": 323,
+          "target": null,
+          "msFromReleaseHandlerToDraw": 36.1,
+          "msReleaseQueue": 0.4,
+          "walkSubmissions": [],
+          "lensRebuildsMs": [],
+          "rulesMs": 0,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        },
+        {
+          "kind": "move",
+          "unit": 323,
+          "target": {
+            "col": 22,
+            "row": 42
+          },
+          "msFromReleaseHandlerToDraw": 162.8,
+          "msReleaseQueue": 4.8,
+          "walkSubmissions": [
+            [
+              124.6,
+              0.26
+            ],
+            [
+              162.8,
+              50.76
+            ]
+          ],
+          "lensRebuildsMs": [
+            25.9
+          ],
+          "rulesMs": 4,
+          "freshCityEconomies": 0,
+          "freshEmpireEconomies": 0,
+          "botOverlap": []
+        }
+      ]
+    }
+  },
+  "assets": {
+    "sham": {
+      "savingMs": -0.04,
+      "faster": 12,
+      "pairs": 24,
+      "medianTrianglesRemoved": 0,
+      "gpuTimesBaselineThenOmittedMs": [
+        [
+          34.3,
+          41.64
+        ],
+        [
+          31.99,
+          27.72
+        ],
+        [
+          23.85,
+          46.04
+        ],
+        [
+          13.72,
+          11.27
+        ],
+        [
+          12.03,
+          12.61
+        ],
+        [
+          16.51,
+          11.27
+        ],
+        [
+          11.29,
+          11.49
+        ],
+        [
+          11.07,
+          16.64
+        ],
+        [
+          11.31,
+          11.12
+        ],
+        [
+          11.33,
+          11.45
+        ],
+        [
+          11.14,
+          16.43
+        ],
+        [
+          11.14,
+          13.14
+        ],
+        [
+          11.21,
+          11.7
+        ],
+        [
+          11.49,
+          19.46
+        ],
+        [
+          13.29,
+          11.37
+        ],
+        [
+          12.17,
+          11.33
+        ],
+        [
+          16.1,
+          11.26
+        ],
+        [
+          15.3,
+          15.17
+        ],
+        [
+          13.22,
+          11.25
+        ],
+        [
+          11.68,
+          13.21
+        ],
+        [
+          11.48,
+          11.33
+        ],
+        [
+          11.12,
+          15.39
+        ],
+        [
+          13.38,
+          11.31
+        ],
+        [
+          11.22,
+          11.18
+        ]
+      ]
+    },
+    "water": {
+      "savingMs": 2.04,
+      "faster": 16,
+      "pairs": 24,
+      "medianTrianglesRemoved": 194423,
+      "gpuTimesBaselineThenOmittedMs": [
+        [
+          22.64,
+          25.96
+        ],
+        [
+          23.33,
+          23.93
+        ],
+        [
+          27.24,
+          16.89
+        ],
+        [
+          15.06,
+          9.2
+        ],
+        [
+          11.02,
+          8.86
+        ],
+        [
+          11.17,
+          17.28
+        ],
+        [
+          17.13,
+          9.13
+        ],
+        [
+          11.58,
+          9.7
+        ],
+        [
+          11.59,
+          14.23
+        ],
+        [
+          12.04,
+          10.5
+        ],
+        [
+          11.57,
+          10.34
+        ],
+        [
+          11.03,
+          9.05
+        ],
+        [
+          12.47,
+          9.65
+        ],
+        [
+          11.34,
+          14.37
+        ],
+        [
+          11.17,
+          8.97
+        ],
+        [
+          11.36,
+          11.52
+        ],
+        [
+          11.41,
+          9.16
+        ],
+        [
+          12.25,
+          9.19
+        ],
+        [
+          11.34,
+          14.43
+        ],
+        [
+          11.34,
+          9.21
+        ],
+        [
+          11.2,
+          11.59
+        ],
+        [
+          11.3,
+          9.13
+        ],
+        [
+          11.24,
+          9.13
+        ],
+        [
+          13.45,
+          9.55
+        ]
+      ]
+    },
+    "land": {
+      "savingMs": 2.0,
+      "faster": 20,
+      "pairs": 24,
+      "medianTrianglesRemoved": 179862,
+      "gpuTimesBaselineThenOmittedMs": [
+        [
+          34.41,
+          18.76
+        ],
+        [
+          27.74,
+          16.97
+        ],
+        [
+          24.66,
+          21.59
+        ],
+        [
+          23.85,
+          26.54
+        ],
+        [
+          15.66,
+          9.05
+        ],
+        [
+          11.06,
+          14.5
+        ],
+        [
+          11.7,
+          9.32
+        ],
+        [
+          11.48,
+          10.33
+        ],
+        [
+          11.37,
+          9.82
+        ],
+        [
+          11.21,
+          9.19
+        ],
+        [
+          11.58,
+          10.38
+        ],
+        [
+          12.34,
+          10.33
+        ],
+        [
+          11.12,
+          9.25
+        ],
+        [
+          13.32,
+          9.03
+        ],
+        [
+          12.5,
+          9.65
+        ],
+        [
+          11.19,
+          9.19
+        ],
+        [
+          15.82,
+          16.13
+        ],
+        [
+          15.28,
+          9.21
+        ],
+        [
+          11.07,
+          9.18
+        ],
+        [
+          15.8,
+          9.21
+        ],
+        [
+          11.25,
+          9.76
+        ],
+        [
+          11.35,
+          11.62
+        ],
+        [
+          13.01,
+          9.67
+        ],
+        [
+          11.18,
+          9.2
+        ]
+      ]
+    },
+    "trees": {
+      "savingMs": 0.98,
+      "faster": 16,
+      "pairs": 24,
+      "medianTrianglesRemoved": 182460,
+      "gpuTimesBaselineThenOmittedMs": [
+        [
+          32.94,
+          25.19
+        ],
+        [
+          24.74,
+          29.82
+        ],
+        [
+          23.3,
+          26.46
+        ],
+        [
+          28.42,
+          28.13
+        ],
+        [
+          11.52,
+          9.91
+        ],
+        [
+          14.64,
+          10.36
+        ],
+        [
+          13.3,
+          10.23
+        ],
+        [
+          11.22,
+          14.46
+        ],
+        [
+          11.21,
+          11.77
+        ],
+        [
+          20.51,
+          13.8
+        ],
+        [
+          11.1,
+          12.53
+        ],
+        [
+          11.14,
+          10.29
+        ],
+        [
+          11.67,
+          14.48
+        ],
+        [
+          12.05,
+          10.07
+        ],
+        [
+          11.16,
+          10.06
+        ],
+        [
+          12.17,
+          11.31
+        ],
+        [
+          11.58,
+          10.76
+        ],
+        [
+          11.36,
+          10.19
+        ],
+        [
+          11.86,
+          12.11
+        ],
+        [
+          11.28,
+          10.07
+        ],
+        [
+          11.21,
+          12.53
+        ],
+        [
+          16.69,
+          10.17
+        ],
+        [
+          11.28,
+          10.1
+        ],
+        [
+          15.01,
+          10.51
+        ]
+      ]
+    },
+    "contact": {
+      "savingMs": 1.51,
+      "faster": 19,
+      "pairs": 24,
+      "medianTrianglesRemoved": 3,
+      "gpuTimesBaselineThenOmittedMs": [
+        [
+          23.23,
+          26.11
+        ],
+        [
+          37.71,
+          29.76
+        ],
+        [
+          32.4,
+          18.74
+        ],
+        [
+          25.5,
+          23.82
+        ],
+        [
+          12.96,
+          9.5
+        ],
+        [
+          16.16,
+          9.61
+        ],
+        [
+          11.47,
+          10.2
+        ],
+        [
+          11.15,
+          9.83
+        ],
+        [
+          11.22,
+          14.47
+        ],
+        [
+          11.39,
+          11.21
+        ],
+        [
+          11.34,
+          9.6
+        ],
+        [
+          11.29,
+          14.77
+        ],
+        [
+          11.3,
+          10.37
+        ],
+        [
+          12.35,
+          9.62
+        ],
+        [
+          12.21,
+          10.74
+        ],
+        [
+          11.18,
+          9.64
+        ],
+        [
+          12.34,
+          10.66
+        ],
+        [
+          16.84,
+          9.91
+        ],
+        [
+          11.59,
+          9.9
+        ],
+        [
+          11.2,
+          14.77
+        ],
+        [
+          11.54,
+          10.53
+        ],
+        [
+          11.49,
+          9.62
+        ],
+        [
+          11.2,
+          14.75
+        ],
+        [
+          11.21,
+          9.8
+        ]
+      ]
+    },
+    "units": {
+      "savingMs": 0.14,
+      "faster": 12,
+      "pairs": 24,
+      "medianTrianglesRemoved": 139442,
+      "gpuTimesBaselineThenOmittedMs": [
+        [
+          22.43,
+          33.28
+        ],
+        [
+          34.09,
+          22.89
+        ],
+        [
+          31.06,
+          22.51
+        ],
+        [
+          28.19,
+          22.62
+        ],
+        [
+          11.29,
+          12.1
+        ],
+        [
+          11.65,
+          10.9
+        ],
+        [
+          11.7,
+          11.87
+        ],
+        [
+          11.92,
+          12.19
+        ],
+        [
+          11.31,
+          11.01
+        ],
+        [
+          11.47,
+          19.71
+        ],
+        [
+          16.07,
+          11.02
+        ],
+        [
+          11.5,
+          14.93
+        ],
+        [
+          11.38,
+          11.9
+        ],
+        [
+          14.97,
+          11.31
+        ],
+        [
+          11.48,
+          11.01
+        ],
+        [
+          16.78,
+          10.86
+        ],
+        [
+          11.19,
+          11.44
+        ],
+        [
+          11.19,
+          16.33
+        ],
+        [
+          15.08,
+          11.26
+        ],
+        [
+          11.3,
+          15.42
+        ],
+        [
+          11.55,
+          11.94
+        ],
+        [
+          13.88,
+          11.45
+        ],
+        [
+          11.37,
+          11.38
+        ],
+        [
+          13.48,
+          11.17
+        ]
+      ]
+    },
+    "other layers": {
+      "savingMs": 1.1,
+      "faster": 18,
+      "pairs": 24,
+      "medianTrianglesRemoved": 86928,
+      "gpuTimesBaselineThenOmittedMs": [
+        [
+          34.27,
+          22.03
+        ],
+        [
+          36.34,
+          23.72
+        ],
+        [
+          22.7,
+          31.3
+        ],
+        [
+          12.52,
+          11.81
+        ],
+        [
+          11.2,
+          11.14
+        ],
+        [
+          13.59,
+          10.07
+        ],
+        [
+          11.47,
+          12.68
+        ],
+        [
+          11.18,
+          10.12
+        ],
+        [
+          12.41,
+          11.04
+        ],
+        [
+          11.15,
+          15.65
+        ],
+        [
+          11.81,
+          10.18
+        ],
+        [
+          11.11,
+          10.18
+        ],
+        [
+          16.92,
+          10.21
+        ],
+        [
+          11.17,
+          14.07
+        ],
+        [
+          13.67,
+          10.2
+        ],
+        [
+          11.55,
+          10.03
+        ],
+        [
+          16.32,
+          10.16
+        ],
+        [
+          11.57,
+          15.75
+        ],
+        [
+          11.43,
+          10.29
+        ],
+        [
+          11.15,
+          10.17
+        ],
+        [
+          11.25,
+          15.62
+        ],
+        [
+          11.18,
+          10.13
+        ],
+        [
+          16.9,
+          10.75
+        ],
+        [
+          16.63,
+          10.23
+        ]
+      ]
+    }
+  },
+  "assetMethod": "At the five-city camera position, draw the entire frame twice with the GPU synchronized between draws. Omit one object family or effect in one draw, alternating order. Report median paired differences. The change from omitting a layer depends on which surfaces it covered, so the rows cannot be added.",
+  "shaderFirstUse": {
+    "baseline": {
+      "unit": 516,
+      "observedMsFromReleaseToVisibleMove": 162.1,
+      "firstWalkingFrameMirrorMs": 116.1,
+      "slowGLCalls": [
+        {
+          "method": "getProgramInfoLog",
+          "ms": 109,
+          "layer": "walker",
+          "material": "MeshStandardMaterial",
+          "unitBody": true
+        },
+        {
+          "method": "getProgramInfoLog",
+          "ms": 1.5,
+          "layer": "walker",
+          "material": "MeshBasicMaterial",
+          "unitBody": false
+        }
+      ],
+      "shaderCompileOrLinkCalls": 0,
+      "sampledMsInMirrorProgramLogLookup": 111.02
+    },
+    "method": "Instrumented GL methods independently of the CPU sampling profiler; included all compile and link requests and timed lookups over 0.8 ms. The full CPU profile is private. This identifies one source of cold spikes, not every source.",
+    "afterLoadingPrep": [
+      {
+        "walkerPreparationElapsedMs": 483.8,
+        "moves": [
+          {
+            "unit": 516,
+            "releaseToFirstVisibleMoveMs": 29.2,
+            "firstWalkingFrameMirrorMs": 2.7,
+            "programInfoLogCallsDuringAction": 0,
+            "slowOrCompileOrLinkGLCallsDuringAction": 0
+          },
+          {
+            "unit": 323,
+            "releaseToFirstVisibleMoveMs": 33.2,
+            "firstWalkingFrameMirrorMs": 2.4,
+            "programInfoLogCallsDuringAction": 0,
+            "slowOrCompileOrLinkGLCallsDuringAction": 0
+          }
+        ]
+      },
+      {
+        "walkerPreparationElapsedMs": 415.8,
+        "moves": [
+          {
+            "unit": 516,
+            "releaseToFirstVisibleMoveMs": 31.3,
+            "firstWalkingFrameMirrorMs": 2.6,
+            "programInfoLogCallsDuringAction": 0,
+            "slowOrCompileOrLinkGLCallsDuringAction": 0
+          },
+          {
+            "unit": 323,
+            "releaseToFirstVisibleMoveMs": 34.9,
+            "firstWalkingFrameMirrorMs": 2.3,
+            "programInfoLogCallsDuringAction": 0,
+            "slowOrCompileOrLinkGLCallsDuringAction": 0
+          }
+        ]
+      }
+    ],
+    "preparationMethod": "Two fresh, isolated browsers loaded the same turn 73 position and repeated the sequence. The reported preparation time includes the wait for the first board frame and concurrent loading work. It is not a paired comparison of total game load time."
+  }
+}

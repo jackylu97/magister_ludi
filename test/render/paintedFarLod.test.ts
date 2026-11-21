@@ -162,6 +162,54 @@ describe('the map-scale stand-in', () => {
 });
 
 describe('the board at the far band', () => {
+  it.each(['direct', 'worker'])('shares the normal tree buffers and restores close shadow casters on a %s board', path => {
+    const { map, assets, materials, build } = fixture(true);
+    const { normalTrees } = VIEW3D.painted.lod;
+    const tree = assets.broadleaf;
+    tree.material.userData.canopySway = { x: .045, z: .028 };
+    const normal = farSculpt(tree.geometry, normalTrees.cells) as BufferGeometry;
+    tree.normalGeometry = normal;
+    owned.push(normal);
+    let board: PaintedBoard;
+    if (path === 'worker') {
+      const { packet, bindings } = packPaintedKit(assets, materials);
+      const remote = unpackPaintedKit(structuredClone(packet));
+      owned.push(...remote.bindings);
+      const worker = buildPaintedBoard(map, remote.assets, remote.materials);
+      boards.push(worker);
+      const batches = packPaintedBatches(worker.exportBatches(), remote.bindings);
+      expect(bindings).not.toContain(normal);
+      board = buildPaintedBoard(map, assets, materials, true, unpackPaintedBatches(batches, bindings));
+      boards.push(board);
+    } else board = build();
+    board.applyFog(null);
+    const index = board.exportBatches().findIndex(b => b.detail === 'near' && b.base === tree.geometry);
+    expect(index).toBeGreaterThanOrEqual(0);
+    const copies = board.copies.map(copy => copy.children[index] as InstancedMesh);
+    const middle = copies[1]!, close = middle.geometry, count = middle.count;
+    const cell = close.getAttribute('paintedCell'), aboveClose = (normalTrees.closeRadius + normalTrees.normalRadius) / 2;
+    expect(board.updateDetail(80, normalTrees.normalRadius)).toBe(true);
+    const reduced = middle.geometry;
+    expect(reduced.getAttribute('position')).toBe(normal.getAttribute('position'));
+    expect(reduced.getAttribute('paintedCell')).toBe(cell);
+    expect(copies.every(mesh => mesh.geometry === reduced)).toBe(true);
+    expect(board.updateDetail(80, aboveClose)).toBe(false);
+    board.applyFog(map.tiles.map((_, tile) => tile === cell.getX(0) ? 0 : 1));
+    expect(middle.count).toBeLessThan(count);
+    expect(board.setBakeDetail(true)).toBe(true);
+    expect(copies.every(mesh => mesh.geometry === close)).toBe(true);
+    expect(board.setBakeDetail(false)).toBe(true);
+    expect(middle.geometry).toBe(reduced);
+    board.applyFog(null);
+    expect(middle.count).toBe(count);
+    board.updateDetail(80, normalTrees.closeRadius - .1);
+    expect(middle.geometry).toBe(close);
+    expect(board.updateDetail(80, aboveClose)).toBe(false);
+    board.updateDetail(10, 30);
+    expect(middle.visible).toBe(false);
+    expect(drawnFamilies(board)).toContain('grove far');
+  });
+
   it('swaps the stand-in into the far batches and leaves every near batch byte-identical', () => {
     const plain = fixture(false).build().exportBatches();
     const standIn = fixture(true).build().exportBatches();

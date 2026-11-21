@@ -58,7 +58,9 @@ const grainRequests=['mineral-grain','flocking-grain','gouache-grain'].map(name=
 const assetRequests=[
  // The trees' breeze reads the visual test's clock under the north-star look,
  // so they sway with the other idle motion. The study's value stays at rest.
- loadVegetation(VIEW3D.visualTest.northStar?VTEST_UNIFORMS.vtestTime:{value:0},grainRequests[1],grainRequests[0],{indexed:true,distantCells:VIEW3D.painted.lod.distantCells}),
+ loadVegetation(VIEW3D.visualTest.northStar?VTEST_UNIFORMS.vtestTime:{value:0},grainRequests[1],grainRequests[0],{
+  indexed:true,distantCells:VIEW3D.painted.lod.distantCells,normalTreeCells:VIEW3D.painted.lod.normalTrees.cells,
+ }),
  loadSettlementAssets({register(){}},grainRequests[0],{names:[...(VIEW3D.visualTest.northStar?['monument-ziggurat','monument-armillary','monument-obelisk',...NORTH_STAR_TOWN_ASSETS,...NORTH_STAR_WORK_ASSETS]:[]),'city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
 ];
 for(const request of assetRequests)request.catch(()=>{});
@@ -71,7 +73,7 @@ const [vegetationResult,cityResult]=await Promise.allSettled(assetRequests);
 if(vegetationResult.status==='fulfilled'){
  for(const material of vegetationResult.value.materials)own(material);
  for(const asset of [...vegetationResult.value.broadleaves,...vegetationResult.value.cypresses,...vegetationResult.value.escarpments,vegetationResult.value.limestone])
-  for(const key of ['geometry','shoulderGeometry','farGeometry','farShoulderGeometry'])if(asset[key])own(asset[key]);
+  for(const key of ['geometry','normalGeometry','shoulderGeometry','farGeometry','farShoulderGeometry'])if(asset[key])own(asset[key]);
 }
 if(cityResult.status==='fulfilled')for(const resource of Object.values(cityResult.value))own(resource);
 const assetFailure=[...grains,vegetationResult,cityResult].find(result=>result.status==='rejected');

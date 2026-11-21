@@ -226,6 +226,8 @@ interface ChartPaper {
 export interface FogStats {
   /** Tiles whose level actually changed. */
   tiles: number;
+  /** Tiles that entered or left the chart. Moving between remembered and visible keeps a tile on the chart. */
+  chartChanged: boolean;
   /** Shared river edges re-evaluated. */
   edges: number;
   /** Instance matrix writes issued (hide and restore). */
@@ -420,17 +422,20 @@ export class FogView {
    * what this stays proportional to.
    */
   apply(levels: readonly number[]): FogStats {
-    if (this.disposed) return { tiles: 0, edges: 0, matrixWrites: 0, tintWrites: 0 };
+    if (this.disposed) return { tiles: 0, chartChanged: false, edges: 0, matrixWrites: 0, tintWrites: 0 };
 
     const matrixBefore = INSTANCE_WRITES.matrix;
     const tintBefore = INSTANCE_WRITES.tint;
 
     const edges = new Set<SharedEdge>();
     let changed = 0;
+    let chartChanged = false;
 
     for (let index = 0; index < this.painted.length; index++) {
       const level = levels[index] ?? HIDDEN;
-      if (level === this.painted[index]) continue;
+      const previous = this.painted[index]!;
+      if (level === previous) continue;
+      if ((previous > HIDDEN) !== (level > HIDDEN)) chartChanged = true;
       this.painted[index] = level;
       changed += 1;
 
@@ -450,6 +455,7 @@ export class FogView {
 
     return {
       tiles: changed,
+      chartChanged,
       edges: edges.size,
       matrixWrites: INSTANCE_WRITES.matrix - matrixBefore,
       tintWrites: INSTANCE_WRITES.tint - tintBefore,

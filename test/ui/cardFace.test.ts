@@ -400,7 +400,7 @@ describe('the flair gallery', () => {
     expect(faces).toContain("lit.button.classList.add('sc-slot-open');");
     expect(faces).toContain("dim.button.classList.add('sc-slot-refuses');");
     // A government, on its banner, with its chairs as the banner draws them.
-    expect(faces).toContain("const { banner } = governmentBannerNode(id, { form: 'seat' });");
+    expect(faces).toMatch(/governmentBannerNode\(id,\s*\{\s*form:\s*'seat'\s*\}\)/);
     // The Civic chair's mark joins the chair marks, which the marks page walks.
     expect(gallery('marks.ts')).toContain('for (const [id, mark] of Object.entries(SLOT_MARKS))');
   });

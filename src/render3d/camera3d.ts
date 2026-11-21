@@ -322,19 +322,21 @@ export class DioramaCamera {
    * renderer with one wheel handler.
    *
    * A larger frustum shows more board, so the factor divides rather than
-   * multiplies.
+   * multiplies. Returns true if the zoom changed.
    */
-  zoomByFactor(factor: number, screenX: number, screenY: number): void {
+  zoomByFactor(factor: number, screenX: number, screenY: number): boolean {
     this.cancelPan();
+    const next = Math.min(this.maxFrustum, Math.max(this.minFrustum, this.frustum / factor));
+    if (next === this.frustum) return false;
     const before = this.groundAt(screenX, screenY);
-    const next = this.frustum / factor;
-    this.frustum = Math.min(this.maxFrustum, Math.max(this.minFrustum, next));
+    this.frustum = next;
     this.apply();
     const after = this.groundAt(screenX, screenY);
     this.target.x += before.x - after.x;
     this.target.z += before.z - after.z;
     this.normalize();
     this.apply();
+    return true;
   }
 
   /**

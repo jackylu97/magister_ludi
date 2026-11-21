@@ -347,6 +347,14 @@ describe('a river edge', () => {
 // --- the constraint ---------------------------------------------------------
 
 describe('the cost of a repaint', () => {
+  it('reports whether tiles entered or left the chart', () => {
+    const state = flatState(), { fog } = rig(state), levels = state.visibility[0]!;
+    for (const [level, expected] of [[1, true], [2, false], [1, false], [0, true]] as const) {
+      levels[0] = level;
+      expect(fog.apply(levels)).toMatchObject({tiles: 1, chartChanged: expected});
+    }
+  });
+
   it('writes nothing at all when nothing changed', () => {
     const state = flatState();
     const { fog } = rig(state);

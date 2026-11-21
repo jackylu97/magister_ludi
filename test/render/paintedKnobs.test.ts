@@ -114,7 +114,11 @@ describe('the painted performance knobs', () => {
         staticMapSize: 4096, staticMapTiers: { low: 2048, high: 8192 }, lowMemoryGiB: 4,
         counterMapSize: 2048, counterCoverage: 0.1, periodFit: true, periodMargin: 3,
       },
-      lod: { nearPixels: 25, farPixels: 29, distantCells: { groves: { x: 2, y: 3, z: 2 } } },
+      lod: {
+        nearPixels: 25, farPixels: 29,
+        normalTrees: { closeRadius: 6, normalRadius: 6.5, cells: { x: 5, y: 7, z: 5 } },
+        distantCells: { groves: { x: 2, y: 3, z: 2 } },
+      },
       contact: {
         resolution: 512, radius: 0.1, thickness: 0.25, distanceExponent: 2, samples: 12,
         denoiseRadius: 4, denoiseDepthPhi: 2, denoiseNormalPhi: 6,

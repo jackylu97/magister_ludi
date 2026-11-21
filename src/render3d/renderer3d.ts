@@ -1,4 +1,5 @@
 import type { TerrainId } from '../sim/terrainData';
+import type { Command } from '../sim/commands';
 /**
  * The playable 3D renderer: scene, lights, board, pieces, overlays, input glue.
  *
@@ -169,7 +170,7 @@ import { PaintedRichnessLayer } from './paintedRichness';
 import { PaintedYieldLightLayer, type YieldLightHex, type YieldLightPick, sameVisibleLights } from './paintedYieldLight';
 import { VISIBLE as SEEN_NOW } from '../sim/visibility';
 import { PaintedFlowLayer } from './paintedFlow';
-import { SeaMirror } from './seaMirror';
+import { prepareWalkerPrograms, SeaMirror } from './seaMirror';
 import { CopyCulling } from './copyCulling';
 import { buildMapEnds } from './mapEnds';
 // @ts-expect-error The sea's distance bake is JavaScript, like the coast module it reads.
@@ -1035,15 +1036,17 @@ export class Renderer3D implements MapView {
    * fall disposes its own clones when it lands, and with nothing else using
    * the program three would release it and link it again on the next death.
    */
-  private warmLatePrograms(): void {
-    if (!this.running || this.contextLost || !this.state || !this.map) return;
+  private warmLatePrograms(walkerPreparedDuringLoad = false): Group | null {
+    if (!this.running || this.contextLost || !this.state || !this.map) return null;
     const roots: Object3D[] = [this.vignette.mesh];
     const unit = this.state.units.find(piece => piece.ownerId === this.fogSeat) ?? this.state.units[0];
+    let walkingGroup: Group | null = null;
     if (unit) {
       const walker = this.buildWalker(unit);
       if (walker) {
-        roots.push(walker.group);
-        if (this.paintedLook && this.mirrorOn && VIEW3D.visualTest.coast.open.mirror.on) {
+        walkingGroup = walker.group;
+        if (!walkerPreparedDuringLoad) roots.push(walker.group);
+        if (!walkerPreparedDuringLoad && this.paintedLook && this.mirrorOn && VIEW3D.visualTest.coast.open.mirror.on) {
           this.walkerToWarmInMirror = walker.group;
           if (this.seaMirror) this.redraw();
         }
@@ -1069,6 +1072,26 @@ export class Renderer3D implements MapView {
       }
     }
     for (const root of roots) void this.preparePrototype(root);
+    return walkingGroup;
+  }
+
+  /** Finish the first walk's shader checks before the play controls open. */
+  async warmWalkerForPlay(): Promise<void> {
+    if (!this.paintedLook || !this.mirrorOn || !VIEW3D.visualTest.coast.open.mirror.on) return;
+    const context = this.recoveries;
+    const live = () => this.running && !this.contextLost && context === this.recoveries;
+    this.lateProgramsScheduled = true;
+    // The first board draw installs the shadow shader on the seat's unit material.
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    if (!live()) return;
+    const walker = this.warmLatePrograms(true);
+    if (walker) {
+      try {
+        await prepareWalkerPrograms(this.renderer, this.scene, this.view.camera, walker, live);
+      } catch {
+        // Preparation is optional. The regular draw can still initialise the program.
+      }
+    }
   }
 
   private async preparePrototype(root: Object3D): Promise<void> {
@@ -1118,7 +1141,7 @@ export class Renderer3D implements MapView {
 
   private scheduleLatePrograms(): void {
     this.lateProgramsScheduled = true;
-    const run = (): void => this.warmLatePrograms();
+    const run = (): void => { this.warmLatePrograms(); };
     if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 2000 });
     else setTimeout(run, 500);
   }
@@ -3253,9 +3276,14 @@ export class Renderer3D implements MapView {
     this.rebuildLens();
   }
 
-  /** A command can move a unit or change a tile yield without changing the tile itself. */
-  noteStateChanged(): void {
+  /** Cards and other commands can change a yield on a tile whose ground stayed the same. */
+  noteStateChanged(command?: Command['type']): void {
     this.badgeTargets = null;
+    // Moving onto new ground, claiming a site and changing a standing yield all advance this revision.
+    // Settler recommendations follow settlers, and an open city's marks follow its citizens.
+    if (command === 'moveUnit' && this.state && !this.lensView.citizens &&
+        (this.lensView.mode === 'none' || this.lensView.mode === 'explorer') &&
+        this.glyphEconomy === standingYieldRevision(this.state)) return;
     if (this.lensView.yields) this.markLensDirty();
   }
 
@@ -3560,8 +3588,8 @@ export class Renderer3D implements MapView {
   }
 
   zoomBy(factor: number, screenX: number, screenY: number): void {
+    if (!this.view.zoomByFactor(factor, screenX, screenY)) return;
     this.setHoveredUnitId(null);
-    this.view.zoomByFactor(factor, screenX, screenY);
     this.redraw();
   }
 
@@ -4350,7 +4378,7 @@ export class Renderer3D implements MapView {
     // see CLAUDE.md's `explainTileYield` trap) changes the yield printed on its
     // tile, and `RevealStats.cells` is exactly "how many props flipped this
     // pass" — zero on the steady state, so this costs nothing most frames.
-    if (revealed && revealed.cells > 0 && this.lensView.yields) this.markLensDirty();
+    if (revealed && revealed.cells > 0 && (this.lensView.yields || this.lensView.resources)) this.markLensDirty();
     // Any tile that changed level can add or remove a piece, a town, a border
     // or a mark, so the layers that filter by the seat's eyes are rebuilt with
     // the same one call the ordinary fingerprints would have made.
@@ -4366,7 +4394,9 @@ export class Renderer3D implements MapView {
     const fogChanged = (layer: keyof LayerVisibility): boolean => force ||
       visibility?.[layer] !== this.visibilitySignatures?.[layer];
     const terrainRevision = this.paintedTerrainRevision;
-    const worksChanged = this.rebuildPaintedWorks();
+    const previousWorks = this.paintedWorksSignature;
+    this.rebuildPaintedWorks();
+    const worksChanged = previousWorks !== this.paintedWorksSignature;
     const terrainChanged = terrainRevision !== this.paintedTerrainRevision;
     if (this.state && (force || facingTurned || terrainChanged || signUnits(this.state, this.fogSeat) !== this.unitsSignature)) {
       this.setHoveredUnitId(null);
@@ -4401,6 +4431,8 @@ export class Renderer3D implements MapView {
       // And a new town is a new source in the tide *and* new ground for the
       // wash to cover, which is the faith lens's own reason to follow this.
       if (founded && this.lensView.mode === 'faith') this.markLensDirty();
+      // Resource pins disappear under a city and return when it is razed.
+      if (founded && this.lensView.resources) this.markLensDirty();
       // A farm or a mine finished, or a wood felled, changed what this ground
       // *makes* — the same two fingerprints that just cleared its dressing —
       // so the yield glyphs follow them exactly as the settler lens follows a
@@ -4419,20 +4451,17 @@ export class Renderer3D implements MapView {
     // rather than disappearing with it — which means a fog move has to reach
     // this layer too, exactly as it reaches the towns and the borders.
     if (this.state && (fogChanged('improvements') || signImprovements(this.state) !== this.improvementsSignature)) {
+      const previous = this.improvementsSignature;
       this.rebuildImprovements(force);
-      // A holy site raised or pillaged is the strongest term in the tide and the
-      // one thing this lens rings — see `addFaithWash`.
-      if (this.lensView.mode === 'faith') this.markLensDirty();
-      // A pillage, a great work planted, or an improvement that does not clear
-      // clutter (the block above only catches the ones that do) all change a
-      // tile's yield the same way a farm does.
-      if (this.lensView.yields) this.markLensDirty();
-      // The quieter pins fade on a hex the seat has improved (switch 6).
-      else if (this.lensView.resources && visualOn('pins')) this.markLensDirty();
+      // Improving or pillaging a tile can change its yield, holy site or pin. A change of tint does none of these.
+      if (previous !== this.improvementsSignature) {
+        if (this.lensView.mode === 'faith') this.markLensDirty();
+        if (this.lensView.yields) this.markLensDirty();
+        else if (this.lensView.resources && visualOn('pins')) this.markLensDirty();
+      }
     }
-    // A reveal technology or a surveyed vein can change resource models without
-    // changing an improvement. The same update also follows in-place fog edits.
-    if (worksChanged && this.lensView.yields) this.markLensDirty();
+    // A reveal technology or a surveyed vein can change a yield without changing an improvement.
+    if ((worksChanged || terrainChanged) && (this.lensView.yields || this.lensView.resources)) this.markLensDirty();
     // A lasting mark or a finished wonder changes what the ground pays with no
     // other fingerprint moving (Expansionist batch E3). Kept current whether or
     // not the yields lens is up, so raising it later is not stale for a frame.
@@ -4455,13 +4484,14 @@ export class Renderer3D implements MapView {
     // own answer is inside the fingerprint, so the turn Geomancy lands the marks
     // appear on the very next frame. See `sites3d.ts`.
     if (this.state && (facingTurned || fogChanged('sites') || signSites(this.state, this.fogSeat) !== this.sitesSignature)) {
+      const previous = this.sitesSignature;
       this.rebuildSites(force);
       // The explorer lens is a picture of exactly what that fingerprint counts —
       // the unclaimed sites and the camps — so a ruin claimed or a camp burnt
       // out since the last frame has to reach it too, or the board keeps ringing
       // a hex there is no longer anything on. The settler lens's own rules, two
       // blocks down, are the same idea against a different fingerprint.
-      if (this.lensView.mode === 'explorer') this.markLensDirty();
+      if (previous !== this.sitesSignature && this.lensView.mode === 'explorer') this.markLensDirty();
     }
     // The tide, which moves in a phase and shows up on no other fingerprint: a
     // town converted, a citizen turned, a proclamation lit or run out. Only the
@@ -4476,25 +4506,25 @@ export class Renderer3D implements MapView {
       }
     }
     if (this.state && (terrainChanged || fogChanged('territory') || signTerritory(this.state) !== this.territorySignature)) {
+      const previous = this.territorySignature;
       this.rebuildTerritory();
-      // Borders decide whose ground a settler may stand on, so the same applies.
-      if (this.lensView.mode === 'settler') this.markLensDirty();
-      // The faith wash is painted on the ground a town *owns*, so a border that
-      // moved changed which hexes it covers.
-      if (this.lensView.mode === 'faith') this.markLensDirty();
-      // Ownership changes the context a hex is evaluated in — CLAUDE.md's "an
-      // owned tile is always evaluated with its owner's context" — so a border
-      // moving (or a tile bought) can change the number printed on it even
-      // though nothing on the ground itself moved.
-      if (this.lensView.yields) this.markLensDirty();
+      // Actual borders affect settlement, a city's faith wash and the owner's tile yields.
+      if (terrainChanged || previous !== this.territorySignature) {
+        if (this.lensView.mode === 'settler') this.markLensDirty();
+        if (this.lensView.mode === 'faith') this.markLensDirty();
+        if (this.lensView.yields) this.markLensDirty();
+        else if (this.lensView.resources && visualOn('pins')) this.markLensDirty();
+      }
     }
     // The lens draws nothing on Terra Incognita, so the ground it covers moved —
     // and its roundels and settle pennants are billboards, so a turned pitch is
     // the same question asked about the camera instead of the fog.
-    if ((fogMoved || facingTurned) && this.lensView.mode === 'none' && !this.lensView.yields) {
-      // Nothing is up but the roundels; they are scoped by fog too.
-      if (this.lensView.resources) this.markLensDirty();
-    } else if (fogMoved || facingTurned) {
+    // Faith rings can hide when a city drops out of sight. The settler lens and
+    // an open city also have state-dependent marks. The other marks use charted ground.
+    const lensFogChanged = fogged?.chartChanged || (fogMoved &&
+      (this.lensView.mode === 'faith' || this.lensView.mode === 'settler' || !!this.lensView.citizens));
+    if ((lensFogChanged || facingTurned) &&
+        (this.lensView.mode !== 'none' || this.lensView.yields || this.lensView.resources || this.lensView.citizens)) {
       this.markLensDirty();
     }
     this.visibilitySignatures = visibility;
@@ -4574,7 +4604,6 @@ export class Renderer3D implements MapView {
     // owns the hide: a walk with no mesh still has a piece to give back, and a
     // gate that only watched the meshes would never run the sweep that does it.
     const hadWalkers = this.animations.pending || this.walkers.size > 0;
-    if (hadWalkers) this.stepAnimations(now);
     // Falls force frames exactly as walks do, and for the same reason: the
     // frame that finished one has to draw the board without it.
     const hadFallers = this.fallers.size > 0;
@@ -4669,6 +4698,9 @@ export class Renderer3D implements MapView {
       this.canvas.clientWidth,
       this.canvas.clientHeight,
     );
+    // On a move, fog and overlay updates can take most of a frame. Sample the
+    // walk after those updates so the first draw shows the time already spent.
+    if (hadWalkers) this.stepAnimations(performance.now());
     const renderStarted = performance.now();
     if (this.paintedLook) {
       const pixels = Math.sqrt(3) * this.canvas.clientWidth * this.renderer.getPixelRatio()
@@ -4677,7 +4709,7 @@ export class Renderer3D implements MapView {
       // shadow pass itself — `PaintedBoard.setBakeDetail`, through the hook
       // `rebuildBoard` bound — so a frame that has to rebake keeps the far LOD
       // on screen instead of flashing the near one.
-      this.paintedBoard?.updateDetail(pixels);
+      this.paintedBoard?.updateDetail(pixels, this.view.radius);
       // The board's first frame, long anyway and with nothing queued before it: the ground paint bake's program and
       // the plain land's are used for the first time now, and not in a frame of play (`prime`, `primeLand`).
       const firstBoardFrame = this.paintedBoard !== null && this.boardDrawnAt === null;

@@ -98,7 +98,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const copies = [-period, 0, period].map(offset => {
     const copy = new T.Group(); copy.position.x = offset; group.add(copy); return copy;
   });
-  const canopiesByCell = new Map(), dirtyCanopies = new Set();
+  const canopiesByCell = new Map(), dirtyCanopies = new Set(), normalTreeBatches = [];
   const clearedScopes = new Map();
   let woodedWorks = new Set();
   const fog = createPaintedFog(map.width, map.height, cell => {
@@ -232,6 +232,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   // texture is baked, and never into the static sun's bake (it casts nothing).
   let instanceCount = 0, showingDistant = false, bakingDetail = false, drawingDistant = false, disposed = false;
   let showingPlain = false, drawingPlain = false, trialPlain = null;
+  let showingNormalTrees = false, drawingNormalTrees = false;
 
   // The trial temporarily points the plain material at a local texture.
   // Keep the base texture and box so a zoom change can restore both.
@@ -250,7 +251,14 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   function applyDetail() {
     const distant = showingDistant && !bakingDetail;
     const plainLand = (trialPlain ?? showingPlain) && !!groundPaint?.ready && !bakingDetail;
-    if (drawingDistant === distant && drawingPlain === plainLand) return false;
+    const normalTrees = showingNormalTrees && !bakingDetail && normalTreeBatches.length > 0;
+    const treesChanged = normalTrees !== drawingNormalTrees;
+    if (treesChanged) {
+      drawingNormalTrees = normalTrees;
+      for (const { meshes, canopy } of normalTreeBatches)
+        for (const mesh of meshes) mesh.geometry = normalTrees ? canopy.normalGeometry : canopy.geometry;
+    }
+    if (drawingDistant === distant && drawingPlain === plainLand) return treesChanged;
     drawingDistant = distant; drawingPlain = plainLand;
     for (const batch of visibilityBatches) showBatch(batch);
     return true;
@@ -274,7 +282,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   // The map-scale stand-ins, by the sculpt each stands in for. A family without
   // one is simply absent here and draws its own sculpt at every distance.
   const distantGeometry = new Map();
+  const normalTreeGeometry = new Map();
   for (const asset of [...assets.broadleaves, ...assets.cypresses, ...assets.escarpments, assets.limestone]) {
+    if (asset.normalGeometry) normalTreeGeometry.set(asset.geometry, asset.normalGeometry);
     if (asset.farGeometry) distantGeometry.set(asset.geometry, asset.farGeometry);
     if (asset.shoulderGeometry && asset.farShoulderGeometry) distantGeometry.set(asset.shoulderGeometry, asset.farShoulderGeometry);
   }
@@ -382,9 +392,14 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     const batch = { cells: preparedCells || [...cells], meshes, detail, surface, charted: false,
       casts: !!mesh.userData.paintedCasts, order: [orderStep, orderRank, orderCount++] };
     if (mesh.isInstancedMesh && mesh.material.userData.canopySway) {
-      batch.canopy = createCanopyBatch(meshes);
+      const normalSculpt = detail === 'near' ? normalTreeGeometry.get(instanceBases.get(mesh.geometry)) : null;
+      batch.canopy = createCanopyBatch(meshes, normalSculpt);
       if (batch.canopy) {
         ownedGeometry.add(batch.canopy.geometry);
+        if (batch.canopy.normalGeometry) {
+          normalTreeBatches.push(batch);
+          ownedGeometry.add(batch.canopy.normalGeometry);
+        }
         for (const cell of batch.cells) {
           const batches = canopiesByCell.get(cell);
           if (batches) batches.push(batch.canopy);
@@ -971,9 +986,10 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       return true;
     },
     /** What the camera asks of the colour pass, and nothing else. */
-    updateDetail(pixels) {
+    updateDetail(pixels, radius = 0) {
       const lod = VIEW3D.painted.lod;
       showingDistant = pixels < (showingDistant ? lod.farPixels : lod.nearPixels);
+      showingNormalTrees = radius >= (showingNormalTrees ? lod.normalTrees.closeRadius : lod.normalTrees.normalRadius);
       // The plain land's band: the same rule on its own two figures. It starts above the far band (`groundPaintPlan`),
       // so wherever the far props are drawn, the land is plain once its texture is baked.
       if (groundPaint) showingPlain = pixels < (showingPlain ? groundPaint.farPixels : groundPaint.nearPixels);

@@ -13,6 +13,7 @@
  * is printed rather than swallowed.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as combat from '../../src/sim/combat';
 import { foundCityAt } from '../../src/sim/cities';
 import { dispatch } from '../../src/sim/game';
 import { createMap, getTileAt, mapRange, tileHex } from '../../src/sim/map';
@@ -185,6 +186,28 @@ describe('the forecast at a distance', () => {
     expect(reading.preview.ok && reading.preview.kind).toBe('ranged');
     // Range 2, so the nearest hex in range along the row — never right beside it.
     expect(reading.from).toEqual({ col: 6, row: 3 });
+  });
+
+  it('stops checking ranged positions after the first clear shot', () => {
+    const f = fixture();
+    const mine = createUnit(f.state, 0, 'archer', 3, 3);
+    createUnit(f.state, 1, 'warrior', 8, 3);
+    getTileAt(f.state.map, 7, 3)!.terrain = 'mountain';
+    f.seeAll();
+    f.controls.selectPiece(mine.id);
+    f.hoverAt(8, 3);
+
+    const preview = vi.spyOn(combat, 'previewCombat');
+    try {
+      const reading = f.controls.combatForecast()!;
+      const positions = preview.mock.calls.flatMap(([, , , stance]) => stance ? [stance.from] : []);
+      expect(positions[0]).toEqual({ col: 6, row: 3 });
+      expect(positions.length).toBeGreaterThan(1);
+      expect(reading.preview.ok).toBe(true);
+      expect(positions[positions.length - 1]).toEqual(reading.from);
+    } finally {
+      preview.mockRestore();
+    }
   });
 
   it('prints the waterline refusal rather than hiding it', () => {

@@ -2709,6 +2709,7 @@ async function createRenderer(
       renderer.setFogSeat(firstSeat);
       renderer.setGameState(game.state);
       performance.mark('magisterludi:state-layers-built');
+      if (mode === 'painted') await renderer.warmWalkerForPlay();
       const report = build3DPanel(renderer);
       report();
       return { view: renderer, report };

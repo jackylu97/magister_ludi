@@ -315,7 +315,7 @@ async function loadPreparedAssets(indexed){
  }
 }
 
-export async function loadVegetation(time,flocking,mineral,{indexed=true,distantCells=null}={}) {
+export async function loadVegetation(time,flocking,mineral,{indexed=true,distantCells=null,normalTreeCells=null}={}) {
   // The bundle needs no texture, so its download overlaps the grain textures.
   const prepared=loadPreparedAssets(indexed);
   const [flockingGrain,mineralGrain]=await Promise.all([flocking,mineral]);
@@ -390,6 +390,14 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true,distant
   for(const [i,asset]of assets.entries()){
    if(asset.geometry)asset.geometry.userData.paintedAsset=VEGETATION_SPECIES[i].name;
    if(asset.shoulderGeometry)asset.shoulderGeometry.userData.paintedAsset=`${VEGETATION_SPECIES[i].name}-shoulder`;
+   if(normalTreeCells && VEGETATION_SPECIES[i].family==='groves'){
+    const normal=farSculpt(asset.geometry,normalTreeCells);
+    if(normal){
+     normal.userData.paintedAsset=`${VEGETATION_SPECIES[i].name} normal`;
+     asset.normalGeometry=normal;
+     outputs.add(normal);
+    }
+   }
    // One family gets a map-scale stand-in, and the sheet says which: a family
    // the sheet does not name keeps its own sculpt at every distance, which is
    // what the board drew before there was a stand-in at all.

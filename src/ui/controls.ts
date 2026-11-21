@@ -2724,6 +2724,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * it belongs to the open city, so it is off each time a city opens.
    */
   let citizenMode = false;
+  /** The city `refreshSpotlight` last saw under the pointer or open, so the lens is refreshed only when it changes. */
+  let spotlitId: number | null = null;
   /**
    * The resource roundels, as the player left them. Not a lens either, and
    * unlike the glyphs it starts *on* — see `LENS_DEFAULTS`. Nothing automatic
@@ -3068,7 +3070,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       clearUnitHover();
       // A card or a belief can change what a hex pays with no board fingerprint to
       // move; the yields lens is told once per accepted command (`MapView`, optional).
-      renderer.noteStateChanged?.();
+      renderer.noteStateChanged?.(command.type);
       pollSightings();
       reportReligion();
       reportConsecrations(result);
@@ -4841,19 +4843,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   /** The worked-tile dots, and which of them the player pinned by hand. */
   function refreshSpotlight(): void {
-    const city = spotlitCity();
-    if (!city || openCity()) {
-      renderer.setWorkedTiles?.([], []);
-      return;
-    }
-    // Only *honoured* pins are drawn: a lock on a tile the city cannot work
-    // right now is real intent (it is kept, see `assignCitizens`) but there is
-    // no citizen standing on it to mark.
-    const worked = city.workedTiles;
-    const locked = city.lockedTiles.filter((cell) =>
-      worked.some((tile) => tile.col === cell.col && tile.row === cell.row),
-    );
-    renderer.setWorkedTiles?.(worked, locked);
+    // The hexes of the city under the pointer are marked by the lens now: the
+    // plaques under their yields (`effectiveLens`, which asks `spotlitCity`).
+    // The overlay's own marks for them (the inset outlines, and the small
+    // rings before those) are not drawn any more, so it is handed no hexes.
+    renderer.setWorkedTiles?.([], []);
+    const looked = spotlitCity()?.id ?? null;
+    if (looked === spotlitId) return;
+    spotlitId = looked;
+    refreshLens();
   }
 
   /**
@@ -4976,6 +4974,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const unit = selectedUnit();
     const def = unit === null ? null : unitDef(unit.type);
     const city = openCity();
+    // The city the board marks the hexes of: the open one, or the one under the pointer.
+    const looked = city ?? spotlitCity();
     const mode = lensForSelection(def, manualLens);
     return {
       mode,
@@ -4987,9 +4987,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // The outlines and the full set-back ground are the Manage citizens
       // mode's. With the mode off the board sets the other ground back a
       // little and lights the worked hexes.
-      yields: lensShowsYields(mode, yieldsOn, city !== null),
+      yields: lensShowsYields(mode, yieldsOn, looked !== null),
       yieldCells: null,
-      citizens: city ? { cityId: city.id, manage: citizenMode } : undefined,
+      // A worked hex's yields on a plaque are the one mark of a city's hexes
+      // (idea e, the user's choice of 2026-11-21). The pointer on a city on the
+      // main map shows the same plaques, with no shade.
+      citizens: city
+        ? { cityId: city.id, manage: citizenMode }
+        : looked
+          ? { cityId: looked.id, manage: false, hover: lensShowsYields(mode, yieldsOn, false) ? 'over' : 'only' }
+          : undefined,
       playerId,
     };
   }
@@ -5432,14 +5439,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const cell = { col: hex.col, row: hex.row };
       const preview = previewCombat(state, unit.id, { col: tile.col, row: tile.row }, { from: cell });
       const stand: CombatReading = { preview, comparison: true, from: cell };
+      // Ranged units use the nearest legal shot. The other positions are already farther away or tied.
+      if (ranged && preview.ok) return stand;
       if (chosen === null || !chosen.preview.ok) {
         chosen = stand;
         continue;
       }
       if (!preview.ok) continue;
-      // Nearest-first has already answered for the bow; the sword takes the
-      // strongest stance it found, and the ties are the sort order's.
-      if (!ranged && preview.attackerStrength > chosen.preview.attackerStrength) chosen = stand;
+      // Melee units compare all legal positions and keep the first one on a tie.
+      if (preview.attackerStrength > chosen.preview.attackerStrength) chosen = stand;
     }
     return chosen;
   }

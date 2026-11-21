@@ -232,7 +232,6 @@ import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
 import { seatName } from '../sim/leaderData';
 import { beadMarkNode } from './newsMark';
-import { VIEW3D } from '../render3d/lookData';
 
 
 /**
@@ -3681,30 +3680,29 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * The two keys of the Manage citizens mode: what a worked hex and a pinned
    * hex look like on the board (the user, 2026-11-21: "I think just the
    * 'worked' and 'pinned' icons need to exist to show the player what those
-   * mean"). Each is the real mark, small: a hex with one inset outline, and a
-   * hex with two. They stand in the dock's row, at its left end, while the
-   * mode is on. The outline's colour is the board's own (`territory.citizens`).
+   * mean"). Each is the real mark, small: the parchment plaque a worked hex's
+   * yields sit on, and the same plaque with the pin head in the seat's colour
+   * (idea e, `citizenMarks.ts`). They stand in the dock's row, at its left
+   * end, while the mode is on.
    */
-  function renderCitizenKeys(): HTMLElement {
-    const art = VIEW3D.territory.citizens;
+  function renderCitizenKeys(city: City): HTMLElement {
     const keys = element('span', 'city-citizen-keys');
     keys.setAttribute('role', 'group');
     keys.setAttribute('aria-label', 'Citizen marks on the board');
-    keys.style.setProperty('--citizen-outline', '#' + art.outlineColor.toString(16).padStart(6, '0'));
-    // A pointed-top hex in a 26 by 30 box, and the same hex drawn smaller about the centre for each outline.
-    const hexAt = (scale: number): string =>
-      [[13, 1], [25, 8], [25, 22], [13, 29], [1, 22], [1, 8]]
-        .map(([x, y]) => `${(13 + (x! - 13) * scale).toFixed(1)},${(15 + (y! - 15) * scale).toFixed(1)}`).join(' ');
-    for (const [label, rings] of [['Worked', [0.7]], ['Pinned', [0.74, 0.44]]] as const) {
+    keys.style.setProperty('--citizen-seat', getGame().state.players[city.ownerId]!.color);
+    for (const [label, pinned] of [['Worked', false], ['Pinned', true]] as const) {
       const key = element('span', 'city-citizen-key');
-      const outlines = rings.map((scale) =>
-        `<polygon class="citizen-key-backing" points="${hexAt(scale)}"/><polygon class="citizen-key-line" points="${hexAt(scale)}"/>`).join('');
       const mark = element('span', 'citizen-key-mark');
       mark.setAttribute('aria-hidden', 'true');
-      mark.innerHTML = `<svg viewBox="0 0 26 30" width="20" height="23"><polygon class="citizen-key-ground" points="${hexAt(1)}"/>${outlines}</svg>`;
+      // A plaque with two yield discs on it, and the pin head on its top edge.
+      mark.innerHTML = '<svg viewBox="0 0 22 26" width="19" height="23">' +
+        '<rect class="citizen-key-plaque" x="3" y="6" width="16" height="18" rx="2.2"/>' +
+        '<circle class="citizen-key-disc is-food" cx="11" cy="12" r="2.6"/><circle class="citizen-key-disc is-work" cx="11" cy="18.4" r="2.6"/>' +
+        (pinned ? '<circle class="citizen-key-pin" cx="11" cy="6" r="3.4"/><circle class="citizen-key-shine" cx="9.9" cy="4.9" r="1"/>' : '') +
+        '</svg>';
       // The word is hidden on a narrow screen, so the key carries it as well.
       key.setAttribute('aria-label', label);
-      noteOn(key, label, false);
+      key.title = label;
       key.append(mark, element('span', 'citizen-key-word', label));
       keys.append(key);
     }
@@ -3734,7 +3732,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const row = element('div', 'city-buy-dock-row');
     // A mode button is a toggle: its name stays, and the pressed state says it is on.
     if (options.setCitizenMode) {
-      if (managing) row.append(renderCitizenKeys());
+      if (managing) row.append(renderCitizenKeys(city));
       const manage = element('button', 'city-buy-tiles city-manage-citizens');
       manage.type = 'button';
       manage.append(element('span', 'city-dock-glyph is-hex'), document.createTextNode('Manage citizens'));
