@@ -26,3 +26,4 @@ docs pass's fence. Read one only when a comment sends you to it.
 | `webgl-audit-2026-10-06.md` | the 3D renderer's GPU memory, per-frame work, shadow rig and context-loss handling, after the September painted-performance passes |
 | `s3-encapsulation-2026-11-07.md` | where the Doctrine build's logic lives, which groups of `value.ts`, `evaluator.ts`, `draft.ts` and `bot.ts` hold together, and the moves and merges of stage 3 of the performance pass |
 | [Yield calculation frequency](yield-calculation-frequency-2026-11-20.md) | why a city crossing refreshed the top bar, where yields are calculated, and which calls the input benchmark counts |
+| [Yield calculations outside the top bar](yield-work-outside-city-totals-2026-11-20.md) | measured costs for board movement, Order previews, settlement recommendations, city panels, bot planning and turn collection |
