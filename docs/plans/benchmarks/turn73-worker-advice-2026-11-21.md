@@ -32,3 +32,14 @@ The combined build used Claude’s board marks and hover panel with the backgrou
 | 497 | 15.2 ms | 17.7 ms | 25.0 ms |
 
 Posting the board for the first request took 2.1 ms. The other two requests reused that board. The three workers received one, three and one recommendations. Their coordinates, improvements, scores, distances and yield changes matched a direct call to the bot’s planner with the board settings. Hovering a marked tile showed the corresponding improvement and yield changes in each case. The selection drew before its advice arrived in all three cases. Each row is one click. The timing ends when the draw returns on the main thread.
+
+Four fresh browser sessions repeated the first click on worker 479. Two used the real worker. The two middle sessions skipped worker startup and supplied the same advice immediately after the first selection draw. Each started from the same board and camera.
+
+| Time on that first selection | Real worker, two sessions | Advice disabled until after selection, two sessions |
+| --- | ---: | ---: |
+| Pointer release to first selection draw | 63.4 and 47.0 ms | 46.5 and 46.6 ms |
+| Input waiting before the page handler | 38.6 and 2.3 ms | 3.2 and 30.8 ms |
+| Time inside the page handler | 10.7 and 8.5 ms | 8.2 and 6.5 ms |
+| End of handler to end of first draw | 14.1 and 36.2 ms | 35.0 and 9.3 ms |
+
+A first click still took about 47 ms with advice disabled. In each case much of the wait fell before the handler ran or between the handler and the next draw. The draw itself took 3.4 to 4.6 ms on the main thread. The two observations per group are too few to estimate an average saving. The measurements do not establish when the monitor displayed the selection.
