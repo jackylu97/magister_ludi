@@ -12,6 +12,7 @@ import { UNIT_REVIEW_PEOPLE } from '../../src/flairGallery/unitsFixture';
 import { FAMILIES } from '../../src/sim/greatPeopleData';
 import { createMap } from '../../src/sim/map';
 import { createUnit } from '../../src/sim/state';
+import { UNIT_TYPE_IDS } from '../../src/sim/unitData';
 import { VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import type { FallenUnit } from '../../src/ui/mapView';
 import { newGame } from '../sim/newGameHelpers';
@@ -147,12 +148,12 @@ describe('unit motion uses the resting art and pigments', () => {
 
   it('retains each equipment variant when replacing resting pieces with moving and falling copies', () => {
     const f = fixture(true);
-    for (const type of ['swordsman', 'legionary', 'longswordsman', 'fireLance', 'khopesh', 'eagleWarrior', 'phalanx', 'spearWall', 'pikeman', 'fubing', 'ponticPeltast', 'bowman', 'compositeBowman', 'crossbowman', 'slinger', 'cataphract', 'knight', 'knightsTemplar', 'tangCavalry', 'chanyuGuard', 'gendarme', 'mandekalu', 'whistlingArrow', 'xiongnuHorseArcher', 'camelArcher', 'chariot', 'scythedChariot', 'chariotArcher', 'catapult', 'trebuchet', 'trireme', 'bireme', 'galley', 'caravel', 'corvette', 'alexandrianGalley', 'warGalley', 'towerShip', 'carrack', 'shipOfTheLine', 'treasureShip', 'fireShip', 'gunGalley', 'frigate', 'augur', 'apostle', 'inquisitor', 'canoness', 'rihlaCaravan'] as const) {
+    for (const type of UNIT_TYPE_IDS) {
       f.unit.type = type;
       for (const tile of f.state.map.tiles) tile.terrain = f.kit!.resolve(f.unit)?.waterborne ? 'coast' : 'grassland';
       f.build();
       const model = f.kit!.resolve(f.unit, 'grassland')!;
-      expect(model.geometry.userData.paintedUnitAsset).toBe(type);
+      expect(model.geometry.userData.paintedUnitAsset).toBe(type === 'greatPerson' ? 'greatPerson:scholar' : type);
       expect(f.layer.group.children.some(object => object instanceof InstancedMesh && object.geometry === model.geometry)).toBe(true);
       f.runtime.spawnWalker(f.unit.id);
       const moving = f.walkers.get(f.unit.id)!;

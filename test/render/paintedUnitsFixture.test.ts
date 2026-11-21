@@ -23,18 +23,18 @@ import { overrideNorthStarUnit } from '../../src/render3d/northStarUnits';
 overrideNorthStarUnit('swordsman', null);
 
 describe('painted unit review fixture', () => {
-  it.each(['polearm', 'ranged', 'cavalry', 'mountedRanged', 'siege', 'navalLight', 'navalHeavy', 'navalRanged', 'faith', 'caravans'] as const)('routes, renders and moves the complete %s comparison through production contracts', group => {
+  it.each(['roster', 'polearm', 'ranged', 'cavalry', 'mountedRanged', 'siege', 'navalLight', 'navalHeavy', 'navalRanged', 'faith', 'caravans'] as const)('routes, renders and moves the complete %s comparison through production contracts', group => {
     const line = UNIT_LINE_REVIEWS[group], state = createUnitsFixture({ group });
     const kit = new PaintedUnitKit(() => undefined);
     try {
       expect(unitReviewGroup(group)).toBe(group);
       expect(state.units.map(unit => unit.type)).toEqual(Object.keys(line.views));
-      expect(state.units).toHaveLength(group === 'caravans' ? 2 : group === 'navalLight' ? 6 : group === 'navalRanged' ? 3 : group === 'siege' ? 2 : group === 'cavalry' ? 10 : group === 'polearm' ? 6 : 5);
+      expect(state.units).toHaveLength(group === 'caravans' ? 2 : group === 'navalLight' ? 6 : group === 'navalRanged' ? 3 : group === 'siege' ? 2 : (group === 'roster' || group === 'cavalry') ? 10 : group === 'polearm' ? 6 : 5);
       expect(state.cities).toEqual([]);
       const models = new Set();
       for (const unit of state.units) {
         expect(unitReviewGroup(unit.type, group)).toBe(group);
-        expect(unitReviewGroup(unit.type)).toBe(unit.type === line.base && UNIT_REVIEW_TYPES.some(type => type === unit.type) ? 'representatives' : group);
+        expect(unitReviewGroup(unit.type)).toBe(group === 'roster' && unit.type === 'xiongnuHorseArcher' ? 'mountedRanged' : unit.type === line.base && UNIT_REVIEW_TYPES.some(type => type === unit.type) ? 'representatives' : group);
         const tile = getTileAt(state.map, unit.col, unit.row)!;
         expect(canStopOn(state, unit, tile)).toBe(true);
         if (group.startsWith('naval')) expect(tile.terrain).toBe('coast');

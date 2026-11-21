@@ -99,6 +99,7 @@ export function createPaintedFog(width, height, onCanopyChange) {
       return write(cell, 1, Math.max(data[cell * 4 + 1] || 0, Math.min(2, scope)));
     },
     reserve(cell, radius) { return write(cell, 2, Math.round(Math.max(0, Math.min(1, radius)) * 255)); },
+    setSuppression(cell, scope) { return write(cell, 1, scope); },
     unsuppress(cell) { return write(cell, 1, 0); },
     /**
      * The city screen's set-back ground (`SET_BACK_PAINT` in `paintedFogLook.ts`).

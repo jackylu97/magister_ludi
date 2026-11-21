@@ -115,7 +115,7 @@ export interface PaintedBoard extends BuiltBoard {
   readonly revealing: number;
   /** The uncharted register's paper. Added to the board's own wrap copies. */
   createChartTable(register?: (material: MeshStandardMaterial) => unknown): Mesh;
-  reserveFootprints(radii: ReadonlyMap<number,number>): number;
+  reserveFootprints(radii: ReadonlyMap<number,number>, woodedWorks?: ReadonlySet<number>): number;
   isCellVisible(cell: number, grade?: number): boolean;
   updateDetail(pixels: number): boolean;
   /** Raises near geometry for the static depth pass alone. True when it moved. */

@@ -21,6 +21,7 @@
  * rather than being a convention nobody can check.
  */
 
+import { APPROVED_WORKS, isApprovedWork } from './approvedWorkCatalog';
 import viewJson from '../../data/view3d.json';
 
 import type { DiscoveryKind } from '../sim/discoveryData';
@@ -2858,7 +2859,7 @@ const rawImprovementProps = viewJson.improvements.props as Record<
  */
 function improvementPropSpec(id: ImprovementId): ImprovementPropSpec {
   const drawn = improvementBaseRow(id);
-  const spec = rawImprovementProps[drawn];
+  const spec = rawImprovementProps[drawn] ?? (isApprovedWork(id) ? rawImprovementProps[APPROVED_WORKS[id].fallback] : undefined);
   if (spec === undefined) {
     throw new Error(`view3d.json: improvements.props has no row for "${drawn}"`);
   }

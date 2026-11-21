@@ -1,3 +1,4 @@
+import {rosterUnitModels,equipRosterUnit} from './rosterUnitModels.js';
 import {faithVariants,addFaithEquipment,addJourneyCargo} from './faithUnitModels.js';
 import {addNaval,navalVariants} from './navalUnitModels.js';
 import * as T from 'three';
@@ -90,7 +91,15 @@ function makeReadable(group,{tools:findTools=true,bake=false,toolWidth=READABLE.
 
 // The original memory-table figures: concentric enamel plinths, turned robes,
 // ivory faces and a few gilt marks. Unit identity lives in the finial/tool.
-export function createPrimitiveUnitScene(type,{family='scholar',tier=0,variant=UNIT_VARIANTS[type]??'a'}={}){
+export function createPrimitiveUnitScene(type, options) {
+ const model = Object.hasOwn(rosterUnitModels, type) ? rosterUnitModels[type] : null;
+ if (!model) return baseUnitScene(type, options);
+ const scene = baseUnitScene(model.base, {tier: model.tier});
+ if (model.equip) equipRosterUnit(scene, type, model.equip);
+ return scene;
+}
+
+function baseUnitScene(type,{family='scholar',tier=0,variant=UNIT_VARIANTS[type]??'a'}={}){
  if(UNIT_VARIANT_IDS[type]&&!UNIT_VARIANT_IDS[type].includes(variant))throw new Error(`Unknown ${type} variant ${variant}`);
  const mounted=mountedVariants.includes(type);
  const infantry=['swordsman','legionary','longswordsman','fireLance','khopesh','eagleWarrior'].includes(type);

@@ -392,6 +392,9 @@ drawPaletteAndRamp(
   const terraces = element('a', undefined, 'Review Pachacuti’s terrace farm');
   terraces.href = '/flair.html?review=works&work=terraces&light=golden&detail=close';
   root.append(element('br'), terraces);
+  const approved = element('a', undefined, 'Review the nine approved improvements');
+  approved.href = '/flair.html?review=works&work=approved';
+  root.append(element('br'), approved);
 }
 
 {
@@ -408,6 +411,8 @@ drawPaletteAndRamp(
     'The twelve accepted primitive pieces, five great-person families, owner colours and movement on the painted board.');
   const link = element('a', undefined, 'Open the painted unit review');
   link.href = '/flair.html?review=units&unit=all&light=golden&detail=game'; root.append(link);
+  const roster = element('a', undefined, 'View the leader and charter units');
+  roster.href = '/flair.html?review=units&unit=roster'; root.append(element('br'), roster);
   // The trait glow (Scientific batch S10) is a moment, not a standing mark, so
   // it lives in the unit review as a button that replays it on the pieces in
   // view, with its three tunables as knobs. Opened on the siege line here,

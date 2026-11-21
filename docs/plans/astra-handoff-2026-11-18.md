@@ -415,6 +415,10 @@ checked all thirteen leaders' units). The two units above are the only gaps.
 their own models on the board. Today a town's wonders are three shared
 monuments.
 
+**Playtest approval, 21 November.** Add the eight new leader and charter pieces from `art/terrain-study/unit-roster-review/` to the painted board. Use the existing siege elephant for the Ballista Elephant and the existing mounted archer for the Keshig. The archer and spearman in section 3.16 are a separate Blender study.
+
+Include the nine approved models in `art/terrain-study/improvement-studies/` in the same playtest. Fish Traps, Wild Orchard and Paradise Garden already have improvement rows. Use the revised orchard and the white Nazca hummingbird with dark edges. Use the painted board gallery to show works that still await their Expansionist gameplay rows.
+
 ### 3.14 The Commerce and Expansionist deck passes (ready)
 
 Both passes are closed. Each plan ends in "Ready for the build" and then a

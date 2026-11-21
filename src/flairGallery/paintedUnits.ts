@@ -5,7 +5,7 @@ import { leaderDef } from '../sim/leaderData';
 import { unitDef } from '../sim/unitData';
 import { resolveUnitPointerTarget } from '../ui/unitPointer';
 import {
-  INFANTRY_VIEWS, POLEARM_VIEWS, RANGED_VIEWS, CAVALRY_VIEWS, MOUNTED_RANGED_VIEWS, SIEGE_VIEWS, EMBARKED_VIEWS, FAITH_VIEWS, CARAVAN_VIEWS, NAVAL_LIGHT_VIEWS, NAVAL_HEAVY_VIEWS, NAVAL_RANGED_VIEWS, UNIT_LINE_REVIEWS,
+  UNIT_LINE_REVIEWS,
   UNIT_CONTEXT_VIEWS, UNIT_REVIEW_LEADERS, UNIT_REVIEW_PEOPLE, UNIT_REVIEW_TYPES, UNIT_VIEWS,
   createUnitsFixture, moveUnitsFixtureUnit, setUnitsFixtureVisibility, unitReviewGroup,
   type EquipmentReviewType, type InfantryReviewType, type UnitReviewContext, type UnitReviewGroup, type UnitReviewLeader, type UnitReviewType,
@@ -17,7 +17,7 @@ type Focus = UnitReviewType | InfantryReviewType | EquipmentReviewType | UnitRev
 const isLine = (focus: string): focus is LineGroup => Object.prototype.hasOwnProperty.call(UNIT_LINE_REVIEWS, focus);
 type ReviewViews = Record<string, { col: number; row: number; label: string; note: string }>;
 const representativeViews = { ...UNIT_VIEWS, ...UNIT_CONTEXT_VIEWS };
-const allViews = { ...representativeViews, ...INFANTRY_VIEWS, ...POLEARM_VIEWS, ...RANGED_VIEWS, ...CAVALRY_VIEWS, ...MOUNTED_RANGED_VIEWS, ...SIEGE_VIEWS, ...EMBARKED_VIEWS, ...FAITH_VIEWS, ...CARAVAN_VIEWS, ...NAVAL_LIGHT_VIEWS, ...NAVAL_HEAVY_VIEWS, ...NAVAL_RANGED_VIEWS };
+const allViews = Object.assign({}, representativeViews, ...Object.values(UNIT_LINE_REVIEWS).map(line => line.views));
 
 /** A focused art review using the production board, pieces, fog and movement. */
 export async function drawPaintedUnits(into: HTMLElement): Promise<() => void> {
@@ -98,7 +98,7 @@ export async function drawPaintedUnits(into: HTMLElement): Promise<() => void> {
       const halfHeight = Math.max(...points.map(point => point ? Math.abs(point.y - height / 2) : 0));
       const zoom = Math.min((width - 140) / (2 * halfWidth), (height - 100) / (2 * halfHeight));
       if (Number.isFinite(zoom) && zoom > 0) renderer.zoomBy((focus === 'siege' || focus === 'caravans') ? zoom * .70 : zoom, width / 2, height / 2);
-      note.textContent = focus === 'embarked' ? 'A shared transport with the passenger’s unit badge. Select the settler to embark or the warrior to land.' : focus.startsWith('naval') ? `${UNIT_LINE_REVIEWS[focus].label} on navigable water. Choose one to inspect its hull, rig and equipment.` : focus === 'siege' ? 'Catapult and trebuchet: low torsion engine and tall counterweight engine. Choose one for game or detail scale.' : `${UNIT_LINE_REVIEWS[focus].label} variants beside the accepted ${UNIT_LINE_REVIEWS[focus].base}. Choose one to inspect its equipment at game or detail scale.`;
+      note.textContent = focus === 'roster' ? 'Inspect the leader and charter pieces at game or detail scale.' : focus === 'embarked' ? 'A shared transport with the passenger’s unit badge. Select the settler to embark or the warrior to land.' : focus.startsWith('naval') ? `${UNIT_LINE_REVIEWS[focus].label} on navigable water. Choose one to inspect its hull, rig and equipment.` : focus === 'siege' ? 'Catapult and trebuchet: low torsion engine and tall counterweight engine. Choose one for game or detail scale.' : `${UNIT_LINE_REVIEWS[focus].label} variants beside the accepted ${UNIT_LINE_REVIEWS[focus].base}. Choose one to inspect its equipment at game or detail scale.`;
     } else if (focus === 'all' || focus === 'civilian') {
       const firstRow = focus === 'all' ? 2 : 6;
       renderer.focusOpening({ col: 7, row: (firstRow + 10) / 2 });
@@ -155,7 +155,7 @@ export async function drawPaintedUnits(into: HTMLElement): Promise<() => void> {
     : [['all', 'All twelve'], ['civilian', 'Scouts & civilians'],
       ...UNIT_REVIEW_TYPES.map(id => [id, UNIT_VIEWS[id].label] as const),
       ...Object.entries(UNIT_CONTEXT_VIEWS).map(([id, view]) => [id, view.label] as const)];
-  const groupControl = select(knobs, 'Group', [['representatives', 'Accepted representatives'], ['infantry', 'Infantry variants'], ['polearm', 'Anti-cavalry variants'], ['ranged', 'Ranged variants'], ['cavalry', 'Cavalry variants'], ['mountedRanged', 'Mounted ranged variants'], ['siege', 'Siege engines'], ['navalLight', 'Light ships'], ['navalHeavy', 'Heavy ships'], ['navalRanged', 'Ranged ships'], ['faith', 'Religious'], ['caravans', 'Caravans'], ['embarked', 'Embarked transports']], group, value => {
+  const groupControl = select(knobs, 'Group', [['representatives', 'Accepted representatives'], ['roster', 'Leader and charter units'], ['infantry', 'Infantry variants'], ['polearm', 'Anti-cavalry variants'], ['ranged', 'Ranged variants'], ['cavalry', 'Cavalry variants'], ['mountedRanged', 'Mounted ranged variants'], ['siege', 'Siege engines'], ['navalLight', 'Light ships'], ['navalHeavy', 'Heavy ships'], ['navalRanged', 'Ranged ships'], ['faith', 'Religious'], ['caravans', 'Caravans'], ['embarked', 'Embarked transports']], group, value => {
     group = value as UnitReviewGroup; focus = group !== 'representatives' ? group : 'all';
     unitControl.replaceChildren(...unitOptions().map(([id, label]) => {
       const option = element('option', undefined, label); option.value = id; return option;

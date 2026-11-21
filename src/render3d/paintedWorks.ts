@@ -2,6 +2,8 @@ import {
   BufferGeometry, Color, Group, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial,
   Quaternion, Vector3,
 } from 'three';
+import { APPROVED_WORK_IDS, type ApprovedWorkId, isApprovedWork, workGalleryPreviews } from './approvedWorkCatalog';
+import { loadApprovedWork, placeApprovedWork } from './approvedWorkArt';
 import { mergePaintedPatches } from './paintedPatchPicking';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
@@ -35,7 +37,7 @@ export const PAINTED_WORK_ASSET_NAMES = [
 /** The rows this layer has a recipe drawn for. One name, one composition. */
 const DRAWN_WORK_IMPROVEMENTS = [
   'farm', 'terraces', 'mine', 'pasture', 'camp', 'quarry', 'plantation', 'lumbermill', 'fishingBoats',
-  'academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite',
+  'academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite', ...APPROVED_WORK_IDS,
 ] as const;
 type CoreImprovement = typeof DRAWN_WORK_IMPROVEMENTS[number];
 /**
@@ -48,7 +50,7 @@ type CoreImprovement = typeof DRAWN_WORK_IMPROVEMENTS[number];
  * `improvementAt`, which is where a stand-in becomes the row it stands in for.
  */
 export const PAINTED_WORK_IMPROVEMENTS: readonly ImprovementId[] = IMPROVEMENT_IDS.filter(
-  (id) => (DRAWN_WORK_IMPROVEMENTS as readonly string[]).includes(improvementBaseRow(id)),
+  (id) => isApprovedWork(id) || (DRAWN_WORK_IMPROVEMENTS as readonly string[]).includes(improvementBaseRow(id)),
 );
 export type PaintedWorksAssets = { material: MeshStandardMaterial } & Record<typeof PAINTED_WORK_ASSET_NAMES[number], BufferGeometry>;
 interface PaintedWorksOptions { suppressed?: ReadonlyMap<number, SuppressScope> }
@@ -78,6 +80,7 @@ type Recipe = {
   tile: Tile; original: Tile; resource: ResourceId | null; improvement: CoreImprovement | undefined;
   damage?: ImprovementId;
   site?: string; step: number;
+  fitted?: BufferGeometry;
   props: Prop[]; patches: Patch[]; placements: PaintedWorksPlacement[];
 };
 type PropBatch = { region: number; geometry: BufferGeometry; material: MeshStandardMaterial; props: Prop[]; cells: number[] };
@@ -87,6 +90,7 @@ const core = new Set<string>(DRAWN_WORK_IMPROVEMENTS);
 /** Visual variants are independent of the simulation's counts-as rules. */
 const improvementAt = (tile: Tile): CoreImprovement | undefined => {
   if (!tile.improvement) return undefined;
+  if (isApprovedWork(tile.improvement)) return tile.improvement;
   const drawn = tile.improvement === 'terraces' ? 'terraces' : improvementBaseRow(tile.improvement);
   return core.has(drawn) ? drawn as CoreImprovement : undefined;
 };
@@ -154,6 +158,7 @@ export function signPaintedWorks(state: GameState, seat: number | null = null): 
   add(seat === null ? -1 : seat);
   // One answer per resource row rather than one per hex: whether this seat can
   // name a resource is an empire fact, and the map asks it four thousand times.
+  const previews = workGalleryPreviews.get(state.map);
   const nameable = new Map<ResourceId, boolean>();
   const stepAt = workAgeSteps(state);
   for (const [cell, tile] of state.map.tiles.entries()) {
@@ -165,7 +170,7 @@ export function signPaintedWorks(state: GameState, seat: number | null = null): 
       if (visible) resource = resourceOrdinal.get(id) ?? 0;
     }
     add(resource);
-    const improvement = tile.improvement ? improvementAt(tile) : undefined;
+    const improvement = previews?.get(cell) ?? (tile.improvement ? improvementAt(tile) : undefined);
     add(improvement ? improvementOrdinal.get(improvement) ?? 0 : 0);
     // The work's age step, so the works change when their owner enters a new age or the hex changes hands.
     if (improvement) add(stepAt(cell, improvement));
@@ -192,6 +197,9 @@ export class PaintedWorksLayer {
   private disposed = false;
   private shadowsEnabled: boolean | undefined;
 
+  private readonly approved = new Map<ApprovedWorkId, BufferGeometry>();
+  private readonly loading = new Set<ApprovedWorkId>();
+  private pigment?: MeshStandardMaterial;
   private readonly terrace = terraceFarmGeometry();
   private readonly terraceMaterial = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: .95, flatShading: true });
 
@@ -199,13 +207,37 @@ export class PaintedWorksLayer {
     return this.group.children.filter((mesh): mesh is InstancedMesh => mesh instanceof InstancedMesh && mesh.geometry === this.terrace);
   }
 
-  constructor(private readonly assets: PaintedWorksAssets, registerMaterial: RegisterMaterial, private readonly source?: PaintedPropSource) {
+  constructor(private readonly assets: PaintedWorksAssets, private readonly registerMaterial: RegisterMaterial, private readonly source?: PaintedPropSource,
+    private readonly onAssetsReady?: () => void, private readonly loadWork = loadApprovedWork) {
     registerMaterial(this.terraceMaterial, { terrain: true });
     this.group.name = source?.name ?? 'painted-works';
     this.art = source ? source.createArt(assets, registerMaterial)
       : createSettlementArt(assets, { register: registerMaterial }, VIEW3D.visualTest.northStar ? VIEW3D.visualTest.works : null);
     // The herds' idle motion lives in the shader of the material every work shares (`paintedAnimals.ts`).
     if (VIEW3D.visualTest.northStar) installHerdMotion(assets.material);
+  }
+
+  /** Request only works on charted ground. Each sculpt stays shared across cells and wrap copies. */
+  private async prepareApproved(ids: ReadonlySet<ApprovedWorkId>): Promise<void> {
+    if (this.disposed) return;
+    const pending = [...ids].filter(id => !this.approved.has(id) && !this.loading.has(id));
+    if (!pending.length) return;
+    const loaded = new Set<ApprovedWorkId>();
+    await Promise.all(pending.map(async id => {
+      this.loading.add(id);
+      try {
+        const geometry = await this.loadWork(id);
+        if (this.disposed) geometry.dispose();
+        else { this.approved.set(id, geometry); loaded.add(id); }
+      } catch (error) {
+        console.error('Could not load painted improvement', id, error);
+      } finally { this.loading.delete(id); }
+    }));
+    if (this.disposed || !loaded.size) return;
+    for (const [cell, recipe] of this.recipes) {
+      if (isApprovedWork(recipe.improvement) && loaded.has(recipe.improvement)) this.deleteRecipe(cell);
+    }
+    this.onAssetsReady?.();
   }
 
   build(state: GameState, preparedMap: GameMap, levels: FogLevels = null, seat: number | null = null,
@@ -215,6 +247,8 @@ export class PaintedWorksLayer {
     this.entries.length = 0; this.placements.length = 0;
     const cityCells = new Set(state.cities.map(city => tileIndex(state.map, city.col, city.row)));
     const props = new Map<string, PropBatch>(), patches = new Map<string, PatchBatch>();
+    const missing = new Set<ApprovedWorkId>();
+    const previews = workGalleryPreviews.get(state.map);
     const sites = this.source?.entries(state, seat);
     const stepAt = workAgeSteps(state);
     const regionsAcross = Math.ceil(preparedMap.width / 12);
@@ -227,8 +261,9 @@ export class PaintedWorksLayer {
       if (level === HIDDEN || cityCells.has(cell)) continue;
       const tile = preparedMap.tiles[cell]; if (!tile) continue;
       const resource = this.source || (options.suppressed?.get(cell) ?? 0) >= SUPPRESS.decor ? null : resourceAt(state, seat, original);
-      const improvement = this.source ? undefined : improvementAt(original), site = sites?.get(cell);
+      const improvement = this.source ? undefined : previews?.get(cell) ?? improvementAt(original), site = sites?.get(cell);
       const damage = this.source ? undefined : original.damagedImprovement?.id;
+      if (!damage && isApprovedWork(improvement) && !this.approved.has(improvement)) missing.add(improvement);
       if (!resource && !improvement && !site && !damage) { this.deleteRecipe(cell); continue; }
       const step = stepAt(cell, damage ? improvementBaseRow(damage) : improvement);
       const entry = { cell, resource, improvement, damage, site, level, step }; this.entries.push(entry);
@@ -249,6 +284,7 @@ export class PaintedWorksLayer {
       if (!drawn.has(cell)) dirty.add(regionAt(previous.recipe.tile));
     }
     this.drawn = drawn;
+    if (missing.size) void this.prepareApproved(missing);
     if (dirty.size === 0) {
       this.setShadows(shadows);
       return;
@@ -368,6 +404,7 @@ export class PaintedWorksLayer {
     options: PaintedWorksOptions = {}): (timeUp: () => boolean) => boolean {
     const cityCells = new Set(state.cities.map(city => tileIndex(state.map, city.col, city.row)));
     const stepAt = workAgeSteps(state);
+    const previews = workGalleryPreviews.get(state.map);
     let cell = 0;
     return (timeUp) => {
       if (this.disposed || this.source || this.preparedMap !== preparedMap) return true;
@@ -377,7 +414,7 @@ export class PaintedWorksLayer {
         if (levelAt(levels, state.map, original.col, original.row) !== HIDDEN || cityCells.has(cell)) continue;
         const tile = preparedMap.tiles[cell]; if (!tile) continue;
         const resource = (options.suppressed?.get(cell) ?? 0) >= SUPPRESS.decor ? null : resourceAt(state, seat, original);
-        const improvement = improvementAt(original);
+        const improvement = previews?.get(cell) ?? improvementAt(original);
         const damage = original.damagedImprovement?.id;
         if (!resource && !improvement && !damage) continue;
         const step = stepAt(cell, damage ? improvementBaseRow(damage) : improvement), recipe = this.recipes.get(cell);
@@ -418,8 +455,13 @@ export class PaintedWorksLayer {
     const localSurface = top ? createTileSurfaceSampler(top[0], Math.sqrt(3) * (tile.col + tile.row % 2 * .5), tile.row * 1.5) : null;
     const height = (x: number, z: number): number => (localSurface ? localSurface(x, z) : samplePaintedSurface(original, x, z)) ?? surfaceHeight(tile, x, z) as number;
     try {
-      const drawn = entry.damage ? { ...entry, damage: improvementBaseRow(entry.damage) } : terraced ? { ...entry, improvement: undefined } : entry;
-      this.art.tile(tile, drawn, top?.[0], {
+      let drawn = entry;
+      if (entry.damage) {
+        // These exports show intact works. The pillage layer draws their damaged ground.
+        const wreck = isApprovedWork(entry.damage) ? undefined : improvementBaseRow(entry.damage);
+        drawn = { ...entry, damage: wreck };
+      } else if (terraced) drawn = { ...entry, improvement: undefined };
+      const placement = {
         sampleSurface: height, preciseFit: true,
         prop: (geometry: BufferGeometry, material: MeshStandardMaterial, x: number, y: number, z: number,
           sx: number, sy: number, sz: number, yaw = 0, tint: number | Color = 0xffffff): void => {
@@ -430,7 +472,19 @@ export class PaintedWorksLayer {
           if (geometry.getAttribute('position').count) recipe.patches.push({ material, geometry }); else geometry.dispose();
         },
         onBuilding: (placement: Omit<PaintedWorksPlacement, 'cell'>): void => { recipe.placements.push({ cell: entry.cell, ...placement }); },
-      });
+      };
+      this.art.tile(tile, drawn, top?.[0], placement);
+      if (!entry.damage && isApprovedWork(entry.improvement) && top) {
+        const shape = this.approved.get(entry.improvement);
+        if (shape) {
+          if (!this.pigment) {
+            this.pigment = new MeshStandardMaterial({ vertexColors: true, roughness: .97,
+              polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+            this.registerMaterial(this.pigment, { terrain: true });
+          }
+          recipe.fitted = placeApprovedWork(entry.improvement, shape, original, top[0], this.assets.material, this.pigment, placement);
+        }
+      }
     } catch (error) {
       for (const patch of recipe.patches) patch.geometry.dispose(); throw error;
     } finally { top?.forEach(geometry => geometry.dispose()); }
@@ -479,12 +533,15 @@ export class PaintedWorksLayer {
   }
   private deleteRecipe(cell: number): void {
     const recipe = this.recipes.get(cell); if (!recipe) return;
+    recipe.fitted?.dispose();
     for (const patch of recipe.patches) patch.geometry.dispose(); this.recipes.delete(cell);
   }
   private clearRecipes(): void { for (const cell of this.recipes.keys()) this.deleteRecipe(cell); }
   dispose(): void {
     if (this.disposed) return; this.disposed = true;
     this.clearMeshes(); this.clearRecipes(); this.art.dispose();
+    for (const geometry of this.approved.values()) geometry.dispose();
+    this.approved.clear(); this.pigment?.dispose();
     this.terrace.dispose(); this.terraceMaterial.dispose();
     for (const material of this.explored.values()) material.dispose(); this.explored.clear();
     this.entries.length = 0; this.placements.length = 0;

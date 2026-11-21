@@ -141,6 +141,7 @@ describe('painted units through the production unit layer', () => {
     { name: 'accepted representatives', types: ['warrior', 'spearman', 'horseman', 'archer', 'horseArcher', 'worker', 'prophet', 'scout', 'settler', 'trader', 'greatPerson', 'warElephant'] },
     { name: 'naval hulls', types: ['trireme', 'bireme', 'galley', 'caravel', 'corvette', 'alexandrianGalley', 'warGalley', 'towerShip', 'carrack', 'shipOfTheLine', 'treasureShip', 'fireShip', 'gunGalley', 'frigate'] },
     { name: 'religious and journey variants', types: ['augur', 'apostle', 'inquisitor', 'canoness', 'rihlaCaravan'] },
+    { name: 'leader and charter pieces', types: ['hypaspist', 'janissary', 'condottiere', 'qinCrossbowman', 'sparabara', 'hwacha', 'numidianCavalry', 'companyGuard', 'ballistaElephant'] },
     { name: 'siege engines', types: ['catapult', 'trebuchet'] },
     { name: 'mounted variants', types: ['cataphract', 'knight', 'knightsTemplar', 'tangCavalry', 'chanyuGuard', 'gendarme', 'mandekalu', 'whistlingArrow', 'xiongnuHorseArcher', 'camelArcher', 'chariot', 'scythedChariot', 'chariotArcher'] },
     { name: 'anti-cavalry and ranged variants', types: ['phalanx', 'spearWall', 'pikeman', 'fubing', 'ponticPeltast', 'bowman', 'compositeBowman', 'crossbowman', 'slinger'] },

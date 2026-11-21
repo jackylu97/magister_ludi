@@ -99,6 +99,8 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     const copy = new T.Group(); copy.position.x = offset; group.add(copy); return copy;
   });
   const canopiesByCell = new Map(), dirtyCanopies = new Set();
+  const clearedScopes = new Map();
+  let woodedWorks = new Set();
   const fog = createPaintedFog(map.width, map.height, cell => {
     const batches = canopiesByCell.get(cell);
     if (batches) for (const canopy of batches) dirtyCanopies.add(canopy);
@@ -921,18 +923,29 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     get revealStamps() { return fog.revealStamps; },
     get revealing() { return disposed ? 0 : fog.revealing; },
     suppressTile(cell, scope) {
-      if (disposed || !fog.suppress(cell, scope)) return false;
+      if (disposed) return false;
+      clearedScopes.set(cell, Math.max(scope, clearedScopes.get(cell) || 0));
+      if (!fog.suppress(cell, scope)) return false;
       refreshCanopies();
       return true;
     },
     unsuppressTile(cell) {
-      if (disposed || !fog.unsuppress(cell)) return false;
+      if (disposed) return false;
+      clearedScopes.delete(cell);
+      if (!fog.setSuppression(cell, woodedWorks.has(cell) ? 1 : 0)) return false;
       refreshCanopies();
       return true;
     },
-    reserveFootprints(radii) {
+    reserveFootprints(radii, nextWoodedWorks = new Set()) {
       if (disposed) return 0;
       let changed = 0;
+      for (const cell of woodedWorks) {
+        if (!nextWoodedWorks.has(cell) && fog.setSuppression(cell, clearedScopes.get(cell) || 0)) changed++;
+      }
+      for (const cell of nextWoodedWorks) {
+        if (!woodedWorks.has(cell) && fog.suppress(cell, 1)) changed++;
+      }
+      woodedWorks = nextWoodedWorks;
       for (let cell=0; cell<map.tiles.length; cell++) if (fog.reserve(cell, radii.get(cell) || 0)) changed++;
       if (changed) refreshCanopies();
       return changed;

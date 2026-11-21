@@ -152,6 +152,7 @@ import { PAINTED_CHART } from './paintedFogLook';
 import { buildPaintedBoardAsync, type PaintedBuildMetrics, type PaintedBuildReport } from './paintedBoardAsync.js';
 import { closeGroundBaseSheet, closeGroundFor, type CloseGroundPaint } from './closeGroundPaint';
 import { groundPaintPlan, type GroundPaintPlan } from './groundPaint.js';
+import { APPROVED_WORKS, isApprovedWork, workGalleryPreviews } from './approvedWorkCatalog';
 import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks, type PaintedWorksEntry } from './paintedWorks';
 import type { ImprovementId } from '../sim/improvementData';
 import { PaintedCityLayer } from './paintedCities';
@@ -825,7 +826,12 @@ export class Renderer3D implements MapView {
     this.paintedLook = look;
     this.paintedCities = new PaintedCityLayer(this.paintedLook.cityAssets, this.paintedLook.registerMaterial);
     this.scene.add(this.paintedCities.group);
-    this.paintedWorks = new PaintedWorksLayer(this.paintedLook.workAssets, this.paintedLook.registerMaterial);
+    this.paintedWorks = new PaintedWorksLayer(this.paintedLook.workAssets, this.paintedLook.registerMaterial, undefined, () => {
+      this.paintedWorksSignature = null;
+      this.paintedWorksShadowSignature = null;
+      this.rebuildPaintedWorks();
+      this.redraw();
+    });
     this.scene.add(this.paintedWorks.group);
     this.paintedPillage = new PaintedPillageLayer();
     this.scene.add(this.paintedPillage.group);
@@ -2805,10 +2811,11 @@ export class Renderer3D implements MapView {
     this.paintedPillage?.expire(this.state.turn);
     const signature = signPaintedWorks(this.state, this.fogSeat);
     const levels = this.fogLevels();
+    const previews = workGalleryPreviews.get(this.state.map);
     let fogSignature = 0;
     if (levels) for (let cell = 0; cell < levels.length; cell++) {
       const tile = this.state.map.tiles[cell];
-      if (tile?.resource || tile?.improvement || tile?.damagedImprovement) {
+      if (tile?.resource || tile?.improvement || tile?.damagedImprovement || previews?.has(cell)) {
         fogSignature = (Math.imul(fogSignature ^ cell, 31) + (levels[cell] ?? 0)) | 0;
       }
     }
@@ -2885,11 +2892,16 @@ export class Renderer3D implements MapView {
 
   private reservePaintedProps(): void {
     if (!this.paintedWorks || !this.paintedBoard) return;
+    const woodedWorks = new Set<number>();
+    for (const entry of this.paintedWorks.entries) {
+      if (entry.improvement === 'wildOrchard' || entry.improvement === 'totemPole') woodedWorks.add(entry.cell);
+    }
     const reservations = new Map(this.paintedWorks.entries.map(entry => [entry.cell,
+      isApprovedWork(entry.improvement) ? APPROVED_WORKS[entry.improvement].radius :
       (entry.improvement === 'farm' || entry.improvement === 'terraces') ? 1 : entry.improvement === 'lumbermill' ? .50 :
         entry.improvement && entry.improvement !== 'camp' ? .72 : .54]));
     for (const entry of this.paintedSites?.entries ?? []) reservations.set(entry.cell, Math.max(reservations.get(entry.cell) ?? 0, .77));
-    this.paintedBoard.reserveFootprints(reservations);
+    this.paintedBoard.reserveFootprints(reservations, woodedWorks);
   }
 
   /**

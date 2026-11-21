@@ -49,7 +49,7 @@ describe('painted unit inventory after leader integration', () => {
     expect(Object.keys(art).filter(id => art[id]!.ready).sort()).toEqual([...unitExamples].sort());
   });
 
-  it('assigns all 26 additional IDs explicitly without approving models or inventing later ranks', () => {
+  it('assigns the leader and charter pieces to their original lines and ranks', () => {
     // Twenty-four leader alternatives and two deck charters' units (Numidian Cavalry,
     // and the shared Chartered Company's Company Guard).
     const originalIds = new Set(Object.values(original).flat());
@@ -69,7 +69,7 @@ describe('painted unit inventory after leader integration', () => {
       hwacha: 'trebuchet',
     };
     for (const [id, base] of Object.entries(bases)) {
-      expect(art[id]).toMatchObject({ line: art[base]!.line, rank: art[base]!.rank, ready: false, implemented: false });
+      expect(art[id]).toMatchObject({ line: art[base]!.line, rank: art[base]!.rank, ready: false, implemented: true });
     }
     expect(art.fubing).toMatchObject({ line: 'polearm', rank: art.spearman!.rank });
     expect(art.ponticPeltast).toMatchObject({ line: 'polearm', rank: art.spearman!.rank });
@@ -87,13 +87,13 @@ describe('painted unit inventory after leader integration', () => {
   it('tracks six implemented infantry variants separately from the accepted examples', () => {
     const variants = ['swordsman', 'legionary', 'longswordsman', 'fireLance', 'khopesh', 'eagleWarrior'];
     expect(unitReviewVariants).toEqual(variants);
-    expect(paintedUnitTypes).toEqual([...unitExamples, ...variants, 'phalanx', 'spearWall', 'pikeman', 'fubing', 'ponticPeltast', 'bowman', 'compositeBowman', 'crossbowman', 'slinger', 'cataphract', 'knight', 'knightsTemplar', 'tangCavalry', 'chanyuGuard', 'gendarme', 'mandekalu', 'whistlingArrow', 'xiongnuHorseArcher', 'camelArcher', 'chariot', 'scythedChariot', 'chariotArcher', 'catapult', 'trebuchet', 'trireme', 'bireme', 'galley', 'caravel', 'corvette', 'alexandrianGalley', 'warGalley', 'towerShip', 'carrack', 'shipOfTheLine', 'treasureShip', 'fireShip', 'gunGalley', 'frigate', 'augur', 'apostle', 'inquisitor', 'canoness', 'rihlaCaravan']);
-    expect(new Set(paintedUnitTypes).size).toBe(61);
+    expect(paintedUnitTypes).toEqual([...unitExamples, ...variants, 'phalanx', 'spearWall', 'pikeman', 'fubing', 'ponticPeltast', 'bowman', 'compositeBowman', 'crossbowman', 'slinger', 'cataphract', 'knight', 'knightsTemplar', 'tangCavalry', 'chanyuGuard', 'gendarme', 'mandekalu', 'whistlingArrow', 'xiongnuHorseArcher', 'camelArcher', 'chariot', 'scythedChariot', 'chariotArcher', 'catapult', 'trebuchet', 'trireme', 'bireme', 'galley', 'caravel', 'corvette', 'alexandrianGalley', 'warGalley', 'towerShip', 'carrack', 'shipOfTheLine', 'treasureShip', 'fireShip', 'gunGalley', 'frigate', 'augur', 'apostle', 'inquisitor', 'canoness', 'rihlaCaravan', 'hypaspist', 'janissary', 'condottiere', 'qinCrossbowman', 'sparabara', 'hwacha', 'numidianCavalry', 'companyGuard', 'ballistaElephant']);
+    expect([...paintedUnitTypes].sort()).toEqual(Object.keys(units.units).sort());
     expect(Object.keys(art).filter(id => art[id]!.implemented).sort()).toEqual([...paintedUnitTypes].sort());
     for (const id of variants) expect(art[id]).toMatchObject({ line: 'infantry', ready: false, implemented: true });
-    const pending = ['companyGuard', 'hypaspist', 'janissary', 'condottiere'];
-    expect([...lines.infantry!.types].sort()).toEqual(['warrior', ...variants, ...pending].sort());
-    for (const id of pending) expect(art[id]!.implemented).toBe(false);
+    const rosterInfantry = ['companyGuard', 'hypaspist', 'janissary', 'condottiere'];
+    expect([...lines.infantry!.types].sort()).toEqual(['warrior', ...variants, ...rosterInfantry].sort());
+    for (const id of rosterInfantry) expect(art[id]!.implemented).toBe(true);
   });
 
   it('keeps the documented mapping synchronized with active and parked alternatives', () => {

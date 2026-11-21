@@ -1,6 +1,8 @@
 import { Renderer3D } from '../render3d/renderer3d';
 import { EXPLORED, VISIBLE } from '../sim/visibility';
 import { createUnit, type Unit } from '../sim/state';
+import { isApprovedWork, type ApprovedWorkId } from '../render3d/approvedWorkCatalog';
+import { APPROVED_WORK_VIEWS, createApprovedWorksFixture } from './approvedWorksFixture';
 import { WORKS_VIEWS, createWorksFixture, type WorksView } from './worksFixture';
 import { button, checkbox, controls, element, select } from './sheet';
 
@@ -8,7 +10,11 @@ import { button, checkbox, controls, element, select } from './sheet';
 export async function drawPaintedWorks(into: HTMLElement): Promise<() => void> {
   const params = new URLSearchParams(location.search);
   const requestedWork = params.get('work') ?? '';
-  let focus: WorksView | 'all' | 'special' = ['all', 'special'].includes(requestedWork) || Object.prototype.hasOwnProperty.call(WORKS_VIEWS, requestedWork) ? requestedWork as WorksView | 'all' | 'special' : 'academy';
+  const approved = requestedWork === 'approved' || isApprovedWork(requestedWork);
+  const views: Record<string, { col: number; row: number; label: string; note: string }> = approved ? APPROVED_WORK_VIEWS : WORKS_VIEWS;
+  type Focus = WorksView | ApprovedWorkId | 'all' | 'special' | 'approved';
+  let focus: Focus = ['all', 'special', 'approved'].includes(requestedWork) || Object.prototype.hasOwnProperty.call(views, requestedWork)
+    ? requestedWork as Focus : 'academy';
   let daylight = ['morning', 'day', 'golden', 'dusk'].includes(params.get('light') ?? '') ? params.get('light')! : 'golden';
   let detail = params.get('detail') === 'close';
   const knobs = controls(into), note = element('p', 'sheet-note');
@@ -17,8 +23,8 @@ export async function drawPaintedWorks(into: HTMLElement): Promise<() => void> {
   const overlay = element('div', 'painted-works-labels');
   stage.append(canvas, overlay); into.append(note, stage);
   const status = element('p', 'sheet-note', 'Loading the painted world…'); status.setAttribute('role', 'status'); into.append(status);
-  const state = createWorksFixture(), renderer = new Renderer3D(canvas, { minFrustum: 1.2 });
-  const labels = Object.entries(WORKS_VIEWS).map(([id, view]) => {
+  const state = approved ? createApprovedWorksFixture() : createWorksFixture(), renderer = new Renderer3D(canvas, { minFrustum: 1.2 });
+  const labels = Object.entries(views).map(([id, view]) => {
     const node = element('span', 'painted-works-label', view.label); overlay.append(node);
     return { id, node, view };
   });
@@ -33,7 +39,11 @@ export async function drawPaintedWorks(into: HTMLElement): Promise<() => void> {
   };
   const frame = (): void => {
     if (!ready) return;
-    if (focus === 'special') {
+    if (focus === 'approved') {
+      renderer.focusOpening({ col: 6, row: 6 });
+      renderer.frameCells([{ col: 2, row: 2 }, { col: 10, row: 10 }], false);
+      note.textContent = 'Choose a work to inspect it at game zoom or in detail.';
+    } else if (focus === 'special') {
       renderer.focusOpening({ col: 7, row: 15 });
       renderer.frameCells([{ col: 3, row: 12 }, { col: 11, row: 18 }], false);
       note.textContent = 'Six special improvements, with extra hillside examples. Choose a work for a closer look.';
@@ -42,13 +52,17 @@ export async function drawPaintedWorks(into: HTMLElement): Promise<() => void> {
       renderer.frameCells([{ col: 3, row: 5 }, { col: 15, row: 10 }], false);
       note.textContent = 'All three improvements, beside the approved farm and city. Choose a work for a closer look.';
     } else {
-      renderer.focusOpening(WORKS_VIEWS[focus]);
+      renderer.focusOpening(views[focus]);
       if (detail) renderer.zoomBy(3.4, canvas.clientWidth / 2, canvas.clientHeight / 2);
-      note.textContent = WORKS_VIEWS[focus].note;
+      note.textContent = views[focus].note;
     }
     updateURL();
   };
-  select(knobs, 'Work', [['special', 'Special improvements'], ['all', 'Everyday improvements'], ...Object.entries(WORKS_VIEWS).map(([id, view]) => [id, view.label] as const)], focus, value => { focus = value as typeof focus; frame(); });
+  const groups: [string, string][] = approved ? [['approved', 'All nine works']] : [['special', 'Special improvements'], ['all', 'Everyday improvements']];
+  const other = element('a', undefined, approved ? 'Other painted improvements' : 'Nine approved improvements');
+  other.href = approved ? '?review=works' : '?review=works&work=approved';
+  knobs.append(other);
+  select(knobs, 'Work', [...groups, ...Object.entries(views).map(([id, view]) => [id, view.label] as const)], focus, value => { focus = value as typeof focus; frame(); });
   select(knobs, 'Scale', [['game', 'Game zoom'], ['close', 'Detail']], detail ? 'close' : 'game', value => { detail = value === 'close'; frame(); });
   select(knobs, 'Light', [['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']], daylight, value => { daylight = value; renderer.setDaylight(value); updateURL(); });
   checkbox(knobs, 'Labels', true, value => { overlay.hidden = !value; });
@@ -59,8 +73,11 @@ export async function drawPaintedWorks(into: HTMLElement): Promise<() => void> {
   checkbox(knobs, 'Units', false, value => {
     if (value) {
       if (visitors) state.units.push(...visitors);
-      else visitors = ['terraces', 'academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite', 'academyHills', 'holySiteHills']
-        .map(id => { const view = WORKS_VIEWS[id as WorksView]; return createUnit(state, 0, 'warrior', view.col, view.row); });
+      else visitors = (approved ? Object.keys(views) : ['terraces', 'academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite', 'academyHills', 'holySiteHills'])
+        .map(id => {
+          const view = views[id];
+          return createUnit(state, 0, id === 'fishTraps' ? 'trireme' : 'warrior', view.col, view.row);
+        });
     } else if (visitors) {
       const ids = new Set(visitors.map(unit => unit.id)); state.units = state.units.filter(unit => !ids.has(unit.id));
     }
@@ -78,7 +95,7 @@ export async function drawPaintedWorks(into: HTMLElement): Promise<() => void> {
   renderer.setFrameListener(() => {
     for (const { id, node, view } of labels) {
       const p = renderer.projectCell(view.col, view.row, -.12);
-      node.hidden = !p?.onScreen || (focus === 'all' ? view.row > 10 : focus === 'special' ? view.row < 12 : focus !== id);
+      node.hidden = !p?.onScreen || (focus === 'approved' ? false : focus === 'all' ? view.row > 10 : focus === 'special' ? view.row < 12 : focus !== id);
       if (p) { node.style.left = `${p.x}px`; node.style.top = `${p.y + 35}px`; }
     }
   });

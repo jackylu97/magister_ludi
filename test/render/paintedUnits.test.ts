@@ -23,7 +23,8 @@ const infantryVariants = ['swordsman', 'legionary', 'longswordsman', 'fireLance'
 const equipmentVariants = ['phalanx', 'spearWall', 'pikeman', 'fubing', 'ponticPeltast', 'bowman', 'compositeBowman', 'crossbowman', 'slinger'] as const;
 const mountedVariants = ['cataphract', 'knight', 'knightsTemplar', 'tangCavalry', 'chanyuGuard', 'gendarme', 'mandekalu', 'whistlingArrow', 'xiongnuHorseArcher', 'camelArcher', 'chariot', 'scythedChariot', 'chariotArcher'] as const;
 const navalVariants = ['trireme', 'bireme', 'galley', 'caravel', 'corvette', 'alexandrianGalley', 'warGalley', 'towerShip', 'carrack', 'shipOfTheLine', 'treasureShip', 'fireShip', 'gunGalley', 'frigate'] as const;
-const implemented = [...approved, ...infantryVariants, ...equipmentVariants, ...mountedVariants, 'catapult', 'trebuchet', ...navalVariants, 'augur', 'apostle', 'inquisitor', 'canoness', 'rihlaCaravan'] as const;
+const roster = ['hypaspist', 'janissary', 'condottiere', 'qinCrossbowman', 'sparabara', 'hwacha', 'numidianCavalry', 'companyGuard', 'ballistaElephant'] as const;
+const implemented = [...approved, ...infantryVariants, ...equipmentVariants, ...mountedVariants, 'catapult', 'trebuchet', ...navalVariants, 'augur', 'apostle', 'inquisitor', 'canoness', 'rihlaCaravan', ...roster] as const;
 const kits: PaintedUnitKit[] = [];
 const make = (register: (material: MeshStandardMaterial) => void = () => {}): PaintedUnitKit => {
   const kit = new PaintedUnitKit(register); kits.push(kit); return kit;
@@ -212,7 +213,9 @@ describe('production painted unit kit', () => {
       // plinth, hem and brow band are in the second colour.
       expect(fixedColors.has(key(gold.r, gold.g, gold.b)), type).toBe(type !== 'warrior');
       expect(ownerColors.has(key(1, 1, 1))).toBe(true);
-      expect(ownerColors.size).toBeGreaterThan(1);
+      // The Hwacha uses plain enamel on the rack and wheels. Other pieces also have recessed enamel.
+      if (type === 'hwacha') expect(ownerColors.size).toBe(1);
+      else expect(ownerColors.size).toBeGreaterThan(1);
       const indices = geometry.index!;
       for (let i = 0; i < indices.count; i += 3) {
         expect(owner.getX(indices.getX(i + 1))).toBe(owner.getX(indices.getX(i)));

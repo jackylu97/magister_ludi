@@ -176,6 +176,18 @@ describe('production painted board', () => {
     expect(board.isCellVisible(mountainCell, 2)).toBe(true);
   });
 
+  it('restores a forest clearing when a work goes away and keeps clearing from other sources', () => {
+    const { build } = fixture(), board = build();
+    board.applyFog(null);
+    board.reserveFootprints(new Map([[0, .84], [1, .67]]), new Set([0, 1]));
+    expect(board.isCellVisible(0, 1)).toBe(false);
+    expect(board.isCellVisible(1, 1)).toBe(false);
+    board.suppressTile(1, 1);
+    board.reserveFootprints(new Map());
+    expect(board.isCellVisible(0, 1)).toBe(true);
+    expect(board.isCellVisible(1, 1)).toBe(false);
+  });
+
   it('reserves prop footprints reversibly without replacing terrain or exposing hidden cells', () => {
     const {build} = fixture(), board = build();
     const geometry = board.pickMeshes.map(mesh => mesh.geometry);

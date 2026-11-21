@@ -21,7 +21,7 @@ export const INFANTRY_VARIANT_TYPES = [
 ] as const satisfies readonly UnitTypeId[];
 export const INFANTRY_REVIEW_TYPES = ['warrior', ...INFANTRY_VARIANT_TYPES] as const;
 export type InfantryReviewType = typeof INFANTRY_REVIEW_TYPES[number];
-export type UnitReviewGroup = 'representatives' | 'infantry' | 'polearm' | 'ranged' | 'cavalry' | 'mountedRanged' | 'siege' | 'navalLight' | 'navalHeavy' | 'navalRanged' | 'faith' | 'caravans' | 'embarked';
+export type UnitReviewGroup = 'representatives' | 'infantry' | 'polearm' | 'ranged' | 'cavalry' | 'mountedRanged' | 'siege' | 'navalLight' | 'navalHeavy' | 'navalRanged' | 'faith' | 'caravans' | 'embarked' | 'roster';
 
 export const INFANTRY_VIEWS = {
   warrior: { col: 3, row: 3, label: 'Warrior', note: 'The accepted warrior anchors the infantry comparison.' },
@@ -63,7 +63,7 @@ export const CAVALRY_VIEWS = {
 export const MOUNTED_RANGED_VIEWS = {
   horseArcher: { col: 3, row: 3, label: 'Horse archer', note: 'The approved ivory horse bust, bow and quiver.' },
   whistlingArrow: { col: 6, row: 3, label: 'Whistling arrow', note: 'A tall display arrow with an ivory whistle bulb.' },
-  xiongnuHorseArcher: { col: 9, row: 3, label: 'Xiongnu horse archer', note: 'A fringed enamel saddlecloth beneath the shared bow and horse.' },
+  xiongnuHorseArcher: { col: 9, row: 3, label: 'Keshig', note: 'A fringed enamel saddlecloth beneath the shared bow and horse.' },
   camelArcher: { col: 4, row: 5, label: 'Camel archer', note: 'A curved camel neck and blunt muzzle above a low saddlecloth.' },
   chariotArcher: { col: 8, row: 5, label: 'Chariot archer', note: 'An open wheeled carriage with an upright bow and arrows.' },
 } as const;
@@ -71,6 +71,19 @@ export const SIEGE_VIEWS = {
   catapult: { col: 4, row: 4, label: 'Catapult', note: 'A low wheeled torsion engine, padded stop and loaded throwing cup.' },
   trebuchet: { col: 8, row: 4, label: 'Trebuchet', note: 'A tall A-frame, pivoting beam, hanging counterweight and sling.' },
 } as const;
+export const ROSTER_VIEWS = {
+  hypaspist: { col: 3, row: 2, label: 'Hypaspist', note: 'Roundels surround the boss of the broad shield.' },
+  janissary: { col: 5, row: 2, label: 'Janissary', note: 'A tall folded cap and an upright matchlock.' },
+  condottiere: { col: 7, row: 2, label: 'Condottiere', note: 'A ridged helmet with a T-shaped opening and a broad poleaxe.' },
+  qinCrossbowman: { col: 9, row: 2, label: 'Qin Crossbowman', note: 'A topknot and rows of armour behind a crossbow.' },
+  sparabara: { col: 3, row: 4, label: 'Sparabara', note: 'The long spear stands beside a tall wicker shield.' },
+  hwacha: { col: 6, row: 4, label: 'Hwacha', note: 'A two-wheeled cart carries a tilted rack of rockets.' },
+  numidianCavalry: { col: 9, row: 4, label: 'Numidian Cavalry', note: 'Two javelins and a small round shield flank the horse.' },
+  companyGuard: { col: 3, row: 6, label: 'Company Guard', note: 'A wrapped turban, sword and ivory crossbelt.' },
+  ballistaElephant: { col: 6, row: 6, label: 'Ballista Elephant', note: 'A bolt thrower sits on the elephant’s armoured platform.' },
+  xiongnuHorseArcher: { col: 9, row: 6, label: 'Keshig', note: 'A mounted archer with a fringed saddlecloth.' },
+} as const satisfies Partial<Record<UnitTypeId, { col: number; row: number; label: string; note: string }>>;
+
 export const NAVAL_LIGHT_VIEWS = {
   trireme: { col: 3, row: 3, label: 'Trireme', note: 'One mast, a slender hull and an ivory bow ram.' },
   bireme: { col: 6, row: 3, label: 'Bireme', note: 'Two masts above the oared hull.' },
@@ -108,7 +121,7 @@ export const EMBARKED_VIEWS = {
   warrior: { col: 9, row: 3, label: 'Warrior · landfall', note: 'A transport at the shore. Move one hex to disembark.' },
   horseman: { col: 6, row: 5, label: 'Cavalry afloat', note: 'The same transport carries cavalry; the badge retains its identity.' },
 } as const;
-export type EquipmentReviewType = keyof typeof EMBARKED_VIEWS | keyof typeof FAITH_VIEWS | keyof typeof CARAVAN_VIEWS | keyof typeof NAVAL_LIGHT_VIEWS | keyof typeof NAVAL_HEAVY_VIEWS | keyof typeof NAVAL_RANGED_VIEWS | keyof typeof POLEARM_VIEWS | keyof typeof RANGED_VIEWS | keyof typeof CAVALRY_VIEWS | keyof typeof MOUNTED_RANGED_VIEWS | keyof typeof SIEGE_VIEWS;
+export type EquipmentReviewType = keyof typeof ROSTER_VIEWS | keyof typeof EMBARKED_VIEWS | keyof typeof FAITH_VIEWS | keyof typeof CARAVAN_VIEWS | keyof typeof NAVAL_LIGHT_VIEWS | keyof typeof NAVAL_HEAVY_VIEWS | keyof typeof NAVAL_RANGED_VIEWS | keyof typeof POLEARM_VIEWS | keyof typeof RANGED_VIEWS | keyof typeof CAVALRY_VIEWS | keyof typeof MOUNTED_RANGED_VIEWS | keyof typeof SIEGE_VIEWS;
 export const UNIT_LINE_REVIEWS = {
   embarked: { label: 'Embarked', base: 'worker', views: EMBARKED_VIEWS },
   faith: { label: 'Religious', base: 'prophet', views: FAITH_VIEWS },
@@ -122,10 +135,12 @@ export const UNIT_LINE_REVIEWS = {
   navalHeavy: { label: 'Heavy ships', base: 'warGalley', views: NAVAL_HEAVY_VIEWS },
   navalRanged: { label: 'Ranged ships', base: 'fireShip', views: NAVAL_RANGED_VIEWS },
   siege: { label: 'Siege', base: 'catapult', views: SIEGE_VIEWS },
+  roster: { label: 'Leader and charter units', base: 'hypaspist', views: ROSTER_VIEWS },
 } as const;
 
 /** New variants select their compact world even when opened directly by URL. */
 export function unitReviewGroup(focus: string, requestedGroup?: string | null): UnitReviewGroup {
+  if (requestedGroup === 'roster' && Object.prototype.hasOwnProperty.call(ROSTER_VIEWS, focus)) return 'roster';
   if (focus === 'embarked' || (requestedGroup === 'embarked' && Object.prototype.hasOwnProperty.call(EMBARKED_VIEWS, focus))) return 'embarked';
   for (const [id, line] of Object.entries(UNIT_LINE_REVIEWS)) {
     if (id === 'embarked') continue;

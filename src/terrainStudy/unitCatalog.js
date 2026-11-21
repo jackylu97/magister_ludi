@@ -1,3 +1,4 @@
+import {rosterUnitModels} from './rosterUnitModels.js';
 import {faithVariants} from './faithUnitModels.js';
 import {navalVariants} from './navalUnitModels.js';
 import {siegeVariants} from './siegeUnitModels.js';
@@ -48,11 +49,7 @@ export const leaderUnitArtSpecs={
  alexandrianGalley:{line:'navalLight',rank:2,variant:'lookout-galley'},
  canoness:{line:'faith',rank:2,variant:'choir-book'},
  rihlaCaravan:{line:'trader',rank:0,variant:'journey-wagon'},
- // A deck charter's unit (Commerce), not a leader's: placeholder art at the
- // horseman's rank until it is drawn.
  numidianCavalry:{line:'cavalry',rank:1,variant:'light-horse'},
- // The Chartered Company's soldiers (a shared deck charter): placeholder art at
- // the longswordsman's rank until it is drawn.
  companyGuard:{line:'infantry',rank:3,variant:'company-coat'},
  hypaspist:{line:'infantry',rank:1,variant:'shield-infantry'},
  janissary:{line:'infantry',rank:3,variant:'veteran-infantry'},
@@ -69,7 +66,7 @@ export const unitExamples=['warrior','spearman','horseman','archer','horseArcher
 // Availability is distinct from approval: the original examples remain the
 // accepted baseline while each equipment batch has its own production review.
 export const unitReviewVariants=['swordsman','legionary','longswordsman','fireLance','khopesh','eagleWarrior'];
-export const paintedUnitTypes=[...unitExamples,...unitReviewVariants,...polearmVariants,...rangedVariants,...mountedVariants,...siegeVariants,...navalVariants,...faithVariants,'rihlaCaravan'];
+export const paintedUnitTypes=[...unitExamples,...unitReviewVariants,...polearmVariants,...rangedVariants,...mountedVariants,...siegeVariants,...navalVariants,...faithVariants,'rihlaCaravan',...Object.keys(rosterUnitModels)];
 export const civilianUnitExamples=['worker','scout','settler','trader','greatPerson'];
 export const newUnitExamples=['horseman','horseArcher','greatPerson','warElephant'];
 export const greatPersonFamilies={scholar:'Scholar',artist:'Artist',engineer:'Engineer',merchant:'Merchant',general:'General'};

@@ -4,7 +4,11 @@
 
 ## Roster coverage
 
-The current leader data has sixteen active leaders. Fifteen field a land unit. Eight of those land units already select a painted model, including Genghis Khan’s Keshig. Six need the new models below. The seventh missing selection, Jayavarman VII’s Ballista Elephant, can use the existing siege elephant. The active deck charters unlock two distinct units, Numidian Cavalry and Company Guard. Both have a model below. These counts exclude retired leaders.
+The painted board uses these eight custom models for six leader units and two
+charter units. The Ballista Elephant uses the siege elephant, and the Keshig
+keeps its mounted archer. All seventy unit types have a painted model.
+Open `/flair.html?review=units&unit=roster` to see the ten pieces on the board.
+
 
 ## Historical references
 
@@ -26,4 +30,4 @@ The current leader data has sixteen active leaders. Fifteen field a land unit. E
 
 ## Editing
 
-From the repository root, run `node scripts/terrain-study/build-roster-review.mjs` to rebuild the GLBs. The script prints the directory that holds the three reference pieces. Pass that directory to `python3 scripts/terrain-study/render-roster-review.py` to rebuild the studio sheet. The renderer uses NumPy and Pillow.
+From the repository root, run `node scripts/terrain-study/build-roster-review.mjs` to export the GLBs from the same model factory the game uses. Pass an output directory to write a separate copy. The script prints the directory that holds the three reference pieces. Pass that directory to `python3 scripts/terrain-study/render-roster-review.py` to rebuild the studio sheet. The renderer uses NumPy and Pillow.
