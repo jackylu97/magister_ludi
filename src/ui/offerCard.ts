@@ -266,19 +266,19 @@ export interface OfferOption {
    */
   emblem?: string;
   /**
-   * The same plate, drawn as a **glyph** rather than as a drawing.
+   * **A picture window the caller draws**, set where the emblem goes. The
+   * belief offer passes the belief's arched window (`beliefWindowNode`): its
+   * vignette, or its drawn mark when it has none. This is the window the
+   * Faith sheet's tablet and the In play tablet show, so the card that offers
+   * a belief and the tablet that holds it look alike.
    *
-   * For a deck whose cards have no mark of their own: a belief's axis is a
-   * symbol (`AXIS_MARK` in `religionScreen.ts`) and deliberately not one of the
-   * Statecraft deck's seven drawings — lending a god the Wild Hunt's emblem
-   * would be saying something untrue about what it belongs to. Two fields rather
-   * than one because they are two mechanisms: `emblem` is a mask over the
-   * accent's ink, and this is a character set in it.
-   *
-   * A string, like everything else that crosses this boundary. Never both: a
-   * card with a drawing does not also want a letter in the middle of it.
+   * A function that returns an element, as `dress` is, because a picture is
+   * not a string. This component only places it and sizes it: the window
+   * spans the card's width, and every window in the hand is made shorter
+   * when the hand would not fit on the screen (`fitPictures`). Never beside
+   * an emblem.
    */
-  emblemGlyph?: string;
+  picture?: () => HTMLElement;
   /**
    * **A government's chairs** (batch C2b), drawn in the middle of the card in
    * place of an emblem: one small chair for each chair it lays out, in its
@@ -692,6 +692,13 @@ const HEIGHT_MIN = 210;
 const HEIGHT_MAX = 400;
 const SHEET_BASE = 880;
 const SHEET_PER_CARD = 90;
+/**
+ * The smallest a picture window is drawn when a hand would not fit the screen
+ * (`fitPictures`), as a share of the card's width, and the pixels of air it
+ * leaves so that "fits" is never "just overflows".
+ */
+const PICTURE_MIN = 0.5;
+const PICTURE_SLACK = 4;
 
 function clamp(low: number, value: number, high: number): number {
   return Math.min(high, Math.max(low, value));
@@ -1165,7 +1172,40 @@ export function createOfferCard(
   }
 
   function onResize(): void {
-    if (!container.hidden) applySpread();
+    if (container.hidden) return;
+    applySpread();
+    fitPictures();
+  }
+
+  /**
+   * **A hand with picture windows stays on the screen** (the belief offer).
+   * A window spans its card's width, so a card with one is taller than the
+   * spread planned (`offerSpread` measures words, not pictures). If the sheet
+   * would then scroll, every window in the hand is made smaller at once
+   * (`data-picture="short"`, the Order face's word for the same step), so the
+   * cards still read alike and the take button stays in view.
+   *
+   * A window is square, and its width does not change how the words wrap, so
+   * a window that is narrower by the overflow makes every card shorter by the
+   * overflow. That is the one measurement this takes, and the window never
+   * goes below `PICTURE_MIN` of the card's width. Lengths are layout lengths
+   * (`offsetWidth`, `scrollHeight`), which the sheet's opening movement does not
+   * change. Run when the hand is dealt, when the fonts arrive and when the
+   * window is resized.
+   */
+  function fitPictures(): void {
+    const list = container.querySelector<HTMLElement>('.offer-options');
+    const sheet = container.querySelector<HTMLElement>('.offer-sheet');
+    const frame = list?.querySelector<HTMLElement>('.offer-picture') ?? null;
+    if (list === null || sheet === null || frame === null) return;
+    list.dataset.picture = 'full';
+    list.style.removeProperty('--offer-picture');
+    const over = sheet.scrollHeight - sheet.clientHeight;
+    const side = frame.offsetWidth;
+    if (over <= 0 || side === 0) return;
+    const share = Math.max(PICTURE_MIN, (side - over - PICTURE_SLACK) / side);
+    list.dataset.picture = 'short';
+    list.style.setProperty('--offer-picture', `${Math.floor(share * 100)}%`);
   }
 
   /**
@@ -1552,9 +1592,10 @@ export function createOfferCard(
      * flag, read off the options themselves rather than declared by the caller,
      * because a caller that had to remember it is a caller that will forget.
      *
-     * **A glyph counts** (the ruling of 2026-09-05 — every draft of every card
-     * class is dealt as a card), and so does an A3 face and a government's
-     * chair mix, which stands where its emblem stood.
+     * Every draft of every card class is dealt as a card (the ruling of
+     * 2026-09-05), so an A3 face counts, and so does a government's chair mix,
+     * which stands where its emblem stood, and the belief offer's picture
+     * window.
      *
      * **A drawn face is a third dressing** (Quiet Table, build stage 2): the
      * Order draft's engraved cards and the great person cards keep their own
@@ -1566,7 +1607,7 @@ export function createOfferCard(
       offer.options.some(
         (option) =>
           option.emblem !== undefined ||
-          option.emblemGlyph !== undefined ||
+          option.picture !== undefined ||
           option.suit !== undefined ||
           option.chairs !== undefined,
       );
@@ -1688,18 +1729,16 @@ export function createOfferCard(
       // by number without reading.
       button.append(element('span', 'offer-ordinal', String(index + 1)));
       if (tarot) button.append(element('span', 'offer-payoff', option.payoff));
-      if (option.emblem !== undefined) {
+      if (option.picture !== undefined) {
+        // The caller's picture window, in a frame this component sizes: the
+        // card's width, or shorter for the whole hand (`fitPictures`).
+        const frame = element('span', 'offer-picture');
+        frame.append(option.picture());
+        button.append(frame);
+      } else if (option.emblem !== undefined) {
         const emblem = element('span', 'offer-emblem');
         emblem.setAttribute('aria-hidden', 'true');
         emblem.style.setProperty('--line-mark', option.emblem);
-        button.append(emblem);
-      } else if (option.emblemGlyph !== undefined) {
-        // The same plate, set rather than masked. `textContent` and not
-        // `element`'s writer: a glyph here is a mark of the votive deck and must
-        // not be mistaken for a yield's and swapped for a drawing of one.
-        const emblem = element('span', 'offer-emblem offer-emblem-glyph');
-        emblem.setAttribute('aria-hidden', 'true');
-        emblem.textContent = option.emblemGlyph;
         button.append(emblem);
       } else if (option.chairs !== undefined) {
         button.append(offerChairsNode(option.chairs));
@@ -1794,14 +1833,17 @@ export function createOfferCard(
     // names it.
     chooseCard(0);
 
-    // The drawn faces fit their words now that they are on the page, and again
-    // once the card fonts have loaded.
+    // The drawn faces fit their words, and a hand with picture windows fits
+    // the screen, now that they are on the page, and again once the card fonts
+    // have loaded.
     const fitAll = (): void => {
       for (const fit of fits) fit();
       offer.fitHand?.(drawnFaces);
+      fitPictures();
     };
     fitAll();
-    if (drawnFaces.length > 0) {
+    const pictured = offer.options.some((option) => option.picture !== undefined);
+    if (drawnFaces.length > 0 || pictured) {
       void document.fonts?.ready.then(() => {
         if (standing?.offer === offer) fitAll();
       });

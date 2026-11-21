@@ -11588,8 +11588,11 @@ p.city-trade-link {
   flex-direction: column;
   gap: calc(8px * var(--offer-scale, 1));
   min-height: var(--offer-card-height, clamp(300px, 24vw, 400px));
-  padding: calc(20px * var(--offer-scale, 1)) calc(16px * var(--offer-scale, 1))
-    calc(16px * var(--offer-scale, 1));
+  /* One margin all round (the user, 2026-11-21, on the belief offer: "spacing
+     at the top of the card feels a bit awkward"), so the eyebrow and the
+     picture under it sit as close to the top as the picture sits to the
+     sides. */
+  padding: calc(16px * var(--offer-scale, 1));
   border-color: var(--line-ink, var(--ink));
   text-align: center;
   color: var(--line-ink, var(--ink));
@@ -11614,6 +11617,14 @@ p.city-trade-link {
 .offer-options[data-face='tarot'] .offer-option > * {
   position: relative;
   z-index: 1;
+}
+
+/* The ordinal keeps its place on the card's top-left corner (`.offer-ordinal`).
+   The rule above would put it back in the flow, where it took a row of its own
+   above the eyebrow and left a tall empty band at the top of the card. */
+.offer-options[data-face='tarot'] .offer-option > .offer-ordinal {
+  position: absolute;
+  z-index: 2;
 }
 
 .offer-options[data-face='tarot'] .offer-payoff {
@@ -11691,22 +11702,18 @@ p.city-trade-link {
   mask-position: center;
 }
 
-/* The same plate, **set rather than masked**: the votive deck's cards carry an
-   axis symbol (`AXIS_MARK`) where a Statecraft card carries a drawing, because
-   borrowing one of the seven marks would say a god belongs to the Wild Hunt.
-   The mask is turned off and the fill with it — a masked box with no drawing in
-   it paints as a solid square of accent — and the glyph takes the accent ink the
-   emblem would have taken, at the same size the drawing occupies. */
-.offer-emblem-glyph {
+/* **A picture window** where the emblem goes (`OfferOption.picture`; the
+   belief offer passes the belief's arched window). It spans the card's width,
+   so the picture is the first thing a player sees. When the hand would not fit
+   on the screen, `fitPictures` in `offerCard.ts` sets `--offer-picture` on the
+   hand, and every window in it is narrower by the same amount, so the cards
+   still read alike. */
+.offer-picture {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: transparent;
-  -webkit-mask-image: none;
-  mask-image: none;
-  font-size: calc(var(--offer-emblem, 56px) * 0.72);
-  line-height: 1;
-  color: var(--line-ink, var(--ink));
+  flex-direction: column;
+  align-self: center;
+  width: var(--offer-picture, 100%);
+  margin-top: 2px;
 }
 
 /* **A government's chairs** (batch C2b), where its emblem stood: one small
@@ -14959,6 +14966,24 @@ button.faith-rite-chip:hover:not(.is-on) {
   background-color: var(--line-ink, var(--y-faith));
   -webkit-mask: var(--faith-mark) center / contain no-repeat;
   mask: var(--faith-mark) center / contain no-repeat;
+}
+
+/* The same window on a card of the belief offer (`beliefWindowNode` inside
+   `.offer-picture`): it fills the frame the offer card sizes, in the card's
+   axis ink. A window with the drawn mark is square there too, and its mark
+   grows with it, so the names in a hand stand on one line. */
+.offer-picture > .faith-window {
+  margin: 0;
+}
+
+.offer-picture > .faith-window[data-picture='mark'] {
+  aspect-ratio: 1;
+}
+
+.offer-picture .faith-window-mark {
+  width: 42%;
+  height: auto;
+  aspect-ratio: 1;
 }
 
 /* An empty place: a dashed tablet. */

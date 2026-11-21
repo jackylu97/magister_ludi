@@ -186,7 +186,8 @@ import { readMeter } from './sim/readings';
 import { type ConfirmCard, type ConfirmRequest, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import type { TriumphAward } from './sim/triumphs';
-import { AXIS_MARK, beliefCardType, beliefOfferEyebrow } from './ui/religionScreen';
+import { beliefCardType, beliefOfferEyebrow } from './ui/religionScreen';
+import { beliefWindowNode } from './ui/beliefPictures';
 import { beliefDef } from './sim/religionData';
 import {
   type RerollKind,
@@ -3908,17 +3909,18 @@ async function boot(initial: Game | null): Promise<void> {
    *
    * Every clause is `describeCard`, the same function the Religion screen
    * prints, so a god reads identically on the card that dealt it and in the
-   * pantheon afterwards. The emblem is deliberately **not a drawing**: a belief
-   * joins no Statecraft line, so lending it one of that deck's seven marks would
-   * be saying something untrue, and the axis glyph takes the plate instead
-   * (`religionScreen.ts`'s AXIS_MARK — one table, both surfaces).
+   * pantheon afterwards. The picture is the belief's arched window
+   * (`beliefWindowNode`), the one its tablet shows on the Faith sheet and on
+   * the In play screen. It is never one of the Statecraft deck's seven marks: a
+   * belief joins no Statecraft line, so lending it one would say something
+   * untrue.
    *
    * **It is dealt like a card, because it is one** (the ruling of 2026-09-05,
    * `docs/flags.md` note 10: the card animations belong on the religion cards
    * too). The votive hand is a tarot hand — the tall frame, the backs, the
    * stagger, the turn-over, the stamp counted at the pick — for the reason the
    * Order draft is: three cards are dealt from a bag, read, and one is taken.
-   * Nothing here declares that; the plate is what `offerCard.ts` reads.
+   * Nothing here declares that; the picture is what `offerCard.ts` reads.
    */
   function showReligionOffer(): void {
     const seat = controls.localPlayerId();
@@ -3975,13 +3977,15 @@ async function boot(initial: Game | null): Promise<void> {
             title: def.name,
             note: describeCard(id).map((clause) => clause.text).join(' · '),
             flavor: def.flavor,
-            // The plate, and it is the axis's **glyph** rather than a drawing:
-            // the axis is the accent's mark, not a category the player is
-            // picking between (the 2026-08-26 playtest pass took the word off
-            // every surface), and borrowing one of the Statecraft deck's seven
-            // marks would say a god belongs to the Wild Hunt. See `AXIS_MARK`,
-            // and `OfferOption.emblemGlyph` for why the plate takes a character.
-            emblemGlyph: AXIS_MARK[def.axis].glyph,
+            // The picture is the belief's arched window (the user, 2026-11-21:
+            // "i notice that the belief art for pantheons isn't in yet?"): its
+            // vignette, or its drawn mark when it has none. It is the window
+            // the Faith sheet's tablet and the In play tablet show, so the card
+            // that offers a belief and the tablet that holds it look alike. It
+            // takes the place of the axis glyph, and it is never one of the
+            // Statecraft deck's seven marks, which would say a god belongs to
+            // the Wild Hunt.
+            picture: () => beliefWindowNode(id),
             // The accent key, resolved by `style.css`'s axis block — the same
             // `--line-ink` mechanism a Statecraft card's line uses, so a votive
             // card and an Order card are painted by one rule.

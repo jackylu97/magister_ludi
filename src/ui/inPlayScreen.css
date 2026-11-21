@@ -2,8 +2,10 @@
  * **In play** (`inPlayScreen.ts`), stage 3 of the approved Council and In play
  * board (`docs/plans/mockups/scholars-study/council-and-in-play/`, frames I1 to
  * I5 and IH). The values are the board's at 1440 by 900: the head 46 px; the
- * left column 214 px; five stacks 206 px wide, 28 px apart; each tucked edge
- * 206 by 46 px, laid 4 px over the one above it.
+ * left column 214 px; five stacks 206 px wide, except the beliefs and the
+ * legacies at 150 px (2026-11-21), with one gap between columns that fits
+ * them to the window (`--ip-gap`); each tucked edge as wide as its stack and
+ * 46 px tall, laid 4 px over the one above it.
  *
  * Full screen on the dark cloth, as the Council screen is. It stays on the
  * shared frame (`modalShell.ts`, `.statecraft-overlay`): every rule here is
@@ -29,6 +31,10 @@
   --council-gilt: rgba(232, 195, 94, 0.9);
   --ip-paper: radial-gradient(120% 90% at 30% 15%, #fcf7e7, #f8f1dc 55%, #efe4c6);
   --ip-shadow: 3px 3px 0 #0e0c10;
+  /* The gap between the columns: the window's width less the sheet's
+     margins, the left column (214 px), three 206 px stacks and two 150 px
+     stacks, shared between five gaps. */
+  --ip-gap: clamp(16px, calc((100vw - 48px - 214px - 3 * 206px - 2 * 150px) / 5), 40px);
   position: relative;
   width: 100%;
   max-width: none;
@@ -152,7 +158,7 @@
 .ip-cloth {
   box-sizing: border-box;
   display: flex;
-  gap: 26px;
+  gap: var(--ip-gap);
   height: 100%;
   padding: 24px 0 28px;
   overflow: hidden auto;
@@ -274,23 +280,36 @@
 
 /* Five columns on one grid, so every stack's head takes the height of the
    tallest and every pile starts at one line, however many lines of figures a
-   head holds (each stack is a subgrid of the head and the pile). */
+   head holds (each stack is a subgrid of the head and the pile). Each column
+   is as wide as its stack (`--ip-w`), and the gaps are one width: the room the
+   window leaves, shared evenly between the six columns, from 16 to 40 px. So
+   all six fit at 1280 px and do not spread apart at 1440 px. */
 .ip-stacks {
   display: grid;
   flex: 1 1 auto;
-  grid-template-columns: repeat(5, 206px);
+  grid-template-columns: repeat(5, max-content);
   grid-template-rows: auto auto;
-  column-gap: 28px;
+  column-gap: var(--ip-gap);
   align-content: start;
 }
 
 .ip-stack {
+  --ip-w: 206px;
   position: relative;
   display: grid;
   grid-row: span 2;
   grid-template-rows: subgrid;
   justify-items: center;
-  width: 206px;
+  width: var(--ip-w);
+}
+
+/* The beliefs and the legacies are thinner (the user, 2026-11-21: "could we
+   make the card slightly thinner to fit the art better?"; "maybe we can make
+   these the same width as beliefs"). 150 px is the width the board first drew
+   the tablet and the medal at. The rows under the top piece take it too. */
+.ip-stack[data-stack='beliefs'],
+.ip-stack[data-stack='legacies'] {
+  --ip-w: 150px;
 }
 
 .ip-stack.is-open::before {
@@ -313,7 +332,7 @@
   gap: 1px;
   /* The name and count, then the total's figures on as many lines as they
      need; the grid gives every head the tallest one's height. */
-  width: 206px;
+  width: var(--ip-w, 206px);
   margin-bottom: 6px;
   padding: 0;
   border: 0;
@@ -382,7 +401,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 206px;
+  width: var(--ip-w, 206px);
 }
 
 .ip-pile > * {
@@ -391,7 +410,7 @@
 
 .ip-empty {
   box-sizing: border-box;
-  width: 206px;
+  width: var(--ip-w, 206px);
   height: 46px;
   padding-top: 13px;
   border: 1px dashed rgba(232, 195, 94, 0.45);
@@ -478,7 +497,7 @@
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  width: 206px;
+  width: var(--ip-w, 206px);
   min-height: 46px;
   margin-top: -4px;
   padding: 8px 8px 5px 5px;
@@ -538,6 +557,16 @@
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* In the two thin stacks a long name takes a second line rather than lose
+   its end, and the row grows to hold it. A name longer than two lines is cut. */
+.ip-stack[data-stack='beliefs'] .ip-edge-name,
+.ip-stack[data-stack='legacies'] .ip-edge-name {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .ip-chair {
@@ -738,15 +767,20 @@
   padding: 6px 9px 7px;
 }
 
-/* A belief's tablet: an arch, the flame in a ring, the name, its faith and its figure. */
+/* A belief's tablet: an arch, the belief's arched window, the name, its faith
+   and its figure. 150 px wide, the width of its column. Its arch and the
+   window's arch have one centre: the window stands 15 px in from the tablet's
+   sides and top (2 px of border and 13 px of padding), and each radius of the
+   tablet is the window's plus 15 px (75 = 60 + 15 across; 70 = 55 + 15 up). */
 .ip-belief {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 10px 6px;
+  width: 150px;
+  padding: 13px 13px 6px;
   border: 2px solid var(--k);
-  border-radius: 103px 103px 5px 5px / 60px 60px 5px 5px;
+  border-radius: 75px 75px 5px 5px / 70px 70px 5px 5px;
   background: var(--ip-paper);
   box-shadow: 4px 4px 0 #0e0c10;
   text-align: center;
@@ -769,6 +803,28 @@
   height: 24px;
 }
 
+/* A belief's window on its tablet: the Faith sheet's arched window
+   (`beliefWindowNode`, shaped by `.faith-window` in `style.css`), square, so a
+   1:1 vignette shows whole but for the two top corners. It fills the tablet's
+   width inside the padding (120 px). A belief with no vignette holds its drawn
+   mark in a window of the same size, so every tablet is the same height. The
+   window wears the piece's ink. */
+.ip-belief > .faith-window {
+  align-self: stretch;
+  margin: 0;
+  border-color: var(--k);
+}
+
+.ip-belief > .faith-window[data-picture='mark'] {
+  aspect-ratio: 1;
+}
+
+.ip-belief .faith-window-mark {
+  width: 34px;
+  height: 34px;
+  background-color: var(--k);
+}
+
 .ip-belief .ip-name {
   margin-top: 5px;
 }
@@ -782,6 +838,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 150px;
   text-align: center;
 }
 
@@ -1123,6 +1180,12 @@
   width: 206px;
   pointer-events: none;
   --ip-paper: radial-gradient(120% 90% at 30% 15%, #fcf7e7, #f8f1dc 55%, #efe4c6);
+}
+
+/* A belief and a legacy fly at their own, thinner width. */
+.ip-flight.ip-belief,
+.ip-flight.ip-legacy {
+  width: 150px;
 }
 
 @media (prefers-reduced-motion: reduce) {

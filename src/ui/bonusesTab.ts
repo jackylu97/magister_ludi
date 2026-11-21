@@ -4,8 +4,8 @@
  *
  * Since Quiet Table's build stage 3 (the third pass's `frame-c1-bonuses`: "The
  * proposed pages look good") the two large headline boxes are one line, and
- * the gods, the beliefs and the holy city are tablets with a round window
- * (`beliefPicture`, the drawn mark until vignettes exist); an empty place is a
+ * the gods, the beliefs and the holy city are tablets with an arched window
+ * (`beliefWindowNode`: the vignette, or the drawn mark); an empty place is a
  * dashed tablet.
  *
  * The spec is `docs/plans/faith-screen-f1.md`, Tab 2, with the user's answers
@@ -54,7 +54,6 @@
  * so the sheet can cancel all of it on its next paint or when it closes.
  */
 
-import { inPlayMarkDataUri } from '../art/inPlayMarks';
 import { buildingDef } from '../sim/buildingData';
 import type { BuildingId } from '../sim/buildingData';
 import { type CityYields, emptyCityYields, tileOwnerCityId } from '../sim/cities';
@@ -114,7 +113,7 @@ import {
 import { hasTech } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import { yieldShows } from '../sim/yieldFormat';
-import { beliefPicture } from './beliefPictures';
+import { beliefWindowNode } from './beliefPictures';
 import {
   type StampReading,
   cardStampNode,
@@ -843,25 +842,13 @@ function cardBelief(card: BonusCard): string | null {
 }
 
 /**
- * **A tablet's arched window**: the belief's vignette when one exists
- * (`beliefPicture`), and the drawn belief mark otherwise; the holy
- * city's tablet wears the holy city's mark.
+ * **A tablet's arched window**: the belief's vignette when one exists, and the
+ * drawn belief mark otherwise; the holy city's tablet wears the holy city's
+ * mark. The window is `beliefWindowNode`'s, which the In play tablet and the
+ * belief offer also draw.
  */
 function windowNode(card: BonusCard): HTMLElement {
-  const window = element('span', 'faith-window');
-  window.setAttribute('aria-hidden', 'true');
-  const belief = cardBelief(card);
-  const picture = belief === null ? ({ kind: 'mark' } as const) : beliefPicture(belief);
-  if (picture.kind === 'painted') {
-    window.dataset.picture = 'painted';
-    window.style.backgroundImage = `url("${picture.url}")`;
-    return window;
-  }
-  window.dataset.picture = 'mark';
-  const mark = element('span', 'faith-window-mark');
-  mark.style.setProperty('--faith-mark', `url("${inPlayMarkDataUri(card.kind === 'holyCity' ? 'holyCity' : 'belief')}")`);
-  window.append(mark);
-  return window;
+  return beliefWindowNode(cardBelief(card), card.kind === 'holyCity' ? 'holyCity' : 'belief');
 }
 
 /** The glyph in a card's emblem chip. */

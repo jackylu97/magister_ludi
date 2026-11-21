@@ -271,7 +271,7 @@ describe('the soft pause lives on the End Turn button (user, 2026-08-30)', () =>
  * flag in `offerCard.ts`: a card with a plate is a card from a deck. So what is
  * pinned here is that each of the four decks hands one over — an Order, a
  * charter and a Doctrine a drawing, a great person the family's drawing, a
- * belief its axis glyph — and that the flag reads both kinds. A class that goes
+ * belief its picture window — and that the flag reads both kinds. A class that goes
  * back to dealing a plain face is a draft that no longer turns over, which is
  * exactly the sort of thing that is silently wrong on one screen only.
  */
@@ -281,16 +281,41 @@ describe('every draft deals a tarot face', () => {
     expect(at).toBeGreaterThan(-1);
     const flag = OFFER_CARD.slice(at, OFFER_CARD.indexOf(';', at));
     expect(flag).toContain('option.emblem !== undefined');
-    expect(flag).toContain('option.emblemGlyph !== undefined');
+    // The belief offer's picture window is a plate too, so a belief hand is
+    // still dealt. The glyph plate it replaced is gone with its last caller.
+    expect(flag).toContain('option.picture !== undefined');
+    expect(OFFER_CARD).not.toContain('emblemGlyph');
     // A drawn face (Quiet Table, build stage 2) is a third dressing, and is
     // dealt too: the back rides both flags.
     expect(OFFER_CARD).toContain('const dressed = offer.options.some((option) => option.dress !== undefined);');
     expect(OFFER_CARD).toContain('const dealing = (tarot || dressed) && wantsMotion();');
   });
 
+  it('narrows every picture window in a hand that would not fit the screen', () => {
+    // A window spans its card's width, so a belief hand can be taller than
+    // the spread planned. The fit takes the overflow off every window at once.
+    const at = OFFER_CARD.indexOf('function fitPictures(): void {');
+    expect(at).toBeGreaterThan(-1);
+    const fit = OFFER_CARD.slice(at, OFFER_CARD.indexOf('\n  }\n', at));
+    expect(fit).toContain('sheet.scrollHeight - sheet.clientHeight');
+    expect(fit).toContain("list.style.setProperty('--offer-picture'");
+    // Asked again on a resize, and once the fonts have arrived.
+    const resize = OFFER_CARD.slice(
+      OFFER_CARD.indexOf('function onResize(): void {'),
+      OFFER_CARD.indexOf('function fitPictures(): void {'),
+    );
+    expect(resize).toContain('fitPictures();');
+    expect(OFFER_CARD).toContain('if (drawnFaces.length > 0 || pictured) {');
+    // The stylesheet reads the width the fit sets.
+    expect(STYLE).toContain('width: var(--offer-picture, 100%);');
+  });
+
   it('hands the votive deck a plate of its own, and never a Statecraft mark', () => {
     const offer = offerSource('showReligionOffer');
-    expect(offer).toContain('emblemGlyph: AXIS_MARK[def.axis].glyph');
+    // The plate is the belief's arched window (the user, 2026-11-21): its
+    // vignette, or its drawn mark. It replaced the axis glyph.
+    expect(offer).toContain('picture: () => beliefWindowNode(id),');
+    expect(offer).not.toContain('emblemGlyph:');
     // A belief joins no Statecraft line, so it may not wear one of that deck's
     // seven drawings — the whole reason the glyph plate exists.
     expect(offer).not.toContain('cardLineMarkUrl(');
@@ -328,15 +353,17 @@ describe('every draft deals a tarot face', () => {
     );
   });
 
-  it('paints the glyph plate rather than a solid square of accent', () => {
-    // The masked plate fills with `currentColor` and shows only what the drawing
-    // covers; a plate with no drawing must therefore turn both off, or a belief's
-    // card wears a 56px block of ink where its symbol should be.
-    const at = STYLE.indexOf('.offer-emblem-glyph {');
+  it('keeps the ordinal on the corner of an emblem card, out of the flow', () => {
+    // The user, 2026-11-21: "spacing at the top of the card feels a bit
+    // awkward". The rule that lifts a tarot card's children above its ornament
+    // also made the ordinal a row of its own above the eyebrow. It stands on
+    // the corner again, and the card has one margin all round.
+    const at = STYLE.indexOf(".offer-options[data-face='tarot'] .offer-option > .offer-ordinal {");
     expect(at).toBeGreaterThan(-1);
-    const rule = STYLE.slice(at, STYLE.indexOf('}', at));
-    expect(rule).toContain('background-color: transparent');
-    expect(rule).toContain('mask-image: none');
+    expect(STYLE.slice(at, STYLE.indexOf('}', at))).toContain('position: absolute;');
+    const face = STYLE.indexOf(".offer-options[data-face='tarot'] .offer-option {");
+    expect(STYLE.slice(face, STYLE.indexOf('\n}', face))).toContain('padding: calc(16px * var(--offer-scale, 1));');
+    expect(STYLE).not.toContain('.offer-emblem-glyph');
   });
 });
 
