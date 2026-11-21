@@ -37,6 +37,33 @@ detail of each item.
 
 **Performance.** See [the turn 73 camera trace](benchmarks/turn73-drag-and-city-shade-2026-11-21.md) and [worker advice timings and integration](benchmarks/turn73-worker-advice-2026-11-21.md). The camera trace measured submission to the graphics driver. The worker reader keeps a cold recommendation off the input thread. Claude owns the remaining UI work for composing strategic resource offers, displaying the original and discounted price together, and offering a gold payment for The Brokers’ Redraw. Scientific and Devotion still need a closed design pass, except for Volley Fire and the shared purchase rule.
 
+### 0.1a The Scientific deck is ready for the build (2026-11-21)
+
+`docs/plans/scientific-design-pass-2026-11-20.md`. The pass is closed with
+nothing open. Read "Ready for the build" and the three rulings sections at
+the foot of the file. All 82 changes carry a ruling.
+
+- A Scientific seat can be dealt 87 cards, own and shared together (37
+  common, 36 uncommon, 14 rare). The user counts a deck by rarity, not by own
+  cards against shared ones.
+- 17 charters. Three open something new: the Smelters' (an improvement), the
+  Observers' (the Night Watch, a rite shared with Devotion: for ten turns a
+  city gains +1 science for each citizen) and the Archivists' (the Great
+  Archive, an empire building). The Closed Book becomes a rare Tier III
+  charter.
+- Four new charter technologies, placed in the plan's table `ready-places`:
+  Smelting (age I, column 2, parent Mining), Astronomy (age I, column 3,
+  parent Calendar), Record-Keeping (age III, column 6, parent Code of Laws),
+  Ciphers (age IV, column 9, parent Horology). None adds a crossing.
+- **"Known strong combinations"** in the plan are left uncapped on purpose.
+  The user: "i do want a few broken combos" and "For now, i want the game to
+  be fun over balanced for playtesters." Do not add caps.
+- The Herbalists' Charter is shared with Expansionist; The Blessed Forges is
+  Tier I and shared with Devotion. Both change sheets you have just built.
+- The Volley Fire is already built.
+- Each new improvement and building needs a board model and an icon; a
+  missing board prop stops the game at load.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
