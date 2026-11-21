@@ -1331,9 +1331,10 @@ import { digestOfState, type Played } from './aiDigestHelpers';
 /** Version 251 changes research income and the prices bots pay for soldiers, workers and settlers. */
 /** Version 252 changes combat at rivers and at sea. The new rules also skip the counter roll against an embarked unit. */
 // Version 254 includes the revised decks, worker plans, trade terms and combat rules.
+// Version 256 changes the Scientific and Devotion pools, rite rules and bot values for charters.
 const DIGESTS = {
-  duel: '183af991:351778',
-  standard: 'ed2f60a4:1049203',
+  duel: '61fd7db6:346524',
+  standard: 'd5357525:1097051',
 };
 
 /** Check driver errors before comparing the state digest. */

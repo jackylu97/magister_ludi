@@ -57,11 +57,11 @@ function seat(state: GameState, ...cards: OrderId[]): number[] {
 describe('The Builders’ Lodge', () => {
   it('raises Order payments from a named building or a count, and keeps the original yield stage', () => {
     const { state, capital, town, rival } = board();
-    for (const id of ['barracks', 'monument', 'forum'] as const) {
+    for (const id of ['barracks', 'monument', 'forum', 'watermill'] as const) {
       addBuilding(state, capital, id);
       addBuilding(state, rival, id);
     }
-    seat(state, 'dominionTheGeneralStaff', 'civicGranaries', 'enduringInstitutions', LODGE, 'thePalaceSchool');
+    seat(state, 'dominionTheGeneralStaff', 'civicGranaries', 'theMillWheels', LODGE, 'thePalaceSchool');
     state.players[0]!.statecraft.doctrines.push('theChoregia');
     bumpRevision(state);
 
@@ -73,7 +73,7 @@ describe('The Builders’ Lodge', () => {
     expect(explainCardCityYields(state, town).filter((line) => line.card === LODGE)).toEqual([]);
     expect(explainCardCityYields(state, rival).filter((line) => line.card === LODGE)).toEqual([]);
     expect(explainCardPercentYields(state, capital).filter((line) => line.card === LODGE)).toEqual([
-      expect.objectContaining({ yield: 'production', percent: 20, stage: 'city' }),
+      expect.objectContaining({ yield: 'production', percent: 15, stage: 'city' }),
     ]);
     expect(explainCardPercentYields(state, town).filter((line) => line.card === LODGE)).toEqual([]);
 
@@ -104,9 +104,9 @@ it('keeps a building completion grant at its original amount', () => {
   const { state, capital } = board('theCuria');
   seat(state, 'theApprentices', LODGE, PALACE);
   const payout = windfallPayout(state, 0, 'buildingCompletion', 0, 0, {
-    hex: { col: capital.col, row: capital.row }, building: 'monument',
+    hex: { col: capital.col, row: capital.row }, building: 'monument', buildingCost: 30,
   });
-  expect(payout.grants).toEqual([expect.objectContaining({ card: 'theApprentices', yield: 'science', amount: 5 })]);
+  expect(payout.grants).toEqual([expect.objectContaining({ card: 'theApprentices', yield: 'science', amount: 6 })]);
 });
 
 describe('The Summer Palace', () => {

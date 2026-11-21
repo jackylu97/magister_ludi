@@ -344,18 +344,16 @@ describe('an entry', () => {
     expect(sectionOfId('nonsense:swordsman')).toBeNull();
   });
 
-  it('wears the mark its own kind is drawn with, and no new ones', () => {
-    // Four kinds and no fifth: the piece's badge, the resource's drawn mark, a
-    // card's A3 marks, the table's own glyph. Each of the four is a drawing
-    // that already existed for some other surface — the rule is that the book
-    // invents no icon of its own, not that it may only print letters.
+  it('uses the same icons as the other screens for each entry', () => {
     for (const entry of everyEntry()) {
       if (entry.mark === null) continue;
-      expect(['badge', 'resource', 'suit', 'glyph'], entry.id).toContain(entry.mark.kind);
+      expect(['badge', 'resource', 'suit', 'glyph', 'charter'], entry.id).toContain(entry.mark.kind);
     }
     // A unit wears its piece's badge class; a resource is drawn by the printer
     // resources are always drawn by; an Order wears the A3 marks its collection
     // row wears (batch C1): its type's ink, its deck's suit, its rarity's mark.
+    const archive = everyEntry().find((entry) => entry.id === 'building:greatArchive');
+    expect(archive?.mark).toMatchObject({ kind: 'charter' });
     const swordsman = everyEntry().find((entry) => entry.id === 'unit:swordsman');
     expect(swordsman?.mark).toEqual({ kind: 'badge', badge: unitDef('swordsman').modelClass });
     const wheat = everyEntry().find((entry) => entry.id === 'resource:wheat');
@@ -1053,7 +1051,7 @@ describe('never hand-written prose about a number', () => {
       expect(row?.figures, id).toMatch(duration === 1 ? / turn$/ : / turns$/);
     }
     const votive = riteEntryOf('votiveOffering').rows.find((line) => line.label === 'Duration');
-    expect(votive?.figures).toMatch(/^1 turn$/);
+    expect(votive?.figures).toBe('10 turns');
   });
 
   it('says who performs a rite as the reducer allows it, with no chapel needed', () => {

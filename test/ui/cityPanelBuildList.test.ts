@@ -420,7 +420,7 @@ describe('the work rail’s card and the Faith card', () => {
     expect(card).toContain("'Every rite, in the Faith sheet →'");
     // The rite the town keeps is a small card: its name, a bar of the turns
     // gone against the rite's whole length, and the turns left.
-    expect(card).toContain('const whole = riteTurnsFor(state, city.ownerId, held) ?? left;');
+    expect(card).toContain('const whole = keptRiteSchedule(state, city, held)?.duration ?? left;');
     expect(card).toContain('for (const held of kept)');
     expect(card).toContain("const box = element('div', 'city-rite-kept');");
     expect(card).toContain("box.append(bar(Math.max(0, whole - left), Math.max(whole, left), 'is-faith'));");

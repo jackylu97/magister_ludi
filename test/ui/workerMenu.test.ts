@@ -64,6 +64,7 @@ describe('the worker lists only what the empire has unlocked', () => {
     // `bareState` holds every technology whose gift is a thing, and none whose
     // gift is a rule, so Surveying (a charter technology) is not held.
     const { state, hex } = townAndHex();
+    tileNeighbors(state.map, hex)[0]!.hills = true;
     const worker = workerOn(state, hex);
     expect(playerById(state, 0)!.techsResearched).not.toContain('surveying');
     expect(listed(state, worker)).not.toContain('qanat');

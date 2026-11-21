@@ -68,7 +68,7 @@ import {
   orderDef,
   orderFitsSlot,
 } from '../../../src/sim/statecraftData';
-import { resetVisibility } from '../../../src/sim/visibility';
+import { recomputeVisibility, resetVisibility } from '../../../src/sim/visibility';
 import { openWar, warBetween, warSpoils } from '../../../src/sim/wars';
 import { newGame } from '../newGameHelpers';
 
@@ -552,9 +552,9 @@ describe('Dominion D6 — Vae Victis and Looted Art', () => {
     const cards = ['carriedOffScholars', 'lootedArt', 'dominionSpolia', 'dominionHegemony'];
     const once = takeMarvel(cards);
     const twice = takeMarvel(['vaeVictis', ...cards]);
-    // Carried-Off Scholars: ten science for each of four citizens, twice.
-    expect(once.science).toBe(40);
-    expect(twice.science).toBe(80);
+    // Neither empire knows a technology the other lacks. Each of the four citizens pays 30 science.
+    expect(once.science).toBe(120);
+    expect(twice.science).toBe(240);
     // Looted Art's 40 renown, twice.
     expect(twice.renown - once.renown).toBe(40);
     // Spolia: half of 80 hammers, twice, kept for the Opus.
@@ -641,8 +641,11 @@ describe('Dominion D6 — words and the bot', () => {
     // until bot batch BP6 this test passed only because holding Carried-Off
     // Scholars raised the deck bonus on Vae Victis.
     for (let n = 0; n < 4; n++) createUnit(state, 0, 'warrior', 3 + n, 4);
+    foundCityAt(state, 1, at(state, 7, 5));
+    recomputeVisibility(state, 0);
     touch(state);
     const player = seat(state, 0);
+    expect(player.metSeats).toContain(1);
     const worth = (): number => scoreCard(player, 'vaeVictis' as OrderId, valueContext(state, player));
     const alone = worth();
     slot(state, 0, 'carriedOffScholars');

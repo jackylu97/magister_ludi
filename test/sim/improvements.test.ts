@@ -174,6 +174,7 @@ describe('the improvement table', () => {
     // prophet leaves — `docs/religion-v2.md`), and no rule anywhere compares an
     // id against a string to tell them apart.
     expect(IMPROVEMENT_IDS).toEqual([
+      'cliffMonastery', 'stoneCircle', 'smelter',
       'farm',
       // The tenth (batch L8, `docs/flags.md` (bbbbb)): a farm of the hills and
       // the mountain foot that **one figure's seat alone** may cut, and the
@@ -838,6 +839,7 @@ describe('buildImprovement', () => {
         tile.hills = def.requiresHills ?? false;
         tile.freshwater = !def.requiresDryGround;
         tile.riverEdges = def.requiresRiver ? 1 : 0;
+        tile.mountainsBeside = def.requiresAdjacentMountain || def.requiresAdjacentHighGround ? 1 : 0;
       }
 
       it('refuses the wrong one by name, for every improvable resource', () => {

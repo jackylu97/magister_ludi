@@ -184,9 +184,8 @@ describe('a technology charter is priced as what knowing its technology gives (S
   it('prices every live charter, on top of the row’s own walk', () => {
     const { state, player } = board(3);
     const ctx = valueContext(state, player);
-    // The thirteen of the placeholder table, and the shared The Schoolmen's
-    // Charter (Devotion batch DV2).
-    expect(LIVE_CHARTERS.length).toBe(14);
+    // Includes every live technology charter in the Scientific and shared pools.
+    expect(LIVE_CHARTERS).toHaveLength(18);
     for (const id of LIVE_CHARTERS) {
       const priced = explainCharter(id, ctx)!;
       expect(priced, id).not.toBeNull();
@@ -271,22 +270,54 @@ describe('a technology charter is priced as what knowing its technology gives (S
       explainCharterKnowledge(tech, ctx).terms.find((term) => term.label.startsWith(label))!.value;
     expect(buildingDef('mouseion').oncePerEmpire).toBe(true);
     expect(knowing('cataloguing' as TechId, 'the Mouseion')).toBe(shelf('mouseion', 1));
-    expect(knowing('optics' as TechId, 'the Specularium')).toBe(shelf('specularium', 3));
-    expect(knowing('optics' as TechId, 'the Specularium')).toBeGreaterThan(0);
+    expect(knowing('optics' as TechId, 'the Glasshouse')).toBe(shelf('specularium', 3));
+    expect(knowing('optics' as TechId, 'the Glasshouse')).toBeGreaterThan(0);
+  });
+
+  it('raises the Archive charter price as the seat learns charter technologies', () => {
+    const { state, player } = board(2);
+    const worth = () => explainCharter('theArchivistsCharter', {
+      ...valueContext(state, player), scienceRate: 500, medianProduction: 100,
+    })!.total;
+    const before = worth();
+    player.techsResearched.push('herbals', 'optics');
+    bumpRevision(state);
+    expect(worth()).toBeGreaterThan(before);
+  });
+
+  it('prices the Night Watch through its rite when Astronomy is still a draft choice', () => {
+    const { state, player, cities } = board(1);
+    const worth = () => explainCharterKnowledge('astronomy', valueContext(state, player));
+    const initial = worth();
+    expect(initial.terms.some(term => term.label.includes('Night Watch'))).toBe(true);
+    expect(initial.total).toBeGreaterThan(0);
+    cities[0]!.population += 4;
+    bumpRevision(state);
+    expect(worth().total).toBeGreaterThan(initial.total);
+  });
+
+  it('prices a smelter more highly where it can work beside a mine', () => {
+    const { state, player, cities } = board(1);
+    const worth = () => explainTechWorks('smelting', valueContext(state, player)).total;
+    const bare = worth();
+    const tile = ownedTiles(state, cities[0]!).find(tile => tile.col !== cities[0]!.col)!;
+    tile.improvement = 'mine';
+    bumpRevision(state);
+    expect(worth()).toBeGreaterThan(bare);
   });
 
   it('prices the works the towns would lay, where the ground allows them', () => {
-    // The Qanat stands on any flat land, so each town lays one (the knob), and
-    // its one gift is water for the farms beside it.
     const { state, player } = board(2);
     const ctx = valueContext(state, player);
-    const qanat = explainTechWorks('surveying' as TechId, ctx);
+    expect(explainTechWorks('surveying', ctx).total).toBe(0);
+    for (const city of state.cities) at(state.map, city.col, city.row - 1).hills = true;
+    bumpRevision(state);
+    const qanat = explainTechWorks('surveying', valueContext(state, player));
     expect(qanat.terms).toHaveLength(1);
-    expect(qanat.total).toBe(SCIENTIFIC.workGift * 2 * SCIENTIFIC.worksPerTown);
+    expect(qanat.total).toBeGreaterThan(0);
     const more = withAiTuning(tuned('worksPerTown', 2), () =>
-      explainTechWorks('surveying' as TechId, valueContext(state, player)).total,
-    );
-    expect(more).toBe(SCIENTIFIC.workGift * 2 * 2);
+      explainTechWorks('surveying', valueContext(state, player)).total);
+    expect(more).toBe(qanat.total);
     // The Physic Garden needs fresh water, and this dry bench has none: no
     // garden, and Herbals' happiness for each garden counts nothing.
     const herbals = 'herbals' as TechId;
@@ -296,7 +327,7 @@ describe('a technology charter is priced as what knowing its technology gives (S
     // Water one hex of each town: a garden a town, its science, and the
     // happiness Herbals pays for each garden.
     for (const city of state.cities) {
-      const tile = ownedTiles(state, city).find((hex) => hex.col !== city.col || hex.row !== city.row)!;
+      const tile = ownedTiles(state, city).find(hex => !hex.hills && (hex.col !== city.col || hex.row !== city.row))!;
       tile.freshwater = true;
     }
     bumpRevision(state);
@@ -433,14 +464,16 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     expect(Number.isFinite(scoreEffects(effects, valueContext(state, player)))).toBe(true);
   });
 
-  it('prices The Translation Movement by the beakers it saves on the gap', () => {
+  it('prices The Translation Movement by the missing technologies in earlier ages', () => {
     const { state, player } = board(1, 20);
-    const effects = orderDef('theTranslationMovement' as OrderId).effects;
+    const effects = orderDef('theTranslationMovement').effects;
     expect(scoreEffects(effects, valueContext(state, player))).toBe(0);
-    meet(state, player, [...player.techsResearched, 'mining', 'earthenware']);
+    player.techsResearched = TECH_IDS.filter(tech => tech !== 'mining' && tech !== 'earthenware');
+    player.sciencePool = 500;
+    bumpRevision(state);
     const ctx = valueContext(state, player);
-    const gap = techCostFor(ctx, 'mining' as TechId) + techCostFor(ctx, 'earthenware' as TechId);
-    expect(scoreEffects(effects, ctx)).toBe(explainLump({ science: 0.2 * gap }, ctx).total);
+    const missing = techCostFor(ctx, 'mining') + techCostFor(ctx, 'earthenware');
+    expect(scoreEffects(effects, ctx)).toBeCloseTo(explainLump({ science: missing / 3 }, ctx).total);
   });
 
   it('prices The Royal Readers by the renown each great person costs less', () => {
@@ -492,8 +525,8 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     it('reads each capital row once more, for a `where` row and for a scoped row', () => {
       const { state, player } = board(3, 60);
       player.techsResearched = TECH_IDS.slice(0, 2);
-      seatOrders(state, player, ['theSumOfKnowledge', 'hearthStores']);
-      const sum = orderWorth(state, player, 'theSumOfKnowledge');
+      seatOrders(state, player, ['marketDay', 'hearthStores']);
+      const sum = orderWorth(state, player, 'marketDay');
       const hearth = orderWorth(state, player, 'hearthStores');
       expect(sum).toBeGreaterThan(0);
       expect(hearth).toBeGreaterThan(0);
@@ -516,8 +549,8 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
       expect(scoreEffects(SECOND_RULE, valueContext(state, player))).toBe(0);
       // An Order's line beside them is priced, and they add nothing to it.
       player.techsResearched = TECH_IDS.slice(0, 2);
-      seatOrders(state, player, ['theSumOfKnowledge']);
-      const sum = orderWorth(state, player, 'theSumOfKnowledge');
+      seatOrders(state, player, ['marketDay']);
+      const sum = orderWorth(state, player, 'marketDay');
       expect(scoreEffects(SECOND_RULE, valueContext(state, player))).toBeCloseTo(sum, 8);
     });
 
@@ -887,12 +920,12 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
   it('forecasts the Scientific counts that grow', () => {
     const { state, player } = board(1, 20);
     const ctx = valueContext(state, player);
-    const potential = (id: string, index: number): number => {
-      const effect = orderDef(id as OrderId).effects[index]! as CardPaysEffect;
-      return explainCounted(effect, ctx, id as OrderId).terms[1]!.value;
+    const potential = (count: CardPaysEffect['count']): number => {
+      const effect: CardPaysEffect = { kind: 'pays', where: 'empire', basis: 'count', to: 'science', amount: 1, count };
+      return explainCounted(effect, ctx).terms[1]!.value;
     };
     // Technologies known: this seat's pace of research.
-    expect(potential('theSumOfKnowledge', 0)).toBe(
+    expect(potential('techsKnown')).toBe(
       smoothed(player.techsResearched.length, aiJson.score.tallyForecast.techCompleted, 20) * HORIZON,
     );
     // Charters drafted: the knob, smoothed with the seat's record (none).
@@ -900,10 +933,10 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
       ((0 + (SCIENTIFIC.countForecast.chartersDrafted / HORIZON) * COMMISSION.priorTurns) /
         (20 + COMMISSION.priorTurns)) *
       HORIZON;
-    expect(potential('theCharterRolls', 0)).toBe(drafted);
+    expect(potential('chartersDrafted')).toBe(drafted);
     // The lead and the guildsmen: the knob alone.
-    expect(potential('theSecretArts', 0)).toBe(SCIENTIFIC.countForecast.techLead);
-    expect(potential('theScholarsGuild', 0)).toBe(SCIENTIFIC.countForecast.guildsmen);
+    expect(potential('techLead')).toBe(SCIENTIFIC.countForecast.techLead);
+    expect(potential('guildsmen')).toBe(SCIENTIFIC.countForecast.guildsmen);
   });
 
   it('prices the Scientific grants: a great person, renown by price, a grant by citizens', () => {

@@ -143,6 +143,8 @@ const METER = STATECRAFT.meter;
 /** One clause of a card, in words, for the screen and the offer cards. */
 export interface CardClause {
   text: string;
+  /** The card face can link to an item's full rules in the Compendium. */
+  faceText?: string;
   /** True for a clause this build does not implement. Printed struck through. */
   deferred?: boolean;
   /**
@@ -748,6 +750,7 @@ function scopedHousesFold(effects: readonly CardEffect[], at: number, out: CardC
   if (head === undefined || head.kind !== 'unlocksBuilding' || head.scope === undefined) return 0;
   const scope = JSON.stringify(head.scope);
   const houses: string[] = [];
+  const names: string[] = [];
   let run = 0;
   while (at + run < effects.length) {
     const next = effects[at + run];
@@ -765,12 +768,14 @@ function scopedHousesFold(effects: readonly CardEffect[], at: number, out: CardC
         }
         return clause.text;
       });
+    names.push(theBuilding(id));
     houses.push(`${theBuilding(id)}${facts.length === 0 ? '' : ` (${facts.join('; ')})`}`);
     run += 1;
   }
   if (run < 2) return 0;
   out.push({
     text: `${cityScopeWords(head.scope)} may buy with ${buildingBank(head.building)} ${listWords(houses)}`,
+    faceText: `${cityScopeWords(head.scope)} may buy ${listWords(names)} with ${buildingBank(head.building)}`,
   });
   return run;
 }
@@ -1442,6 +1447,7 @@ function charterTechClauses(tech: TechId): CardClause[] {
       .join('; ');
     clauses.push({
       text: `${name} lets your workers build the ${ref('improvement', work, row.name)}${does === '' ? '' : `: ${does}`}`,
+      faceText: `Build ${ref('improvement', work, row.name)}${does === '' ? '' : `: ${does}`}`,
     });
   }
   const rest = (def.effects ?? []).filter(
@@ -1657,7 +1663,17 @@ export function effectLine(effect: CardEffect, who?: string): string | null {
         : '';
       return `${subject(effect.class)} ${signed(effect.amount)} combat strength${scale}`;
     }
+    case 'pressureRule':
+      return effect.rule === 'siteRange' && onlyFields(effect, ['rule', 'delta'])
+        ? `Holy site pressure range ${signed(effect.delta)} hexes`
+        : null;
     case 'rule': {
+      if (effect.rule === 'closedBook' && effect.turns !== undefined && onlyFields(effect, ['rule', 'turns'])) {
+        const opus = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true);
+        const tech = opus === undefined ? undefined : buildingDef(opus).worldUnlockTech;
+        if (opus === undefined || tech === undefined) return null;
+        return `First to ${ref('tech', tech, techDef(tech).name)}: rivals without it cannot start ${ref('building', opus, buildingDef(opus).name)} for ${effect.turns} turns`;
+      }
       if (!onlyFields(effect, ['rule', 'class']) || effect.class === undefined) return null;
       const words = LINE_RULE_WORDS[effect.rule] ?? FLAG_RULE_CLASS_WORDS[effect.rule];
       return words === undefined ? null : words(subject(effect.class));

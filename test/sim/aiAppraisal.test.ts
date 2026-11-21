@@ -3849,6 +3849,7 @@ describe('every field of a building row is accounted for', () => {
       const row = BUILDING_IDS.find(
         (id) => (buildingDef(id) as unknown as Record<string, unknown>)[field] !== undefined,
       );
+      if (!row && field === 'ritePays') continue; // Covered with a temporary building row below.
       expect(row, field).toBeDefined();
       const printed = explainBuildingRow(row!, ctx, cities[0]);
       expect(printed.total, field).toBe(foldTerms(printed.terms));
@@ -3955,25 +3956,35 @@ describe('the five charter lines (batch X8)', () => {
     expect(loudLine.value).toBeCloseTo(quietLine.value * (1 + besieged.threat), 9);
   });
 
-  it('prices the chapel at what a rite said here pays, at the register’s cadence', () => {
+  it('prices the Chapel by the faith saved while a known rite lasts longer', () => {
     const { state, player, cities } = x8Realm(2, 6);
-    // A realm taught no rite says none, and the line says nothing — the cadence
-    // is the occasion register's, and it is bounded by the rites the empire
-    // actually knows.
-    const untaught = valueContext(state, player);
-    expect(
-      findTerm(explainBuildingRow('chapel', untaught, cities[0]).terms, /every rite/),
-    ).toBeNull();
+    const price = () => findTerm(explainBuildingRow('chapel', valueContext(state, player), cities[0]).terms, /between rite starts/);
+    expect(price()).toBeNull();
+    player.techsResearched.push('divination');
+    bumpRevision(state);
+    const normal = price()!.value;
+    expect(normal).toBeGreaterThan(0);
+    const def = buildingDef('chapel');
+    const original = def.riteDurationPercent!;
+    try {
+      def.riteDurationPercent = original * 2;
+      expect(price()!.value).toBeGreaterThan(normal);
+    } finally { def.riteDurationPercent = original; }
+  });
+
+  it('prices a building that pays culture each time its town starts a rite', () => {
+    const { state, player, cities } = x8Realm(2, 6);
     player.techsResearched.push('divination');
     bumpRevision(state);
     const ctx = valueContext(state, player);
-    const pays = buildingRitePay({ buildings: ['chapel'] });
-    expect(pays).toBe(5);
-    const line = findTerm(explainBuildingRow('chapel', ctx, cities[0]).terms, /every rite/);
-    expect(line).not.toBeNull();
-    // One town's share of the empire's own rite tempo, at the culture price.
-    const rate = 1 / (riteDef(LIVE_RITE_IDS[0]!).duration ?? 1);
-    expect(line!.value).toBeCloseTo(pays * rate * voiceWeight(ctx, 'culture'), 6);
+    const def = buildingDef('chapel');
+    try {
+      def.ritePays = 5;
+      const pays = buildingRitePay({ buildings: ['chapel'] });
+      const line = findTerm(explainBuildingRow('chapel', ctx, cities[0]).terms, /every rite/);
+      const rate = 1 / (riteDef(LIVE_RITE_IDS[0]!).duration ?? 1);
+      expect(line!.value).toBeCloseTo(pays * rate * voiceWeight(ctx, 'culture'), 6);
+    } finally { delete def.ritePays; }
   });
 
   it('says nothing at all about a shelf that carries none of them', () => {

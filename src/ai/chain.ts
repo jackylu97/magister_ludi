@@ -199,6 +199,7 @@
  * happen. Each has its own docblock; this one covers the first.
  */
 
+import { isRiteId } from '../sim/religionData';
 import { type LevyReading, isFieldSoldier, levyReading } from './campaign';
 import { citizenKeepTerm } from './citizen';
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
@@ -1007,7 +1008,7 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
   // `research.abilityValue`. The gate is found by its ability id, the marker
   // the sim's own seam asks (`settleRenownWindfall`), never by a tech's name.
   const gate = (unlocks.abilities ?? []).includes(GREAT_PERSON_GATE);
-  const abilities = (unlocks.abilities ?? []).length - (gate ? 1 : 0);
+  const abilities = (unlocks.abilities ?? []).filter(id => id !== GREAT_PERSON_GATE && !(charter && isRiteId(id))).length;
   const flat: ValueTerm[] = [];
   // **A conversion project is worth what the conversion pays** (batch X12): the
   // node's gift used to be a count times `research.projectValue`, a flat ten a

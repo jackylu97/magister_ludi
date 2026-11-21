@@ -299,7 +299,7 @@ governments, so Tier IV opened at 29.
 | The Canons of the Holy Sepulchre | Devotion | III | tier 18 | In towns with a holy site, your faith buys 40% more. |
 | The Martyr's Crown | Devotion | III | tier 18 | Each of your units that dies in battle presses your religion on every town within three hexes. |
 | The Saint Peter's Indulgence | Devotion | IV | tier 26 | +1% production toward the Magnum Opus for every 150 faith you have spent this game. |
-| The House of Worship | Devotion | III | tier 18 | Your devout towns may buy the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Buildings that supply faith give +1 science and +1 culture. |
+| The House of Worship | Devotion | III | tier 18 | Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. Buildings that supply faith give +1 science and +1 culture. |
 | The Apostolic Camera | Devotion | IV | tier 26 | Your follower beliefs also pay you in every foreign town that follows your religion. |
 | The Two Sanctuaries | Devotion | IV | tier 26 | Hexes with a holy site have double yields, applied after every other change to the hex. |
 | The Colleganza | Commerce | III | tier 18 | Luxuries you lend in a deal still count for you. Your units lose 4 strength. A luxury you have traded away cannot be traded to a second empire. |

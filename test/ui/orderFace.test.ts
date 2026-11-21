@@ -178,7 +178,8 @@ describe('every card in the data', () => {
       const all = describeCard(id);
       expect([...(model.keyword === null ? [] : [model.keyword]), ...model.clauses], id).toEqual([
         ...all.filter((clause) => clause.keyword !== undefined),
-        ...all.filter((clause) => clause.keyword === undefined),
+        ...all.filter((clause) => clause.keyword === undefined).map(clause =>
+          clause.faceText ? { ...clause, text: clause.faceText } : clause),
       ]);
     }
   });

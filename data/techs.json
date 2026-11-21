@@ -1450,7 +1450,7 @@
       "name": "The Night Watch",
       "glyph": "✦",
       "bearer": "city",
-      "summary": "Rite: gain science for each citizen"
+      "summary": "Rite: +1 science per citizen"
     },
     "embark": {
       "name": "Embark",

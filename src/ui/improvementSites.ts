@@ -1,7 +1,7 @@
 import { improvementDef, type ImprovementId } from '../sim/improvementData';
 import { improvementGroundError, improvementOpenTo } from '../sim/improvements';
-import { tileNeighbors } from '../sim/map';
-import type { GameState } from '../sim/state';
+import { tileIndex, tileNeighbors } from '../sim/map';
+import { type GameState, tileOwnerField } from '../sim/state';
 import { groundFactsFor, tileConditionHolds } from '../sim/statecraft/evaluator';
 import type { ActionPreviewCell } from './actionPreview';
 
@@ -11,8 +11,18 @@ export function improvementSites(state: GameState, ownerId: number, id: Improvem
   if (!def.showBuildSites || !def.perNeighbour || !improvementOpenTo(state, ownerId, id)) return [];
   const ground = groundFactsFor(state, ownerId);
   const sites: ActionPreviewCell[] = [];
-  for (const tile of state.map.tiles) {
-    if (improvementGroundError(state, ownerId, tile, id) !== null) continue;
+  const owners = tileOwnerField(state);
+  const towns = new Map(state.cities.map(city => [tileIndex(state.map, city.col, city.row), city]));
+  const townsWithWork = new Set<number>();
+  for (const [index, tile] of state.map.tiles.entries()) {
+    const townId = state.tileOwner[index];
+    if (tile.improvement === id && townId != null) townsWithWork.add(townId);
+  }
+  for (const [index, tile] of state.map.tiles.entries()) {
+    const owner = owners.at(index);
+    if (owner !== ownerId && !def.tended && def.beyondBorders === undefined) continue;
+    const standing = { owner, town: towns.get(index), townsWithWork };
+    if (improvementGroundError(state, ownerId, tile, id, standing) !== null) continue;
     const counts = new Map<string, number>();
     for (const near of tileNeighbors(state.map, tile)) {
       if (!tileConditionHolds(near, def.perNeighbour.on, undefined, undefined, state.turn, ground)) continue;

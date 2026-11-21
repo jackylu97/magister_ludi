@@ -112,9 +112,7 @@ describe('explainImprovementPreview', () => {
   });
 
   it('reads the board as it will stand: a new farm beside a Qanat is watered', () => {
-    // The Qanat waters the farms beside it, and the field that says so is read
-    // off the farms on the board. A hex that holds no farm yet is not in it, so
-    // only the ghost board, with the farm standing, sees the Irrigation food.
+    // The Qanat waters every neighbouring tile even before the owner builds a farm.
     const state = bareState();
     const city = town(state, 5, 5);
     const well = besideTown(state, city);
@@ -131,8 +129,7 @@ describe('explainImprovementPreview', () => {
     const preview = explainImprovementPreview(state, 0, dry, 'farm');
     expect(preview.delta.food).toBe(2);
     expect(preview.lines.some((line) => line.source === 'Irrigation')).toBe(true);
-    // The old reading in the town's own context still missed it.
-    expect(improvementYieldDelta(dry, 'farm', tileContextAt(state, 0, dry)).food).toBe(1);
+    expect(improvementYieldDelta(dry, 'farm', tileContextAt(state, 0, dry)).food).toBe(preview.delta.food);
   });
 
   it('reads a hex beyond the borders in the context of the town that claims it', () => {

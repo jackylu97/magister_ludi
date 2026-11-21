@@ -141,27 +141,24 @@ world-scale counts live here.
 
 ## Rites
 
-A city’s verb, bought with faith, one at a time per town (two different rites at once
-under The Double Feast, Devotion batch DV8). The tree teaches it and the
-bank pays for it; the effects then stand on the town for the Duration column’s turns.
-The last four rows are taught by Devotion Orders, not by the tree: Rite of Fasting by
-The Fast's charter, Votive Offering while The Votive Gifts is seated, Restoring of the
-Host while The Host Restored is seated, and Rite of the Sabbath by The Sabbath Laws'
-charter. Votive Offering and Restoring of the Host act once, when the rite is said, and
-the town keeps them only as a wait before it may say them again. They are not seasons, so
-they do not count as rites started and pay no card that rides a rite started (Devotion
-batch DV4).
+A town starts a known rite with faith. The Double Feast gives each town a second place for a different rite. The Rites Commonwealth lets the capital start the same rite in every town for one payment. A prophet can also start a realm rite.
+
+Each rite lasts ten base turns. Add 100% for The Octave, 50% for a Chapel in the starting town and 50% for Chichen Itza. A realm rite uses the capital’s duration. Each town counts the rite at its start and every ten turns it continues. Only the initial starts raise the price.
 
 | Rite | Duration | Effect |
-|---|---|---|
+| --- | ---: | --- |
+| Vigil of Arms | 10 | Your units within three hexes of this town at the start gain +4 strength until the rite ends. |
+| The Night Watch | 10 | This city gains +1 science for each citizen. |
+| Rite of Naming | 10 | This town gains +2 food for each citizen. |
+| Rite of Hallowing | 10 | This town’s improved hexes gain +1 faith. |
 | Rite of the Harvest | 10 | Hexes that give food give +1 more. |
 | Omen Reading | 10 | +1 science for each building in this town. |
-| Consecration of the Bounds | 10 | Luxury hexes gain +1 culture, and this town's borders grow 30% faster. |
+| Consecration of the Bounds | 10 | Resource hexes gain +1 culture, and this town's borders grow 30% faster. |
 | Blessing of Arms | 10 | +10 defence. |
-| Rite of Plenty | 10 | Hexes with a resource give +1 gold. |
+| Rite of Plenty | 10 | This town gains +1 gold for each citizen. |
 | Rite of Fasting | 10 | This town does not grow, and gains +1 science and +1 culture for each citizen. |
-| Votive Offering | 1 | Spend faith to add that much production to what this town is building. Not wonders. |
-| Restoring of the Host | 5 | Heals every unit of yours in land that follows your religion. |
+| Votive Offering | 10 | This town gains production equal to its faith. |
+| Restoring of the Host | 10 | Your units within three hexes of this town heal 25 health each turn. |
 | Rite of the Sabbath | 10 | This town builds nothing, and gains its production as culture. |
 
 ## Consecrations

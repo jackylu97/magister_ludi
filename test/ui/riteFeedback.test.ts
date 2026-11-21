@@ -80,16 +80,13 @@ describe('riteSentence', () => {
     expect(line).toContain('lasts 10 turns');
   });
 
-  it('names the shelf that paid culture for the saying of it, and says nothing when none did', () => {
-    // The Chapel's culture was paid all along and announced nowhere (the user,
-    // 2026-09-07: "it's not appearing for me"). The clause reads the same row
-    // the payment reads (`ritePays`), so the figure is the bank's own.
+  it('shows the local Chapel duration in the confirmation', () => {
     const { state, city } = world();
     expect(riteSentence(state, city, 'omenReading')).not.toContain('culture');
     city.buildings.push('chapel');
     bumpRevision(state);
     const line = riteSentence(state, city, 'omenReading');
-    expect(line).toContain('the Chapel pays 5 culture');
+    expect(line).toContain('10 turns, +50% Chapel = 15 turns');
   });
 
   it('says how long the blessing runs, because that is the whole of what was bought', () => {

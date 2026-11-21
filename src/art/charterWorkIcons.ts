@@ -7,3 +7,7 @@ export const charterWorkIcons: Readonly<Record<string, string | undefined>> = {
   greatArchive: 'Great Archive',
   specularium: 'Glasshouse',
 };
+
+export function charterIconPath(id: string): string {
+  return `/sprites/charters/${id}.svg`;
+}

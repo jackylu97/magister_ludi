@@ -123,7 +123,7 @@ import { type ChargeVerbName, cityRite } from '../religion';
 import { explainRenown, renownPerTurn, settleRenownWindfall } from '../renown';
 // Scientific batch S8: a rider's great person is dealt by the routine a
 // commission's uses. A function-level edge, as `renown.ts`' is.
-import { grantOrQueueGreatPersonOffer } from '../greatPeople';
+import { grantGreatPersonOffer, grantOrQueueGreatPersonOffer } from '../greatPeople';
 import {
   type CityYieldKey,
   type ResourceId,
@@ -10287,7 +10287,7 @@ export interface WindfallPayout {
    * the routine a commission's great person uses. Optional for D3's four's
    * reason.
    */
-  people?: { card: CardId; source: string; family: Family | 'any' }[];
+  people?: { card: CardId; source: string; family: Family | 'any'; queueIfPending?: true }[];
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
   /**
@@ -11116,7 +11116,9 @@ export function windfallPayout(
     // `payWindfallGrants`. A person is not a figure, so the era and the
     // council multiply nothing here.
     if (grant.greatPerson !== undefined) {
-      (payout.people ??= []).push({ card, source, family: grant.greatPerson });
+      (payout.people ??= []).push({ card, source, family: grant.greatPerson,
+        ...(effect.oncePerBuildingKind ? { queueIfPending: true as const } : {}),
+      });
       payout.lines.push({
         card,
         source,
@@ -12733,7 +12735,10 @@ export function payWindfallGrants(
   // renown and for its reason: dealing an offer is the loudest thing a
   // windfall does. Through the routine a commission's great person uses, so a
   // seat with an offer already waiting gets the renown for the next one.
-  for (const person of payout.people ?? []) grantOrQueueGreatPersonOffer(state, player, person.family);
+  for (const person of payout.people ?? []) {
+    const grant = person.queueIfPending ? grantOrQueueGreatPersonOffer : grantGreatPersonOffer;
+    grant(state, player, person.family);
+  }
   return touched;
 }
 

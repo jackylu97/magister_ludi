@@ -266,6 +266,8 @@ function whereIs(tile: Tile): string {
  * caller's sweep, because it is a reading of the board as it stands.
  */
 interface HexStanding {
+  /** A board preview can index towns that already hold the proposed work once. */
+  townsWithWork?: ReadonlySet<number>;
   owner: number | null;
   town: City | undefined;
 }
@@ -408,7 +410,7 @@ export function improvementGroundError(
   // **One in each town** (The Keeps, Expansionist batch E4; the triage's reading
   // 31): the town that owns this hex may hold the row on no other hex.
   if (def.onePerTown) {
-    const limit = townWorkLimitError(state, tile, improvementId);
+    const limit = townWorkLimitError(state, tile, improvementId, standing.townsWithWork);
     if (limit) return limit;
   }
 
@@ -497,7 +499,7 @@ export function improvementGroundError(
   if (!anywhere && def.requiresAdjacentMountain && (tile.mountainsBeside ?? 0) === 0) {
     return `${ARow(def)} ${rowNeeds(def)} an adjacent mountain`;
   }
-  if (!anywhere && def.requiresAdjacentHighGround &&
+  if (!anywhere && def.requiresAdjacentHighGround && (tile.mountainsBeside ?? 0) === 0 &&
       !tileNeighbors(state.map, tile).some(next => next.hills || next.terrain === 'mountain')) {
     return `${ARow(def)} needs a hill or mountain beside it`;
   }
@@ -1408,10 +1410,12 @@ export function repairGroundError(state: GameState, tile: Tile): string | null {
   return improvementDef(damaged.id).onePerTown ? townWorkLimitError(state, tile, damaged.id) : null;
 }
 
-function townWorkLimitError(state: GameState, tile: Tile, id: ImprovementId): string | null {
+function townWorkLimitError(state: GameState, tile: Tile, id: ImprovementId, townsWithWork?: ReadonlySet<number>): string | null {
   const def = improvementDef(id);
   const townId = tileOwnerCityId(state, tile.col, tile.row);
-  if (townId === null || !townHoldsWork(state, townId, tile, id)) return null;
+  if (townId === null) return null;
+  const held = townsWithWork?.has(townId) ?? townHoldsWork(state, townId, tile, id);
+  if (!held) return null;
   return `${cityById(state, townId)?.name ?? 'This town'} already has ${aRow(def)}`;
 }
 

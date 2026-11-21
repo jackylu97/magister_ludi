@@ -42,7 +42,6 @@ import {
   buildingAdjacentHeal,
   buildingDemandRelief,
   buildingPurchaseDiscount,
-  buildingRitePay,
   cityIsWatered,
   foldBuildingCityStat,
 } from '../../src/sim/buildingEffects';
@@ -63,7 +62,7 @@ import {
 import { explainHappiness } from '../../src/sim/meters';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
-import { performRiteAt, riteError } from '../../src/sim/religion';
+import { performRiteAt, riteError, riteTurnsFor } from '../../src/sim/religion';
 import {
   explainCardCityYields,
   explainCardPercentYields,
@@ -349,7 +348,7 @@ describe('the charters as a family', () => {
     clearSlots(state, 0);
     // The town keeps it and it keeps paying — only *raising another* is refused.
     expect(city.buildings).toContain('chapel');
-    expect(buildingRitePay(city)).toBe(5);
+    expect(riteTurnsFor(state, 0, 'omenReading', city)).toBe(15);
     // And the refusal sends the player to the **deck**, not to the tree: nine of
     // the eleven stand on no node at all, so "needs a technology" would be false.
     expect(buildError(state, 0, 'building', 'chapel', city)).toContain('in one of your slots');
@@ -421,12 +420,7 @@ describe('the charters as a family', () => {
 // --- the buildings ----------------------------------------------------------
 
 describe('what each charter building does', () => {
-  it('Chapel — pays culture for every rite said in its town, and gates nothing', () => {
-    // The tree is the only gate (the user, 2026-09-06: "have the rites unlock
-    // in the tech tree where they used to be"): a town that has not been
-    // taught the rite refuses for *that* reason, and a bare town that has been
-    // taught it may say it with no Chapel standing. The Chapel's whole business
-    // with rites is the culture it pays on one.
+  it('lengthens rites in the Chapel town and keeps their usual research gate', () => {
     const bare = bench();
     const plainCity = capitalOf(bare);
     expect(riteError(bare, 0, plainCity.id, 'omenReading')).toContain('is not known to');
@@ -445,10 +439,8 @@ describe('what each charter building does', () => {
     seat.faithPool = 500;
     expect(riteError(state, 0, city.id, 'omenReading')).toBeNull();
     const done = performRiteAt(state, seat, city, 'omenReading');
-    expect(buildingRitePay(city)).toBe(5);
-    // It says so in the rite's own report.
-    expect(done.chapelCulture).toBe(5);
-    expect(seat.culturePool).toBe(5);
+    expect(done.turns).toBe(15);
+    expect(seat.culturePool).toBe(0);
   });
 
   it('Keep — the walls hold longer, and friends beside them mend faster', () => {

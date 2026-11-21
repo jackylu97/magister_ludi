@@ -1133,7 +1133,9 @@ describe('a seeded draft for a Commerce figure', () => {
     for (const rung of TIER_LADDER) {
       const band = bandTierAt(rung.drafts);
       for (const id of eligibleFor(g.state, musa, rung.drafts)) {
-        expect(orderDef(id).band, `${id} dealt at the band ${band} rung`).toBe(band);
+        const row = orderDef(id);
+        expect(row.band, id).toBeLessThanOrEqual(band);
+        expect(row.lastBand ?? row.band, id).toBeGreaterThanOrEqual(band);
         eligible.add(id);
       }
     }

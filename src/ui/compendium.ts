@@ -70,7 +70,7 @@
  * file growing a second address space.
  */
 
-import { charterWorkIcons } from '../art/charterWorkIcons';
+import { charterIconPath, charterWorkIcons } from '../art/charterWorkIcons';
 import {
   BUILDING_IDS,
   type BuildingDef,
@@ -293,6 +293,7 @@ export type CompendiumSectionId =
  */
 type CompendiumMark =
   | { kind: 'badge'; badge: string }
+  | { kind: 'charter'; id: string }
   | { kind: 'resource'; resource: ResourceId }
   // An Order's A3 marks (batch C1, `suitFace.ts`): its type's ink as a stripe,
   // its deck's suit and its rarity's small mark — the collection row's own
@@ -1527,7 +1528,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
     name: def.name,
     group: buildingGroup(id),
     eyebrow: `${def.category} ${wonder ? 'wonder' : 'building'}`,
-    mark: charterWorkIcons[id] ? { kind: 'badge', badge: id } : { kind: 'glyph', glyph: wonder ? '✶' : '▣' },
+    mark: charterWorkIcons[id] ? { kind: 'charter', id } : { kind: 'glyph', glyph: wonder ? '✶' : '▣' },
     rows,
     clauses,
     flavor: null,
@@ -1724,7 +1725,7 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
           : whoseRow !== null
           ? `improvement, ${whoseRow}'s alone`
           : 'improvement',
-    mark: charterWorkIcons[id] ? { kind: 'badge', badge: id } : { kind: 'glyph', glyph: def.emoji },
+    mark: charterWorkIcons[id] ? { kind: 'charter', id } : { kind: 'glyph', glyph: def.emoji },
     rows,
     clauses,
     flavor: null,
@@ -1995,7 +1996,7 @@ function charterTechEntry(id: TechId): CompendiumEntry {
     {
       text:
         charter === null
-          ? 'Opened by drafting its charter. Only an empire that holds that charter may research it.'
+          ? 'This technology’s charter has been withdrawn from the draft.'
           : `Opened by drafting ${charter}. Only an empire that holds that charter may research it.`,
     },
     ...techGifts(id)
@@ -3322,10 +3323,10 @@ function markNode(mark: CompendiumMark): HTMLElement {
     box.append(resourceMarkNode(mark.resource));
     return box;
   }
-  if (mark.kind === 'badge') {
+  if (mark.kind === 'badge' || mark.kind === 'charter') {
     const box = element('span', 'cmp-mark cmp-mark-badge');
     const img = document.createElement('img');
-    img.src = `/sprites/icons/${mark.badge}.svg`;
+    img.src = mark.kind === 'charter' ? charterIconPath(mark.id) : `/sprites/icons/${mark.badge}.svg`;
     img.alt = '';
     box.append(img);
     return box;

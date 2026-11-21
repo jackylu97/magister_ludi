@@ -2,6 +2,9 @@
 
 A world wonder can finish once per game. When two cities compete, the first completion in turn order wins. The other cities lose that queue item. A city receives gold for its stored production if the wonder was first in its queue.
 
+A city with any completed wonder shows one landmark. The current owner’s age sets the model. Ages I and II use the Sun Gate, Age III uses the Lantern Tower, and Age IV uses the Meridian Dial.
+
+
 The builder receives the completion grant and renown. Recurring effects follow the city when another empire captures it. The Compendium lists the effects and site requirements of each wonder.
 
 The Great Library offers a great scholar and the Alhambra offers a great general. If a great-person offer is already open, you keep that offer and receive no second one. If all people of the requested family have been recruited across all ages, the wonder gives no offer. Its other completion rewards still apply.

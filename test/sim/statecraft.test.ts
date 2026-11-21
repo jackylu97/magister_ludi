@@ -7354,7 +7354,7 @@ describe("a charter carries the description of the building it opens", () => {
   it("finds every card that opens a building through an effect or a charter", () => {
     // The Senate Charter gives permanent access to the Assembly Hall when drafted.
     expect(OPENERS).toContainEqual({ card: "theSenateCharter", building: "assemblyHall" });
-    expect(OPENERS).toHaveLength(20);
+    expect(OPENERS).toHaveLength(22);
   });
 
   it("says every live clause the building’s own describer says", () => {
@@ -7426,7 +7426,7 @@ describe("a charter carries the description of the building it opens", () => {
       stripRefs(entry.text),
     );
     expect(said).toEqual([
-      "unlocks the Chapel — +1 faith; a rite performed in this city pays +5 culture",
+      "unlocks the Chapel — +2 culture, +2 faith; rites started in this city last 50% longer",
     ]);
   });
 
@@ -7439,7 +7439,7 @@ describe("a charter carries the description of the building it opens", () => {
         .map((entry) => stripRefs(entry.text))
         .join(" · ");
     expect(words("chapel")).toContain(
-      "a rite performed in this city pays +5 culture",
+      "rites started in this city last 50% longer",
     );
     expect(words("keep")).toContain("+5 healing");
     expect(words("assizeCourt")).toContain("15% less");
@@ -8634,6 +8634,8 @@ describe("the engine shapes", () => {
    * percentages, a shape that predates batch A.
    */
   const ORDERS_USING_A_SHAPE: readonly string[] = [
+    "thePrinceBishops · buildingYieldPercent",
+    "thePoorTables · empireYield",
     // Dominion batch D8: The Strategoi's "+30% renown", the Doctrine that
     // takes a share of the whole recurring renown (`where: 'empire'`). The
     // Doctrines come before the Orders in the walk.

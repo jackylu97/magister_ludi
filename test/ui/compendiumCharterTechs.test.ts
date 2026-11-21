@@ -7,7 +7,7 @@
  * so every surface named it without a keyword mark (the triage's reading 74).
  * This file checks what S12 built:
  *
- *   - each of the fourteen has a page at `tech:<id>`, filed after the tree
+ *   - each charter technology has a page at `tech:<id>`, filed after the tree
  *     under one heading;
  *   - the page opens with the charter that opens it, as a mark to the card;
  *   - the page prints the price as the column price and the charter premium,
@@ -82,10 +82,8 @@ function openingOf(entry: CompendiumEntry): string {
 }
 
 describe('a charter technology’s page', () => {
-  it('exists for each of the fourteen, after the tree, under one heading', () => {
-    // Thirteen Scientific charters, and Scholasticism for the shared The
-    // Schoolmen's Charter (Devotion batch DV2).
-    expect(CHARTER_TECH_IDS).toHaveLength(14);
+  it('exists for each charter technology, after the tree, under one heading', () => {
+    expect(CHARTER_TECH_IDS).toHaveLength(19);
     for (const tech of CHARTER_TECH_IDS) {
       const def = techDef(tech);
       const entry = entryOf(compendiumId('tech', tech));
@@ -102,6 +100,10 @@ describe('a charter technology’s page', () => {
     const ids = new Set(ENTRIES.map((entry) => entry.id));
     for (const tech of CHARTER_TECH_IDS) {
       const first = entryOf(compendiumId('tech', tech)).clauses[0]!;
+      if (tech === 'navalGunnery') {
+        expect(first.text).toBe('This technology’s charter has been withdrawn from the draft.');
+        continue;
+      }
       expect(first.text, tech).toBe(
         `Opened by drafting ${charterMark(tech)}. Only an empire that holds that charter may research it.`,
       );
@@ -192,7 +194,7 @@ describe('a charter technology’s page', () => {
       expect(definition, tech).not.toBeNull();
       expect(definition!.name, tech).toBe(techDef(tech).name);
       expect(definition!.rows.map((row) => row.label), tech).toContain('Research cost');
-      expect(definition!.lines[0]!.text, tech).toMatch(/^Opened by drafting /);
+      expect(definition!.lines[0]!.text, tech).toBe(entryOf(compendiumId('tech', tech)).clauses[0]!.text);
     }
   });
 });
@@ -218,15 +220,13 @@ describe('the pages that name a charter technology link to it', () => {
         linked += 1;
       }
     }
-    // Eight buildings (the Specularium, the Mouseion, the Bimaristan, the
-    // Scriptorium, the Aldine Press, the Tophane, the Bastion, and since batch
-    // R2c Scholasticism's Cathedral School) and two improvements (the Physic
-    // Garden and the Qanat). Niter Beds made a third until batch DS6.
-    expect(linked).toBe(10);
+    // Nine city buildings and three improvements now open through a charter technology.
+    expect(linked).toBe(12);
   });
 
   it('on its charter card, in the describer’s words, after the Charter keyword', () => {
     for (const tech of CHARTER_TECH_IDS) {
+      if (tech === 'navalGunnery') continue;
       const charter = charterOf(tech);
       const mark = `[[tech:${tech}|${techDef(tech).name}]]`;
       // The describer marks it, so every surface that prints the card links it.
@@ -295,7 +295,7 @@ describe('the rows the charter technologies open', () => {
       expect(has('with no seam needed on the hex'), id).toBe(false);
       if (def.watersBeside === true) said += 1;
     }
-    // The Qanat waters farms. The Stepwell waters all neighbouring hexes.
+    // Both the Qanat and Stepwell water every neighbouring hex.
     expect(said).toBe(2);
   });
 });

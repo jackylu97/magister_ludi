@@ -36,7 +36,7 @@
  * player's saved game.
  */
 
-import { charterWorkIcons } from '../art/charterWorkIcons';
+import { charterIconPath, charterWorkIcons } from '../art/charterWorkIcons';
 import '../style.css';
 import './style.css';
 
@@ -400,7 +400,7 @@ drawPaletteAndRamp(
   for (const [id, name] of Object.entries(charterWorkIcons)) {
     const item = document.createElement('figure');
     const icon = document.createElement('img');
-    icon.src = `/sprites/icons/${id}.svg`;
+    icon.src = charterIconPath(id);
     icon.alt = '';
     icon.width = icon.height = 40;
     item.append(icon, element('figcaption', undefined, name));

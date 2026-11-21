@@ -58,23 +58,13 @@ const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
 
 
 /**
- * The rite-bonus row — the building whose marker says a rite performed in its
- * town pays culture too (`BuildingDef.ritePays`, the Chapel). Found by its
- * **marker** rather than its name, `src/sim/`'s discipline. It gates nothing:
- * the tree is the rites' only door (the user, 2026-09-06 — C2's door lasted an
- * afternoon). A pious script still wants one in every town, for its faith line
- * and the culture it pays on each rite, so the script prefers the charter that
- * hands it over and queues it wherever it may.
+ * The script prioritizes the charter that opens the building which extends its rites.
  */
-const RITE_HOUSE = BUILDING_IDS.find((id) => (buildingDef(id).ritePays ?? 0) > 0)!;
+const RITE_HOUSE = BUILDING_IDS.find((id) => (buildingDef(id).riteDurationPercent ?? 0) > 0)!;
 
 /** Does this Order hand over the rite-bonus row? */
 function opensTheRiteHouse(id: OrderId): boolean {
-  for (const effect of orderDef(id).effects ?? []) {
-    if (effect.kind !== 'unlocksBuilding') continue;
-    if ((buildingDef(effect.building).ritePays ?? 0) > 0) return true;
-  }
-  return false;
+  return orderDef(id).charter?.unlocks?.building === RITE_HOUSE;
 }
 
 /**

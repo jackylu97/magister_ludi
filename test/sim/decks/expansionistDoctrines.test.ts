@@ -2210,16 +2210,16 @@ describe('Human Sacrifice (batch DT19)', () => {
     expect(player.statecraft.tallies.find((row) => row.card === rogations)?.count).toBe(3);
   });
 
-  it('refuses a rite that acts at once, as it is refused for a prophet', () => {
+  it('allows the lasting Votive Offering from either a levy or a prophet', () => {
     const { state, capital } = board();
     seat(state).charteredRites.push(VOTIVE);
     bumpRevision(state);
     const prophet = createUnit(state, 0, 'prophet', capital.col, capital.row);
     seat(state).faithPool = 100_000;
     const refusal = levyError(state, 0, capital, 'rite', VOTIVE);
-    expect(refusal).toMatch(/said by one city/);
+    expect(refusal).toBeNull();
     expect(refusal).toBe(empireRiteError(state, 0, prophet.id, VOTIVE));
-    expect(sacrifice(state, capital, VOTIVE).ok).toBe(false);
+    expect(sacrifice(state, capital, VOTIVE).ok).toBe(true);
   });
 
   it('greys the line when the seat knows no rite that can reach every town', () => {
@@ -2230,7 +2230,7 @@ describe('Human Sacrifice (batch DT19)', () => {
     player.charteredRites = [VOTIVE];
     bumpRevision(state);
     const line = levyOptions(state, 0, capital)[0]!;
-    expect(line.blocked).toMatch(/no rite/);
+    expect(line.blocked).toBeNull();
     expect(line.rites?.map((choice) => choice.rite)).toEqual([VOTIVE]);
     player.charteredRites = [];
     bumpRevision(state);

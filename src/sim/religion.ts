@@ -2058,26 +2058,11 @@ function payRiteBuildings(state: GameState, player: Player, city: City): number 
 /** The mark an instant rite leaves on its town. See `stampRite`. */
 const RITE_MARK: CardEffect = { kind: 'pays', where: 'city' };
 
-/**
- * How many turns a rite this empire starts now will run, with every
- * `riteDuration` amplifier folded in (The Octave and Chichen Itza add fifty
- * percent each).
- *
- * `stampRite` stamps this figure and the faith screen prints it, so the
- * duration a player reads is the duration the town gets. The row's `duration`
- * is the base. The amplifiers' summed percentage is applied to it, the result
- * is floored once, and the answer is never below one turn, because a rite that
- * ran out the moment it was started would be faith spent on nothing.
- *
- * The figure is asked when a rite starts and written down as an absolute
- * expiry turn, so seating or losing an amplifier later does not change a rite
- * that is already running.
- *
- * `null` for a row with no duration, which is a withdrawn rite: nothing is
- * stamped for it.
- */
-export function riteDurationLines(state: GameState, playerId: number, city?: City): { source: string; percent: number }[] {
-  const lines: { source: string; percent: number }[] = [];
+export interface RiteDurationLine { source: string; percent: number }
+
+/** A rite uses the owner's active bonuses and the buildings in the town that starts it. */
+function riteDurationLines(state: GameState, playerId: number, city?: City): RiteDurationLine[] {
+  const lines: RiteDurationLine[] = [];
   cardAmplifier(state, playerId, 'riteDuration', undefined, undefined, lines);
   if (city) {
     for (const id of townShelf(state, city).buildings) {
@@ -2088,10 +2073,15 @@ export function riteDurationLines(state: GameState, playerId: number, city?: Cit
   return lines;
 }
 
-export function riteTurnsFor(state: GameState, playerId: number, rite: RiteId, city?: City): number | null {
+/** The game records the duration when a rite starts. The city panel can also collect the sources for its preview. */
+export function riteTurnsFor(
+  state: GameState, playerId: number, rite: RiteId, city?: City, sources?: RiteDurationLine[],
+): number | null {
   const base = riteDef(rite).duration;
   if (base === undefined) return null;
-  const percent = riteDurationLines(state, playerId, city).reduce((sum, line) => sum + line.percent, 0);
+  const lines = riteDurationLines(state, playerId, city);
+  sources?.push(...lines);
+  const percent = lines.reduce((sum, line) => sum + line.percent, 0);
   return Math.max(1, Math.floor(Math.max(1, base) * (100 + percent) / 100));
 }
 

@@ -568,6 +568,7 @@ describe('the member register', () => {
     // `production`, what a levy paid (The Terraces of Moray), and `faith`, the
     // faith spent (The Pilgrim Staff).
     expect([...measures].sort()).toEqual([
+      'buildingCost',
       'faith',
       'gold',
       'handPrice',

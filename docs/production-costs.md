@@ -195,7 +195,7 @@ reading for a once-per-empire row.
 | `bank` | Bank | large | 11 | 893 |
 | `bourse` | Bourse | large | 9 | 520 |
 | `bastion` | Bastion | large | 10 | 681 |
-| `specularium` | Specularium | medium | 5 | 117 |
+| `specularium` | Glasshouse | medium | 5 | 117 |
 | `mouseion` | Mouseion | large | 4 | 174 |
 | `aldinePress` | Aldine Press | large | 7 | 303 |
 | `bimaristan` | Bimaristan | large | 6 | 231 |
@@ -205,6 +205,8 @@ reading for a once-per-empire row.
 | `theTurningHeavens` | The Turning Heavens | large | 9 | 520 |
 | `theAlchemicalCodex` | The Alchemical Codex | large | 12 | 1169 |
 | `theMagnumOpus` | The Magnum Opus | wonder | 12 | 2534 |
+| `bellTower` | Bell Tower | small | 4 | 67 |
+| `greatArchive` | Great Archive | large | 6 | 231 |
 | `chapel` | Chapel | medium | 2 | 52 |
 | `scriptorium` | Scriptorium | large | 7 | 303 |
 | `assayHouse` | Assay House | large | 4 | 134 |

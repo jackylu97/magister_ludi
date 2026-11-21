@@ -173,13 +173,13 @@ describe('the keyword on the card', () => {
     expect(paired).toContain('[[improvement:inuksuk|Inuksuk]]');
     const hillfort = said('theHillforts').join(' ');
     expect(hillfort.match(/\+5 defence/g)).toHaveLength(1);
-    expect(said('theGlassmakersCharter' as OrderId).slice(0, 2)).toEqual(['Charter', 'opens Optics for you to research']);
+    expect(said('theGlassmakersCharter' as OrderId).slice(0, 2)).toEqual(['Charter', 'opens Glassmaking for you to research']);
     expect(said('theFast' as OrderId)[1]).toMatch(/^your cities may keep Rite of Fasting: /);
   });
 
   it('says a Boon as "On draft: …"', () => {
     expect(said('theFirstCaravan' as OrderId)).toEqual(['Boon', 'On draft: a Trader joins you in your capital', 'On draft: +1 trade route for the rest of the game']);
-    expect(said('theFirstOffering' as OrderId)).toEqual(['Boon', 'On draft: +25 faith']);
+    expect(said('theFirstOffering' as OrderId)).toEqual(['Boon', 'On draft: +60 faith']);
   });
 
   it('says a Scaler as "Gains … each time …", with no starting value and the cap kept', () => {

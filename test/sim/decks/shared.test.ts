@@ -412,8 +412,8 @@ describe('Rites of Passage and The Sacred Host', () => {
     city.buildings.push('temple' as never);
     bumpRevision(g.state);
     expect(purchaseError(g.state, 0, city.id, { kind: 'unit', id: 'warrior' }, 'faith')).not.toBeNull();
-    expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([
-      expect.objectContaining({ yield: 'faith', amount: 15 }),
+    expect(windfallPayout(g.state, 0, 'kill', 0, 0, { strength: 24 }).grants).toEqual([
+      expect.objectContaining({ yield: 'faith', amount: 24 }),
     ]);
   });
 });

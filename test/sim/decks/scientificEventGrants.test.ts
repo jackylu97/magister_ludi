@@ -69,14 +69,15 @@ it('prices a free technology by the science still required', () => {
   player.techsResearched = ['agriculture'];
   player.researching = null;
   const worth = () => onDraftWorth('theAlfonsineTables', valueContext(state, player));
-  expect(worth()).toBe(0);
+  const goldPenalty = worth();
+  expect(goldPenalty).toBeLessThan(0);
   player.researching = 'mining';
   bumpRevision(state);
   const full = worth();
-  expect(full).toBeGreaterThan(0);
+  expect(full).toBeGreaterThan(goldPenalty);
   player.sciencePool = foldTechCost(explainTechCost(state, player, 'mining')) - 1;
   bumpRevision(state);
-  expect(worth()).toBeGreaterThan(0);
+  expect(worth()).toBeGreaterThan(goldPenalty);
   expect(worth()).toBeLessThan(full);
 });
 

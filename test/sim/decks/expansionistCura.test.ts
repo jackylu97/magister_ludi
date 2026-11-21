@@ -335,6 +335,8 @@ function codeLines(): { where: string; code: string }[] {
  *   · **reading**: the one reading itself.
  */
 const BUILT_READERS: Record<string, { reads: number; why: string }> = {
+  'religion.ts › riteDurationLines': { reads: 1, why: 'shelf: the duration includes buildings the town holds' },
+  'tech.ts › pruneExtraBuildingQueues': { reads: 1, why: 'built: a finished empire building uses a copy' },
   'beads.ts › beadCount': { reads: 3, why: 'built: a bead deed is a record of what was built (the rows are retired)' },
   'buildingEffects.ts › buildingHappiness': { reads: 1, why: 'shelf: the meter hands `townBuildings` per town' },
   'buildingEffects.ts › buildingCityStat': { reads: 1, why: 'shelf' },
@@ -430,6 +432,8 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
  * `townHoldsBuilding`, `townShelf`): the readers of a building's effect.
  */
 const MOVED_READERS: Record<string, string> = {
+  'religion.ts › riteDurationLines': 'duration bonuses from buildings the town holds',
+  'statecraft/evaluator.ts › groundFactsFor': 'the town beside this hex holds the specified building',
   'arrival.ts › arriveOnTile': 'the herds a town keeps (`buildingRestoresMovementOn`)',
   'cities.ts › explainGrowthPercent': 'the water (`cityIsWatered`)',
   'cities.ts › explainTilePurchase': 'the local gold buying power from the Assay House',

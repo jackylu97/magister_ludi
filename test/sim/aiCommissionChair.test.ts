@@ -37,6 +37,7 @@ import { buildingProductionCost, foundCityAt, refreshCityDerived } from '../../s
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { type City, type GameState, type Player, bumpRevision, playerById } from '../../src/sim/state';
 import { sealTurnsFor } from '../../src/sim/statecraft';
+import { performRiteAt } from '../../src/sim/religion';
 import { researchExpansion } from '../../src/sim/tech';
 import {
   type OrderId,
@@ -200,8 +201,11 @@ describe('the chair arms', () => {
 
 describe('the pull of a step', () => {
   it('gives a counted goal’s share of its price only while its card sits', () => {
-    const { state, player } = bench();
+    const { state, player, city } = bench();
     const sc = player.statecraft;
+    player.techsResearched.push('divination');
+    player.faithPool = 500;
+    performRiteAt(state, player, city, 'omenReading');
     sc.orders = [FOUNDING_VOWS];
     bumpRevision(state);
     const step = { occasion: 'riteStarted' as const, count: 1 };

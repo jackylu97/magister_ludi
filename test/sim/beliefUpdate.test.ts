@@ -348,16 +348,16 @@ describe('the rites’ texts', () => {
     for (const id of LIVE_RITE_IDS) expect((riteDef(id).text ?? '').length, id).toBeGreaterThan(0);
   });
 
-  it('match the figures on the rows, which did not move', () => {
+  it('match the effects and the base duration on each live rite', () => {
     const effect = (id: string, at = 0) => riteDef(id as never).effects[at] as unknown as Record<string, unknown>;
     expect(effect('riteOfTheHarvest').food).toBe(1);
     expect(effect('omenReading').amount).toBe(1);
     expect(effect('consecrationOfTheBounds').culture).toBe(1);
     expect(effect('consecrationOfTheBounds', 1).percent).toBe(30);
     expect(effect('blessingOfArms').amount).toBe(10);
-    expect(effect('riteOfPlenty').gold).toBe(1);
+    expect(effect('riteOfPlenty')).toMatchObject({ where: 'city', basis: 'count', count: 'population', to: 'gold', amount: 1 });
     for (const id of LIVE_RITE_IDS) {
-      expect(riteDef(id).duration, id).toBe(id === 'votiveOffering' ? 1 : id === 'restoringOfTheHost' ? 5 : 10);
+      expect(riteDef(id).duration, id).toBe(10);
     }
   });
 

@@ -92,6 +92,7 @@ import {
   openFaithLadder,
   rerollKindFor,
   riteCostFor,
+  riteTurnsFor,
   riteError,
 } from '../../src/sim/religion';
 import { improvementForResource, improvementYield, workForFamily } from '../../src/sim/improvementData';
@@ -795,7 +796,9 @@ describe('the chain in the book', () => {
     expect(foldTerms(rite!.terms)).toBe(rite!.worth);
     // And its worth is the blessing over the turns it runs — never a grant,
     // because a rite pays nothing the instant it lands any more.
-    expect(rite!.terms[0]!.label).toMatch(/^its blessing, for 10 turns$/);
+    const town = state.cities.find(city => city.id === rite!.rite!.cityId)!;
+    const turns = riteTurnsFor(state, player.id, rite!.rite!.rite, town);
+    expect(rite!.terms[0]!.label).toBe(`its blessing, for ${turns} turns`);
   });
 
   it('leaves the withdrawn augur out of the faith book entirely', () => {
@@ -2295,7 +2298,8 @@ describe('the marginal draft reading', () => {
     }
     // The Privy Council now pays the yields of Wildcard chairs through the chair reader.
     expect(hasFoldReadEngine(orderDef('thePrivyCouncil').effects)).toBe(false);
-    expect(engines).toBe(29);
+    expect(hasFoldReadEngine(orderDef('thePrinceBishops').effects)).toBe(true);
+    expect(engines).toBe(30);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books

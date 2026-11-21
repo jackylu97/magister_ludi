@@ -1907,12 +1907,7 @@ export function researchError(
   if (player.techsResearched.includes(techId)) {
     return `${player.name} has already researched ${def.name}`;
   }
-  // **A chartered technology is researchable by the seat its charter opened
-  // it for and by nobody else** (the decks rework, D1a; `CharterSpec`). Asked
-  // of the card rows (`techIsChartered`, derived from every charter's
-  // `unlocks.tech`) and of the seat's own list (`Player.charteredTechs`,
-  // written on the pick), so a node placed off-lane by the data batch is shut
-  // to a seat that has not drafted its way in and needs no flag of its own.
+  // A withdrawn charter still locks its technology for new empires.
   if (isCharterTech(techId) && !player.charteredTechs.includes(techId)) {
     return `${def.name} is opened by a charter ${player.name} has not drafted`;
   }
@@ -2051,7 +2046,7 @@ function promoteResearchQueue(state: GameState, player: Player): void {
  * offers or plans a node the reducer would refuse.
  */
 export function techsShutByCharter(player: Player): TechId[] {
-  return CHARTER_TECH_IDS.filter((id) => !player.charteredTechs.includes(id));
+  return CHARTER_TECH_IDS.filter(id => !player.charteredTechs.includes(id));
 }
 
 /**

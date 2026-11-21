@@ -1440,9 +1440,10 @@ describe('determinism', () => {
    * At versions 250 through 254 only the save version changed in these two games.
    * The schema version and that name are the only changed fields in the two snapshots.
    */
+  // Schema 256 changes the available Orders and technologies in these games.
   const RANGED_BOARDS: Record<number, string> = {
-    11: '2c8ca5ba:190684',
-    2026: '1a840388:190852',
+    11: '92694eec:190684',
+    2026: '925b8ae6:190844',
   };
 
   for (const seed of [11, 2026]) {

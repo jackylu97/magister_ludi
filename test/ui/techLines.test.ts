@@ -79,6 +79,8 @@ const RULE_ROWS: readonly (readonly [TechId, string])[] = [
   ['printing', 'Trade routes +1'],
   ['colonialCharters', 'New cities start with a Town Charter'],
   ['herbals', 'Physic Garden +2 happiness'],
+  ['liturgy', 'Holy site pressure range +6 hexes'],
+  ['ciphers', 'First to Alchemy: rivals without it cannot start The Magnum Opus for 10 turns'],
 ];
 
 /**
@@ -91,6 +93,7 @@ const ABILITY_ROWS: readonly (readonly [TechId, string, string])[] = [
   ['stonecraft', 'Consecration of the Bounds', 'Rite: luxury hexes +1 culture, borders grow 30% faster'],
   ['divination', 'Rite of the Harvest', 'Rite: food hexes +1 food'],
   ['divination', 'Omen Reading', 'Rite: +1 science per building'],
+  ['astronomy', 'The Night Watch', 'Rite: +1 science per citizen'],
   ['currency', 'Rite of Plenty', 'Rite: resource hexes +1 gold'],
   ['sailing', 'Embark', 'Civilians and scouts cross coast and lakes'],
   ['wayfinding', 'Sea Legs', 'Soldiers cross coast and lakes'],

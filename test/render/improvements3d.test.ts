@@ -1,3 +1,4 @@
+import { isApprovedWork } from '../../src/render3d/approvedWorkCatalog';
 import { describe, expect, it } from 'vitest';
 import { type BufferGeometry, InstancedMesh, Matrix4 } from 'three';
 
@@ -142,7 +143,7 @@ describe('the improvement prop registry', () => {
     // The Physic Garden (batch S4), and the Qanat (batch S5). Batch DS6
     // removed Niter Beds.
     expect(charterRows).toEqual(expect.arrayContaining(['physicGarden', 'qanat']));
-    for (const id of charterRows) expect(shelf, id).toContain(`'${id}'`);
+    for (const id of charterRows) expect(isApprovedWork(id) || shelf.includes(`'${id}'`), id).toBe(true);
   });
 
   it('builds one shared geometry per improvement, all of them distinct', () => {

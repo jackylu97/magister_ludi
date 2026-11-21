@@ -250,17 +250,16 @@ describe('a line each town counts for itself is summed once', () => {
     expect(explainCounted(line, ctx).total).toBeCloseTo(4 * meterWeight(ctx, 'happiness'), 10);
   });
 
-  it('prices the Specularium by the citizens in the town that raises it', () => {
+  it('prices the Glasshouse from the farms the town works', () => {
     const { state, player, towns } = board([8, 20, 20]);
-    for (const town of towns) give(state, town, 'specularium');
+    const city = towns[0]!;
+    city.workedTiles = ownedTiles(state, city).filter(tile => tile.col !== city.col).slice(0, 3);
+    for (const tile of city.workedTiles) raiseImprovement(at(state.map, tile.col, tile.row), 'farm', state.turn);
+    bumpRevision(state);
     const ctx = valueContext(state, player);
-    const row = explainBuildingRow('specularium', ctx, towns[0]!);
-    const written = row.terms.find(term => term.label === 'its written effects')!;
-    expect(written.value).toBeCloseTo(4 * voiceWeight(ctx, 'science'), 10);
-    // With no town selected, the estimate uses sixteen citizens.
-    const middling = explainBuildingRow('specularium', ctx);
-    const mean = middling.terms.find(term => term.label === 'its written effects')!;
-    expect(mean.value).toBeCloseTo(8 * voiceWeight(ctx, 'science'), 10);
+    const written = (town: City) => explainBuildingRow('specularium', ctx, town).terms.find(term => term.label === 'its written effects')!.value;
+    expect(written(city)).toBeCloseTo(3 * voiceWeight(ctx, 'science'), 10);
+    expect(written(towns[1]!)).toBe(0);
   });
 
   it('reads a rite’s count in the town that says it', () => {
@@ -506,12 +505,12 @@ describe('The Laurion Leases', () => {
 });
 
 describe('a tech price counts only what the seat researches within the horizon', () => {
-  it('reads The Court of Rudolf II at nothing for a young seat, far from the fourth age', () => {
+  it('values an Alchemy chain discount at zero for a young seat, far from the fourth age', () => {
     const { state, player } = board([3]);
     player.techsResearched = [];
     bumpRevision(state);
     const ctx = valueContext(state, player);
-    const rows = doctrineDef('theCourtOfRudolf' as DoctrineId).effects;
+    const rows: CardEffect[] = [{ kind: 'rulePercent', rule: 'techPrice', percent: -20, techChain: 'alchemy' }];
     // A town of three makes too little to reach the fourth age in sixty turns, so neither
     // price is paid. The old reading took the whole chain as one lump, in the thousands.
     expect(scoreEffects(rows, ctx)).toBe(0);
@@ -524,7 +523,7 @@ describe('a tech price counts only what the seat researches within the horizon',
     );
     player.statecraft.doctrines.push('theApoikia' as DoctrineId);
     bumpRevision(state);
-    const rows = doctrineDef('theCourtOfRudolf' as DoctrineId).effects;
+    const rows: CardEffect[] = [{ kind: 'rulePercent', rule: 'techPrice', percent: -20, techChain: 'alchemy' }];
     const ctx = valueContext(state, player);
     expect(scoreEffects(rows, ctx)).toBeGreaterThan(0);
   });

@@ -224,7 +224,7 @@ function expectInBand(id: OrderId, band: number): void {
 
 const RETIRED_DECK_DOCTRINES: readonly DoctrineId[] = [
   'theServianReforms', 'weightOfNumbers', 'totalMobilisation',
-  'theWildwoodCompact', 'theGardenPeoples', 'arcadia',
+  'theWildwoodCompact', 'theGardenPeoples', 'arcadia', 'theNassauReforms',
 ];
 
 describe('the schema, as landed', () => {
@@ -685,8 +685,9 @@ describe('the schema, as landed', () => {
     // Ten final Orders complete the generic set.
     // The Dominion and Magisterial revisions add twelve more live Orders between them.
     // The Open Market adds one live Commerce Order.
-    expect(live).toBe(548);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(548);
+    // The Scientific and Devotion passes add 21 live Orders between them.
+    expect(live).toBe(569);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(569);
   });
 
   /**
@@ -1143,7 +1144,7 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
       ).toHaveLength(0);
       // The generic set retired sixteen rows. The next two deck revisions retire ten more.
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(474);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(493);
     }
   });
 
@@ -1763,9 +1764,9 @@ describe('the eight files', () => {
 describe('a charter', () => {
   let restore: () => void = () => {};
   const CHARTER_ROW = 'bloodedSpears';
-  const CHARTERED_TECH = 'siegecraft';
+  const CHARTERED_TECH = 'smelting';
   const CHARTERED_BUILDING = 'gildedHall';
-  const CHARTERED_RITE = RITE_IDS[0]!;
+  const CHARTERED_RITE = 'nightWatch';
   beforeAll(() => {
     restore = stockDecks({
       [CHARTER_ROW]: {

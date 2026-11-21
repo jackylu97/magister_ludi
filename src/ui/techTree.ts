@@ -157,7 +157,7 @@
  * after its name, on the chart, in the plan strip and in the drawer.
  */
 
-import { charterWorkIcons } from '../art/charterWorkIcons';
+import { charterIconPath, charterWorkIcons } from '../art/charterWorkIcons';
 import { buildingDef, isEmpireBuilding, isWonder } from '../sim/buildingData';
 import { signedYield } from '../sim/yieldFormat';
 import { readEmpire } from '../sim/readings';
@@ -1030,7 +1030,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       const mark = element('span', empire ? 'tech-mark is-building is-empire' : 'tech-mark is-building', '▣');
       if (charterWorkIcons[building]) {
         const icon = document.createElement('img');
-        icon.src = `/sprites/icons/${building}.svg`;
+        icon.src = charterIconPath(building);
         icon.alt = '';
         icon.width = icon.height = 16;
         mark.replaceChildren(icon);

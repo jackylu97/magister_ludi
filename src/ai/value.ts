@@ -467,7 +467,7 @@ import {
   unitStampStrength,
 } from '../sim/unitData';
 import { explainBuildingUpkeep, unitUpkeep, unitUpkeepTotal } from '../sim/upkeep';
-import { isExploredBy } from '../sim/visibility';
+import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { round } from './decision';
 import { signed } from './decision';
 // The prices every reading here is quoted in (`prices.ts`). That file imports
@@ -1254,11 +1254,18 @@ function completionGrantTerm(
  */
 function explainWrittenEffects(id: BuildingId, ctx: ValueContext, city: City | undefined): Appraisal {
   const effects = buildingDef(id).effects ?? [];
-  if (oneOfAKind(id)) return explainEffects(effects, ctx);
+  const empireWide = oneOfAKind(id);
   const counted: CardEffect[] = [];
   const rest: CardEffect[] = [];
   for (const effect of effects) {
-    (effect.kind === 'pays' && effect.basis === 'count' ? counted : rest).push(effect);
+    if (effect.kind === 'pays' && effect.where === 'city' && effect.basis === 'count' &&
+        effect.scope?.test === 'hasBuilding' && effect.scope.building === id) {
+      // The proposed building supplies its own condition, even before its charter is drafted.
+      const { scope: _builtHere, ...inThisTown } = effect;
+      counted.push(inThisTown);
+    } else if (!empireWide && effect.kind === 'pays' && effect.basis === 'count') {
+      counted.push(effect);
+    } else rest.push(effect);
   }
   if (counted.length === 0) return explainEffects(rest, ctx);
   const town = city === undefined ? undefined : townHolding(city, id);
@@ -1418,6 +1425,21 @@ function rowCharterTerms(
       );
     }
   }
+  if (buildingDef(id).riteDurationPercent) {
+    const town = middlingTown(ctx, city);
+    const known = availableRites(ctx.state, ctx.playerId).filter(rite => riteDef(rite).duration);
+    if (town && known.length) {
+      const before = { ...town, buildings: town.buildings.filter(held => held !== id) };
+      const after = townHolding(before, id);
+      const cost = riteCostFor(ctx.state, ctx.playerId, town);
+      const saved = known.reduce((sum, rite) => {
+        const shorter = riteTurnsFor(ctx.state, ctx.playerId, rite, before)!;
+        const longer = riteTurnsFor(ctx.state, ctx.playerId, rite, after)!;
+        return sum + cost * (1 / shorter - 1 / longer);
+      }, 0) / known.length;
+      terms.push(nest('faith saved between rite starts', explainYields({ faith: saved }, ctx)));
+    }
+  }
   return terms;
 }
 
@@ -1528,6 +1550,7 @@ export const BUILDING_ROW_FOLDED: Readonly<Record<string, string>> = {
   unitUpkeepRebate: 'a coin off the keep of every piece the levy is still short',
   purchaseDiscount: 'a percent off the coin this town turns over, at the gold price',
   healsAdjacent: 'a share of a piece mended a turn, at the wall line’s rate',
+  riteDurationPercent: 'the faith saved by keeping a town’s rite for longer',
   ritePays: 'what a rite said here pays, at the register’s own rite cadence',
   renown: 'the trickle and the completion, at the renown weight',
   onComplete: 'the bead, the piece, the technology — a grant apiece',
@@ -3609,6 +3632,7 @@ function cheapestWantPrice(ctx: ValueContext): number | null {
 function scoreWindfallRider(
   effect: Extract<CardEffect, { kind: 'windfallRider' }>,
   ctx: ValueContext,
+  captureAmplifier = false,
 ): number {
   // **A soldier is retired only for a citizen** (the bot levy batch). The
   // retire arm (`retireCommand`, `bot.ts`) fires only when a seated card pays
@@ -3673,7 +3697,7 @@ function scoreWindfallRider(
     each += (effect.percent / 100) * ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
   }
   if (effect.grant !== undefined) {
-    each += firingPoints(windfallGrantWorth(effect.grant, ctx, effect.occasion, effect.inTown));
+    each += firingPoints(windfallGrantWorth(effect.grant, ctx, effect.occasion, effect.inTown, captureAmplifier));
   }
   if (each === 0) return 0;
   if (effect.perAge === true) each *= Math.max(1, ctx.age);
@@ -4048,17 +4072,18 @@ function windfallGrantWorth(
    * (`occasionMeasureForecast`).
    */
   inTown?: true | CityScope,
+  captureAmplifier = false,
 ): FiringWorth {
   const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
   let once = 0;
   let flat = 0;
-  // A capture pays its technology or its fallback. Average the visible rivals when no target is named.
+  // Average over met rivals. Only the fallback science grows under a capture reward bonus.
   if (grant.capturedTechnology) {
     const rivals = metRivals(ctx.state, ctx.playerId);
     const chances = rivals.map(rival => {
       const gap = techGap(ctx.state, ctx.playerId, rival.id);
-      if (gap.length) return Math.min(...gap.map(tech => techCostFor(ctx, tech)));
-      const towns = citiesOf(ctx.state, rival.id);
+      if (gap.length) return captureAmplifier ? 0 : Math.min(...gap.map(tech => techCostFor(ctx, tech)));
+      const towns = citiesOf(ctx.state, rival.id).filter(town => isVisibleTo(ctx.state, ctx.playerId, town.col, town.row));
       const citizens = towns.reduce((total, town) => total + town.population, 0) / Math.max(1, towns.length);
       return citizens * (grant.amount ?? 0);
     });
@@ -4677,7 +4702,7 @@ function scoreAmplifier(
       let riders = 0;
       for (const held of slottedOrderEffects(ctx)) {
         if (held.kind === 'windfallRider' && held.occasion === 'capture') {
-          riders += scoreWindfallRider(held, ctx);
+          riders += scoreWindfallRider(held, ctx, true);
         }
       }
       return share * riders;
@@ -8368,11 +8393,22 @@ export function workPlacementTerms(ctx: ValueContext, tile: Tile, id: Improvemen
   return terms;
 }
 
-/** Price each new work on the best sites that the seat can already identify. A unique work occupies one slot per town. */
+/** Direct charters open a work immediately if the seat meets its other requirements. */
 function charterSiteValue(ctx: ValueContext, id: ImprovementId): number {
   const state = ctx.state;
   if (!ctx.ai.workers.improvements.includes(id) || improvementCardError(state, ctx.playerId, id) === null ||
       improvementLeaderError(state, ctx.playerId, id) !== null || improvementTechError(state, ctx.playerId, id) !== null) return 0;
+  return availableSiteValue(ctx, id);
+}
+
+const SITE_VALUES = new WeakMap<ValueContext, Map<ImprovementId, number>>();
+
+/** Both a charter and a technology price the best legal sites visible to the seat. */
+function availableSiteValue(ctx: ValueContext, id: ImprovementId): number {
+  const memo = onContext(SITE_VALUES, ctx, () => new Map<ImprovementId, number>());
+  const cached = memo.get(id);
+  if (cached !== undefined) return cached;
+  const state = ctx.state;
   const def = improvementDef(id);
   const borderReach = def.beyondBorders;
   const ground = tileContextField(state, ctx.playerId);
@@ -8394,6 +8430,7 @@ function charterSiteValue(ctx: ValueContext, id: ImprovementId): number {
     const limit = def.onePerTown ? 1 : ctx.ai.score.scientific.worksPerTown;
     for (const score of scores.slice(0, limit)) total += score;
   }
+  memo.set(id, total);
   return total;
 }
 
@@ -8424,6 +8461,11 @@ export function explainCharterKnowledge(tech: TechId, ctx: ValueContext): Apprai
       label: `the ${unitDef(id).name}, a piece the towns may raise`,
       value: ctx.ai.weights.military * ctx.ai.score.combatScale,
     });
+  }
+  const rites = (def.unlocks.abilities ?? []).flatMap((ability) => isRiteId(ability) ? [ability] : []);
+  if (rites.length) {
+    const opening = explainCharterOpening({ rites }, ctx);
+    if (opening) terms.push(...opening.terms);
   }
   const works = explainTechWorks(tech, ctx);
   if (works.terms.length > 0) terms.push(nest('the works it opens', works));
@@ -8525,6 +8567,11 @@ export function explainTechWorks(tech: TechId, ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [];
   for (const id of worksOpenedBy(tech)) {
     const row = improvementDef(id);
+    if (row.perNeighbour) {
+      const value = availableSiteValue(ctx, id);
+      if (value > 0) terms.push({ label: `the ${row.name} on the best eligible sites`, value });
+      continue;
+    }
     const works = worksForecast(id, ctx);
     if (works <= 0) continue;
     const parts: ValueTerm[] = [];

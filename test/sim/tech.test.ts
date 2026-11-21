@@ -1904,10 +1904,8 @@ describe('the shape of the tree', () => {
     // Forty-nine nodes since batch TT2 removed Divine Right, and every one of
     // them inside the lane budget.
     expect(TECH_IDS.length).toBe(49);
-    // And thirteen charter rows beside them, off the sky (Scientific batch S0;
-    // `test/sim/charterTechs.test.ts` pins the rest). Devotion batch DV2 added
-    // a fourteenth, Scholasticism, for the shared The Schoolmen's Charter.
-    expect(ALL_TECH_IDS.length).toBe(63);
+    // Charter technologies also include Naval Gunnery, kept for existing data.
+    expect(ALL_TECH_IDS.length).toBe(68);
   });
 
   it('draws Æra I as the user drew it — twelve nodes, two gates, four columns', () => {
@@ -2339,6 +2337,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
         ['militaryEmbark', 'wayfinding'],
         ['oceanGoing', 'theAstrolabe'],
         ['omenReading', 'divination'],
+        ['nightWatch', 'astronomy'],
         ['openBorders', 'letters'],
         ['riteOfPlenty', 'currency'],
         ['riteOfTheHarvest', 'divination'],

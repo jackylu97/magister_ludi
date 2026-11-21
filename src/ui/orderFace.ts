@@ -375,7 +375,8 @@ export function orderFaceFrame(id: OrderFaceId): OrderFaceFrame {
 export function orderFaceModel(id: OrderFaceId, state: OrderFaceState): OrderFaceModel {
   const all = describeCard(id);
   const keyword = all.find((clause) => clause.keyword !== undefined) ?? null;
-  const clauses = all.filter((clause) => clause.keyword === undefined);
+  const clauses = all.filter(clause => clause.keyword === undefined)
+    .map(clause => clause.faceText ? { ...clause, text: clause.faceText } : clause);
   const first = clauses[0];
   const plainFirst = first === undefined ? '' : stripRefs(first.text);
   const plainAll = clauses.map((clause) => stripRefs(clause.text)).join(' ');

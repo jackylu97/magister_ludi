@@ -381,17 +381,17 @@ describe('the turns a rite would last', () => {
     bumpRevision(state);
     const turns = riteTurnsFor(state, 0, 'omenReading');
     expect(turns).toBe(15);
-    expect(riteOfferText(state, 0, 'omenReading')).toContain('lasts 15 turns');
-    expect(riteSentence(state, city, 'omenReading')).toContain('lasts 15 turns');
+    expect(riteOfferText(state, 0, 'omenReading')).toContain('10 turns, +50% Wonder · Chichen Itza = 15 turns');
+    expect(riteSentence(state, city, 'omenReading')).toContain('10 turns, +50% Wonder · Chichen Itza = 15 turns');
   });
 
   it('prints the same words on the city’s rite row as in the announcement', () => {
     const controls = uiSource('controls.ts');
     expect(braceBody(controls, 'function riteOptions(')).toContain(
-      'preview: riteOfferText(state, localPlayerId, id),',
+      'preview: riteOfferText(state, localPlayerId, id, city),',
     );
     expect(braceBody(controls, 'export function riteSentence(')).toContain(
-      'riteOfferText(state, city.ownerId, id)',
+      'riteOfferText(state, city.ownerId, id, city)',
     );
   });
 

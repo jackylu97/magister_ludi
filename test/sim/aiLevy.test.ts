@@ -327,10 +327,14 @@ describe('the levy for a rite (Human Sacrifice, batch DT19)', () => {
       // The wait is over, and every town is still keeping the rite.
       state.turn += 2;
       bumpRevision(state);
-      expect(levyOptions(state, 0, capital)[0]!.blocked).toBeNull();
+      const option = levyOptions(state, 0, capital)[0]!;
+      expect(option.blocked).not.toBeNull();
+      expect(option.rites?.find(choice => choice.rite === HARVEST)?.blocked).toContain('across the realm');
       const ctx = valueContext(state, player);
-      expect(bestLevyRite(ctx)!.towns).toBe(0);
-      expect(explainCitizenLevy(capital, 'rite', ctx).total).toBeLessThan(0);
+      expect(bestLevyRite(ctx)).toBeNull();
+      const levy = explainCitizenLevy(capital, 'rite', ctx);
+      expect(levy.terms[0]!.value).toBe(0);
+      expect(levy.total).toBeLessThan(0);
       expect(sit(state).filter((decision) => decision.kind === 'levy')).toEqual([]);
     });
   });

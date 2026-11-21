@@ -99,22 +99,22 @@ function council(state: GameState, government: GovernmentId, cards: readonly [Or
 
 describe('The Apprentices (batch R1)', () => {
   it('keeps its text, and its rider leaves out wonders and the Magnum Opus', () => {
-    expect(orderDef(APPRENTICES).text).toBe('Finishing a building grants 5 science.');
+    expect(orderDef(APPRENTICES).text).toBe('Finishing a building grants science equal to a fifth of its production cost. Wonders do not count.');
     expect(orderDef(APPRENTICES).effects).toEqual([
       {
         kind: 'windfallRider',
         occasion: 'buildingCompletion',
         exceptWonders: true,
-        grant: { yield: 'science', amount: 5 },
+        grant: { yield: 'science', amount: 0.2, fromOccasion: 'buildingCost' },
       },
     ]);
     // The generated sentence is the one the card printed before, now true.
     expect(describeCard(APPRENTICES).map((clause) => stripRefs(clause.text))).toEqual([
-      'completing a building grants +5 science',
+      'completing a building grants science equal to 20% of the building’s production cost',
     ]);
   });
 
-  it('pays 5 science for a building, and nothing for a wonder or the Magnum Opus', () => {
+  it('pays one fifth of a building’s cost and excludes wonders and the Magnum Opus', () => {
     const state = bareState();
     town(state, 5, 5, 3);
     seat(state, APPRENTICES);
@@ -122,10 +122,10 @@ describe('The Apprentices (batch R1)', () => {
       windfallPayout(state, 0, 'buildingCompletion', 0, 0, facts)
         .grants.filter((grant) => grant.card === APPRENTICES)
         .reduce((sum, grant) => sum + grant.amount, 0);
-    expect(science({ building: 'granary', wonder: false })).toBe(5);
-    expect(science({ building: 'library', wonder: false })).toBe(5);
-    expect(science({ building: 'pyramids', wonder: true })).toBe(0);
-    expect(science({ building: 'theMagnumOpus', wonder: false })).toBe(0);
+    expect(science({ building: 'granary', wonder: false, buildingCost: 30 })).toBe(6);
+    expect(science({ building: 'library', wonder: false, buildingCost: 52 })).toBeCloseTo(10.4);
+    expect(science({ building: 'pyramids', wonder: true, buildingCost: 100 })).toBe(0);
+    expect(science({ building: 'theMagnumOpus', wonder: false, buildingCost: 100 })).toBe(0);
     // A moment that names no building never pays it.
     expect(science({})).toBe(0);
   });
@@ -142,7 +142,7 @@ describe('The Apprentices (batch R1)', () => {
     const pool = player.sciencePool;
     const result = applyBuy(state, city, 'granary');
     expect(result).toBe(true);
-    expect(player.sciencePool).toBe(pool + 5);
+    expect(player.sciencePool).toBe(pool + 6);
   });
 });
 

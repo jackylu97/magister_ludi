@@ -1164,6 +1164,12 @@
     "text": "you can lend each kind of luxury to only one empire at a time"
    }
   ],
+  "theTemenos": [
+   {
+    "raw": "+1 food, +1 faith on every hex beside one of your towns holding a Shrine",
+    "text": "+1 food, +1 faith on every hex beside one of your towns holding a Shrine"
+   }
+  ],
   "theTheoricFund": [
    {
     "raw": "+1 culture per 3 faith gained per turn",
@@ -1224,8 +1230,8 @@
   ],
   "theCanonsOfTheHolySepulchre": [
    {
-    "raw": "Your faith buys 42.86% more when buying all units and buildings, in every city with a [[improvement:holySite|Holy Site]]",
-    "text": "Your faith buys 42.86% more when buying all units and buildings, in every city with a Holy Site"
+    "raw": "Your faith buys 40% more when buying all units and buildings, in every city with a [[improvement:holySite|Holy Site]]",
+    "text": "Your faith buys 40% more when buying all units and buildings, in every city with a Holy Site"
    }
   ],
   "theMartyrsCrown": [
@@ -1254,6 +1260,14 @@
    {
     "raw": "every devout city may buy with faith the [[building:mosque|Mosque]] (+2 production, +3 faith; +1 authority capacity), the [[building:wat|Wat]] (+1 faith per 2 citizens; +3 happiness), the [[building:gurdwara|Gurdwara]] (+3 food, +3 faith; +1 science per 3 citizens) and the [[building:darEMehr|Dar-e Mehr]] (+25% faith)",
     "text": "every devout city may buy with faith the Mosque (+2 production, +3 faith; +1 authority capacity), the Wat (+1 faith per 2 citizens; +3 happiness), the Gurdwara (+3 food, +3 faith; +1 science per 3 citizens) and the Dar-e Mehr (+25% faith)"
+   },
+   {
+    "raw": "Each building that supplies faith gains +1 science",
+    "text": "Each building that supplies faith gains +1 science"
+   },
+   {
+    "raw": "Each building that supplies faith gains +1 culture",
+    "text": "Each building that supplies faith gains +1 culture"
    }
   ],
   "theApostolicCamera": [
@@ -1266,6 +1280,20 @@
    {
     "raw": "the yields of every hex with a [[improvement:holySite|Holy Site]] are doubled, after every other change to the hex",
     "text": "the yields of every hex with a Holy Site are doubled, after every other change to the hex"
+   }
+  ],
+  "theTraceItalienne": [
+   {
+    "raw": "every city: +10 city defence",
+    "text": "every city: +10 city defence"
+   },
+   {
+    "raw": "+4 combat strength inside your territory",
+    "text": "+4 combat strength inside your territory"
+   },
+   {
+    "raw": "-4 combat strength outside your territory",
+    "text": "-4 combat strength outside your territory"
    }
   ],
   "thePythagoreanBrotherhood": [
@@ -1312,10 +1340,6 @@
    {
     "raw": "completing a technology grants culture equal to 20% of the science it cost you",
     "text": "completing a technology grants culture equal to 20% of the science it cost you"
-   },
-   {
-    "raw": "-25% culture in every city",
-    "text": "-25% culture in every city"
    }
   ],
   "theAcademyOfGondishapur": [
@@ -1372,12 +1396,8 @@
   ],
   "theCourtOfRudolf": [
    {
-    "raw": "[[tech:alchemy|Alchemy]], and the fourth-age technologies that lead to it, cost you 20% less research",
-    "text": "Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research"
-   },
-   {
-    "raw": "your other fourth-age technologies cost you 25% more research",
-    "text": "your other fourth-age technologies cost you 25% more research"
+    "raw": "every city raising the Magnum Opus gains production equal to 10% of your empire's science",
+    "text": "every city raising the Magnum Opus gains production equal to 10% of your empire's science"
    }
   ],
   "theNassauReforms": [
@@ -2454,8 +2474,8 @@
   ],
   "ritesCharter": [
    {
-    "raw": "unlocks the [[building:chapel|Chapel]] — +1 faith; a rite performed in this city pays +5 culture",
-    "text": "unlocks the Chapel — +1 faith; a rite performed in this city pays +5 culture"
+    "raw": "unlocks the [[building:chapel|Chapel]] — +2 culture, +2 faith; rites started in this city last 50% longer",
+    "text": "unlocks the Chapel — +2 culture, +2 faith; rites started in this city last 50% longer"
    }
   ],
   "vigilCharter": [
@@ -7187,6 +7207,176 @@
     "text": "Orders that pay for purchases pay twice as much"
    }
   ],
+  "commissionTheAnointing": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: hold 10 spare authority. Reward: +3 faith and +3 culture in every devout city",
+    "text": "Goal: hold 10 spare authority. Reward: +3 faith and +3 culture in every devout city"
+   }
+  ],
+  "theHealerPriests": [
+   {
+    "raw": "all units: +10 healing per turn inside your territory",
+    "text": "all units: +10 healing per turn inside your territory"
+   }
+  ],
+  "theDefendersOfTheFaith": [
+   {
+    "raw": "+1 combat strength per 3 towns following your religion",
+    "text": "+1 combat strength per 3 towns following your religion"
+   }
+  ],
+  "theZealots": [
+   {
+    "raw": "+1 combat strength per 10 faith per turn (at most +5)",
+    "text": "+1 combat strength per 10 faith per turn (at most +5)"
+   }
+  ],
+  "thePrinceBishops": [
+   {
+    "raw": "your buildings that [[concept:supplies|supply]] faith pay +100%",
+    "text": "your buildings that supply faith pay +100%"
+   }
+  ],
+  "theYearOfRelease": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: gain faith equal to 10 turns of your faith",
+    "text": "On draft: gain faith equal to 10 turns of your faith"
+   }
+  ],
+  "thePoorTables": [
+   {
+    "raw": "+1 happiness per 20 faith your empire makes a turn",
+    "text": "+1 happiness per 20 faith your empire makes a turn"
+   }
+  ],
+  "theTwoSwords": [
+   {
+    "raw": "+1 happiness per 2 spare authority",
+    "text": "+1 happiness per 2 spare authority"
+   }
+  ],
+  "theSoldiersOfGod": [
+   {
+    "raw": "newly created military units bought with faith gain +6 combat strength",
+    "text": "newly created military units bought with faith gain +6 combat strength"
+   }
+  ],
+  "theTempleHerds": [
+   {
+    "raw": "+1 food, +1 production on every hex with a [[improvement:pasture|Pasture]], [[improvement:camp|Camp]] or [[improvement:plantation|Plantation]], for each building in its town that [[concept:supplies|supplies]] faith (at most 3)",
+    "text": "+1 food, +1 production on every hex with a Pasture, Camp or Plantation, for each building in its town that supplies faith (at most 3)"
+   }
+  ],
+  "theCommanderOfTheFaithful": [
+   {
+    "raw": "+3 faith and +3 culture per spare authority",
+    "text": "+3 faith and +3 culture per spare authority"
+   }
+  ],
+  "theFetials": [
+   {
+    "raw": "military units you gain in every city while it is keeping a rite start as Veterans",
+    "text": "military units you gain in every city while it is keeping a rite start as Veterans"
+   }
+  ],
+  "theSacredBequests": [
+   {
+    "raw": "spending faith grants science equal to 25% of the faith spent",
+    "text": "spending faith grants science equal to 25% of the faith spent"
+   }
+  ],
+  "theCallToPrayer": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:liturgy|Liturgy]] for you to research",
+    "text": "opens Liturgy for you to research"
+   },
+   {
+    "raw": "with [[tech:liturgy|Liturgy]], holy sites reach +6 hexes further",
+    "text": "with Liturgy, holy sites reach +6 hexes further"
+   }
+  ],
+  "theNamingFeasts": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "your cities may keep [[rite:riteOfNaming|Rite of Naming]]: this town gains +2 food for each citizen",
+    "text": "your cities may keep Rite of Naming: this town gains +2 food for each citizen"
+   }
+  ],
+  "theVigilOfArms": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "your cities may keep [[rite:vigilOfArms|Vigil of Arms]]: your units within three hexes of this town at the start gain +4 strength until the rite ends",
+    "text": "your cities may keep Vigil of Arms: your units within three hexes of this town at the start gain +4 strength until the rite ends"
+   }
+  ],
+  "theCliffMonasteries": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:cliffMonastery|Cliff Monastery]]. +3 science, +3 faith. +1 science, +1 faith per adjacent mountain hex. One in each city.",
+    "text": "Build Cliff Monastery. +3 science, +3 faith. +1 science, +1 faith per adjacent mountain hex. One in each city."
+   }
+  ],
+  "theBellTowers": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "you may build the [[building:bellTower|Bell Tower]]: +1 faith; spreads your religion +1 faith per building that [[concept:supplies|supplies]] a yield to every city within 3 hexes",
+    "text": "you may build the Bell Tower: +1 faith; spreads your religion +1 faith per building that supplies a yield to every city within 3 hexes"
+   }
+  ],
+  "theHallowedGround": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "your cities may keep [[rite:riteOfHallowing|Rite of Hallowing]]: this town’s improved hexes gain +1 faith",
+    "text": "your cities may keep Rite of Hallowing: this town’s improved hexes gain +1 faith"
+   }
+  ],
+  "theChantries": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "you may build the [[building:chapel|Chapel]]: +2 culture, +2 faith; rites started in this city last 50% longer",
+    "text": "you may build the Chapel: +2 culture, +2 faith; rites started in this city last 50% longer"
+   }
+  ],
+  "theMegaliths": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:stoneCircle|Stone Circle]]. +1 culture, +2 faith. +1 faith per adjacent Pasture, Camp or Plantation. One in each city.",
+    "text": "Build Stone Circle. +1 culture, +2 faith. +1 faith per adjacent Pasture, Camp or Plantation. One in each city."
+   }
+  ],
   "devotionFirstRites": [
    {
     "raw": "+2 faith in every city with a [[building:shrine|Shrine]]",
@@ -7221,8 +7411,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: start 2 rites in your cities. Reward: +100 faith, and +40 food in your capital",
-    "text": "Goal: start 2 rites in your cities. Reward: +100 faith, and +40 food in your capital"
+    "raw": "Goal: start 3 rites in your cities. Reward: +250 faith",
+    "text": "Goal: start 3 rites in your cities. Reward: +250 faith"
    }
   ],
   "theCalling": [
@@ -7233,8 +7423,12 @@
   ],
   "theWaysideShrines": [
    {
-    "raw": "+2 food and +1 happiness in every city with a [[building:shrine|Shrine]]",
-    "text": "+2 food and +1 happiness in every city with a Shrine"
+    "raw": "Each building that supplies faith gains +1 food",
+    "text": "Each building that supplies faith gains +1 food"
+   },
+   {
+    "raw": "Each building that supplies faith gains +1 production",
+    "text": "Each building that supplies faith gains +1 production"
    }
   ],
   "theConsolation": [
@@ -7245,14 +7439,18 @@
   ],
   "consecratedLabor": [
    {
+    "raw": "settlers may be bought with faith in every city with a [[building:shrine|Shrine]]",
+    "text": "settlers may be bought with faith in every city with a Shrine"
+   },
+   {
     "raw": "workers may be bought with faith in every city with a [[building:shrine|Shrine]]",
     "text": "workers may be bought with faith in every city with a Shrine"
    }
   ],
   "devotionTheQuietHours": [
    {
-    "raw": "rites last +50% longer",
-    "text": "rites last +50% longer"
+    "raw": "rites last +100% longer",
+    "text": "rites last +100% longer"
    }
   ],
   "theFast": [
@@ -7318,8 +7516,8 @@
   ],
   "theRitesCommonwealth": [
    {
-    "raw": "-25% happiness demanded per citizen, in every city while it is keeping a rite",
-    "text": "-25% happiness demanded per citizen, in every city while it is keeping a rite"
+    "raw": "a rite your capital starts is kept by every town you hold",
+    "text": "a rite your capital starts is kept by every town you hold"
    }
   ],
   "devotionTheSaintsFields": [
@@ -7336,14 +7534,14 @@
   ],
   "theOldHolyPlaces": [
    {
-    "raw": "+3 culture, +3 faith on every hex with a [[improvement:holySite|Holy Site]]",
-    "text": "+3 culture, +3 faith on every hex with a Holy Site"
+    "raw": "+1 culture, +1 faith on every hex with a [[improvement:holySite|Holy Site]], once for each 10 turns the improvement has stood",
+    "text": "+1 culture, +1 faith on every hex with a Holy Site, once for each 10 turns the improvement has stood"
    }
   ],
   "templeEstates": [
    {
-    "raw": "+2 food, +2 faith on every hex beside a [[improvement:holySite|Holy Site]]",
-    "text": "+2 food, +2 faith on every hex beside a Holy Site"
+    "raw": "+2 food, +2 production on every hex with a [[improvement:holySite|Holy Site]], once for every adjacent improved hex",
+    "text": "+2 food, +2 production on every hex with a Holy Site, once for every adjacent improved hex"
    }
   ],
   "theVotiveGifts": [
@@ -7366,8 +7564,12 @@
   ],
   "missionHouses": [
    {
-    "raw": "a proclamation presses +18 faith harder",
-    "text": "a proclamation presses +18 faith harder"
+    "raw": "proclamations reach 50% farther",
+    "text": "proclamations reach 50% farther"
+   },
+   {
+    "raw": "proclamations press 50% harder in foreign towns",
+    "text": "proclamations press 50% harder in foreign towns"
    }
   ],
   "theLayBrothers": [
@@ -7384,8 +7586,12 @@
   ],
   "theHolyInquisition": [
    {
-    "raw": "+35% faith in every city",
-    "text": "+35% faith in every city"
+    "raw": "+1 authority capacity per devout city",
+    "text": "+1 authority capacity per devout city"
+   },
+   {
+    "raw": "rival religions press your cities 80% less",
+    "text": "rival religions press your cities 80% less"
    }
   ],
   "theLearnedClergy": [
@@ -7398,10 +7604,16 @@
     "text": "+2 culture per 10 faith gained per turn"
    }
   ],
+  "fabricFund": [
+   {
+    "raw": "buying a building grants production equal to 25% of the faith paid",
+    "text": "buying a building grants production equal to 25% of the faith paid"
+   }
+  ],
   "theOfferedStones": [
    {
-    "raw": "+2 culture in every city per building bought with faith there",
-    "text": "+2 culture in every city per building bought with faith there"
+    "raw": "+4 culture per building you bought with faith",
+    "text": "+4 culture per building you bought with faith"
    }
   ],
   "theDoctorsOfTheChurch": [
@@ -7428,8 +7640,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have at least 51% of the world's cities follow your religion. Reward: +3 culture, +3 faith in every devout city",
-    "text": "Goal: have at least 51% of the world's cities follow your religion. Reward: +3 culture, +3 faith in every devout city"
+    "raw": "Goal: have at least 51% of the world's cities follow your religion. Reward: +3 science and +3 culture per city that follows you",
+    "text": "Goal: have at least 51% of the world's cities follow your religion. Reward: +3 science and +3 culture per city that follows you"
    }
   ],
   "theTitheOfNations": [
@@ -7490,8 +7702,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have a rival's capital follow your religion. Reward: a [[unit:prophet|Prophet]], trained in your capital free of upkeep, and +500 culture",
-    "text": "Goal: have a rival's capital follow your religion. Reward: a Prophet, trained in your capital free of upkeep, and +500 culture"
+    "raw": "Goal: have a rival's capital follow your religion. Reward: a [[unit:prophet|Prophet]], trained in your capital free of upkeep, and +1000 culture",
+    "text": "Goal: have a rival's capital follow your religion. Reward: a Prophet, trained in your capital free of upkeep, and +1000 culture"
    }
   ],
   "thePiousMasons": [
@@ -7530,18 +7742,18 @@
   ],
   "theConsecrationFeast": [
    {
-    "raw": "completing a [[building:cathedral|Cathedral]] grants science equal to 20 times the city's population",
-    "text": "completing a Cathedral grants science equal to 20 times the city's population"
+    "raw": "completing a building (buildings that supply faith) grants food equal to 10 times the city's population",
+    "text": "completing a building (buildings that supply faith) grants food equal to 10 times the city's population"
    },
    {
-    "raw": "completing a [[building:cathedral|Cathedral]] grants culture equal to 20 times the city's population",
-    "text": "completing a Cathedral grants culture equal to 20 times the city's population"
+    "raw": "completing a building (buildings that supply faith) grants culture equal to 10 times the city's population",
+    "text": "completing a building (buildings that supply faith) grants culture equal to 10 times the city's population"
    }
   ],
   "thePilgrimTowns": [
    {
-    "raw": "+20% culture in every city working a [[improvement:holySite|Holy Site]]",
-    "text": "+20% culture in every city working a Holy Site"
+    "raw": "+1 production, +1 culture on every hex with a [[improvement:holySite|Holy Site]], for each city that follows you",
+    "text": "+1 production, +1 culture on every hex with a Holy Site, for each city that follows you"
    }
   ],
   "theHolySummons": [
@@ -7558,8 +7770,12 @@
   ],
   "theGiftsOfTheFaithful": [
    {
-    "raw": "religious buildings other than wonders may be bought with faith",
-    "text": "religious buildings other than wonders may be bought with faith"
+    "raw": "culture buildings other than wonders may be bought with faith in every city with a [[building:shrine|Shrine]]",
+    "text": "culture buildings other than wonders may be bought with faith in every city with a Shrine"
+   },
+   {
+    "raw": "religious buildings other than wonders may be bought with faith in every city with a [[building:shrine|Shrine]]",
+    "text": "religious buildings other than wonders may be bought with faith in every city with a Shrine"
    }
   ],
   "theSacredPrecincts": [
@@ -7576,8 +7792,8 @@
   ],
   "theOfferingChests": [
    {
-    "raw": "Your faith buys 42.86% more when buying military units",
-    "text": "Your faith buys 42.86% more when buying military units"
+    "raw": "Your faith buys 25% more",
+    "text": "Your faith buys 25% more"
    }
   ],
   "theRogations": [
@@ -7602,12 +7818,12 @@
   ],
   "thePsalter": [
    {
-    "raw": "starting a rite in a devout city grants science equal to 5 times its population",
-    "text": "starting a rite in a devout city grants science equal to 5 times its population"
+    "raw": "starting a rite grants science equal to 5 times its population",
+    "text": "starting a rite grants science equal to 5 times its population"
    },
    {
-    "raw": "starting a rite in a devout city grants culture equal to 5 times its population",
-    "text": "starting a rite in a devout city grants culture equal to 5 times its population"
+    "raw": "starting a rite grants culture equal to 5 times its population",
+    "text": "starting a rite grants culture equal to 5 times its population"
    }
   ],
   "theParishes": [
@@ -7622,8 +7838,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: the authority a devout city costs falls by 1",
-    "text": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: the authority a devout city costs falls by 1"
+    "raw": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: +1 authority capacity and +1 happiness per 2 devout cities",
+    "text": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: +1 authority capacity and +1 happiness per 2 devout cities"
    }
   ],
   "theConfessors": [
@@ -7656,8 +7872,8 @@
   ],
   "theCaliphate": [
    {
-    "raw": "the authority a devout city costs is 0",
-    "text": "the authority a devout city costs is 0"
+    "raw": "the authority a devout city costs is 1",
+    "text": "the authority a devout city costs is 1"
    }
   ],
   "theAbbeys": [
@@ -7708,8 +7924,8 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: +25 faith",
-    "text": "On draft: +25 faith"
+    "raw": "On draft: +60 faith",
+    "text": "On draft: +60 faith"
    }
   ],
   "theMonasticTable": [
@@ -7914,6 +8130,126 @@
     "deferred": true
    }
   ],
+  "theOldLearning": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: know every ordinary technology of the first age. Reward: a great scholar to call",
+    "text": "Goal: know every ordinary technology of the first age. Reward: a great scholar to call"
+   }
+  ],
+  "theClayMap": [
+   {
+    "raw": "scouts: +1 sight",
+    "text": "scouts: +1 sight"
+   },
+   {
+    "raw": "scouts receive double rewards from discoveries",
+    "text": "scouts receive double rewards from discoveries"
+   }
+  ],
+  "theLaboratories": [
+   {
+    "raw": "+10% production in every city per science building there",
+    "text": "+10% production in every city per science building there"
+   }
+  ],
+  "theBarberSurgeons": [
+   {
+    "raw": "killing a unit heals 10",
+    "text": "killing a unit heals 10"
+   }
+  ],
+  "theInvisibleCollege": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great scholar to call",
+    "text": "On draft: you gain a great scholar to call"
+   },
+   {
+    "raw": "On draft: you gain a great scholar to call",
+    "text": "On draft: you gain a great scholar to call"
+   }
+  ],
+  "theHouseOfLife": [
+   {
+    "raw": "50% of the production in your capital is gained again as science",
+    "text": "50% of the production in your capital is gained again as science"
+   }
+  ],
+  "theCollectedWorks": [
+   {
+    "raw": "Your great scholars may take their action or build their work 2 times in any combination",
+    "text": "Your great scholars may take their action or build their work 2 times in any combination"
+   }
+  ],
+  "theAlfonsineTables": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you complete the technology you are researching",
+    "text": "On draft: you complete the technology you are researching"
+   },
+   {
+    "raw": "On draft: -30% gold in every city for 15 turns",
+    "text": "On draft: -30% gold in every city for 15 turns"
+   }
+  ],
+  "theOrdinanceCompanies": [
+   {
+    "raw": "entering a new age grants a [[concept:grantedUnit|melee unit]] in your capital",
+    "text": "entering a new age grants a melee unit in your capital"
+   },
+   {
+    "raw": "entering a new age grants a [[concept:grantedUnit|ranged unit]] in your capital",
+    "text": "entering a new age grants a ranged unit in your capital"
+   },
+   {
+    "raw": "entering a new age grants a [[concept:grantedUnit|siege unit]] in your capital",
+    "text": "entering a new age grants a siege unit in your capital"
+   }
+  ],
+  "theReformOfTheCalendar": [
+   {
+    "raw": "entering a new age grants a free Order hand",
+    "text": "entering a new age grants a free Order hand"
+   }
+  ],
+  "theArchivistsCharter": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:recordKeeping|Record-Keeping]] for you to research",
+    "text": "opens Record-Keeping for you to research"
+   },
+   {
+    "raw": "[[tech:recordKeeping|Record-Keeping]] lets you build the [[building:greatArchive|Great Archive]]: +5 science per charter technology you know",
+    "text": "Record-Keeping lets you build the Great Archive: +5 science per charter technology you know"
+   }
+  ],
+  "theSmeltersCharter": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:smelting|Smelting]] for you to research",
+    "text": "opens Smelting for you to research"
+   },
+   {
+    "raw": "[[tech:smelting|Smelting]] lets your workers build the [[improvement:smelter|Smelter]]: +1 production; one per city",
+    "text": "Smelting lets your workers build the Smelter: +1 production; one per city"
+   }
+  ],
   "scientificTheAlmanac": [
    {
     "raw": "+2 production in every city with a [[building:library|Library]]",
@@ -7922,8 +8258,8 @@
   ],
   "scientificTheScribesHall": [
    {
-    "raw": "+1 science in every city with a [[building:library|Library]] per 4 citizens there",
-    "text": "+1 science in every city with a Library per 4 citizens there"
+    "raw": "+2 science in every city with a [[building:library|Library]]",
+    "text": "+2 science in every city with a Library"
    }
   ],
   "theCelestialRites": [
@@ -8005,12 +8341,12 @@
     "text": "Charter"
    },
    {
-    "raw": "opens [[tech:optics|Optics]] for you to research",
-    "text": "opens Optics for you to research"
+    "raw": "opens [[tech:optics|Glassmaking]] for you to research",
+    "text": "opens Glassmaking for you to research"
    },
    {
-    "raw": "[[tech:optics|Optics]] lets you build the [[building:specularium|Specularium]]: +3 food; +1 science per 2 citizens in this city",
-    "text": "Optics lets you build the Specularium: +3 food; +1 science per 2 citizens in this city"
+    "raw": "[[tech:optics|Glassmaking]] lets you build the [[building:specularium|Glasshouse]]: +3 food; +1 science per hex with a [[improvement:farm|Farm]] worked in this city",
+    "text": "Glassmaking lets you build the Glasshouse: +3 food; +1 science per hex with a Farm worked in this city"
    }
   ],
   "theOpenCollegium": [
@@ -8196,8 +8532,8 @@
   ],
   "theSecondSeat": [
    {
-    "raw": "you may build one second copy of an empire building, in a city with a [[building:university|University]]",
-    "text": "you may build one second copy of an empire building, in a city with a University"
+    "raw": "you may build a second copy of each empire building",
+    "text": "you may build a second copy of each empire building"
    }
   ],
   "theLongInheritance": [
@@ -8239,24 +8575,6 @@
     "text": "+2 happiness in every city with a Library that has stood at least 20 turns"
    }
   ],
-  "theHerbalistsCharter": [
-   {
-    "raw": "[[concept:charter|Charter]]",
-    "text": "Charter"
-   },
-   {
-    "raw": "opens [[tech:herbals|Herbals]] for you to research",
-    "text": "opens Herbals for you to research"
-   },
-   {
-    "raw": "[[tech:herbals|Herbals]] lets your workers build the [[improvement:physicGarden|Physic Garden]]: +2 science; on flat land with fresh water, one per city",
-    "text": "Herbals lets your workers build the Physic Garden: +2 science; on flat land with fresh water, one per city"
-   },
-   {
-    "raw": "with [[tech:herbals|Herbals]], +2 happiness per hex with a [[improvement:physicGarden|Physic Garden]] in your borders",
-    "text": "with Herbals, +2 happiness per hex with a Physic Garden in your borders"
-   }
-  ],
   "theBronzeFoundersCharter": [
    {
     "raw": "[[concept:charter|Charter]]",
@@ -8289,8 +8607,8 @@
     "text": "Surveying lets you build the Aqueduct before Engineering"
    },
    {
-    "raw": "[[tech:surveying|Surveying]] lets your workers build the [[improvement:qanat|Qanat]]: on flat land; your farms beside it count as having fresh water",
-    "text": "Surveying lets your workers build the Qanat: on flat land; your farms beside it count as having fresh water"
+    "raw": "[[tech:surveying|Surveying]] lets your workers build the [[improvement:qanat|Qanat]]: +2 food, +1 production; on flat land, beside a hill or mountain, one per city; all neighbouring hexes have fresh water",
+    "text": "Surveying lets your workers build the Qanat: +2 food, +1 production; on flat land, beside a hill or mountain, one per city; all neighbouring hexes have fresh water"
    }
   ],
   "theLibrariansCharter": [
@@ -8351,8 +8669,8 @@
     "text": "opens Printing for you to research"
    },
    {
-    "raw": "[[tech:printing|Printing]] lets you build the [[building:aldinePress|Aldine Press]]: +2 culture",
-    "text": "Printing lets you build the Aldine Press: +2 culture"
+    "raw": "[[tech:printing|Printing]] lets you build the [[building:aldinePress|Aldine Press]]: +1 culture per technology you know",
+    "text": "Printing lets you build the Aldine Press: +1 culture per technology you know"
    },
    {
     "raw": "with [[tech:printing|Printing]], +1 trade route",
@@ -8369,8 +8687,8 @@
     "text": "opens Gunfounding for you to research"
    },
    {
-    "raw": "[[tech:gunfounding|Gunfounding]] lets you build the [[building:tophane|Tophane]]: newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +25% production toward military units, in every city with a [[building:tophane|Tophane]]",
-    "text": "Gunfounding lets you build the Tophane: newly created military units in every city with a Tophane gain +4 combat strength; +25% production toward military units, in every city with a Tophane"
+    "raw": "[[tech:gunfounding|Gunfounding]] lets you build the [[building:tophane|Tophane]]: newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +50% production toward military units, in every city with a [[building:tophane|Tophane]]",
+    "text": "Gunfounding lets you build the Tophane: newly created military units in every city with a Tophane gain +4 combat strength; +50% production toward military units, in every city with a Tophane"
    }
   ],
   "theMilitaryEngineersCharter": [
@@ -8427,8 +8745,8 @@
   ],
   "theTranslationMovement": [
    {
-    "raw": "technologies that an empire you have met already knows cost you 20% less research",
-    "text": "technologies that an empire you have met already knows cost you 20% less research"
+    "raw": "technologies from earlier ages cost a third less research",
+    "text": "technologies from earlier ages cost a third less research"
    }
   ],
   "theGreatDesigns": [
@@ -8465,14 +8783,14 @@
   ],
   "theFoundingGift": [
    {
-    "raw": "a great scholar founding an [[improvement:academy|Academy]] grants +150 production",
-    "text": "a great scholar founding an Academy grants +150 production"
+    "raw": "+2 science on every hex with an [[improvement:academy|Academy]], for each science building in its town",
+    "text": "+2 science on every hex with an Academy, for each science building in its town"
    }
   ],
   "theLatinQuarter": [
    {
-    "raw": "+1 production, +2 culture on every hex carrying a great person's work beside an [[improvement:academy|Academy]]",
-    "text": "+1 production, +2 culture on every hex carrying a great person's work beside an Academy"
+    "raw": "+2 science, +1 culture on every hex with an [[improvement:academy|Academy]] or beside an [[improvement:academy|Academy]]",
+    "text": "+2 science, +1 culture on every hex with an Academy or beside an Academy"
    }
   ],
   "theStudiumGenerale": [
@@ -8511,8 +8829,8 @@
   ],
   "theSkyWatchers": [
    {
-    "raw": "+1 science, +1 faith in every city with a [[building:shrine|Shrine]]",
-    "text": "+1 science, +1 faith in every city with a Shrine"
+    "raw": "+2 science, +1 faith in every city with a [[building:shrine|Shrine]]",
+    "text": "+2 science, +1 faith in every city with a Shrine"
    }
   ],
   "theAstronomicalDiaries": [
@@ -8533,8 +8851,8 @@
   ],
   "theCharterRolls": [
    {
-    "raw": "+3 production and +3 culture in your capital per charter you have drafted",
-    "text": "+3 production and +3 culture in your capital per charter you have drafted"
+    "raw": "your Order drafts include an extra charter if one is available",
+    "text": "your Order drafts include an extra charter if one is available"
    }
   ],
   "theRoyalCharterCommission": [
@@ -8561,8 +8879,8 @@
   ],
   "theSumOfKnowledge": [
    {
-    "raw": "+1 production and +1 culture in your capital per technology you know",
-    "text": "+1 production and +1 culture in your capital per technology you know"
+    "raw": "+2 production in every city raising the Magnum Opus per technology you know",
+    "text": "+2 production in every city raising the Magnum Opus per technology you know"
    }
   ],
   "theGreatCatalogue": [
@@ -8579,14 +8897,18 @@
   ],
   "theWarManuals": [
    {
-    "raw": "newly created military units in every city with a [[building:library|Library]] gain +2 combat strength",
-    "text": "newly created military units in every city with a Library gain +2 combat strength"
+    "raw": "+2 combat strength for ranged units",
+    "text": "+2 combat strength for ranged units"
    }
   ],
   "theRoyalEstates": [
    {
-    "raw": "+2 food and +2 production in every city per empire building you hold there",
-    "text": "+2 food and +2 production in every city per empire building you hold there"
+    "raw": "+3 food and +3 production in every city per empire building you hold there",
+    "text": "+3 food and +3 production in every city per empire building you hold there"
+   },
+   {
+    "raw": "+50% production toward empire buildings",
+    "text": "+50% production toward empire buildings"
    }
   ],
   "theCommonTables": [
@@ -8621,8 +8943,12 @@
   ],
   "theCityArchitects": [
    {
-    "raw": "+25% production toward wonders, in every city of 8 or more citizens",
-    "text": "+25% production toward wonders, in every city of 8 or more citizens"
+    "raw": "+30% production toward buildings of your current age",
+    "text": "+30% production toward buildings of your current age"
+   },
+   {
+    "raw": "+30% production toward wonders of your current age",
+    "text": "+30% production toward wonders of your current age"
    }
   ],
   "theForwardPlans": [
@@ -8633,8 +8959,8 @@
   ],
   "theDedications": [
    {
-    "raw": "completing a building (a science building or an empire building) grants culture equal to 10 times the city's population",
-    "text": "completing a building (a science building or an empire building) grants culture equal to 10 times the city's population"
+    "raw": "completing a building (a science building or an empire building) grants culture equal to the building’s production cost",
+    "text": "completing a building (a science building or an empire building) grants culture equal to the building’s production cost"
    }
   ],
   "theRoyalReaders": [
@@ -8645,8 +8971,8 @@
   ],
   "theInvitations": [
    {
-    "raw": "completing a building (an empire building) grants a great scholar to call",
-    "text": "completing a building (an empire building) grants a great scholar to call"
+    "raw": "completing a building (an empire building, the first time you complete each kind) grants a great scholar to call",
+    "text": "completing a building (an empire building, the first time you complete each kind) grants a great scholar to call"
    }
   ],
   "theDoctorate": [
@@ -8669,8 +8995,8 @@
   ],
   "theHumanists": [
    {
-    "raw": "50% of the science in every city with a [[building:university|University]] is gained again as culture",
-    "text": "50% of the science in every city with a University is gained again as culture"
+    "raw": "25% of the science in every city with a [[building:library|Library]] is gained again as culture",
+    "text": "25% of the science in every city with a Library is gained again as culture"
    }
   ],
   "theWallsOfLearning": [
@@ -8685,8 +9011,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold 4 [[improvement:academy|Academies]] inside your borders. Reward: a great scholar to call, and +300 production in every city with an [[improvement:academy|Academy]]",
-    "text": "Goal: hold 4 Academies inside your borders. Reward: a great scholar to call, and +300 production in every city with an Academy"
+    "raw": "Goal: hold 3 [[improvement:academy|Academies]] inside your borders. Reward: a great scholar to call, and +5 science, +5 culture on every hex with an [[improvement:academy|Academy]]",
+    "text": "Goal: hold 3 Academies inside your borders. Reward: a great scholar to call, and +5 science, +5 culture on every hex with an Academy"
    }
   ],
   "theFieldRefits": [
@@ -8703,14 +9029,18 @@
   ],
   "theArmouryPatterns": [
    {
-    "raw": "+25% production toward units of the newest age you know",
-    "text": "+25% production toward units of the newest age you know"
+    "raw": "+3 combat strength for units of the newest age you know",
+    "text": "+3 combat strength for units of the newest age you know"
    }
   ],
   "theModelArmy": [
    {
     "raw": "research upgrades your units even when you lack the strategic resource the new unit needs",
     "text": "research upgrades your units even when you lack the strategic resource the new unit needs"
+   },
+   {
+    "raw": "each time research upgrades one of your units, it heals fully",
+    "text": "each time research upgrades one of your units, it heals fully"
    }
   ],
   "theGreatInstrument": [
@@ -8735,8 +9065,16 @@
   ],
   "theClosedBook": [
    {
-    "raw": "if you complete [[tech:alchemy|Alchemy]] before any other empire, empires that do not know [[tech:alchemy|Alchemy]] may not begin the [[building:theMagnumOpus|Magnum Opus]] for 10 turns",
-    "text": "if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:ciphers|Ciphers]] for you to research",
+    "text": "opens Ciphers for you to research"
+   },
+   {
+    "raw": "with [[tech:ciphers|Ciphers]], if you complete [[tech:alchemy|Alchemy]] before any other empire, empires that do not know [[tech:alchemy|Alchemy]] may not begin the [[building:theMagnumOpus|Magnum Opus]] for 10 turns",
+    "text": "with Ciphers, if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns"
    }
   ],
   "theBreachingBatteries": [
@@ -8771,8 +9109,8 @@
   ],
   "theApprentices": [
    {
-    "raw": "completing a building grants +5 science",
-    "text": "completing a building grants +5 science"
+    "raw": "completing a building grants science equal to 20% of the building’s production cost",
+    "text": "completing a building grants science equal to 20% of the building’s production cost"
    }
   ],
   "magisterialTheHeralds": [
@@ -9880,6 +10218,68 @@
     "text": "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken"
    }
   ],
+  "theFieldMass": [
+   {
+    "raw": "making a proclamation heals your units within 3 hexes by 25 health",
+    "text": "making a proclamation heals your units within 3 hexes by 25 health"
+   }
+  ],
+  "theTempleBaths": [
+   {
+    "raw": "+2 faith in every city per public work standing there",
+    "text": "+2 faith in every city per public work standing there"
+   },
+   {
+    "raw": "+1 happiness per public work standing in your cities",
+    "text": "+1 happiness per public work standing in your cities"
+   }
+  ],
+  "theHearthFire": [
+   {
+    "raw": "new cities are founded with a [[building:shrine|Shrine]]",
+    "text": "new cities are founded with a Shrine"
+   }
+  ],
+  "theLodgeBooks": [
+   {
+    "raw": "completing a wonder completes your current technology",
+    "text": "completing a wonder completes your current technology"
+   }
+  ],
+  "theObserversCharter": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:astronomy|Astronomy]] for you to research",
+    "text": "opens Astronomy for you to research"
+   }
+  ],
+  "theFoundersSchools": [
+   {
+    "raw": "new cities are founded with a [[building:library|Library]]",
+    "text": "new cities are founded with a Library"
+   }
+  ],
+  "theHerbalistsCharter": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "opens [[tech:herbals|Herbals]] for you to research",
+    "text": "opens Herbals for you to research"
+   },
+   {
+    "raw": "[[tech:herbals|Herbals]] lets your workers build the [[improvement:physicGarden|Physic Garden]]: +2 science; on flat land with fresh water, one per city",
+    "text": "Herbals lets your workers build the Physic Garden: +2 science; on flat land with fresh water, one per city"
+   },
+   {
+    "raw": "with [[tech:herbals|Herbals]], +2 happiness per hex with a [[improvement:physicGarden|Physic Garden]] in your borders",
+    "text": "with Herbals, +2 happiness per hex with a Physic Garden in your borders"
+   }
+  ],
   "theHillforts": [
    {
     "raw": "[[concept:charter|Charter]]",
@@ -9922,14 +10322,14 @@
   ],
   "theSacredHost": [
    {
-    "raw": "killing a unit grants +15 faith",
-    "text": "killing a unit grants +15 faith"
+    "raw": "killing a unit grants faith equal to its strength",
+    "text": "killing a unit grants faith equal to its strength"
    }
   ],
   "fieldAcademies": [
    {
-    "raw": "killing a unit (at most once a turn) grants +25 science",
-    "text": "killing a unit (at most once a turn) grants +25 science"
+    "raw": "killing a unit (at most once a turn) grants +25 science for each age reached",
+    "text": "killing a unit (at most once a turn) grants +25 science for each age reached"
    }
   ],
   "theEngineerCorps": [
@@ -10589,8 +10989,8 @@
   ],
   "carriedOffScholars": [
    {
-    "raw": "capturing a city grants science equal to 10 times its population",
-    "text": "capturing a city grants science equal to 10 times its population"
+    "raw": "capturing a city grants the cheapest technology the former owner knows and you do not. If there is none, you gain science equal to 30 times its population",
+    "text": "capturing a city grants the cheapest technology the former owner knows and you do not. If there is none, you gain science equal to 30 times its population"
    }
   ],
   "theSwordOfState": [
@@ -11243,8 +11643,8 @@
   ],
   "apostles": [
    {
-    "raw": "Your faith buys 42.86% more when buying apostles",
-    "text": "Your faith buys 42.86% more when buying apostles"
+    "raw": "Your faith buys 40% more when buying apostles",
+    "text": "Your faith buys 40% more when buying apostles"
    }
   ],
   "sacredCartography": [
@@ -11320,6 +11720,30 @@
   ]
  },
  "rite": {
+  "vigilOfArms": [
+   {
+    "raw": "your units within 3 hexes when the rite starts gain +4 strength until it ends",
+    "text": "your units within 3 hexes when the rite starts gain +4 strength until it ends"
+   }
+  ],
+  "nightWatch": [
+   {
+    "raw": "+1 science per citizen in this city",
+    "text": "+1 science per citizen in this city"
+   }
+  ],
+  "riteOfNaming": [
+   {
+    "raw": "+2 food per citizen in this city",
+    "text": "+2 food per citizen in this city"
+   }
+  ],
+  "riteOfHallowing": [
+   {
+    "raw": "+1 faith on every improved hex",
+    "text": "+1 faith on every improved hex"
+   }
+  ],
   "riteOfTheHarvest": [
    {
     "raw": "+1 food on every hex that yields food",
@@ -11334,8 +11758,8 @@
   ],
   "consecrationOfTheBounds": [
    {
-    "raw": "+1 culture on every hex carrying a luxury resource",
-    "text": "+1 culture on every hex carrying a luxury resource"
+    "raw": "+1 culture on every hex carrying a resource",
+    "text": "+1 culture on every hex carrying a resource"
    },
    {
     "raw": "+30% border expansion",
@@ -11350,8 +11774,8 @@
   ],
   "riteOfPlenty": [
    {
-    "raw": "+1 gold on every hex carrying a resource",
-    "text": "+1 gold on every hex carrying a resource"
+    "raw": "+1 gold per citizen in this city",
+    "text": "+1 gold per citizen in this city"
    }
   ],
   "thePreaching": [],
@@ -11368,14 +11792,14 @@
   ],
   "votiveOffering": [
    {
-    "raw": "the faith this rite costs goes into what the city is building, as production at the faith rate, never toward a wonder",
-    "text": "the faith this rite costs goes into what the city is building, as production at the faith rate, never toward a wonder"
+    "raw": "100% of the faith in this city is gained again as production",
+    "text": "100% of the faith in this city is gained again as production"
    }
   ],
   "restoringOfTheHost": [
    {
-    "raw": "every unit of yours standing in land that follows your religion is healed to full",
-    "text": "every unit of yours standing in land that follows your religion is healed to full"
+    "raw": "your units within 3 hexes of this town heal 25 health each turn",
+    "text": "your units within 3 hexes of this town heal 25 health each turn"
    }
   ],
   "riteOfTheSabbath": [
@@ -11424,6 +11848,18 @@
   ]
  },
  "building": {
+  "bellTower": [
+   {
+    "raw": "spreads your religion +1 faith per building that [[concept:supplies|supplies]] a yield to every city within 3 hexes",
+    "text": "spreads your religion +1 faith per building that supplies a yield to every city within 3 hexes"
+   }
+  ],
+  "greatArchive": [
+   {
+    "raw": "+5 science per charter technology you know",
+    "text": "+5 science per charter technology you know"
+   }
+  ],
   "schoolOfMieza": [],
   "hallOfWorthies": [],
   "basilica": [
@@ -11983,8 +12419,8 @@
   ],
   "specularium": [
    {
-    "raw": "+1 science per 2 citizens in this city",
-    "text": "+1 science per 2 citizens in this city"
+    "raw": "+1 science per hex with a [[improvement:farm|Farm]] worked in this city",
+    "text": "+1 science per hex with a Farm worked in this city"
    }
   ],
   "mouseion": [
@@ -11997,7 +12433,12 @@
     "text": "+2 culture per empire building you hold"
    }
   ],
-  "aldinePress": [],
+  "aldinePress": [
+   {
+    "raw": "+1 culture per technology you know",
+    "text": "+1 culture per technology you know"
+   }
+  ],
   "bimaristan": [
    {
     "raw": "+25% food in every city with a [[building:bimaristan|Bimaristan]]",
@@ -12010,8 +12451,8 @@
     "text": "newly created military units in every city with a Tophane gain +4 combat strength"
    },
    {
-    "raw": "+25% production toward military units, in every city with a [[building:tophane|Tophane]]",
-    "text": "+25% production toward military units, in every city with a Tophane"
+    "raw": "+50% production toward military units, in every city with a [[building:tophane|Tophane]]",
+    "text": "+50% production toward military units, in every city with a Tophane"
    }
   ],
   "chapel": [],

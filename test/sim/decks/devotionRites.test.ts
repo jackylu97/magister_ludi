@@ -23,6 +23,7 @@ import { getTileAt } from '../../../src/sim/map';
 import {
   availableRites,
   keptRiteSchedule,
+  realmRiteError,
   settleKeptRites,
   cityRite,
   empireRiteAt,
@@ -33,7 +34,7 @@ import {
   riteTeachingCard,
 } from '../../../src/sim/religion';
 import { explainUnitHeal } from '../../../src/sim/healing';
-import { liveUnitEffects } from '../../../src/sim/statecraft/evaluator';
+import { cardPressureSources, liveUnitEffects } from '../../../src/sim/statecraft/evaluator';
 import { type RiteId, riteDef } from '../../../src/sim/religionData';
 import {
   type City,
@@ -474,6 +475,41 @@ describe('the current rite rules', () => {
       expect(player.ritesStarted).toBe(priceSteps);
     }
     expect(cityRite(state, second)).toBeNull();
+  });
+
+  it('protects the realm rite from replacement until the final turn', () => {
+    const state = bareState(24, 10);
+    const capital = town(state, 0, 4, 5);
+    const second = town(state, 0, 12, 5);
+    const player = faithful(state);
+    player.charteredRites.push(SABBATH);
+    capital.buildings.push('chapel', 'chichenItza');
+    for (const id of ['theRitesCommonwealth', 'devotionTheQuietHours'] as OrderId[]) slot(state, 0, id);
+    expect(applyCommand(state, { type: 'performRite', playerId: 0, cityId: capital.id, rite: FASTING }).ok).toBe(true);
+    state.turn += 29;
+    expect(realmRiteError(state, 0, SABBATH)).toContain('across the realm');
+    expect(riteError(state, 0, capital.id, SABBATH)).not.toBeNull();
+    expect(cityRite(state, second)).toBe(FASTING);
+    state.turn++;
+    expect(realmRiteError(state, 0, SABBATH)).toBeNull();
+    expect(applyCommand(state, { type: 'performRite', playerId: 0, cityId: capital.id, rite: SABBATH }).ok).toBe(true);
+    expect(cityRite(state, second)).toBe(SABBATH);
+    expect(player.ritesStarted).toBe(4);
+  });
+
+  it('counts the Bell Tower itself and only the faith buildings in its town', () => {
+    const state = bareState(24, 10);
+    const home = town(state, 0, 4, 5);
+    const rival = town(state, 1, 8, 5);
+    home.buildings.push('bellTower');
+    rival.buildings.push('temple');
+    bumpRevision(state);
+    const pressure = () => cardPressureSources(state, home.ownerId).find(entry => entry.source.includes('Bell Tower'))?.amount;
+    expect(pressure()).toBe(1);
+    home.buildings.push('shrine');
+    bumpRevision(state);
+    expect(pressure()).toBe(2);
+    expect(cardPressureSources(state, rival.ownerId).some(entry => entry.source.includes('Bell Tower'))).toBe(false);
   });
 
   it('previews the same wounded units the Field Mass heals on a final charge', () => {

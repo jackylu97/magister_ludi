@@ -313,21 +313,28 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 
 | node | æra | column | 🔬 | prereq | opened by | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|---|---|---|
+| Liturgy | III | 6 | 360 | The High Temple | The Call to Prayer | — | — | — |
+| Ciphers | IV | 9 | 1960 | Horology | The Closed Book | — | — | — |
+| Record-Keeping | III | 6 | 360 | Code of Laws | The Archivists' Charter | — | Great Archive ‡ | — |
+| Astronomy | I | 3 | 50 | Calendar | The Observers' Charter | — | — | The Night Watch |
+| Smelting | I | 2 | 24 | Mining | The Smelters' Charter | — | — | workers may build Smelter |
 | Herbals | I | 2 | 24 | Pottery | The Herbalists' Charter | — | — | workers may build Physic Garden |
 | Casting | I | 3 | 50 | Bronzeworking | The Bronze-Founders' Charter | — | — | — |
 | Surveying | II | 4 | 100 | The Wheel | The Surveyors' Charter | — | Aqueduct | workers may build Qanat |
 | Cataloguing | II | 4 | 100 | Writing | The Librarians' Charter | — | Mouseion ‡ | — |
-| Optics | II | 5 | 190 | Chronology | The Glassmakers' Charter | — | Specularium | — |
+| Glassmaking | II | 5 | 190 | Chronology | The Glassmakers' Charter | — | Glasshouse | — |
 | Medicine | III | 6 | 360 | The High Temple | The Physicians' Charter | — | Bimaristan ‡ | — |
 | Scholasticism | III | 6 | 360 | The High Temple | The Schoolmen's Charter | — | Cathedral School | — |
 | Papermaking | III | 7 | 650 | Rhetoric | The Paper-Makers' Charter | — | Scriptorium | — |
-| Printing | III | 7 | 650 | Rhetoric | The Printers' Charter | — | Aldine Press | — |
+| Printing | III | 7 | 650 | Rhetoric | The Printers' Charter | — | Aldine Press ‡ | — |
 | Mechanics | III | 8 | 1150 | Mathematics | The Mechanists' Charter | — | — | — |
 | Gunfounding | IV | 10 | 3250 | Machinery | The Gunfounders' Charter | — | Tophane ‡ | — |
 | Chemistry | IV | 10 | 3250 | Geomancy | The Alchemists' Charter | — | — | — |
 | Military Architecture | IV | 10 | 3250 | Castellany | The Military Engineers' Charter | — | Bastion | — |
-| Naval Gunnery | IV | 12 | 8000 | The Astrolabe | The Naval Gunners' Charter | — | — | — |
+| Naval Gunnery | IV | 12 | 8000 | The Astrolabe | — | — | — | — |
 
+- **Liturgy** — Holy site pressure range +6 hexes
+- **Ciphers** — First to Alchemy: rivals without it cannot start The Magnum Opus for 10 turns
 - **Herbals** — Physic Garden +2 happiness
 - **Casting** — Hoplite: Spearman to Pikeman +2 combat strength
 - **Casting** — Maryannu: War Chariot to Knight +2 combat strength
@@ -342,6 +349,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 
 | verb | node | who gains it | what it does |
 |---|---|---|---|
+| The Night Watch | Astronomy | city | Rite: +1 science per citizen |
 | Embark | Sailing | civilian | Civilians and scouts cross coast and lakes |
 | Rite of the Harvest | Divination | city | Rite: food hexes +1 food |
 | Omen Reading | Divination | city | Rite: +1 science per building |
