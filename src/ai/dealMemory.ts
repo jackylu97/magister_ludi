@@ -44,9 +44,10 @@
  * plumbing through the policy's signatures. The state is never written to.
  */
 
-import { hasResource, resourceCopies } from '../sim/cities';
+import { availableCopies, hasResource, lendableCopies, resourceCopies } from '../sim/cities';
 import type { Command } from '../sim/commands';
-import { type DealTerms, proposalById } from '../sim/deals';
+import { resourceIsVisibleTo } from '../sim/resourceData';
+import { type DealTerms, loanedResources, proposalById } from '../sim/deals';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
 import { readEmpireRates } from '../sim/readings';
@@ -105,6 +106,7 @@ function termsKey(terms: DealTerms): string {
     gold: terms.gold ?? 0,
     goldPerTurn: terms.goldPerTurn ?? 0,
     luxuries: [...(terms.luxuries ?? [])].sort(),
+    ...(terms.strategics?.length ? { strategics: [...terms.strategics].sort() } : {}),
     openBorders: terms.openBorders === true,
     cities: [...(terms.cities ?? [])].sort((a, b) => a - b),
   });
@@ -157,9 +159,16 @@ function carriesCoin(give: DealTerms): boolean {
  */
 function holdingsKey(state: GameState, refuserId: number, give: DealTerms, take: DealTerms): string {
   const parts: string[] = [];
-  const named = [...new Set([...(give.luxuries ?? []), ...(take.luxuries ?? [])])].sort();
+  const named = [...new Set([...loanedResources(give), ...loanedResources(take)])].sort();
+  const refuser = playerById(state, refuserId);
   for (const id of named) {
     parts.push(`${id}=${resourceCopies(state, refuserId, id)}${hasResource(state, refuserId, id) ? '+' : '-'}`);
+    if (give.strategics?.includes(id) || take.strategics?.includes(id)) {
+      // A unit or its queue can use the last free copy without changing the total.
+      parts.push(`free:${availableCopies(state, refuserId, id)}`);
+      parts.push(`revealed:${refuser !== undefined && resourceIsVisibleTo(id, refuser.techsResearched)}`);
+      if (take.strategics?.includes(id)) parts.push(`canLend:${lendableCopies(state, refuserId, id)}`);
+    }
   }
   const coin = take.gold ?? 0;
   if (coin > 0) {
