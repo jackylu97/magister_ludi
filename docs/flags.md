@@ -3257,3 +3257,29 @@ devotion can take this too."
   ordered lines, with one line for the buying power.
 - Owner: Astra (`purchase.ts`, the describers and the data rows). The Claude
   session then shows the full price struck through beside the final one.
+
+## Attacking across a river is a flat −3 (ruled 2026-11-21)
+
+The user: "attacking over a river should be a flat penalty, not a percentage,
+lets update it to -3. check if there are any % combat strength modifiers left
+in the game". Until now a melee attack across a river multiplied the
+attacker's base strength by 0.8 (`rules.combat.riverAttackPenalty` 0.2). It
+becomes one labelled flat line of −3 on the attacker's side, like every other
+line on the ledger. This follows the user's earlier rulings: "terrain bonuses
+should be additive, not percentage" (2026-08-28) and no percentages of combat
+strength on cards (2026-11-19).
+
+### The percentages of combat strength that remain (2026-11-21)
+
+| Where | What | State |
+|---|---|---|
+| The Volley Fire (Scientific Doctrine) | melee units −10% combat strength | Already ruled to change in the Scientific pass, change 59: "your archer line may attack twice a turn, they lose 4 combat strength when defending against a melee attack". Not built. |
+| `rules.naval.landRangedVsShipPercent` | a land bow shoots a ship at −50% | Open: the user has not ruled. |
+| `rules.naval.landSiegeVsShipPercent` | a land siege engine shoots a ship at +50% | Open: the user has not ruled. |
+
+Not percentages of strength, so not in the list: the damage roll's band of
+±20%; a hull that boards an embarked column takes half of the counter-blow
+(`embarkedCounterPercent`, a share of damage); the Opus breach rule (a share
+of banked production). No unit row and no other card carries a percentage of
+strength. The `combatPercent` stat stays in the vocabulary until The Volley
+Fire changes, and then nothing reads it.
