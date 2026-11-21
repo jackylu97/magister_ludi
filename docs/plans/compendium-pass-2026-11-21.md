@@ -313,3 +313,111 @@ A script checked the pinned claims of `test/ui/compendium.test.ts` outside the
 test runner (one opening line an entry, the gate of each row, each link has a
 page, no digit in a string). All held. The card text fixture
 (`test/fixtures/cardText.json`) is the same, byte for byte.
+
+## The user's comments on the review page, 2026-11-21
+
+The user: "it looks great mostly", with eleven comments. Each is quoted, with
+what was done.
+
+1. Scout: "could we make the voice more direct, doesn't need flavor. this
+   should probably read something like 'ignores terrain costs to movement'".
+   Done for every ability line of a unit (`unitMarkers` in
+   `src/ui/compendium.ts`). The table below has each line.
+2. The Mandekalu: "Capitalize 'for'?" The cause: the card describer names the
+   kind of unit a line is for ("for mandekalus alone, pillaging pays +100%")
+   and starts a clause with a small letter. `describeUnitRow` now takes the
+   unit's own name out of its own lines and starts each with a capital. A line
+   that starts with the name keeps it ("Janissaries you gain start as
+   Veterans").
+3. The Prophet: "could we add compendium links for 'founding a religion'
+   'rites' 'proclaim' and 'holy sites'" and "second line is probably unneeded
+   with those links. maybe just a line that says: see 'faith and religion'".
+   Done. Two new Concepts pages give the two acts an anchor:
+   `concept:foundingReligion` and `concept:proclamation`. "Holy site" links to
+   `improvement:holySite` and "rite" to `rite:about`. The Prophet, the Apostle
+   and the Inquisitor each end their acts with "See Faith and religion."
+4. About units: "good".
+5. The Forum: "lets swap these two clauses ... Have them be one bullet point."
+   Done in `EMPIRE_BUILDING_WORDS.entry` (`describers.ts`): "An empire
+   building: your empire can build only one. If you lose the city that holds
+   it, you lose the building too."
+6. Fish Traps: "didn't we determine that we wanted to replace 'tended work'
+   with unique improvement? That said, fish traps should just be a normal
+   improvement." The Compendium's own two phrases now say "unique improvement"
+   (the marker sentence on an improvement, and a Doctrine's "Needs" row). The
+   rest is a rule change and was not made. See "What prints tended" below.
+7. The Academy: "could we add a note: 'removes forest or jungle on the tile
+   when placed'". Not printed, because the game does not do it. Building any
+   improvement, a work included, leaves `Tile.feature` as it is. The one place
+   that sets a feature to none is `chopFeatureAt` (`improvements.ts`), which a
+   worker's clearing calls. A work can stand on forest or jungle
+   (`improvementErrorAt` skips the feature check for a work), and the forest
+   stays under it. If the user wants the forest removed, that is a sim change.
+8. Iron: "we should probably allow players to trade strategics." A rule change
+   for another developer. The entry said "A strategic resource cannot be traded
+   away." That sentence is now printed only while `isLendableResource`
+   (`deals.ts`) refuses the resource, so it leaves the page with the rule.
+9. Surveying: "this should link to the qanat". Each unit, building,
+   improvement and rite a charter technology opens is a link (`giftWords`, with
+   links on for a charter technology's page).
+10. Mansa Musa: "we don't need 'from the first turn' also applies to the leader
+    screen. Maybe just write 'leader abilities' instead". The one source is
+    `LEADER_STEP_WORDS.rules` (`src/ui/leaderSelect.ts`), now "Leader
+    abilities". The Compendium's leader page reads the same word.
+11. Combat and movement: "could we add a 'fortify until healed option'..." A
+    new feature for another developer. The Compendium does not describe it.
+
+### Each ability line of a unit, before and after the comment
+
+| Marker | Before | After |
+|---|---|---|
+| `foundsCity` | Founds a city. This uses up the unit. | Founds a city. Is used up when it does. |
+| `haltsGrowth` | A city stores no food toward its next citizen while this is first in its build queue. | Stops its city storing food for growth while it is first in the build queue. |
+| `prophesies` | Each act costs charges: found a religion 2, ... The unit is used up when its charges run out. | Spends charges on its acts: found a religion 2, ... Is used up when it has no charges left. |
+| `prophesies`, second line | A card can change what an act costs. Faith and religion explains each act. | See Faith and religion. |
+| `proclaims` | Each act costs one charge: proclaim the faith over a small area, heal your units beside it, or leave a relic in a city that has a cathedral. | Spends one charge on each act: proclaim the faith over a small area, heal your units beside it, or leave a Relic in a city with a Cathedral. See Faith and religion. |
+| `purges` | The purge uses up the unit. Every rival religion loses 60 pressure in each city within 5 hexes, and followers it can no longer hold follow nothing. Your own religion is spared. | Purges: every rival religion loses 60 pressure in each city within 5 hexes. Is used up when it does. |
+| `purges`, aura | +2 combat strength for your units within 1 hex of it. A second inquisitor adds nothing. | Gives +2 combat strength to your units within 1 hex. A second inquisitor adds nothing. See Faith and religion. |
+| `greatWork` | Use it for the act of its family, or have it build the work of its family. Each uses up the unit. | Does the act of its family, or builds the work of its family. Is used up when it does. |
+| `routeOnly` | This is not built and not bought in a city. It comes with a route you hire on the Trade screen. | Comes with a route you hire on the Trade screen. It is not built and not bought in a city. |
+| `trades` | It walks between the two cities of its route and lays road on every land hex it crosses. | Walks between the two cities of its route and lays road on every land hex it crosses. |
+| `trades`, plunder | An enemy melee unit that attacks it plunders it: ... | Is plundered when an enemy melee unit attacks it: the caravan is destroyed, its route ends, and the attacker takes the cargo. |
+| `ignoresTerrainCost` | Rough ground does not slow it: every hex it can enter costs the same. | Ignores terrain costs to movement. |
+| `ignoresHillCost` | A hill costs it no more movement than flat land. Forest and jungle still slow it. | Ignores the movement cost of hills. |
+| `hitAndRun` | An attack costs it 1 movement and does not end its turn. It attacks one time a turn. | Keeps its movement after an attack, less 1. Attacks one time a turn. |
+| `hitAndRun`, escort | A land unit that shares its hex at sea defends with this ship's strength if that is higher, and does not lose the 20 strength a unit at sea loses. | Escorts a land unit on its hex at sea: that unit defends with this ship's strength if it is higher, and does not lose the 20 strength a unit at sea loses. |
+| `blockades` | +4 combat strength for each friendly ship of its kind beside it, to at most +8. | Gains +4 combat strength for each friendly ship of its kind beside it, to at most +8. |
+| `blockades`, harbour | Beside an enemy harbour it blockades the city: ... | Blockades an enemy harbour beside it: the water around the ship is closed for a siege, and the trade routes of the city pay nothing. |
+| `mirrors` | It is as strong as the best mounted unit your empire can build on the day you buy it, and it costs 80% of the production cost of that unit. | Takes the strength of the best mounted unit your empire can build on the day you buy it. Costs 80% of the production cost of that unit. |
+| `minCityPop` | Only a city of 2 or more citizens can build one. | Needs a city of 2 or more citizens to build it. |
+| `purchase` | Bought with faith in a city. It cannot be built. Each one you buy raises the price of the next by 60. | Bought with faith in a city. Cannot be built. Each purchase raises the price of the next by 60. |
+| effect lines | for mandekalus alone, pillaging pays +100% | Pillaging pays +100% |
+| effect lines | keshigs: a unit that kills gets its movement back for the rest of the turn | A unit that kills gets its movement back for the rest of the turn |
+| effect lines | +2 combat strength for tang heavy cavalry while standing beside melee units | +2 combat strength while standing beside melee units |
+| effect lines | janissaries you gain start as Veterans | Janissaries you gain start as Veterans |
+
+The figures in the table are the data's values on 2026-11-21. The page reads
+them from `RULES` and the unit rows. The combat lines of a row ("+15 combat
+strength when attacking cities") did not change.
+
+### What prints "tended"
+
+- Compendium prose, changed to "unique improvement": the marker sentence on a
+  tended improvement, and the Doctrine row "Needs: a charter that opens a
+  unique improvement" (both in `src/ui/compendium.ts`).
+- The card describer, not changed (`src/sim/statecraft/describers.ts`): the
+  tile word "tended", "tended works cost your workers no charge", "your tended
+  land also counts as improved for every card", "the named works also count as
+  tended land", "your improvements, tended works and great people's works", and
+  the commission counters "tended tiles" and "tended hexes".
+- Data rows, not changed: 17 `text` and `note` lines in `data/` say "tended".
+- The field names `tended` and `needsTendedWork`, and the fact that a card
+  opens Fish Traps, are data and sim. They are the rule change of
+  `docs/flags.md`, "Three rulings from the Compendium review".
+
+### Tests updated in this round, and not run
+
+- `test/ui/compendium.test.ts`: the empire building sentence; the trade
+  sentence follows `isLendableResource`.
+- `test/ui/religionV2.test.ts`: the Prophet's acts are read with the links
+  taken out, and the page ends them with "See Faith and religion."

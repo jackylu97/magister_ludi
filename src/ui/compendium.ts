@@ -112,6 +112,7 @@ import {
   type ResourceId,
   resourceDef,
 } from '../sim/resourceData';
+import { isLendableResource } from '../sim/deals';
 import { describeResourceSignature } from '../sim/resourceEffects';
 import { RULES } from '../sim/rulesData';
 import {
@@ -184,7 +185,7 @@ import {
   leaderDef,
   leaderThatOpensImprovement,
 } from '../sim/leaderData';
-import { type LeaderRowKind, leaderOpeningWords } from './leaderSelect';
+import { LEADER_STEP_WORDS, type LeaderRowKind, leaderOpeningWords } from './leaderSelect';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield, terrainDef } from '../sim/terrainData';
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
@@ -1018,11 +1019,11 @@ function upgradesFrom(type: UnitTypeId): readonly UnitTypeId[] {
  * The cost of each is `rules.religion.prophetCosts`, read by the caller.
  */
 const PROPHET_ACT_WORDS: readonly (readonly [keyof typeof RULES.religion.prophetCosts, string])[] = [
-  ['foundReligion', 'found a religion'],
-  ['plantHolySite', 'plant a further holy site'],
+  ['foundReligion', ref('concept', 'foundingReligion', 'found a religion')],
+  ['plantHolySite', `plant a further ${ref('improvement', 'holySite', 'holy site')}`],
   ['gainBelief', 'draw a belief'],
-  ['proclaim', 'proclaim the faith'],
-  ['empireRite', 'say a rite over every city'],
+  ['proclaim', `${ref('concept', 'proclamation', 'proclaim')} the faith`],
+  ['empireRite', `say a ${ref('rite', 'about', 'rite')} over every city`],
 ];
 
 /**
@@ -1038,90 +1039,90 @@ const PROPHET_ACT_WORDS: readonly (readonly [keyof typeof RULES.religion.prophet
  */
 function unitMarkers(def: UnitDef): CompendiumClause[] {
   const out: CompendiumClause[] = [];
-  if (def.foundsCity) out.push({ text: 'Founds a city. This uses up the unit.' });
+  // The page of the whole system, which a religious unit points at in place of
+  // explaining it (the user, 2026-11-21: "maybe just a line that says: see
+  // 'faith and religion'").
+  const seeFaith = { text: `See ${ref('concept', 'religion', 'Faith and religion')}.` };
+  const proclaim = ref('concept', 'proclamation', 'proclaim');
+  if (def.foundsCity) out.push({ text: 'Founds a city. Is used up when it does.' });
   if (def.haltsGrowth) {
     out.push({
-      text: 'A city stores no food toward its next citizen while this is first in its build queue.',
+      text: 'Stops its city storing food for growth while it is first in the build queue.',
     });
   }
   if (def.prophesies === true) {
     const costs = RULES.religion.prophetCosts;
     const acts = PROPHET_ACT_WORDS.map(([verb, words]) => `${words} ${figure(costs[verb])}`);
     out.push({
-      text: `Each act costs charges: ${acts.join(', ')}. The unit is used up when its charges run out.`,
+      text: `Spends charges on its acts: ${acts.join(', ')}. Is used up when it has no charges left.`,
     });
-    out.push({
-      text: `A card can change what an act costs. ${ref('concept', 'religion', 'Faith and religion')} explains each act.`,
-    });
+    out.push(seeFaith);
   }
   if (def.proclaims === true) {
     out.push({
-      text: 'Each act costs one charge: proclaim the faith over a small area, heal your units beside it, or leave a relic in a city that has a cathedral.',
+      text: `Spends one charge on each act: ${proclaim} the faith over a small area, heal your units beside it, or leave ${withArticle(buildingRef('relic'))} in a city with ${withArticle(buildingRef('cathedral'))}.`,
     });
+    out.push(seeFaith);
   }
   if (def.purges === true) {
     const faith = RULES.religion;
     out.push({
-      text: `The purge uses up the unit. Every rival religion loses ${figure(faith.purgeLump)} pressure in each city within ${figure(faith.purgeRange)} hexes, and followers it can no longer hold follow nothing. Your own religion is spared.`,
+      text: `Purges: every rival religion loses ${figure(faith.purgeLump)} pressure in each city within ${figure(faith.purgeRange)} hexes. Is used up when it does.`,
     });
     out.push({
-      text: `${signedFigure(faith.inquisitorAuraStrength)} combat strength for your units within ${figure(faith.inquisitorAuraRange)} ${plural(faith.inquisitorAuraRange, 'hex', 'hexes')} of it. A second inquisitor adds nothing.`,
+      text: `Gives ${signedFigure(faith.inquisitorAuraStrength)} combat strength to your units within ${figure(faith.inquisitorAuraRange)} ${plural(faith.inquisitorAuraRange, 'hex', 'hexes')}. A second inquisitor adds nothing.`,
     });
+    out.push(seeFaith);
   }
   if (def.greatWork === true) {
     out.push({
-      text: 'Use it for the act of its family, or have it build the work of its family. Each uses up the unit.',
+      text: 'Does the act of its family, or builds the work of its family. Is used up when it does.',
     });
   }
   if (def.routeOnly === true) {
     out.push({
-      text: 'This is not built and not bought in a city. It comes with a route you hire on the Trade screen.',
+      text: 'Comes with a route you hire on the Trade screen. It is not built and not bought in a city.',
     });
   }
   if (def.trades === true) {
     out.push({
-      text: 'It walks between the two cities of its route and lays road on every land hex it crosses.',
+      text: 'Walks between the two cities of its route and lays road on every land hex it crosses.',
     });
     out.push({
-      text: 'An enemy melee unit that attacks it plunders it: the caravan is destroyed, its route ends, and the attacker takes the cargo.',
+      text: 'Is plundered when an enemy melee unit attacks it: the caravan is destroyed, its route ends, and the attacker takes the cargo.',
     });
   }
-  if (def.ignoresTerrainCost === true) {
-    out.push({ text: 'Rough ground does not slow it: every hex it can enter costs the same.' });
-  }
-  if (def.ignoresHillCost === true) {
-    out.push({ text: 'A hill costs it no more movement than flat land. Forest and jungle still slow it.' });
-  }
+  // The user's own wording for the Scout's line, 2026-11-21.
+  if (def.ignoresTerrainCost === true) out.push({ text: 'Ignores terrain costs to movement.' });
+  if (def.ignoresHillCost === true) out.push({ text: 'Ignores the movement cost of hills.' });
   // The ship's own clauses. Each is asked of a marker on the row (`hitAndRun`,
   // `blockades`), never of a class name. `bombard` prints nothing here: its
   // bonus is a combat line, which `describeUnitRow` words.
   if (def.hitAndRun === true) {
     const naval = RULES.naval;
     out.push({
-      text: `An attack costs it ${figure(naval.hitAndRunCost)} movement and does not end its turn. It attacks one time a turn.`,
+      text: `Keeps its movement after an attack, less ${figure(naval.hitAndRunCost)}. Attacks one time a turn.`,
     });
     out.push({
-      text: `A land unit that shares its hex at sea defends with this ship’s strength if that is higher, and does not lose the ${figure(naval.atSeaPenalty)} strength a unit at sea loses.`,
+      text: `Escorts a land unit on its hex at sea: that unit defends with this ship’s strength if it is higher, and does not lose the ${figure(naval.atSeaPenalty)} strength a unit at sea loses.`,
     });
   }
   if (def.blockades === true) {
     const naval = RULES.naval;
     out.push({
-      text: `${signedFigure(naval.lineBonusPerHull)} combat strength for each friendly ship of its kind beside it, to at most ${signedFigure(naval.lineBonusMax)}.`,
+      text: `Gains ${signedFigure(naval.lineBonusPerHull)} combat strength for each friendly ship of its kind beside it, to at most ${signedFigure(naval.lineBonusMax)}.`,
     });
     out.push({
-      text: 'Beside an enemy harbour it blockades the city: the water around the ship is closed for a siege, and the trade routes of the city pay nothing.',
+      text: 'Blockades an enemy harbour beside it: the water around the ship is closed for a siege, and the trade routes of the city pay nothing.',
     });
   }
   if (def.mirrors !== undefined) {
     out.push({
-      text: `It is as strong as the best ${filterWords({ modelClass: def.mirrors.modelClass }).replace(/s$/, '')} your empire can build on the day you buy it, and it costs ${figure(def.mirrors.costPercent)}% of the production cost of that unit.`,
+      text: `Takes the strength of the best ${filterWords({ modelClass: def.mirrors.modelClass }).replace(/s$/, '')} your empire can build on the day you buy it. Costs ${figure(def.mirrors.costPercent)}% of the production cost of that unit.`,
     });
   }
   if (def.minCityPop > 0) {
-    out.push({
-      text: `Only a city of ${figure(def.minCityPop)} or more citizens can build one.`,
-    });
+    out.push({ text: `Needs a city of ${figure(def.minCityPop)} or more citizens to build it.` });
   }
   return out;
 }
@@ -1138,9 +1139,9 @@ function unitPurchaseWords(def: UnitDef): string | null {
   const rise =
     spec.increment === undefined || spec.increment === 0
       ? ''
-      : ` Each one you buy raises the price of the next by ${figure(spec.increment)}.`;
+      : ` Each purchase raises the price of the next by ${figure(spec.increment)}.`;
   return spec.exclusive === true
-    ? `Bought with ${spec.currency} in a city${needs}. It cannot be built.${rise}`
+    ? `Bought with ${spec.currency} in a city${needs}. Cannot be built.${rise}`
     : `Can also be bought with ${spec.currency} in a city${needs}.${rise}`;
 }
 
@@ -1404,12 +1405,12 @@ function buildingMarkers(id: BuildingId): CompendiumClause[] {
   // means this class, and the limit is the rule a player plans around. The
   // class's sentence is the describers' own and links to the Concepts page
   // (the user, 2026-11-19).
-  if (def.empireBuilding === true) out.push({ text: EMPIRE_BUILDING_WORDS.entry, note: true });
-  if (def.oncePerEmpire === true) {
-    out.push({
-      text: 'Your empire can have only one of these, unless a card lets it have more.',
-      note: true,
-    });
+  // One bullet (the user, 2026-11-21): the limit, then the loss. A row with the
+  // limit and without the class says the limit alone.
+  if (def.empireBuilding === true) {
+    out.push({ text: EMPIRE_BUILDING_WORDS.entry, note: true });
+  } else if (def.oncePerEmpire === true) {
+    out.push({ text: 'Your empire can build only one.', note: true });
   }
   if (def.publicWork === true) {
     out.push({ text: 'A public work: a card that counts public works counts this.', note: true });
@@ -1645,7 +1646,7 @@ function improvementMarkers(id: ImprovementId): CompendiumClause[] {
   }
   if (def.tended === true) {
     out.push({
-      text: 'A tended work: cards count its hex as wild land. It cannot be pillaged, and it gives access to no resource.',
+      text: 'A unique improvement: cards count its hex as wild land. It cannot be pillaged, and it gives access to no resource.',
     });
   }
   // **A great person's work** (`isGreatPersonWork`): the five works a great
@@ -1791,8 +1792,12 @@ function resourceEntry(id: ResourceId): CompendiumEntry {
     });
   }
   if (def.kind === 'strategic') {
+    // The trade sentence is asked of the simulation's own rule
+    // (`isLendableResource`, `deals.ts`), so it leaves this page on the day a
+    // strategic resource can be traded.
+    const trade = isLendableResource(id) ? '' : ' A strategic resource cannot be traded away.';
     clauses.push({
-      text: 'A unit that needs this holds one copy for as long as it lives. A strategic resource cannot be traded away.',
+      text: `A unit that needs this holds one copy for as long as it lives.${trade}`,
       note: true,
     });
   }
@@ -1811,7 +1816,24 @@ function resourceEntry(id: ResourceId): CompendiumEntry {
 // --- technologies -----------------------------------------------------------
 
 /** One gift of a technology, in the words the star chart's own card uses. */
-function giftWords(gift: TechGift): string {
+function giftWords(gift: TechGift, linked = false): string {
+  // On a charter technology's page each thing it opens is a link to that
+  // thing's own page (the user, 2026-11-21: "this should link to the qanat").
+  // The tree's own technologies keep the plain name, which is the star chart's
+  // line.
+  if (linked) {
+    const mark =
+      gift.kind === 'unit'
+        ? unitRef(gift.id)
+        : gift.kind === 'building'
+          ? buildingRef(gift.id)
+          : gift.kind === 'improvement'
+            ? improvementRef(gift.id)
+            : gift.kind === 'ability' && (RITE_IDS as readonly string[]).includes(gift.id)
+              ? ref('rite', gift.id, gift.name)
+              : null;
+    if (mark !== null) return giftWords({ ...gift, name: mark });
+  }
   if (gift.kind === 'unit') {
     // Priced out of the bank that actually buys one. A row that names its own
     // bank exclusively is never built (`buildError`), and its `cost` field is a
@@ -1984,7 +2006,7 @@ function charterTechEntry(id: TechId): CompendiumEntry {
     },
     ...techGifts(id)
       .filter((gift) => gift.kind !== 'techEffect')
-      .map((gift) => ({ text: giftWords(gift) })),
+      .map((gift) => ({ text: giftWords(gift, true) })),
     // Copied into the book's own clauses, which `entryNode` prints through
     // `setDescriptorText`, as `cardClauses` does for a card.
     ...techRuleLines(id).map((entry) => ({ text: entry.text, deferred: entry.deferred })),
@@ -2280,7 +2302,7 @@ function orderEntry(id: OrderId): CompendiumEntry {
  */
 function doctrineNeeds(def: DoctrineDef): string {
   const needs: string[] = [];
-  if (def.needsTendedWork === true) needs.push('a charter that opens a tended work');
+  if (def.needsTendedWork === true) needs.push('a charter that opens a unique improvement');
   if (def.needsReligion === true) needs.push('a religion whose holy city you hold');
   return needs.join(' · ');
 }
@@ -2736,7 +2758,7 @@ function leaderEntry(id: LeaderId): CompendiumEntry {
     // shelf is the one surface where a figure's pair cannot be *shown* — an
     // entry is prose and a keyword ref, not a swatch — so it is named instead,
     // off the row's own `colors.names`, which is the doc table's first cell.
-    { text: 'From the first turn:', note: true },
+    { text: `${LEADER_STEP_WORDS.rules}:`, note: true },
   ];
   for (const ability of def.abilities) {
     clauses.push({ text: `${ability.name}:`, note: true });

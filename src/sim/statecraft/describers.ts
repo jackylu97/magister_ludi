@@ -1165,8 +1165,11 @@ export const EMPIRE_BUILDING_WORDS = {
   eyebrow: 'empire building',
   /** The keyword the label links to, on a surface that can follow a link. */
   keyword: 'concept:empireBuilding',
-  /** The class's sentence on the building's own page. The limit is its own sentence. */
-  entry: '[[concept:empireBuilding|An empire building]]. If you lose the town that holds it, you lose the building too.',
+  /**
+   * The class's sentences on the building's own page, as one bullet: the limit
+   * first, then the loss (the user's order, 2026-11-21).
+   */
+  entry: '[[concept:empireBuilding|An empire building]]: your empire can build only one. If you lose the city that holds it, you lose the building too.',
   /** An In play piece's line: which kind of thing it is, and where it stands. */
   inTown: (town: string): string => `Empire building, with ${town}`,
 } as const;
@@ -1815,7 +1818,22 @@ export function describeUnitRow(type: UnitTypeId): CardClause[] {
     const tail = `${when}${reach}`.trim();
     out.push({ text: `${signed(line.amount)} combat strength${tail === '' ? '' : ` ${tail}`}` });
   }
-  out.push(...describeEffects(def.effects ?? []));
+  // **The unit's own name is taken out of its own lines** (the user,
+  // 2026-11-21: "Capitalize 'for'?", and "could we make the voice more
+  // direct"). A card that speaks of a kind of unit must name it: "for
+  // mandekalus alone, pillaging pays +100%". On the unit's own page the reader
+  // knows which unit it is, so the page says "Pillaging pays +100%". A line
+  // that starts with the name keeps it ("Janissaries you gain start as
+  // Veterans"), because the sentence has no other subject. Every line starts
+  // with a capital.
+  const own = unitPluralWords(def.name);
+  for (const clause of describeEffects(def.effects ?? [])) {
+    const text = clause.text
+      .replace(`for ${own} alone, `, '')
+      .replace(` for ${own}`, '')
+      .replace(`${own}: `, '');
+    out.push({ ...clause, text: text.charAt(0).toUpperCase() + text.slice(1) });
+  }
   return out;
 }
 

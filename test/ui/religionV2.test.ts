@@ -926,7 +926,10 @@ describe('the Compendium’s religion rows', () => {
   });
 
   it('says what a prophet’s charges do, and never that they dig', () => {
-    const clauses = entry('unit:prophet')!.clauses.map((clause) => clause.text);
+    // Each act is a link to its page since the user's comment of 2026-11-21,
+    // so the words are read with the marks taken out.
+    const clauses = entry('unit:prophet')!.clauses.map((clause) => clause.text.replace(/\[\[[^|\]]*\|([^\]]*)\]\]/g, '$1'));
+    expect(clauses).toContain('See Faith and religion.');
     expect(clauses.some((text) => text.includes('holy site'))).toBe(true);
     expect(clauses.some((text) => text.includes('found a religion'))).toBe(true);
     // Since the Compendium pass of 2026-11-21 the page prints each act with its

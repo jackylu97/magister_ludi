@@ -457,7 +457,10 @@ export const LEADER_STEP_WORDS = {
   title: 'Choose your leader',
   decks: 'Two decks',
   everyDeck: 'Every deck',
-  rules: 'Two rules, from the first turn',
+  // The user, 2026-11-21: "we don't need 'from the first turn' ... Maybe just
+  // write 'leader abilities' instead". The Compendium's leader page reads this
+  // word too.
+  rules: 'Leader abilities',
   raise: 'Only this leader may raise',
   cities: 'First towns',
   noLeader: 'No leader',

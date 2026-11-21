@@ -280,6 +280,34 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'Details: each god costs more faith than the last, and so do each prophet and each apostle, each kind counted separately; an inquisitor always costs the same. Each rite your towns start makes the next rite cost more, and a rite your prophet says over every city counts once for each city. The two rites that act at once, the Votive Offering and the Restoring of the Host, do not raise the price. An apostle and an inquisitor spend one charge on each of their acts, so an apostle speaks or heals or leaves its relic twice and an inquisitor purges once. A card can also let an apostle raise a further holy site, at a prophet\'s price. The holy site is the only thing about a religion an enemy can take away, by capturing the hex or pillaging it. The pantheon is never redrafted — it is what the religion was founded out of. A captured city keeps its followers, exactly as it keeps its buildings. Your religion, its beliefs, what its holy city is paid, and every city in the world that follows are all on the Faith screen; a city\'s own congregations are on its city screen, and hovering one shows what is pressing on it and from where.',
     ],
   ),
+  // The pass of 2026-11-21: the Prophet's and the Apostle's entries link each
+  // act to a page (the user: "could we add compendium links for 'founding a
+  // religion' 'rites' 'proclaim' and 'holy sites'"). These two acts had no
+  // page. The first paragraph of each is what the keyword's hover card shows.
+  written(
+    'concept',
+    'foundingReligion',
+    'Founding a religion',
+    'an act of a prophet',
+    '🕯',
+    [
+      'A prophet founds a religion on the hex where it stands. It builds a [[improvement:holySite|holy site]] there, and the religion is made from the gods your pantheon holds.',
+      'Founding spends every charge of the prophet. You then draft beliefs for the religion. A world holds only a limited number of religions, so an empire that waits can find none left to found.',
+      'See [[concept:religion|Faith and religion]] for how a religion spreads and what its beliefs pay.',
+    ],
+  ),
+  written(
+    'concept',
+    'proclamation',
+    'Proclamation',
+    'an act of a prophet or an apostle',
+    '🕯',
+    [
+      'A proclamation is a strong pulse of conversion around the hex where a prophet or an apostle stands. It converts at once and leaves nothing on the map.',
+      'A proclamation costs a prophet fewer charges than founding a religion. The proclamation of an apostle is weaker and reaches less far.',
+      'See [[concept:religion|Faith and religion]] for how conversion works.',
+    ],
+  ),
   written(
     'concept',
     'trade',

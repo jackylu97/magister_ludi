@@ -68,6 +68,7 @@ import {
   beadQuestDef,
 } from '../../src/sim/beadData';
 import { UNIT_TYPE_IDS, requiredResourcesOf, unitDef } from '../../src/sim/unitData';
+import { isLendableResource } from '../../src/sim/deals';
 import {
   DEFAULT_ENTRY,
   OPENING_WORDS,
@@ -937,7 +938,8 @@ describe('never hand-written prose about a number', () => {
       const entry = everyEntry().find((row) => row.id === `building:${id}`);
       if (entry === undefined) continue; // the Opus and the great works shelve elsewhere
       const prose = entry.clauses.map((clause) => clause.text).join(' ');
-      expect(prose, id).toContain('only one of these');
+      // One bullet since the user's comment of 2026-11-21: the limit, then the loss.
+      expect(prose, id).toContain('can build only one');
     }
   });
 
@@ -1786,7 +1788,9 @@ describe('a resource that is spent', () => {
       expect(
         page.clauses.some((clause) => /cannot be traded away/.test(clause.text)),
         id,
-      ).toBe(strategic);
+        // Asked of the simulation's own rule, so the sentence leaves the page
+        // on the day a strategic resource can be traded.
+      ).toBe(strategic && !isLendableResource(id as never));
     }
   });
 
