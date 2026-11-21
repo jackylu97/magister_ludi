@@ -769,6 +769,30 @@
   height: 24px;
 }
 
+/* A belief's window on its tablet: the Faith sheet's arched window
+   (`beliefWindowNode`, shaped by `.faith-window` in `style.css`), square, so a
+   1:1 vignette shows whole but for the two top corners. 94 px wide keeps the
+   tablet (156 px) a little shorter than a wonder's plate (158 px), so a belief
+   on top of its stack is never taller than a wonder beside it. A belief with
+   no vignette holds its drawn mark in a window of the same size, so every
+   tablet is the same height. The window wears the piece's ink. */
+.ip-belief > .faith-window {
+  align-self: center;
+  width: 94px;
+  margin: 0;
+  border-color: var(--k);
+}
+
+.ip-belief > .faith-window[data-picture='mark'] {
+  aspect-ratio: 1;
+}
+
+.ip-belief .faith-window-mark {
+  width: 34px;
+  height: 34px;
+  background-color: var(--k);
+}
+
 .ip-belief .ip-name {
   margin-top: 5px;
 }

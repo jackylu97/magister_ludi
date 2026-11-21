@@ -31,6 +31,7 @@
 import { type InPlayMarkId, inPlayMarkDataUri } from '../art/inPlayMarks';
 import type { BuildingId } from '../sim/buildingData';
 import { describeBuildingRow, describeCard } from '../sim/statecraft';
+import { beliefWindowNode } from './beliefPictures';
 import { element } from './dom';
 import type { InPlayEntry, InPlayForm } from './inPlayPieces';
 import { IN_PLAY_WORDS } from './inPlayPieces';
@@ -238,12 +239,17 @@ export function wonderPlateNode(entry: InPlayEntry, plate: readonly PlateFigure[
   return form;
 }
 
-/** **A belief's tablet**: an arched tablet, the flame in a ring, the name, its pantheon or faith and its figure. */
+/**
+ * **A belief's tablet**: an arched tablet, the belief's arched window, the
+ * name, its pantheon or faith and its figure. The window is the one the Faith
+ * sheet's tablets and the belief offer draw (`beliefWindowNode`): the vignette
+ * when the belief has one, and the drawn mark otherwise. The holy city's share
+ * is not a belief, so its window holds the holy city's mark.
+ */
 export function beliefTabletNode(entry: InPlayEntry, plate: readonly PlateFigure[] | undefined, options: FormOptions & { text?: boolean } = {}): HTMLElement {
   const form = dress(element('div', 'ip-belief'), entry, options);
-  const ring = element('span', 'ip-ring');
-  ring.append(inPlayMarkNode(inPlayMarkDataUri(entry.form === 'holyCity' ? 'holyCity' : 'belief')));
-  form.append(ring, element('b', 'ip-name', entry.name));
+  const holyCity = entry.form === 'holyCity';
+  form.append(beliefWindowNode(holyCity ? null : entry.card, holyCity ? 'holyCity' : 'belief'), element('b', 'ip-name', entry.name));
   if (options.text === true) {
     const text = pieceTextNode(entry);
     if (text !== null) form.append(text);

@@ -100,6 +100,19 @@ describe('the forms', () => {
     expect(braceBody(FORMS, 'export function wonderWindowNode(id: BuildingId, className = \'ip-window\'): HTMLElement')).toContain('wonderPicture(id)');
   });
 
+  it('shows a belief’s picture in the window its Faith tablet and its offer card show', () => {
+    // The user, 2026-11-21: the belief art "should also show in the 'in play'
+    // tab". The tablet asks the one window (`beliefWindowNode`), and the ring
+    // it wore before is gone from it.
+    const tablet = between(FORMS, 'export function beliefTabletNode(', 'export function legacyMedalNode(');
+    expect(tablet).toContain('beliefWindowNode(');
+    expect(tablet).not.toContain("'ip-ring'");
+    // The window is sized by the In play stylesheet and wears the piece's ink.
+    const css = uiSource('inPlayScreen.css');
+    expect(css).toContain('.ip-belief > .faith-window {');
+    expect(braceBody(css, '.ip-belief > .faith-window {')).toContain('border-color: var(--k);');
+  });
+
   it('joins the flair cabinet', () => {
     const cabinet = uiSource('main.ts');
     expect(cabinet).toBeDefined();

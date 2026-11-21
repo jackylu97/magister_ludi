@@ -271,7 +271,7 @@ describe('the soft pause lives on the End Turn button (user, 2026-08-30)', () =>
  * flag in `offerCard.ts`: a card with a plate is a card from a deck. So what is
  * pinned here is that each of the four decks hands one over — an Order, a
  * charter and a Doctrine a drawing, a great person the family's drawing, a
- * belief its axis glyph — and that the flag reads both kinds. A class that goes
+ * belief its picture window — and that the flag reads both kinds. A class that goes
  * back to dealing a plain face is a draft that no longer turns over, which is
  * exactly the sort of thing that is silently wrong on one screen only.
  */
@@ -282,15 +282,40 @@ describe('every draft deals a tarot face', () => {
     const flag = OFFER_CARD.slice(at, OFFER_CARD.indexOf(';', at));
     expect(flag).toContain('option.emblem !== undefined');
     expect(flag).toContain('option.emblemGlyph !== undefined');
+    // The belief offer's picture window is a plate too, so a belief hand is
+    // still dealt.
+    expect(flag).toContain('option.picture !== undefined');
     // A drawn face (Quiet Table, build stage 2) is a third dressing, and is
     // dealt too: the back rides both flags.
     expect(OFFER_CARD).toContain('const dressed = offer.options.some((option) => option.dress !== undefined);');
     expect(OFFER_CARD).toContain('const dealing = (tarot || dressed) && wantsMotion();');
   });
 
+  it('narrows every picture window in a hand that would not fit the screen', () => {
+    // A window spans its card's width, so a belief hand can be taller than
+    // the spread planned. The fit takes the overflow off every window at once.
+    const at = OFFER_CARD.indexOf('function fitPictures(): void {');
+    expect(at).toBeGreaterThan(-1);
+    const fit = OFFER_CARD.slice(at, OFFER_CARD.indexOf('\n  }\n', at));
+    expect(fit).toContain('sheet.scrollHeight - sheet.clientHeight');
+    expect(fit).toContain("list.style.setProperty('--offer-picture'");
+    // Asked again on a resize, and once the fonts have arrived.
+    const resize = OFFER_CARD.slice(
+      OFFER_CARD.indexOf('function onResize(): void {'),
+      OFFER_CARD.indexOf('function fitPictures(): void {'),
+    );
+    expect(resize).toContain('fitPictures();');
+    expect(OFFER_CARD).toContain('if (drawnFaces.length > 0 || pictured) {');
+    // The stylesheet reads the width the fit sets.
+    expect(STYLE).toContain('width: var(--offer-picture, 100%);');
+  });
+
   it('hands the votive deck a plate of its own, and never a Statecraft mark', () => {
     const offer = offerSource('showReligionOffer');
-    expect(offer).toContain('emblemGlyph: AXIS_MARK[def.axis].glyph');
+    // The plate is the belief's arched window (the user, 2026-11-21): its
+    // vignette, or its drawn mark. It replaced the axis glyph.
+    expect(offer).toContain('picture: () => beliefWindowNode(id),');
+    expect(offer).not.toContain('emblemGlyph:');
     // A belief joins no Statecraft line, so it may not wear one of that deck's
     // seven drawings — the whole reason the glyph plate exists.
     expect(offer).not.toContain('cardLineMarkUrl(');

@@ -11565,6 +11565,20 @@ p.city-trade-link {
   color: var(--line-ink, var(--ink));
 }
 
+/* **A picture window** where the emblem goes (`OfferOption.picture`; the
+   belief offer passes the belief's arched window). It spans the card's width,
+   so the picture is the first thing a player sees. When the hand would not fit
+   on the screen, `fitPictures` in `offerCard.ts` sets `--offer-picture` on the
+   hand, and every window in it is narrower by the same amount, so the cards
+   still read alike. */
+.offer-picture {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  width: var(--offer-picture, 100%);
+  margin-top: 2px;
+}
+
 /* **A government's chairs** (batch C2b), where its emblem stood: one small
    chair for each chair it lays out, in its type's ink and ground (`data-ink`,
    the card faces' four tokens), grouped by type, and the mix in words under
@@ -14815,6 +14829,24 @@ button.faith-rite-chip:hover:not(.is-on) {
   background-color: var(--line-ink, var(--y-faith));
   -webkit-mask: var(--faith-mark) center / contain no-repeat;
   mask: var(--faith-mark) center / contain no-repeat;
+}
+
+/* The same window on a card of the belief offer (`beliefWindowNode` inside
+   `.offer-picture`): it fills the frame the offer card sizes, in the card's
+   axis ink. A window with the drawn mark is square there too, and its mark
+   grows with it, so the names in a hand stand on one line. */
+.offer-picture > .faith-window {
+  margin: 0;
+}
+
+.offer-picture > .faith-window[data-picture='mark'] {
+  aspect-ratio: 1;
+}
+
+.offer-picture .faith-window-mark {
+  width: 42%;
+  height: auto;
+  aspect-ratio: 1;
 }
 
 /* An empty place: a dashed tablet. */
