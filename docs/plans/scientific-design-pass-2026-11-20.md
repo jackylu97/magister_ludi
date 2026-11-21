@@ -1940,3 +1940,29 @@ Questions: Q1 "yes" (the technology lead stays a quantity cards read). Q2
 "yes" (a card may complete a technology). Q3 "sure" (the Opus cards move to
 Tier III; Tier IV may hold five). Q4 "two tiers sure, charter technology
 should cost the same, not half" (see 53 and 54). Q5 "they're fine as is."
+
+## The user's rulings on round two (2026-11-21, comments on the page)
+
+The user: "commented on the scientific deck". A row with no comment is
+approved.
+
+| # | Card | The user's words | Result |
+|---|---|---|---|
+| 69 | The Herbalists' Charter | "make it shared"; and on r2-2: "lets make it shared, i kind of dont care if scientific has fewer solo cards, i only care about total common/uncommon/rare per deck" | **Shared with Expansionist.** The recommendation was not adopted. **A principle for every deck:** the user counts commons, uncommons and rares a deck, not a deck's own cards against its shared ones. |
+| 70 | The Corps of Works | "interesting, but probably not widely applicable enough, cut" | Cut. |
+| 71 | The Surgeons' Charter | "this is way too strong i think. How about: your units gain +10 health after killing a unit. needs a new name" | Rework: your units gain +10 health after they kill a unit. A new name. |
+| 72 | The Flying Columns | "interesting, not sure if this would be strong enough to take over other options. lets cut for now" | Cut. |
+| 73 | The Surveyors' Charter, the qanat | "add: give fresh water to tiles within 1 hex."; on r2-4: "cool" | Approved, and the qanat gives fresh water to the hexes within one hex. |
+| 74 | The Glasshouse | "great"; on the name: "glasshouse"; on r2-5: "great" | Approved. The name is the Glasshouse. |
+| 75 | The Archivists' Charter | "ok sure" | Approved. |
+| 76 | The Invitations | "Ok great" | Approved as written in 76 (the first time you complete each empire building). |
+| 77 | The Royal Academies | "keep as is, i like the combo with second copies" | **Not adopted.** It keeps today's text and counts copies. |
+| r2-q3 | Kinds or copies | "copies is fine, i do want a few broken combos" and "i will adjust if it feels too abusable" | Copies. **A principle:** the user wants a few broken combinations, and will tune them after play. |
+| 78 | The Ordinance Companies | "Add: gain a siege unit as well" | Entering a new age grants a melee unit, a ranged unit and a siege unit in your capital. |
+| 79 | The Closed Book as a charter | "Sure. lets make it rare"; r2-q2: "Sure" | A Tier III charter, rare. |
+| 80 | The Smelters' Charter | "sure" | Approved. |
+| 81 | The Observers' Charter, the Night Watch | "the malice is too high. How about for ten turns: city gains science equal to twice its population. shared with devotion"; r2-q4 (a charter may open a rite): "yes" | The Night Watch: for ten turns the city gains science equal to twice its population, with no drawback. Shared with Devotion. |
+| 82 | The Blessed Forges at Tier I | "sure" | **Tier I, kept.** This settles the conflict with the Devotion pass, where the user had written "great" on the cut: the later, specific answer stands. |
+
+The user will comment on unit abilities (r2-3) and on the empire building
+(r2-6) "below", which the rows above carry.
