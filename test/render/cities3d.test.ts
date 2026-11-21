@@ -514,7 +514,7 @@ describe('the city fingerprint carries every sculpt fact', () => {
       shrine: false,
       temple: true,
       capital: true,
-      wonders: 0,
+      hasWonder: false,
       religion: null,
       puppet: false,
       unrest: false,

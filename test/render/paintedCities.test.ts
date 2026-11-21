@@ -174,9 +174,12 @@ describe('painted cities in the live game', () => {
     const f = fixture(); f.city.population = 3; f.state.players[0]!.techsResearched.push('mathematics'); f.build();
     const count = (kind: string) => f.layer.placements.filter(placement => placement.kind === kind).length;
     expect(count('shrine')).toBe(0); expect(count('temple')).toBe(0); expect(count('wonder')).toBe(0);
-    f.city.buildings.push('shrine', 'temple', 'pyramids', 'stonehenge'); f.build();
+    f.city.buildings.push('shrine', 'temple', 'pyramids'); f.build();
+    const once = signCities(f.state);
+    f.city.buildings.push('stonehenge'); f.build();
+    expect(signCities(f.state)).toBe(once);
     expect(count('house')).toBe(3);
-    expect(count('shrine')).toBe(1); expect(count('temple')).toBe(1); expect(count('wonder')).toBe(2);
+    expect(count('shrine')).toBe(1); expect(count('temple')).toBe(1); expect(count('wonder')).toBe(1);
   });
 
   it('keeps every town mesh and flag out of remembered and hidden cells', () => {

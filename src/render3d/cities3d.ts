@@ -193,18 +193,8 @@ export interface CityLook {
   temple: boolean;
   /** The seat of government. See `capitalCityOf` — the sim's own rule, asked. */
   capital: boolean;
-  /**
-   * How many **wonders** stand in this town — the world's one permitted
-   * spectacle (`docs/art-pass.md`, W3), one outsized sculpt each.
-   *
-   * A count rather than a flag, and rather than a list of which ones: a town may
-   * hold two, and every wonder is drawn with the same generic marvel until the
-   * ratified rows arrive with sculpts of their own (see `cityWonder`). The day
-   * they do, this becomes the list and the fingerprint folds the ids — which is
-   * a change to *this* type and to nothing else, which is the whole point of
-   * `CityLook`.
-   */
-  wonders: number;
+  /** The city gets one landmark as long as it holds any wonder. */
+  hasWonder: boolean;
   /**
    * The faith most of this town's citizens follow, or `null` for a town nobody
    * has converted.
@@ -294,7 +284,7 @@ export function cityLook(
     // register records who *built* a wonder and never moves, while the marvel
     // stands where the stones are. The sim takes the same reading of what a
     // wonder pays (`liveEffects`).
-    wonders: city.buildings.filter(isWonder).length,
+    hasWonder: city.buildings.some(isWonder),
     // What this town believes, which changes the *fly* of its banner. The tide
     // moves it (`spreadReligion`), a conquest can move it, and a temple can
     // hold it — none of which touch any other member here, which is exactly why
@@ -329,14 +319,8 @@ type CityWork = 'palace' | 'temple' | 'shrine' | 'wonder';
 function cityWorks(look: CityLook): CityWork[] {
   const works: CityWork[] = [];
   if (look.capital && look.tier >= CITY.palace.fromTier) works.push('palace');
-  // Beside the palace and ahead of the temple, so the two biggest things a town
-  // can hold stand together and a wonder is never pushed round the back by a
-  // shrine. One slot per wonder: the ring grows to fit them, exactly as it grows
-  // for a temple, so a town that finished a marvel never appears to have lost a
-  // quarter of its houses.
-  for (let i = 0; i < look.wonders && look.tier >= CITY.wonder.fromTier; i++) {
-    works.push('wonder');
-  }
+  // Reserve the landmark's slot before placing the smaller buildings.
+  if (look.hasWonder && look.tier >= CITY.wonder.fromTier) works.push('wonder');
   if (look.temple && look.tier >= CITY.temple.fromTier) works.push('temple');
   if (look.shrine && look.tier >= CITY.shrine.fromTier) works.push('shrine');
   return works;
@@ -1376,13 +1360,8 @@ export function signCities(state: GameState): number {
       (look.shrine ? 1 << 5 : 0) |
       (look.temple ? 1 << 6 : 0) |
       (look.capital ? 1 << 7 : 0) |
-      // Above the wonder count rather than beside the other flags, because that
-      // count takes everything from bit 8 up: a flag folded into it would make
-      // an annexation look like a marvel.
       (look.puppet ? 1 << 30 : 0) |
-      // A *count*, not a bit, and it takes the high byte: a town's second wonder
-      // is a second sculpt on the ring, so the hash has to move for it.
-      (look.wonders << 8);
+      (look.hasWonder ? 1 << 8 : 0);
     h = Math.imul(h ^ bits, 16777619);
     // The faith on the fly. Folded as its own word rather than packed with the
     // sculpt bits above, because it is not a fact about the *sculpt* at all —
@@ -1390,9 +1369,7 @@ export function signCities(state: GameState): number {
     // that grows, so it has no bit budget. `+1` so "no religion" and "the first
     // religion founded" are different numbers.
     h = Math.imul(h ^ ((look.religion ?? -1) + 1), 16777619);
-    // Whether the town is in unrest (batch WC1). Its own word rather than a
-    // sculpt bit: the packed integer above is full from bit 8 up with the wonder
-    // count, and the puppet flag already sits at its top.
+    // Unrest changes the city's appearance when it starts or ends.
     h = Math.imul(h ^ (look.unrest ? 1 : 0), 16777619);
   }
   return h >>> 0;
