@@ -59,6 +59,15 @@ AGES = {
 }
 # The two paintings of the ending page: the local player wins, or another seat does.
 ENDINGS = {'ending_win': 'win', 'ending_loss_alt': 'loss'}
+# One portrait a leader, shown on the setup's leader card and in diplomacy.
+# Where the user made two versions, the table names the one that was chosen.
+LEADERS = {
+    'alexander': 'alexanderTheGreat', 'battuta': 'ibnBattutaOfTangier', 'cleopatra': 'cleopatra',
+    'cyrus': 'cyrusTheGreat', 'genghis': 'genghisKhan', 'jayavarman': 'jayavarmanVII',
+    'justinian': 'justinian', 'medici': 'lorenzoDeMedici', 'mehmed': 'mehmedTheConqueror',
+    'musa': 'mansaMusa', 'nezahualcoyotl': 'nezahualcoyotl', 'pachacuti': 'pachacuti',
+    'qin': 'qinShiHuang', 'rashid': 'harunAlRashid', 'sejong': 'sejongTheGreat',
+}
 # One square picture a belief, shown in a round window.
 BELIEFS = {
     'harvest': 'goddessOfTheHarvest', 'hearth': 'keeperOfTheHearth', 'star_readers': 'starReaders',
@@ -76,11 +85,17 @@ KINDS = {
     'ages': {'names': AGES, 'ratio': (16, 9), 'width': 1600},
     'wonders': {'names': WONDERS, 'ratio': (16, 9), 'width': 1600},
     'people': {'names': PEOPLE, 'ratio': (5, 6), 'width': 720},
+    'leaders': {'names': LEADERS, 'ratio': (3, 4), 'width': 720},
 }
 # Borders the automatic trim cannot see (a pale strip on two sides only):
 # pixels to cut from the left, top, right and bottom of the master.
 INSETS = {
     'ages/age4form_alt': (38, 0, 36, 0),
+    # Leader masters with a second frame inside the paper mount, or a coloured edge.
+    'leaders/alexander': (54, 54, 54, 54),
+    'leaders/musa': (42, 42, 42, 42),
+    'leaders/mehmed': (52, 60, 52, 52),
+    'leaders/pachacuti': (22, 14, 22, 14),
 }
 DARK = 26        # a black bar is a line whose brightest tenth is darker than this (0 to 255)
 MOUNT = 46       # a mount line is one whose pixels sit this close to the mount's colour

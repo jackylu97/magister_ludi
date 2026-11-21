@@ -260,3 +260,21 @@ never offered, so they need no painting.
 | `theEstates.jpg` | The Estates |
 | `theSultanate.jpg` | The Sultanate |
 | `theCuria.jpg` | The Curia |
+
+## How a leader's portrait gets into the game
+
+The setup's leader card and the diplomacy screen show a leader's portrait in a
+3:4 window. Fifteen leaders have one (2026-11-21). A leader with none shows the
+seat's charge on its ink.
+
+1. Put the full-size picture in `art-masters/leaders/` under any name. Make it
+   3:4. The cut keeps the top of the picture, where the head is.
+2. Add its name and the leader's id to the `LEADERS` table in
+   `scripts/splashArt.py`. The ids are the keys of `data/leaders.json`. Where
+   two versions exist, the table names the one in use.
+3. Run `python3 scripts/splashArt.py leaders` from the repo root. It trims a
+   paper mount, and writes `leaders/<leader id>.jpg` at 720 by 960. A frame
+   that the trim cannot see goes in the `INSETS` table.
+4. Add the id to the list in `src/ui/leaderPortraits.ts`. A test
+   (`test/ui/leaderPortraits.test.ts`) fails if the list and the folder
+   disagree.
