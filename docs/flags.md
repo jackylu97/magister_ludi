@@ -3337,3 +3337,8 @@ The user's comments on the Compendium pass's page:
   currently says +3 fortify, could we add a short line that says +X HP for how
   much it will heal that turn?" The Claude session builds this (a unit order
   and the unit panel).
+  - Built (schema 253), not yet play-tested. The order is `fortify` with
+    `untilHealed: true`, key `U`. The unit waits in its trench without asking
+    for orders, and wakes at full health, with an enemy in sight, or when
+    attacked. A woken unit keeps its trench and bonus and asks for orders
+    again. The reference is `docs/units.md`, "Fortify until healed".

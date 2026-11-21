@@ -618,8 +618,14 @@ import {
  * −6 and a land siege engine a flat +6, not −50% and +50%. A ship that attacks
  * an embarked unit takes no counter-blow, and no die is thrown for it. No field
  * joins or leaves the state. A v251 log replays to different fights.
+ *
+ * v253 adds the "fortify until healed" order (`docs/flags.md`, the rulings of
+ * 2026-11-21). The `fortify` command takes an optional `untilHealed: true`, and
+ * `Unit.untilHealed` joins the state. A v252 log has neither, so it replays to
+ * the same board; the version moves because a v253 log does not load in an
+ * older build. Nothing is migrated.
  */
-export const SCHEMA_VERSION = 252;
+export const SCHEMA_VERSION = 253;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2187,6 +2193,37 @@ export interface Unit {
    * a worker left asleep on the frontier is not a worker the player forgot.
    */
   sleeping?: boolean;
+  /**
+   * The "fortify until healed" order, or the key is **absent** when the unit
+   * has no such order. It is only ever present beside `fortifiedTurns`.
+   *
+   *   · `'waiting'`: the unit is dug in and does not ask for orders while it
+   *     heals. The `fortify` command writes it (`untilHealed: true`).
+   *   · `'woken'`: the wait has ended. The unit is still dug in and keeps its
+   *     fortify bonus, but it asks for orders again (`unitAwaitsOrders`) until
+   *     it is given one.
+   *
+   * Why a field of its own and not a value of `sleeping`: the order has a
+   * second state, dug in and awake, and a field named `sleeping` cannot say
+   * that a unit is awake. A plain fortified unit (`fortifiedTurns` alone) never
+   * asks for orders, so the woken state needs a mark of its own.
+   *
+   * What changes it:
+   *
+   *   · `wakeSleepers` (`turn.ts`) moves `'waiting'` to `'woken'` when the unit
+   *     is at full health, or when a foreign combatant is inside its own sight
+   *     (the rule that wakes a sleeping civilian);
+   *   · `applyCombat` moves `'waiting'` to `'woken'` when the unit is attacked;
+   *   · any accepted order that names the unit, other than `fortify`, deletes
+   *     the key (`applyCommand`'s seam, as for `sleeping`). A plain `fortify`
+   *     deletes it too, and keeps the trench;
+   *   · `breakFortify` deletes it with the trench: a unit that moves, attacks or
+   *     changes owner has no order to fortify left.
+   *
+   * Presence is the state, and nothing counts down: the wait ends on a
+   * comparison of health against the unit's maximum.
+   */
+  untilHealed?: 'waiting' | 'woken';
   /**
    * Effects that run out — a Blessing of Arms on this piece — or the key is
    * **absent**, which it is for every unit almost all of the time.
@@ -4737,6 +4774,25 @@ export function removeUnit(state: GameState, unitId: number): boolean {
 export function breakFortify(unit: Unit): boolean {
   if (unit.fortifiedTurns === undefined) return false;
   delete unit.fortifiedTurns;
+  // The order to fortify until healed lives in the trench. Without a trench
+  // there is no such order left (see `Unit.untilHealed`).
+  delete unit.untilHealed;
+  return true;
+}
+
+/**
+ * Ends a unit's wait to heal: `'waiting'` becomes `'woken'`. Returns whether
+ * the unit was waiting.
+ *
+ * The unit stays dug in and keeps its fortify bonus. The only change is that
+ * it asks for orders again (`unitAwaitsOrders`). `wakeUnit`'s sibling, for a
+ * soldier's order rather than a civilian's sleep. Its callers are the three
+ * reasons a wait ends: full health and an enemy in sight (`wakeSleepers`,
+ * `turn.ts`), and an attack on the unit (`applyCombat`, `combat.ts`).
+ */
+export function wakeFromHealing(unit: Unit): boolean {
+  if (unit.untilHealed !== 'waiting') return false;
+  unit.untilHealed = 'woken';
   return true;
 }
 

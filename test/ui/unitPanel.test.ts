@@ -25,7 +25,7 @@
 import { describe, expect, it } from 'vitest';
 import { foundCityAt } from '../../src/sim/cities';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, type Unit } from '../../src/sim/state';
+import { type GameState, type Unit, createUnit } from '../../src/sim/state';
 import { recomputeVisibility, resetVisibility } from '../../src/sim/visibility';
 import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
 import type { UnitTypeId } from '../../src/sim/unitData';
@@ -34,10 +34,15 @@ import { moveModeNotice } from '../../src/ui/controls';
 import {
   disbandHint,
   disbandPrompt,
+  healFigure,
   marchDestination,
   upkeepNote,
   workChargeWords,
 } from '../../src/ui/unitPanel';
+import { applyCommand } from '../../src/sim/commands';
+import { runEndOfTurn } from '../../src/sim/turn';
+import { unitMaxHp } from '../../src/sim/unitData';
+import { unitHealthBonus } from '../../src/sim/resourceEffects';
 import { newGame } from '../sim/newGameHelpers';
 
 const SOURCES = import.meta.glob(
@@ -635,5 +640,78 @@ describe('the rank on the sheet', () => {
   it('counts experience for every fighting piece, and notes the rank’s strength', () => {
     expect(render).toContain("stat('Experience', experienceFigure(unit), false)");
     expect(render).toContain('const ranked = rankNote(unit);');
+  });
+});
+
+/**
+ * **The Fortify button's "+X HP" is what the turn heals** (the user,
+ * 2026-11-21: "could we add a short line that says +X HP for how much it will
+ * heal that turn?"). The figure is `healFigure`, the fold of `explainUnitHeal`,
+ * and the `healUnits` phase adds the same fold; these hold the two together on
+ * a real resolution. Written while test runs were paused, and not run then.
+ */
+describe('the Fortify button’s heal figure', () => {
+  /** Runs one resolution and answers how much health the unit gained. */
+  function healedBy(state: GameState, unit: Unit): number {
+    const before = unit.hp;
+    runEndOfTurn(state);
+    return unit.hp - before;
+  }
+
+  /** "+10 HP" → 10, "+0 HP" → 0. */
+  function figureOf(text: string): number {
+    return Number(text.replace('+', '').replace(' HP', ''));
+  }
+
+  it('matches what a rested, dug-in unit heals', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    warrior.hp = 40;
+    expect(applyCommand(state, { type: 'fortify', playerId: 0, unitId: warrior.id })).toEqual({ ok: true });
+    const figure = healFigure(state, warrior);
+    expect(figure).not.toBeNull();
+    expect(figure!.faint).toBe(false);
+    expect(figure!.reason).toBeNull();
+    expect(healedBy(state, warrior)).toBe(figureOf(figure!.text));
+  });
+
+  it('matches the cap for a unit one short heal from full', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    warrior.hp = unitMaxHp(warrior, unitHealthBonus(state, 0)) - 3;
+    applyCommand(state, { type: 'fortify', playerId: 0, unitId: warrior.id, untilHealed: true });
+    const figure = healFigure(state, warrior)!;
+    expect(figure.text).toBe('+3 HP');
+    expect(healedBy(state, warrior)).toBe(3);
+  });
+
+  it('shows a faint +0 HP, with the reason, for a hurt unit that moved', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    warrior.hp = 40;
+    applyCommand(state, { type: 'moveUnit', playerId: 0, unitId: warrior.id, target: { col: 6, row: 5 } });
+    applyCommand(state, { type: 'fortify', playerId: 0, unitId: warrior.id });
+    const figure = healFigure(state, warrior)!;
+    expect(figure.text).toBe('+0 HP');
+    expect(figure.faint).toBe(true);
+    expect(figure.reason).toBe('It moved or acted this turn.');
+    expect(healedBy(state, warrior)).toBe(0);
+  });
+
+  it('shows nothing for a unit at full health', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    applyCommand(state, { type: 'fortify', playerId: 0, unitId: warrior.id });
+    expect(healFigure(state, warrior)).toBeNull();
+  });
+
+  it('is printed from the one figure, under the label of the dug-in button', () => {
+    const panel = source('unitPanel.ts');
+    const actions = panel.slice(panel.indexOf('function actionsFor('), panel.indexOf('function riteCard('));
+    expect(actions).toContain('const heal = isFortified(unit) ? healFigure(state, unit) : null;');
+    expect(actions).toContain("label: waiting ? 'Fortified until healed' : 'Fortify until healed',");
+    expect(actions).toContain("key: 'U',");
+    // And the key is bound once, in the board's key handler.
+    expect(source('controls.ts')).toContain("event.key === 'u' || event.key === 'U'");
   });
 });

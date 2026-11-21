@@ -1098,6 +1098,8 @@ describe('never hand-written prose about a number', () => {
     expect(prose).not.toContain('%');
     expect(prose).toContain('Hills and forests add to a defender');
     expect(prose).toContain('fortifying adds more each turn it stays');
+    // The order of 2026-11-21, said without a number (hard rule 7).
+    expect(prose).toContain('can fortify until healed');
     // The river crossing is a fixed amount since 2026-11-21, and the words say
     // so without a number (hard rule 7).
     expect(prose).toContain('attacks across a river loses a fixed amount of strength');

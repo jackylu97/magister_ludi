@@ -52,6 +52,8 @@ import type { TileYield } from '../sim/terrainData';
 import { isExplorer, trades, unitDef, unitHp, unitMaxHp } from '../sim/unitData';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from '../sim/resourceEffects';
+// What a unit heals at the end of this turn: the list the turn phase adds.
+import { type UnitHealLine, explainUnitHeal, foldUnitHeal, unitHealRefusal } from '../sim/healing';
 import { unitUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import type { ImprovementOption } from './controls';
 import { cityDisplayName } from './cityDisplay';
@@ -149,6 +151,12 @@ interface UnitPanelOptions {
    */
   fortifyBlocker: () => string | null | undefined;
   onFortify: () => void;
+  /**
+   * Why the selected unit cannot be told to fortify until healed — the same
+   * three-valued shape again, answered by `controls.fortifyUntilHealedBlocker()`.
+   */
+  fortifyUntilHealedBlocker: () => string | null | undefined;
+  onFortifyUntilHealed: () => void;
   /**
    * Why the selected unit cannot be told to sleep — the same three-valued shape
    * again, answered by `controls.sleepBlocker()`.
@@ -391,7 +399,49 @@ interface UnitAction {
    * one-line `title` they have always had.
    */
   card?: () => Node;
+  /**
+   * A short second line under the label, or absent. The Fortify button's
+   * "+X HP" (the user, 2026-11-21): what the unit heals at the end of this
+   * turn. `faint` is for a hurt unit that heals nothing, whose reason is on
+   * the row's card.
+   */
+  figure?: HealFigure;
   run: () => void;
+}
+
+/**
+ * **The "+X HP" on the Fortify button**: what a hurt unit heals at the end of
+ * this turn, or `null` for a unit at full health, which shows no figure.
+ *
+ *   · `text` is "+X HP", where X is the fold of `explainUnitHeal`
+ *     (`sim/healing.ts`), the same list the `healUnits` phase adds. So the
+ *     figure is the health the turn will give, if nothing changes first.
+ *   · `faint` is true when X is zero: the unit is hurt and heals nothing.
+ *     `reason` then says why, in `unitHealRefusal`'s words.
+ *   · `lines` are the labelled lines, for the row's card.
+ *
+ * Pure and exported, so a test can hold the figure against the phase.
+ */
+export interface HealFigure {
+  text: string;
+  faint: boolean;
+  reason: string | null;
+  lines: readonly UnitHealLine[];
+}
+
+export function healFigure(state: GameState, unit: Unit): HealFigure | null {
+  const bonus = unitHealthBonus(state, unit.ownerId);
+  if (unitHp(unit, bonus) >= unitMaxHp(unit, bonus)) return null;
+  const lines = explainUnitHeal(state, unit);
+  const amount = foldUnitHeal(lines);
+  return {
+    // "+0 HP" rather than `signedFigure`'s bare "0": the user asked for a
+    // figure in one shape, and a nought that heals is still a heal figure.
+    text: amount === 0 ? '+0 HP' : `${signedFigure(amount)} HP`,
+    faint: amount <= 0,
+    reason: amount > 0 ? null : (unitHealRefusal(state, unit) ?? 'It heals nothing this turn.'),
+    lines,
+  };
 }
 
 /**
@@ -593,6 +643,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onCancelOrder,
     fortifyBlocker,
     onFortify,
+    fortifyUntilHealedBlocker,
+    onFortifyUntilHealed,
     sleepBlocker,
     onSleep,
     autoExploreBlocker,
@@ -872,15 +924,57 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // unlike Found City, this is a verb the unit will have again next turn, so a
     // button that is merely disabled (and says why) is the honest version.
     if (isCombatant(unitDef(unit.type))) {
+      const state = getGame().state;
       const blocker = fortifyBlocker();
-      const dug = isFortified(unit);
+      const blocked = blocker === undefined ? 'No unit selected' : blocker;
+      // A unit woken from "fortify until healed" is still dug in but has no
+      // orders (`Unit.untilHealed`), so its button is live and reads as the
+      // verb again. Pressing it keeps the trench and stops the asking.
+      const woken = unit.untilHealed === 'woken';
+      const dug = isFortified(unit) && !woken;
+      // **"+X HP" under the label** (the user, 2026-11-21): what a hurt unit
+      // in its trench heals at the end of this turn, from the list the turn
+      // phase adds (`healFigure`). Only while it is dug in, and only while it
+      // is hurt; "+0 HP" is faint, and the card says why.
+      const heal = isFortified(unit) ? healFigure(state, unit) : null;
+      const waits =
+        unit.untilHealed === 'waiting'
+          ? 'It waits here until it is at full health, an enemy comes into sight or it is attacked.'
+          : undefined;
       actions.push({
         label: dug ? `${signedFigure(fortifyBonus(unit))} fortified` : 'Fortify',
         key: 'F',
-        blocked: blocker === undefined ? 'No unit selected' : blocker,
-        hint: 'Dig in: defence grows each turn the unit stays put',
+        blocked,
+        hint: woken
+          ? 'Stay dug in, keep the defence bonus and stop asking for orders'
+          : 'Dig in: defence grows each turn the unit stays put',
+        ...(heal === null
+          ? {}
+          : { figure: heal, card: () => healCard(dug ? 'Fortified' : 'Fortify', heal, blocker ?? null, waits) }),
         run: onFortify,
       });
+      // **Fortify until healed** (the user, 2026-11-21), beside Fortify. Listed
+      // for a hurt unit, and for one already waiting so its state shows, like
+      // "Sleeping". Greyed with `fortifyUntilHealedError`'s own sentence when
+      // the order cannot be given now, Fortify's reading.
+      const hurt = healFigure(state, unit);
+      const waiting = unit.untilHealed === 'waiting';
+      if (hurt !== null || waiting) {
+        const untilBlocker = fortifyUntilHealedBlocker();
+        // The second sentence is the brief's: a unit that heals nothing this
+        // turn still waits, and the title says so with the reason.
+        const nothing =
+          hurt !== null && hurt.reason !== null
+            ? `\nThis turn it heals nothing. ${hurt.reason} It waits all the same.`
+            : '';
+        actions.push({
+          label: waiting ? 'Fortified until healed' : 'Fortify until healed',
+          key: 'U',
+          blocked: untilBlocker === undefined ? 'No unit selected' : untilBlocker,
+          hint: `Dig in here and stop asking for orders until the unit is at full health.${nothing}`,
+          run: onFortifyUntilHealed,
+        });
+      }
     }
     // Fortify's civilian half, and it sits in Fortify's slot for that reason:
     // the two are the same gesture ("stay here, stop asking") worn by the two
@@ -1377,6 +1471,30 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    * improvement, the axe, Consecrate, a great person's Act or Work, Pillage,
    * Cancel Orders — raises once refused.
    */
+  /**
+   * The Fortify button's card while the unit is dug in and hurt: what it heals
+   * at the end of this turn, line by line, then the row's refusal if it has one.
+   *
+   * Every figure is `healFigure`'s, which is the fold the `healUnits` phase
+   * adds, and every label is the simulation's (`explainUnitHeal`). A unit that
+   * heals nothing gets `unitHealRefusal`'s sentence in place of the lines.
+   * `waits` is the extra sentence for a unit waiting to heal.
+   */
+  function healCard(title: string, heal: HealFigure, blocked: string | null, waits?: string): Node {
+    const card = element('div', 'unit-card');
+    card.append(element('h4', 'unit-card-title', title));
+    card.append(element('p', 'unit-card-payoff', `${heal.text} at the end of this turn`));
+    if (heal.reason !== null) card.append(element('p', 'unit-card-clause', heal.reason));
+    for (const line of heal.lines) {
+      // Stripped: a card's display label is plain text here, as on every
+      // other card this sheet raises.
+      card.append(element('p', 'unit-card-clause', `${stripRefs(line.label)} ${signedFigure(line.amount)}`));
+    }
+    if (waits !== undefined) card.append(element('p', 'unit-card-clause', waits));
+    if (blocked !== null) card.append(element('p', 'unit-card-blocked wanting', blocked));
+    return card;
+  }
+
   function refusalCard(text: string): Node {
     const card = element('div', 'unit-card');
     card.append(element('h4', 'unit-card-title', 'Why not'));
@@ -1402,9 +1520,15 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       const button = element('button', 'btn btn-second unit-action');
       button.type = 'button';
       button.disabled = action.blocked !== null;
-      const label = element('span', 'unit-action-label');
+      const label = element('span', action.figure ? 'unit-action-label has-figure' : 'unit-action-label');
       if (typeof action.label === 'string') label.textContent = action.label;
       else label.append(action.label);
+      // The short second line under the label: the Fortify button's "+X HP".
+      if (action.figure) {
+        label.append(
+          element('span', action.figure.faint ? 'unit-action-figure is-faint' : 'unit-action-figure', action.figure.text),
+        );
+      }
       button.append(label);
       if (action.note) button.append(element('span', 'unit-action-note', action.note));
       if (action.key) button.append(element('kbd', 'unit-action-key', action.key));
@@ -1582,7 +1706,17 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // the only one that is true every turn whatever the player does — the rest
     // of this list is states the piece is passing through.
     notes.push(upkeepNote(unit));
-    if (isFortified(unit)) notes.push(`${signedFigure(fortifyBonus(unit))} fortified`);
+    if (isFortified(unit)) {
+      // The order's end, said beside the trench (`Unit.untilHealed`): waiting
+      // to heal, or woken and asking for orders with the bonus kept.
+      const order =
+        unit.untilHealed === 'waiting'
+          ? ' until healed'
+          : unit.untilHealed === 'woken'
+            ? ' · awaiting orders'
+            : '';
+      notes.push(`${signedFigure(fortifyBonus(unit))} fortified${order}`);
+    }
     // The rank's strength, the trench's sentence one fact over: what the piece
     // brings to every fight on top of its own strength (batch WC3).
     const ranked = rankNote(unit);

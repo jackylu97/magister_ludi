@@ -6081,6 +6081,11 @@ async function boot(initial: Game | null): Promise<void> {
       controls.fortify();
       updatePanel(null, renderer.getHover());
     },
+    fortifyUntilHealedBlocker: () => controls.fortifyUntilHealedBlocker(),
+    onFortifyUntilHealed: () => {
+      controls.fortifyUntilHealed();
+      updatePanel(null, renderer.getHover());
+    },
     sleepBlocker: () => controls.sleepBlocker(),
     onSleep: () => {
       controls.sleepUnit();

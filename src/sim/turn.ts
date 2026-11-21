@@ -103,14 +103,12 @@
  */
 
 import { barbarianTurn, barbarianUnitType } from "./barbarians";
-import { buildingAdjacentHeal } from "./buildingEffects";
 import type { CampBounty } from "./camps";
 import {
   advanceProduction,
   expandBorders,
   growCities,
   refreshCityDerived,
-  tileOwnerPlayerId,
   type CompletionGrantReport,
   type ConsecrationReport,
   type StarvationReport,
@@ -136,8 +134,6 @@ import { tileOwnerField } from "./state";
 import { getTileAt, tileHex, tileIndex, wrappedDistance } from "./map";
 import { type RerouteReport, advanceAlongPath, rerouteReport } from "./movement";
 import {
-  cardBehaviorRule,
-  cardUnitStat,
   musterPeriodicUnits,
   runPeriodicBoons,
   runStatecraft,
@@ -145,8 +141,6 @@ import {
 // Straight from the evaluator: the drill phase (Dominion batch D1), and the
 // harvest that runs in it (Dominion batch D7).
 import { drillUnits, harvestEnemyHexes } from "./statecraft/evaluator";
-// Expansionist batch E12: what a town holds, a card's grants included.
-import { townShelf } from "./statecraft/evaluator";
 import { returnLeviedCitizens } from "./levies";
 import { runRoadJoinings } from "./roadJoinings";
 import { runEncroachment, runMigrations } from "./frontiers";
@@ -182,6 +176,7 @@ import {
   type GameState,
   type Unit,
   bumpRevision,
+  wakeFromHealing,
   wakeUnit,
 } from "./state";
 import { bumpEconomy, setSlatePhase } from "./slate";
@@ -190,8 +185,10 @@ import { pruneWarLosses } from "./weariness";
 import { isCombatant, unitDef, unitMaxHp } from "./unitData";
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from "./resourceEffects";
-import { fullMovement, isRested } from "./units";
-import { RULES } from "./rulesData";
+import { fullMovement } from "./units";
+// The heal a unit gets this turn, as a labelled list and its fold. The unit
+// sheet prints the same fold, so the two cannot disagree.
+import { explainUnitHeal, foldUnitHeal } from "./healing";
 import { recomputeAllVisibility, sightOf } from "./visibility";
 
 /**
@@ -1037,83 +1034,21 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
 ];
 
 /**
- * Restores `healing.perTurnIfRested` to every unit that did not spend a single
- * movement point this turn, capped at the type's maximum.
+ * Heals every unit by the fold of its heal list (`explainUnitHeal`,
+ * `healing.ts`).
+ *
+ * The rule is all in that list: a unit heals only if it spent no movement and
+ * did not attack this turn, only below its maximum, not abroad under the
+ * `noHealAbroad` law, and by the rested rate plus its cards' and the Keeps'
+ * lines, capped at full health. It lives in `healing.ts` so that the unit
+ * sheet's "+X HP" figure reads the same list this phase adds, and the two can
+ * never disagree. This phase only adds the fold.
  */
 function healUnits(state: GameState): void {
-  const amount = RULES.healing.perTurnIfRested;
   for (const unit of state.units) {
-    if (!isRested(unit, state)) continue;
-    // **The piece's** maximum, not the roster's: a stamped legion (The Muster
-    // Roll) mends to the ten points its law gave it. `unitMaxHp` is the one
-    // reading of that, and every heal cap in the game goes through it.
-    // And the **empire's** share of it since batch R2 (iron's ten points), so a
-    // rested swordsman mends to the figure its empire's mines are paying for
-    // today rather than to the roster's.
-    const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
-    if (unit.hp >= maxHp) continue;
-    // Field Surgeons, through the one place a heal is decided. It rides on the
-    // *rested* rule rather than replacing it: "heal +5 per turn anywhere" means
-    // anywhere on the map, not while marching — a card that healed a unit
-    // mid-charge would be a different card and a much stronger one.
-    // **Homer's price**: an empire that sings of ten years from home does not
-    // mend abroad. Read here because this is the one place a heal is decided,
-    // and asked of the *ground* rather than of the piece — a hex nobody owns is
-    // outside your borders, which is what makes the clause bite on a campaign
-    // rather than only in a rival's homeland.
-    if (
-      cardBehaviorRule(state, unit.ownerId, "noHealAbroad") &&
-      tileOwnerPlayerId(state, unit.col, unit.row) !== unit.ownerId
-    ) {
-      continue;
-    }
-    // The Keep, through the same one place a heal is decided and folded into
-    // the same sum: a card's points and a building's points are two lines of
-    // one figure, and a second `unit.hp = …` beside this one is how a piece
-    // ends up healing past its cap.
-    unit.hp = Math.min(
-      maxHp,
-      unit.hp +
-        amount +
-        cardUnitStat(state, unit, "heal") +
-        keepHeal(state, unit),
-    );
+    const amount = foldUnitHeal(explainUnitHeal(state, unit));
+    if (amount !== 0) unit.hp += amount;
   }
-}
-
-/**
- * What friendly walls standing on this piece's hex or on one of the six touching
- * it mend for it this turn — the Keep's five (the charters, 2026-09-04).
- *
- * The **town's** reach rather than the piece's, and the ring of six plus the
- * centre because that is `isMountainAdjacent`'s reach and the reach every other
- * "beside this town" clause in the game already takes. A wounded column camped
- * against the walls is inside it; one a hex further out is not, which is the
- * whole of what the row promises.
- *
- * Friendly means **the same seat**, asked of the town's owner: a Keep mends its
- * own realm's soldiers and never an ally's, because there are no allies. Summed
- * across towns rather than taken as the best of them — two Keeps a hex apart is
- * a corner of the frontier somebody has paid twice to hold — and the sum is
- * still capped by `unitMaxHp` where it lands, by the one line above.
- *
- * It reads `buildingAdjacentHeal` (`buildingEffects.ts`), so nothing here has
- * heard of a keep, and it sweeps `state.cities` — founding order, the order
- * every other sweep walks.
- */
-function keepHeal(state: GameState, unit: Unit): number {
-  let total = 0;
-  const from = getTileAt(state.map, unit.col, unit.row);
-  if (!from) return 0;
-  const eye = tileHex(from);
-  for (const city of state.cities) {
-    if (city.ownerId !== unit.ownerId) continue;
-    const seat = getTileAt(state.map, city.col, city.row);
-    if (!seat || wrappedDistance(state.map, eye, tileHex(seat)) > 1) continue;
-    // What the town holds (`townShelf`, Expansionist batch E12).
-    for (const line of buildingAdjacentHeal(townShelf(state, city))) total += line.amount;
-  }
-  return total;
 }
 
 /**
@@ -1159,10 +1094,25 @@ function keepHeal(state: GameState, unit: Unit): number {
  *
  * Iterates `state.units` twice in `state.units` order and touches only a flag,
  * so it is deterministic in the state alone and rolls no dice.
+ *
+ * **A soldier fortified until healed is woken here too** (`Unit.untilHealed`,
+ * the ruling of 2026-11-21). Two of its three reasons are this phase's: its
+ * health is full, or a foreign combatant is inside its own sight, by the same
+ * rule as a sleeper. The third, an attack on it, is `applyCombat`'s. Waking it
+ * keeps it dug in with its bonus; it only starts to ask for orders again. Late
+ * for the same reasons as the sleepers: `healUnits` has already added this
+ * turn's heal, and the board has stopped moving.
  */
 function wakeSleepers(state: GameState): void {
   for (const sleeper of state.units) {
-    if (sleeper.sleeping !== true) continue;
+    const waiting = sleeper.untilHealed === "waiting";
+    if (sleeper.sleeping !== true && !waiting) continue;
+    // Full health ends the wait. The piece's own maximum, with its empire's
+    // share, which is the bar `explainUnitHeal` caps the heal at.
+    if (waiting && sleeper.hp >= unitMaxHp(sleeper, unitHealthBonus(state, sleeper.ownerId))) {
+      wakeFromHealing(sleeper);
+      continue;
+    }
     const from = getTileAt(state.map, sleeper.col, sleeper.row);
     if (!from) continue;
     const radius = sightOf(state.map, sleeper, state);
@@ -1175,6 +1125,7 @@ function wakeSleepers(state: GameState): void {
       if (wrappedDistance(state.map, eye, tileHex(to)) > radius) continue;
       if (!hasLineOfSight(state.map, from, to)) continue;
       wakeUnit(sleeper);
+      wakeFromHealing(sleeper);
       break;
     }
   }

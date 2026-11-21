@@ -384,6 +384,7 @@ import {
   realPlayers,
   removeUnit,
   unitById,
+  wakeFromHealing,
 } from './state';
 import { seatPeople } from './leaderData';
 import { atWar, recordWarCapture, warBetween, warSpoils } from './wars';
@@ -498,17 +499,52 @@ export { breakFortify };
  * the unit sheet's Fortify button is enabled by exactly the rule the reducer
  * accepts, so a live button and a rejected command cannot disagree. It asks
  * nothing about the turn or the actor — those belong to the command.
+ *
+ * A unit woken from "fortify until healed" (`Unit.untilHealed` is `'woken'`)
+ * is dug in but has no orders, so it may fortify again. The command keeps its
+ * trench and its bonus, and the unit stops asking for orders.
  */
 export function fortifyError(unit: Unit, state?: GameState): string | null {
   const def = unitDef(unit.type);
   if (isCivilian(def)) return `A ${def.name} cannot fortify`;
-  if (isFortified(unit)) return `${def.name} is already fortified`;
+  if (isFortified(unit) && unit.untilHealed !== 'woken') return `${def.name} is already fortified`;
   // **Blitz's price**, asked here so the sheet's button and the reducer refuse
   // in one sentence. `state` is optional for the same reason `fullMovement`'s
   // is: a caller with no board in hand is asking about the *piece*, and a law
   // is a fact about the empire around it.
   if (state && cardBehaviorRule(state, unit.ownerId, 'noFortify')) {
     return `${def.name} cannot fortify under your law`;
+  }
+  return null;
+}
+
+/**
+ * Why this unit cannot be told to fortify until healed, or `null` when it can.
+ *
+ * The rule the unit sheet's button and the `fortify` command with
+ * `untilHealed: true` both ask, so they cannot disagree. It asks nothing about
+ * the turn or the actor; the command asks those.
+ *
+ *   · Only a unit that can fortify, by `fortifyError`'s own law.
+ *   · Only a hurt unit: at full health there is nothing to wait for.
+ *   · Not a unit that is already waiting to heal.
+ *
+ * A unit that is already dug in may take the order. It keeps its trench and its
+ * bonus, and from then on it waits to heal. The order does not ask whether the
+ * unit heals this turn: a unit that moved this turn, or stands where its law
+ * stops healing, still waits (`unitHealRefusal`, `healing.ts`, says why it
+ * heals nothing).
+ */
+export function fortifyUntilHealedError(unit: Unit, state: GameState): string | null {
+  const def = unitDef(unit.type);
+  if (isCivilian(def)) return `A ${def.name} cannot fortify`;
+  if (unit.untilHealed === 'waiting') return `${def.name} is already fortified until healed`;
+  if (cardBehaviorRule(state, unit.ownerId, 'noFortify')) {
+    return `${def.name} cannot fortify under your law`;
+  }
+  const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
+  if (unitHp(unit, unitHealthBonus(state, unit.ownerId)) >= maxHp) {
+    return `${def.name} is at full health`;
   }
   return null;
 }
@@ -2837,6 +2873,10 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       // the turn the mine was pillaged. That is the clamp, and it is the same
       // figure `planCombat` forecast a moment ago.
       defender.hp = unitHp(defender, unitHealthBonus(state, defender.ownerId)) - dealt;
+      // An attack ends a wait to heal: the unit stays dug in and asks for
+      // orders again (`Unit.untilHealed`). A unit that dies or changes hands
+      // below loses the order with the piece or the trench.
+      wakeFromHealing(defender);
       if (defender.hp <= 0) {
         const fallenOwner = defender.ownerId;
         const fromWild = playerById(state, fallenOwner)?.barbarian === true;

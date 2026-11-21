@@ -114,6 +114,8 @@ export {
   // Commerce batch T6: the timed effects a birth hangs on a unit.
   cardBirthTimedEffects,
   cardUnitStat,
+  // The labelled lines behind `cardUnitStat`, for the heal a unit gets this turn.
+  explainCardUnitStat,
   cardUnlocksBuilding,
   cardUnlockScopes,
   cardUnlocksImprovement,
@@ -223,6 +225,7 @@ export type {
   SurplusMover,
   CardTileLine,
   CardTypeRaise,
+  CardUnitStatLine,
   CardUpkeepLine,
   CardYieldLine,
   CombatSituation,

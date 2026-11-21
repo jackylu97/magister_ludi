@@ -84,6 +84,25 @@ blow read the same plan.
   terrain.
 - **Fortification** — turns dug in × `rules.combat.fortifyBonusPerTurn`, capped
   at `fortifyMax` (`fortifyBonus`). Presence of the counter *is* the state.
+- **Fortify until healed** (ruled 2026-11-21, `docs/flags.md`; schema 253) —
+  the `fortify` command with `untilHealed: true`, offered to a hurt unit that
+  may fortify (`fortifyUntilHealedError`). The unit digs in as usual and does
+  not ask for orders while `Unit.untilHealed` is `'waiting'`.
+  - It wakes (`'woken'`) when its health is full or a foreign combatant is in
+    its own sight (`wakeSleepers`), or when it is attacked (`applyCombat`).
+  - A woken unit stays dug in with its bonus and asks for orders again
+    (`unitAwaitsOrders`). A plain fortify keeps the trench and stops the asking.
+  - Any other order clears the key (`applyCommand`'s seam); `breakFortify`
+    clears it with the trench.
+  - The unit sheet: `U` is its key, and the dug-in Fortify button shows
+    "+X HP", the fold of `explainUnitHeal`.
+- **Healing** — one labelled list, `explainUnitHeal` (`src/sim/healing.ts`),
+  and its fold `foldUnitHeal`. A unit heals only if it spent no movement and
+  did not attack this turn, below its maximum, and not abroad under the
+  `noHealAbroad` law; it heals `rules.healing.perTurnIfRested`, plus a line
+  per card (`explainCardUnitStat`) and per friendly Keep in reach, capped at
+  full health as a line of its own. `unitHealRefusal` says why a unit heals
+  nothing. The `healUnits` phase adds the fold, and the unit sheet prints it.
 - **The general's aura** — `rules.greatPeople.generalAuraStrength` to every
   soldier of the same side within `generalAuraRange`, on both sides of a fight,
   naming the general (`generalAuraLines`). It does **not** stack: the sweep
