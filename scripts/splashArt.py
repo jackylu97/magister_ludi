@@ -63,7 +63,7 @@ ENDINGS = {'ending_win': 'win', 'ending_loss_alt': 'loss'}
 # Where the user made two versions, the table names the one that was chosen.
 LEADERS = {
     'alexander': 'alexanderTheGreat', 'battuta': 'ibnBattutaOfTangier', 'cleopatra': 'cleopatra',
-    'cyrus': 'cyrusTheGreat', 'genghis': 'genghisKhan', 'jayavarman': 'jayavarmanVII',
+    'cyrus': 'cyrusTheGreat', 'genghis': 'genghisKhan', 'jayavarman': 'jayavarmanVII', 'joan': 'joan',
     'justinian': 'justinian', 'medici': 'lorenzoDeMedici', 'mehmed': 'mehmedTheConqueror',
     'musa_alt': 'mansaMusa', 'nezahualcoyotl': 'nezahualcoyotl', 'pachacuti': 'pachacuti',
     'qin': 'qinShiHuang', 'rashid_alt': 'harunAlRashid', 'sejong': 'sejongTheGreat',
@@ -102,6 +102,7 @@ INSETS = {
     'ages/age4form_alt': (38, 0, 36, 0),
     # Leader masters with a second frame inside the paper mount, or a coloured edge.
     'leaders/alexander': (54, 54, 54, 54),
+    'leaders/joan': (52, 60, 52, 60),
         'leaders/mehmed': (52, 60, 52, 52),
     'leaders/pachacuti': (22, 14, 22, 14),
 }

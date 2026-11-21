@@ -4,8 +4,7 @@
  * The portraits are the user's splash art: one 3:4 JPEG a leader in
  * `public/art/splash/leaders/`, named by the leader's row id
  * (`public/art/splash/README.md`), made by `scripts/splashArt.py leaders`.
- * Fifteen of the sixteen leaders have one (2026-11-21); Joan of Arc has none.
- * A leader with none shows the seat's charge on its ink in the portrait
+ * All sixteen leaders have one (2026-11-21). A leader with none would show the seat's charge on its ink in the portrait
  * window (`leaderPicture` in `leaderSelect.ts`).
  *
  * The list is written out, not read from the folder, for the reason
@@ -23,6 +22,7 @@ export const LEADER_PORTRAITS: readonly string[] = [
   'harunAlRashid',
   'ibnBattutaOfTangier',
   'jayavarmanVII',
+  'joan',
   'justinian',
   'lorenzoDeMedici',
   'mansaMusa',
