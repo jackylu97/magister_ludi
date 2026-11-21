@@ -643,6 +643,27 @@ export function recommendedSiteRow(
   playerId: number,
   tile: Tile,
 ): string | null {
+  const clauses = siteReasons(state, playerId, tile);
+  if (clauses === null) return null;
+  // Something is always true of a hex the reading ranked this highly, but the
+  // clauses are each a threshold and a board could in principle clear the
+  // floor on plain ground alone. The fallback is the honest short sentence
+  // rather than a colon with nothing after it.
+  if (clauses.length === 0) return 'A good site: open ground with room to grow.';
+  return `A good site: ${listWords(clauses)}.`;
+}
+
+/**
+ * Why the board recommends this hex for a city, as short clauses in the order
+ * a player would say them, or `null` on a hex it does not recommend.
+ *
+ * The clauses are written from `explainSite`'s own facts and carry no figures
+ * (rule 7). Two readers use them: `recommendedSiteRow` joins them all into one
+ * sentence, and the advice panel (`advicePanel.ts`) prints the first three.
+ * The order is by weight in the site's score: the resources first, then water,
+ * then the ground, then the coast and the hills.
+ */
+export function siteReasons(state: GameState, playerId: number, tile: Tile): string[] | null {
   const marked = readSites(state, playerId).find(
     (candidate) => candidate.col === tile.col && candidate.row === tile.row,
   );
@@ -662,12 +683,7 @@ export function recommendedSiteRow(
   if (site.production >= RULES.sites.strongProduction) clauses.push('good ground for work');
   if (site.coast) clauses.push('a harbour on the sea');
   if (site.hills > 0) clauses.push('hills to quarry');
-  // Something is always true of a hex the reading ranked this highly, but the
-  // clauses above are each a threshold and a board could in principle clear the
-  // floor on plain ground alone. The fallback is the honest short sentence
-  // rather than a colon with nothing after it.
-  if (clauses.length === 0) return 'A good site: open ground with room to grow.';
-  return `A good site: ${listWords(clauses)}.`;
+  return clauses;
 }
 
 /** Small counts as words — a card says "three", never a figure (rule 7). */

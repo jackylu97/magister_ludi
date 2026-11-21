@@ -126,15 +126,11 @@ describe('lensForDigit', () => {
 });
 
 /**
- * `effectiveLens`'s glyph rule, pulled out pure: the settler lens forces the
- * yield glyphs on regardless of the player's own switch, the same way an open
- * city panel already does — a settler player judging a site without yields
- * under the wash is the report that sent this in (`lensShowsYields`'s own
- * docblock has the reasoning). Neither the player's switch nor `effectiveLens`
- * itself is touched by this: dropping the settler or closing the panel must
- * restore exactly what the player had chosen, so the mode/city inputs here
- * stand in for "is a settler or a panel making the ask right now", never for a
- * write to `yieldsOn`.
+ * `effectiveLens`'s glyph rule, pulled out pure. The player's own switch and
+ * an open city panel turn the yield figures on. The settler lens does not: it
+ * tints each hex, and the user found the figures on every hex too busy
+ * (2026-11-21). No mode writes to `yieldsOn`, so closing a panel restores
+ * what the player chose.
  */
 describe('lensShowsYields', () => {
   it('follows the switch when nothing else is asking', () => {
@@ -143,8 +139,8 @@ describe('lensShowsYields', () => {
     expect(lensShowsYields('explorer', false, false)).toBe(false);
   });
 
-  it('forces the glyphs on for the settler lens, switch off', () => {
-    expect(lensShowsYields('settler', false, false)).toBe(true);
+  it('does not force the glyphs on for the settler lens', () => {
+    expect(lensShowsYields('settler', false, false)).toBe(false);
   });
 
   it('does not force the glyphs on for the explorer lens', () => {

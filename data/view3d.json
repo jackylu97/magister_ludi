@@ -434,9 +434,9 @@
       "plaque": {
         "padX": 0.07, "padZ": 0.05, "step": 0.04, "pixelsPerUnit": 300,
         "radius": 0.05, "edge": 0.012, "edgeOpacity": 0.7, "shadow": 0.035, "shadowOpacity": 0.45,
-        "pinSize": 0.21, "pinRim": 0.14, "pinShine": 0.3
+        "pinSize": 0.3, "pinRim": 0.2, "pinShine": 0.3
       },
-      "yieldOffset": 0, "freeYieldOpacity": 0.72, "nameHeight": 0.27
+      "yieldOffset": -0.1, "freeYieldOpacity": 0.72, "nameHeight": 0.27
     }
   },
   "look": {
@@ -661,9 +661,12 @@
     "siteLuxuryColor": "#7c5f8c",
     "siteLuxuryRingOpacity": 0.95,
     "siteLuxuryRingScale": 0.8,
-    "siteCoastColor": "#4f9bc4",
-    "siteFreshColor": "#63b45c",
-    "siteOpacity": 0.44,
+    "siteCoastColor": "#6cc6ec",
+    "siteFreshColor": "#0f7f6e",
+    "siteDryColor": "#f2cf62",
+    "siteOpacity": 0.42,
+    "siteDryOpacity": 0.36,
+    "siteSetBack": 0.85,
     "siteEstuaryMix": 0.5,
     "siteEstuaryOpacity": 0.62,
     "siteEstuaryRingOpacity": 0.95,
@@ -681,7 +684,19 @@
     "faithPressedRingScale": 0.92,
     "campColor": "#b35843",
     "campOpacity": 0.42,
-    "campRingOpacity": 0.9
+    "campRingOpacity": 0.9,
+    "advice": {
+      "tickColor": "#f8e29a", "tickPaleColor": "#f1dfa0", "tickBackingColor": "#241a17", "tickBackingOpacity": 0.6,
+      "tickInset": 0.08, "tickLength": 0.26, "tickWidth": 0.045, "tickWidthBest": 0.07, "tickBackingExtra": 0.035,
+      "pipRadius": 0.05, "pipGap": 0.15, "pipOffset": 0.6, "pipPlateColor": "#2a2320", "pipEmptyColor": "#6f665c",
+      "pipPlateWidth": 0.5, "pipPlateDepth": 0.17, "pipNear": 0.03, "pipMid": 0.1,
+      "tintOpacity": 0.2, "paleTintOpacity": 0.14, "paleColor": "#f6ecc8", "tintScale": 0.9,
+      "eyeOffset": 0.56, "eyeWidth": 0.3, "eyeDepth": 0.17, "eyePaperColor": "#f8f4e6", "eyeInkColor": "#1d1a20",
+      "ruinGlowColor": "#ffd98a", "ruinGlowSize": 1.9, "ruinGlowOpacity": 0.85,
+      "ruinShaftWidth": 0.42, "ruinShaftHeight": 2.6, "ruinShaftOpacity": 0.7,
+      "lookoutSight": 3, "lookoutMinUnseen": 6, "lookoutSpacing": 4, "lookoutHills": 2, "lookoutEdges": 3,
+      "workerCount": 3, "workerWalk": 4, "workerNear": 0.6
+    }
   },
   "icons": {
     "atlasCell": 128,

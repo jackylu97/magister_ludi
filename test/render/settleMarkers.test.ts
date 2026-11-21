@@ -26,6 +26,7 @@ import { describe, expect, it } from 'vitest';
 import { InstancedMesh, Matrix4, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
 
 import type { TileIcons } from '../../src/render3d/badges3d';
+import { adviceShapes } from '../../src/render3d/adviceMarks';
 import { BoardGeometry } from '../../src/render3d/board3d';
 import { cellCenter } from '../../src/render3d/layout';
 import { LensLayer, NO_LENS } from '../../src/render3d/lens3d';
@@ -111,7 +112,8 @@ function build(state: GameState, mode: LensMode, levels: number[] | null = null)
 
 /** Where every settle mark stands, as `col,row`, read off the baked matrices. */
 function markedCells(state: GameState, layer: LensLayer): string[] {
-  const quad = geometry.settleMarkers.goodSite;
+  // The pip plate: every recommended site has one, and nothing else on the board does.
+  const quad = adviceShapes().plate;
   const at = new Vector3();
   const out: string[] = [];
   for (const child of layer.group.children) {
@@ -122,8 +124,8 @@ function markedCells(state: GameState, layer: LensLayer): string[] {
       for (const tile of state.map.tiles) {
         const centre = cellCenter(tile.col, tile.row);
         if (
-          Math.abs(at.x - (centre.x + VIEW3D.lens.settleMarkOffsetX)) < 1e-6 &&
-          Math.abs(at.z - (centre.z - VIEW3D.lens.settleMarkOffset)) < 1e-6
+          Math.abs(at.x - centre.x) < 1e-6 &&
+          Math.abs(at.z - (centre.z + VIEW3D.board.hexRadius * VIEW3D.lens.advice.pipOffset)) < 1e-6
         ) {
           out.push(`${tile.col},${tile.row}`);
         }
@@ -175,18 +177,16 @@ describe('the recommendation marker', () => {
     );
   });
 
-  it('carries a tile on every instance it adds', () => {
-    // CLAUDE.md's rule for new dressing: an instance with no `tile:` is an
-    // instance the fog sweep cannot find. Read off the **source**, because the
-    // collector hands its `byTile` index to the flush and the layer keeps
-    // neither — a name is a fact about the file, which is the same argument
-    // `test/sim/verbs.test.ts` is written on.
+  it('asks the fog view being painted before it marks a hex', () => {
+    // The ticks are drawn over the board, as the washes are, and the layer is
+    // rebuilt when the fog moves. So the gate is `knowsCell` at build time, and
+    // not a `tile:` on each instance for the fog sweep to find. Read off the
+    // source, as `test/sim/verbs.test.ts` reads its register.
     const source = LENS_SOURCE;
     const at = source.indexOf('private addSettleMarkers');
     expect(at, 'addSettleMarkers is gone from lens3d.ts').toBeGreaterThan(0);
     const body = source.slice(at, source.indexOf('\n  private ', at + 10));
-    const adds = body.match(/collector\.add\(/g) ?? [];
-    expect(adds.length, 'the marker adds a pin and a mark').toBe(2);
-    expect(body.match(/tile: cell/g) ?? [], 'every add carries a tile').toHaveLength(2);
+    expect(body).toContain('knowsCell(levels');
+    expect(body).toContain('readSites(state, playerId)');
   });
 });

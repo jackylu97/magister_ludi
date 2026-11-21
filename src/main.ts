@@ -78,13 +78,14 @@ import {
   describeSurvey,
   describeWater,
   foundingCostRow,
-  recommendedSiteRow,
+  siteReasons,
   resourceRequirementNode,
   resourceRowNode,
   tileYieldContributions,
   tileYieldLineNodes,
   tileYieldNodes,
 } from './ui/tileReadout';
+import { type Advice, mountAdvicePanel, mountLensLegend } from './ui/advicePanel';
 import { explainDiscoveryOffer } from './sim/discoveries';
 import { unitsOnTile } from './sim/units';
 import {
@@ -2879,7 +2880,28 @@ async function boot(initial: Game | null): Promise<void> {
    * player was reading. With nothing hovered and no message outstanding it fades
    * away entirely rather than sitting there full of em dashes.
    */
+  // The advice panel: one line at the bottom centre while the pointer rests on a
+  // hex the board recommends, for a settler's site or a worker's job.
+  const advicePanel = mountAdvicePanel(contextEl.parentElement ?? document.body);
+  gameDisposers.push(() => advicePanel.dispose());
+  // The settler lens's legend, above the lens button while that lens is up.
+  const lensLegend = mountLensLegend(contextEl.parentElement ?? document.body);
+  gameDisposers.push(() => lensLegend.dispose());
+
+  function adviceUnder(hover: HoverInfo | null): Advice | null {
+    if (!hover) return null;
+    const seat = controls.localPlayerId();
+    if (!isExploredBy(game.state, seat, hover.tile.col, hover.tile.row)) return null;
+    const work = controls.workerAdviceAt(hover.tile.col, hover.tile.row);
+    if (work) return { kind: 'work', phrase: work.phrase, change: work.change };
+    if (controls.boardLens() !== 'settler') return null;
+    const reasons = siteReasons(game.state, seat, hover.tile);
+    return reasons === null ? null : { kind: 'site', reasons };
+  }
+
   function updateContext(hover: HoverInfo | null): void {
+    advicePanel.show(adviceUnder(hover));
+    lensLegend.show(controls.boardLens() === 'settler');
     /**
      * Terra Incognita: the one place the naming bible's register (design-notes
      * Entry X) is allowed into the readout.
@@ -2927,17 +2949,8 @@ async function boot(initial: Game | null): Promise<void> {
           ? foundingCostRow(game.state, seat, hover.tile)
           : null,
       );
-      // The recommendation itself, on the same lens condition and for the same
-      // reason: the mark is only drawn with a settler in hand, so the sentence
-      // that explains the mark is only printed there too — advice with nothing
-      // on the board pointing at it is advice out of nowhere. Which hexes carry
-      // it is `readSites`', not this row's: one list, one claim.
-      setInfoRow(
-        infoSite,
-        controls.boardLens() === 'settler'
-          ? recommendedSiteRow(game.state, seat, hover.tile)
-          : null,
-      );
+      // The recommendation is the advice panel's now (the bottom centre), so this row stays empty.
+      setInfoRow(infoSite, null);
       // What is standing here, and — when the piece in hand would **trade
       // places** with one of them (`docs/flags.md` (ooooo), rule 3) — what the
       // right button would do about it. One row rather than a row of its own,
@@ -4994,6 +5007,7 @@ async function boot(initial: Game | null): Promise<void> {
     lensCurrentEl.textContent =
       current === 'none' ? (yields ? '—' : 'off') : (chosen?.label ?? 'off');
     lensYieldsFlagEl.hidden = !yields;
+    lensLegend.show(controls.boardLens() === 'settler');
   }
 
   /**

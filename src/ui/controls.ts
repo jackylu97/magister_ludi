@@ -252,6 +252,7 @@ import {
   repairImprovementError,
   removeImprovementError,
 } from '../sim/improvements';
+import type { WorkerAdvice } from './workerAdvice';
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { authorityOf, happinessOf } from '../sim/meters';
@@ -1004,14 +1005,15 @@ export function lensForSelection(def: UnitDef | null, manual: LensMode): LensMod
  * applies, pulled out pure so it can be pinned without a `GameControls`
  * instance behind it (see `effectiveLens`'s own docblock for the reasoning).
  *
- * Three things can turn the glyphs on, independently: the player's own
- * switch, an open city panel, and — as of the settler-lens fix below — the
- * settler lens itself, auto or manual. `yieldsOn` is untouched by any of
- * this; the caller decides what to do with it, this only decides whether the
- * glyphs show *this frame*.
+ * Two things turn the glyphs on: the player's own switch, and an open city
+ * panel. The settler lens used to turn them on as well. It does not now (the
+ * user, 2026-11-21: the lens "looks too busy"): the lens tints each hex, and
+ * a figure on every hex in view was the busiest part of it. A player who
+ * wants the figures under the lens has the switch.
  */
 export function lensShowsYields(mode: LensMode, yieldsOn: boolean, cityOpen: boolean): boolean {
-  return yieldsOn || cityOpen || mode === 'settler';
+  void mode;
+  return yieldsOn || cityOpen;
 }
 
 /**
@@ -1979,6 +1981,13 @@ export interface GameControls {
    * moment a prophet raised the lens without the menu.
    */
   boardLens(): LensMode;
+
+  /**
+   * What worker advice says about this hex, or `null`: the selected piece is
+   * not a worker of the local seat, or the hex is not one of its best. The
+   * advice panel asks on each hover.
+   */
+  workerAdviceAt(col: number, row: number): WorkerAdvice | null;
 
   /** Puts a lens up, or takes it down with `'none'`. The menu's rows. */
   setLens(lens: LensMode): void;
@@ -3071,6 +3080,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // A card or a belief can change what a hex pays with no board fingerprint to
       // move; the yields lens is told once per accepted command (`MapView`, optional).
       renderer.noteStateChanged?.(command.type);
+      adviceEpoch += 1;
       pollSightings();
       reportReligion();
       reportConsecrations(result);
@@ -4070,6 +4080,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function repaint(): void {
     renderer.noteStateChanged?.();
+    adviceEpoch += 1;
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
@@ -4989,6 +5000,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // little and lights the worked hexes.
       yields: lensShowsYields(mode, yieldsOn, looked !== null),
       yieldCells: null,
+      // The hexes worker advice names wear corner ticks while the worker is selected.
+      advice: workerAdviceList().map((job) => ({ col: job.col, row: job.row })),
       // A worked hex's yields on a plaque are the one mark of a city's hexes
       // (idea e, the user's choice of 2026-11-21). The pointer on a city on the
       // main map shows the same plaques, with no shade.
@@ -4999,6 +5012,39 @@ export function createGameControls(options: GameControlsOptions): GameControls {
           : undefined,
       playerId,
     };
+  }
+
+  // --- worker advice ---------------------------------------------------------
+  //
+  // The best hexes for the selected worker (`workerAdvice.ts`, a wrapper over
+  // the bots' own plan). It is worked out once when a worker is selected and
+  // kept until the state changes: `adviceEpoch` moves wherever the renderer is
+  // told `noteStateChanged`. The planner is large, so its module is loaded the
+  // first time a worker is selected, and the ticks appear when it answers.
+  let adviceEpoch = 0;
+  let adviceKept: { unitId: number; epoch: number; state: GameState; list: readonly WorkerAdvice[] } | null = null;
+  let adviceAsked = '';
+
+  function workerAdviceList(): readonly WorkerAdvice[] {
+    const unit = selectedUnit();
+    if (unit === null || unit.ownerId !== localPlayerId || !buildsImprovements(unit)) return [];
+    const { state } = getGame();
+    if (adviceKept && adviceKept.unitId === unit.id && adviceKept.epoch === adviceEpoch && adviceKept.state === state) {
+      return adviceKept.list;
+    }
+    const asked = `${unit.id}:${adviceEpoch}`;
+    if (adviceAsked !== asked) {
+      adviceAsked = asked;
+      const unitId = unit.id, epoch = adviceEpoch;
+      void import('./workerAdvice').then(({ workerAdvice }) => {
+        // The state may have moved while the module loaded. The next ask starts again.
+        if (epoch !== adviceEpoch || getGame().state !== state) return;
+        adviceKept = { unitId, epoch, state, list: workerAdvice(state, localPlayerId, unitId) };
+        refreshLens();
+        onHover?.();
+      }).catch(() => { adviceKept = { unitId, epoch, state, list: [] }; });
+    }
+    return [];
   }
 
   function refreshLens(): void {
@@ -8738,6 +8784,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setLocalPlayer,
     lens: () => manualLens,
     boardLens: () => effectiveLens().mode,
+    workerAdviceAt: (col, row) => workerAdviceList().find((job) => job.col === col && job.row === row) ?? null,
     setLens,
     yieldsShown: () => yieldsOn,
     setYields,

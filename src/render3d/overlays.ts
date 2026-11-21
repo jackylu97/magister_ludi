@@ -62,7 +62,6 @@ import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instan
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D } from './lookData';
 import type { MaterialLibrary } from './toon';
-import { citizenOutlines, type OutlineStrip } from './citizenMarks';
 import { movementEdges, movementFrontier, frontierRibbon } from './movementBoundary';
 
 const OVERLAY = VIEW3D.overlay;
@@ -235,12 +234,9 @@ export class OverlayLayer {
   private drawCallCount = 0;
   private boundaryMap: GameMap | null = null;
   private readonly boundaries: { key: string; strips: BufferGeometry[] }[] = [];
-  private workedMap: GameMap | null = null;
-  private workedKey = '';
-  private workedOutlines: OutlineStrip[] = [];
 
   /** Terraces or another relief replacement changed the registered terrain. */
-  invalidateSurface(): void { this.boundaryMap = null; this.workedMap = null; }
+  invalidateSurface(): void { this.boundaryMap = null; }
 
   private clearBoundaries(): void {
     for (const entry of this.boundaries) {
@@ -433,21 +429,6 @@ export class OverlayLayer {
       }
     }
 
-    // The hexes of the city under the pointer: one outline a little inside each
-    // worked hex, and a second inside the first on each pinned hex (the user,
-    // 2026-11-20: "The inset outlines replace the mouseover effect when you
-    // mouse over a city"). They are the Manage citizens mode's own outlines
-    // (`citizenOutlines`). The shapes are kept until the cells change.
-    const workedKey = JSON.stringify([state.worked, state.locked]);
-    if (this.workedMap !== map || this.workedKey !== workedKey) {
-      this.workedOutlines.forEach(strip => strip.geometry.dispose());
-      this.workedMap = map; this.workedKey = workedKey;
-      this.workedOutlines = map && state.worked.length ? citizenOutlines(map, state.worked, state.locked) : [];
-    }
-    for (const strip of this.workedOutlines) {
-      collector.add(strip.geometry, [strip.color], new Matrix4(), { onTop: true, opacity: strip.opacity, order: strip.order });
-    }
-
     // Selection under hover: when a unit is selected and the cursor is over its
     // own tile, the hover ring is the one that should be visible, because it is
     // the one that tracks the mouse.
@@ -484,7 +465,5 @@ export class OverlayLayer {
     disposeInstancedGroup(this.group);
     this.clearBoundaries();
     this.boundaryMap = null;
-    this.workedOutlines.forEach(strip => strip.geometry.dispose()); this.workedOutlines = [];
-    this.workedMap = null; this.workedKey = '';
   }
 }

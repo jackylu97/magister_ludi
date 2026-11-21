@@ -186,6 +186,12 @@ export interface LensView {
    * city could work" rather than as the whole board lighting up.
    */
   yieldCells: readonly CellRef[] | null;
+  /**
+   * The hexes that worker advice names, best first, or nothing. Each wears
+   * corner ticks, and the best one's are heavier. It is not a lens mode: the
+   * ticks show under any lens while a worker is selected.
+   */
+  advice?: readonly CellRef[];
   /** Whose question it is. The settler lens judges ownership through it. */
   playerId: number;
   /**

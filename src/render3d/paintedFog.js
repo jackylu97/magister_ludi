@@ -113,19 +113,25 @@ export function createPaintedFog(width, height, onCanopyChange) {
      * new values over `PAINTED_SET_BACK_MS`, driven by `advanceSetBack`. Without
      * one they arrive whole. Turning it off keeps the texels, so the ground has
      * something to fade from; at strength 0 the shader reads none.
+     *
+     * The settler lens uses the same texels for its tints: 4 (fresh water),
+     * 5 (coast) and 6 (dry ground) are hexes that are not set back and take a
+     * tint, and `tint` is the strength of the tints, 0 to 1. The city screen
+     * leaves `tint` at 0, so its own kinds are never read as tints.
      */
-    applySetBack(kinds, at, shade = 1, rim = 1) {
+    applySetBack(kinds, at, shade = 1, rim = 1, tint = 0) {
       let changed = 0;
       if (kinds !== null) {
         for (let cell = 0; cell < cells; cell++) {
           const kind = kinds[cell] ?? 2;
-          if (light.writeBack(cell, kind === 1 || kind === 2 ? 255 : 0, kind >= 2 ? 255 : 0)) changed++;
+          const far = kind === 4 ? 85 : kind === 5 ? 170 : kind >= 2 ? 255 : 0;
+          if (light.writeBack(cell, kind === 1 || kind === 2 ? 255 : 0, far)) changed++;
         }
       }
-      const to = kinds === null ? [0, 0] : [shade, rim];
-      const now = [uniforms.paintedBackOn.value, uniforms.paintedRimOn.value];
+      const to = kinds === null ? [0, 0, 0] : [shade, rim, tint];
+      const now = [uniforms.paintedBackOn.value, uniforms.paintedRimOn.value, uniforms.paintedTintOn.value];
       if (at === undefined || PAINTED_SET_BACK_MS <= 0) {
-        [uniforms.paintedBackOn.value, uniforms.paintedRimOn.value] = to; backFade = null;
+        [uniforms.paintedBackOn.value, uniforms.paintedRimOn.value, uniforms.paintedTintOn.value] = to; backFade = null;
       } else if ((backFade ? backFade.to : now).some((value, i) => value !== to[i])) {
         backFade = { from: now, to, at };
       }
@@ -137,6 +143,7 @@ export function createPaintedFog(width, height, onCanopyChange) {
       const eased = paintedRevealEase((now - backFade.at) / PAINTED_SET_BACK_MS);
       uniforms.paintedBackOn.value = backFade.from[0] + (backFade.to[0] - backFade.from[0]) * eased;
       uniforms.paintedRimOn.value = backFade.from[1] + (backFade.to[1] - backFade.from[1]) * eased;
+      uniforms.paintedTintOn.value = backFade.from[2] + (backFade.to[2] - backFade.from[2]) * eased;
       if (eased >= 1) backFade = null;
       return true;
     },
