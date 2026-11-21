@@ -3701,6 +3701,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const mark = element('span', 'citizen-key-mark');
       mark.setAttribute('aria-hidden', 'true');
       mark.innerHTML = `<svg viewBox="0 0 26 30" width="20" height="23"><polygon class="citizen-key-ground" points="${hexAt(1)}"/>${outlines}</svg>`;
+      // The word is hidden on a narrow screen, so the key carries it as well.
+      key.setAttribute('aria-label', label);
+      key.title = label;
       key.append(mark, element('span', 'citizen-key-word', label));
       keys.append(key);
     }

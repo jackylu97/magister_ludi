@@ -6967,8 +6967,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
   align-items: stretch;
   gap: 0;
   width: max-content;
-  /* The gap between the rails, less their margins and a little air. */
-  max-width: calc(100vw - 286px - 360px - 64px);
+  /* The gap between the rails (each has a 14px margin), less 32px of clear
+     ground on each side. The row does not wrap, so what the bar holds must
+     fit this: see the narrow rule under `.city-citizen-keys`. */
+  max-width: calc(100vw - 286px - 360px - 28px - 64px);
+  box-sizing: border-box;
   padding: 7px 8px 8px;
   pointer-events: auto;
   /* The head band's own rule, turned over: an ink line, a line of paper, and
@@ -7075,6 +7078,18 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-size: var(--size-ui);
   letter-spacing: 0.04em;
   color: var(--ink-faint);
+}
+
+/* A narrow screen (1280 wide is the case): the bar's widest state, with the
+   two keys, did not fit between the rails and its ends stuck out of its
+   paper. There the keys are the marks alone (each key's word is its tooltip
+   and its label for a screen reader), and the buttons are a little tighter. */
+@media (max-width: 1360px) {
+  .citizen-key-word { display: none; }
+  .city-citizen-keys { gap: 7px; padding-right: 8px; }
+  .city-buy-dock-row { gap: 6px; }
+  .city-buy-dock .city-buy-tiles { padding-inline: 10px; }
+  .city-dock-rule { margin-inline: 1px; }
 }
 
 /* The drawer: what the mode that is on has to say, inside the bar. It opens
