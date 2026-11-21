@@ -3351,3 +3351,11 @@ current game pieces. Could we add cathedral rework to the beta checklist".
   checklist, `docs/plans/beta-checklist-2026-11-21.md`.
 - **A "cathedral rework"** joins the beta checklist. Its content is not
   recorded anywhere yet: the Claude session has asked the user what it holds.
+
+Two corrections to the list above, found the same evening in Astra's update
+of the handoff: the coastal city rule is already BUILT (save version 254:
+buildings and bonuses use the city's owned coast, and ship production and
+purchases share one launch rule), and the fish trap gate was already
+confirmed to Astra by the user. The wonder model ruling above is newer than
+the handoff's row 12 ("three shared models on the city tile") and refines it:
+one model for a city that holds any wonder.
