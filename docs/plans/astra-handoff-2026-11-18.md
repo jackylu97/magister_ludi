@@ -31,7 +31,7 @@ detail of each item.
 | 9 | **Values for worker advice** | section 0.3 below | Selecting a worker requests advice in a background worker. The board marks up to three hexes. The hover panel shows the recommended build or repair and its yield changes. |
 | 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The prior version 252 replay pins were already refreshed at `8886505e`. Both six-player maps reached turn 121 with no warnings or stalls on version 254. The replay tests record their expected results. |
 | 11 | **The unit kit** | 3.16 | The [spearman and archer comparison](../../art/unit-kit-trial/astra-review/renders/comparison.png) is ready for review. The game keeps its current pieces. |
-| 12 | **Wonders on the board** | 3.13 | The user confirmed the three shared models on the city tile. |
+| 12 | **Wonders on the board** | 3.13 | One landmark per city. Ages I and II use the Sun Gate, Age III the Lantern Tower, and Age IV the Meridian Dial. [See the three models on the board](../../art/terrain-study/wonder-options/city-wonder-options.jpg). |
 
 **Integration with the playtest branch.** The first 21 November playtest already had Claude’s Fortify until healed command at save version 253. Save version 254 includes that command, the settler and explorer lenses, the worker advice panel, and both deck passes.
 

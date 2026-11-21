@@ -1,3 +1,4 @@
+import { WONDER_LANDMARKS, createWonderGeometries } from '../render3d/wonderLandmarks';
 import { VIEW3D } from '../render3d/lookData';
 import {
   AmbientLight, Box3, type BufferGeometry, Color, DirectionalLight, Group, InstancedMesh, Matrix4, Mesh, type MeshStandardMaterial,
@@ -51,6 +52,7 @@ const ROWS: readonly (readonly [label: string, names: readonly string[]])[] = ON
   ['Houses, first age', (NORTH_STAR_HOUSES as string[]).slice(0, 3)],
   ['Houses, middle ages', (NORTH_STAR_HOUSES as string[]).slice(3, 6)],
   ['Houses, late ages', (NORTH_STAR_HOUSES as string[]).slice(6, 9)],
+  ['Wonder landmarks by age', [...WONDER_LANDMARKS]],
   ['Hall and monuments', ['ns-hall', 'monument-obelisk', 'monument-ziggurat', 'monument-armillary']],
   // A town's centre in the first and second ages, and the richer houses and hall of the late ages (`NORTH_STAR_TOWN_AGES`).
   ['Town centres and late houses by age', NORTH_STAR_AGED_TOWN_ASSETS as string[]],
@@ -140,7 +142,9 @@ export async function drawNorthStarKit(into: HTMLElement): Promise<() => void> {
     const ranges = new Map<string, BufferGeometry>();
     const names = [...new Set(ROWS.flatMap(([, row]) => row))].filter(name => !name.startsWith(RANGES[0]!.replace(/-\d+$/, '')));
     if (ONLY_PILLAGED) names.push('ns-windmill-sails');
-    const assets = await loadSettlementAssets({ register() {} }, null, { names }) as Record<string, BufferGeometry> & { material: MeshStandardMaterial };
+    const files = names.filter(name => !WONDER_LANDMARKS.some(landmark => landmark === name));
+    const assets = await loadSettlementAssets({ register() {} }, null, { names: files }) as Record<string, BufferGeometry> & { material: MeshStandardMaterial };
+    if (!ONLY_PILLAGED) Object.assign(assets, createWonderGeometries());
     if (disposed) { for (const name of names) assets[name]?.dispose(); assets.material.dispose(); return dispose; }
     material = assets.material;
     // The mountains come from the vegetation kit, with the shader the board uses for them.

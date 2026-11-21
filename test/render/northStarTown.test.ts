@@ -63,6 +63,23 @@ function fixture(names: readonly string[], riverEdges = 0) {
 describe.skipIf(!VIEW3D.visualTest.northStar)('the north-star town', () => {
   const town = VIEW3D.visualTest.town;
 
+  it('upgrades one wonder plot when its owner advances', () => {
+    const f = fixture([...STUDY, ...MONUMENTS, ...NORTH_STAR_TOWN_ASSETS as string[]]);
+    f.city.buildings.push('pyramids', 'stonehenge');
+    const owner = f.state.players[f.city.ownerId]!;
+    let plot: [number, number] | undefined;
+    for (const [tech, expected] of [['agriculture', 'sun-gate'], ['wayfinding', 'sun-gate'], ['mathematics', 'lantern-tower'], ['alchemy', 'meridian-dial']] as const) {
+      owner.techsResearched.push(tech);
+      f.build();
+      const marks = f.layer.placements.filter(p => p.kind === 'wonder');
+      expect(marks).toHaveLength(1);
+      const mark = marks[0]!;
+      expect(mark.asset).toBe(expected);
+      if (plot) expect([mark.x, mark.z]).toEqual(plot);
+      plot = [mark.x, mark.z];
+    }
+  });
+
   it('stands a centre and the new houses, and keeps the garrison\'s place clear', () => {
     const f = fixture([...STUDY, ...MONUMENTS, ...NORTH_STAR_TOWN_ASSETS as string[]]);
     f.build();

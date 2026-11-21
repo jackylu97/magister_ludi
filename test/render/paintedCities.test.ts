@@ -235,7 +235,9 @@ describe('painted cities in the live game', () => {
       expect(Number.isFinite(placement.y)).toBe(true);
       if (placement.kind !== 'wall' && placement.kind !== 'gate') {
         expect(distanceToFootprint(centre, placement.footprint)).toBeGreaterThanOrEqual(VIEW3D.pieces.base.radius - 1e-4);
-        const geometry = f.assets[placement.asset as keyof PaintedCityAssets] as BufferGeometry;
+        const owned = f.layer.group.children.find(child => child instanceof InstancedMesh && child.geometry.name === placement.asset) as InstancedMesh | undefined;
+        const geometry = owned?.geometry ?? f.assets[placement.asset as keyof PaintedCityAssets] as BufferGeometry;
+        expect(geometry, placement.asset).toBeDefined();
         const draw = instances(f.layer.group, geometry).find(({ matrix }) => {
           const at = new Vector3().setFromMatrixPosition(matrix);
           return Math.abs(at.x - placement.x) < 1e-5 && Math.abs(at.z - placement.z) < 1e-5;

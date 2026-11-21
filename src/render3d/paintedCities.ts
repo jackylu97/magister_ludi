@@ -9,6 +9,7 @@ import { type CityLook, capitalIds, cityLook } from './cities3d';
 import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { createTileSurfaceSampler } from './paintedTileSurface';
 import { VIEW3D } from './lookData';
+import { createWonderGeometries, wonderLandmarkForAge, type WonderLandmark } from './wonderLandmarks';
 import { paintedCityGeometry } from './paintedCityGeometry';
 import { NORTH_STAR_TOWER_HEIGHT, NORTH_STAR_WALL_HEIGHT, northStarTownGeometry } from './northStarTownGeometry';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
@@ -21,7 +22,7 @@ import { terrainMesh } from '../terrainStudy/terrainMesh.js';
 import { surfacePatch } from '../terrainStudy/surfacePatch.js';
 
 type CityAssetName = 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spire' | 'city-dome' | 'house' | 'temple' | 'bell-tower'
-  | 'monument-ziggurat' | 'monument-armillary' | 'monument-obelisk' | NorthStarHouse | NorthStarCentre;
+  | WonderLandmark | 'monument-ziggurat' | 'monument-armillary' | 'monument-obelisk' | NorthStarHouse | NorthStarCentre;
 type NorthStarHouse = `ns-house-${1 | 2 | 3}${'a' | 'b' | 'c'}` | `ns-house-3${'d' | 'e' | 'f'}` | 'ns-house-4a';
 type NorthStarCentre = 'ns-hall' | 'ns-great-hut' | 'ns-great-house' | 'ns-hall-3' | 'ns-hall-4';
 /** One tier's entry of `NORTH_STAR_TOWN_AGES`. */
@@ -36,7 +37,6 @@ type TownAge = { houses: NorthStarHouse[]; centre: NorthStarCentre; centreSize: 
  * not loaded, the study's pieces stand as before.
  */
 const MONUMENTS = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.monuments : null;
-const WONDER_MONUMENTS = ['monument-obelisk', 'monument-ziggurat', 'monument-armillary'] as const;
 /**
  * The town that fills its hex (the visual test, 2026-11-12; `docs/flags.md`
  * item (nnnnnnn), "Towns and works in the test scene"). On under the same
@@ -45,7 +45,7 @@ const WONDER_MONUMENTS = ['monument-obelisk', 'monument-ziggurat', 'monument-arm
  */
 const TOWN = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.town : null;
 const NORTH_STAR_HOUSE_NAMES = [1, 2, 3].flatMap(tier => ['a', 'b', 'c'].map(variant => `ns-house-${tier}${variant}` as NorthStarHouse));
-type PrimaryCityAsset = Exclude<CityAssetName, 'house' | 'temple' | 'bell-tower' | NorthStarHouse | NorthStarCentre>;
+type PrimaryCityAsset = Exclude<CityAssetName, WonderLandmark | 'house' | 'temple' | 'bell-tower' | NorthStarHouse | NorthStarCentre>;
 export type PaintedCityAssets = { material: MeshStandardMaterial } & Record<PrimaryCityAsset, BufferGeometry> & Partial<Record<CityAssetName, BufferGeometry>>;
 interface PaintedCityAnchor { x: number; y: number; z: number }
 interface PaintedCityOptions { previewWalls?: boolean }
@@ -187,7 +187,11 @@ export class PaintedCityLayer {
    */
   get shadowKey(): string { return this.casters; }
 
-  constructor(private readonly assets: PaintedCityAssets, registerMaterial: RegisterMaterial) {
+  private readonly wonderGeometries = createWonderGeometries();
+  private readonly assets: PaintedCityAssets;
+
+  constructor(assets: PaintedCityAssets, registerMaterial: RegisterMaterial) {
+    this.assets = { ...assets, ...this.wonderGeometries };
     this.group.name = 'painted-cities';
     this.town = TOWN && assets['ns-hall'] && NORTH_STAR_HOUSE_NAMES.every(name => assets[name]) ? TOWN : null;
     // The north-star town's ground is drawn over the roads (ground ink has an
@@ -515,7 +519,7 @@ export class PaintedCityLayer {
         };
         if (look.hasWonder) {
           // Give the landmark a full building plot. Try the next one on a river or coast.
-          const asset = WONDER_MONUMENTS[city.id % WONDER_MONUMENTS.length]!;
+          const asset = wonderLandmarkForAge(look.tier);
           for (const plots of [big, pockets, lots]) {
             const at = plots.findIndex(plot => stand('wonder', asset, plot, town.monumentSize) !== undefined);
             if (at >= 0) { plots.splice(at, 1); break; }
@@ -621,7 +625,7 @@ export class PaintedCityLayer {
       if (look.shrine && look.tier >= CITY.shrine.fromTier) building('shrine', grand ? 'monument-obelisk' : 'city-spire', -.33, -.52, grand ? grand.shrine : .38);
       if (look.temple && look.tier >= CITY.temple.fromTier) building('temple', grand ? 'monument-ziggurat' : 'city-dome', .34, -.50, grand ? grand.temple : .48);
       if (look.hasWonder) {
-        const asset = grand ? WONDER_MONUMENTS[city.id % WONDER_MONUMENTS.length]! : 'city-spire';
+        const asset = wonderLandmarkForAge(look.tier);
         for (const [x, z] of wonderSlots) {
           if (building('wonder', asset, x, z, grand ? grand.wonder : .25)) break;
         }
@@ -699,6 +703,7 @@ export class PaintedCityLayer {
     this.clearBatches(); this.clearRecipes(); this.fields.dispose();
     this.flagAnchors.clear(); this.cityHeights.clear(); this.smokeAnchors.clear(); this.placements.length = 0;
     Object.values(this.geometry).forEach(geometry => geometry.dispose());
+    Object.values(this.wonderGeometries).forEach(geometry => geometry.dispose());
     Object.values(this.northStar).forEach(geometry => geometry.dispose());
   }
 }

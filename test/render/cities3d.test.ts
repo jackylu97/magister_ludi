@@ -301,23 +301,17 @@ describe('a town shows what stands in it', () => {
     built.layer.dispose();
   });
 
-  /**
-   * The world's one permitted spectacle (`docs/art-pass.md`, W3): a marvel and
-   * its gilt tip, drawn from Æra I because a wonder is not a thing a people
-   * grows into. One per wonder standing, so the ring grows for a second one
-   * rather than swapping the first out.
-   */
   it('raises a marvel in a town that finished a wonder', () => {
     const state = townState();
     const before = build(state);
-    expect(drew(before, before.geometry.wonder)).toBe(0);
+    expect(drew(before, before.geometry.wonderLandmarks['sun-gate'])).toBe(0);
     before.layer.dispose();
 
     state.cities[0]!.buildings.push('theOracle');
     const built = build(state);
     // Three, like the palace: one per wrap copy.
-    expect(drew(built, built.geometry.wonder)).toBe(3);
-    expect(drew(built, built.geometry.wonderTip)).toBe(3);
+    expect(drew(built, built.geometry.wonderLandmarks['sun-gate'])).toBe(3);
+    expect(drew(built, built.geometry.wonderLandmarks['lantern-tower'])).toBe(0);
     built.layer.dispose();
   });
 });

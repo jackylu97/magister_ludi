@@ -1,5 +1,9 @@
 # The Standing Flags
 
+### Wonder landmarks on city tiles, 2026-11-21
+
+A city with one or more completed wonders shows one landmark. Use the current owner's age. Ages I and II use the Sun Gate. Age III uses the Lantern Tower. Age IV uses the Meridian Dial. The landmark uses a city plot beside the square.
+
 ### Pillaging and repair, 2026-11-19
 
 Pillaging an improvement leaves a damaged work on the tile. Until a worker repairs it, all game rules treat the tile as having no improvement. This includes yields, resource access and the improved-tile counts on Orders. A worker can repair the original work without spending a charge. The player must be able to see the damage and order the repair. Dedicated 3D models for damaged works are deferred.
