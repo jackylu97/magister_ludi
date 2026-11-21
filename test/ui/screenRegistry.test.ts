@@ -16,6 +16,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  RECENT_OPENINGS,
   type Surface,
   type SurfaceKind,
   createScreenRegistry,
@@ -160,6 +161,23 @@ describe('the rule', () => {
     expect(() => registry.opening('nowhere')).toThrow(/nowhere/);
   });
 
+  it('remembers the last openings, oldest first, for a problem report', () => {
+    // The screen a player saw a fault on has usually closed by the time they
+    // open the report from the game menu, so the report carries this record.
+    const { registry } = registryOf(SMALL);
+    expect(registry.recent()).toEqual([]);
+    registry.opening('trade');
+    registry.opening('menu');
+    expect(registry.recent()).toEqual(['trade', 'menu']);
+    for (let i = 0; i < RECENT_OPENINGS + 3; i++) registry.opening(i % 2 === 0 ? 'ledger' : 'menu');
+    expect(registry.recent()).toHaveLength(RECENT_OPENINGS);
+    expect(registry.recent()[RECENT_OPENINGS - 1]).toBe('ledger');
+    // A copy: the caller cannot change the record.
+    const copy = registry.recent() as string[];
+    copy.length = 0;
+    expect(registry.recent()).toHaveLength(RECENT_OPENINGS);
+  });
+
   it('is pure: no DOM in the module', () => {
     const module = uiSource('screenRegistry.ts')
       .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -236,6 +254,8 @@ const REGISTER: readonly (readonly [string, SurfaceKind])[] = [
   ['ledger', 'screen'],
   ['capture', 'screen'],
   ['standings', 'screen'],
+  // Report a problem, from the game menu (beta checklist row 10).
+  ['report', 'screen'],
   ['warDispatch', 'screen'],
   // News: raised at the player over whatever is up.
   ['offer', 'news'],

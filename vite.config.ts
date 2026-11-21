@@ -1,4 +1,8 @@
 import { configDefaults, defineConfig } from 'vitest/config';
+// The one node module this config reads (see `buildCommit`). The tsconfig has
+// no node typings (see `process` below), so the import is untyped on purpose.
+// @ts-expect-error: no `@types/node` in this project.
+import { execSync } from 'node:child_process';
 
 /**
  * The two tiers, selected by one environment variable.
@@ -35,9 +39,40 @@ declare const process: { env: Record<string, string | undefined> };
 const TIER = process.env.TEST_TIER ?? 'core';
 const SLOW_GLOB = '**/*.slow.test.ts';
 
+/**
+ * The build's name for itself: the short git commit, read once when this
+ * config loads. It is "dev" when there is no git to ask (a copy of the files
+ * without their history, or a host that builds without git). The game menu
+ * prints it beside the save version, and a problem report carries it
+ * (`src/ui/buildStamp.ts`).
+ *
+ * It is synchronous on purpose. Other configs import this one (the
+ * screenshot harnesses), and a config outside this package is bundled as
+ * CommonJS, where a top-level `await` is refused.
+ */
+function buildCommit(): string {
+  try {
+    const out: { toString(): string } = execSync('git rev-parse --short HEAD', {
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 5000,
+    });
+    const commit = out.toString().trim();
+    return /^[0-9a-f]{4,40}$/.test(commit) ? commit : 'dev';
+  } catch {
+    return 'dev';
+  }
+}
+
+const BUILD_COMMIT = buildCommit();
+
 export default defineConfig({
   server: {
     port: 5173,
+  },
+  // The one build-time constant the page reads (see `buildCommit`). Every
+  // page and worker gets the same value, because it is read once per build.
+  define: {
+    __APP_COMMIT__: JSON.stringify(BUILD_COMMIT),
   },
   // Every `data/*.json` import is a default import, so nothing needs the named
   // exports this turns off. Emitting each table as `JSON.parse("...")` rather

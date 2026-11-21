@@ -453,14 +453,16 @@
   margin-top: 6px;
 }
 
-/* Only a long group scrolls, inside its tray: the luxuries, and the towns in
-   a peace. Gold and the right of way stay in view. */
+/* Only a long group scrolls, inside its tray: the luxuries, the strategic
+   resources, and the towns in a peace. Gold and the right of way stay in view. */
 .dp-group.is-luxuries,
+.dp-group.is-strategics,
 .dp-group.is-towns {
   flex: 0 1 auto;
 }
 
 .dp-group.is-luxuries .dp-chips,
+.dp-group.is-strategics .dp-chips,
 .dp-group.is-towns .dp-chips {
   min-height: 0;
   overflow-y: auto;

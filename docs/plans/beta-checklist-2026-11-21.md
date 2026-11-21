@@ -25,11 +25,11 @@ Owners: **A** is Astra (bots, rendering, models, rules and card builds).
 | # | Item | Owner | State |
 |---|---|---|---|
 | 9 | The first hour: the guide's lessons and the Compendium agree with the game as built (no "tended", the new lenses, the city screen's mode, Fortify until healed, the advice panel) | C | Not started. After the two deck builds, so that it is done once. |
-| 10 | A way to report: a version stamp on screen, and a button that exports the save with a note | C | Not started. |
+| 10 | A way to report: a version stamp on screen, and a button that exports the save with a note | C | Built. The game menu shows the build (the short git commit) and the save version. "Report a problem…" saves one file with the note, the screen, the last errors and the save, and copies a summary. Nothing is sent. Load, then Import a file, opens a report and replays it (`docs/README.md`, "The build stamp and Report a problem"). |
 | 11 | An old save gives a clear message, not a crash; the save version holds still once the beta starts | A, C | To check. The version is 254 today. |
 | 12 | The smallest window the game supports, stated in the invitation or tested | C | Checked at 1440x900 and 1280x800 only. |
 | 13 | A second browser (the user's is WebKit) | C, U | Only Chrome was used for checks. |
-| 14 | A resource picker for composing a strategic resource offer on the diplomacy screen | C | Astra built the loans; offers and treaties already name the resource. |
+| 14 | A resource picker for composing a strategic resource offer on the diplomacy screen | C | Built. Each tray has a strategic group after the luxuries: the free copies on each chip, a struck chip with the sim's reason when none is free, and a hover note when the receiver cannot use it yet. The paper, the drawer and the peace terms name the loan (`docs/README.md`, "Strategic resources in an offer"). |
 | 15 | Wonders on the board: one model for a city that holds any wonder | A | Ruled 2026-11-21. |
 
 ## C. Settled, no work

@@ -289,6 +289,16 @@ import {
 } from './ui/endTurnList';
 import { bindScreenHotkeys } from './ui/screenHotkeys';
 import { requireElement } from './ui/dom';
+import { BUILD_STAMP, saveVersionLine } from './ui/buildStamp';
+import { createErrorLog } from './ui/errorLog';
+import { type ProblemReportSheet, createProblemReportSheet, reportMoment } from './ui/problemReport';
+
+/**
+ * The page's last uncaught errors, for a problem report. Armed here, with the
+ * stale-deploy watch below, so an error thrown during the boot is kept too. It
+ * listens to two window events and never wraps `console` (`createErrorLog`).
+ */
+const errorLog = createErrorLog(window);
 
 /**
  * The stale-deploy watch, armed **before anything else in this module runs**.
@@ -583,6 +593,14 @@ const saveAsNameInput = requireElement<HTMLInputElement>('save-as-name');
 const saveAsGoButton = requireElement<HTMLButtonElement>('save-as-go');
 const saveAsCancelButton = requireElement<HTMLButtonElement>('save-as-cancel');
 const menuSaveNoteEl = requireElement<HTMLElement>('menu-save-note');
+/* Report a problem (`src/ui/problemReport.ts`): the menu's row and its sheet. */
+const menuReportButton = requireElement<HTMLButtonElement>('menu-report');
+const reportOverlayEl = requireElement<HTMLElement>('report-overlay');
+const reportBodyEl = requireElement<HTMLElement>('report-body');
+/* The build stamp, under the map and the seed: two short rows, so neither
+   wraps in the menu's width. It never changes on this page. */
+requireElement<HTMLElement>('info-build').textContent = BUILD_STAMP.commit;
+requireElement<HTMLElement>('info-save-version').textContent = saveVersionLine();
 
 /* The notification channel's two surfaces: the toast stack under the bar, and
    the chronicle behind the ❧ button. See `src/ui/notifications.ts` for what is
@@ -992,7 +1010,7 @@ function disposeGameScreens(): void {
   ledger = capture = ceremony = meterCards = empireDrawer = null;
   commissionRail = diplomacy = diplomacyOffers = warDispatch = null;
   leaderSheet = victory = offerCardHolder = triumphSheet = beadSheet = null;
-  agePlate = wonderPlate = opusClose = endTurnList = null;
+  agePlate = wonderPlate = opusClose = endTurnList = problemReport = null;
   notifications = toasts = tutorialBoardAnchor = null;
   tutorialWaits = () => false;
   pumpNews = () => {};
@@ -1016,6 +1034,9 @@ let censusSheet: CensusSheet | null = null;
 let leaderSheet: LeaderSheet | null = null;
 /* Diplomacy's screen, built in `boot` for `trade`'s reason exactly. */
 let diplomacy: DiplomacyScreen | null = null;
+/* The problem report, built in `boot` for `trade`'s reason: it reads the game
+   and the seat, and the screen registry's list is written before either. */
+let problemReport: ProblemReportSheet | null = null;
 let warDispatch: WarDispatch | null = null;
 let diplomacyOffers: ReturnType<typeof createDiplomacyOffers> | null = null;
 
@@ -1360,6 +1381,7 @@ screens.register(held('reliquary', 'screen', () => reliquary));
 screens.register(held('ledger', 'screen', () => ledger));
 screens.register(held('capture', 'screen', () => capture));
 screens.register(held('standings', 'screen', () => victory));
+screens.register(held('report', 'screen', () => problemReport));
 // The war dispatch is a screen rather than news: it is built last, so its
 // Escape listener runs after every sheet's, and over an open sheet Escape would
 // close the sheet underneath first. Opening it closes the other screens, as it
@@ -5791,6 +5813,56 @@ async function boot(initial: Game | null): Promise<void> {
     onOpen: () => screens.opening('standings'),
   });
   gameDisposers.push(() => victory?.dispose());
+
+  /**
+   * **Report a problem** (`src/ui/problemReport.ts`), from the game menu: a
+   * note and one file with a save of this game. Nothing is sent.
+   *
+   * `capture` runs before the registry closes anything, so the menu is still
+   * listed as open. Everything it reads is the interface's own getters: the
+   * open city, the selected unit, the lens, and the registry's record of what
+   * opened last (the screen a player saw a fault on has usually closed by
+   * then). The save is the one Export writes, and `saves.ts` reads a report as
+   * the save inside it.
+   */
+  problemReport = createProblemReportSheet({
+    overlay: reportOverlayEl,
+    body: reportBodyEl,
+    closeButton: requireElement('report-close'),
+    capture: () => {
+      const city = controls.openCity();
+      const unit = controls.selectedUnit();
+      return reportMoment({
+        game,
+        seat: controls.localPlayerId(),
+        saveName: currentSaveName,
+        view: {
+          open: screens.surfaces().filter((surface) => surface.isOpen?.() === true).map((surface) => surface.name),
+          recent: [...screens.recent()],
+          city: city === null ? null : { id: city.id, name: city.name },
+          unit: unit === null ? null : { id: unit.id, type: unit.type, col: unit.col, row: unit.row },
+          lens: controls.lens(),
+          boardLens: controls.boardLens(),
+        },
+        browser: {
+          userAgent: navigator.userAgent,
+          width: window.innerWidth,
+          height: window.innerHeight,
+          pixelRatio: window.devicePixelRatio,
+        },
+        errors: errorLog.lines(),
+        now: Date.now(),
+      });
+    },
+    download: downloadJson,
+    onOpen: () => screens.opening('report'),
+    returnFocus: () => menuButton,
+  });
+  gameDisposers.push(() => problemReport?.dispose());
+  menuReportButton.addEventListener('click', () => {
+    resetSaveMenu();
+    problemReport?.open();
+  }, { signal });
 
   // The board opens these screens. Each screen handles its own close keys.
   bindScreenHotkeys(window, signal, isInputBlocked, (key) => {
