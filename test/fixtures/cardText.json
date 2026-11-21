@@ -11752,8 +11752,8 @@
     "text": "+2 gold on every trade route that ends in a city with The Longjiang Dockyard"
    },
    {
-    "raw": "Ships launched here do not yet sail an extra step. — not built yet",
-    "text": "Ships launched here do not yet sail an extra step. — not built yet",
+    "raw": "Ships built here do not get more movement yet. — not built yet",
+    "text": "Ships built here do not get more movement yet. — not built yet",
     "deferred": true
    }
   ],
@@ -11779,8 +11779,8 @@
   ],
   "rupertsbergScriptorium": [
    {
-    "raw": "What this city believes is not yet worth twice as much here. — not built yet",
-    "text": "What this city believes is not yet worth twice as much here. — not built yet",
+    "raw": "The faith of this city is not doubled here yet. — not built yet",
+    "text": "The faith of this city is not doubled here yet. — not built yet",
     "deferred": true
    }
   ],

@@ -20,6 +20,11 @@
  * "authority capacity" or "camp" the Compendium **explains the word** rather than rewriting
  * it. One vocabulary, glossed once.
  *
+ * Since the Compendium pass of 2026-11-21 a lead page also carries the rules
+ * that are true of every entry on its shelf (how a unit is priced, how a ship
+ * moves, what a wonder is), so that no entry has to say them. New text here is
+ * plain English: short sentences, no em dashes (`CLAUDE.md`, Writing).
+ *
  * `compendium.ts`'s digit rule holds here, and for the same reason: nothing on
  * these pages may type a number, because a number written in prose is a second
  * table that goes stale on the next balance pass. Where a figure matters the
@@ -31,9 +36,16 @@
  * a bead count typed into this file, and on a retired system named in it.
  */
 
+import { techDef } from '../sim/techData';
 import { WAGER_RULES } from '../sim/wagerData';
 import type { CompendiumEntry, CompendiumSectionId } from './compendium';
 import { numberWords } from './numberWords';
+
+/**
+ * The technology that lets an empire pay faith for a new hand of Orders, as a
+ * link with the name the data gives it.
+ */
+const LONG_COUNT = `[[tech:theLongCount|${techDef('theLongCount').name}]]`;
 
 /** The id every lead page carries on its shelf: `unit:about`, `tech:about`. */
 export const SHELF_INTRO_KEY = 'about';
@@ -79,56 +91,75 @@ function beadsInWords(count: number): string {
  * shelves, which are already prose — simply is not a key.
  */
 export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>> = {
+  // The pass of 2026-11-21: the rules every unit of a kind shares are said here,
+  // one time, and no longer on each entry (the price, upkeep, upgrades, a
+  // resource copy, charges, exploring, ships).
   unit: lead('unit', 'About units', '⚔', [
-    'Units are the pieces you move on the map. You get one by putting it in a city’s build queue and letting the city’s production pay for it, or by buying it outright — most units with gold, and a few, such as the prophet, with faith instead.',
-    'Military units fight. Civilian units — settlers, workers, prophets and great people — cannot fight, and are captured if an enemy reaches them. Several civilians are used up by the job they do: a settler becomes a city, a worker spends charges until it has none left.',
-    'A trader is neither, and has a slot of its own on a hex: a caravan may stand where a civilian and a soldier are already standing, and any number of caravans may share one hex. A trader that an enemy reaches is destroyed rather than captured, and its cargo goes to the attacker.',
-    'Each entry below gives a unit’s combat strength, how far it moves, how far it sees, what it costs, what it costs the treasury every turn to keep, and which technology unlocks it. Soldiers cost gold every turn; civilians, traders and the scout cost nothing, and neither does a unit the game handed you rather than sold you.',
+    'Units are the pieces you move on the map. A city builds a unit with production, or you buy it in a city with gold. A few units, such as the prophet, are bought with faith.',
+    'Military units fight. Civilian units (settlers, workers, prophets and great people) cannot fight, and an enemy that reaches one captures it. A trader is neither. It has a slot of its own on a hex, so it can stand with a soldier and a civilian, and any number of traders can share a hex.',
+    'Each entry below gives the figures of a unit, then what it does, then how you get it. The rules in the list below are true of every unit, so an entry does not say them again.',
+    'Price: the production cost on an entry is the base price. A city can pay more, because each settler costs more than the last and cards change prices. The city screen shows the price your city pays.',
+    'Upkeep: a military unit costs gold each turn. A civilian, a trader and a scout cost nothing, and a unit the game gave you costs nothing.',
+    'Upgrades: when you research the technology of a better unit, your units of the older kind become the better unit, and the older unit leaves the build list. If the better unit needs a resource and you have no spare copy, the units stay as they are and the older unit stays on the list.',
+    'Resources: a unit that needs a resource takes one spare improved copy when you add it to a build queue. It holds the copy for as long as it lives, and the copy comes back when the unit dies or is disbanded.',
+    'Charges: a worker spends one or more charges on each improvement, and it is used up when it has none left.',
+    'Exploring: you can tell any military unit to explore. It moves to unexplored land on its own until it can reach no more, and any other order stops it.',
+    'Ships: a ship moves on coast and lake hexes. It can enter land only in a coastal city of yours, which is also where it is built. One land unit at sea can share a hex with a ship, and two ships cannot share a hex.',
+    'Headings: after the ordinary units come the units of one leader, the units a card unlocks, and the units that are not in the game now.',
   ]),
   building: lead('building', 'About buildings', '▣', [
-    'A building is a permanent addition to one city. You add it to that city’s build queue, its production pays for it over several turns, and once finished it stays for the rest of the game — a captured city keeps everything that was built in it.',
-    'Buildings are how a city gets better at something: extra yields every turn, faster production of one kind of thing, stronger defence, wider sight, or renown that attracts great people.',
-    'Each entry below gives a building’s production cost, what it pays every turn, what it costs the treasury every turn to keep, any other effect it has, and the technology that unlocks it. The buildings that cost upkeep are the institutions — the ones that earn renown — and the older the technology behind one, the cheaper it is to run. Wonders are on their own shelf, and a wonder costs nothing to keep.',
+    'A building is a permanent part of one city. The city builds it with production, or you buy it there with gold. A captured city keeps its buildings.',
+    'Each entry below gives the cost and the upkeep of a building, where it can be built, every effect it has, and what unlocks it. Upkeep is gold each turn, and the buildings that earn renown are the ones that cost it.',
     // The user, 2026-11-19: empire buildings are named and explained in the book.
     'Some buildings are [[concept:empireBuilding|empire buildings]]: your empire may normally have only one of each. If you lose the town that holds one, you lose the building too. Their entries below say so.',
+    'Headings: after the ordinary buildings come the buildings of one leader, the buildings a card unlocks, and the buildings that are not in the game now. Wonders are on their own shelf.',
   ]),
   wonder: lead('wonder', 'About wonders', '✶', [
-    'A wonder is a building only one player in the whole game can have. You build it the way you build anything else, but if a rival finishes it first yours is cancelled — so a wonder is a race, and worth starting early in a city with strong production.',
-    'A wonder’s effect belongs to the city that holds it, which means a captured city carries its wonders to the new owner. Wonders cannot be bought with gold, and some can only be built in a particular kind of place, such as a coastal city.',
-    'Each entry below gives a wonder’s production cost, everything it does, where it must be built, and the technology that unlocks it.',
+    'A wonder is a building that only one empire in the world can have. A city builds it with production. It cannot be bought with gold, and it has no upkeep.',
+    'If another empire finishes a wonder first, your city stops building it. If the wonder was first in the build queue, the production you put in comes back as gold, at a lower rate.',
+    'The effects of a wonder belong to the city that holds it, so an empire that captures the city gets them. Finishing a wonder pays renown.',
+    'Each entry below gives the cost of a wonder, where it can be built, every effect it has, and the technology that unlocks it.',
   ]),
   improvement: lead('improvement', 'About improvements', '⛏', [
-    'An improvement is something built on a single hex to make that hex worth more — a farm, a mine, a pasture, a fishing boat. It is also how you gain the use of a resource: most resources pay nothing until the improvement they ask for stands on them.',
-    'Workers build almost all of them. A worker carries a number of work charges, spends one or more on each improvement, and is used up when they run out. A few at the end of this shelf are built by nobody else: five of them are a great person’s own work, one for each family, and the holy site is planted by a prophet.',
-    'Each entry below gives what an improvement adds to a hex, the terrain it may be built on, the resources it opens, and the technology that unlocks it.',
+    'An improvement is built on one hex and makes that hex pay more. It is also how you get the use of a resource: most resources give nothing until the improvement they need stands on them.',
+    'A worker builds most improvements, and each one costs work charges. A new improvement replaces the one that was on the hex.',
+    'A great person builds the work of its family, and a prophet builds the holy site. These are great people’s works. A card that counts works counts each of them, and a work gives access to a resource on its hex.',
+    'Each entry below gives what an improvement adds to its hex, where it can be built, the resources it gives access to, what it does, and what unlocks it.',
+    'Headings: after the ordinary improvements come the improvements of one leader, the improvements a card unlocks, and the works of great people.',
   ]),
   resource: lead('resource', 'About resources', '◆', [
-    'A resource sits on a hex from the moment the map is made and makes that hex more valuable. Bonus resources simply add yields. Luxury resources give your whole empire a standing bonus, usually happiness or gold. Strategic resources are what certain units are made of, and you cannot build those units without one.',
-    'Three things stand between you and a resource: the technology that reveals it, the improvement it asks for, and ownership of the hex. Until the revealing technology is researched the resource is invisible, pays nothing, and cannot be used.',
-    'Each entry below gives a resource’s yield, where it appears, the technology that reveals it, the improvement that opens it, and — for a luxury — what holding one does for your empire.',
+    'A resource is on a hex from the start of the game. A bonus resource adds yields to its hex. A luxury gives your whole empire a bonus. A strategic resource is what some units are made of.',
+    'You need three things to use a resource: the technology that reveals it, the improvement it needs (or a city on the hex), and the hex inside your borders. Before you research the technology, you cannot see the resource, it pays nothing and you cannot use it.',
+    'For the bonus of a luxury or a strategic resource, one improved copy is enough. A unit that needs a strategic resource holds one copy for as long as it lives, and a unit in a build queue holds one too. The copies you have left are the units you can still build.',
+    'Each entry below gives the yield of a resource, where it appears, the technology that reveals it, the improvement it needs, the units that need it, and what it does for your empire.',
   ]),
   tech: lead('tech', 'About technologies', '✦', [
-    'A technology is something your civilisation has learned. Your science yield researches one at a time, and each finished technology unlocks new units, buildings, improvements and abilities, or makes something you already have pay more.',
-    'You choose what to research on the research screen. A technology that requires others queues those ahead of it automatically. Technologies are grouped into ages, written here as Æra I, Æra II and Æra III; your empire enters the next age once it holds enough of the current one, which changes unit prices, the look of your cities, and which great people are offered.',
-    'Each entry below gives a technology’s research cost, what it requires first, and everything it hands over.',
+    'A technology is a thing your empire has learned. Your science researches one technology at a time. A finished technology unlocks units, buildings, improvements and abilities, or makes a thing you have pay more.',
+    'You choose a technology on the research screen. If it needs other technologies, the game researches those first. Technologies are in ages, written Æra I, Æra II and so on. Your empire enters the next age when it has enough technologies of the present one.',
+    'A charter technology is one that only an empire with its charter card can research. The charter technologies are under their own heading, after the ordinary ones.',
+    'Each entry below gives the research cost of a technology, the technologies it needs first, and everything it gives.',
   ]),
   rule: lead('rule', 'About named rules', '§', [
     'Most technologies hand over a thing — a unit, a building, an improvement — and a few hand over a rule instead: something about your empire that is true from the moment the technology is finished, for the rest of the game.',
     'A short rule is printed on the technology itself, on the star chart and on its page here. A long one would not fit on a node, so it is given a name, the name is printed on the node in bold, and the whole of it is written down on this shelf. The name is the technology’s own.',
     'Each entry below gives the rule in full, says which technology brings it, and explains in ordinary words what it is for.',
   ]),
+  // Rewritten on 2026-11-21 to the standard of the Compendium pass: one topic a
+  // paragraph, the topic named first, short sentences, and links to the pages
+  // a paragraph names.
   order: lead('order', 'About Orders', '❧', [
-    'An Order is a policy card. Culture is what earns them: when enough has accumulated a draft opens, the game offers a small hand of Orders, and you keep the one you pick.',
-    'An Order does nothing while it sits in your collection. You place it in one of your government’s chairs on the Statecraft screen, and it works for exactly as long as it stays there. A newly placed Order is locked for a few turns, meaning it cannot be moved yet.',
-    'Every card and every chair has a type: Military, Economic, Civic or Wildcard. A Military, Economic or Civic card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. A card from a deck that has not been sorted into types yet fits any chair. A government decides how many chairs you have and of which types, and a better form of government has more of them. When you adopt a new one, each placed Order keeps its chair if that chair is still there and still fits it; the rest move to free chairs that fit them, and any that fit none go back to your collection.',
-    'Each government of the last tier makes one type of card stronger. While it is your government, every yield, percentage and strength that a placed card of its type gives grows by the share the government names, rounded to the nearest whole number, and always by at least one where the figure is one or more. Each rise is shown as a line of its own beside the card’s. A card in your collection is not raised, and neither are its costs, its rules, its happiness, its authority or its renown. A card from a deck not sorted yet counts as the type of its chair.',
-    'Your leader decides which cards you will ever be offered. Every card belongs to a deck — Dominion, Expansionist, Commerce, Devotion, Scientific or Magisterial — and a leader holds two of them for the whole game. Beside those, two kinds of card are open to you whatever you play: the ones two decks share, which you may draw if you hold either, and the ones that belong to no deck at all, which everybody may draw. One leader is the exception and draws from all six. This shelf is arranged the same way, a heading to a deck, so the cards you can be dealt are the cards you can find.',
-    'Each card also names a band: early, middle, late, advanced or final. The band says how many drafts a realm must have taken before that card can turn up. Each band opens at the same draft as a new tier of governments, and the age your research has reached does not matter. You are only ever offered cards from the latest band you have reached. When a new band opens, the cards of earlier bands stop being offered, though any you already hold stay yours. Until then, a card you passed on may be offered again.',
-    'A draft gives you three answers, not one. You may take a card; you may pass, which spends the hand and makes your next draft likelier to offer rarer cards; or, once your calendars can call for a second reading, you may pay faith to have the same draft dealt again. The reroll costs more every time you use it and more in later ages, and the button always prints what the next one will cost before you press it. At a few points along the ladder of reforms you are also dealt a hand of nothing but the cards your decks hold back. That one is free, it waits until you open it, and passing it costs you nothing.',
-    'A charter is the one card that is never placed. It is drafted like any other, and taking it opens what it names — a study your scholars could not otherwise begin, a building your masons could not otherwise raise, a rite your temples could not otherwise perform. It takes no chair and can never be turned out of one, and it hands nothing over free: what it opens still has to be researched or built.',
-    'A few phrases on these cards mean something exact. Authority is the meter that limits how many cities you can govern, and it can go negative. Border expansion is how fast a city claims its next hex, fed by that city’s own culture — banked separately from the culture that earns you drafts. Leftover production is what is left in a city’s basket when something finishes. A unique luxury means each different kind of luxury resource you have improved, however many copies of it you hold. A fortification level counts the turns a unit has spent dug in, up to its cap. Authority capacity is the ceiling the meter measures against, not the meter itself — a card that raises it lets you govern more cities.',
-    'Two kinds of card here cannot be drawn, and each says which it is at the top of its page. A card marked not dealt yet is one whose wording is settled and whose rule the game cannot yet carry out; it is printed so you can read it, and it joins its deck the day that rule is built. A card marked withdrawn is one the design has taken out for good — an empire that took one before it went keeps it, and it still pays what it says. The withdrawn cards are the last shelf below, behind everything a draft can still deal.',
-    'Each entry below gives an Order’s deck, its band, how often it turns up, and exactly what it does.',
+    'An Order is a card that gives your empire a bonus while it sits in a chair of your government. Culture earns Orders: when you have saved enough, a draft opens.',
+    `Draft: the game offers a hand of Orders. Take one, or pass. A pass makes rarer cards more likely in your next draft. After you research ${LONG_COUNT} you can also pay faith for a new hand. That price rises each time, and it starts over with each new government.`,
+    'Chairs: an Order works only while it is in a chair. Each chair and each card has a type: Military, Economic, Civic or Wildcard. A card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. A card from a deck with no types yet fits any chair. A newly seated Order is locked for a few turns.',
+    'Governments: a government sets how many chairs you have and their types. When you adopt a new one, each Order keeps its chair if the chair is still there and still fits. The others move to free chairs that fit them. An Order that fits no chair goes back to your collection.',
+    'The last governments: each government of the last tier makes the cards of one type stronger. While it is your government, the yields, percentages and strengths of a seated card of that type rise by the share the government names. Costs, rules, happiness, authority and renown do not rise.',
+    'Decks: each card is in a deck: Dominion, Expansionist, Commerce, Devotion, Scientific or Magisterial. Your [[leader:about|leader]] has two decks. You are offered the cards of those two decks, the cards that one of them shares with another deck, and the cards of no deck. One leader draws from all six. This shelf has a heading for each deck.',
+    'Bands: each card has a band: early, middle, late, advanced or final. A band opens after a number of drafts, at the same draft as a new tier of governments. Your age does not matter. You are offered only the cards of the latest band you have reached, and the cards you hold stay yours.',
+    'The held-back hand: at a few drafts you are also dealt a free hand of the cards your decks hold back. It waits until you open it, and a pass costs nothing.',
+    'Keywords: [[concept:commission|Commission]], [[concept:charter|Charter]], [[concept:scaler|Scaler]] and [[concept:boon|Boon]] are printed first on a card, and each has a page. A Charter and a Boon take no chair.',
+    'Words on cards: authority limits how many cities you can govern, and authority capacity is its ceiling. Border expansion is how fast a city claims its next hex. Leftover production is what is left in a city when a thing is finished. A unique luxury is one kind of luxury you have improved, however many copies you hold. A fortification level is one turn a unit has stayed dug in, up to a cap.',
+    'Cards you cannot draw: a card marked not dealt yet has a rule the game cannot do yet. A withdrawn card is out of the game, and an empire that took one keeps it. The withdrawn cards are under the last heading.',
+    'Each entry below gives the deck, the band and the rarity of an Order, and what it does.',
   ]),
   doctrine: lead('doctrine', 'About Doctrines', '✦', [
     'A Doctrine is a permanent bonus for your whole empire. It takes no chair, it is held for the rest of the game, and it can never be lost or replaced.',
@@ -150,9 +181,10 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'Each entry below gives who can say a rite, how long it lasts, what it does, and the technology or Order that teaches it.',
   ]),
   greatPerson: lead('greatPerson', 'About great people', '★', [
-    'A great person is a famous individual who joins your civilisation. They are neither built nor bought. Renown — earned from certain buildings, from finishing wonders, and from Triumphs — fills a bar, and when it is full the game offers you a choice of great people to recruit.',
-    'Each great person belongs to a family: scholar, artist, engineer, merchant or general. Once one appears in your capital you have two ways to spend it. Use it once, for the immediate effect its family gives; or send it to a hex and have it build its family’s special improvement. Either way the unit is used up, and its legacy — the standing bonus listed on its card — stays with your empire for good.',
-    'Each name can be recruited by only one player in a game, so an offer is worth taking. Each entry below gives a great person’s family, age, how strong it is considered, and everything it does.',
+    'A great person joins your empire when you have enough renown. You cannot build or buy one. Renown comes from some buildings, from wonders and from Triumphs. When the bar is full, the game offers you a choice of great people.',
+    'Each great person has a family: scholar, artist, engineer, merchant or general. The person appears in your capital, and you use it in one of two ways: for the act of its family, or to build the work of its family on a hex. Each way uses up the unit.',
+    'Each great person also has a legacy, which is the bonus on its entry. Your empire keeps the legacy for the rest of the game, whichever way you use the person.',
+    'Only one empire in a game can recruit each name. Each entry below gives the family, the age and the strength of a great person, then the act, the work and the legacy.',
   ]),
   triumph: lead('triumph', 'About Triumphs', '✵', [
     'A Triumph is an achievement that pays renown, and renown is what attracts great people. You never choose a Triumph; the game credits one to you the moment you do the thing it names, and tells you so.',
@@ -160,7 +192,7 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'Each entry below gives how often a Triumph may be earned, how much renown it pays, and which family of great people that renown counts toward.',
   ]),
   bead: lead('bead', 'About the Bead Race', '◉', [
-    'The Bead Race is the only way to win. There are no separate paths — no conquest track, no science track — just one row of glass beads per player, on the Abacus, where everyone can see them. A full rod is not the win: it is the permission to begin the Magnum Opus, and the empire that finishes that great work takes the game, however long anybody else’s rod is.',
+    'The Bead Race is the way to win without conquest. Every empire has one rod of glass beads on the Abacus, where everyone can see it. A full rod does not win the game. It lets you begin the Magnum Opus, and the empire that finishes the Magnum Opus wins, however many beads any other empire holds.',
     // Since batch Q1 no bead is raced for: a wager's bar can be met by every
     // empire, and a grant is paid once to each empire (`docs/beads.md`).
     'Every bead is an announced event, and nothing is counted in private: every rod is on the Abacus, and so is how close every empire stands to each goal the age has set. The one secret is which goal each empire staked.',
@@ -185,10 +217,10 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'Each entry below gives the kind of chair a malice takes and exactly what it does while it sits there. Its lines are credited to it by name wherever your yields are broken down, so it is always possible to see what it is costing you.',
   ]),
   leader: lead('leader', 'About leaders', '♛', [
-    'A leader is who you play, and you pick one when the game is set up. The choice is made once and it is the whole of what your realm can do that no other realm can: nothing about it is drafted later, and nothing about it changes.',
-    'A leader gives you four things. Two of them are lines of your own, true from the first turn and for the rest of the game, whatever else you build or research — they are read and paid exactly as a card in one of your chairs is, and they are credited by name wherever your yields are broken down. The other two are a unit and a building that only your realm may ever raise. Those are not gifts: each waits for the technology that opens it, like any other unit or building, and until then it is simply something you know is coming.',
-    'A leader also decides where in the world you are seated — a leader whose whole game is horses is put on grass with horses on it — what your towns are called as you found them, and the two colours your borders and pieces wear.',
-    'The pages below give each leader in full: both lines in the words the game itself uses for them, the two things only they can build, their towns in order, and their colours.',
+    'A leader is who you play. You choose one when you set up the game, and the choice does not change.',
+    'A leader gives you two abilities, which work from the first turn for the rest of the game. A leader also gives you a unit, and a building or an improvement, that no other empire can build. You get each of those when you research the technology that unlocks it.',
+    'A leader also decides which two decks your Orders come from, where on the map you start, the names of your cities and the colours of your borders. One leader draws Orders from all six decks.',
+    'Each entry below gives the decks of a leader, both abilities, the two things only that leader can build, and the colours and city names.',
   ]),
   meter: lead('meter', 'About the meters', '⚖', [
     'The meters are the empire-wide limits on how far you can expand, and they are shown on the top bar. Happiness answers to how big your cities are; authority answers to how many of them there are. Each gives your empire a bonus while it is in surplus and a penalty while it is in deficit, in steps.',

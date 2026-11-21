@@ -254,6 +254,8 @@ export {
   combatSideWords,
   filterWords,
   describeBuildingRow,
+  // The Compendium's unit page: a row's own combat lines and effects, worded.
+  describeUnitRow,
   commissionCounterWords,
   commissionGoalWords,
   commissionRewardWords,

@@ -228,9 +228,9 @@ adds 4 culture. Each building pays its full yield at any town size.
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
-- **Divination** — *A shrine is where a people first listen, and the first of your gods arrives of its own accord once the realm's faith runs deep enough.*
+- **Divination** — *Your first god comes when your empire has saved enough faith.*
 - **The Wheel** — Workers +1 charge
-- **The Wheel** — *Every worker made from now on has an extra charge of work. Chariots may be trained if you have improved horses or camels.*
+- **The Wheel** — *Each worker you make after this has an extra charge. Workers you have already do not change.*
 
 ### Æra II — The Age of Heroes (9 nodes, 100–190🔬)
 
@@ -248,13 +248,11 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
-- **Bronze Panoply** — *Phalanxes and swordsmen may be trained if you have improved copper or obsidian. When you do, your spearmen become phalanxes and your warriors become swordsmen. Iron now shows on the map.*
+- **Bronze Panoply** — *Your spearmen become phalanxes and your warriors become swordsmen, if you have improved copper or obsidian.*
 - **Chronology** — *You may spend faith to draw a new hand of Orders in place of the one you were offered.*
-- **Epic Poetry** — *Renown now brings great people. Before you know this, renown still builds up, but no great person comes.*
+- **Epic Poetry** — *Great people come only after you research this. Renown you earn before then is kept.*
 - **Code of Laws** — Authority capacity +3
-- **Code of Laws** — *A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's authority reaches further too: your realm may hold more cities in hand than it could.*
-- **Irrigation** — *A farm standing beside fresh water feeds its city better than it did.*
-- **Siegecraft** — *Your soldiers may besiege an enemy town: a town they surround cannot heal and loses health each turn. Towns may raise stone walls, and workers may build lumber mills.*
+- **Code of Laws** — *Your empire can govern more cities.*
 
 ### Æra III — The Age of Empire (14 nodes, 360–1150🔬)
 
@@ -277,18 +275,12 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
-- **Iron Working** — *Legionaries and spear walls may be trained. Your phalanxes become spear walls. When you have improved iron, your swordsmen become legionaries.*
+- **Iron Working** — *Your phalanxes become spear walls. Your swordsmen become legionaries if you have improved iron.*
 - **State Workforce** — Workers +1 charge
-- **State Workforce** — *Every worker made from now on has an extra charge of work.*
-- **The Silk Road** — *Towns may build a Caravanserai, which lets your empire run more trade routes.*
-- **Satrapies** — *Opens the Forbidden City.*
-- **The Civil Service** — *A town you have taken by force may build a Courthouse.*
-- **The Saddle** — *Horsemen, horse archers and war elephants may be trained, and every pasture your towns work gives more production.*
+- **State Workforce** — *Each worker you make after this has an extra charge. Workers you have already do not change.*
 - **Daughter Cities** — New cities start with a Town Charter
-- **Daughter Cities** — *Every town you found starts with its Town Charter already built.*
-- **Guildhalls** — *Towns may build a Workshop.*
-- **Horology** — *Opens Chichen Itza.*
-- **Theology** — *The enhancing beliefs open here: a faith may now be deepened as well as spread.*
+- **Daughter Cities** — *Each city you found after this starts with a Town Charter.*
+- **Theology** — *Your religion can take enhancer beliefs after this.*
 
 ### Æra IV — The Age of Cathedrals (14 nodes, 1960–8000🔬)
 
@@ -311,15 +303,9 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
-- **Castellany** — *Towns may build a Castle, and pikemen may be trained.*
-- **Geomancy** — *Every mine your towns work gives more production. Workers and scouts may also search a hill for a buried seam.*
-- **Machinery** — *Crossbowmen may be trained.*
-- **Paper Money** — *Notes, ledgers and a floor to shout them across: the realm's coin can be turned into song at the Bourse.*
-- **Steel** — *Longswordsmen may be trained, and towns may build a Forge.*
 - **The Golden Roads** — Trade routes +1
-- **The Golden Roads** — *Your empire may run an extra trade route at once.*
-- **Movable Type** — *Opens the Printing House, which makes the town that holds it learn and build faster.*
-- **Alchemy** — *Niter is named, and the first soldier who carries fire may be trained where it is dug. Completing this pays a glass bead, and the first empire in the world to complete it opens the Magnum Opus for everybody.*
+- **The Golden Roads** — *Your empire can run another trade route.*
+- **Alchemy** — *Finishing this pays a bead. When any empire finishes it, every empire with a full rod of beads can begin the Magnum Opus.*
 
 ### The charter technologies
 

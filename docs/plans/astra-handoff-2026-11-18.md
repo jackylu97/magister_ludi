@@ -10,6 +10,90 @@ and the rules of the repository. Read `CLAUDE.md` (or `AGENTS.md`, the same
 text) and `docs/README.md` first. They are the briefing. This document does not
 repeat them.
 
+## 0. Status on 2026-11-21: what waits on Astra
+
+The Claude session checked the data and the history on `decks` on
+2026-11-21. Read this section first. The numbered sections below hold the
+detail of each item.
+
+### 0.1 Waiting on Astra
+
+| # | Work | Spec | State |
+|---|---|---|---|
+| 1 | **The Commerce deck build** | 3.14, and `docs/plans/commerce-design-pass-2026-11-20.md`, "Ready for the build", "The pass is closed" and the two sections after it | **Not built,** except The Open Market and the gold price of a great person. The new cards (The Palace Stores, The Garum Works, The Herring Fleets, The Double Entry, The Votive Accounts and the rest) are not in `data/decks/`. |
+| 2 | **The Expansionist deck build** | 3.14, and `docs/plans/expansionist-design-pass-2026-11-20.md`, "Ready for the build" and "The pass is closed" | **Not built.** `data/decks/expansionist.json` still says "tended", every deck still says "wild", and the six new improvements (Nazca lines, inuksuk, totem pole, stepwell, hillfort, baray) have no data row. Their painted models exist. One change since the plan closed: see row 5. |
+| 3 | **A city is coastal when it owns a coast hex within two hexes** | `docs/flags.md`, "A coastal city is a city that owns a coast hex within two hexes" | **Not built.** `isCoastalCity` in `src/sim/cities.ts` still asks only the city's own hex. Decide where a ship built in such a city appears. |
+| 4 | **Purchase discounts as "gold buys more", for gold and for faith** | `docs/flags.md`, "A purchase discount is 'gold buys more'" | The Open Market is built. **Check** that every other purchase discount (Doctrines, beliefs, unit rows such as the Condottiere's) was converted, and list the rows in your report. |
+| 5 | **Fish traps are a normal improvement** | `docs/flags.md`, "Three rulings from the Compendium review" | New on 2026-11-21. Fish traps need no card. The Expansionist card that opened them needs another job or a cut: bring the choice to the user. |
+| 6 | **Strategic resources may be traded** | the same flag | New on 2026-11-21. Deals in `src/sim`; the Claude session then adds the offer to the diplomacy screen. |
+| 7 | **The Volley Fire** | `docs/plans/scientific-design-pass-2026-11-20.md`, change 59; `docs/flags.md`, "The percentages of combat strength that remain" | Not built. It is the last percentage of combat strength in the game. It can be built before the rest of the Scientific pass: "your archer line may attack twice a turn, they lose 4 combat strength when defending against a melee attack". |
+| 8 | **City site ranking** | section 0.3 below | Three faults found on 2026-11-21. |
+| 9 | **Values for worker advice** | section 0.3 below | The Claude session will draw the advice; it needs one function from the bots. |
+| 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The state digests in `aiDigestPins.ts` and `RANGED_BOARDS` in `explore.test.ts` hold results from before the combat change. Record them again when you run the suite. The Claude session's UI work since 2026-11-19 has tests that were updated and not run (the user paused test runs): the city screen, the dock, the belief art, the Compendium, the government banner on the In play screen, the court strip. |
+| 11 | **The unit kit** | 3.16 | In your hands (you refined the archer and the spearman). Show the user the pair beside the reference before more units. |
+| 12 | **Wonders on the board** | 3.13 | A user decision is still open: each wonder with its own model, or the three shared ones. |
+
+### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
+
+- 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
+  Magisterial, 3.8 religion names, 3.9 great people, 3.10 the leader roster,
+  3.11 a purchased unit beside a full city, 3.12 the citizens' hexes (built
+  by you, then restyled by the Claude session: see 0.4).
+- 3.15: science for each citizen 0.25, Library +3, University +6,
+  Amphitheater +4, a soldier's surcharge 80%, the worker and the settler.
+- A lumber mill gives +2 production. A terrace farm needs a mountain.
+- **To confirm:** 3.5, the generic Orders build. The Claude session could
+  not tell from the data whether all 39 cards are in.
+
+### 0.3 New notes from the Claude session's design work (2026-11-21)
+
+**City site ranking** (`rankSites` in `src/sim/sites.ts`). The user: "i
+notice the city recommendations are all close to one another" and
+"sometimes they're not very good". On one seeded game at turn 76:
+- the best site was two hexes from a barbarian camp: the score does not see
+  camps;
+- sites I and II were so close that only one could be founded: the three
+  sites should be three places a seat can hold together;
+- thirteen hills scored 26, more than fresh water, the coast and a luxury
+  together at 24.
+The Claude session is redesigning how the sites are DRAWN (a quiet pin with
+pips, with the settler lens). The ranking is yours.
+
+**Worker advice.** The user wants a selected worker to show the best two or
+three hexes to improve, as a quiet ground mark and one line in the hex's
+tooltip ("Advice: Build a Camp here", with the gains and losses in yields).
+The Claude session will build the drawing. It needs one pure function from
+the bots, so that the advice and the bots agree: for a seat and a worker,
+the best few hexes with the improvement and its change in yields.
+`buildImprovementPlan` and `rankPlanFor` in `src/ai/plan.ts` already price a
+hex with `improvementYieldDelta`. Say how you want the UI to call it.
+
+**Deck passes still in design, not ready for you:** Devotion (round two with
+the user) and Scientific (round two with the user):
+`docs/plans/devotion-design-pass-2026-11-20.md`,
+`docs/plans/scientific-design-pass-2026-11-20.md`. Do not build from them
+until each has "Ready for the build".
+
+### 0.4 What the Claude session changed in your areas, so that you know
+
+- **Combat** (`src/sim/combat.ts`, `data/rules.json`): the river is a flat
+  −3 line; a land bow against a ship −6; land siege against a ship +6; a ship
+  that attacks an embarked unit takes no counter-blow. `SCHEMA_VERSION` 252.
+  The user asked the Claude session directly.
+- **The painted board's fog shader** (`paintedFogLook.ts`, `paintedFog.js`,
+  `paintedBoard.js`): two more channels and one block, for a natural
+  set-back shade on the city screen. With the shade off, the shader does one
+  more uniform test for each fragment. Measure it in your frame timings.
+- **The city screen** (`citizenMarks.ts`, `lens3d.ts`, `overlays.ts`,
+  `cityPanel.ts`): "Manage citizens" is a mode; a worked hex's yields sit on
+  a parchment plaque; a pinned hex's plaque has a pin head. The old outlines'
+  code (`citizenOutlines` and its call in `overlays.ts`) is dead and will be
+  removed by the Claude session.
+- **In flight in the Claude session now:** "Fortify until healed" (a unit
+  order and the unit panel; it may raise `SCHEMA_VERSION` to 253), and the
+  Compendium pass (`src/ui/compendium*.ts`, `describers.ts`: a new
+  `describeUnitRow`).
+
 ## 1. Who owns what
 
 | Area | Owner | Main folders |

@@ -226,7 +226,6 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "note": "What the jar keeps, the year forgets — and some of it is still there after the town grows.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -270,8 +269,7 @@
       "renown": {
         "family": "general",
         "perTurn": 1
-      },
-      "note": "The drill yard of the foot. Spearmen, warriors and archers are raised here faster than anywhere else; horse, engine and hull are trained elsewhere."
+      }
     },
     "stable": {
       "name": "Stable",
@@ -326,8 +324,7 @@
       "renown": {
         "family": "general",
         "perTurn": 1
-      },
-      "note": "Built where the herds are. Every pasture and camp the city works is worked harder, and horsemen are raised here faster than anywhere else."
+      }
     },
     "palisade": {
       "name": "Palisade",
@@ -401,7 +398,7 @@
       "culture": 0,
       "faith": 2,
       "sciencePerPop": 0,
-      "note": "Foreign faiths pressing on this city lose a quarter of their strength at its door.",
+      "note": "The religion this city follows presses on it more strongly, and other religions press on it less.",
       "requiresBuilding": "shrine"
     },
     "market": {
@@ -418,8 +415,7 @@
       "renown": {
         "family": "merchant",
         "perTurn": 1
-      },
-      "note": "The stalls, the scales and the road out. Each Market lets your empire run another trade route."
+      }
     },
     "aqueduct": {
       "name": "Aqueduct",
@@ -467,8 +463,7 @@
           "category": "wonder",
           "percent": 10
         }
-      ],
-      "note": "The town’s own joiners and masons. What they raise, they raise faster."
+      ]
     },
     "watermill": {
       "name": "Watermill",
@@ -550,8 +545,7 @@
         "family": "artist",
         "perTurn": 1
       },
-      "faithPurchases": "all",
-      "note": "Dedicated to a patron the day it is finished. Units may be bought with faith in the city that holds it, at the rate gold buys them elsewhere."
+      "faithPurchases": "all"
     },
     "reliquary": {
       "name": "The Reliquary",
@@ -577,7 +571,6 @@
           }
         }
       ],
-      "note": "Units may be bought with faith in the city that holds it, at the same rate gold buys them elsewhere.",
       "renown": {
         "family": "artist",
         "perTurn": 1
@@ -625,8 +618,7 @@
         "family": "general",
         "perTurn": 1
       },
-      "requiresBuilding": "barracks",
-      "note": "The engine yard and the bowyers' hall. It works hard for the town that keeps it, and bows and siege engines are raised here faster than anywhere else; foot, horse and hull are trained at the ordinary pace."
+      "requiresBuilding": "barracks"
     },
     "theOracle": {
       "name": "The Oracle",
@@ -1034,7 +1026,6 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "note": "A caravan city at the edge of the sand: it may be raised in a town standing on desert, or in one with desert beside it.",
       "requiresSite": {
         "test": "terrainBeside",
         "terrain": "desert"
@@ -1130,8 +1121,7 @@
         "family": "general",
         "onComplete": 10,
         "perTurn": 2
-      },
-      "note": "Soldiers raised in this city start out better trained, and keep that training wherever they march."
+      }
     },
     "greatWall": {
       "name": "The Great Wall",
@@ -1631,7 +1621,6 @@
         "onComplete": 10,
         "perTurn": 2
       },
-      "note": "The escapement keeps the realm's whole calendar. Every boon of yours that comes round on a beat comes round sooner, and on the clock's own beat the realm is paid in learning for everything its workshops made.",
       "retired": true,
       "column": 8
     },
@@ -1669,7 +1658,6 @@
         "family": "artist",
         "perTurn": 1
       },
-      "note": "No longer raised anywhere. The row is kept so that a game begun before the tree was re-cut still plays back exactly as it did.",
       "awaitsTech": true
     },
     "steleOfLaws": {
@@ -1683,7 +1671,6 @@
       "culture": 3,
       "sciencePerPop": 0,
       "authorityCapacity": 1,
-      "note": "The law, cut in stone where anyone may read it.",
       "retired": true
     },
     "bazaar": {
@@ -1711,7 +1698,6 @@
           "within": "city"
         }
       ],
-      "note": "Every kind of luxury this city can reach pays a further gold here.",
       "requiresBuilding": "market"
     },
     "harbour": {
@@ -1750,8 +1736,7 @@
             "gold": 1
           }
         }
-      ],
-      "note": "Built on the coast. The wharf works for the town that keeps it, and every seam of the sea the city works — the fish, the crabs, the whales — pays a further food and a further coin."
+      ]
     },
     "baths": {
       "name": "Baths",
@@ -1768,7 +1753,6 @@
         "family": "artist",
         "perTurn": 1
       },
-      "note": "Hot water, cold water, and somewhere to argue in between.",
       "retired": true
     },
     "forum": {
@@ -1806,8 +1790,7 @@
       "renown": {
         "family": "artist",
         "perTurn": 2
-      },
-      "note": "The square where the city hears itself think. One realm, one Forum."
+      }
     },
     "examinationHall": {
       "name": "Examination Hall",
@@ -1824,7 +1807,6 @@
         "family": "scholar",
         "perTurn": 1
       },
-      "note": "Clerks chosen by what they can write down.",
       "retired": true
     },
     "courthouse": {
@@ -1841,8 +1823,7 @@
       "easesUnrest": true,
       "requiresSite": {
         "test": "captured"
-      },
-      "note": "Built only in a city taken by force. It answers for the whole cost of holding one."
+      }
     },
     "shipyard": {
       "name": "Shipyard",
@@ -1868,7 +1849,6 @@
         "family": "merchant",
         "perTurn": 1
       },
-      "note": "Built on the coast. The slips work for the town that keeps them, every fishing boat the city works brings in more, and ships leave the yard faster; everything else is built at the ordinary pace.",
       "tileYields": [
         {
           "on": {
@@ -1902,7 +1882,6 @@
         "family": "engineer",
         "perTurn": 1
       },
-      "note": "The town is worth more to storm, and takes longer to empty.",
       "requiresBuilding": "stoneWalls"
     },
     "forge": {
@@ -1923,7 +1902,6 @@
         "family": "engineer",
         "perTurn": 1
       },
-      "note": "Soldiers are made here faster than anywhere else in the realm.",
       "requiresBuilding": "workshop"
     },
     "caravanserai": {
@@ -1954,8 +1932,7 @@
       "renown": {
         "family": "merchant",
         "perTurn": 1
-      },
-      "note": "A walled yard and a well. It lets your empire run more trade routes than a Market does, and every caravan that sets out from this city carries more than it could alone."
+      }
     },
     "printingHouse": {
       "name": "Printing House",
@@ -1971,7 +1948,6 @@
         "family": "scholar",
         "perTurn": 1
       },
-      "note": "The town that holds it learns and builds faster. Every trade route that ends here also brings science and culture.",
       "effects": [
         {
           "kind": "percentYields",
@@ -2017,7 +1993,6 @@
         "family": "scholar",
         "perTurn": 2
       },
-      "note": "The sky, written down night after night. An observatory with a mountain inside the city’s borders reads it better.",
       "effects": [
         {
           "kind": "percentYields",
@@ -2078,8 +2053,7 @@
           "kind": "cityRenownPercent",
           "percent": 15
         }
-      ],
-      "note": "Water is led where nothing needed it. Every fifth citizen of this town has somewhere to walk in the evening, and what the town does is remembered further afield."
+      ]
     },
     "publicBath": {
       "name": "Public Bath",
@@ -2104,8 +2078,7 @@
             "test": "connected"
           }
         }
-      ],
-      "note": "Makes its town happier, as long as the town is joined to your capital by road."
+      ]
     },
     "lighthouse": {
       "name": "Lighthouse",
@@ -2134,8 +2107,7 @@
       "renown": {
         "family": "merchant",
         "perTurn": 1
-      },
-      "note": "Built on the coast. It feeds the town that keeps it, and every water hex the city works pays a further coin for the light that brings the boats home. Each Lighthouse also lets your empire run another trade route."
+      }
     },
     "townCharter": {
       "name": "Town Charter",
@@ -2147,7 +2119,7 @@
       "science": 0,
       "culture": 2,
       "sciencePerPop": 0,
-      "note": "A city founded under Daughter Cities is founded holding one. It is never built and never bought.",
+      "note": "Each city you found after you research Daughter Cities starts with one.",
       "grantedOnly": true
     },
     "clocktower": {
@@ -2164,7 +2136,6 @@
         "family": "engineer",
         "perTurn": 1
       },
-      "note": "The town keeps one hour, and everybody in it keeps the same one.",
       "retired": true
     },
     "bank": {
@@ -2181,7 +2152,6 @@
         "family": "merchant",
         "perTurn": 1
       },
-      "note": "Coin that stays still long enough to be counted twice, and counts fastest in a city the caravans come to.",
       "requiresBuilding": "market",
       "effects": [
         {
@@ -2220,8 +2190,7 @@
       "renown": {
         "family": "merchant",
         "perTurn": 2
-      },
-      "note": "The floor where the realm's coin changes hands, and a little of it turns into song. One realm, one Bourse."
+      }
     },
     "bastion": {
       "name": "Bastion",
@@ -2241,8 +2210,7 @@
       "renown": {
         "family": "engineer",
         "perTurn": 1
-      },
-      "note": "A wall with corners, so that nobody may stand anywhere it cannot be shot at."
+      }
     },
     "alchemicalSociety": {
       "name": "The Alchemical Society",
@@ -2267,8 +2235,7 @@
       "renown": {
         "family": "scholar",
         "perTurn": 2
-      },
-      "note": "Every other workshop in the city sends its problems here, and gets an answer back."
+      }
     },
     "chartTheStars": {
       "name": "Chart the Stars",
@@ -2312,8 +2279,7 @@
         "family": "scholar",
         "onComplete": 10,
         "perTurn": 1
-      },
-      "note": "One of these in an empire. Every ship of the realm sails a hex further, and so does anybody crossing the water on a raft."
+      }
     },
     "theTurningHeavens": {
       "name": "The Turning Heavens",
@@ -2345,8 +2311,7 @@
         "family": "scholar",
         "onComplete": 12,
         "perTurn": 1
-      },
-      "note": "One of these in an empire, and only where there is a University to argue about it in."
+      }
     },
     "theAlchemicalCodex": {
       "name": "The Alchemical Codex",
@@ -2390,8 +2355,7 @@
         "family": "scholar",
         "onComplete": 12,
         "perTurn": 1
-      },
-      "note": "One of these in an empire. Every soldier you have fights harder, and one that digs in mends faster."
+      }
     },
     "theMagnumOpus": {
       "name": "The Magnum Opus",
@@ -2418,8 +2382,7 @@
         "family": "artist",
         "onComplete": 25,
         "perTurn": 3
-      },
-      "note": "The great work of the age. Nobody may begin one until some empire in the world has reached Alchemy, and no empire may begin one until its own rod of beads is full. Gold and faith may be poured into it as well as production. The first one finished anywhere ends the game: the last measures of the age are taken for the record, and the empire that raised it wins."
+      }
     },
     "specularium": {
       "name": "Specularium",
@@ -2446,8 +2409,7 @@
             "building": "specularium"
           }
         }
-      ],
-      "note": "A glass house that grows fresh food in every season, and teaches the town a little more as it grows."
+      ]
     },
     "mouseion": {
       "name": "Mouseion",
@@ -2480,8 +2442,7 @@
             "building": "mouseion"
           }
         }
-      ],
-      "note": "A house of scholars, fed and kept by the realm. Its town sings for every empire building the realm holds, and it costs more to raise than other empire buildings. One realm, one Mouseion."
+      ]
     },
     "aldinePress": {
       "name": "Aldine Press",
@@ -2492,8 +2453,7 @@
       "gold": 0,
       "science": 0,
       "culture": 2,
-      "sciencePerPop": 0,
-      "note": "A press that prints small books for travellers. It adds culture to its town."
+      "sciencePerPop": 0
     },
     "bimaristan": {
       "name": "Bimaristan",
@@ -2517,8 +2477,7 @@
             "building": "bimaristan"
           }
         }
-      ],
-      "note": "A house of healing, open to all. Its town eats better. Your empire may build only one."
+      ]
     },
     "tophane": {
       "name": "Tophane",
@@ -2556,8 +2515,7 @@
             "building": "tophane"
           }
         }
-      ],
-      "note": "The cannon foundry of the realm. Soldiers raised in its town are stronger for the rest of their lives, and the town raises them faster. One realm, one Tophane."
+      ]
     },
     "chapel": {
       "name": "Chapel",
@@ -2572,8 +2530,7 @@
       "faith": 1,
       "sciencePerPop": 0,
       "unlockedByCard": true,
-      "ritePays": 5,
-      "note": "Every rite this city performs pays a little culture as well."
+      "ritePays": 5
     },
     "keep": {
       "name": "Keep",
@@ -2589,7 +2546,6 @@
       "unlockedByCard": true,
       "cityHp": 25,
       "healsAdjacent": 5,
-      "note": "The town takes longer to empty, and your own units resting in it or beside it mend faster.",
       "retired": true
     },
     "scriptorium": {
@@ -2625,8 +2581,7 @@
             ]
           }
         }
-      ],
-      "note": "Copies of everything, kept dry. It is worth more where a scholar's academy stands inside the town's borders."
+      ]
     },
     "assayHouse": {
       "name": "Assay House",
@@ -2644,8 +2599,7 @@
       "renown": {
         "family": "merchant",
         "perTurn": 1
-      },
-      "note": "Coin weighed before it is spent. Anything this city buys with gold costs a little less."
+      }
     },
     "cistern": {
       "name": "Cistern",
@@ -2672,7 +2626,6 @@
           }
         }
       ],
-      "note": "The city counts as standing on fresh water, every desert hex it works feeds it a little better, and the farms in its fields draw their irrigation from the town as they would from a river.",
       "irrigates": true
     },
     "assemblyHall": {
@@ -2696,7 +2649,6 @@
           "extra": 1
         }
       ],
-      "note": "Built in the seat of your government and nowhere else.",
       "happiness": 3
     },
     "viziersHall": {
@@ -2735,8 +2687,7 @@
             ]
           }
         }
-      ],
-      "note": "The office that keeps the town's works list. It must always hold at least two things to build, and while it does, everything is raised faster."
+      ]
     },
     "smithy": {
       "name": "Smithy",
@@ -2773,8 +2724,7 @@
             "production": 1
           }
         }
-      ],
-      "note": "The first hearth hot enough to matter. It works for the town that keeps it, and every seam the city has opened — a mine or a quarry standing on a named resource — gives up a further hammer."
+      ]
     },
     "warHall": {
       "name": "War Hall",
@@ -2800,8 +2750,7 @@
         "family": "general",
         "perTurn": 1
       },
-      "requiresBuilding": "barracks",
-      "note": "Where the armour is fitted. It works for the town that keeps it, and every soldier raised here marches out in bronze — hardier from the day it musters, and hardier wherever it goes."
+      "requiresBuilding": "barracks"
     },
     "coinworks": {
       "name": "Coinworks",
@@ -2832,8 +2781,7 @@
             "building": "coinworks"
           }
         }
-      ],
-      "note": "Coin struck where the town can watch it being struck. A share of everything this city earns is heard again as culture."
+      ]
     },
     "almshouse": {
       "name": "Almshouse",
@@ -2847,8 +2795,7 @@
       "culture": 1,
       "sciencePerPop": 0,
       "unlockedByCard": true,
-      "faithPurchases": "civilian",
-      "note": "Settlers, workers and caravans may be bought with faith in the city that holds it, at the same rate gold buys them elsewhere."
+      "faithPurchases": "civilian"
     },
     "orrery": {
       "name": "Orrery",
@@ -2885,8 +2832,7 @@
             ]
           }
         }
-      ],
-      "note": "Brass rings turning at the speed of the heavens. It is worth more in a town raised within sight of a mountain."
+      ]
     },
     "assizeCourt": {
       "name": "Assize Court",
@@ -2900,8 +2846,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "unlockedByCard": true,
-      "demandRelief": 15,
-      "note": "Citizens in this town ask for less happiness."
+      "demandRelief": 15
     },
     "plantationHouse": {
       "name": "Plantation House",
@@ -2927,8 +2872,7 @@
             "gold": 1
           }
         }
-      ],
-      "note": "Bought with gold, never built. Every plantation this city works feeds it a little more and pays a little more."
+      ]
     },
     "relic": {
       "name": "Relic",
@@ -2943,7 +2887,7 @@
       "faith": 3,
       "sciencePerPop": 0,
       "placed": true,
-      "note": "An apostle may leave one of these in a town that has finished its cathedral. It is never built and never bought, and a town holds one at most."
+      "note": "An apostle leaves one in a city that has a Cathedral. A city can hold only one."
     },
     "heroicEpic": {
       "name": "Heroic Epic",
@@ -2970,8 +2914,7 @@
       "renown": {
         "family": "artist",
         "perTurn": 2
-      },
-      "note": "The deeds of the realm set to verse, and sung where they were done."
+      }
     },
     "imperialThrone": {
       "name": "Imperial Throne",
@@ -3001,8 +2944,7 @@
       "renown": {
         "family": "general",
         "perTurn": 1
-      },
-      "note": "The seat of the realm. The wider the realm, the further its authority carries. Soldiers raised in its shadow cost a little less to keep, for as long as they live."
+      }
     },
     "highTemple": {
       "name": "High Temple",
@@ -3042,8 +2984,7 @@
       "renown": {
         "family": "artist",
         "perTurn": 1
-      },
-      "note": "Your faith carries from here as far and as strongly as it does from a holy site, and the bigger the city that keeps it the harder it carries."
+      }
     },
     "mosque": {
       "name": "Mosque",
@@ -3063,8 +3004,7 @@
       "purchase": {
         "currency": "faith"
       },
-      "followingOnly": true,
-      "note": "Bought with faith, and only in a city that keeps the faith that opened it. Its courts widen what a ruler may hold together."
+      "followingOnly": true
     },
     "wat": {
       "name": "Wat",
@@ -3099,8 +3039,7 @@
             "building": "wat"
           }
         }
-      ],
-      "note": "Bought with faith, and only in a city that keeps the faith that opened it. The town gathers here, and the larger the town the more it gives back."
+      ]
     },
     "gurdwara": {
       "name": "Gurdwara",
@@ -3135,8 +3074,7 @@
             "building": "gurdwara"
           }
         }
-      ],
-      "note": "Bought with faith, and only in a city that keeps the faith that opened it. Its kitchen feeds whoever comes, and its rooms are where the reading is done."
+      ]
     },
     "darEMehr": {
       "name": "Dar-e Mehr",
@@ -3166,8 +3104,7 @@
             "building": "darEMehr"
           }
         }
-      ],
-      "note": "Bought with faith, and only in a city that keeps the faith that opened it. The flame is never let out, and everything offered here goes further."
+      ]
     },
     "terraces": {
       "name": "Terraces",
@@ -3200,8 +3137,7 @@
             "food": 1
           }
         }
-      ],
-      "note": "Steps cut into the hillside. Farms may be cut into the high ground this town holds, and every farm it works up there feeds it better."
+      ]
     },
     "tambo": {
       "name": "The Tambo",
@@ -3239,8 +3175,7 @@
           "food": 1,
           "production": 1
         }
-      ],
-      "note": "A way station on the royal road, with room for another caravan. Every road of your own that runs to or from this town carries grain and timber as well as coin."
+      ]
     },
     "qollqa": {
       "name": "The Qollqa",
@@ -3264,8 +3199,7 @@
             "building": "qollqa"
           }
         }
-      ],
-      "note": "Round stone granaries on a cold hillside. The town keeps a share of its stores when it grows instead of eating them all."
+      ]
     },
     "examinationCourt": {
       "name": "The Examination Court",
@@ -3293,8 +3227,7 @@
             "building": "examinationCourt"
           }
         }
-      ],
-      "note": "The town that holds it gains science for each Order in your military chairs."
+      ]
     },
     "postStation": {
       "name": "The Commandery",
@@ -3326,8 +3259,7 @@
             ]
           }
         }
-      ],
-      "note": "The town that holds it builds faster, as long as the town is joined to your capital by road."
+      ]
     },
     "hordeCamp": {
       "name": "The Horde Camp",
@@ -3352,8 +3284,7 @@
             "faith": 1
           }
         }
-      ],
-      "note": "Felt tents pitched among the herds. Every pasture this town works is holy ground as well as grazing, and a soldier of yours is given a fresh horse every time it steps onto one of them — not once a march, but each time."
+      ]
     },
     "obelisk": {
       "name": "The Obelisk",
@@ -3367,8 +3298,7 @@
       "culture": 0,
       "faith": 2,
       "sciencePerPop": 0,
-      "unlockedByLeader": true,
-      "note": "One stone, cut whole and stood upright, with the sun on its tip at noon. Cutting it teaches the town to cut everything else."
+      "unlockedByLeader": true
     },
     "sunCourt": {
       "name": "The Sun Court",
@@ -3398,8 +3328,7 @@
             "building": "sunCourt"
           }
         }
-      ],
-      "note": "An open court with no roof over the altar. The town is glad of it, and the larger the town the more it offers."
+      ]
     },
     "valleyOfKings": {
       "name": "The Valley of Kings",
@@ -3431,8 +3360,7 @@
             "building": "valleyOfKings"
           }
         }
-      ],
-      "note": "Shafts cut into the rock of a dry valley, one for each empire building raised in this town. A wonder may be hurried along here with faith. One realm, one valley."
+      ]
     },
     "houseOfLearning": {
       "name": "The House of Learning",
@@ -3459,8 +3387,7 @@
             "building": "houseOfLearning"
           }
         }
-      ],
-      "note": "Rooms for copyists, a kitchen and a courtyard with a well. Those who read here are fed here, and the house learns from every great person your realm has called."
+      ]
     },
     "mihnaCourt": {
       "name": "The Mihna Court",
@@ -3488,8 +3415,7 @@
             "building": "mihnaCourt"
           }
         }
-      ],
-      "note": "Where the creed is argued rather than recited. A share of everything this town offers is written down and studied."
+      ]
     },
     "paperMill": {
       "name": "The Paper Mill",
@@ -3513,8 +3439,7 @@
           },
           "science": 2
         }
-      ],
-      "note": "Rag, water and a screen. Every caravan that ends its road here arrives carrying something worth reading."
+      ]
     },
     "mithridatium": {
       "name": "The Mithridatium",
@@ -3548,8 +3473,7 @@
           "kind": "cityRenownPercent",
           "percent": 15
         }
-      ],
-      "note": "A physic garden, and a king who takes a little of everything grown in it. The town walks here in the evening, and what it learns of the plants it writes down."
+      ]
     },
     "ponticHold": {
       "name": "The Mountain Hold",
@@ -3566,8 +3490,7 @@
         "stat": "defense",
         "amount": 10
       },
-      "unlockedByLeader": true,
-      "note": "A fastness above the town, with its own cistern and its own terraces. The town is worth a great deal more to storm."
+      "unlockedByLeader": true
     },
     "sainteChapelle": {
       "name": "The Sainte-Chapelle",
@@ -3587,8 +3510,7 @@
       "renown": {
         "family": "artist",
         "perTurn": 1
-      },
-      "note": "Glass from floor to vault, raised over a relic. Soldiers may be bought with faith in the city that holds it."
+      }
     },
     "sankoreMadrasa": {
       "name": "The Sankore Madrasa",
@@ -3620,8 +3542,7 @@
             "building": "sankoreMadrasa"
           }
         }
-      ],
-      "note": "Mud brick and a courtyard of scholars. A quarter of the devotion this city makes comes back as learning."
+      ]
     },
     "longjiangDockyard": {
       "name": "The Longjiang Dockyard",
@@ -3665,9 +3586,8 @@
         }
       ],
       "deferred": [
-        "Ships launched here do not yet sail an extra step."
-      ],
-      "note": "Built on the coast. Slips long enough for a treasure ship, and a road out for everything they unload."
+        "Ships built here do not get more movement yet."
+      ]
     },
     "tetzcotzinco": {
       "name": "The Tetzcotzinco",
@@ -3709,8 +3629,7 @@
             "building": "tetzcotzinco"
           }
         }
-      ],
-      "note": "An aqueduct cut through a hill to water a garden on top of it. The whole town eats better for it."
+      ]
     },
     "museion": {
       "name": "The Museion",
@@ -3741,8 +3660,7 @@
             "building": "museion"
           }
         }
-      ],
-      "note": "Shelves, a dining hall and a salary. Every great name the realm has ever called is read here."
+      ]
     },
     "rupertsbergScriptorium": {
       "name": "The Scriptorium of Rupertsberg",
@@ -3762,9 +3680,8 @@
         "perTurn": 1
       },
       "deferred": [
-        "What this city believes is not yet worth twice as much here."
-      ],
-      "note": "A copying room with a window and a choir beyond it. The house writes down everything it sings."
+        "The faith of this city is not doubled here yet."
+      ]
     },
     "funduq": {
       "name": "The Funduq",
@@ -3806,8 +3723,7 @@
             "building": "funduq"
           }
         }
-      ],
-      "note": "A yard, a well and rooms above the stalls, and every town may keep one. Foreign roads that touch it come in loaded."
+      ]
     },
     "cathedralSchool": {
       "name": "Cathedral School",
@@ -3857,8 +3773,7 @@
             ]
           }
         }
-      ],
-      "note": "The masters teach beside the altar. Every religious building in the town counts, this school included, and so does any other building that a card gives faith."
+      ]
     },
     "greatSphinx": {
       "name": "The Great Sphinx",

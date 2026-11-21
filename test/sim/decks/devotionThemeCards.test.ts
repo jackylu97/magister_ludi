@@ -784,7 +784,8 @@ describe('Devotion batch DV2: the word "devout" (feature E)', () => {
   it('says what a devout town is on the Compendium’s faith page', () => {
     const faith = CONCEPT_ENTRIES.find((entry) => entry.id === 'concept:religion')!;
     const prose = faith.clauses.map((clause) => clause.text).join(' ');
-    expect(prose).toContain('A devout town is one of your own towns that follows a religion whose holy city you hold.');
+    // Reworded in the rules pages rewrite of 2026-11-21: the fact is pinned, not the sentence.
+    expect(prose).toMatch(/a devout city is a city of yours that follows a religion whose holy city you hold/);
     expect(prose).toContain('never devout');
   });
 });
