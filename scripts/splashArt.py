@@ -10,6 +10,7 @@ Kinds:
   ages      16:9, at most 1600 px wide (three sets of four: form, still, abstract)
   endings   16:9, at most 1600 px wide (win and loss)
   beliefs   1:1,  at most 480 px wide (shown in a round window)
+  title     16:9, at most 1600 px wide (the title screen's one painting, `title.jpg`)
 
 What it does to each picture:
   1. cuts off a border, if the picture has one: black bars, or a paper mount
@@ -49,6 +50,57 @@ PEOPLE = {
     'mimarsinan': 'mimarSinan', 'rumi': 'rumi', 'sappho': 'sappho',
     'shikibu': 'murasakiShikibu', 'subutai': 'subutai', 'vitruvius': 'vitruvius',
     'zhangqian': 'zhangQian',
+    # The 137 people with no portrait yet (2026-11-21). The master's name is the person's own
+    # name, so a picture is never named after another person. Three row ids kept an older
+    # name: dinocrates, ibn_jubayr and jacques_coeur.
+    'ahmes': 'ahmes', 'kidinnu': 'kidinnu', 'thales_of_miletus': 'thales', 'tapputi': 'tapputi',
+    'panini': 'panini', 'hippocrates': 'hippocrates', 'anaximander': 'anaximander',
+    'baudhayana': 'baudhayana', 'peseshet': 'peseshet', 'solon': 'solon',
+    'sin_leqi_unninni': 'sinLeqiUnninni', 'ilimilku': 'ilimilku', 'hesiod': 'hesiod',
+    'aesop': 'aesop', 'exekias': 'exekias', 'telesilla': 'telesilla',
+    'thutmose_the_sculptor': 'thutmoseTheSculptor', 'senenmut': 'senenmut',
+    'amenhotep_son_of_hapu': 'amenhotepSonOfHapu', 'bezalel': 'bezalel', 'eupalinos': 'eupalinos',
+    'lu_ban': 'luBan', 'theodorus_of_samos': 'theodorusOfSamos',
+    'mandrocles_of_samos': 'mandrocles', 'ineni': 'ineni', 'sunshu_ao': 'sunshuAo',
+    'kushim': 'kushim', 'assur_idi': 'assurIdi', 'lamassi': 'lamassi',
+    'hanno_the_navigator': 'hanno', 'fan_li': 'fanLi', 'harkhuf': 'harkhuf',
+    'colaeus_of_samos': 'colaeus', 'wenamun': 'wenamun', 'iddin_marduk': 'iddinMarduk',
+    'ahmose_son_of_ebana': 'ahmoseSonOfEbana', 'piyamaradu': 'piyamaradu', 'sinuhe': 'sinuhe',
+    'deborah': 'deborah', 'fu_hao': 'fuHao', 'sun_tzu': 'sunTzu', 'leonidas': 'leonidas',
+    'djehuty': 'djehuty', 'artemisia_of_caria': 'artemisia', 'tomyris': 'tomyris',
+    'epicurus': 'epicurus', 'ptahhotep': 'ptahhotep', 'hypatia': 'hypatia',
+    'zhang_heng': 'zhangHeng', 'eratosthenes': 'eratosthenes', 'maria_hebraea': 'mariaHebraea',
+    'euclid': 'euclid', 'ban_zhao': 'banZhao', 'qu_yuan': 'quYuan', 'sima_qian': 'simaQian',
+    'phidias': 'phidias', 'virgil': 'virgil', 'kalidasa': 'kalidasa', 'wang_xizhi': 'wangXizhi',
+    'cai_yan': 'caiYan', 'sophocles': 'sophocles', 'tiruvalluvar': 'tiruvalluvar',
+    'auvaiyar': 'auvaiyar', 'hemiunu': 'hemiunu', 'li_bing': 'liBing',
+    'dinocrates': 'heroOfAlexandria', 'cai_lun': 'caiLun',
+    'hero_of_alexandria': 'heronOfAlexandria', 'apollodorus_of_damascus': 'apollodorus',
+    'sostratus_of_cnidus': 'sostratus', 'zheng_guo': 'zhengGuo', 'nanaivandak': 'nanaivandak',
+    'hippalus': 'hippalus', 'crassus': 'crassus', 'pytheas': 'pytheas', 'lu_buwei': 'luBuwei',
+    'pasion': 'pasion', 'widow_qing_of_ba': 'widowQing', 'marcus_ulpius_yarhai': 'yarhai',
+    'sang_hongyang': 'sangHongyang', 'han_xin': 'hanXin', 'gaius_marius': 'gaiusMarius',
+    'spartacus': 'spartacus', 'julius_caesar': 'juliusCaesar', 'zhuge_liang': 'zhugeLiang',
+    'trung_trac': 'trungTrac', 'modu_chanyu': 'moduChanyu', 'chanakya': 'chanakya',
+    'maimonides': 'maimonides', 'roger_bacon': 'rogerBacon', 'aryabhata': 'aryabhata',
+    'paracelsus': 'paracelsus', 'tycho_brahe': 'tychoBrahe', 'john_dee': 'johnDee',
+    'copernicus': 'copernicus', 'ibn_al_haytham': 'ibnAlHaytham', 'ibn_khaldun': 'ibnKhaldun',
+    'brahmagupta': 'brahmagupta', 'sei_shonagon': 'seiShonagon',
+    'christine_de_pizan': 'christineDePizan', 'durer': 'durer', 'li_bai': 'liBai',
+    'dante_alighieri': 'dante', 'ferdowsi': 'ferdowsi', 'michelangelo': 'michelangelo',
+    'li_qingzhao': 'liQingzhao', 'hildegard_of_bingen': 'hildegardOfBingen', 'su_song': 'suSong',
+    'villard_de_honnecourt': 'villardDeHonnecourt', 'leonardo': 'leonardo',
+    'taqi_al_din': 'taqiAlDin', 'johannes_gutenberg': 'gutenberg', 'jang_yeong_sil': 'jangYeongSil',
+    'filippo_brunelleschi': 'brunelleschi', 'guo_shoujing': 'guoShoujing',
+    'benjamin_of_tudela': 'benjaminOfTudela', 'ibn_jubayr': 'ibnBattuta',
+    'francesco_datini': 'francescoDatini', 'jakob_fugger': 'jakobFugger',
+    'willem_beukelszoon': 'willemBeukelszoon', 'gracia_mendes_nasi': 'graciaMendesNasi',
+    'jacques_coeur': 'cosimoDeMedici', 'ahmad_ibn_majid': 'ibnMajid',
+    'fatima_al_fihri': 'fatimaAlFihri', 'jan_zizka': 'janZizka', 'el_cid': 'elCid',
+    'nzinga_of_ndongo': 'nzingaOfNdongo', 'yi_sun_sin': 'yiSunSin', 'lautaro': 'lautaro',
+    'belisarius': 'belisarius', 'gajah_mada': 'gajahMada', 'amina_of_zazzau': 'amina',
+    'tlacaelel': 'tlacaelel', 'basho': 'basho', 'sor_juana': 'sorJuana', 'vaucanson': 'vaucanson',
+    'gustavus_adolphus': 'gustavusAdolphus',
 }
 # One painting an age in each of three sets. A game shows one set throughout.
 AGES = {
@@ -86,7 +138,23 @@ BELIEFS = {
     'desert': 'desertFathers', 'winter': 'winterMother', 'stone_hoard': 'lordOfTheHoard',
     'vigil': 'courtAugurs', 'vineyard': 'vineyardRites', 'heroes': 'cultOfHeroes',
     'herd_gods': 'herdGods', 'merchants': 'patronOfMerchants', 'muses': 'theMuses',
+    # The 17 follower beliefs and the 16 enhancer beliefs, with no picture yet (2026-11-21).
+    'cathedrals_of_the_sky': 'cathedralsOfTheSky', 'pilgrimage': 'pilgrimage',
+    'feast_days': 'feastDays', 'holy_water': 'holyWater', 'lamps_of_the_shrine': 'lampsOfTheShrine',
+    'choirs': 'choirs', 'tithe_houses': 'titheHouses', 'the_quiet_hours': 'theQuietHours',
+    'warrior_monks': 'warriorMonks', 'harvest_blessing': 'harvestBlessing',
+    'guild_of_the_faithful': 'guildOfTheFaithful', 'common_table': 'commonTable',
+    'minarets': 'minarets', 'temple_spires': 'templeSpires', 'the_open_kitchen': 'theOpenKitchen',
+    'the_eternal_flame': 'theEternalFlame', 'the_alms_box': 'theAlmsBox',
+    'reliquaries': 'reliquaries', 'inquisition': 'inquisition', 'the_long_road': 'theLongRoad',
+    'itinerant_preachers': 'itinerantPreachers', 'the_pulse_of_bells': 'thePulseOfBells',
+    'ecclesia': 'ecclesia', 'apostles': 'apostles', 'sacred_cartography': 'sacredCartography',
+    'holy_order': 'holyOrder', 'congregation': 'congregation', 'pilgrims_coin': 'pilgrimsCoin',
+    'world_church': 'worldChurch', 'the_long_prayer': 'theLongPrayer', 'the_crusade': 'theCrusade',
+    'marvels_of_the_faith': 'marvelsOfTheFaith', 'the_scriptoria': 'theScriptoria',
 }
+# The title screen's one painting.
+TITLE = {'title': 'title'}
 KINDS = {
     'beliefs': {'names': BELIEFS, 'ratio': (1, 1), 'width': 480},
     'endings': {'names': ENDINGS, 'ratio': (16, 9), 'width': 1600},
@@ -95,6 +163,7 @@ KINDS = {
     'people': {'names': PEOPLE, 'ratio': (5, 6), 'width': 720},
     'leaders': {'names': LEADERS, 'ratio': (3, 4), 'width': 720},
     'governments': {'names': GOVERNMENTS, 'ratio': (3, 1), 'width': 990},
+    'title': {'names': TITLE, 'ratio': (16, 9), 'width': 1600},
 }
 # Borders the automatic trim cannot see (a pale strip on two sides only):
 # pixels to cut from the left, top, right and bottom of the master.
