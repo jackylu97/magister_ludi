@@ -208,7 +208,7 @@ function instanceOnRay(bounds: InstanceBounds, index: number, mesh: InstancedMes
 export function pickUnitModel(
   ray: Ray,
   candidates: readonly UnitModelCandidate[],
-  occluders: readonly Object3D[] = [],
+  occluders: readonly Object3D[] | (() => readonly Object3D[]) = [],
   options: UnitModelPickOptions = {},
 ): number | null {
   raycaster.set(ray.origin, ray.direction);
@@ -228,6 +228,8 @@ export function pickUnitModel(
     }
   }
   if (selected === null) return null;
+  // A ray that misses every unit cannot select one, even if the board has new markers.
+  const roots = typeof occluders === 'function' ? occluders() : occluders;
   const worldHit = (hit: Intersection<Mesh>): boolean =>
     occludingMaterial(hitMaterial(hit)!) && visiblePaintedCell(hit) && (options.acceptsOccluderHit?.(hit) ?? true);
   const blocks = (object: Object3D): boolean => {
@@ -250,7 +252,7 @@ export function pickUnitModel(
     }
     return object.children.some(blocks);
   };
-  return occluders.some(object => visibleAncestors(object) && blocks(object)) ? null : selected;
+  return roots.some(object => visibleAncestors(object) && blocks(object)) ? null : selected;
 }
 
 function visibleAncestors(object: Object3D): boolean {

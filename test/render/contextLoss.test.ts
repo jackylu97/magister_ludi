@@ -165,7 +165,7 @@ describe('the ground paint texture after a restore', () => {
   const after = VIEW3D.painted.groundTexture.bakeAfterMs;
   function baking(drawnAgo: number | null, done = false) {
     const step = vi.fn(() => done);
-    const board = { groundPaint: { pending: true, step } };
+    const board = { groundPaint: { pending: true, step }, advanceSetBack: () => false };
     const { r, render } = runtime({ paintedBoard: board, boardDrawnAt: drawnAgo === null ? null : performance.now() - drawnAgo });
     return { r, render, step, board };
   }

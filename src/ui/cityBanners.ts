@@ -418,6 +418,8 @@ interface Banner {
   signature: string;
   col: number;
   row: number;
+  screenX?: number;
+  screenY?: number;
 }
 
 /**
@@ -1422,6 +1424,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     onHoverPiece,
   } = options;
   const banners = new Map<number, Banner>();
+  let lastProjectionRevision: number | undefined;
   let hoveredBannerId: number | null = null;
   let hoveredPieceBannerId: number | null = null;
 
@@ -1583,7 +1586,9 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       if (!banner) {
         banner = build(facts.cityId);
         banners.set(facts.cityId, banner);
+        lastProjectionRevision = undefined;
       }
+      if (banner.col !== facts.col || banner.row !== facts.row) lastProjectionRevision = undefined;
       banner.col = facts.col;
       banner.row = facts.row;
 
@@ -1726,25 +1731,25 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
   function reposition(): void {
     const project = renderer.projectCityBanner ?? renderer.projectCell;
     if (!project) return;
-    // Every point first, then every write. A projection reads the canvas's
-    // size, and a read after a style write makes the browser lay the page out
-    // again at once: with the two interleaved, a pan laid the page out once for
-    // each town on every frame. The canvas does not move when a banner does, so
-    // the points are the same either way.
+    // Water and unit animations can draw another frame while every flag stays put.
+    const revision = renderer.cityBannerProjectionRevision;
+    if (revision !== undefined && revision === lastProjectionRevision) return;
+    lastProjectionRevision = revision;
     placed.length = 0;
     for (const [cityId, banner] of banners) placed.push([cityId, banner, project.call(renderer, banner.col, banner.row, BANNER_RISE)]);
     for (const [cityId, banner, point] of placed) {
       if (!point || !point.onScreen) {
         clearBannerHover(cityId);
-        banner.root.style.display = 'none';
+        if (banner.root.style.display !== 'none') banner.root.style.display = 'none';
         continue;
       }
-      banner.root.style.display = '';
-      // Rounded to whole pixels: a banner on a half pixel is a blurry banner,
-      // and the board moves far enough per frame that nobody sees the snap.
-      banner.root.style.transform = `translate(-50%, -100%) translate(${Math.round(
-        point.x,
-      )}px, ${Math.round(point.y)}px)`;
+      if (banner.root.style.display === 'none') banner.root.style.display = '';
+      const x = Math.round(point.x), y = Math.round(point.y);
+      if (x !== banner.screenX || y !== banner.screenY) {
+        banner.root.style.transform = `translate(-50%, -100%) translate(${x}px, ${y}px)`;
+        banner.screenX = x;
+        banner.screenY = y;
+      }
     }
     placed.length = 0;
   }

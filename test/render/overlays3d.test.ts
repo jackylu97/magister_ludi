@@ -264,13 +264,26 @@ describe('board overlays draw over the board', () => {
         committed: [{ col: 3, row: 1 }],
         hover: { col: 4, row: 1 },
         selection: { col: 5, row: 1 },
-        worked: [{ col: 6, row: 1 }],
-        locked: [{ col: 6, row: 1 }],
+        worked: [],
+        locked: [],
       },
       geometry,
       materials,
     );
     expectDrawnOverTheBoard(layer.group);
+    const pinned = [{ col: 6, row: 1 }];
+    layer.build(state.map, {
+      reachable: [], attackable: [], path: [], committed: [], hover: null, selection: null,
+      worked: pinned, locked: pinned,
+    }, geometry, materials);
+    const strips = decals(layer.group);
+    expect(strips).toHaveLength(4);
+    for (const { mesh, material } of strips) {
+      expect(material.depthTest).toBe(false);
+      expect(material.depthWrite).toBe(false);
+      expect(mesh.renderOrder).toBeGreaterThan(RENDER_ORDER.silhouette);
+      expect(mesh.renderOrder).toBeLessThan(RENDER_ORDER.onTop);
+    }
     layer.dispose();
   });
 
@@ -325,6 +338,42 @@ describe('board overlays draw over the board', () => {
     layer.build(state.map, {...overlay, reachable:[]}, geometry, materials);
     expect(decals(layer.group)).toHaveLength(0);
     layer.dispose();
+  });
+
+  it('keeps the last two movement outlines and releases both when the ground changes', () => {
+    const map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    const layer = new OverlayLayer();
+    const disposed: BufferGeometry[] = [];
+    function draw(col: number, row: number, cells = [{ col, row }], ground = map) {
+      layer.build(ground, { reachable: cells, selection: { col, row }, hover: null,
+        path: [], committed: [], worked: [], locked: [] }, geometry, materials);
+      return shapesOf(layer.group).filter(shape => shape !== geometry.ring);
+    }
+    function track(strips: BufferGeometry[]) {
+      expect(strips).toHaveLength(2);
+      for (const strip of strips) strip.addEventListener('dispose', () => disposed.push(strip));
+      return strips;
+    }
+    const cells = [{ col: 1, row: 2 }, { col: 2, row: 2 }];
+    const first = track(draw(1, 2, cells));
+    const second = track(draw(3, 2, cells));
+    expect(second[0]).not.toBe(first[0]);
+    expect(draw(3, 2, [])).toHaveLength(0);
+    expect(draw(1, 2, cells.slice().reverse())[0]).toBe(first[0]);
+    const third = track(draw(1, 2));
+    expect(disposed).toEqual(second);
+    expect(draw(1, 2, cells)[1]).toBe(first[1]);
+
+    layer.invalidateSurface();
+    const refreshed = track(draw(1, 2, cells));
+    expect(refreshed[0]).not.toBe(first[0]);
+    expect(disposed).toEqual([...second, ...first, ...third]);
+
+    const other = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    const replacement = track(draw(1, 2, cells, other));
+    expect(replacement[0]).not.toBe(refreshed[0]);
+    layer.dispose();
+    expect(disposed).toEqual([...second, ...first, ...third, ...refreshed, ...replacement]);
   });
 
   /**

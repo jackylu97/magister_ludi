@@ -62,3 +62,19 @@ node scripts/input-latency/check-yields.mjs dawnreach /tmp/dawnreach-on-off.json
 ```
 
 The final move passes through Dawnreach and leaves its garrison as it started. All eight clicks now have a budget of **zero fresh city and empire breakdowns** in each mode. Before the cache change, the last click rebuilt 17 city lists and one empire list in each mode. The budget ends at the first visible response. A move that stops in the city can change its income and has a separate simulation test.
+
+## Measure camera motion in Safari or another browser
+
+Start a private Vite server with `npm run dev -- --host 127.0.0.1 --port 5291 --strictPort`. Open that port in the browser, import a copy of the save and show the area to test. Set the quality and lens options before taking a sample. Keep the board visible at the same window size. The browser console can run the following commands.
+
+```js
+const { findBoard, measureCamera } = await import('/scripts/input-latency/camera-gaps.mjs');
+const board = await findBoard();
+const pan = await measureCamera(board, 'pan');
+const zoom = await measureCamera(board, 'zoom');
+console.table([pan.summary, zoom.summary]);
+```
+
+If the board is at rest, pan it once while `findBoard()` waits. Each measurement moves the camera for 2.3 seconds and restores it. To compare one setting, run each motion with the setting on, off, off and on. Compare the full set of results. Each result includes the coordinates, board buffer, individual frame times, draw calls, triangles and lens rebuild times.
+
+The probe counts completed calls to the painted renderer. The gap between two calls includes time outside JavaScript. The submission time includes any wait inside the draw calls. A separate list counts browser animation callbacks. The probe measures neither GPU execution time nor the moment a frame reaches the display. It issues camera commands directly, so these figures exclude mouse and trackpad event delivery.

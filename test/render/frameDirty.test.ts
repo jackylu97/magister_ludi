@@ -5,7 +5,7 @@
  * every frame (WebGL audit 2026-10-06, finding 4). These tests drive the real
  * frame loop with WebGL stubbed out and count the sweeps.
  */
-import { Group, InstancedMesh, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
+import { BoxGeometry, Group, InstancedMesh, Mesh, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { DeathAnimations3D, MoveAnimations3D } from '../../src/render3d/animation3d';
 import { Renderer3D } from '../../src/render3d/renderer3d';
@@ -116,10 +116,11 @@ describe('a camera frame draws without re-reading the state', () => {
     expect(f.buildOverlays).not.toHaveBeenCalled();
     const rebuildLens = vi.fn(() => Object.assign(f.runtime, {lensDirty: false}));
     Object.assign(f.runtime, {lensDirty: true, rebuildLens});
-    f.runtime.pickUnitModel(0, 0, 0);
-    expect(rebuildLens).toHaveBeenCalledOnce();
+    expect(f.runtime.pickUnitModel(0, 0, 0)).toBeNull();
+    expect(rebuildLens).not.toHaveBeenCalled();
     expect(f.buildOverlays).not.toHaveBeenCalled();
     f.frame();
+    expect(rebuildLens).toHaveBeenCalledOnce();
     expect(f.buildOverlays).toHaveBeenCalledOnce();
     expect(f.buildOverlays.mock.calls[0]![1]).toMatchObject({
       selection: {col: unit.col, row: unit.row}, reachable, attackable,
@@ -127,6 +128,32 @@ describe('a camera frame draws without re-reading the state', () => {
     f.frame();
     expect(f.buildOverlays).toHaveBeenCalledOnce();
     expect(f.drawn()).toBe(1);
+  });
+
+  it('refreshes changed lens markers before deciding whether a body hit is visible', () => {
+    const map = createMap({width: 8, height: 6, terrain: 'grassland'});
+    const unit = {id: 7, ownerId: 0, col: 2, row: 3};
+    const f = fixture({ map, units: [unit], visibility: [map.tiles.map(() => 2)] });
+    const geometry = new BoxGeometry(), material = new MeshBasicMaterial();
+    onTestFinished(() => { geometry.dispose(); material.dispose(); });
+    const body = new Mesh(geometry, material), pin = new Mesh(geometry, material);
+    pin.position.z = 2;
+    const scene = new Group();
+    let showPin = true;
+    const rebuildLens = vi.fn(() => {
+      if (showPin) scene.add(pin);
+      else scene.remove(pin);
+      Object.assign(f.runtime, { lensDirty: false });
+    });
+    Object.assign(f.runtime, { map, scene, units: {modelCandidates: () => [{unitId: unit.id, object: body}]},
+      lensDirty: true, rebuildLens });
+    Object.assign(f.view, {screenRay: () => ({origin: new Vector3(0, 0, 10), direction: new Vector3(0, 0, -1)})});
+    expect(f.runtime.pickUnitModel(0, 0, 0)).toBeNull();
+    expect(rebuildLens).toHaveBeenCalledOnce();
+    showPin = false;
+    Object.assign(f.runtime, {lensDirty: true});
+    expect(f.runtime.pickUnitModel(0, 0, 0)).toBe(unit.id);
+    expect(rebuildLens).toHaveBeenCalledTimes(2);
   });
 
   it('invalidate, the verb a command calls, runs the sweep once and then idles', () => {

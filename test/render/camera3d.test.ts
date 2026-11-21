@@ -56,8 +56,11 @@ function seated(): DioramaCamera {
 
 it('projects each wrap copy into the CSS viewport used for picking', () => {
   const view = seated();
+  let revision = view.projectionRevision;
   view.panTo(period - 0.25, 10, false, 0);
   function check(width: number, height: number): void {
+    expect(view.projectionRevision).toBeGreaterThan(revision);
+    revision = view.projectionRevision;
     const points = [-period, 0, period].map(offset => new Vector3(0.25 + offset, 1.4, 10));
     // Callers retain both the badge centre and its rim while measuring a hit.
     const projected = points.map(point => view.projectPoint(point));
@@ -75,9 +78,13 @@ it('projects each wrap copy into the CSS viewport used for picking', () => {
   }
   check(1200, 800);
   view.resize(853, 479);
+  check(853, 479);
   view.pan(37, -21);
+  check(853, 479);
   view.zoomByFactor(1.3, 247, 100);
   check(853, 479);
+  expect(view.stepPan(0)).toBe(false);
+  expect(view.projectionRevision).toBe(revision);
   view.setCityView(true, true, 0);
   view.stepPan(CAMERA.panMs / 2);
   check(853, 479);

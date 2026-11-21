@@ -1,0 +1,344 @@
+{
+  "fixture": {
+    "seed": 900373,
+    "turn": 73,
+    "cities": 28,
+    "units": 231,
+    "boardWidthTiles": 80,
+    "boardHeightTiles": 52,
+    "baselineCommit": "5878c151",
+    "initialCameraRadius": 13,
+    "fiveCityCentre": [
+      41.74242446240996,
+      52.5
+    ],
+    "seamCentre": [
+      0.2,
+      52.5
+    ],
+    "boardPixelRatio": 1.5,
+    "botPreparation": false,
+    "daylight": true,
+    "shadows": true
+  },
+  "environment": {
+    "browser": "headless Chrome",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "webglTimer": "EXT_disjoint_timer_query_webgl2",
+    "canvasCssPixels": [
+      1470,
+      793
+    ],
+    "drawingBufferPixels": [
+      2205,
+      1189
+    ],
+    "rgbaBytesPerFrame": 10486980,
+    "oneFiveFifteenMinuteLoadAtStart": [
+      2.5419921875,
+      2.56689453125,
+      4.16259765625
+    ],
+    "oneFiveFifteenMinuteLoadAtEnd": [
+      3.75537109375,
+      2.93310546875,
+      4.2255859375
+    ]
+  },
+  "method": {
+    "candidate": "Use a separate glyph-only InstanceCollector with copyMeshes. Pins and other lens batches keep their original representation.",
+    "activePan": "Programmatic 110 by 20 CSS pixel sinusoidal pan for 1.75 seconds per block. Each GPU query bracketed the complete board loop. CPU submission brackets the render phase only. No readback during active pan.",
+    "matchedDraws": "Same camera position for each old/new pair, alternating which ran first. The pan state of the mirror was held constant. Readback outside each query completed prior frame work. GPU millisecond deltas are computed per pair. Percentiles use the nearest rank, including the lower middle value for an even sample count.",
+    "pixelChecks": "Compare all framebuffer RGBA bytes at a fixed clock. control repeats the control, candidate compares alternate to control, restored returns to control, and glyphSignal compares a frame with its glyphs hidden. Counts are changed channel values, not changed pixels."
+  },
+  "pixels": {
+    "mixed-home": {
+      "baseBuffer": 358272,
+      "candidateBuffer": 119424,
+      "baseGlyphMeshes": 14,
+      "candidateGlyphMeshes": 42,
+      "pixels": {
+        "control": {
+          "n": 0,
+          "max": 0
+        },
+        "candidate": {
+          "n": 892,
+          "max": 121
+        },
+        "restored": {
+          "n": 0,
+          "max": 0
+        },
+        "glyphSignal": {
+          "n": 390944,
+          "max": 227
+        }
+      }
+    },
+    "glyphs-home": {
+      "baseBuffer": 358272,
+      "candidateBuffer": 119424,
+      "baseGlyphMeshes": 14,
+      "candidateGlyphMeshes": 42,
+      "pixels": {
+        "control": {
+          "n": 0,
+          "max": 0
+        },
+        "candidate": {
+          "n": 847,
+          "max": 23
+        },
+        "restored": {
+          "n": 0,
+          "max": 0
+        },
+        "glyphSignal": {
+          "n": 391074,
+          "max": 227
+        }
+      }
+    },
+    "mixed-seam": {
+      "baseBuffer": 2042112,
+      "candidateBuffer": 680704,
+      "baseGlyphMeshes": 14,
+      "candidateGlyphMeshes": 42,
+      "pixels": {
+        "control": {
+          "n": 0,
+          "max": 0
+        },
+        "candidate": {
+          "n": 1084,
+          "max": 37
+        },
+        "restored": {
+          "n": 0,
+          "max": 0
+        },
+        "glyphSignal": {
+          "n": 474384,
+          "max": 195
+        }
+      }
+    }
+  },
+  "panBlocks": [
+    {
+      "tag": "base",
+      "count": 53,
+      "fps": 29.942,
+      "cpu": 8.1,
+      "submit": 7.9,
+      "gpu": 45.469,
+      "gpuP95": 64.118,
+      "validTimers": 53,
+      "p50": 33.5,
+      "p95": 37.1,
+      "max": 42.7,
+      "calls": 432,
+      "triangles": 1747596,
+      "glyphDraws": 14,
+      "glyphTriangles": 11196
+    },
+    {
+      "tag": "shared",
+      "count": 53,
+      "fps": 30.069,
+      "cpu": 4.5,
+      "submit": 4.3,
+      "gpu": 25.2,
+      "gpuP95": 72.368,
+      "validTimers": 53,
+      "p50": 33.1,
+      "p95": 37,
+      "max": 40,
+      "calls": 431,
+      "triangles": 1738997,
+      "glyphDraws": 14,
+      "glyphTriangles": 3732
+    },
+    {
+      "tag": "shared",
+      "count": 53,
+      "fps": 30.052,
+      "cpu": 4.8,
+      "submit": 4.5,
+      "gpu": 23.355,
+      "gpuP95": 25.339,
+      "validTimers": 53,
+      "p50": 33.3,
+      "p95": 36.6,
+      "max": 38.6,
+      "calls": 431,
+      "triangles": 1738997,
+      "glyphDraws": 14,
+      "glyphTriangles": 3732
+    },
+    {
+      "tag": "base",
+      "count": 53,
+      "fps": 29.955,
+      "cpu": 4,
+      "submit": 3.8,
+      "gpu": 23.868,
+      "gpuP95": 28.075,
+      "validTimers": 53,
+      "p50": 33.5,
+      "p95": 36.8,
+      "max": 37.3,
+      "calls": 431,
+      "triangles": 1747596,
+      "glyphDraws": 14,
+      "glyphTriangles": 11196
+    }
+  ],
+  "pairedGpuMs": {
+    "mixed-home": {
+      "baseMedianMs": 21.764208,
+      "sharedMedianMs": 21.178166,
+      "medianSavingMs": -0.040709,
+      "fasterPairs": 8,
+      "pairsBaseShared": [
+        [
+          18.566041,
+          18.60675
+        ],
+        [
+          18.9745,
+          17.871583
+        ],
+        [
+          21.941708,
+          25.947249
+        ],
+        [
+          18.580499,
+          19.012041
+        ],
+        [
+          18.74275,
+          19.936916
+        ],
+        [
+          21.764208,
+          21.272541
+        ],
+        [
+          23.386583,
+          21.178166
+        ],
+        [
+          21.858666,
+          20.880833
+        ],
+        [
+          30.654125,
+          28.470291
+        ],
+        [
+          19.817416,
+          19.917
+        ],
+        [
+          20.468583,
+          21.706041
+        ],
+        [
+          28.50775,
+          23.842916
+        ],
+        [
+          25.087416,
+          22.752958
+        ],
+        [
+          20.742624,
+          20.459124
+        ],
+        [
+          26.144749,
+          26.746917
+        ],
+        [
+          26.469999,
+          26.600583
+        ]
+      ]
+    },
+    "mixed-seam": {
+      "baseMedianMs": 15.086874,
+      "sharedMedianMs": 15.778333,
+      "medianSavingMs": -0.814791,
+      "fasterPairs": 6,
+      "pairsBaseShared": [
+        [
+          14.2605,
+          14.44025
+        ],
+        [
+          16.805458,
+          15.778333
+        ],
+        [
+          20.1555,
+          22.685749
+        ],
+        [
+          18.8875,
+          20.171249
+        ],
+        [
+          20.316499,
+          17.626
+        ],
+        [
+          17.27325,
+          19.313541
+        ],
+        [
+          12.095958,
+          10.020125
+        ],
+        [
+          12.663375,
+          13.478166
+        ],
+        [
+          13.201124,
+          13.232833
+        ],
+        [
+          13.318541,
+          12.9575
+        ],
+        [
+          15.086874,
+          16.115874
+        ],
+        [
+          10.028374,
+          13.036249
+        ],
+        [
+          11.709041,
+          10.365666
+        ],
+        [
+          19.928583,
+          17.700708
+        ],
+        [
+          19.354499,
+          21.491958
+        ],
+        [
+          17.853749,
+          21.278374
+        ]
+      ]
+    }
+  }
+}

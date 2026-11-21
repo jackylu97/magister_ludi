@@ -300,7 +300,7 @@ describe('the reveal: a comparison, never a countdown', () => {
     expect(gate.indexOf('advanceReveal')).toBeGreaterThan(gate.indexOf('const revealing ='));
     // The reasons to draw other than motion are one flag since the render speed pass (2026-11-16), which also
     // times `visualTest.motionRestSeconds` from them; `revealing` is one of those reasons.
-    expect(gate).toMatch(/const asked = [^;]*\|\| revealing;/);
+    expect(gate).toMatch(/const asked = [^;]*\|\| revealing\b[^;]*;/);
     expect(gate).toContain('if (!moving && !asked) return;');
   });
 });

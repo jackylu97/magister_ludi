@@ -96,20 +96,20 @@ function fixture() {
     // The plain layers' builds stand in: in the painted look they draw only
     // flags and pins, and what they would draw is read off the state.
     cities: { build() {} }, improvements: { build() {} }, sites: { build() {} }, overlays: { invalidateSurface() {} },
-    view: { facing: { clone: () => null } }, shadows: true, icons: null, cityWallPreview: false, cleared: new Map(),
+    view: { facing: { clone: () => null }, projectionRevision: 0 }, shadows: true, icons: null, cityWallPreview: false, cleared: new Map(),
     lensView: { mode: 'none', yields: false, resources: false }, religionSignature: 0,
     clearedCitiesSignature: signCityCells(state), clearedImprovementsSignature: signImprovedCells(state),
     clearedFeaturesSignature: signFeatureCells(state.map),
     applyFog: () => ({ tiles: 0 }), applyReveal: () => null, reveal: null,
     setHoveredUnitId: vi.fn(), rebuildOverlays: vi.fn(), rebuildLens: vi.fn(), invalidate: vi.fn(),
     rebuildUnits: vi.fn(), rebuildTerritory: vi.fn(), rebuildRoads: vi.fn(),
-    cityBannerAnchors: new Map(), clearGround: vi.fn(),
+    cityBannerAnchors: new Map(), cityBannerAnchorRevision: 0, clearGround: vi.fn(),
   };
   const runtime = Object.assign(Object.create(Renderer3D.prototype), data) as Renderer3D;
   runtime.setGameState(state);
   /** How many times one state refresh asked for the static map to be re-baked. */
   const frame = (): number => { const before = bakes; runtime.setGameState(state); return bakes - before; };
-  return { state, levels, ours, theirs, frame };
+  return { state, levels, ours, theirs, frame, runtime };
 }
 
 const cell = (col: number, row: number): number => row * WIDTH + col;
@@ -144,8 +144,13 @@ describe('the static shadow bake', () => {
 
   it('bakes when a charted town drops back to uncharted ground', () => {
     const f = fixture();
+    const revision = f.runtime.cityBannerProjectionRevision;
     f.levels[cell(OURS.col, OURS.row)] = HIDDEN;
     expect(f.frame()).toBe(1);
+    expect(f.runtime.cityBannerProjectionRevision).toBeGreaterThan(revision);
+    const afterRebuild = f.runtime.cityBannerProjectionRevision;
+    f.frame();
+    expect(f.runtime.cityBannerProjectionRevision).toBe(afterRebuild);
   });
 
   it('ignores a farm built on uncharted ground, and bakes for one on charted ground', () => {

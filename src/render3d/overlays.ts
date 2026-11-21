@@ -234,14 +234,50 @@ export class OverlayLayer {
   readonly group = new Group();
   private drawCallCount = 0;
   private boundaryMap: GameMap | null = null;
-  private boundaryKey = '';
-  private boundary: BufferGeometry[] = [];
+  private readonly boundaries: { key: string; strips: BufferGeometry[] }[] = [];
   private workedMap: GameMap | null = null;
   private workedKey = '';
   private workedOutlines: OutlineStrip[] = [];
 
   /** Terraces or another relief replacement changed the registered terrain. */
   invalidateSurface(): void { this.boundaryMap = null; this.workedMap = null; }
+
+  private clearBoundaries(): void {
+    for (const entry of this.boundaries) {
+      for (const strip of entry.strips) strip.dispose();
+    }
+    this.boundaries.length = 0;
+  }
+
+  /** Keep the previous unit's outline when the player switches between two units. */
+  private movementOutline(map: GameMap, state: OverlayState): BufferGeometry[] {
+    if (this.boundaryMap !== map) {
+      this.clearBoundaries();
+      this.boundaryMap = map;
+    }
+    if (!state.reachable.length) return [];
+
+    const key = state.reachable.map(c => `${c.col},${c.row}`).sort().join(';') +
+      `|${state.selection?.col},${state.selection?.row}`;
+    const index = this.boundaries.findIndex(entry => entry.key === key);
+    if (index === 0) return this.boundaries[0]!.strips;
+    if (index === 1) {
+      this.boundaries.reverse();
+      return this.boundaries[0]!.strips;
+    }
+
+    const edges = movementEdges(map, state.reachable, state.selection);
+    const loops = movementFrontier(map, edges);
+    const strips = loops.length ? [
+      frontierRibbon(loops, OVERLAY.rangeBackingWidth),
+      frontierRibbon(loops, OVERLAY.rangeWidth),
+    ] : [];
+    if (this.boundaries.length === 2) {
+      for (const strip of this.boundaries.pop()!.strips) strip.dispose();
+    }
+    this.boundaries.unshift({ key, strips });
+    return strips;
+  }
 
   /** Rebuilds every decal from scratch. See the module docblock. */
   build(
@@ -283,24 +319,7 @@ export class OverlayLayer {
       );
     }
 
-    // The approved range frontier replaces all per-tile washes and rims.
-    // Cache the terrain samples across pointer moves; only the destination
-    // ring and route change on hover, not the movement frontier's geometry.
-    const boundaryKey = state.reachable.map(c => `${c.col},${c.row}`).sort().join(';') +
-      `|${state.selection?.col},${state.selection?.row}`;
-    if (this.boundaryMap !== map || this.boundaryKey !== boundaryKey) {
-      this.boundary.forEach(g => g.dispose()); this.boundary = [];
-      this.boundaryMap = map; this.boundaryKey = boundaryKey;
-      const edges = movementEdges(map, state.reachable, state.selection);
-      // One reading of the ground for both strips: they are the same line at two
-      // widths, and sampling twice is what used to let the backing show at a joint.
-      const loops = edges.length ? movementFrontier(map, edges) : [];
-      if (loops.length) this.boundary = [
-        frontierRibbon(loops, OVERLAY.rangeBackingWidth),
-        frontierRibbon(loops, OVERLAY.rangeWidth),
-      ];
-    }
-    this.boundary.forEach((shape, i) => collector.add(shape,
+    this.movementOutline(map, state).forEach((shape, i) => collector.add(shape,
       [i === 0 ? OVERLAY.rangeBackingColor : OVERLAY.rangeColor], new Matrix4(),
       { onTop: true, opacity: i === 0 ? OVERLAY.rangeBackingOpacity : OVERLAY.rangeOpacity }));
 
@@ -463,8 +482,8 @@ export class OverlayLayer {
 
   dispose(): void {
     disposeInstancedGroup(this.group);
-    this.boundary.forEach(g => g.dispose()); this.boundary = [];
-    this.boundaryMap = null; this.boundaryKey = '';
+    this.clearBoundaries();
+    this.boundaryMap = null;
     this.workedOutlines.forEach(strip => strip.geometry.dispose()); this.workedOutlines = [];
     this.workedMap = null; this.workedKey = '';
   }

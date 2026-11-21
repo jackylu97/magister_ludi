@@ -428,6 +428,7 @@ export class Renderer3D implements MapView {
   private boardDrawnAt: number | null = null;
   private paintedCities: PaintedCityLayer | null = null;
   private readonly cityBannerAnchors = new Map<number, WorldPoint>();
+  private cityBannerAnchorRevision = 0;
   private cityWallPreview = false;
   private paintedWorks: PaintedWorksLayer | null = null;
   private paintedSites: PaintedSiteLayer | null = null;
@@ -2324,6 +2325,7 @@ export class Renderer3D implements MapView {
       this.paintedSmoke?.build(null, null, new Map(), false);
       this.paintedWorksSignature = null; this.yieldLightSignature = null;
       this.cityBannerAnchors.clear();
+      this.cityBannerAnchorRevision++;
       this.invalidate();
       return;
     }
@@ -2729,6 +2731,7 @@ export class Renderer3D implements MapView {
   private rebuildCities(shadowChanged = true): void {
     if (!this.state) return;
     this.cityBannerAnchors.clear();
+    this.cityBannerAnchorRevision++;
     if (this.paintedCities && this.paintedBoard) {
       this.paintedCities.group.visible = true;
       this.paintedCities.build(this.state, this.paintedBoard.renderMap, this.fogLevels(), this.shadows, {previewWalls: this.cityWallPreview});
@@ -2859,6 +2862,8 @@ export class Renderer3D implements MapView {
       // The shelves are ground; the farmhouse remains a prop above that ground.
       installPaintedSurface(this.state.map, this.paintedBoard.renderMap,
         [...this.paintedBoard.pickMeshes, ...this.paintedWorks.surfaceMeshes]);
+      // A remembered town can use the ground height when its flag model is absent.
+      this.cityBannerAnchorRevision++;
       this.overlays.invalidateSurface();
     }
     this.paintedWorksSignature = signature;
@@ -3351,6 +3356,11 @@ export class Renderer3D implements MapView {
     return this.projectWrappedPoint({x: centre.x, y: tileTopY(tile) + rise, z: centre.z});
   }
 
+  get cityBannerProjectionRevision(): number {
+    // Both counters only increase. A change to either moves the combined revision.
+    return this.view.projectionRevision + this.cityBannerAnchorRevision;
+  }
+
   /** The city flag's architectural anchor; unseen towns retain the tile anchor. */
   projectCityBanner(col: number, row: number, rise = 0): ScreenPoint | null {
     if (!this.map) return null;
@@ -3439,21 +3449,21 @@ export class Renderer3D implements MapView {
    * performance one, so it is not made here.
    */
   private occluderRoots(): Object3D[] {
+    // A standing lens marker may hide the body the ray just hit.
+    if (this.lensDirty) this.rebuildLens();
     return this.scene.children.filter(child => !(child as {isLight?: boolean}).isLight && !child.userData.unitVisual);
   }
 
   /** Exact body triangles, including wrap copies and the current walking pose. */
   pickUnitModel(screenX: number, screenY: number, playerId: number): number | null {
     if (!this.state || !this.map) return null;
-    // A standing lens marker can hide a piece. The flat movement marks never write depth.
-    if (this.lensDirty) this.rebuildLens();
     const resting = this.units.modelCandidates();
     const moving: UnitModelCandidate[] = [];
     for (const [unitId, group] of this.walkers) group.traverse(object => {
       if (object instanceof Mesh && object.userData.unitBody) moving.push({unitId, object});
     });
     const candidates = moving.length ? resting.concat(moving) : resting;
-    const id = pickUnitBody(this.view.screenRay(screenX, screenY), candidates, this.occluderRoots(), {
+    const id = pickUnitBody(this.view.screenRay(screenX, screenY), candidates, () => this.occluderRoots(), {
       layers: this.view.camera.layers,
       acceptsOccluderHit: hit => {
         if (!this.paintedBoard) return true;
@@ -4918,6 +4928,7 @@ export class Renderer3D implements MapView {
     for (const material of this.unitOutlines.values()) material.dispose();
     this.unitOutlines.clear();
     this.cityBannerAnchors.clear();
+    this.cityBannerAnchorRevision++;
     this.territory.dispose();
     this.tints.dispose();
     this.roads.dispose();

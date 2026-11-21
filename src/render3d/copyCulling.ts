@@ -22,7 +22,8 @@
  * A pass that draws a shadow map hides nothing, so every caster reaches it.
  * In other passes, a tree batch inside a retained copy also has a box. It
  * includes every tree at its full sway and often fits the screen edge more
- * closely than the sphere around a long row of trees.
+ * closely than the sphere around a long row of trees. A row that crosses
+ * the screen edge can also skip trailing trees outside the camera.
  *
  * Most other layers keep their three copies as siblings in one group, each
  * mesh standing at its copy's offset (the works, the sites, the towns, the
@@ -38,16 +39,30 @@ import { Box3, type Camera, Frustum, type InstancedMesh, Matrix4, type Mesh, typ
 /** World units added round each copy's box. Far wider than any rounding, far smaller than a hex. */
 const SLACK = 1e-3;
 
-/** The breeze moves vertices in the tree's local axes. Include it before each tree's scale and rotation. */
-export function canopyBatchBox(mesh: InstancedMesh, sway: {x: number; z: number}): Box3 {
+/** The breeze moves vertices in local space, before each tree's scale and rotation. */
+function treeBounds(mesh: InstancedMesh, sway: {x: number; z: number}): Box3 {
   if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
-  const tree = mesh.geometry.boundingBox!.clone().expandByVector(new Vector3(sway.x, 0, sway.z));
+  return mesh.geometry.boundingBox!.clone().expandByVector(new Vector3(sway.x, 0, sway.z));
+}
+
+export function canopyBatchBox(mesh: InstancedMesh, sway: {x: number; z: number}): Box3 {
+  const tree = treeBounds(mesh, sway);
   const matrix = new Matrix4(), placed = new Box3(), box = new Box3();
   for (let i = 0; i < mesh.count; i++) {
     mesh.getMatrixAt(i, matrix);
     box.union(placed.copy(tree).applyMatrix4(matrix));
   }
   return box.expandByScalar(SLACK);
+}
+
+interface CanopyBox {
+  mesh: InstancedMesh;
+  box: Box3;
+  localTree: Box3;
+  matrices: InstancedMesh['instanceMatrix'];
+  version: number;
+  previousCount: number;
+  slotBounds: Box3[];
 }
 
 /**
@@ -57,7 +72,7 @@ export function canopyBatchBox(mesh: InstancedMesh, sway: {x: number; z: number}
  * and so keep every copy in view. When the copy is out of view, its other meshes
  * are hidden one by one and the wide ones are left to three's own test.
  */
-interface CopyBox { children: number; period: number; box: Box3; wide: Set<Object3D>; always: boolean; canopies: { mesh: Mesh; box: Box3 }[] }
+interface CopyBox { children: number; period: number; box: Box3; wide: Set<Object3D>; always: boolean; canopies: CanopyBox[] }
 
 /** A layer whose wrap copies are siblings in one group, and the period that separates them. */
 export interface FlatLayer { group: Object3D; period: number }
@@ -76,6 +91,8 @@ export class CopyCulling {
   private readonly viewProjection = new Matrix4();
   private readonly sphere = new Sphere();
   private readonly hidden: Object3D[] = [];
+  private readonly shortened: CanopyBox[] = [];
+  private readonly treeMatrix = new Matrix4();
   /** Copies hidden since the page loaded, for the cost report. */
   hides = 0;
 
@@ -111,12 +128,39 @@ export class CopyCulling {
     }
   }
 
-  /** A row of trees can lie outside a screen edge while its bounding sphere crosses that edge. */
+  /** Skip trees past the last visible slot. All earlier trees keep their original order and GPU data. */
   private hideCanopies(canopies: CopyBox['canopies']): void {
-    for (const { mesh, box } of canopies) {
-      if (mesh.visible && !this.frustum.intersectsBox(box)) {
+    for (const row of canopies) {
+      const { mesh, box } = row;
+      if (!mesh.visible) continue;
+      if (!this.frustum.intersectsBox(box)) {
         mesh.visible = false;
         this.hidden.push(mesh);
+        continue;
+      }
+      if (mesh.count < 2) continue;
+      const matrix = mesh.instanceMatrix;
+      // The fog filter can put a different tree in the same draw slot.
+      if (row.matrices !== matrix || row.version !== matrix.version) {
+        row.matrices = matrix;
+        row.slotBounds.length = 0;
+        row.version = matrix.version;
+      }
+      let count = mesh.count;
+      while (count > 0) {
+        let last = row.slotBounds[count - 1];
+        if (!last) {
+          mesh.getMatrixAt(count - 1, this.treeMatrix);
+          last = row.localTree.clone().applyMatrix4(this.treeMatrix).applyMatrix4(mesh.matrixWorld).expandByScalar(SLACK);
+          row.slotBounds[count - 1] = last;
+        }
+        if (this.frustum.intersectsBox(last)) break;
+        count--;
+      }
+      if (count < mesh.count) {
+        row.previousCount = mesh.count;
+        this.shortened.push(row);
+        mesh.count = count;
       }
     }
   }
@@ -183,10 +227,12 @@ export class CopyCulling {
     return record;
   }
 
-  /** Shows again every copy `hide` hid. */
+  /** Restore the full scene before the next camera or shadow pass. */
   restore(): void {
     for (const copy of this.hidden) copy.visible = true;
     this.hidden.length = 0;
+    for (const row of this.shortened) row.mesh.count = row.previousCount;
+    this.shortened.length = 0;
   }
 
   /**
@@ -207,7 +253,11 @@ export class CopyCulling {
       // A mesh three never culls is drawn wherever the camera looks, so its copy is never hidden.
       if (!mesh.frustumCulled) { always = true; return; }
       if (mesh.isInstancedMesh && mesh.boundingBox && !Array.isArray(mesh.material) && mesh.material.userData.canopySway) {
-        canopies.push({ mesh, box: mesh.boundingBox.clone().applyMatrix4(mesh.matrixWorld) });
+        const trees = mesh as InstancedMesh, sway = mesh.material.userData.canopySway;
+        canopies.push({
+          mesh: trees, box: mesh.boundingBox.clone().applyMatrix4(mesh.matrixWorld), localTree: treeBounds(trees, sway),
+          matrices: trees.instanceMatrix, version: trees.instanceMatrix.version, previousCount: 0, slotBounds: [],
+        });
       }
       // three's own choice of sphere (`Frustum.intersectsObject`): the instanced mesh's own, else the geometry's.
       if (mesh.boundingSphere !== undefined) {

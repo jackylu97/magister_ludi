@@ -110,6 +110,8 @@ export class DioramaCamera {
   private viewportWidth = 1;
   private viewportHeight = 1;
   private readonly projectedPoint = new Vector3();
+  /** A new camera transform or CSS viewport can move a board label. */
+  projectionRevision = 0;
 
   /** Unit vector from target toward the eye, shared by drawing and picking. */
   readonly eyeDirection: Vector3;
@@ -628,6 +630,7 @@ export class DioramaCamera {
     this.camera.lookAt(this.target);
     this.camera.updateProjectionMatrix();
     this.camera.updateMatrixWorld(true);
+    this.projectionRevision++;
     // The billboards' orientation is settled from here, so that standing still
     // it is the camera's own to the bit. See `updateFacing`.
     this.updateFacing();

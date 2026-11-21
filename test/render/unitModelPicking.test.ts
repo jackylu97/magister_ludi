@@ -162,6 +162,22 @@ describe('world occlusion of direct unit picking', () => {
     expect(pickUnitModel(ray(), [piece], [mesh(-2)])).toBe(1);
   });
 
+  it('prepares current occluders only after hitting a body at its current position', () => {
+    const unit = mesh(), pin = mesh(2), piece = candidate(unit);
+    const roots = vi.fn(() => [pin]);
+    expect(pickUnitModel(ray(), [], roots)).toBeNull();
+    unit.position.x = 8;
+    expect(pickUnitModel(ray(), [piece], roots)).toBeNull();
+    expect(roots).not.toHaveBeenCalled();
+
+    expect(pickUnitModel(ray(8), [piece], roots)).toBe(1);
+    pin.position.x = 8;
+    expect(pickUnitModel(ray(8), [piece], roots)).toBeNull();
+    roots.mockReturnValue([]);
+    expect(pickUnitModel(ray(8), [piece], roots)).toBe(1);
+    expect(roots).toHaveBeenCalledTimes(3);
+  });
+
   it('rejects bounding-box-only scenery hits', () => {
     const ring = mesh(2), geometry = new BufferGeometry();
     geometry.setAttribute('position', new Float32BufferAttribute([

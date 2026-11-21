@@ -1,0 +1,472 @@
+{
+  "fixture": {
+    "seed": 900373,
+    "turn": 73,
+    "units": 231,
+    "cities": 28,
+    "mapTiles": [
+      80,
+      52
+    ],
+    "sourceCommit": "5878c151",
+    "light": "day",
+    "boardPixelRatio": 1.5,
+    "botPreparation": false,
+    "lens": "Explorer, resource pins and yields",
+    "shadowsEnabled": true
+  },
+  "environment": {
+    "browser": "Headless Chrome",
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "timer": "EXT_disjoint_timer_query_webgl2",
+    "drawingBufferPixels": [
+      2205,
+      1189
+    ],
+    "rgbaBytesPerFrame": 10486980,
+    "loadAveragesAtStart": [
+      2.61181640625,
+      2.6220703125,
+      3.55322265625
+    ],
+    "loadAveragesAtEnd": [
+      5.404296875,
+      3.3740234375,
+      3.79150390625
+    ]
+  },
+  "method": {
+    "geometry": "Filter draw indices for merged land and plain land only. Preserve order. Drop each triangle only when all three paintedCell vertices have a zero red fog texel. Use original index and vertex attributes for all other purposes.",
+    "timing": "Time a complete board draw at each of twenty matched camera positions per view. Alternate which version goes first. Complete earlier GPU work before timed draws. Report the nearest-rank p50 of paired control minus candidate times. Positive values mean the candidate took less GPU time.",
+    "camera": "Synthetic camera movement used the moving reflection state. No desktop input, snapshots of the screen or presentation timing.",
+    "comparisons": "Compare full RGBA buffers at a fixed animation clock for the repeat, candidate and restored control. Clear and redraw the shadow map for both sides of the fresh-shadow comparison. All pixel counters represent changed channel bytes.",
+    "landTriangleCounts": "Main camera submissions for indexed and non-indexed land draws that met the filter requirements; counts include repeated draws where applicable.",
+    "cache": "Count CPU time for constructing filtered indices and bytes retained by those indices. This timing excludes GPU upload and the extra temporary arrays used to build each index.",
+    "loadBoundary": "Start the experiment after the ground-paint worker output is ready. No timing or parity test during pending worker output or relief edits."
+  },
+  "views": {
+    "home": {
+      "pose": {
+        "name": "home",
+        "pos": [
+          41.74242446240996,
+          52.5
+        ],
+        "radius": 13,
+        "seat": 0
+      },
+      "colourDifference": {
+        "repeat": {
+          "n": 0,
+          "max": 0
+        },
+        "candidate": {
+          "n": 0,
+          "max": 0
+        },
+        "restored": {
+          "n": 0,
+          "max": 0
+        },
+        "freshShadow": {
+          "n": 0,
+          "max": 0
+        }
+      },
+      "mainCameraLand": {
+        "original": 179862,
+        "trimmed": 27808,
+        "familyCalls": 22,
+        "empty": 0
+      },
+      "gpuTimeMs": {
+        "fasterPairs": 13,
+        "baseP50": 20.654833,
+        "trimP50": 20.926625,
+        "pairedSavingP50": 0.305292,
+        "pairsBaseThenTrim": [
+          [
+            20.699624,
+            16.724958
+          ],
+          [
+            19.721666,
+            21.077875
+          ],
+          [
+            18.576333,
+            20.512749
+          ],
+          [
+            40.995041,
+            34.540874
+          ],
+          [
+            28.64725,
+            28.832749
+          ],
+          [
+            30.485708,
+            24.498625
+          ],
+          [
+            28.570583,
+            26.181499
+          ],
+          [
+            22.223375,
+            21.740416
+          ],
+          [
+            21.546375,
+            20.926625
+          ],
+          [
+            20.289,
+            19.983708
+          ],
+          [
+            20.654833,
+            24.494417
+          ],
+          [
+            20.077874,
+            20.571041
+          ],
+          [
+            20.1985,
+            19.150542
+          ],
+          [
+            17.330791,
+            17.382291
+          ],
+          [
+            17.041,
+            16.767541
+          ],
+          [
+            19.253083,
+            16.760708
+          ],
+          [
+            20.597708,
+            22.114749
+          ],
+          [
+            24.330499,
+            21.759791
+          ],
+          [
+            20.804625,
+            20.593083
+          ],
+          [
+            21.996,
+            21.678083
+          ]
+        ]
+      }
+    },
+    "frontier": {
+      "pose": {
+        "name": "frontier",
+        "pos": [
+          52.827549630850754,
+          61.5
+        ],
+        "radius": 8,
+        "seat": 0
+      },
+      "colourDifference": {
+        "repeat": {
+          "n": 0,
+          "max": 0
+        },
+        "candidate": {
+          "n": 0,
+          "max": 0
+        },
+        "restored": {
+          "n": 0,
+          "max": 0
+        },
+        "freshShadow": {
+          "n": 0,
+          "max": 0
+        }
+      },
+      "mainCameraLand": {
+        "original": 620455,
+        "trimmed": 68927,
+        "familyCalls": 13,
+        "empty": 0
+      },
+      "gpuTimeMs": {
+        "fasterPairs": 12,
+        "baseP50": 18.840875,
+        "trimP50": 18.65675,
+        "pairedSavingP50": 0.192166,
+        "pairsBaseThenTrim": [
+          [
+            12.797125,
+            12.558499
+          ],
+          [
+            14.133791,
+            13.647166
+          ],
+          [
+            17.286208,
+            19.056708
+          ],
+          [
+            22.14125,
+            22.950083
+          ],
+          [
+            16.753,
+            15.833416
+          ],
+          [
+            17.508,
+            16.073416
+          ],
+          [
+            18.840875,
+            21.083333
+          ],
+          [
+            24.576041,
+            26.218916
+          ],
+          [
+            22.581333,
+            20.180041
+          ],
+          [
+            19.353666,
+            19.836583
+          ],
+          [
+            20.207916,
+            23.583791
+          ],
+          [
+            22.561124,
+            22.442833
+          ],
+          [
+            24.071916,
+            25.808541
+          ],
+          [
+            19.001833,
+            18.592166
+          ],
+          [
+            17.967458,
+            18.65675
+          ],
+          [
+            23.092375,
+            21.819291
+          ],
+          [
+            19.162541,
+            17.833332
+          ],
+          [
+            16.481041,
+            15.674124
+          ],
+          [
+            17.473083,
+            16.842166
+          ],
+          [
+            17.978041,
+            17.785875
+          ]
+        ]
+      }
+    },
+    "seam": {
+      "pose": {
+        "name": "seam",
+        "pos": [
+          0.1,
+          52.5
+        ],
+        "radius": 13,
+        "seat": 0
+      },
+      "colourDifference": {
+        "repeat": {
+          "n": 0,
+          "max": 0
+        },
+        "candidate": {
+          "n": 0,
+          "max": 0
+        },
+        "restored": {
+          "n": 0,
+          "max": 0
+        },
+        "freshShadow": {
+          "n": 0,
+          "max": 0
+        }
+      },
+      "mainCameraLand": {
+        "original": 3786,
+        "trimmed": 3264,
+        "familyCalls": 1,
+        "empty": 0
+      },
+      "gpuTimeMs": {
+        "fasterPairs": 10,
+        "baseP50": 8.0925,
+        "trimP50": 7.981874,
+        "pairedSavingP50": -0.054375,
+        "pairsBaseThenTrim": [
+          [
+            7.668625,
+            7.3615
+          ],
+          [
+            9.402541,
+            9.521999
+          ],
+          [
+            14.050708,
+            9.351041
+          ],
+          [
+            7.336583,
+            6.721875
+          ],
+          [
+            7.513166,
+            7.981874
+          ],
+          [
+            15.419875,
+            14.091958
+          ],
+          [
+            6.895707,
+            6.695541
+          ],
+          [
+            7.662541,
+            7.724916
+          ],
+          [
+            8.723458,
+            8.777833
+          ],
+          [
+            9.7405,
+            12.195208
+          ],
+          [
+            13.434958,
+            15.544458
+          ],
+          [
+            6.692999,
+            6.579
+          ],
+          [
+            6.867874,
+            7.12825
+          ],
+          [
+            7.763499,
+            7.81925
+          ],
+          [
+            9.655124,
+            10.626125
+          ],
+          [
+            11.428333,
+            9.917583
+          ],
+          [
+            8.0925,
+            7.803791
+          ],
+          [
+            8.437625,
+            7.83825
+          ],
+          [
+            8.07775,
+            8.787749
+          ],
+          [
+            12.842625,
+            11.084749
+          ]
+        ]
+      }
+    }
+  },
+  "preparedByFirstComparison": {
+    "remaps": 44,
+    "indexBytes": 1588704,
+    "preparationMs": 45.1
+  },
+  "newlyRevealedCell": {
+    "edge": [
+      30,
+      41
+    ],
+    "duration": 300,
+    "steps": [
+      {
+        "fraction": 0.1,
+        "control": {
+          "n": 0,
+          "max": 0
+        },
+        "candidate": {
+          "n": 0,
+          "max": 0
+        }
+      },
+      {
+        "fraction": 0.5,
+        "control": {
+          "n": 0,
+          "max": 0
+        },
+        "candidate": {
+          "n": 0,
+          "max": 0
+        }
+      },
+      {
+        "fraction": 1,
+        "control": {
+          "n": 0,
+          "max": 0
+        },
+        "candidate": {
+          "n": 0,
+          "max": 0
+        }
+      }
+    ]
+  },
+  "omniscientAfterSeatChange": {
+    "original": 210617,
+    "trimmed": 0,
+    "familyCalls": 29,
+    "empty": 0
+  },
+  "seamNote": "The saved seats have no charted cells on the outermost map columns. This camera shows seat zero looking across predominantly unexplored ground."
+}

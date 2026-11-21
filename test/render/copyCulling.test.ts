@@ -93,6 +93,58 @@ describe('wrap copy culling', () => {
     }
   });
 
+  it('retains tree order and restores the entire grove before the light draws shadows', () => {
+    const sway = { x: .15, z: .03 }, material = new MeshBasicMaterial();
+    material.userData.canopySway = sway;
+    const geometry = new BoxGeometry(1, 2, 1);
+    const original = new InstancedMesh(geometry, material, 4);
+    for (const [i, x] of [12, 0, 5.6, 16].entries()) original.setMatrixAt(i, new Matrix4().makeTranslation(x, 0, 6));
+    original.boundingBox = canopyBatchBox(original, sway);
+    const wraps = [-PERIOD, 0, PERIOD].map(x => {
+      const copy = new Group();
+      copy.position.x = x;
+      copy.add(original.clone());
+      copy.updateMatrixWorld(true);
+      return copy;
+    });
+    const culling = new CopyCulling();
+    for (const wrap of wraps) {
+      const mesh = wrap.children[0] as InstancedMesh, matrices = mesh.instanceMatrix;
+      const camera = cameraOver(wrap.position.x, 5);
+      culling.hide(wraps, camera, false, [], PERIOD);
+      // The tree at 5.6 can sway into view. The hidden first tree stays in its original slot.
+      expect(mesh.count).toBe(3);
+      expect(mesh.instanceMatrix).toBe(matrices);
+      culling.restore();
+      expect(mesh.count).toBe(4);
+      culling.hide(wraps, camera, true, [], PERIOD);
+      expect(mesh.count).toBe(4);
+      culling.restore();
+    }
+  });
+
+  it('updates tree bounds when fog changes which instance occupies a draw slot', () => {
+    const material = new MeshBasicMaterial(), sway = material.userData.canopySway = { x: .1, z: .1 };
+    const mesh = new InstancedMesh(new BoxGeometry(1, 1, 1), material, 3);
+    const put = (slot: number, x: number) => mesh.setMatrixAt(slot, new Matrix4().makeTranslation(x, 0, 6));
+    put(0, 0); put(1, 2); put(2, 20);
+    mesh.boundingBox = canopyBatchBox(mesh, sway);
+    const copy = new Group(); copy.add(mesh); copy.updateMatrixWorld(true);
+    const culling = new CopyCulling(), camera = cameraOver(0, 5);
+    culling.hide([copy], camera, false, [], PERIOD);
+    expect(mesh.count).toBe(2);
+    culling.restore();
+    put(1, 20); put(2, 2); mesh.instanceMatrix.needsUpdate = true;
+    culling.hide([copy], camera, false, [], PERIOD);
+    expect(mesh.count).toBe(3);
+    culling.restore();
+    mesh.count = 2;
+    culling.hide([copy], camera, false, [], PERIOD);
+    expect(mesh.count).toBe(1);
+    culling.restore();
+    expect(mesh.count).toBe(2);
+  });
+
   it('hides a copy only when three would cull every mesh in it, and restore shows it again', () => {
     const { copies, meshes } = board(), culling = new CopyCulling();
     let hidden = 0;

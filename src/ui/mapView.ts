@@ -490,6 +490,8 @@ export interface MapView {
 
   /** Architectural flag anchor for city banners; other labels use projectCell. */
   projectCityBanner?(col: number, row: number, rise?: number): ScreenPoint | null;
+  /** Changes when the camera, viewport or city flag anchors can move a banner. */
+  readonly cityBannerProjectionRevision?: number;
 
   /**
    * Optional: a callback run after every frame the renderer actually draws.

@@ -111,10 +111,8 @@ describe('garrison icon hover lifecycle', () => {
   });
 });
 
-// A projection reads the canvas's size, and a read after a style write makes the browser lay the page out at once.
-// With the two interleaved, a pan laid the page out once a town on every frame (render speed pass, third pass).
 describe('banner placement on a drawn frame', () => {
-  it('projects every banner before it moves any of them, and moves each to its own point', () => {
+  it('positions new labels and updates only the pixels and visibility that changed', () => {
     vi.stubGlobal('document', { createElement: () => new ElementSurface(), createElementNS: () => new ElementSurface() });
     const game = createGame({ seed: 7, sizeName: 'duel', players: [{ name: 'Ada', color: '#a00', isHuman: true }] });
     const state = game.state;
@@ -125,29 +123,44 @@ describe('banner placement on a drawn frame', () => {
     state.visibility[0]!.fill(VISIBLE);
     const events: string[] = [];
     const container = new ElementSurface();
+    let revision = 1, offset = 0, rightEdge = 8;
+    let openCity: typeof state.cities[number] | null = null;
     const banners = createCityBanners({ container: container as unknown as HTMLElement,
-      renderer: { projectCell: (col: number) => { events.push(`read ${col}`); return { x: col * 10, y: 50, onScreen: col !== 10 }; } } as unknown as MapView,
-      getGame: () => game, localPlayerId: () => 0, onOpenCity: vi.fn(), openCity: () => null,
+      renderer: {
+        get cityBannerProjectionRevision() { return revision; },
+        projectCell: (col: number) => { events.push(`read ${col}`); return { x: col * 10 + offset, y: 50, onScreen: col < rightEdge }; },
+      } as unknown as MapView,
+      getGame: () => game, localPlayerId: () => 0, onOpenCity: vi.fn(), openCity: () => openCity,
       onSelectPiece: vi.fn(), onHoverPiece: vi.fn(), onHoverCity: vi.fn() });
     const roots = [...container.children];
     expect(roots).toHaveLength(3);
-    const placed = new Map<ElementSurface, string>();
     for (const root of roots) {
       const style = root.style as unknown as Record<string, unknown>;
       for (const key of ['display', 'transform']) {
-        let value = '';
+        let value = style[key];
         Object.defineProperty(style, key, { configurable: true, get: () => value,
-          set: (next: string) => { events.push(`write ${key}`); value = next; if (key === 'transform') placed.set(root, next); } });
+          set: (next: string) => { events.push(`write ${key}`); value = next; } });
       }
     }
     events.length = 0;
-    banners.reposition();
-    const firstWrite = events.findIndex(event => event.startsWith('write'));
-    expect(events.filter(event => event.startsWith('read'))).toHaveLength(3);
-    expect(events.slice(firstWrite).some(event => event.startsWith('read'))).toBe(false);
-    const transforms = [...placed.values()].sort();
-    expect(transforms).toEqual(['translate(-50%, -100%) translate(20px, 50px)', 'translate(-50%, -100%) translate(60px, 50px)']);
-    expect(roots.filter(root => (root.style as unknown as { display: string }).display === 'none')).toHaveLength(1);
+    for (let frame = 0; frame < 24; frame++) banners.reposition();
+    banners.refresh();
+    expect(events).toEqual([]);
+
+    offset = 0.2; revision++; banners.reposition();
+    expect(events).toEqual(['read 2', 'read 6', 'read 10']);
+    events.length = 0;
+    offset = 1; rightEdge = 12; revision++; banners.reposition();
+    expect(events).toEqual(['read 2', 'read 6', 'read 10', 'write transform', 'write transform', 'write display', 'write transform']);
+    expect(roots.map(root => (root.style as unknown as {transform: string}).transform)).toEqual(
+      [21, 61, 101].map(x => `translate(-50%, -100%) translate(${x}px, 50px)`));
+
+    openCity = state.cities[0]!; banners.refresh();
+    expect(container.children).toHaveLength(2);
+    openCity = null; banners.refresh();
+    const replacement = container.children[2]!;
+    expect(replacement).not.toBe(roots[0]);
+    expect((replacement.style as unknown as {transform: string}).transform).toContain('translate(21px, 50px)');
     banners.dispose();
   });
 });
