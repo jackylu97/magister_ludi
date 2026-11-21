@@ -1,0 +1,365 @@
+{
+  "archivedSlowDrags": {
+    "25": {
+      "gaps": 62,
+      "noPan": 33,
+      "unchangedCamera": 33,
+      "acceptedPanToDrawStartP95Ms": 0.6,
+      "acceptedPanToSubmissionP95Ms": 10.3
+    },
+    "33.333": {
+      "gaps": 34,
+      "noPan": 24,
+      "unchangedCamera": 24,
+      "acceptedPanToDrawStartP95Ms": 0.6,
+      "acceptedPanToSubmissionP95Ms": 10.2
+    },
+    "40": {
+      "gaps": 24,
+      "noPan": 20,
+      "unchangedCamera": 20,
+      "acceptedPanToDrawStartP95Ms": 0.6,
+      "acceptedPanToSubmissionP95Ms": 9.7
+    }
+  },
+  "newDrags": [
+    {
+      "mode": "drag-full",
+      "delivered": 114,
+      "accepted": 114,
+      "draws": 156,
+      "driverLatenessP95Ms": 1.6,
+      "eventDeliveryP95Ms": 6.2,
+      "acceptedPanToDrawStartP95Ms": 0.6,
+      "acceptedPanToSubmissionP95Ms": 8.5,
+      "submissionGapP95Ms": 19.0
+    },
+    {
+      "mode": "drag-skip",
+      "delivered": 114,
+      "accepted": 114,
+      "draws": 156,
+      "driverLatenessP95Ms": 1.28,
+      "eventDeliveryP95Ms": 1.6,
+      "acceptedPanToDrawStartP95Ms": 0.5,
+      "acceptedPanToSubmissionP95Ms": 1.3,
+      "submissionGapP95Ms": 18.0
+    },
+    {
+      "mode": "drag-skip",
+      "delivered": 114,
+      "accepted": 114,
+      "draws": 160,
+      "driverLatenessP95Ms": 1.14,
+      "eventDeliveryP95Ms": 1.2,
+      "acceptedPanToDrawStartP95Ms": 0.6,
+      "acceptedPanToSubmissionP95Ms": 1.3,
+      "submissionGapP95Ms": 17.5
+    },
+    {
+      "mode": "drag-full",
+      "delivered": 113,
+      "accepted": 113,
+      "draws": 153,
+      "driverLatenessP95Ms": 1.41,
+      "eventDeliveryP95Ms": 7.0,
+      "acceptedPanToDrawStartP95Ms": 0.7,
+      "acceptedPanToSubmissionP95Ms": 7.1,
+      "submissionGapP95Ms": 20.0
+    },
+    {
+      "mode": "drag-full",
+      "delivered": 110,
+      "accepted": 110,
+      "draws": 146,
+      "driverLatenessP95Ms": 4.22,
+      "eventDeliveryP95Ms": 7.6,
+      "acceptedPanToDrawStartP95Ms": 0.8,
+      "acceptedPanToSubmissionP95Ms": 8.5,
+      "submissionGapP95Ms": 21.9
+    },
+    {
+      "mode": "drag-skip",
+      "delivered": 114,
+      "accepted": 114,
+      "draws": 155,
+      "driverLatenessP95Ms": 1.13,
+      "eventDeliveryP95Ms": 1.9,
+      "acceptedPanToDrawStartP95Ms": 0.4,
+      "acceptedPanToSubmissionP95Ms": 0.9,
+      "submissionGapP95Ms": 17.9
+    }
+  ],
+  "queueOverlap": {
+    "original": {
+      "eventsQueuedAtLeast5Ms": 71,
+      "totalQueueMs": 599.0,
+      "overlapWithPreviousBoardLoopMs": 424.5
+    },
+    "fresh": {
+      "eventsQueuedAtLeast5Ms": 35,
+      "totalQueueMs": 263.1,
+      "overlapWithPreviousBoardLoopMs": 130.7
+    }
+  },
+  "cityShade": {
+    "shaderProgramsWithBlock": 16,
+    "shaderProgramsWithoutBlock": 8,
+    "pixelChecks": [
+      {
+        "different": 0,
+        "total": 10486980
+      },
+      {
+        "different": 0,
+        "total": 10486980
+      },
+      {
+        "different": 0,
+        "total": 10486980
+      }
+    ],
+    "pairs": [
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 14.6738,
+        "bGpuMs": 14.9364
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 12.6733,
+        "bGpuMs": 15.2598
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.7285,
+        "bGpuMs": 11.4276
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 11.6306,
+        "bGpuMs": 11.6013
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.4177,
+        "bGpuMs": 11.2415
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 11.4565,
+        "bGpuMs": 11.1538
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 15.301,
+        "bGpuMs": 15.301
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 16.6232,
+        "bGpuMs": 16.712
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 14.418,
+        "bGpuMs": 11.0922
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 15.5909,
+        "bGpuMs": 11.2509
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.5175,
+        "bGpuMs": 11.4345
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 11.9225,
+        "bGpuMs": 12.0589
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.6562,
+        "bGpuMs": 11.8372
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 12.3714,
+        "bGpuMs": 12.0956
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 12.4023,
+        "bGpuMs": 11.9513
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 11.5183,
+        "bGpuMs": 11.9291
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.3123,
+        "bGpuMs": 11.0143
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 11.2513,
+        "bGpuMs": 11.0419
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.2029,
+        "bGpuMs": 10.9924
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 11.3851,
+        "bGpuMs": 11.1932
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.2121,
+        "bGpuMs": 11.1598
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 11.3631,
+        "bGpuMs": 10.8808
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.3251,
+        "bGpuMs": 11.0615
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 11.4737,
+        "bGpuMs": 11.396
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.3645,
+        "bGpuMs": 11.21
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 15.0987,
+        "bGpuMs": 11.676
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 12.8093,
+        "bGpuMs": 11.03
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 13.0395,
+        "bGpuMs": 13.2825
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.2189,
+        "bGpuMs": 11.2933
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 11.2664,
+        "bGpuMs": 11.1547
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.55,
+        "bGpuMs": 10.9583
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 12.6651,
+        "bGpuMs": 12.0735
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.7573,
+        "bGpuMs": 11.6263
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 11.627,
+        "bGpuMs": 11.3132
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 12.1644,
+        "bGpuMs": 11.5847
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 11.7762,
+        "bGpuMs": 11.8619
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.7958,
+        "bGpuMs": 11.5729
+      },
+      {
+        "sameShader": false,
+        "order": "BA",
+        "aGpuMs": 11.6497,
+        "bGpuMs": 11.6039
+      },
+      {
+        "sameShader": false,
+        "order": "AB",
+        "aGpuMs": 11.4935,
+        "bGpuMs": 11.7002
+      },
+      {
+        "sameShader": true,
+        "order": "BA",
+        "aGpuMs": 12.3965,
+        "bGpuMs": 12.164
+      }
+    ]
+  }
+}
