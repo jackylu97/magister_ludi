@@ -1848,3 +1848,34 @@ recommendations). The user's comments, word for word:
 
 The principle across all of these, in the user's words: "i want this to feel
 unintrusive", "subdued and easy to ignore".
+
+## Lenses and advice: the user's rulings on the second mocks (2026-11-21)
+
+Comments on https://claude.ai/artifact/8r4aM7sG2QDyWnrjiZdovn, second
+iteration, word for word:
+
+- **Settler lens (on the ground marks):** "i think marks look too busy.
+  Here's what i think: could we take inspiration from civ 6/7, and look at
+  how they do their tile highlighting? I think my complaint is that the game
+  looks too busy and if we simplified the coloring in the way they do it'd be
+  easier." So: a few flat, simple tints, one a hex, as Civ VI and VII do.
+- **Settler recommendations:** "lets have settler recommendations also use
+  the corner ticks, with the advice panel i outlined."
+- **Worker advice:** "could we re-use the corner ticks here, and instead of
+  putting the advice in the bottom left panel, add a new panel that appears
+  on hover in the middle bottom that reads 'advice: build a camp here
+  *yields*'. We can have advice appear there, applying to the settler
+  recommendations too (mousing over a settler location reads 'we recommend
+  you build a city here: *reasons*')". So: **one advice panel at the bottom
+  centre,** shown on hover, for workers and for settlers; the recommended hex
+  wears corner ticks.
+- **Explorer lens, the version with corner ticks and no pins:** "i like this
+  one. Could we add a slight highlight, a bit more toned down than what we
+  had before. Could we also do a lighting effect to make the ruins more
+  obvious?"
+
+Also on 2026-11-21, in chat: the forest under a great person's work stays
+("the removing forest thing is good to know": no rule change). The word
+"tended" leaves the Compendium after Astra's deck builds. The Claude session
+rewrites the data notes on units and buildings, and "You're free to modify
+tests at your pleasure."
