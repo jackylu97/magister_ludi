@@ -79,6 +79,8 @@ of the file.
   every card that reads "starting a rite" (such a card pays at the start and
   again for each ten turns the rite is kept; the rite's price rises only at a
   real start). All thirteen rites are restated under these rules in the plan.
+- Consecration of the Bounds: resource hexes gain +1 culture, AND the town's
+  borders grow 30% faster. The user confirmed that the border clause stays.
 - Rite lengths add into one sum (The Octave +100%, the Chapel +50% in its
   town, Chichen Itza +50%).
 - New rites: Hallowing, the Vigil of Arms, Naming. The Night Watch is shared
