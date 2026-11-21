@@ -1329,9 +1329,10 @@ import { digestOfState, type Played } from './aiDigestHelpers';
  */
 /** Version 250 changes the set of draftable Orders, purchase prices, lumber mills and terrace sites. */
 /** Version 251 changes research income and the prices bots pay for soldiers, workers and settlers. */
+/** Version 252 changes combat at rivers and at sea. The new rules also skip the counter roll against an embarked unit. */
 const DIGESTS = {
-  duel: 'c9cfa786:361311',
-  standard: '3d5e6a4a:1046763',
+  duel: 'a6f3c363:356986',
+  standard: '23a32af6:1052930',
 };
 
 /** Check driver errors before comparing the state digest. */
