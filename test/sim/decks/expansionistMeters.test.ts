@@ -345,8 +345,8 @@ describe('the Expansionist batch E5: the words', () => {
     // Commission keyword's tooltip says that a lasting reward lasts.
     expect(said('theHeartland')).toContain('Reward: the authority that city costs is 0');
     expect(said('theHeartland')).not.toContain('for the rest of the game');
-    expect(said('commissionBreakTheSod')).toContain('not counting tended tiles');
-    expect(said('theDomesdaySurvey')).toContain('Reward: +1 science on every improved or tended hex');
+    expect(said('commissionBreakTheSod')).toContain('work 12 improved tiles at the same time');
+    expect(said('theDomesdaySurvey')).toContain('Reward: +1 science on every improved hex');
     expect(said('theMasterOfWorks')).toContain('the production per turn of your other cities with a Manufactory');
     expect(said('theBurhs')).toContain('+3 city defence per fortification in this city');
     expect(said('theBurhs')).not.toContain('toward defensive buildings');

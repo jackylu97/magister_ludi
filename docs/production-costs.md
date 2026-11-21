@@ -74,11 +74,10 @@ knight at 146 and the frigate at 262).
 
 **The purchase rates** turn hammers into a bank's price. `src/sim/purchase.ts`
 reads them, and `test/sim/productionCosts.test.ts` checks the figures here
-against the data.
+against the data. For gold and faith purchases, divide the full price by one plus the sum of applicable buying power, then round up once.
 
 | Rule | Value | What it prices |
 |---|---|---|
-| `purchaseDiscountCap` | 50 | Maximum combined discount on a purchase, in percent. If one discount is larger, use it alone. |
 | `goldPerHammer` | 4 | Gold for each hammer, when gold buys an item. |
 | `faithPerHammer` | 2 | Faith for each hammer, when faith buys an item that is priced in hammers. |
 | `culturePerHammer` | 1 | Culture for each hammer a wonder still needs, under Magnificence (Magisterial batch MG11). Culture buys only the wonder at the front of a town's queue, and it pays for what is left, not the full price. |

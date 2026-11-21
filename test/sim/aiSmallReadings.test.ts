@@ -113,14 +113,19 @@ describe('a charter that opens no technology', () => {
     }
   });
 
-  it('keeps a tended work at nought, because this bot lays none', () => {
+  it('prices both works in a Charter on known legal ground and gives a held Charter no further value', () => {
     const { state, player } = bench();
-    const ctx = valueContext(state, player);
-    for (const id of ['theFishTraps', 'theWildOrchards']) {
-      const terms = charterTerms(id, ctx);
-      expect(terms.map((term) => term.value), id).toEqual([0]);
-      expect(aiJson.workers.improvements).not.toContain(orderDef(id as OrderId).charter!.unlocks.improvement);
-    }
+    const price = () => charterTerms('theFishTraps', valueContext(state, player)).map(term => term.value);
+    expect(price()).toEqual([0, 0]);
+    const water = at(state.map, 6, 5);
+    const woods = at(state.map, 6, 7);
+    water.terrain = 'coast';
+    woods.feature = 'forest';
+    bumpRevision(state);
+    for (const value of price()) expect(value).toBeGreaterThan(0);
+    player.statecraft.orders.push('theFishTraps' as OrderId);
+    bumpRevision(state);
+    expect(price()).toEqual([0, 0]);
   });
 });
 

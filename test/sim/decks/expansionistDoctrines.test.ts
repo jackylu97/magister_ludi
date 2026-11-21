@@ -202,8 +202,13 @@ describe('batch DT2: the rows', () => {
       const def = doctrineDef(id as DoctrineId);
       expect(def.band, id).toBe(band);
       expect(def.decks, id).toEqual(['expansionist']);
-      expect(def.retired, id).toBeUndefined();
-      expect(poolDoctrines(def.tier), id).toContain(id);
+      if (['theGardenPeoples', 'theWildwoodCompact', 'arcadia'].includes(id)) {
+        expect(def.retired, id).toBe(true);
+        expect(poolDoctrines(def.tier), id).not.toContain(id);
+      } else {
+        expect(def.retired, id).toBeUndefined();
+        expect(poolDoctrines(def.tier), id).toContain(id);
+      }
     }
     expect([...DECK_FILE_DOCTRINES.expansionist].sort()).toEqual(ROWS.map(([id]) => id).sort());
   });
@@ -262,7 +267,7 @@ describe('Bound to the Soil', () => {
     expect(createUnit(state, 1, 'worker', 4, 2).chargesLeft).toBe(before);
   });
 
-  it('pays +1 food on a tended tile, and nothing on a farm or on wild ground', () => {
+  it('adds food and production to a farm and leaves forest gardens and bare ground unchanged', () => {
     const state = bareState();
     const city = town(state, 5, 5, 4);
     raiseImprovement(at(state, 5, 4), 'forestGarden', 0);
@@ -273,8 +278,8 @@ describe('Bound to the Soil', () => {
     const farm = hexPays(state, city, 6, 5);
     const wild = hexPays(state, city, 4, 5);
     hold(state, 'boundToTheSoil');
-    expect(hexPays(state, city, 5, 4)).toEqual({ ...tended, food: tended.food + 1 });
-    expect(hexPays(state, city, 6, 5)).toEqual(farm);
+    expect(hexPays(state, city, 5, 4)).toEqual(tended);
+    expect(hexPays(state, city, 6, 5)).toEqual({ ...farm, food: farm.food + 1, production: farm.production + 1 });
     expect(hexPays(state, city, 4, 5)).toEqual(wild);
   });
 });
@@ -974,9 +979,10 @@ describe('The Garden Peoples (batch DT5)', () => {
     expect([explainAuthority(state, 0), explainHappiness(state, 0)]).toEqual(before);
   });
 
-  it('carries the tended-land gate, and only it, and the text says so', () => {
+  it('keeps the old text available for saves after retirement', () => {
     const def = doctrineDef('theGardenPeoples');
-    expect(def.needsTendedWork).toBe(true);
+    expect(def.retired).toBe(true);
+    expect(def.needsTendedWork).toBeUndefined();
     expect(def.needsReligion).toBeUndefined();
     expect(def.text?.startsWith('Needs tended land.')).toBe(true);
   });
@@ -1508,17 +1514,17 @@ describe('The Wildwood Compact (batch DT12)', () => {
     expect(chargesLeft(worker(state, 4, 5))).toBe(1);
   });
 
-  it('is dealt only to a seat holding a tended-work charter, and says so', () => {
+  it('keeps the retired Doctrines out of the draft even after taking a charter', () => {
     const state = bareState();
     const player = seat(state);
     player.decks = ['expansionist'];
     expect(doctrineBagFor(state, player, 10)).not.toContain('theWildwoodCompact');
     expect(doctrineBagFor(state, player, 26)).not.toContain('arcadia');
     tendable(state);
-    expect(doctrineBagFor(state, player, 10)).toContain('theWildwoodCompact');
-    expect(doctrineBagFor(state, player, 26)).toContain('arcadia');
-    expect(doctrineDef('theWildwoodCompact').needsTendedWork).toBe(true);
-    expect(doctrineDef('arcadia').needsTendedWork).toBe(true);
+    expect(doctrineBagFor(state, player, 10)).not.toContain('theWildwoodCompact');
+    expect(doctrineBagFor(state, player, 26)).not.toContain('arcadia');
+    expect(doctrineDef('theWildwoodCompact').needsTendedWork).toBeUndefined();
+    expect(doctrineDef('arcadia').needsTendedWork).toBeUndefined();
   });
 });
 
@@ -2325,7 +2331,7 @@ describe('Human Sacrifice (batch DT19)', () => {
       expect(levyError(state, 0, capital, 'production')).toMatch(/can levy again in 2 turns/);
     });
 
-    it('lets a shorter wartime pace win: The General Levy still levies every turn', () => {
+    it('uses the two-turn wait for the General Levy during war and peace', () => {
       const { state, second } = withOrders('theGeneralLevy');
       // The bench's two seats start at war; this half is about peace.
       const wars = state.wars;
@@ -2336,6 +2342,8 @@ describe('Human Sacrifice (batch DT19)', () => {
       // At peace it waits the Doctrine's two, not the General Levy's one.
       expect(levyError(state, 0, second, 'conscript')).toMatch(/can levy again in 1 turn/);
       state.wars = wars;
+      expect(levyError(state, 0, second, 'conscript')).toMatch(/can levy again in 1 turn/);
+      state.turn++;
       expect(levyError(state, 0, second, 'conscript')).toBeNull();
     });
 

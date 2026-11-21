@@ -327,6 +327,7 @@ export interface CharterSpec {
      * `statecraft/evaluator.ts`), and a held card never leaves the collection.
      */
     improvement?: ImprovementId;
+    improvements?: ImprovementId[];
     /**
      * **A unit the charter opens** — Numidian Cavalry (Commerce). No list on
      * the player is written for it: the seat's collection already holds the
@@ -1486,6 +1487,7 @@ export type CombatCondition =
   /** The other side is the wild. `combat.ts`'s own +2 precedent, generalised. */
   | { test: 'vsBarbarians' }
   /** The contested tile is inside this player's borders. */
+  | { test: 'unitOnOwnGround' }
   | { test: 'ownTerritory' }
   /** The contested tile is not. Border Wardens' mirror. */
   | { test: 'foreignTerritory' }
@@ -1750,6 +1752,8 @@ export type CombatCondition =
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
+  | 'goldIncome'
+  | 'tileYield'
   | 'greatPeopleGained'
   | 'cities'
   | 'adjacentFriendlies'
@@ -2242,6 +2246,7 @@ export type TileCondition =
    * `unimproved` and no to `improved`, because tended land counts as wild.
    */
   | { test: 'tended' }
+  | { test: 'uniqueImprovement' }
   /**
    * At least one of these holds — `CityScope`'s `any`, one scale down. Used
    * where a card names two kinds of ground in one clause ("hills or
@@ -2282,6 +2287,7 @@ export type TileCondition =
    * no.
    */
   | { test: 'townCentre' }
+  | { test: 'ownCapital' }
   /**
    * **The empire reading this hex surfaced a seam here**: its survey struck the
    * vein (`Tile.surfacedBy`), Expansionist batch E3, The Prospectors. The
@@ -2496,6 +2502,7 @@ export type CountKind =
    * each in the shape its cards want.
    */
   | 'agesClosed'
+  | 'agesReached'
   /**
    * Great people this empire has **called** — the House of Learning's, and the
    * doc's own sentence (`docs/leaders.md`: *"+1 science for every great person
@@ -2578,6 +2585,7 @@ export type CountKind =
    * a conqueror who takes a town of bought roofs is paid for them, which is what
    * pay-follows-the-stones already means everywhere else.
    */
+  | 'buildingsBoughtWithGold'
   | 'purchasedBuildings'
   /**
    * **Fortification** buildings standing in this city (city-scoped) — a
@@ -2648,6 +2656,8 @@ export type CountKind =
    * counting the same houses.
    */
   | 'postCities'
+  | 'allPostCities'
+  | 'allPostCitizens'
   /**
    * **The citizens of the foreign towns holding this empire's paying post**
    * (Commerce batch T3, The Foreign Factor; the triage's reading 14).
@@ -3726,6 +3736,8 @@ export type TallyOccasion =
    * A town taken with its public works passes through no such routine, so a
    * captured Granary adds nothing.
    */
+  | 'improvementBuilt'
+  | 'uniqueImprovementBuilt'
   | 'publicWorkCompleted'
   /** An ordinary building enters a town through queue completion or purchase. */
   | 'buildingCompleted'
@@ -3768,6 +3780,7 @@ export type TallyOccasion =
    * gold), which The Strongbox read until batch R1.
    */
   | 'goldPurchase'
+  | 'faithPurchase'
   /**
    * This empire **completed a world wonder** in one of its towns (Magisterial
    * batch MG4, Commission: The Eighth Wonder; the triage's readings 3 and 4).
@@ -3817,11 +3830,13 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'militaryGained',
   'warEnded',
   'sizeRecord',
+  'improvementBuilt', 'uniqueImprovementBuilt',
   'publicWorkCompleted',
   'buildingCompleted',
   'techCompleted',
   'charterTechCompleted',
   'goldPurchase',
+  'faithPurchase',
   'wonderCompleted',
   'wonderProduction',
 ];
@@ -3878,6 +3893,7 @@ export type RateSource =
  * land cheaper or borders faster, and a card can. Each has exactly one consumer.
  */
 export type CardRule =
+  | 'defeatedShipJoins'
   /** What a citizen demands (`happinessDemand`). */
   | 'happinessDemand'
   /**
@@ -4881,6 +4897,7 @@ export type BehaviorRuleId =
    * signed runs out. It says nothing about a luxury this empire receives.
    */
   | 'noLuxuryLending'
+  | 'oneBorrowerPerLuxury'
   /**
    * **This empire and any empire whose capital follows its religion may not
    * declare war on each other**: Canossa (batch DT7, reading 35).
@@ -5422,6 +5439,7 @@ export type AmplifierTarget =
    * project is a queue row that pays every turn, and an act happens once.
    */
   | 'greatPersonAct'
+  | 'greatPersonUses'
   /**
    * What **city connections** pay — Nanaivandak's road home, both halves of it.
    *
@@ -6816,6 +6834,8 @@ export interface CardPaysEffect extends CardYieldBag {
   fromRate?: RateSource;
   /** What `basis: 'count'` counts. See `CountKind`. */
   count?: CountKind;
+  /** Show the current bonus on the card for an empire-wide percentage. */
+  showCountPercent?: true;
   /**
    * How many of the thing read buy one helping. Default 1.
    *
@@ -7556,7 +7576,7 @@ export interface CardCombatLineEffect {
 interface CardUnitStatEffect {
   enemyOccupant?: boolean;
   kind: 'unitStat';
-  stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range' | 'combatPercent';
+  stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range';
   amount: number;
   class?: UnitFilter;
   /**
@@ -7617,36 +7637,17 @@ interface CardUnitStatEffect {
    * field's stated reason: **a scoped line is silent to every caller that
    * passes no town**. Only `cardExtraCharges` has one — a charge is written at
    * the *birth*, so the hex the piece is born on is the town that raised it —
-   * and the per-turn readings (`cardUnitStat`, `cardCombatPercent`) are asked of
+   * and the per-turn reading (`cardUnitStat`) is asked of
    * a piece on the march, which has no town at all. That is the honest reading
    * rather than an omission: "trained in a city that follows you" is a fact
    * about a moment, and a movement allowance is a fact about a hex.
    */
   scope?: CityScope;
   /**
-   * Narrows the stat to **one kind of fight** — the Statue of Zeus' fifteen
-   * percent for storming a town.
-   *
-   * Read by exactly one of this shape's readers, `cardCombatPercent`, which is
-   * the only one asked inside a fight and therefore the only one holding a
-   * `CombatSituation` to put the question to. Every other reading of a
-   * `unitStat` is asked of a piece standing on a hex with nobody opposite it,
-   * and **a line carrying a `when` is silent to all of them** — `scope`'s
-   * bargain one field over, taken for that field's stated reason: it is the
-   * honest reading rather than an omission, because "when you attack a city" is
-   * a fact about a moment and a movement allowance is a fact about a turn.
-   *
-   * There is no `side` here and none is needed: a defending piece's situation
-   * never carries a city on the other side (`vsCity` is what the *target* is),
-   * so a row written `{ test: 'vsCity' }` pays on the assault and nowhere else.
-   */
-  when?: CombatCondition;
-  /**
    * **Only pieces holding at least this rank** — The Keshik's "mounted Veteran
    * and Elite units" (Dominion batch D2).
    *
-   * Read by the per-piece readings (`cardUnitStat`, which every allowance and
-   * every heal goes through, and `cardCombatPercent`), which all hold the piece
+   * Read by `cardUnitStat` for movement and healing, both of which use the piece
    * itself. `cardExtraCharges` is asked at a birth, before a piece has any
    * experience, so a row naming a rank never adds a charge. An Elite holds
    * Veteran too.
@@ -7881,6 +7882,7 @@ export type CityRuleId =
    * on the outer ring move at the next assignment (the triage's reading 21).
    */
   | 'widerReach'
+  | 'widerWaterReach'
   /**
    * **A town the rule's scope admits holds the rule's building, for what the
    * building does** (Expansionist batch E12, The Cura Aquarum: an Aqueduct in
@@ -10083,7 +10085,7 @@ interface CardYieldAmplifierEffect {
    * `capitalCards` selects recurring payments that Orders and Doctrines
    * direct to a capital.
    */
-  reads?: 'followerBeliefs' | 'buildingOrders' | 'capitalCards';
+  reads?: 'followerBeliefs' | 'buildingOrders' | 'capitalCards' | 'purchaseOrders';
   /**
    * **Only on hexes where this holds** (Expansionist batch E3, The Age of
    * Improvement's improved hexes).
@@ -10143,6 +10145,7 @@ interface CardYieldAmplifierEffect {
  */
 export interface CardBuildingYieldPercentEffect {
   kind: 'buildingYieldPercent';
+  publicWork?: true;
   /** The share, in whole percent. */
   percent: number;
   /** Which buildings, by what the row is *for*. Absent means any. */
@@ -10873,11 +10876,13 @@ export interface OrderSlotGrant {
  *     Curiosities).
  */
 export type OnDraftGrant =
+  | { grant: 'citizensInEveryTown'; amount: number }
   | (Extract<CompletionGrant, { grant: 'unit' }> & { count?: number; toEveryTown?: CityScope })
   | { grant: 'experience'; amount: number }
   | Extract<CompletionGrant, { grant: 'greatPerson' }>
   | OnDraftWindfall
   | OnDraftForeignCard
+  | { grant: 'effects'; effects: CardEffect[]; turns?: number }
   | { grant: 'doctrineOffer' }
   | { grant: 'completeQueues' };
 
@@ -10939,6 +10944,8 @@ interface OnDraftForeignCard {
  * measured.
  */
 export type CommissionFigure =
+  | 'dealPartners'
+  | 'publicWorks'
   /** Gold in the treasury. The Strongroom. */
   | 'treasury'
   /** Copies held of the one luxury this empire holds most of, deals included. */
@@ -11092,6 +11099,8 @@ export type CommissionFigure =
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
+  'dealPartners',
+  'publicWorks',
   'treasury',
   'luxuryCopies',
   'tradeRoutes',
@@ -12299,17 +12308,18 @@ export function scalerShape(effects: readonly CardEffect[]): ScalerShape {
   };
 }
 
-/**
- * The charter that opens this improvement row, or `null` when no card does.
- * Retired rows are skipped. The Compendium reads it to say which card opens a
- * tended work; the simulation's gate asks the seat's own collection instead
- * (`cardUnlocksImprovement`).
- */
+/** A charter can open one work or a pair of works. */
+export function charterImprovements(charter: CharterSpec | undefined): readonly ImprovementId[] {
+  if (charter?.unlocks.improvements) return charter.unlocks.improvements;
+  return charter?.unlocks.improvement ? [charter.unlocks.improvement] : [];
+}
+
+/** Only active charters appear in the build refusal and Compendium. */
 export function charterThatOpensImprovement(improvement: ImprovementId): OrderId | null {
   for (const id of ORDER_IDS) {
     const def = orderDef(id);
     if (def.retired === true) continue;
-    if (def.charter?.unlocks.improvement === improvement) return id;
+    if (charterImprovements(def.charter).includes(improvement)) return id;
   }
   return null;
 }

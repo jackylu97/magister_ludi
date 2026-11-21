@@ -58,6 +58,8 @@ import { applyCommand } from '../../src/sim/commands';
 import { improvementDef, improvementForResource } from '../../src/sim/improvementData';
 import { LEADER_IDS, leaderDef } from '../../src/sim/leaderData';
 import { dealSideError } from '../../src/sim/diplomacy';
+import { lentCopyCount } from '../../src/sim/deals';
+import { openWar } from '../../src/sim/wars';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { snapshotState } from '../../src/sim/game';
 import { bumpEconomy } from '../../src/sim/slate';
@@ -651,16 +653,53 @@ describe('a bargain may promise only available copies', () => {
     });
   });
 
-  it('will not lend a strategic resource at all, however many copies are spare', () => {
-    // The other half of the gate, and the reason the bench above had to move:
-    // ivory is a strategic row since batch R3 and the deal vocabulary is
-    // luxuries only. Nothing in this batch changed that policy — it is recorded
-    // here so that the day somebody widens it, this is the line that says so.
+  it('checks the resource kind and refuses duplicate copies in a single offer', () => {
     const { state } = ironBench(3);
     expect(availableCopies(state, 0, 'iron')).toBe(3);
     expect(dealSideError(state, 0, 1, { luxuries: ['iron'] }, false)).toBe(
-      'Iron is not a luxury and cannot be lent',
+      'Iron is not a luxury',
     );
+    expect(dealSideError(state, 0, 1, { strategics: ['furs'] }, false)).toContain('not a strategic resource');
+    expect(dealSideError(state, 0, 1, { strategics: ['iron', 'iron'] }, false)).toContain('named twice');
+  });
+
+  it('moves a signed iron loan into army supply and returns it at expiry', () => {
+    const { state } = ironBench(1);
+    expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give: { strategics: ['iron'] }, take: {} }).ok).toBe(true);
+    const dealId = state.dealProposals[0]!.id;
+    expect(resourceCopies(state, 1, 'iron')).toBe(0);
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId }).ok).toBe(true);
+    expect(resourceCopies(state, 0, 'iron')).toBe(0);
+    expect(availableCopies(state, 1, 'iron')).toBe(1);
+    expect(lentCopyCount(state, 0)).toBe(0);
+    expect(dealSideError(state, 1, 0, { strategics: ['iron'] }, false)).toContain('only on loan');
+    const soldier = createUnit(state, 1, 'legionary', 9, 6);
+    expect(availableCopies(state, 1, 'iron')).toBe(0);
+    state.turn = state.deals[0]!.untilTurn;
+    bumpRevision(state);
+    expect(resourceCopies(state, 1, 'iron')).toBe(0);
+    expect(resourceCopies(state, 0, 'iron')).toBe(1);
+    expect(state.units.find(unit => unit.id === soldier.id)).toBe(soldier);
+  });
+
+  it('checks the supply again before the other seat signs', () => {
+    const { state } = ironBench(1);
+    expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give: { strategics: ['iron'] }, take: {} }).ok).toBe(true);
+    const dealId = state.dealProposals[0]!.id;
+    createUnit(state, 0, 'legionary', 5, 5);
+    const before = snapshotState(state);
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId }).ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('keeps a peace proposal open if recruitment used its promised iron', () => {
+    const { state } = ironBench(1);
+    openWar(state, 0, 1);
+    expect(applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1, give: { strategics: ['iron'] } }).ok).toBe(true);
+    createUnit(state, 0, 'legionary', 5, 5);
+    const before = snapshotState(state);
+    expect(applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 }).ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
   });
 });
 
@@ -926,8 +965,9 @@ describe('one rule, one place', () => {
     );
 
     // The stronger claim, and the one that survives a rename: restating the
-    // access rule takes these two readings, and nothing outside the simulation
-    // holds either. `improvementForResource` is deliberately not on this list —
+    // access rule takes these two readings. The Compendium also uses the work
+    // classification to describe a work in its entry. The bot checks a neighbouring
+    // farm when it prices water from a stepwell. Neither determines resource access. `improvementForResource` is deliberately not on this list —
     // inverting the table to *name* a hex's opener is what the tile readout and
     // the Compendium legitimately do, and it decides no access.
     for (const name of ['improvementCountsAs', 'isGreatPersonWork']) {
@@ -939,7 +979,7 @@ describe('one rule, one place', () => {
         `${name} is read outside src/sim/. If that is a second reading of what ` +
           `opens a seam, ask the simulation instead. If it is something else, ` +
           `say so here and narrow this claim.`,
-      ).toEqual([]);
+      ).toEqual(name === 'isGreatPersonWork' ? ['../../src/ui/compendium.ts'] : ['../../src/ai/value.ts']);
     }
   });
 

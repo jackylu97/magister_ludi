@@ -2289,12 +2289,13 @@ describe('the marginal draft reading', () => {
     // walk, as the card in that chair over again.
     // The Hall of Fame raises capital renown. The Builders' Lodge and The
     // Summer Palace raise eligible payments in the same books.
-    for (const id of ['theHallOfFame', 'theBuildersLodge', 'theSummerPalace'] as const) {
+    // Double Entry doubles eligible payments from purchase Orders. The Water Boards doubles public work yields.
+    for (const id of ['theHallOfFame', 'theBuildersLodge', 'theSummerPalace', 'theDoubleEntry', 'theWaterBoards'] as const) {
       expect(hasFoldReadEngine(orderDef(id).effects), id).toBe(true);
     }
     // The Privy Council now pays the yields of Wildcard chairs through the chair reader.
     expect(hasFoldReadEngine(orderDef('thePrivyCouncil').effects)).toBe(false);
-    expect(engines).toBe(27);
+    expect(engines).toBe(29);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books
@@ -3234,15 +3235,14 @@ describe('the copies model in the appraisal', () => {
    * rules refuse — and it is written down here so the next reader does not
    * "fix" it by putting ivory back.
    */
-  it('names no strategic resource in any deal it writes', () => {
+  it('lists luxury and strategic loans in their own deal terms', () => {
     const game = grownGame(RIPE);
     for (let turn = 0; turn < 6; turn++) driveBots(game, { warn: () => {} });
     for (const command of game.log) {
-      const paper = command as { give?: { luxuries?: string[] }; take?: { luxuries?: string[] } };
-      for (const side of [paper.give, paper.take]) {
-        for (const id of side?.luxuries ?? []) {
-          expect(resourceDef(id as ResourceId).kind).toBe('luxury');
-        }
+      if (command.type !== 'proposeDeal') continue;
+      for (const side of [command.give, command.take]) {
+        for (const id of side.luxuries ?? []) expect(resourceDef(id).kind).toBe('luxury');
+        for (const id of side.strategics ?? []) expect(resourceDef(id).kind).toBe('strategic');
       }
     }
   });

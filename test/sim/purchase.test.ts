@@ -690,7 +690,7 @@ describe('every refusal, and each leaves the state byte-identical', () => {
     const cut = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
 
     expect(cut.lines).toHaveLength(bare.lines.length + 1);
-    expect(cut.total).toBe(Math.floor((bare.total * 80) / 100));
+    expect(cut.total).toBe(Math.ceil((bare.total * 80) / 100));
     expect(cut.lines[cut.lines.length - 1]!.source).toContain('Crassus');
     // Rule 5 holds: the fold is still the price.
     expect(cut.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(cut.total);

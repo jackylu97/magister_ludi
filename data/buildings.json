@@ -2868,8 +2868,8 @@
             "improvement": "plantation"
           },
           "add": {
-            "food": 1,
-            "gold": 1
+            "food": 2,
+            "gold": 2
           }
         }
       ]

@@ -82,6 +82,7 @@ import {
   realPlayers,
   removeUnit,
   spendFaith,
+  buyWithFaith,
   unconvertCitizen,
   unitById,
 } from './state';
@@ -608,7 +609,7 @@ export function openFaithLadder(state: GameState): void {
     // ladder's hand, which `rerollError` reads), and the pick charges nothing.
     // Through the one subtraction, so the gods the ladder buys count as faith
     // spent (`Player.faithSpent`). It announces the bank for the meters too.
-    spendFaith(state, player, plan.cost, true);
+    buyWithFaith(state, player, plan.cost, true);
     player.pantheon.rungs += 1;
     offer.rungCost = plan.cost;
     offer.rerolls = 0;
@@ -3243,6 +3244,7 @@ export function plantHolySiteAt(
   const founded = verb === 'foundReligion';
   const religion = founded ? foundReligion(state, player) : foundedReligion(state, player.id)!;
 
+  const previous = { ...tile };
   raiseImprovement(tile, HOLY_SITE, state.turn);
   // The stones are an improvement like any other to `openedResource`, and they
   // are also what `religionFounder` follows — announced at the write (batch M3,
@@ -3251,7 +3253,7 @@ export function plantHolySiteAt(
   refreshTileDerived(state, tile);
   // A holy site counts as a work for the hexes beside it, whoever works them (batch
   // DT16, The Peregrini).
-  refreshRingDerived(state, tile, HOLY_SITE);
+  refreshRingDerived(state, tile, previous);
   religion.holySite ??= { col: tile.col, row: tile.row };
 
   let offer: BeliefOffer | null = null;

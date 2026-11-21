@@ -92,6 +92,7 @@ import {
   improvementDef,
   improvementForResource,
   isGreatPersonWork,
+  isUniqueImprovement,
 } from '../sim/improvementData';
 import {
   ALL_BELIEF_IDS,
@@ -857,20 +858,12 @@ function queueOpening(kind: 'unit' | 'building', id: UnitTypeId | BuildingId): C
 function improvementOpening(id: ImprovementId): CompendiumClause {
   const def = improvementDef(id);
   if (def.unlockedByLeader === true) return openedByLeader('improvement', id);
-  if (def.tended === true) {
-    // A tended work opens with the card that names it, and counts as wild land.
-    const card = charterThatOpensImprovement(id);
-    const by = card === null ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
-    return { text: `Unlocked by drafting ${by}, not by any technology.` };
-  }
-  if (def.unlockedByCard === true) {
-    // A row a seated card opens (Expansionist batch E4): open while the card
-    // that names it sits in a chair.
-    const card = cardThatOpensImprovement(id);
-    const by = card === null ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
-    return {
-      text: `Unlocked while ${by} is in a chair, not by any technology. One you have built stays.`,
-    };
+  if (def.tended || def.unlockedByCard) {
+    const charter = charterThatOpensImprovement(id);
+    if (charter) return { text: `Unlocked by drafting the Order ${ref('order', charter, orderDef(charter).name)}.` };
+    const seated = cardThatOpensImprovement(id);
+    if (seated) return { text: `Unlocked while the Order ${ref('order', seated, orderDef(seated).name)} is in a chair.` };
+    return { text: 'Unlocked by its retired charter if you already hold it.' };
   }
   if (def.greatPerson !== undefined) {
     // **`greatPerson` names the family, and the family is not always a great
@@ -1589,6 +1582,18 @@ function improvementMarkers(id: ImprovementId): CompendiumClause[] {
       text: `Can also be built on ${eitherWords(near.terrain.map((terrain) => terrain))} when a hex next to it has ${withArticle(improvementRef(near.improvement))}.`,
     });
   }
+  if (isUniqueImprovement(id)) out.push({ text: 'Counts as a unique improvement.' });
+  if (def.requiresDryGround) out.push({ text: 'Needs land without fresh water.' });
+  if (def.requiresRiver) out.push({ text: 'Needs a river along this hex.' });
+  if (def.renown) out.push({ text: `Adds ${figure(def.renown.amount)} renown per turn toward great ${def.renown.family}s.` });
+  if (def.perNeighbour) {
+    const { on, yields } = def.perNeighbour;
+    out.push({ text: `Gains ${tileYieldFigures({ food: 0, production: 0, gold: 0, ...yields })} for each neighbouring ${tileConditionWords(on)}.` });
+  }
+  if (def.givesNeighbours) {
+    const { on, yields } = def.givesNeighbours;
+    out.push({ text: `Each neighbouring ${tileConditionWords(on)} gains ${tileYieldFigures({ food: 0, production: 0, gold: 0, ...yields })}.` });
+  }
   if (def.requiresAdjacentMountain === true) out.push({ text: 'Needs a mountain next to it.' });
   if (def.landBeside !== undefined) {
     out.push({ text: `Needs ${figure(def.landBeside)} or more of your land hexes next to it.` });
@@ -1612,7 +1617,9 @@ function improvementMarkers(id: ImprovementId): CompendiumClause[] {
       text: `Claims its hex and every unowned hex within ${figure(def.claimsUnowned)} ${plural(def.claimsUnowned, 'hex', 'hexes')} for your nearest city. A city founded on it keeps that land.`,
     });
   }
-  if (def.watersBeside === true) {
+  if (def.watersAllNeighbours) {
+    out.push({ text: 'The neighbouring hexes have fresh water.' });
+  } else if (def.watersBeside === true) {
     out.push({
       text: 'Your farms on the hexes next to it count as having fresh water. It waters only your own farms.',
     });
@@ -1626,12 +1633,12 @@ function improvementMarkers(id: ImprovementId): CompendiumClause[] {
     const work = improvementDef(def.yieldsAs.improvement).name.toLowerCase();
     const ground = terrainDef(def.yieldsAs.terrain).name.toLowerCase();
     out.push({
-      text: `Yields as ${withArticle(work)} on ${ground}, without the bonus for fresh water. The hex stays water for every other rule, and nothing that pays on ${withArticle(work)} pays on this.`,
+      text: `Yields as ${withArticle(work)} on ${ground}, without the bonus for fresh water. The hex stays water for every other rule.`,
     });
   }
   if (def.tended === true) {
     out.push({
-      text: 'A unique improvement: cards count its hex as wild land. It cannot be pillaged, and it gives access to no resource.',
+      text: 'Cards count its hex as wild land. It cannot be pillaged, and it gives access to no resource.',
     });
   }
   // **A great person's work** (`isGreatPersonWork`): the five works a great

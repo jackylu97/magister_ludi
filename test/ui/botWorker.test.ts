@@ -259,13 +259,10 @@ const AI_SOURCES = import.meta.glob('../../src/ai/*.ts', { query: '?raw', import
 >;
 
 describe('the bots’ memories beside the state', () => {
-  it('are all carried to the worker, or are caches keyed on the economy clock', () => {
-    // Carried: a bot reads them, a save does not hold them, so the worker's copy
-    // must be handed them (`harnessMemory.ts`). Caches: rebuilt on any copy,
-    // with the same answer, because they are keyed on the economy clock, which is
-    // per board and starts again on a copy (`slate.ts`).
+  it('carries bot memory to the worker and rebuilds board caches when their inputs change', () => {
+    // The driver carries memories that affect a decision. A copy can rebuild town folds and worker advice from its board.
     const carried = ['dealMemory.ts', 'focusRoll.ts', 'musterRoll.ts', 'warLedger.ts'];
-    const caches = ['townFolds.ts'];
+    const caches = ['townFolds.ts', 'bot.ts'];
     const found: string[] = [];
     for (const [path, text] of Object.entries(AI_SOURCES)) {
       if (/new WeakMap<GameState\b/.test(text)) found.push(path.split('/').pop()!);
@@ -275,5 +272,8 @@ describe('the bots’ memories beside the state', () => {
     for (const file of carried) expect(register).toContain(`from './${file.replace('.ts', '')}'`);
     expect(AI_SOURCES['../../src/ai/townFolds.ts']).toContain('const economy = economyStamp(state);');
     expect(AI_SOURCES['../../src/ai/townFolds.ts']).toContain('held.economy === economy');
+    const bot = AI_SOURCES['../../src/ai/bot.ts']!;
+    expect([...bot.matchAll(/const (\w+) = new WeakMap<GameState\b/g)].map(match => match[1])).toEqual(['adviceSittings']);
+    expect(bot).toContain('held.revision !== state.revision');
   });
 });

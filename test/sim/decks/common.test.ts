@@ -189,6 +189,7 @@ describe('the shared shelf is two kinds of row and no third', () => {
       'commonBoundaryStones',
       'commonLedgers',
       'commonMarcherLords',
+      'commonTheEscortedRoads',
       'commonTools',
       'convertItOrTaxIt',
       'copyingTheEnemy',
@@ -199,6 +200,7 @@ describe('the shared shelf is two kinds of row and no third', () => {
       'householdAltars',
       'hydraulicSchools',
       'localMarkets',
+      'merchantScholars',
       'militaryColonies',
       'publicGatherings',
       'publicHospitals',
@@ -216,6 +218,7 @@ describe('the shared shelf is two kinds of row and no third', () => {
       'thePenitentsRoll',
       'theRisingNave',
       'theRoadGarrisons',
+      'theSilkRoadMonks',
       'theVillageScribe',
       'theWaqf',
       'travellingPlayers',
@@ -433,17 +436,8 @@ describe('C2 — the two shared rows', () => {
     expect(def.decks).toEqual(['dominion', 'commerce']);
     expect(def.deferred).toBeUndefined();
     expect(orderIsDealt('lettersOfMarque' as OrderId)).toBe(true);
-    // A kill by one of this empire's ships. Batch DS2 cut the harbour town's
-    // gold and the penalty on its yards, so three effects became one.
-    expect(def.text).toBe('Naval kills grant 60 gold.');
-    expect(def.effects).toEqual([
-      {
-        kind: 'windfallRider',
-        occasion: 'kill',
-        class: { category: 'naval' },
-        grant: { yield: 'gold', amount: 60 },
-      },
-    ]);
+    expect(def.text).toBe('A ship you defeat has a 50% chance to join your side.');
+    expect(def.effects).toEqual([{ kind: 'rulePercent', rule: 'defeatedShipJoins', percent: 50 }]);
   });
 
   it('lights The Exchange of Discoveries as one hex line, with no Market clause since batch DS4', () => {

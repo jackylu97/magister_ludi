@@ -239,7 +239,7 @@ Each deck's "Where the sheet stands" below is the assessment of 2026-10-01, of t
 **Bonus themes.**
 1. **Terrain has a job.** Each kind of land pays something specific, and this is how the deck reaches science and culture. For example: mountains give science; rivers and lakes give food and happiness; hills give production and defence; old forest and wild land give culture; desert and tundra get a reason to be settled at all.
 2. **Raising the land.** Adding yields to individual tiles is the deck's own objective: over a game an Expansionist player builds up its best tiles, and every game's best tiles are different. The ways land gets richer are **draftable abilities** (cards), not base rules: **dark earth** (land gets richer the longer it is worked); **the Three Sisters** (a farm gains from particular neighbours, such as a plantation or a pasture beside it — a specific pairing, not a count of kinds); terraces and chinampas that enrich the ones beside them.
-3. **Tended land** — the managed wild. See below.
+3. **Unique improvements.** Charters open works that reward particular sites and neighbouring tiles.
 4. **Authority from developed land.** How the deck grows wide: towns that work their land, or connect to the capital, cost less to hold.
 5. **Happiness from land and food.** How the deck grows tall: well-fed, well-watered cities are content. Wild land as a commons — wild land inside your borders makes your cities content — is a draftable ability.
 6. **Territory gain and management** — getting ground without waiting for borders to grow, and getting the most out of the ground you hold, through improvements and tending. Magisterial shares this theme from a different direction (great-person works), which makes territory one of the places the two decks meet.
@@ -247,29 +247,11 @@ Each deck's "Where the sheet stands" below is the assessment of 2026-10-01, of t
 8. **Settlement** — founding and connecting towns, with established towns supporting new ones.
 9. **Engineers and public works** — the engineer and its manufactory, as the great-person family this deck owns: aqueducts, irrigation and terraces.
 
-### Tended land
+### Unique improvements
 
-**What it is.** Light-touch works that add yields to a tile but leave the land wild. They are the deck's own family of works, separate from ordinary improvements.
+A unique improvement requires an Order, a charter technology or a leader. Fish traps and orchards both require The Gathering Grounds. Each counts as improved ground and can be pillaged and repaired. The Reclaimed Lands counts unique improvements you build while the commission holds a chair. The Cadastre pays on each working unique improvement.
 
-**Agreed.**
-- The keyword is **tended**: you *tend* a tile, and the result is *tended land*.
-- A tended tile is **not an improvement**. **Tended land is still wild**: it counts for the deck's wild-land bonuses (The Old Songs, the groves, the commons), so tending and the wild-land line work together.
-- **All tending is permanent and survives pillage.** Fertilising included.
-- Tended works are **unlocked by Expansionist cards**, so the managed wild belongs to this deck.
-
-**The works.** From the two traditions:
-- **Forest garden** (the planted Amazon): on forest or jungle; food and production; the forest stays standing.
-- **Fish traps** (the Budj Bim eel traps in Victoria): on rivers and lakeshores.
-- **Root-crop grounds** (the murnong yam-daisy fields of south-east Australia): on grassland.
-- **Burned country** (fire-stick farming): grassland and scrub that has been burned, with more food and game.
-- **Wild orchards** (nut and fruit groves): on hills or forest; food and gold.
-- **Fertilising** — permanent, like all tending. Whether a fertilised tile can also carry an ordinary improvement is settled when the cards are written.
-
-**Also agreed.**
-- **Tended works yield less than a proper improvement** — a farm still beats a garden on raw food — **and do not open resources**, so a luxury or strategic tile still pulls toward a proper improvement. This keeps the choice real and gives the deck **two ways to farm**: *the field* (farms, pastures, terraces) and *the managed wild* (tended land plus the wild-land bonuses). The draft decides which one a game leans into.
-- **Later drafts pay off tended works.** Because tended works start weaker than improvements, the deck's later cards should reward having invested in them, so an empire that tended early is paid back as the game goes on.
-- **Workers decide where, once; towns decide when, on a cycle.** A worker's tending is a single action. Anything that recurs — burning above all — is one decision per town, never one per tile: a town declares a **burning season**, burns all its scrub and grassland at once, yields less for a few turns and more for a long stretch, and cannot burn again for a while. The decision is *when* to burn, not *where*. This follows the ruling on augurs, which became a town action because a unit walked to each town was too many clicks for too little.
-- **Three words for three states:** *improved* (an ordinary improvement), *tended* (a tended work), and *wild* (no improvement — untouched or tended). Rules text says "wild" instead of "unimproved". Some flavour text uses "the wild" to mean barbarians; that is flavour, not rules, and is accepted.
+The former tended works remain available to saved collections that hold their retired cards.
 
 ### Ideas for the card list
 
@@ -291,7 +273,6 @@ All of these go into the full card list as cards; the user will cut ideas once t
 **Where the sheet stood (2026-10-01, before the themes pass).**
 - Cultivation is well covered.
 - **Authority and happiness are almost entirely unbuilt.** Of the deck's own cards, only The Grain Dole (happiness for large cities) is live. The authority cards — The Local Census, Provincial Councils, The Pioneers' Portion, The Standing Patronage — are all deferred.
-- **Tended land does not exist yet.** It is a new family of works and needs building.
 - **Claiming is thin.** Claim by the Spade, the deck's central claiming card, is deferred.
 - **The woodland cycle and levies are mostly deferred**, because planting and spending citizens do not exist in the game yet.
 - **Science, against the new gap.** The Highlands (science on hill mines and quarries) is terrain-conditional and fits. The Naturalists (science per *kind* of feature worked) counts kinds and does not. The Growing Annals and The Provincial Schools (both deferred) and the shared Hydraulic Schools (live) give science that does not come from terrain.

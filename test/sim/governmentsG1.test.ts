@@ -301,7 +301,7 @@ describe('the card-type amplifier (the tier-26 governments)', () => {
     const { state, city } = board();
     const far = foundCityAt(state, 0, at(state, 12, 5));
     bumpRevision(state);
-    // The Scholars' Roads: half again of the science and culture a route
+    // The Scholars' Roads doubles the science and culture a route
     // carries. Its +2 science and +2 culture on every route went in batch DS4,
     // so The Pack Trail's +2 gold on every route is the flat line here. 30% of 2
     // is 0.6, which rounds to 1.
@@ -315,8 +315,8 @@ describe('the card-type amplifier (the tier-26 governments)', () => {
     council(state, 'theCuria', [[SCHOLARS_ROADS, 'civic']]);
     const shares = cardRouteShareLines(state, city, far).filter((line) => line.card === 'theCuria');
     expect(shares.map((line) => [line.yield, line.percent])).toEqual([
-      ['science', 15],
-      ['culture', 15],
+      ['science', 30],
+      ['culture', 30],
     ]);
   });
 

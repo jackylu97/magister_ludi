@@ -20,18 +20,22 @@ detail of each item.
 
 | # | Work | Spec | State |
 |---|---|---|---|
-| 1 | **The Commerce deck build** | 3.14, and `docs/plans/commerce-design-pass-2026-11-20.md`, "Ready for the build", "The pass is closed" and the two sections after it | **Not built,** except The Open Market and the gold price of a great person. The new cards (The Palace Stores, The Garum Works, The Herring Fleets, The Double Entry, The Votive Accounts and the rest) are not in `data/decks/`. |
-| 2 | **The Expansionist deck build** | 3.14, and `docs/plans/expansionist-design-pass-2026-11-20.md`, "Ready for the build" and "The pass is closed" | **Not built.** `data/decks/expansionist.json` still says "tended", every deck still says "wild", and the six new improvements (Nazca lines, inuksuk, totem pole, stepwell, hillfort, baray) have no data row. Their painted models exist. One change since the plan closed: see row 5. |
-| 3 | **A city is coastal when it owns a coast hex within two hexes** | `docs/flags.md`, "A coastal city is a city that owns a coast hex within two hexes" | **Not built.** `isCoastalCity` in `src/sim/cities.ts` still asks only the city's own hex. Decide where a ship built in such a city appears. |
-| 4 | **Purchase discounts as "gold buys more", for gold and for faith** | `docs/flags.md`, "A purchase discount is 'gold buys more'" | The Open Market is built. **Check** that every other purchase discount (Doctrines, beliefs, unit rows such as the Condottiere's) was converted, and list the rows in your report. |
-| 5 | **Fish traps are a normal improvement** | `docs/flags.md`, "Three rulings from the Compendium review" | New on 2026-11-21. Fish traps need no card. The Expansionist card that opened them needs another job or a cut: bring the choice to the user. |
-| 6 | **Strategic resources may be traded** | the same flag | New on 2026-11-21. Deals in `src/sim`; the Claude session then adds the offer to the diplomacy screen. |
-| 7 | **The Volley Fire** | `docs/plans/scientific-design-pass-2026-11-20.md`, change 59; `docs/flags.md`, "The percentages of combat strength that remain" | Not built. It is the last percentage of combat strength in the game. It can be built before the rest of the Scientific pass: "your archer line may attack twice a turn, they lose 4 combat strength when defending against a melee attack". |
-| 8 | **City site ranking** | section 0.3 below | Three faults found on 2026-11-21. |
-| 9 | **Values for worker advice** | section 0.3 below | The Claude session will draw the advice; it needs one function from the bots. |
-| 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The state digests in `aiDigestPins.ts` and `RANGED_BOARDS` in `explore.test.ts` hold results from before the combat change. Record them again when you run the suite. The Claude session's UI work since 2026-11-19 has tests that were updated and not run (the user paused test runs): the city screen, the dock, the belief art, the Compendium, the government banner on the In play screen, the court strip. |
+| 1 | **The Commerce deck build** | 3.14, and `docs/plans/commerce-design-pass-2026-11-20.md`, "Ready for the build", "The pass is closed" and the two sections after it | 85 exclusive Orders, 25 shared Orders and 15 Doctrines. The live sheet is `docs/decks/commerce.md`. |
+| 2 | **The Expansionist deck build** | 3.14, and `docs/plans/expansionist-design-pass-2026-11-20.md`, "Ready for the build" and "The pass is closed" | 82 exclusive Orders, 17 shared Orders and 21 Doctrines. The six works use the approved models. |
+| 3 | **A city is coastal when it owns a coast hex within two hexes** | `docs/flags.md`, "A coastal city is a city that owns a coast hex within two hexes" | Buildings and bonuses use the city’s owned coast. Ship production and purchases share one launch rule. See `docs/flags.md`. |
+| 4 | **Purchase discounts as "gold buys more", for gold and for faith** | `docs/flags.md`, "A purchase discount is 'gold buys more'" | Gold and faith buying power add before the price is rounded up. The Commerce sheet lists the revised card text. |
+| 5 | **Fish Traps require their Order** | `docs/flags.md`, "Three rulings from the Compendium review" | The user confirmed the charter gate. The Gathering Grounds opens Fish Traps and orchards in the closed deck pass. |
+| 6 | **Strategic resources may be traded** | the same flag | The sim accepts `give.strategics` and `take.strategics`. The bot can propose and accept these terms. Claude owns the diplomacy controls. |
+| 7 | **The Volley Fire** | `docs/plans/scientific-design-pass-2026-11-20.md`, change 59; `docs/flags.md`, "The percentages of combat strength that remain" | Archers can attack twice and lose four strength when defending against a melee attack. The combat preview shows the loss. |
+| 8 | **City site ranking** | section 0.3 below | The site ranking spaces legal settlements, caps the extra hill score and charges for proximity to known camps. |
+| 9 | **Values for worker advice** | section 0.3 below | Claude can call `createWorkerAdviceReader` from `src/ui/workerAdvice.ts`. The reader returns the improvement or repair and its yield changes. See the worker advice benchmark. |
+| 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The prior version 252 replay pins were already refreshed at `8886505e`. The two deck passes and bot changes require new version 254 results. |
 | 11 | **The unit kit** | 3.16 | In your hands (you refined the archer and the spearman). Show the user the pair beside the reference before more units. |
-| 12 | **Wonders on the board** | 3.13 | A user decision is still open: each wonder with its own model, or the three shared ones. |
+| 12 | **Wonders on the board** | 3.13 | The user confirmed the three shared models on the city tile. |
+
+**Integration with the playtest branch.** The first 21 November playtest already had Claude’s Fortify until healed command at save version 253. This deck build uses version 254 and keeps that command.
+
+**Performance.** See [the turn 73 camera trace](benchmarks/turn73-drag-and-city-shade-2026-11-21.md) and [worker advice timings and integration](benchmarks/turn73-worker-advice-2026-11-21.md). The camera trace measured submission to the graphics driver. The worker reader keeps a cold recommendation off the input thread. Claude owns drawing advice, the strategic offer controls and the price display. Scientific and Devotion still need a closed design pass, except for Volley Fire and the shared purchase rule.
 
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
@@ -42,8 +46,8 @@ detail of each item.
 - 3.15: science for each citizen 0.25, Library +3, University +6,
   Amphitheater +4, a soldier's surcharge 80%, the worker and the settler.
 - A lumber mill gives +2 production. A terrace farm needs a mountain.
-- **To confirm:** 3.5, the generic Orders build. The Claude session could
-  not tell from the data whether all 39 cards are in.
+- 3.5: All 39 approved generic Orders are in the game. The live rows match
+  `docs/decks/common.md`. See `test/sim/decks/common.test.ts`.
 
 ### 0.3 New notes from the Claude session's design work (2026-11-21)
 
@@ -495,9 +499,7 @@ checked all thirteen leaders' units). The two units above are the only gaps.
 
 **Unit art review, 20 November.** The user approved the white Nazca hummingbird with dark edges. For the remaining land units, use the [current roster studies](../../art/terrain-study/unit-roster-review/README.md) and the painted units in the game as the style reference. Check the leader and deck rosters for any missing pieces. Look up a historical visual reference for each new figure or siege engine before revising the model. Record what the source shows and which details the model uses. If a unit has a fictional name or combines historical elements, identify its closest documented reference. Keep the pieces readable at play zoom and show them for review before adding them to the game. Keshig keeps its existing mounted archer. Ballista Elephant uses the existing siege elephant.
 
-**A decision for the user, not for Astra to take alone:** whether wonders get
-their own models on the board. Today a town's wonders are three shared
-monuments.
+**Wonder models, 21 November.** Keep the three shared monuments on each city tile.
 
 **Playtest approval, 21 November.** Add the eight new leader and charter pieces from `art/terrain-study/unit-roster-review/` to the painted board. Use the existing siege elephant for the Ballista Elephant and the existing mounted archer for the Keshig. The archer and spearman in section 3.16 are a separate Blender study.
 

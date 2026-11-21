@@ -78,6 +78,7 @@ import { raiseImprovement } from '../../../src/sim/map';
 import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
 import { at, bareState, woodedWorker } from '../improvementHelpers';
 import {
+  charterImprovements,
   type Band,
   type CardType,
   type CityScope,
@@ -274,16 +275,18 @@ const RETIRED = ROWS.filter((id) => orderDef(id).retired === true);
 const LIVE = ROWS.filter(isLive);
 const DEFERRED = ROWS.filter((id) => !isLive(id) && orderDef(id).retired !== true);
 
-/**
- * The four tended-work unlocks, the only charters this deck carries. The
- * Forest Gardens is retired (the user's cut of 2026-10-16), but its row stays,
- * so a game that already holds it keeps its gardens.
- */
-const TENDED_UNLOCKS: Readonly<Record<string, string>> = {
-  theForestGardens: 'forestGarden',
-  theFishTraps: 'fishTraps',
-  theWildOrchards: 'wildOrchard',
-  theBurningSeason: 'burnedCountry',
+const WORK_CHARTERS: Readonly<Record<string, string[]>> = {
+  theForestGardens: ['forestGarden'],
+  theFishTraps: ['fishTraps', 'wildOrchard'],
+  theWildOrchards: ['wildOrchard'],
+  theBurningSeason: ['burnedCountry'],
+  theDesertAndTheSnow: ['nazcaLines', 'inuksuk'],
+  theTotemPoles: ['totemPole'],
+  theStepwells: ['stepwell'],
+  theBarays: ['baray'],
+  outposts: ['outpost'],
+  thePolders: ['polder'],
+  theKeeps: ['townKeep'],
 };
 
 const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
@@ -315,9 +318,7 @@ describe('the Expansionist deck, as entered', () => {
       // naming its own improvement row.
       expect(def.pool, id).toBeUndefined();
       expect(def.slot, id).toBeUndefined();
-      const work = TENDED_UNLOCKS[id];
-      if (work === undefined) expect(def.charter, id).toBeUndefined();
-      else expect(def.charter, id).toEqual({ unlocks: { improvement: work } });
+      expect(charterImprovements(def.charter), id).toEqual(WORK_CHARTERS[id] ?? []);
     }
   });
 
@@ -326,7 +327,7 @@ describe('the Expansionist deck, as entered', () => {
     // and since batch E7 the fifteen rows the themes pass cut (fourteen live
     // rows and the deferred Public Works). Batch DS1
     // (`docs/plans/deck-simplification-2026-11-10.md`) retired 39 live rows.
-    expect(RETIRED.length).toBe(87);
+    expect(RETIRED.length).toBe(96);
     for (const id of RETIRED) {
       expect(orderIsDealt(id), id).toBe(false);
       expect(ordersForDecks(['expansionist']), id).not.toContain(id);
@@ -357,10 +358,10 @@ describe('the Expansionist deck, as entered', () => {
 
 describe('the Expansionist deck — the sheet', () => {
   it('holds the Doctrine rows to the sheet’s four tables', () => {
-    expect(sheetDoctrines('expansionist').length).toBe(24);
+    expect(sheetDoctrines('expansionist').length).toBe(21);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('expansionist').filter((row) => row.band === band).length),
-    ).toEqual([4, 6, 7, 7]);
+    ).toEqual([4, 5, 6, 6]);
     expectSheetDoctrinesMatchData('expansionist');
   });
 
@@ -717,12 +718,13 @@ describe('the tended works', () => {
   it('opens a tended work only to a seat holding its charter, and names the card when it refuses', () => {
     const { state, worker, tile } = woodedWorker();
     expect(improvementErrorAt(state, 0, tile, 'wildOrchard')).toBe(
-      'A wild orchard needs the card The Wild Orchards',
+      'A wild orchard needs the card The Gathering Grounds',
     );
-    hold(state, 'theWildOrchards' as OrderId);
+    hold(state, 'theFishTraps' as OrderId);
     expect(cardUnlocksImprovement(state, 0, 'wildOrchard')).toBe(true);
     expect(improvementErrorAt(state, 0, tile, 'wildOrchard')).toBeNull();
-    // The charter names one row; its siblings stay shut.
+    expect(cardUnlocksImprovement(state, 0, 'fishTraps')).toBe(true);
+    expect(cardUnlocksImprovement(state, 1, 'fishTraps')).toBe(false);
     expect(improvementErrorAt(state, 0, tile, 'forestGarden')).not.toBeNull();
     buildImprovementAt(state, worker, tile, 'wildOrchard');
     expect(tile.improvement).toBe('wildOrchard');
@@ -739,13 +741,13 @@ describe('the tended works', () => {
     expect(improvementErrorAt(state, 0, tile, 'forestGarden')).toBeNull();
   });
 
-  it('counts a tended hex as wild: unimproved, tended, and not improved', () => {
+  it('keeps legacy forest gardens tended and counts orchards as improvements', () => {
     const { state, tile } = woodedWorker();
-    raiseImprovement(tile, 'wildOrchard', state.turn);
+    raiseImprovement(tile, 'forestGarden', state.turn);
     expect(tileConditionHolds(tile, { test: 'unimproved' })).toBe(true);
     expect(tileConditionHolds(tile, { test: 'improved' })).toBe(false);
     expect(tileConditionHolds(tile, { test: 'tended' })).toBe(true);
-    raiseImprovement(tile, 'lumbermill', state.turn);
+    raiseImprovement(tile, 'wildOrchard', state.turn);
     expect(tileConditionHolds(tile, { test: 'unimproved' })).toBe(false);
     expect(tileConditionHolds(tile, { test: 'improved' })).toBe(true);
     expect(tileConditionHolds(tile, { test: 'tended' })).toBe(false);
@@ -754,9 +756,9 @@ describe('the tended works', () => {
     expect(tileConditionHolds(tile, { test: 'any', of: [] })).toBe(false);
   });
 
-  it('cannot be pillaged, though a road on the same hex can', () => {
+  it('keeps a legacy forest garden when a road is pillaged, though a road on the same hex can', () => {
     const { state, tile } = woodedWorker();
-    raiseImprovement(tile, 'wildOrchard', state.turn);
+    raiseImprovement(tile, 'forestGarden', state.turn);
     const raider = createUnit(state, 1, 'warrior', tile.col, tile.row);
     bumpRevision(state);
     expect(pillageError(state, raider.id)).toBe(`There is nothing to pillage on (${tile.col}, ${tile.row})`);
@@ -765,7 +767,7 @@ describe('the tended works', () => {
     const report = pillageAt(state, raider, tile);
     expect(report.road).toBe(true);
     expect(report.improvement).toBeUndefined();
-    expect(tile.improvement).toBe('wildOrchard');
+    expect(tile.improvement).toBe('forestGarden');
     expect(tile.road).toBeUndefined();
   });
 
@@ -780,28 +782,15 @@ describe('the tended works', () => {
   it('counts the tended hexes inside the borders for Six Gardens', () => {
     const { state, tile } = woodedWorker();
     expect(commissionFigure(state, 0, 'tendedTiles')).toBe(0);
-    raiseImprovement(tile, 'wildOrchard', state.turn);
+    raiseImprovement(tile, 'forestGarden', state.turn);
     expect(commissionFigure(state, 0, 'tendedTiles')).toBe(1);
     expect(commissionFigure(state, 1, 'tendedTiles')).toBe(0);
   });
 });
 
 describe('the deck’s other shapes', () => {
-  it('deals the cards marked "Needs tended land" only to a seat holding an unlock', () => {
-    const g = seated();
-    const seat = playerById(g.state, 0)!;
-    openEveryBand(seat);
-    const gated = ROWS.filter((id) => orderDef(id).needsTendedWork === true && orderIsDealt(id));
-    expect(gated.length).toBeGreaterThan(0);
-    // A seat is dealt only its current band (the ruling of 2026-10-13), so the
-    // bag is read at every rung of the ladder and the bands are put together.
-    const everyBand = (): OrderId[] =>
-      TIER_LADDER.flatMap((rung) => eligibleFor(g.state, seat, rung.drafts));
-    const shut = everyBand();
-    for (const id of gated) expect(shut, id).not.toContain(id);
-    seat.statecraft.orders.push('theFishTraps' as OrderId);
-    const open = everyBand();
-    for (const id of gated) expect(open, id).toContain(id);
+  it('removes the tended-work gate from every row', () => {
+    for (const id of ROWS) expect(orderDef(id).needsTendedWork, id).toBeUndefined();
   });
 
   it('counts a bought hex toward The Wide Country while it is seated', () => {
@@ -829,7 +818,7 @@ describe('the deck’s other shapes', () => {
 
   it('admits a town by the hexes its citizens work, through any hex condition', () => {
     const { state, city, tile } = woodedWorker();
-    const scope: CityScope = { test: 'workingTiles', on: { test: 'tended' } };
+    const scope: CityScope = { test: 'workingTiles', on: { test: 'uniqueImprovement' } };
     raiseImprovement(tile, 'wildOrchard', state.turn);
     city.workedTiles = city.workedTiles.filter((cell) => !(cell.col === tile.col && cell.row === tile.row));
     bumpRevision(state);

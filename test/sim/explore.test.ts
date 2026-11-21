@@ -1437,12 +1437,12 @@ describe('determinism', () => {
    * Version 247 records pillage damage. These seats have no improvements.
    * Version 248 updates the Orders and wonders. These opening snapshots include the new version.
    * At version 249 the larger Great Person roster changes the first census taker's name at both seeds.
-   * At versions 250, 251 and 252 only the save version changed in these two games.
+   * At versions 250 through 254 only the save version changed in these two games.
    * The schema version and that name are the only changed fields in the two snapshots.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'cafc5c28:190684',
-    2026: '1c3b8a4a:190852',
+    11: '2c8ca5ba:190684',
+    2026: '1a840388:190852',
   };
 
   for (const seed of [11, 2026]) {

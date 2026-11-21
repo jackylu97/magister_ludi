@@ -110,7 +110,6 @@ import {
   findPath,
   isPassable,
   moveProfile,
-  tileMoveCost,
 } from './pathfind';
 import {
   RESOURCE_IDS,
@@ -128,6 +127,7 @@ import {
   type FirstKind,
   type LevyUse,
   type OnDraftWindfall,
+  type TileCondition,
   onDraftUnitCount,
   type OrderId,
   type WindfallOccasion,
@@ -176,6 +176,7 @@ import {
   onDraftPayout,
   spendableGold,
   tileConditionHolds,
+  tileConditionAsks,
   type WindfallOccasionFacts,
   type WindfallPayout,
   windfallPayout,
@@ -211,9 +212,7 @@ import {
 // stops an empire founding cities (The Soldiers' Share), and the law's
 // percentages on a unit's cost (The Servian Reforms).
 import { cardBehaviorRule, cardUnitCostLines, cityScopeAdmits } from './statecraft/evaluator';
-// Batch DT16, from the evaluator for the same reason: whose hexes read the works
-// around them, for `refreshRingDerived`.
-import { cardHexLinesReadWorksBeside, lawIsCut } from './statecraft/evaluator';
+import { lawIsCut } from './statecraft/evaluator';
 // Scientific batch S5, The School of Mines: the law's extra copies for the
 // works standing on this empire's deposits, from the evaluator for the same
 // reason.
@@ -321,7 +320,6 @@ import { hasStackingRoom } from './units';
  */
 import { siegeField, underSiege } from './combat';
 import { recomputeVisibility, recomputeVisibilityFor } from './visibility';
-import { isCoastal } from './water';
 import {
   type MeterEffect,
   authorityOf,
@@ -333,7 +331,7 @@ import {
   meterEffects,
 } from './meters';
 import { foldRulePercent, resourceRulePercent } from './resourceEffects';
-import { buildingUnitUpkeepRebate, cityIsWatered } from './buildingEffects';
+import { buildingPurchaseDiscount, buildingUnitUpkeepRebate, cityIsWatered } from './buildingEffects';
 // A leaf, like `roads.ts` and `routeYields.ts`, and imported for the same
 // reason: `guilds.ts` needs these answers too and must be free to import this
 // file. See `specialists.ts`.
@@ -1662,15 +1660,20 @@ function distanceToNearestCity(state: GameState, hex: Hex): number {
   return best;
 }
 
-/**
- * Is this city on the coast — the site bonus the settler lens paints blue?
- *
- * One evaluator (design ledger, Entry I.b): `isCoastal` is the same test the
- * lens colours a candidate site with, asked of the tile the city ended up on. A
- * city that was promised a discount by a blue hex gets the discount.
- */
+/** Only the coast this town owns can supply its buildings or launch its ships.
+ * The order also settles launch ties. Ownership changes invalidate the economy cache. */
+function ownedCoast(state: GameState, city: City): readonly Tile[] {
+  return slateMemo(state, 'economy', 'ownedCoast', String(city.id), () => {
+    const map = state.map, home = tileHex(cityTile(map, city));
+    return mapRange(map, home, CITIES.coastalReach)
+      .filter(tile => tile.terrain === 'coast' && tileOwnerCityId(state, tile.col, tile.row) === city.id)
+      .sort((a, b) => wrappedDistance(map, home, tileHex(a)) - wrappedDistance(map, home, tileHex(b))
+        || tileIndex(map, a.col, a.row) - tileIndex(map, b.col, b.row));
+  });
+}
+
 export function isCoastalCity(state: GameState, city: City): boolean {
-  return isCoastal(state.map, cityTile(state.map, city));
+  return ownedCoast(state, city).length > 0;
 }
 
 /** The tile a city stands on. Cities are only ever founded on real tiles. */
@@ -2271,7 +2274,10 @@ export function withinWorkRadius(
   const tile = getTileAt(map, col, row);
   if (!tile) return false;
   const centre = tileHex(cityTile(map, city));
-  return wrappedDistance(map, centre, tileHex(tile)) <= workRadiusOf(state, city);
+  const distance = wrappedDistance(map, centre, tileHex(tile));
+  const radius = workRadiusOf(state, city);
+  return distance <= radius || (distance === radius + 1 && isWaterTerrain(tile.terrain) &&
+    cardCityRuleAt(state, city, 'widerWaterReach'));
 }
 
 /**
@@ -2289,6 +2295,15 @@ export function withinWorkRadius(
  */
 export function workRadiusOf(state: GameState, city: City): number {
   return CITIES.workRadius + (cardCityRuleAt(state, city, 'widerReach') ? 1 : 0);
+}
+
+/** Return the town's work area. Only the extra water ring needs a terrain check. */
+export function workRadiusTiles(state: GameState, city: City): Tile[] {
+  const centre = tileHex(cityTile(state.map, city));
+  const radius = workRadiusOf(state, city);
+  if (!cardCityRuleAt(state, city, 'widerWaterReach')) return mapRange(state.map, centre, radius);
+  return mapRange(state.map, centre, radius + 1).filter(tile =>
+    isWaterTerrain(tile.terrain) || wrappedDistance(state.map, centre, tileHex(tile)) <= radius);
 }
 
 /**
@@ -2310,7 +2325,7 @@ export function assignableTiles(state: GameState, city: City): Tile[] {
   // Mountain Terraces).
   const mountains = cardCityRuleAt(state, city, 'workMountains');
   const result: Tile[] = [];
-  for (const tile of mapRange(map, tileHex(centre), workRadiusOf(state, city))) {
+  for (const tile of workRadiusTiles(state, city)) {
     const index = tileIndex(map, tile.col, tile.row);
     if (index === centreIndex) continue;
     if (state.tileOwner[index] !== city.id) continue;
@@ -2371,10 +2386,9 @@ function takeCandidates(
   city: City,
 ): { tile: Tile; from: City; doubled: ImprovementId | null }[] {
   const { map } = state;
-  const centre = cityTile(map, city);
   const mountains = cardCityRuleAt(state, city, 'workMountains');
   const result: { tile: Tile; from: City; doubled: ImprovementId | null }[] = [];
-  for (const tile of mapRange(map, tileHex(centre), workRadiusOf(state, city))) {
+  for (const tile of workRadiusTiles(state, city)) {
     const holder = state.tileOwner[tileIndex(map, tile.col, tile.row)];
     if (holder === null || holder === undefined || holder === city.id) continue;
     const from = cityById(state, holder);
@@ -3075,27 +3089,33 @@ export function refreshTileDerived(state: GameState, tile: Tile): void {
   if (city) refreshCityDerived(state, city);
 }
 
-/**
- * **The towns around a great-person work that was just laid or lost** (batch DT16,
- * The Peregrini): register entry 35. `work` is the row that came or went, so a
- * caller that tore up a farm passes the farm and nothing happens.
- *
- * The town that owns the work's own hex has been re-seated by `refreshTileDerived`,
- * so this skips it and looks at the other towns on the ring. A rival's town counts,
- * because a line pays by the law of whoever owns the paid hex, and that owner's
- * hex may stand beside this seat's work. The ring's own order, so a replay re-seats
- * in the same order.
- */
-export function refreshRingDerived(state: GameState, tile: Tile, work: ImprovementId | undefined): void {
-  if (work === undefined || !isGreatPersonWork(work)) return;
+/** A neighbour's citizens only need new assignments if the tile changed a rule they can use. */
+export function refreshRingDerived(state: GameState, tile: Tile, previous: Tile): void {
+  const oldGift = previous.improvement && improvementDef(previous.improvement).givesNeighbours;
+  const newGift = tile.improvement && improvementDef(tile.improvement).givesNeighbours;
   const own = tileOwnerCityId(state, tile.col, tile.row);
-  const seated: number[] = own === null ? [] : [own];
+  const seated = new Set<number>();
+  const contexts = new Map<number, TileYieldContext | undefined>();
   for (const next of neighborTiles(state.map, tileHex(tile))) {
     const townId = tileOwnerCityId(state, next.col, next.row);
-    if (townId === null || seated.includes(townId)) continue;
-    seated.push(townId);
+    if (townId === null || townId === own || seated.has(townId)) continue;
     const town = cityById(state, townId);
-    if (town && cardHexLinesReadWorksBeside(state, town.ownerId)) refreshCityDerived(state, town);
+    if (!town) continue;
+    if (!contexts.has(townId)) contexts.set(townId, cityContext(state, town));
+    const ctx = contexts.get(townId);
+    const matches = (hex: Tile, test: TileCondition) => tileConditionHolds(hex, test, undefined, undefined, state.turn, ctx?.ground);
+    const changed = (test: TileCondition) => matches(previous, test) !== matches(tile, test);
+    const work = next.improvement && improvementDef(next.improvement);
+    const giftChanged = oldGift !== newGift &&
+      ((oldGift && matches(next, oldGift.on)) || (newGift && matches(next, newGift.on)));
+    const lineChanged = ctx?.lines?.some(line =>
+      (line.perNeighbour && changed(line.perNeighbour)) ||
+      tileConditionAsks(line.on, test => test.test === 'beside' && changed(test.of)),
+    );
+    if (giftChanged || work?.copiesNeighbours || (work?.perNeighbour && changed(work.perNeighbour.on)) || lineChanged) {
+      seated.add(townId);
+      refreshCityDerived(state, town);
+    }
   }
 }
 
@@ -4810,6 +4830,19 @@ function placementProbe(city: City, type: UnitTypeId, at: Tile): Unit {
   };
 }
 
+/** A shore town can use its dock. A town inland launches on its nearest free coast.
+ * Check the blockade only when the ship has to leave the centre. */
+function navalLaunchTile(state: GameState, city: City, type: UnitTypeId, blockWater: () => boolean): Tile | null {
+  const coast = ownedCoast(state, city);
+  if (coast.length === 0) return null;
+  const centre = cityTile(state.map, city), probe = placementProbe(city, type, centre);
+  const mover = moveProfile(state, probe);
+  if (canStopOn(state, probe, centre, mover)) return centre;
+  if (blockWater()) return null;
+  return coast.find(tile => !foreignUnitAt(state, city.ownerId, tile.col, tile.row)
+    && canStopOn(state, probe, tile, mover)) ?? null;
+}
+
 /**
  * Validate purchase placement before charging the bank. A garrison can share
  * the centre with another category. If the centre is full, enemy-held tiles
@@ -4817,6 +4850,9 @@ function placementProbe(city: City, type: UnitTypeId, at: Tile): Unit {
  * Under siege the whole ring is denied, including the blockaded sea lanes.
  */
 export function purchasedUnitTile(state: GameState, city: City, type: UnitTypeId): Tile | null {
+  if (isNaval(unitDef(type))) {
+    return navalLaunchTile(state, city, type, () => underSiege(state, city, siegeField(state, city.ownerId)));
+  }
   const centre = cityTile(state.map, city);
   const probe = placementProbe(city, type, centre);
   const mover = moveProfile(state, probe);
@@ -4843,41 +4879,7 @@ export function spawnTileFor(
   const def = unitDef(type);
   const { category } = def;
   const centre = cityTile(state.map, city);
-  /**
-   * **A ship is launched from the city that built it** (the user's ruling,
-   * 2026-08-29), and the fallback is the water rather than the land.
-   *
-   * The same two beats as everything else — the centre, then a neighbour — but
-   * read through the *hull's* own passability instead of `isPassable`, which is
-   * the question "is this dry ground" and is exactly wrong here. `moveProfile`
-   * answers both halves at once and answers them the way the walk will: the
-   * centre is enterable iff this town is coastal (it is in the mover's `ports`),
-   * and a neighbour is enterable iff it is open water. So a landlocked city
-   * cannot launch a hull *and does not need a clause saying so* — it simply has
-   * nowhere to put one, and `buildError` refuses the queue row long before this
-   * with a sentence a player can read.
-   *
-   * A probe rather than a real unit for the reason every spawn question is a
-   * hypothetical: nothing has been created yet, so the profile is built from a
-   * piece that stands where the town does and belongs to whoever owns it.
-   */
-  if (isNaval(def)) {
-    const probe = placementProbe(city, type, centre);
-    const mover = moveProfile(state, probe);
-    if (
-      tileMoveCost(centre, mover) !== null &&
-      hasStackingRoom(state, centre.col, centre.row, category)
-    ) {
-      return centre;
-    }
-    if (opts.onCityHexOnly === true) return null;
-    for (const tile of neighborTiles(state.map, tileHex(centre))) {
-      if (tileMoveCost(tile, mover) === null) continue;
-      if (foreignUnitAt(state, city.ownerId, tile.col, tile.row)) continue;
-      if (hasStackingRoom(state, tile.col, tile.row, category)) return tile;
-    }
-    return null;
-  }
+  if (isNaval(def)) return navalLaunchTile(state, city, type, () => opts.onCityHexOnly === true);
   if (hasStackingRoom(state, centre.col, centre.row, category)) return centre;
   if (opts.onCityHexOnly === true) return null;
   for (const tile of neighborTiles(state.map, tileHex(centre))) {
@@ -6640,6 +6642,7 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
   if (grants === undefined || grants.length === 0) return;
   const capital = capitalCityOf(state, player.id);
   const windfalls: OnDraftWindfall[] = [];
+  const timed: WindfallPayout['timed'] = [];
   const multiplePersonOffers = grants.filter(grant => grant.grant === 'greatPerson').length > 1;
   for (const grant of grants) {
     switch (grant.grant) {
@@ -6678,8 +6681,16 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
         }
         break;
       }
+      case 'effects':
+        if (grant.turns !== undefined) timed.push({
+          card: id, source: orderDef(id).name, turns: grant.turns, effects: grant.effects,
+        });
+        break;
       case 'windfall':
         windfalls.push(grant);
+        break;
+      case 'citizensInEveryTown':
+        for (const town of citiesOf(state, player.id)) settlePopulationWindfall(state, town, grant.amount);
         break;
       case 'completeQueues':
         for (const town of citiesOf(state, player.id)) {
@@ -6702,8 +6713,9 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
       }
     }
   }
-  if (windfalls.length === 0) return;
+  if (windfalls.length === 0 && timed.length === 0) return;
   const payout = onDraftPayout(state, player.id, id, windfalls);
+  payout.timed.push(...timed);
   if (!windfallPayoutIsEmpty(payout)) deliverWindfall(state, player, payout);
 }
 
@@ -7305,8 +7317,7 @@ interface TilePriceLine {
  *      bought. Added *after* the rounding, deliberately: the escalation is a
  *      flat surcharge on a habit, not part of the price of the ground, and
  *      rounding it in would make the first purchase silently free.
- *   4. Resource and card discounts apply to the same subtotal. Each source
- *      adds a line. A final line shows when the combined discount reaches its limit.
+ *   4. Resource and card buying power add together before rounding the price.
  *
  * A cell outside the city, or one this function is asked about before the city
  * exists, still gets a price — this evaluator prices ground and refuses nothing.
@@ -7343,10 +7354,12 @@ export function explainTilePurchase(
     });
   }
 
+  const local = city?.ownerId === playerId ? buildingPurchaseDiscount(townShelf(state, city)) : [];
   const modifiers = [
     ...resourceRulePercent(state, playerId, 'borderCost'),
     ...cardRulePercent(state, playerId, 'tilePurchase', undefined, getTileAt(state.map, cell.col, cell.row)),
     ...cardPurchaseRiders(state, playerId, 'tile', undefined, city, undefined, 'gold'),
+    ...local.map(line => ({ source: line.source, percent: line.amount })),
   ];
   lines.push(...purchaseDiscountLines(foldTilePrice(lines), modifiers, 1));
 
@@ -7622,7 +7635,7 @@ export function purchasableTiles(state: GameState, city: City): TileOffer[] {
   // third clause for water any more, and there must not be one: this list and
   // that evaluator are the same rule seen twice, so a filter here the reducer
   // does not keep is a hex the overlay refuses to price and the command sells.
-  for (const tile of mapRange(map, tileHex(cityTile(map, city)), workRadiusOf(state, city))) {
+  for (const tile of workRadiusTiles(state, city)) {
     if (state.tileOwner[tileIndex(map, tile.col, tile.row)] !== null) continue;
     if (!touchesTerritory(state, owner, tile)) continue;
     const cell: Cell = { col: tile.col, row: tile.row };

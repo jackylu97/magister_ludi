@@ -427,8 +427,7 @@ Reference: **`docs/units.md`** (the roster; generated) and
   through `advanceAlongPath`, so both arrivals land there.
 - **Combat is flat points on one ledger** (`planCombat`). Terrain, fortification,
   the general's aura, a wall, a melee attack across a river and a land piece's
-  shot at a ship are labelled strength lines, never multipliers. The only
-  percentage of strength left is a card's own (`cardCombatPercent`).
+  shot at a ship all add labelled strength lines. Cards use the same sum.
   Damage is an exponential in the *difference* of two effective strengths, so an
   edge is worth the same multiplier at any rung.
 - **A town is attacked in three beats** — walls → garrison → capture, off the

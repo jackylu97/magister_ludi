@@ -473,13 +473,13 @@ describe('The Pack Trail', () => {
   const named = (lines: ReturnType<typeof cityRouteYields>) =>
     foldRouteYield(lines.filter((line) => line.source.includes('The Pack Trail')));
 
-  it('is a common Economic card at Tier 0, dealt to a Commerce seat', () => {
+  it('keeps the retired Pack Trail outside both draft pools', () => {
     const def = orderDef(PACK_TRAIL);
-    expect([def.band, def.rarity, def.type]).toEqual([0, 'common', 'economic']);
+    expect([def.band, def.rarity, def.type]).toEqual([0, 'common', undefined]);
     expect(def.text).toBe('Your trade routes give +2 gold.');
     expect(def.effects).toEqual([{ kind: 'pays', where: 'route', gold: 2 }]);
-    expect(orderIsDealt(PACK_TRAIL)).toBe(true);
-    expect(ordersForDecks(['commerce'])).toContain(PACK_TRAIL);
+    expect(orderIsDealt(PACK_TRAIL)).toBe(false);
+    expect(ordersForDecks(['commerce'])).not.toContain(PACK_TRAIL);
   });
 
   it('pays +2 gold on a route between your own towns, in the town it reaches', () => {
@@ -515,13 +515,13 @@ describe('The First Caravan', () => {
     return { state, capital, player };
   }
 
-  it('is a common Economic Boon at Tier 0, whose whole card is its grant', () => {
+  it('grants a caravan and a permanent route slot on draft', () => {
     const def = orderDef(FIRST_CARAVAN);
-    expect([def.band, def.rarity, def.type]).toEqual([0, 'common', 'economic']);
+    expect([def.band, def.rarity, def.type]).toEqual([0, 'uncommon', 'economic']);
     // Batch DS8 took the keyword off the text: the card face prints it.
-    expect(def.text).toBe('On draft: gain a caravan.');
+    expect(def.text).toBe('On draft: gain a caravan, and room for one more trade route.');
     expect(orderKeyword(FIRST_CARAVAN)).toBe('boon');
-    expect(def.onDraft).toEqual([{ grant: 'unit', unit: 'trader' }]);
+    expect(def.onDraft).toEqual([{ grant: 'unit', unit: 'trader' }, { grant: 'effects', effects: [{ kind: 'routeRider', extra: 1 }] }]);
     expect(def.effects).toEqual([]);
     expect(unitDef('trader').routeOnly).toBe(true);
     expect(orderIsDealt(FIRST_CARAVAN)).toBe(true);
@@ -551,13 +551,9 @@ describe('The First Caravan', () => {
   it('asks End Turn about the cart only once there is somewhere to send it', () => {
     const { state, capital } = dealt();
     expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
-    // At Tier 0 a seat usually has no Market, so no route slot: the cart waits
-    // and blocks nothing (the R4 ruling's "an idle cart with nothing to send").
-    foundCityAt(state, 0, at(state, 10, 4));
-    bumpRevision(state);
     expect(hasSendablePair(state, 0)).toBe(false);
-    // A Market gives a route slot, and the second town is a partner.
-    capital.buildings.push('market');
+    expect(capital.buildings).not.toContain('market');
+    foundCityAt(state, 0, at(state, 10, 4));
     bumpRevision(state);
     expect(hasSendablePair(state, 0)).toBe(true);
   });

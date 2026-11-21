@@ -9,7 +9,7 @@ import {
   underSiege,
 } from '../../src/sim/combat';
 import { blockades, cityBlockaded } from '../../src/sim/blockade';
-import { foundCityAt, spawnTileFor } from '../../src/sim/cities';
+import { claimTile, foundCityAt, isCoastalCity, purchasedUnitTile, spawnTileFor, takeTile } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { type Tile, createMap, getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
@@ -294,6 +294,40 @@ describe('a hull moves through the one step evaluator', () => {
 // --- the spawn --------------------------------------------------------------
 
 describe('a hull is launched from the city that built it', () => {
+  it('opens the harbour and launches ships on the second ring when that city owns the coast', () => {
+    const state = seaState();
+    const town = foundCityAt(state, 0, at(state, 6, 4));
+    const other = foundCityAt(state, 0, at(state, 9, 5));
+    const berth = at(state, 4, 4);
+    expect(isCoastalCity(state, town)).toBe(false);
+    expect(claimTile(state, other, berth)).toBe(true);
+    expect(isCoastalCity(state, town)).toBe(false);
+    expect(isCoastalCity(state, other)).toBe(false);
+    expect(takeTile(state, town, berth)).toBe(other);
+    expect(isCoastalCity(state, town)).toBe(true);
+    expect(buildError(state, 0, 'building', 'harbour', town)).toBeNull();
+    expect(buildError(state, 0, 'unit', 'galley', town)).toBeNull();
+    expect(navalPorts(state).has(at(state, 6, 4))).toBe(false);
+    expect(spawnTileFor(state, town, 'galley')).toBe(berth);
+    expect(purchasedUnitTile(state, town, 'galley')).toBe(berth);
+    expect(spawnTileFor(state, town, 'galley', { onCityHexOnly: true })).toBeNull();
+    createUnit(state, 0, 'galley', berth.col, berth.row);
+    expect(spawnTileFor(state, town, 'galley')).toBeNull();
+    expect(purchasedUnitTile(state, town, 'galley')).toBeNull();
+    takeTile(state, other, berth);
+    expect(isCoastalCity(state, town)).toBe(false);
+  });
+
+  it('requires coast even when the city owns a lake and deep water', () => {
+    const state = seaState();
+    const town = foundCityAt(state, 0, at(state, 6, 4));
+    for (const [tile, terrain] of [[at(state, 4, 3), 'lake'], [at(state, 4, 4), 'ocean']] as const) {
+      tile.terrain = terrain;
+      claimTile(state, town, tile);
+    }
+    expect(isCoastalCity(state, town)).toBe(false);
+    expect(spawnTileFor(state, town, 'galley')).toBeNull();
+  });
   it('stands on the city hex when the town is coastal and the slot is free', () => {
     const state = seaState();
     const town = foundCityAt(state, 0, at(state, 5, 4));

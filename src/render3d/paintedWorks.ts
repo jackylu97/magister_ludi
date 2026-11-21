@@ -50,7 +50,7 @@ type CoreImprovement = typeof DRAWN_WORK_IMPROVEMENTS[number];
  * `improvementAt`, which is where a stand-in becomes the row it stands in for.
  */
 export const PAINTED_WORK_IMPROVEMENTS: readonly ImprovementId[] = IMPROVEMENT_IDS.filter(
-  (id) => isApprovedWork(id) || (DRAWN_WORK_IMPROVEMENTS as readonly string[]).includes(improvementBaseRow(id)),
+  (id) => id !== 'polder' && (isApprovedWork(id) || (DRAWN_WORK_IMPROVEMENTS as readonly string[]).includes(improvementBaseRow(id))),
 );
 export type PaintedWorksAssets = { material: MeshStandardMaterial } & Record<typeof PAINTED_WORK_ASSET_NAMES[number], BufferGeometry>;
 interface PaintedWorksOptions { suppressed?: ReadonlyMap<number, SuppressScope> }
@@ -89,7 +89,7 @@ const up = new Vector3(0, 1, 0);
 const core = new Set<string>(DRAWN_WORK_IMPROVEMENTS);
 /** Visual variants are independent of the simulation's counts-as rules. */
 const improvementAt = (tile: Tile): CoreImprovement | undefined => {
-  if (!tile.improvement) return undefined;
+  if (!tile.improvement || tile.improvement === 'polder') return undefined;
   if (isApprovedWork(tile.improvement)) return tile.improvement;
   const drawn = tile.improvement === 'terraces' ? 'terraces' : improvementBaseRow(tile.improvement);
   return core.has(drawn) ? drawn as CoreImprovement : undefined;

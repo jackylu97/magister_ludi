@@ -122,13 +122,13 @@ function withReward(id: string, reward: CommissionReward[], run: () => void): vo
 const said = (id: string): string[] => describeCard(id as never).map((clause) => stripRefs(clause.text));
 
 describe('the Expansionist batch E4: The Keeps', () => {
-  it('opens the Keep only while the card is seated, one in each town, and a Keep built stays', () => {
+  it('opens the Keep when the charter is held and limits it to one in each town', () => {
     const state = bareState();
     const city = town(state, 0, 3, 5, 6);
     const worker = createUnit(state, 0, 'worker', 4, 5);
     bumpRevision(state);
-    expect(improvementError(state, worker.id, 'townKeep')).toBe('A keep needs the card The Keeps in a chair');
-    slot(state, 0, 'theKeeps');
+    expect(improvementError(state, worker.id, 'townKeep')).toBe('A keep needs the card The Keeps');
+    hold(state, 0, 'theKeeps');
     expect(improvementError(state, worker.id, 'townKeep')).toBeNull();
     build(state, worker.id, 'townKeep');
     expect(at(state, 4, 5).improvement).toBe('townKeep');
@@ -136,9 +136,9 @@ describe('the Expansionist batch E4: The Keeps', () => {
     const second = createUnit(state, 0, 'worker', 3, 4);
     bumpRevision(state);
     expect(improvementError(state, second.id, 'townKeep')).toBe(`${city.name} already has a keep`);
-    // The card leaves its chair: the row closes, and the Keep stays.
+    // Emptying the chairs leaves the charter active.
     unseat(state, 0);
-    expect(improvementCardError(state, 0, 'townKeep')).toBe('A keep needs the card The Keeps in a chair');
+    expect(improvementCardError(state, 0, 'townKeep')).toBeNull();
     expect(at(state, 4, 5).improvement).toBe('townKeep');
   });
 
@@ -202,15 +202,15 @@ describe('the Expansionist batch E4: The Keeps', () => {
 });
 
 describe('the Expansionist batch E4: The Polders', () => {
-  it('raises a polder on a coast hex beside three of your land hexes, for two charges', () => {
+  it('raises a polder on a coast hex beside three of your land hexes, for one charge', () => {
     const state = bareState();
     town(state, 0, 3, 5, 3);
     const coast = at(state, 4, 5);
     coast.terrain = 'coast';
     const worker = createUnit(state, 0, 'worker', 4, 5);
     bumpRevision(state);
-    expect(improvementError(state, worker.id, 'polder')).toBe('A polder needs the card The Polders in a chair');
-    slot(state, 0, 'thePolders');
+    expect(improvementError(state, worker.id, 'polder')).toBe('A polder needs the card The Polders');
+    hold(state, 0, 'thePolders');
     expect(improvementError(state, worker.id, 'polder')).toBeNull();
     // With too little of your land beside it, refused by the count.
     const land = neighborTiles(state.map, tileHex(coast)).filter(
@@ -226,10 +226,10 @@ describe('the Expansionist batch E4: The Polders', () => {
     const before = worker.chargesLeft!;
     build(state, worker.id, 'polder');
     expect(coast.improvement).toBe('polder');
-    expect(worker.chargesLeft).toBe(before - 2);
+    expect(worker.chargesLeft).toBe(before - 1);
   });
 
-  it('yields as a farm on grassland, stays water, and is not a farm to the cards', () => {
+  it('yields as a farm on grassland, stays water, and counts as a farm for cards', () => {
     const state = bareState();
     town(state, 0, 3, 5, 3);
     const coast = at(state, 4, 5);
@@ -246,7 +246,7 @@ describe('the Expansionist batch E4: The Polders', () => {
       false,
     );
     expect(coast.terrain).toBe('coast');
-    expect(improvementCountsAs('polder', 'farm')).toBe(false);
+    expect(improvementCountsAs('polder', 'farm')).toBe(true);
   });
 });
 
@@ -257,8 +257,8 @@ describe('the Expansionist batch E4: Outposts', () => {
     const worker = createUnit(state, 0, 'worker', 5, 5);
     bumpRevision(state);
     // The ground takes it; the card is what is missing.
-    expect(improvementError(state, worker.id, 'outpost')).toBe('An outpost needs the card Outposts in a chair');
-    slot(state, 0, 'outposts');
+    expect(improvementError(state, worker.id, 'outpost')).toBe('An outpost needs the card Outposts');
+    hold(state, 0, 'outposts');
     expect(improvementError(state, worker.id, 'outpost')).toBeNull();
     // Inside the borders: refused.
     worker.col = 3;
@@ -273,7 +273,7 @@ describe('the Expansionist batch E4: Outposts', () => {
   it('claims its hex and the unowned ring around it for the nearest town, and counts toward The Wide Country', () => {
     const state = bareState(16, 10);
     const home = town(state, 0, 2, 5, 3);
-    slot(state, 0, 'outposts');
+    hold(state, 0, 'outposts');
     slot(state, 0, 'theWideCountry');
     const worker = createUnit(state, 0, 'worker', 6, 5);
     bumpRevision(state);
@@ -287,7 +287,7 @@ describe('the Expansionist batch E4: Outposts', () => {
   it('gives a town founded on it the land it claimed, and the town stands in its place', () => {
     const state = bareState(16, 10);
     const home = town(state, 0, 2, 5, 3);
-    slot(state, 0, 'outposts');
+    hold(state, 0, 'outposts');
     const worker = createUnit(state, 0, 'worker', 6, 5);
     bumpRevision(state);
     build(state, worker.id, 'outpost');
@@ -574,10 +574,10 @@ describe('the Expansionist batch E4: Migration and The Great Migration', () => {
 
 describe('the Expansionist batch E4: the words', () => {
   it('says what each of the ten cards does', () => {
-    expect(said('theKeeps').join(' ')).toContain('while this card is seated, your workers may build a Keep');
-    expect(said('theKeeps').join(' ')).toContain('one in each city');
+    expect(said('theKeeps').join(' ')).toContain('Build Keep.');
+    expect(said('theKeeps').join(' ')).toContain('One in each city');
     expect(said('theKeeps').join(' ')).not.toContain('strength');
-    expect(said('thePolders').join(' ')).toContain('it yields as a farm on grassland');
+    expect(said('thePolders').join(' ')).toContain('It yields as a farm on grassland');
     expect(said('outposts').join(' ')).toContain('up to 3 hexes beyond your borders');
     expect(said('theGardenFrontier').join(' ')).toContain('up to 2 hexes beyond your borders');
     expect(said('theFishTraps').join(' ')).toContain('Fish Traps');

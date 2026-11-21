@@ -591,7 +591,7 @@ describe('the Expansionist batch E9: the words', () => {
       'building a Quarry gives every hex with a Farm or Pasture beside it, inside your borders, +1 food for the rest of the game, at most +2 food on one hex',
     ]);
     expect(said('commissionBreakTheSod')).toContain(
-      'Goal: work 12 improved tiles at the same time, not counting tended tiles. Reward: +1 food on every hex with a Farm',
+      'Goal: work 12 improved tiles at the same time. Reward: +1 food on every hex with a Farm',
     );
     expect(said('theTwoHarvests')).toEqual([
       'a Farm, Mine or Lumbermill of yours also counts as tended land for your cards, but not as wild land',

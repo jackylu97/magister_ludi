@@ -50,8 +50,10 @@ import { citiesOf, playerById, type GameState } from './state';
 import {
   getTileAt,
   mapRange,
+  offsetToAxial,
   tileHex,
   tileIndex,
+  tileNeighbors,
   wrappedDistance,
   type Tile,
 } from './map';
@@ -62,7 +64,9 @@ import { slateMemo } from './slate';
 import type { TileYield } from './terrainData';
 import { unitDef } from './unitData';
 import { isExploredBy } from './visibility';
-import { hasFreshWater, isCoastal } from './water';
+import { isCoastal } from './water';
+import { improvementDef } from './improvementData';
+import { tileHasFreshWater } from './improvementFields';
 import {
   explainTileYield,
   foldTileLines,
@@ -143,6 +147,8 @@ export interface SiteReading {
   hills: number;
   /** Steps to this empire's nearest town, or `null` when it holds none. */
   nearestTown: number | null;
+  /** Steps to the nearest known camp inside the risk radius. */
+  nearbyCampDistance?: number;
   /** The food the counted hexes pay — the "strong food" the words read. */
   food: number;
   /** Their production, likewise. */
@@ -228,17 +234,37 @@ function stepsToOwnTown(state: GameState, playerId: number, tile: Tile): number 
  * ranking be explicable a line at a time.
  */
 export function explainSite(state: GameState, playerId: number, tile: Tile): SiteReading {
-  return appraiseSite(state, playerId, tile);
+  return appraiseSite(state, playerId, tile, campDistances(state, playerId));
+}
+
+/** A camp stays on the chart after it leaves sight. Build its risk field once per seat and revision. */
+function campDistances(state: GameState, playerId: number): Readonly<Record<number, number>> {
+  return slateMemo(state, 'revision', 'siteCampDistances', String(playerId), () => {
+    const distances: Record<number, number> = {};
+    for (const camp of state.camps) {
+      if (!isExploredBy(state, playerId, camp.col, camp.row)) continue;
+      const tile = getTileAt(state.map, camp.col, camp.row);
+      if (!tile) continue;
+      const centre = tileHex(tile);
+      for (const near of mapRange(state.map, centre, RULES.sites.campRiskRadius)) {
+        const at = tileIndex(state.map, near.col, near.row);
+        const distance = wrappedDistance(state.map, centre, tileHex(near));
+        if (distance < (distances[at] ?? Infinity)) distances[at] = distance;
+      }
+    }
+    return distances;
+  });
 }
 
 function appraiseSite(
   state: GameState,
   playerId: number,
   tile: Tile,
-  ringYields?: Map<Tile, TileYield>,
+  camps: Readonly<Record<number, number>>,
+  chartedYields?: Map<Tile, TileYield>,
+  ground = groundContext(state, playerId),
 ): SiteReading {
   const knobs = RULES.sites;
-  const ground = groundContext(state, playerId);
   const player = playerById(state, playerId);
   const techs = player?.techsResearched ?? [];
   const here = tileHex(tile);
@@ -249,10 +275,12 @@ function appraiseSite(
   let centre: SiteRingHex | null = null;
   let hills = 0;
   for (const near of mapRange(state.map, here, Math.max(0, knobs.ringRadius))) {
-    let yields = ringYields?.get(near);
+    // The player sees only the part of the ring already charted.
+    if (chartedYields && !isExploredBy(state, playerId, near.col, near.row)) continue;
+    let yields = chartedYields?.get(near);
     if (yields === undefined) {
       yields = foldTileLines(explainTileYield(near, ground));
-      ringYields?.set(near, yields);
+      chartedYields?.set(near, yields);
     }
     const steps = wrappedDistance(state.map, here, tileHex(near));
     const row: SiteRingHex = {
@@ -272,6 +300,7 @@ function appraiseSite(
     // for the two halves and which reader wants which.
     const resource = near.resource;
     if (resource === undefined || seen.has(resource)) continue;
+    if (chartedYields && !resourceIsVisibleTo(resource, techs)) continue;
     seen.add(resource);
     seams.push({ id: resource, col: near.col, row: near.row });
   }
@@ -294,7 +323,10 @@ function appraiseSite(
   const lines: SiteLine[] = [
     { label: `the ground a young town would work (${counted.length} hexes)`, value: groundWorth },
   ];
-  if (hasFreshWater(tile)) lines.push({ label: 'fresh water', value: knobs.freshWater });
+  const freshWater = tileHasFreshWater(state, tile) && (!chartedYields || tile.freshwater ||
+    tileNeighbors(state.map, tile).some(near => isExploredBy(state, playerId, near.col, near.row) &&
+      near.improvement !== undefined && improvementDef(near.improvement).watersAllNeighbours));
+  if (freshWater) lines.push({ label: 'fresh water', value: knobs.freshWater });
   const luxuries: ResourceId[] = [];
   const strategics: ResourceId[] = [];
   for (const seam of seams) {
@@ -312,8 +344,18 @@ function appraiseSite(
       lines.push({ label: `${def.name} in reach`, value: knobs.strategic });
     }
   }
-  if (isCoastal(state.map, tile)) lines.push({ label: 'on the coast', value: knobs.coast });
-  if (hills > 0) lines.push({ label: `hills in reach (${hills})`, value: hills * knobs.hills });
+  const coast = chartedYields
+    ? tileNeighbors(state.map, tile).some(near => near.terrain === 'coast' && isExploredBy(state, playerId, near.col, near.row))
+    : isCoastal(state.map, tile);
+  if (coast) lines.push({ label: 'on the coast', value: knobs.coast });
+  if (hills > 0) lines.push({ label: `hills in reach (${hills})`, value: Math.min(hills, knobs.hillBonusLimit) * knobs.hills });
+  const nearbyCampDistance = camps[tileIndex(state.map, tile.col, tile.row)];
+  if (nearbyCampDistance !== undefined) {
+    lines.push({
+      label: `near a barbarian camp (${nearbyCampDistance} hexes)`,
+      value: -(knobs.campRiskRadius + 1 - nearbyCampDistance) * knobs.campRiskPerStep,
+    });
+  }
   const nearestTown = stepsToOwnTown(state, playerId, tile);
   // **Crowding is a subtraction, never a bonus for distance.** A site far from
   // every town of ours is not thereby good — it is merely far — but a site that
@@ -336,8 +378,9 @@ function appraiseSite(
     seams,
     luxuries,
     strategics,
-    freshWater: hasFreshWater(tile),
-    coast: isCoastal(state.map, tile),
+    freshWater,
+    coast,
+    nearbyCampDistance,
     hills,
     nearestTown,
     food,
@@ -378,6 +421,12 @@ export function rankSites(state: GameState, playerId: number): SiteCandidate[] {
   }
   // Neighbouring sites share ground. This map lasts for one ranking by one player.
   const ringYields = new Map<Tile, TileYield>();
+  const camps = campDistances(state, playerId);
+  const ground = groundContext(state, playerId);
+  const chartedGround = ground && {
+    ...ground,
+    neighbours: (tile: Tile) => tileNeighbors(state.map, tile).filter(near => isExploredBy(state, playerId, near.col, near.row)),
+  };
   const looked = new Set<number>();
   const candidates: SiteCandidate[] = [];
   for (const anchor of anchors) {
@@ -387,7 +436,8 @@ export function rankSites(state: GameState, playerId: number): SiteCandidate[] {
       looked.add(at);
       if (!isExploredBy(state, playerId, tile.col, tile.row)) continue;
       if (foundingErrorAt(state, playerId, tile) !== null) continue;
-      const reading = appraiseSite(state, playerId, tile, ringYields);
+      if (camps[at] === 0) continue;
+      const reading = appraiseSite(state, playerId, tile, camps, ringYields, chartedGround);
       if (reading.total < knobs.scoreFloor) continue;
       candidates.push({ col: tile.col, row: tile.row, reading });
     }
@@ -399,5 +449,14 @@ export function rankSites(state: GameState, playerId: number): SiteCandidate[] {
       b.reading.total - a.reading.total ||
       tileIndex(state.map, a.col, a.row) - tileIndex(state.map, b.col, b.row),
   );
-  return candidates.slice(0, Math.max(0, RULES.ui.recommendedSites));
+  const chosen: SiteCandidate[] = [];
+  for (const candidate of candidates) {
+    if (chosen.length >= RULES.ui.recommendedSites) break;
+    const here = offsetToAxial(candidate.col, candidate.row);
+    const hasRoom = chosen.every((site) =>
+      wrappedDistance(state.map, here, offsetToAxial(site.col, site.row)) >= RULES.cities.minCitySpacing,
+    );
+    if (hasRoom) chosen.push(candidate);
+  }
+  return chosen;
 }

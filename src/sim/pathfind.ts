@@ -849,7 +849,7 @@ export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
   // mountain is still a mountain. Read here beside `ignoresTerrainCost` for that
   // flag's stated reason — one place the price of a step is decided, and
   // therefore one place the highlight, the estimate and the march agree.
-  const climbs = tile.hills && mover?.def?.ignoresHillCost !== true;
+  const climbs = tile.hills && mover?.def?.ignoresHillCost !== true && mover?.ignoresWoods !== true;
   // **The woods at the open-ground price** (The Woodland Bands, Expansionist
   // batch E3): the hex is priced as if nothing grew on it, the hill's reading
   // one field over. Only forest and jungle carry a price of their own

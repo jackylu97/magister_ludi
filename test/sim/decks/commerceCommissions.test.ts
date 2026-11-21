@@ -24,7 +24,8 @@ import { foundCityAt } from '../../../src/sim/cities';
 import { applyCommand } from '../../../src/sim/commands';
 import { commissionProgress, runCommissions } from '../../../src/sim/commissions';
 import { createMap, getTileAt } from '../../../src/sim/map';
-import { cityHoldsPost, cityPostPays, postSince } from '../../../src/sim/routes';
+import { cityHoldsPost } from '../../../src/sim/routes';
+import { explainRouteSenderYield, foldRouteYield } from '../../../src/sim/routeYields';
 import { RULES } from '../../../src/sim/rulesData';
 import {
   type City,
@@ -163,11 +164,11 @@ function fair(): { state: GameState; capitals: City[]; borsSecond: City; traders
 // --- Commission: The Great Fair ------------------------------------------------
 
 describe('Commission: The Great Fair', () => {
-  it('is a Tier II Wildcard commission whose goal counts towns by a scope', () => {
+  it('keeps the retired Great Fair objective for existing card records', () => {
     const def = orderDef(GREAT_FAIR);
     expect(def.band).toBe(2);
     expect(def.rarity).toBe('uncommon');
-    expect(def.type).toBe('wildcard');
+    expect(def.retired).toBe(true);
     expect(def.effects).toEqual([]);
     expect(def.commission).toEqual({
       goals: [{ kind: 'reached', figure: 'citiesAdmitted', count: 4, admits: DOMESTIC }],
@@ -265,47 +266,25 @@ describe("The World's Fair", () => {
     expect(countOf(state, 0, WORLDS_FAIR, PARTNERS)).toBe(4);
   });
 
-  it('writes your post, established at once, in each partner’s capital', () => {
-    const { state, capitals, borsSecond, traders } = fair();
-    const [bors, cyra, dag, edda] = capitals as [City, City, City, City];
-    expect(cityHoldsPost(state, bors, 0)).toBe(false);
-    expect(cityHoldsPost(state, cyra, 0)).toBe(false);
-    expect(postSince(cyra, 0)).toBe(state.turn);
-    const dagSince = postSince(dag, 0);
-
-    const reports = runCommissions(state);
-    expect(reports).toHaveLength(1);
-    // In the order the routes first reach the partners. Dag's capital held the
-    // post already, so it gains nothing and has no line.
-    expect(reports[0]!.lines).toEqual([
-      `your trading post in ${bors.name}`,
-      `your trading post in ${cyra.name}`,
-      `your trading post in ${edda.name}`,
-    ]);
-    for (const capital of [bors, cyra, edda]) {
-      expect(cityHoldsPost(state, capital, 0), capital.name).toBe(true);
-      expect(cityPostPays(state, capital, 0), capital.name).toBe(true);
-      // Dated a full term back, so it is established on this turn.
-      expect(postSince(capital, 0), capital.name).toBe(state.turn - TERM);
-      expect(capital.posts!.filter((post) => post.by === 0), capital.name).toHaveLength(1);
-    }
-    expect(postSince(dag, 0)).toBe(dagSince);
-    // The route's own town keeps the record the route opened.
-    expect(postSince(borsSecond, 0)).toBe(state.turn);
-    // The timed bonus is gone.
-    expect(playerById(state, 0)!.timed ?? []).toEqual([]);
-
-    // A route that ends later does not take an established post away.
+  it('doubles foreign route income after completion and keeps the reward when a route ends', () => {
+    const { state, traders, capitals } = fair();
+    const first = traders[0]!;
+    const income = () => foldRouteYield(explainRouteSenderYield(state, first));
+    const original = income();
+    expect(original.gold).toBeGreaterThan(0);
+    expect(runCommissions(state)).toHaveLength(1);
+    expect(income().gold).toBe(2 * original.gold);
+    expect(runCommissions(state)).toEqual([]);
+    expect(cityHoldsPost(state, capitals[0]!, 0)).toBe(false);
     endRoute(state, traders[1]!);
-    expect(cityHoldsPost(state, cyra, 0)).toBe(true);
+    expect(income().gold).toBe(2 * original.gold);
   });
 
   it('prints its goal and its reward', () => {
     const text = describeCard(WORLDS_FAIR).map((clause) => stripRefs(clause.text));
-    expect(text).toEqual([
-      'Commission',
-      'Goal: have trade routes to 4 other empires at the same time. Reward: your trading post, established at once, in the capital of each empire your trade routes reach',
-    ]);
+    expect(text[0]).toBe('Commission');
+    expect(text[1]).toContain('trade routes to 4 other empires');
+    expect(text[1]).toMatch(/100%|twice|double/);
     const goal = orderDef(WORLDS_FAIR).commission!.goals[0]!;
     expect(commissionCounterWords(goal)).toBe('empires your trade routes reach');
   });
@@ -330,7 +309,7 @@ describe('the third post writer', () => {
     ]);
   });
 
-  it('pays The Fondaci once for each post it writes, in the commissions phase', () => {
+  it('pays legacy Fondaci rewards only when a post reaches its term', () => {
     const { state, capitals, borsSecond } = fair();
     const [bors, cyra, dag, edda] = capitals as [City, City, City, City];
     const player = playerById(state, 0)!;
@@ -350,19 +329,13 @@ describe('the third post writer', () => {
       (phase) => phase.name === 'roadJoinings' || phase.name === 'commissions',
     );
 
-    // This turn: the sweep finds nothing ripe, and the reward writes three
-    // posts, each paid twenty times its town's citizens.
+    // The Fair changes route income. Only posts that reach their term pay this rider.
     let science = player.sciencePool;
     let culture = player.culturePool;
     for (const phase of phases) phase.run(state, emptyTurnReport());
-    expect(player.sciencePool - science).toBe(20 * (3 + 5 + 2));
-    expect(player.culturePool - culture).toBe(20 * (3 + 5 + 2));
+    expect(player.sciencePool - science).toBe(0);
+    expect(player.culturePool - culture).toBe(0);
 
-    // Never again for those three posts. Until the routes' own records ripen
-    // nothing more is paid, and when they do, only those posts pay: Ada's own
-    // town and Bors' second town. Cyra's and Edda's records were opened by
-    // routes this turn too, but the reward dated them back, so they do not
-    // ripen a second time.
     const opened = state.turn;
     for (let turn = opened + 1; turn < opened + TERM; turn++) {
       state.turn = turn;
@@ -377,14 +350,14 @@ describe('the third post writer', () => {
     culture = player.culturePool;
     const home = state.cities.find((city) => city.ownerId === 0)!;
     runPostEstablishments(state);
-    expect(player.sciencePool - science).toBe(20 * (home.population + 4));
-    expect(player.culturePool - culture).toBe(20 * (home.population + 4));
+    expect(player.sciencePool - science).toBe(20 * (home.population + 4 + 5 + 2));
+    expect(player.culturePool - culture).toBe(20 * (home.population + 4 + 5 + 2));
   });
 
-  it('pays the same through a whole end of turn, and the fair is met there', () => {
+  it('completes the Fair at turn end without maturing posts early', () => {
     // Two copies of one board, one with The Fondaci in a chair. The whole end
     // of turn runs on both, and the only difference in science is what the
-    // three new posts pay, once.
+    // Fair does not establish a post early.
     const run = (withFondaci: boolean): { science: number; posts: number; met: boolean } => {
       const { state, capitals } = fair();
       const player = playerById(state, 0)!;
@@ -405,7 +378,7 @@ describe('the third post writer', () => {
     const withIt = run(true);
     expect(without.met).toBe(true);
     expect(withIt.met).toBe(true);
-    expect(withIt.posts).toBe(4);
-    expect(withIt.science - without.science).toBe(20 * 3 * 3);
+    expect(withIt.posts).toBe(1);
+    expect(withIt.science).toBe(without.science);
   });
 });

@@ -27,7 +27,8 @@ import { purchaseError, purchaseItemAt } from '../../../src/sim/purchase';
 import { isUnlocked } from '../../../src/sim/tech';
 import { techColumn } from '../../../src/sim/techData';
 import { routeRange } from '../../../src/sim/trade';
-import { commissionFigure, commissionProgress, runCommissions } from '../../../src/sim/commissions';
+import { applyCommand } from '../../../src/sim/commands';
+import { commissionFigure, commissionProgress } from '../../../src/sim/commissions';
 import { cityScopeAdmits, countOf } from '../../../src/sim/statecraft';
 import { applyCharter } from '../../../src/sim/statecraft/draft';
 import { type CardEffect, type OrderId, orderDef } from '../../../src/sim/statecraftData';
@@ -308,25 +309,26 @@ describe('the commissions', () => {
   });
 
   it('lends twenty turns of gold income under The Great Loan, then charges a quarter of the gold', () => {
-    const g = bench(['theGreatLoan']);
+    const g = bench([]);
     town(g);
     const musa = playerById(g.state, 0)!;
     bumpRevision(g.state);
     const income = commissionFigure(g.state, 0, 'goldIncome');
     expect(income).toBeGreaterThan(0);
     const before = musa.gold;
-    runCommissions(g.state);
+    musa.statecraft.pendingOrder = { options: ['theGreatLoan' as OrderId] };
+    expect(applyCommand(g.state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
     expect(musa.gold - before).toBe(20 * income);
     expect(musa.timed?.some((t) => JSON.stringify(t).includes('"percent":-25'))).toBe(true);
   });
 
-  it("writes The World's Fair as routes to four other empires and posts in their capitals", () => {
+  it("writes The World's Fair as routes to four other empires and doubles their yields", () => {
     // Commerce batch T4 changed the row in place: the goal counts the empires
     // your routes reach, and the timed reward is gone.
     // `commerceCommissions.test.ts` checks what the reward does.
     const spec = orderDef('theWorldsFair' as OrderId).commission!;
     expect(spec.goals).toEqual([{ kind: 'reached', figure: 'tradePartnerEmpires', count: 4 }]);
-    expect(spec.reward).toEqual([{ postsInPartnerCapitals: true }]);
+    expect(spec.reward).toEqual([{ lasting: [{ kind: 'pays', where: 'route', crossing: 'international', share: [{ yield: 'all', percent: 100 }] }] }]);
   });
 });
 

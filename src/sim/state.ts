@@ -625,7 +625,8 @@ import {
  * the same board; the version moves because a v253 log does not load in an
  * older build. Nothing is migrated.
  */
-export const SCHEMA_VERSION = 253;
+// Version 254 changes the draft pools, purchase prices, ship placement and combat outcomes.
+export const SCHEMA_VERSION = 254;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1085,6 +1086,8 @@ export interface Player {
    * habit back would be an empire the card stopped paying.
    */
   goldSpent: number;
+  /** Purchases still count after their town changes hands. */
+  buildingsBoughtWithGold?: number;
   /**
    * **Every point of faith this empire has spent** (Devotion batch DV3, The
    * Book of Life; `CountKind`'s `faithSpent`). The twin of `goldSpent` for the
@@ -2289,6 +2292,8 @@ export interface Unit {
    * refusal.
    */
   acted?: true;
+  /** Uses already granted before this person is spent. */
+  extraUsesTaken?: number;
   /**
    * The trade route this piece is **carrying**, or the key is **absent** on
    * every unit that is not on the road — which is all of them but a handful.
@@ -4918,6 +4923,12 @@ export function spendGold(
 export function buyWithGold(state: GameState, player: Player, amount: number): void {
   spendGold(state, player, amount);
   recordScalingOccasion(state, player.id, 'goldPurchase');
+}
+
+/** Faith purchases count once. Rerolls and contributions only spend faith. */
+export function buyWithFaith(state: GameState, player: Player, amount: number, clampAtZero = false): void {
+  spendFaith(state, player, amount, clampAtZero);
+  recordScalingOccasion(state, player.id, 'faithPurchase');
 }
 
 /**

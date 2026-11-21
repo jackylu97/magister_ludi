@@ -160,7 +160,7 @@ describe('the Expansionist batch E0: counted land', () => {
     slot(state, 0, 'theWildMarches');
     const hexes = ring(state, city);
     for (const tile of hexes.slice(0, 4)) raiseImprovement(tile, 'farm', state.turn);
-    raiseImprovement(hexes[4]!, 'wildOrchard', state.turn);
+    raiseImprovement(hexes[4]!, 'forestGarden', state.turn);
     bumpRevision(state);
     const faith = () => explainCardCityYields(state, city)
       .filter((line) => line.card === 'theSpiritsOfPlace')

@@ -11,8 +11,9 @@
  */
 
 import { type GameState, playerById } from '../sim/state';
+import { countOf, helpings } from '../sim/statecraft/evaluator';
 import { scalerFigures, tallyOf } from '../sim/statecraft';
-import { type OrderId, orderKeyword } from '../sim/statecraftData';
+import { type OrderId, orderDef, orderKeyword } from '../sim/statecraftData';
 import { METER_GLYPH, YIELD_GLYPH, signedFigure } from './figures';
 import { SCALER_LABEL, type ScalerFigure } from './scalerFigure';
 
@@ -40,6 +41,12 @@ function faceAt(id: OrderId, count: number): ScalerFigure | null {
  * a held card that has not gained yet. `null` for a card that is not a Scaler.
  */
 export function scalerFace(state: GameState, playerId: number, id: OrderId): ScalerFigure | null {
+  for (const effect of orderDef(id).effects) {
+    if (effect.kind !== 'pays' || !effect.showCountPercent || effect.percent === undefined) continue;
+    const count = countOf(state, playerId, id, effect);
+    const percent = effect.percent * helpings(count, effect.per, effect.max);
+    return { label: SCALER_LABEL, figure: `${signedFigure(percent)}%` };
+  }
   const sc = playerById(state, playerId)?.statecraft;
   return faceAt(id, sc === undefined ? 0 : tallyOf(sc, id));
 }

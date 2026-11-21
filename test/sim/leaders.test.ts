@@ -36,7 +36,9 @@ import {
   improvementDef,
 } from '../../src/sim/improvementData';
 import { improvementOpenTo } from '../../src/sim/improvements';
-import { foundCityAt } from '../../src/sim/cities';
+import { explainUnitCost, foldUnitCost, foundCityAt } from '../../src/sim/cities';
+import { explainPurchaseCost } from '../../src/sim/purchase';
+import { RULES } from '../../src/sim/rulesData';
 import { getTileAt } from '../../src/sim/map';
 import { type Command } from '../../src/sim/commands';
 import { dispatch, snapshotState } from '../../src/sim/game';
@@ -982,6 +984,25 @@ describe('November leader rulings', () => {
     bumpRevision(state);
     expect(happiness(1)).toEqual([1]);
     expect(happiness(0)).toEqual([]);
+  });
+
+  it('combines Condottiere and Open Market buying power while keeping the training price', () => {
+    const { state } = game('lorenzoDeMedici');
+    const city = state.cities[0]!;
+    const player = state.players[0]!;
+    const item = { kind: 'unit', id: 'condottiere' } as const;
+    const hammers = () => foldUnitCost(explainUnitCost(state, 0, item.id));
+    const gold = () => explainPurchaseCost(state, 0, city.id, item, 'gold')!;
+    const trainingPrice = hammers();
+    const listPrice = trainingPrice * RULES.production.goldPerHammer;
+    expect(gold().total).toBe(Math.ceil(listPrice * 3 / 5));
+    player.statecraft.orders.push('commerceOpenMarket');
+    player.statecraft.slots.push({ card: 'commerceOpenMarket', sealedUntil: state.turn });
+    bumpRevision(state);
+    // Two thirds from the unit and one quarter from the Order make eleven twelfths.
+    expect(gold().total).toBe(Math.ceil(listPrice * 12 / 23));
+    expect(gold().lines.filter(line => line.source.startsWith('Buying power'))).toHaveLength(1);
+    expect(hammers()).toBe(trainingPrice);
   });
 
   it('gives each new unit its printed advantage with the proper target or currency', async () => {

@@ -117,6 +117,7 @@ describe('the growing-card vocabulary', () => {
         if (effect.kind !== 'pays' || effect.count !== 'tally') continue;
         expect(effect.tally, `${id} names no tally occasion`).toBeDefined();
         watched.add(effect.tally!);
+        for (const other of effect.alsoTallies ?? []) watched.add(other);
       }
       // A commission's counted goal watches an occasion too (batch C): The Wide
       // Country's bought hexes and A Guild Commission's gold-bought buildings

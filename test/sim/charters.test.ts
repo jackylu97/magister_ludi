@@ -50,6 +50,8 @@ import { cityMaxHp } from '../../src/sim/combat';
 import {
   realiseItem,
   explainGrowthPercent,
+  explainTilePurchase,
+  foldTilePrice,
   foundCityAt,
   refreshCityDerived,
 } from '../../src/sim/cities';
@@ -499,6 +501,20 @@ describe('what each charter building does', () => {
     const augur = { kind: 'unit', id: 'augur' } as const;
     const faith = explainPurchaseCost(state, 0, city.id, augur, 'faith')!;
     expect(faith.lines.some((line) => line.source.includes('Assay House'))).toBe(false);
+  });
+
+  it('applies the Assay House to hexes bought through its city', () => {
+    const state = bench();
+    const city = capitalOf(state);
+    const other = foundCityAt(state, 0, at(state, 10, 5));
+    const quote = (town: City) => explainTilePurchase(state, town.ownerId, town.id, { col: town.col + 2, row: town.row });
+    const full = foldTilePrice(quote(city));
+    const otherPrice = foldTilePrice(quote(other));
+    raise(state, city, 'assayHouse');
+    const lines = quote(city);
+    expect(foldTilePrice(lines)).toBe(Math.ceil(full * 95 / 100));
+    expect(lines.filter(line => line.source.includes('Assay House'))).toHaveLength(1);
+    expect(foldTilePrice(quote(other))).toBe(otherPrice);
   });
 
   it('Cistern — the town counts as watered, and its desert feeds it', () => {

@@ -29,7 +29,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { getTileAt, mapRange, tileHex } from '../../src/sim/map';
+import { getTileAt, mapRange, offsetToAxial, wrappedDistance, tileHex } from '../../src/sim/map';
 import { readSites } from '../../src/sim/readings';
 import { RULES } from '../../src/sim/rulesData';
 import {
@@ -146,6 +146,9 @@ describe('the sweep', () => {
 
   it('recommends nothing on ground this seat has never charted', () => {
     const { state } = game();
+    // Give the settler enough known ground to find at least one site above the score floor.
+    state.visibility[0]!.fill(EXPLORED);
+    bumpRevision(state);
     for (const candidate of rankSites(state, 0)) {
       expect(
         isExploredBy(state, 0, candidate.col, candidate.row),
@@ -158,6 +161,63 @@ describe('the sweep', () => {
     state.visibility[0]!.fill(HIDDEN);
     bumpRevision(state);
     expect(rankSites(state, 0)).toHaveLength(0);
+  });
+
+  it('leaves enough space to found every recommended city', () => {
+    const { state } = game();
+    state.visibility[0]!.fill(EXPLORED);
+    bumpRevision(state);
+    const marks = rankSites(state, 0);
+    expect(marks.length).toBeGreaterThan(1);
+    for (const [i, mark] of marks.entries()) {
+      for (const other of marks.slice(i + 1)) {
+        expect(wrappedDistance(state.map, offsetToAxial(mark.col, mark.row), offsetToAxial(other.col, other.row)))
+          .toBeGreaterThanOrEqual(RULES.cities.minCitySpacing);
+      }
+    }
+  });
+
+  it('prices the nearest charted camp and limits the extra hill score', () => {
+    const { state } = game();
+    const tile = openGround(state);
+    const ring = mapRange(state.map, tileHex(tile), RULES.sites.ringRadius);
+    for (const near of ring) near.hills = true;
+    const campTile = ring.find(near => wrappedDistance(state.map, tileHex(near), tileHex(tile)) === 2)!;
+    state.camps = [{ col: campTile.col, row: campTile.row, foundedTurn: 1 }];
+    state.visibility[0]!.fill(HIDDEN);
+    bumpRevision(state);
+    const hidden = explainSite(state, 0, tile);
+    expect(hidden.nearbyCampDistance).toBeUndefined();
+    state.visibility[0]!.fill(EXPLORED);
+    bumpRevision(state);
+    const seen = explainSite(state, 0, tile);
+    expect(seen.nearbyCampDistance).toBe(2);
+    expect(seen.total).toBe(hidden.total - RULES.sites.campRiskPerStep);
+    expect(seen.lines.find(line => line.label.includes('hill'))?.value).toBe(RULES.sites.hillBonusLimit * RULES.sites.hills);
+  });
+
+  it('keeps unknown ring terrain and unrevealed resources out of the player reading', () => {
+    const { state } = game();
+    state.visibility[0]!.fill(EXPLORED);
+    bumpRevision(state);
+    const first = rankSites(state, 0)[0]!;
+    const outer = first.reading.ring.find(hex => hex.steps === 2)!;
+    const hidden = getTileAt(state.map, outer.col, outer.row)!;
+    state.visibility[0]![hidden.row * state.map.width + hidden.col] = HIDDEN;
+    const centre = getTileAt(state.map, first.col, first.row)!;
+    centre.resource = 'iron';
+    playerById(state, 0)!.techsResearched = playerById(state, 0)!.techsResearched.filter(id => id !== 'bronzePanoply');
+    bumpRevision(state);
+    const before = rankSites(state, 0);
+    expect(before.length).toBeGreaterThan(0);
+    for (const site of before) {
+      expect(site.reading.seams.some(seam => seam.id === 'iron')).toBe(false);
+      expect(site.reading.ring.some(hex => hex.col === hidden.col && hex.row === hidden.row)).toBe(false);
+    }
+    hidden.resource = 'silk';
+    hidden.hills = !hidden.hills;
+    bumpRevision(state);
+    expect(rankSites(state, 0)).toEqual(before);
   });
 
   it('shows no more than the board is allowed to mark, best first', () => {

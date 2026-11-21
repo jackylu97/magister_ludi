@@ -58,6 +58,7 @@ import {
   cityScopeAdmits,
   describeCard,
   explainCardPercentYields,
+  explainCardCityYields,
   stripRefs,
 } from '../../src/sim/statecraft';
 import { type CardEffect, type OrderId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
@@ -195,7 +196,7 @@ describe('the four cards the tally opened', () => {
     expect(happinessOf(g.state, 0)).toBe(alone);
   });
 
-  it('The League of Cities and The Chartered Metropolis — a town that sends routes', () => {
+  it('The Chartered Metropolis tracks departures and The League of Cities copies the capital', () => {
     const g = bench();
     const home = plant(g.state, 0, 0);
     const second = plant(g.state, 0, 3);
@@ -203,20 +204,22 @@ describe('the four cards the tally opened', () => {
     send(g.state, home, second);
     slot(g.state, 0, 'theLeagueOfCities');
 
-    // A town that sends a cart out gains +20% production. A town that sends
-    // none gains nothing, and loses no gold since batch DS4.
-    expect(townPercent(g.state, home, 'theLeagueOfCities', 'production')).toBe(20);
-    expect(townPercent(g.state, quiet, 'theLeagueOfCities', 'production')).toBe(0);
-    expect(townPercent(g.state, quiet, 'theLeagueOfCities', 'gold')).toBe(0);
+    second.population = 5;
+    quiet.population = 3;
+    slot(g.state, 0, 'marketDay');
+    const marketGold = (town: City) => explainCardCityYields(g.state, town)
+      .filter(line => line.card === 'marketDay').reduce((total, line) => total + line.gold, 0);
+    expect(marketGold(second)).toBe(second.population);
+    expect(marketGold(quiet)).toBe(0);
 
     slot(g.state, 0, 'theCharteredMetropolis');
     expect(townPercent(g.state, home, 'theCharteredMetropolis', 'food')).toBe(0);
     send(g.state, home, second);
     send(g.state, home, quiet);
     bumpRevision(g.state);
-    // Three routes out of one town: +35% food, production and culture.
+    // Three routes out of one town: +50% food, production and culture.
     for (const voice of ['food', 'production', 'culture']) {
-      expect(townPercent(g.state, home, 'theCharteredMetropolis', voice), voice).toBe(35);
+      expect(townPercent(g.state, home, 'theCharteredMetropolis', voice), voice).toBe(50);
     }
     // Neither card changes what a town costs in authority any more.
     expect(cardCityCostRows(g.state, home).delta).toBe(0);
@@ -227,7 +230,7 @@ describe('the four cards the tally opened', () => {
     delete doomed.trade;
     bumpRevision(g.state);
     expect(townPercent(g.state, home, 'theCharteredMetropolis', 'food')).toBe(0);
-    expect(townPercent(g.state, home, 'theLeagueOfCities', 'production')).toBe(20);
+    expect(marketGold(second)).toBe(second.population);
   });
 
   it('The Cosmopolitan Court — renown counted per town, and capped per town', () => {
@@ -273,10 +276,10 @@ describe('the four cards the tally opened', () => {
       '+30% food and +30% production in every city 2 or more trade routes of your own end at',
     ]);
     expect(said('theLeagueOfCities')).toEqual([
-      '+20% production in every city a trade route sets out from',
+      'your largest town besides your capital also counts as your capital for your cards',
     ]);
     expect(said('theCharteredMetropolis')).toEqual([
-      '+35% food, +35% production and +35% culture in every city 3 or more trade routes set out from',
+      '+50% food, +50% production and +50% culture in every city 3 or more trade routes set out from',
     ]);
     expect(said('theCosmopolitanCourt')).toEqual([
       '+1 renown per turn in every city with a culture building, ' +
@@ -303,7 +306,7 @@ describe('the four cards the tally opened', () => {
         const scope = scopeOf(effect);
         return scope?.test === 'routeEndsHere' && scope.direction === 'departing';
       }),
-    ).toEqual(['theCharteredMetropolis', 'theLeagueOfCities']);
+    ).toEqual(['theCharteredMetropolis']);
     expect(
       writers((effect) => {
         const scope = scopeOf(effect);

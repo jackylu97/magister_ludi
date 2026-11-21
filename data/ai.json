@@ -53,7 +53,16 @@
       "lumbermill",
       "floatingGardens",
       "townKeep",
-      "polder"
+      "polder",
+      "fishTraps",
+      "wildOrchard",
+      "outpost",
+      "nazcaLines",
+      "inuksuk",
+      "totemPole",
+      "stepwell",
+      "hillfort",
+      "baray"
     ],
     "planTopN": 4,
     "planRadius": 4,

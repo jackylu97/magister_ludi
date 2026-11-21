@@ -17,6 +17,7 @@
  * evaluation moved. The parity fixtures are the gate.
  */
 
+import { improvementFields, tileHasFreshWater } from '../improvementFields';
 import { atWar } from '../wars';
 import {
   bestMeleeFor,
@@ -35,6 +36,7 @@ import {
   loseCitizen,
   nearestOwnedCity,
   ownedTiles,
+  tileContextAt,
   queueItemCost,
   realiseItem,
   refreshCityDerived,
@@ -80,6 +82,7 @@ import {
   improvementDef,
   isGreatPersonWork,
   isTendedWork,
+  isUniqueImprovement,
   workForFamily,
 } from '../improvementData';
 import { type ProjectId, type ProjectPayout } from '../projectData';
@@ -233,11 +236,12 @@ import {
   isDoctrineId,
   isGovernmentId,
   isOrderId,
+  charterImprovements,
   orderDef,
   scalerShape,
   type RenownShareRows,
 } from '../statecraftData';
-import { type TerrainId, isWaterTerrain } from '../terrainData';
+import { type TerrainId, TILE_YIELD_KEYS, isWaterTerrain } from '../terrainData';
 import { type BeadGrantId, anyBeadDef, isBeadCardId } from '../beadData';
 // Resource effects also read card effects. Both modules call each other only inside functions.
 import { unitHealthBonus } from '../resourceEffects';
@@ -1129,6 +1133,11 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   // Heartland). Read off `PlayerStatecraft.commissionsFulfilled`, in the order
   // the goals were met, so no ledger reshuffles itself and nothing more is
   // written for it. A lasting effect about one town is scoped `markedBy`.
+  for (const id of sc.orders) {
+    for (const grant of orderDef(id).onDraft ?? []) {
+      if (grant.grant === 'effects' && grant.turns === undefined) push(id, CLASS_WORD.order, grant.effects);
+    }
+  }
   for (const met of sc.commissionsFulfilled ?? []) {
     if (!isOrderId(met.card)) continue;
     for (const reward of orderDef(met.card).commission?.reward ?? []) {
@@ -2578,7 +2587,7 @@ function buildingSuppliesFrom(
  * fields, and deliberately does not answer this.
  */
 export function cityHasFreshwater(state: GameState, city: City): boolean {
-  if (cityTile(state.map, city).freshwater) return true;
+  if (tileHasFreshWater(state, cityTile(state.map, city))) return true;
   return cardCityRule(state, city.ownerId, 'freshwater');
 }
 
@@ -3809,6 +3818,8 @@ export function countOf(
       }
       return total;
     }
+    case 'agesReached':
+      return ownerAgeOf(state, playerId);
     case 'agesClosed':
       // The eras *behind* this empire. `highestAge` is 1-based and an empire in
       // the first age has closed nothing, so the floor at zero is the meaning
@@ -3867,6 +3878,8 @@ export function countOf(
       }
       return total;
     }
+    case 'buildingsBoughtWithGold':
+      return playerById(state, playerId)?.buildingsBoughtWithGold ?? 0;
     case 'purchasedBuildings': {
       // **Provenance, not purpose** (batch C8). `City.buildingBanks` holds an
       // entry for every roof a till rang up and nothing for any other, so the
@@ -3990,12 +4003,15 @@ export function countOf(
       // The claim register, which is the one place a wonder is written down and
       // never moves — so this is exactly "how many marvels exist".
       return state.wonders.length;
+    case 'allPostCities':
+      return state.cities.filter(town => cityPostPays(state, town, playerId)).length;
     case 'postCities':
       // The one walk over the towns (`routes.ts`), asked through the same
       // `cityPostPays` the `holdsPost` scope asks — so the houses this card
       // counts and the houses it pays are the same houses. Foreign by
       // construction; see the count.
       return foreignPostCities(state, playerId);
+    case 'allPostCitizens':
     case 'postCitizens': {
       // Commerce batch T3, The Foreign Factor: the towns `postCities` counts,
       // asked through the same `cityPostPays`, with each town's citizens
@@ -4004,7 +4020,7 @@ export function countOf(
       const each = effect.perTown === undefined || effect.perTown < 1 ? 1 : Math.floor(effect.perTown);
       let total = 0;
       for (const town of state.cities) {
-        if (town.ownerId === playerId) continue;
+        if (count === 'postCitizens' && town.ownerId === playerId) continue;
         if (!cityPostPays(state, town, playerId)) continue;
         total += Math.floor(town.population / each);
       }
@@ -4460,24 +4476,9 @@ export function countOf(
       if (test === undefined) return 0;
       return countCitiesAdmitted(state, playerId, test);
     }
-    case 'publicWorks': {
-      // Expansionist batch E11, The Public Good: the public works standing in
-      // this empire's towns, off each town's own `buildings` list, so pay
-      // follows the stones. `within: 'city'` narrows it to one town, as it
-      // narrows `empireBuildings`. What each town holds (`townBuildings`,
-      // Expansionist batch E12), so a held Aqueduct is a public work you hold.
-      const walk = (town: City): number => {
-        let here = 0;
-        for (const id of townBuildings(state, town)) {
-          if (isPublicWork(id)) here += 1;
-        }
-        return here;
-      };
-      if (effect.within === 'city') return city ? walk(city) : 0;
-      let total = 0;
-      for (const town of citiesOf(state, playerId)) total += walk(town);
-      return total;
-    }
+    case 'publicWorks':
+      if (effect.within === 'city') return city ? publicWorksInTown(state, city) : 0;
+      return citiesOf(state, playerId).reduce((sum, town) => sum + publicWorksInTown(state, town), 0);
     case 'censusesLed': {
       // Doctrine batch DT13, The Censors: read from the census's own record, so
       // nothing is stored beside it. A census taken while the seat held the
@@ -5089,6 +5090,13 @@ function scopeRequires(scope: CityScope | undefined, test: (part: CityScope) => 
 
 /** Keep the rules for which lines these amplifiers reach in one place for the bot and the folds. */
 export function yieldAmplifierReads(amplifier: YieldAmplifier, card: CardId, effect: CardEffect): boolean {
+  if (amplifier.reads === 'purchaseOrders') {
+    if (!isOrderId(card)) return false;
+    if (effect.kind === 'windfallRider') return effect.occasion === 'purchase' || effect.occasion === 'tilePurchase';
+    if (effect.kind !== 'pays') return false;
+    return orderDef(card).effects.some(row => row.kind === 'pays' && row.count === 'tally' &&
+      (row.tally === 'goldPurchase' || row.tally === 'faithPurchase' || row.alsoTallies?.includes('faithPurchase')));
+  }
   if (amplifier.reads === 'buildingOrders') {
     if (!isOrderId(card)) return false;
     if (effect.kind === 'pays') {
@@ -5252,6 +5260,8 @@ function deckModifierLines(
       if (readsBeliefs ? !FOLLOWER_BELIEF_IDS.includes(paid.card as never) : !isOrderId(paid.card)) {
         continue;
       }
+      if (effect.reads === 'purchaseOrders' &&
+          !orderDef(paid.card as OrderId).effects.some(row => row.kind === 'pays' && yieldAmplifierReads(effect, paid.card, row))) continue;
       let touched = false;
       for (const voice of VOICES) {
         if (effect.yield !== 'all' && effect.yield !== voice) continue;
@@ -5834,6 +5844,7 @@ export function buildingMatchesYieldPercent(
   // The class the data declares, never a name and never an eighth category —
   // `CountKind`'s `wonders` asked of one row. Absent reaches the marvels too.
   if (effect.wonder === true && !isWonder(id)) return false;
+  if (effect.publicWork && !isPublicWork(id)) return false;
   if (effect.category !== undefined && buildingDef(id).category !== effect.category) return false;
   return effect.pays === undefined || buildingSupplies(state, city, id, effect.pays);
 }
@@ -6327,6 +6338,8 @@ export function tileConditionHolds(
         tile.improvement === undefined ||
         (isTendedWork(tile.improvement) && ground?.tendedImproved !== true)
       );
+    case 'uniqueImprovement':
+      return tile.improvement !== undefined && isUniqueImprovement(tile.improvement);
     case 'tended': {
       const work = tile.improvement;
       if (work === undefined) return false;
@@ -6354,6 +6367,8 @@ export function tileConditionHolds(
     case 'wonderTown':
       // The Landscape Garden (Expansionist batch E3): the board's answer, or no.
       return ground?.wonderCentre?.(tile) === true;
+    case 'ownCapital':
+      return ground?.capital?.col === tile.col && ground.capital.row === tile.row;
     case 'townCentre':
       // The Highland Clans (batch DT6): the board's answer, or no.
       return ground?.townCentre?.(tile) === true;
@@ -6538,6 +6553,7 @@ export interface GroundFacts {
   watered?: (tile: Tile) => boolean;
   wonderCentre?: (tile: Tile) => boolean;
   townCentre?: (tile: Tile) => boolean;
+  capital?: { col: number; row: number };
   /**
    * **The hexes a work that copies its neighbours pays for** (Expansionist
    * batch E4, The Keeps): the six hexes beside this one that lie inside the
@@ -6730,6 +6746,7 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
     // Asked only by The Highland Clans, through `beside`, for hill hexes. Any
     // seat's town counts, because the card says "a town".
     townCentre: (tile) => cityAt(state, tile.col, tile.row) !== undefined,
+    capital: capitalCityOf(state, playerId),
     // Asked only of a hex whose work copies its neighbours (The Keeps), and a
     // town holds one Keep at most, so a ring walk per call is cheap.
     copiedHexes: (tile) =>
@@ -6740,7 +6757,10 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
           (next.improvement === undefined || improvementDef(next.improvement).copiesNeighbours !== true),
       ),
   };
-  if (water !== null) facts.watered = (tile) => water.watered(tile);
+  const freshWater = improvementFields(state).freshWater;
+  if (water || freshWater) {
+    facts.watered = tile => freshWater?.[tileIndex(state.map, tile.col, tile.row)] === true || water?.watered(tile) === true;
+  }
   // Scientific batch S5, The Studium Generale: absent for an empire whose law
   // makes no work count as another row.
   const standsIn = worksStandInFor(state, playerId);
@@ -6959,21 +6979,9 @@ interface FarmWaterField {
  * built or pillaged moves. Asked by every empire's farm water, so a game with
  * no such work pays one walk a clock tick and nothing per empire.
  */
-function wateringWorks(state: GameState): readonly number[] {
-  return slateMemo(state, 'ground', 'wateringWorks', 'map', () => {
-    const found: number[] = [];
-    const tiles = state.map.tiles;
-    for (let index = 0; index < tiles.length; index++) {
-      const here = tiles[index]!.improvement;
-      if (here !== undefined && improvementDef(here).watersBeside === true) found.push(index);
-    }
-    return found;
-  });
-}
-
 /** The watering works inside this empire's borders, in map order. See `wateringWorks`. */
 function wateringWorksOf(state: GameState, playerId: number): readonly number[] {
-  const all = wateringWorks(state);
+  const all = improvementFields(state).watering;
   if (all.length === 0) return all;
   const owner = tileOwnerField(state);
   return all.filter((index) => owner.at(index) === playerId);
@@ -8869,6 +8877,8 @@ function combatConditionHolds(
       return true;
     case 'vsBarbarians':
       return situation.vsBarbarians;
+    case 'unitOnOwnGround':
+      return tileOwnerPlayerId(state, situation.unit.col, situation.unit.row) === situation.unit.ownerId;
     case 'ownTerritory':
       return tileOwnerPlayerId(state, situation.tile.col, situation.tile.row) === situation.unit.ownerId;
     case 'foreignTerritory':
@@ -8917,10 +8927,9 @@ function combatConditionHolds(
     case 'onFeature':
       return situation.tile.feature === when.feature;
     case 'freshwater':
-      return situation.tile.freshwater;
+      return tileHasFreshWater(state, situation.tile);
     case 'coastal':
-      // The same predicate a coastal *city* is decided by — Entry I.b's one
-      // evaluator, asked of a hex nobody has founded on.
+      // This condition describes the hex where the fight takes place.
       return isCoastal(state.map, situation.tile);
     case 'fortified':
       // A fact about the piece this line is being asked for, whichever posture
@@ -9317,6 +9326,12 @@ function combatScaleCount(
   switch (count) {
     case 'cities':
       return cityCount(state, playerId);
+    case 'tileYield': {
+      const tile = getTileAt(state.map, unit.col, unit.row);
+      if (!tile) return 0;
+      const bag = foldTile(tile, tileContextAt(state, playerId, tile));
+      return TILE_YIELD_KEYS.reduce((sum, key) => sum + bag[key], 0);
+    }
     case 'adjacentFriendlies':
       // Centurions (Dominion batch D8) counts only the Elites beside the unit.
       return adjacentFriendlies(state, unit, undefined, scale.rank);
@@ -9343,6 +9358,14 @@ function combatScaleCount(
       // The ledger count's own reading, asked of a fight (Numidian Cavalry),
       // The Commenda's lent kinds included (Commerce batch T5).
       return countedLuxuries(state, playerId).length;
+    case 'goldIncome': {
+      // A bot can price several fights before the economy changes.
+      const income = () => Math.max(0, Math.floor(foldEmpireRates(state, playerId).goldPerTurn));
+      if (restDepth > 0 && !conditionDepth && !rateDepth && !meterDepth && !suppliesDepth && !heldDepth) {
+        return slateMemo(state, 'economy', 'combatGoldIncome', String(playerId), income);
+      }
+      return income();
+    }
     case 'bankedGold':
       // War Bonds. The ledger count's own reading, asked of a fight.
       return Math.max(0, Math.floor(playerById(state, playerId)?.gold ?? 0));
@@ -9482,41 +9505,6 @@ function capitalGreatWorks(state: GameState, playerId: number): number {
     if (tile.improvement !== undefined && isGreatPersonWork(tile.improvement)) total += 1;
   }
   return total;
-}
-
-/**
- * The percentage this empire's cards put on a unit's own strength, as one whole
- * signed figure.
- *
- * Master of Maps' drawback, and the one place a card multiplies a *strength*
- * rather than adding to it. It applies to the unit's base before any flat line
- * joins, so "−10% combat strength" is a fact about the army and not a discount
- * on the terrain bonus somebody else earned.
- *
- * `situation` is what lets a share name **one kind of fight** — the Statue of
- * Zeus' fifteen percent for storming a town. It is the same triple `planCombat`
- * already builds for `cardCombatLines`, asked through the same one evaluator, so
- * a percentage and a flat line cannot disagree about what "against a city"
- * means. A caller with no fight in hand passes none, and **a row carrying a
- * `when` pays nothing there** — see `CardUnitStatEffect.when`.
- */
-export function cardCombatPercent(
-  state: GameState,
-  unit: Unit,
-  situation?: CombatSituation,
-): number {
-  let percent = 0;
-  for (const { effect } of effectsOfKind(state, unit.ownerId, 'unitStat')) {
-    if (effect.stat !== 'combatPercent') continue;
-    if (!unitMatches(unit.type, effect.class)) continue;
-    if (effect.rank !== undefined && !holdsRank(unit, effect.rank)) continue;
-    if (effect.when !== undefined) {
-      if (!situation) continue;
-      if (!combatConditionHolds(state, situation, effect.when)) continue;
-    }
-    percent += effect.amount;
-  }
-  return percent;
 }
 
 // --- unit and city stats ----------------------------------------------------
@@ -10837,9 +10825,18 @@ export function windfallPayout(
   // figure: a timed effect, a unit, a heal, a free draft (the triage's reading
   // 6). The card is named once on the payout's lines, when it scaled something.
   const captureAmplifiers = occasion === 'capture' ? amplifierRows(state, playerId, 'captureRewards') : [];
+  const purchaseAmplifiers = occasion === 'purchase' || occasion === 'tilePurchase'
+    ? effectsOfKind(state, playerId, 'cardYieldAmplifier').filter(row => row.effect.reads === 'purchaseOrders')
+    : [];
+  const purchaseBonus = purchaseAmplifiers.reduce((sum, row) => sum + (row.effect.percent ?? 0), 0) / 100;
+  let purchaseBoosted = false;
   const captureBoost = 1 + captureAmplifiers.reduce((sum, row) => sum + row.percent, 0) / 100;
   let captureBoosted = false;
   const boostFor = (card: CardId): number => {
+    if (purchaseBonus > 0 && isOrderId(card)) {
+      purchaseBoosted = true;
+      return 1 + purchaseBonus;
+    }
     if (captureBoost === 1 || isDoctrineId(card)) return 1;
     captureBoosted = true;
     return captureBoost;
@@ -11316,6 +11313,11 @@ export function windfallPayout(
   // Harry the Border's share on the base plunder, last, on the figure the
   // percentages, the era and the council already reached.
   if (payout.amount !== 0) payout.amount *= yieldBoost();
+  if (purchaseBoosted) {
+    for (const row of purchaseAmplifiers) {
+      payout.lines.push({ card: row.card, source: row.source, note: `+${row.effect.percent}% purchase rewards` });
+    }
+  }
   if (captureBoosted) {
     for (const row of captureAmplifiers) {
       payout.lines.push({ card: row.card, source: row.source, note: `×${captureBoost} capture rewards` });
@@ -12900,6 +12902,11 @@ export function townHoldsBuilding(state: GameState, city: City, id: BuildingId):
   return townBuildings(state, city).includes(id);
 }
 
+/** Card yields and commission goals both count the public works a town holds. */
+export function publicWorksInTown(state: GameState, town: City): number {
+  return townBuildings(state, town).filter(isPublicWork).length;
+}
+
 /**
  * `townBuildings` in the shape the readings of `buildingEffects.ts` are asked
  * of (`BuildingShelf`). That file is a leaf and cannot ask the cards, so every
@@ -13405,38 +13412,6 @@ export function cardWorkDiscount(state: GameState, playerId: number): number {
   return Math.max(0, ...ruleFigures(state, playerId, 'workCheapensPerson', 'percent'));
 }
 
-/**
- * **Does a test on a hex's neighbours ask about a great-person work?** True for
- * `greatWork` itself, or for a composite holding it.
- */
-function testNamesWork(on: TileCondition): boolean {
-  return tileConditionAsks(on, (part) => part.test === 'greatWork');
-}
-
-/** **Does this hex test hold or fail by what stands on the ring?** See below. */
-function testReadsWorkBeside(on: TileCondition): boolean {
-  return tileConditionAsks(on, (part) => part.test === 'beside' && testNamesWork(part.of));
-}
-
-/**
- * **Does this empire's law pay a hex for the great-person works beside it?** True
- * while a live hex `pays` row asks `beside` about a work or counts works with
- * `perNeighbour` (The Peregrini, batch DT16; also the rows that already asked).
- *
- * `refreshRingDerived` (`cities.ts`) asks this. A work laid or lost changes what
- * these lines pay on the six hexes around it, and another town may work those
- * hexes, so that town must seat its citizens again. Without such a line nothing on
- * the ring changes and the town's citizens stay where they are.
- */
-export function cardHexLinesReadWorksBeside(state: GameState, playerId: number): boolean {
-  for (const { effect } of effectsOfKind(state, playerId, 'pays')) {
-    if (effect.where !== 'hex') continue;
-    if (effect.perNeighbour !== undefined && testNamesWork(effect.perNeighbour)) return true;
-    if (effect.on !== undefined && testReadsWorkBeside(effect.on)) return true;
-  }
-  return false;
-}
-
 // --- the Opus and research rules --------------------------------------------
 
 /**
@@ -13810,7 +13785,7 @@ export function cardUnlocksImprovement(
   if (seat === undefined) return false;
   for (const id of seat.statecraft.orders) {
     if (!isOrderId(id)) continue;
-    if (orderDef(id).charter?.unlocks.improvement === improvement) return true;
+    if (charterImprovements(orderDef(id).charter).includes(improvement)) return true;
   }
   return false;
 }

@@ -370,7 +370,7 @@ describe('Devotion batch DV3: The Offering Chests', () => {
     const gold = explainPurchaseCost(state, 0, city.id, warrior, 'gold')!.total;
     slot(state, 0, 'theOfferingChests');
     const eased = explainPurchaseCost(state, 0, city.id, warrior, 'faith')!;
-    expect(eased.total).toBe(Math.floor((faith * 70) / 100));
+    expect(eased.total).toBe(Math.ceil((faith * 70) / 100));
     expect(eased.lines.some((line) => line.source.includes('The Offering Chests'))).toBe(true);
     // A unit bought with gold pays the full price (reading 15).
     expect(explainPurchaseCost(state, 0, city.id, warrior, 'gold')!.total).toBe(gold);
@@ -387,7 +387,7 @@ describe('Devotion batch DV3: The Offering Chests', () => {
     const plain = explainPurchaseCost(state, 0, city.id, worker, 'faith')!.total;
     slot(state, 0, 'theOfferingChests');
     expect(explainPurchaseCost(state, 0, city.id, worker, 'faith')!.total).toBe(plain);
-    expect(words('theOfferingChests')).toEqual(['military units cost −30% to buy with faith']);
+    expect(words('theOfferingChests')).toEqual(['Your faith buys 42.86% more when buying military units']);
   });
 });
 

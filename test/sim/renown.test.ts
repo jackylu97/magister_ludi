@@ -492,6 +492,8 @@ describe('the register', () => {
     expect(offenders).toEqual([
       'census.ts',
       'cities.ts',
+      // Index tile positions once per change. The renown fold reads the amount.
+      'improvementFields.ts',
       'renown.ts',
       'statecraft/describers.ts',
       'statecraft/evaluator.ts',

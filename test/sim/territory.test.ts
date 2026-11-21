@@ -617,7 +617,7 @@ describe('what a tile costs', () => {
     bumpRevision(state);
 
     const discounted = tilePurchasePrice(state, 0, city.id, cell);
-    expect(discounted).toBe(Math.max(1, Math.floor(plain * 0.9)));
+    expect(discounted).toBe(Math.max(1, Math.ceil(plain * 0.9)));
     const lines = explainTilePurchase(state, 0, city.id, cell);
     expect(lines.some((line) => line.source.includes('Furs') && line.amount < 0)).toBe(true);
     // Rule 5: the discounted total is still the fold of the printed list.
@@ -653,17 +653,14 @@ describe('what a tile costs', () => {
     const charter = lines.find((line) => line.source.includes('Chartered Companies'));
     expect(charter, 'the charter names itself on its own line').toBeDefined();
     expect(charter!.amount).toBeLessThan(0);
-    expect(charter!.source).toContain('-15%');
+    expect(charter!.source).toContain('Buying power');
     // The price **is** the fold — rule 5, and the claim the docblock makes.
     const price = tilePurchasePrice(state, 0, city.id, cell);
     expect(price).toBe(foldTilePrice(lines));
-    expect(price).toBe(Math.max(1, Math.floor((plain * 85) / 100)));
+    expect(price).toBe(Math.max(1, Math.ceil((plain * 85) / 100)));
   });
 
-  it('sums two charters before it multiplies, and hands out the whole discount', () => {
-    // Percentages sum before one multiplication (the house rule), and the parts
-    // sum to the product exactly — so two cards are two labelled lines and one
-    // discount, never two discounts taken one after the other.
+  it('adds both charters’ buying power and rounds the price once', () => {
     const state = flatState();
     const city = foundCityAt(state, 0, at(state.map, 6, 6));
     const cell = { col: 8, row: 6 };
@@ -675,11 +672,12 @@ describe('what a tile costs', () => {
     const cards = lines.filter(
       (line) => line.source.includes('Chartered Companies') || line.source.includes('Royal Surveyors'),
     );
-    expect(cards).toHaveLength(2);
+    expect(cards).toHaveLength(1);
+    expect(cards[0]!.source).toContain('Chartered Companies');
+    expect(cards[0]!.source).toContain('Royal Surveyors');
     const price = tilePurchasePrice(state, 0, city.id, cell);
     expect(price).toBe(foldTilePrice(lines));
-    // −15 and −25 sum to −40, taken once.
-    expect(price).toBe(Math.max(1, Math.floor((plain * 60) / 100)));
+    expect(price).toBe(Math.ceil(plain / (1 + 15 / 85 + 25 / 75)));
     expect(cards.reduce((sum, line) => sum + line.amount, 0)).toBe(price - plain);
   });
 });

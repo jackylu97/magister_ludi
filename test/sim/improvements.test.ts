@@ -30,6 +30,7 @@ import {
   type ImprovementId,
   chopDef,
   chopYield,
+  improvementCountsAs,
   improvementDef,
   improvementForResource,
   improvementYield,
@@ -218,6 +219,7 @@ describe('the improvement table', () => {
       // until batch DS6 removed the row.
       'qanat',
       'paradiseGarden',
+      'nazcaLines', 'inuksuk', 'totemPole', 'stepwell', 'hillfort', 'baray',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -834,7 +836,8 @@ describe('buildImprovement', () => {
         tile.terrain = def.validTerrain?.[0] ?? 'grassland';
         tile.feature = def.validFeatures?.[0] ?? 'none';
         tile.hills = def.requiresHills ?? false;
-        tile.freshwater = true;
+        tile.freshwater = !def.requiresDryGround;
+        tile.riverEdges = def.requiresRiver ? 1 : 0;
       }
 
       it('refuses the wrong one by name, for every improvable resource', () => {
@@ -861,7 +864,7 @@ describe('buildImprovement', () => {
             // E4, the outpost): this bench's hex is owned, so it is refused one
             // rung earlier for standing inside the borders.
             if (improvementDef(other).beyondBorders !== undefined) continue;
-            if (other === wanted) continue;
+            if (improvementCountsAs(other, wanted)) continue;
             const def = improvementDef(other);
             // A resource-improvement refuses on its own `requiresResource`
             // filter first, which is a different (and correct) sentence. This
@@ -2270,7 +2273,7 @@ describe('explainTileYield', () => {
       if (
         def.copiesNeighbours === true ||
         def.claimsUnowned !== undefined ||
-        def.watersBeside === true
+        (def.watersBeside === true && !Object.values(def.yields).some(amount => amount !== 0))
       ) {
         expect(paid, id).toBe(0);
         continue;

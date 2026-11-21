@@ -37,6 +37,7 @@ import { type ValueTerm, appraise, foldTerms } from '../../src/ai/decision';
 import { counterTerms } from '../../src/ai/diplomacy';
 import {
   type ValueContext,
+  explainBeyondStamp,
   explainCardStamp,
   explainCommission,
   explainCountStep,
@@ -608,7 +609,7 @@ describe('the luxury cards read by the books', () => {
 // --- the commissions ---------------------------------------------------------------
 
 describe('the Commerce commissions', () => {
-  it('prices Corner the Market’s institution at no less than the one luxury its goal leaves doubled', () => {
+  it('prices Corner the Market at no less than the one distinct luxury guaranteed by its goal', () => {
     const { state, player } = board([6]);
     const ctx = valueContext(state, player);
     const reward = explainCommission(CORNER, ctx)!.terms[0]!;
@@ -624,52 +625,50 @@ describe('the Commerce commissions', () => {
     expect(lasting.value).toBe(routeSlotTerm(2, ctx)!.value);
   });
 
-  it('prices The World’s Fair as the posts it writes', () => {
+  it('values the four foreign routes the World’s Fair requires even before the first route opens', () => {
     const { state, player } = board([6]);
-    const plain = valueContext(state, player);
-    const reward = explainCommission(WORLDS_FAIR, plain)!.terms[0]!;
-    const posts = (reward.parts ?? []).find((term) => term.label.includes('trading posts'))!;
-    // No partner yet: the goal's four, at the knob alone.
-    expect(posts.value).toBe(4 * COMMERCE.postWorth);
-    // A seated Foreign Factor counts each new post's citizens, at the seat's
-    // mean town while it has no partner.
-    hold(state, 0, FOREIGN_FACTOR);
     const ctx = valueContext(state, player);
-    const held = (explainCommission(WORLDS_FAIR, ctx)!.terms[0]!.parts ?? []).find((term) =>
-      term.label.includes('trading posts'),
-    )!;
-    const perTown = (effectsOf(FOREIGN_FACTOR)[0] as CardPaysEffect).perTown!;
-    const gain =
-      Math.floor(6 / perTown) *
-      (valueOfYields({ science: 1 }, ctx) + valueOfYields({ culture: 1 }, ctx));
-    expect(held.value).toBeCloseTo(4 * (COMMERCE.postWorth + gain), 10);
+    const reward = explainCommission(WORLDS_FAIR, ctx)!.terms[0]!;
+    const lasting = reward.parts!.find(term => term.label.includes('for the rest of the game'))!;
+    const { science, culture, gold } = RULES.trade.international;
+    expect(lasting.value).toBe(4 * valueOfYields({ science, culture, gold }, ctx));
   });
 });
 
 // --- the purse ------------------------------------------------------------------
 
 describe('the purse', () => {
-  it('sees the credit Letters of Credit opens', () => {
+  it('adds the repeat purchase receipts from Double Entry to the value its yield stamp sees', () => {
+    const { state, player } = board([6]);
+    hold(state, 0, 'civicReceipts' as OrderId);
+    const base = valueContext(state, player);
+    const purchase: Want = {
+      label: 'a building', currency: 'gold', price: 100, worth: 100, delay: 0,
+      terms: [], outOfReach: false,
+    };
+    const ctx: ValueContext = { ...base, wants: { ...base.wants, gold: [purchase] } };
+    const receipts = scoreEffects(effectsOf('civicReceipts' as OrderId), ctx, 'civicReceipts' as OrderId);
+    expect(receipts).toBeGreaterThan(0);
+    expect(explainBeyondStamp(effectsOf('theDoubleEntry' as OrderId), ctx, 'theDoubleEntry' as OrderId).total).toBe(receipts);
+  });
+
+  it('sees the gold from drafting Letters of Credit in its purchase budget', () => {
     const { state, player } = board([6]);
     player.gold = 40;
+    player.statecraft.pendingOrder = { options: [LETTERS] };
     bumpRevision(state);
     expect(purseOf(state, player, 'gold')).toBe(40);
-    hold(state, 0, LETTERS);
-    expect(purseOf(state, player, 'gold')).toBe(spendableGold(state, 0));
-    expect(purseOf(state, player, 'gold')).toBe(190);
+    expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(purseOf(state, player, 'gold')).toBe(440);
     expect(purseOf(state, player, 'faith')).toBe(player.faithPool);
   });
 
-  it('charges no debt for a purchase on credit, since batch R1', () => {
-    // Letters of Credit lets a purchase reach −150, and since batch R1 a
-    // treasury above −150 costs no science or culture with the card seated
-    // (`arrearsFloor`). So the bot's debt charge has nothing to charge, and it
-    // is gone from the purse's arm.
+  it('keeps the usual spending floor under the new Letters of Credit', () => {
     const { state, player } = board([6]);
     hold(state, 0, LETTERS);
     player.gold = 20;
     bumpRevision(state);
-    expect(spendableGold(state, 0)).toBe(170);
+    expect(spendableGold(state, 0)).toBe(20);
     expect(arrearsFloor(state, 0)).toBe(cardSpendFloor(state, 0));
     const bot = (
       import.meta.glob('../../src/ai/bot.ts', { query: '?raw', import: 'default', eager: true }) as Record<

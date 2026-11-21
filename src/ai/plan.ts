@@ -78,6 +78,7 @@ import {
   type ValueContext,
   techCostFor,
   claimedHexWorth,
+  workPlacementTerms,
 } from './value';
 import {
   type YieldBag,
@@ -93,6 +94,7 @@ import {
   cityFocus,
   hasResource,
   improvementWouldOpenResource,
+  ownedTiles,
   tileCopies,
   tileOwnerCityId,
   tileOwnerPlayerId,
@@ -119,6 +121,7 @@ import {
   seatSeesSleepingVein,
 } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
+import { isExploredBy } from '../sim/visibility';
 import { readCity } from '../sim/readings';
 import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../sim/resourceData';
 import { type CitizenFocus, type CitizenWeights, RULES } from '../sim/rulesData';
@@ -248,6 +251,16 @@ export function buildImprovementPlan(
   return plan;
 }
 
+/** The selected worker needs only known sites within a short walk. Use the same entries as the full plan. */
+export function nearbyImprovementPlan(
+  state: GameState, player: Player, unit: Unit, ctx: ValueContext, radius: number,
+): ImprovementPlan {
+  const from = getTileAt(state.map, unit.col, unit.row)!;
+  const tiles = mapRange(state.map, tileHex(from), radius)
+    .filter(tile => isExploredBy(state, player.id, tile.col, tile.row));
+  return walkImprovementPlan(state, player, ctx, spadeClaims(state, player.id), tiles);
+}
+
 /** The remembered plan, disbelieved. See `setSlateShadow`. */
 function shadowCheckPlan(
   state: GameState,
@@ -272,6 +285,7 @@ function walkImprovementPlan(
   player: Player,
   ctx: ValueContext,
   claims: Map<number, number[]>,
+  nearby?: readonly Tile[],
 ): ImprovementPlan {
   // A row the leader, the cards or the tree refuse is refused on every hex, so it is
   // asked once here, and each hex asks only about its ground. Nothing writes during
@@ -285,9 +299,9 @@ function walkImprovementPlan(
   // this call, which is a sweep, which is the rule.
   const ground = tileContextField(state, player.id);
 
-  for (const tile of groundInReach(state, player)) {
+  for (const tile of nearby ?? groundInReach(state, player, roster)) {
     const at = tileIndex(state.map, tile.col, tile.row);
-    if (byTile.has(at)) continue;
+    if (byTile.has(at) || !isExploredBy(state, player.id, tile.col, tile.row)) continue;
     const best = bestEntryOn(state, player, ctx, tile, roster, ground);
     if (best === null) continue;
     best.unclaimed = !claims.has(at);
@@ -320,7 +334,7 @@ function workRoster(ai: AiConfig): ImprovementId[] {
  * Walked off the *towns* rather than over the whole map: a map sweep would be
  * the whole board per seat per turn to find the two dozen hexes that matter.
  */
-function groundInReach(state: GameState, player: Player): Tile[] {
+function groundInReach(state: GameState, player: Player, roster: readonly ImprovementId[]): Tile[] {
   const seen = new Set<number>();
   const found: Tile[] = [];
   for (const city of state.cities) {
@@ -332,6 +346,25 @@ function groundInReach(state: GameState, player: Player): Tile[] {
       if (seen.has(at)) continue;
       seen.add(at);
       found.push(tile);
+    }
+  }
+  // A border work can stand further than the city can work. Explore only known tiles around its border.
+  const borderReach = Math.max(0, ...roster.map(id => improvementDef(id).beyondBorders ?? 0));
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    for (const owned of ownedTiles(state, city)) {
+      const ownedAt = tileIndex(state.map, owned.col, owned.row);
+      if (!seen.has(ownedAt)) {
+        seen.add(ownedAt);
+        found.push(owned);
+      }
+      if (borderReach === 0) continue;
+      for (const near of mapRange(state.map, tileHex(owned), borderReach)) {
+        const at = tileIndex(state.map, near.col, near.row);
+        if (seen.has(at) || !isExploredBy(state, player.id, near.col, near.row)) continue;
+        seen.add(at);
+        found.push(near);
+      }
     }
   }
   return found;
@@ -466,8 +499,11 @@ function pricedEntry(
   if (hammers !== null) terms.push(hammers);
   // What the spade opens under the hex is the part of the entry that needs no
   // citizen (bot batch BP13b), so it is kept apart as well as folded in.
-  const seams = seamOpeningTerms(state, player, ctx, tile, improvement);
-  for (const term of seams) {
+  const seatlessTerms = seamOpeningTerms(state, player, ctx, tile, improvement);
+  if (improvementDef(improvement).greatPerson === undefined) {
+    seatlessTerms.push(...workPlacementTerms(ctx, tile, improvement, ground));
+  }
+  for (const term of seatlessTerms) {
     terms.push(term);
   }
   for (const term of plannedRiderTerms(ctx, tile, improvement, ground(tile))) {
@@ -485,8 +521,8 @@ function pricedEntry(
     label: `${name} at (${tile.col},${tile.row})`,
     value: foldTerms(terms),
     terms,
-    seatless: foldTerms(seams),
-    seatlessTerms: seams,
+    seatless: foldTerms(seatlessTerms),
+    seatlessTerms,
     improved,
     town: improved === null ? null : tileOwnerCityId(state, tile.col, tile.row),
     unclaimed: true,

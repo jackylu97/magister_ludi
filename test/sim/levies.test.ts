@@ -244,7 +244,7 @@ describe('The General Levy — an untrained melee unit', () => {
     expect(trainedTally(g, 'dominionTheMusterRolls')).toBe(1);
   });
 
-  it('waits five turns at peace and one at war', () => {
+  it('waits five turns at peace and two at war', () => {
     const { g, city } = bench(9);
     seat(g, 'theGeneralLevy');
     expect(levy(g, city, 'conscript').ok).toBe(true);
@@ -252,10 +252,11 @@ describe('The General Levy — an untrained melee unit', () => {
     g.state.turn = start + 1;
     expect(levyError(g.state, 0, city, 'conscript')).toMatch(/can levy again in 4 turns/);
     g.state.wars.push({ a: 0, b: 1, declaredTurn: start });
-    expect(levyError(g.state, 0, city, 'conscript')).toBeNull();
-    // A levy taken at war still starts the shared wait for the other uses.
-    expect(levy(g, city, 'conscript').ok).toBe(true);
     expect(levyError(g.state, 0, city, 'conscript')).toMatch(/can levy again in 1 turn/);
+    g.state.turn = start + 2;
+    expect(levyError(g.state, 0, city, 'conscript')).toBeNull();
+    expect(levy(g, city, 'conscript').ok).toBe(true);
+    expect(levyError(g.state, 0, city, 'conscript')).toMatch(/can levy again in 2 turns/);
   });
 });
 

@@ -34,7 +34,6 @@ import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { buildingUpkeep, disbandFloor, unitUpkeep } from '../../src/sim/upkeep';
 import { type GameState, type Unit, bumpRevision, createUnit, playerById } from '../../src/sim/state';
-import { type OrderId } from '../../src/sim/statecraftData';
 import { debtWarning, disbandSentence } from '../../src/ui/controls';
 import { upkeepNote } from '../../src/ui/unitPanel';
 import { bareState } from '../sim/improvementHelpers';
@@ -175,12 +174,12 @@ describe('the treasury under water', () => {
     return state;
   }
 
-  /** Seats Letters of Credit for seat 0, which lowers the disband floor. */
+  /** A temporary credit rule checks that the panel reads the actual disband floor. */
   function withCredit(state: GameState): void {
-    const sc = playerById(state, 0)!.statecraft;
-    const letters = 'lettersOfCredit' as OrderId;
-    if (!sc.orders.includes(letters)) sc.orders.push(letters);
-    sc.slots.push({ card: letters, sealedUntil: state.turn });
+    state.players[0]!.timed = [{
+      card: 'lettersOfCredit', effect: { kind: 'rule', rule: 'buysOnCredit', credit: 150 },
+      expiresTurn: state.turn + 1,
+    }];
     bumpRevision(state);
   }
 
@@ -219,7 +218,7 @@ describe('the treasury under water', () => {
    * the same floor, so a seat holding the card is told −150 and is not warned
    * of a disband the creditors will not make.
    */
-  it('names the lower floor Letters of Credit sets, in the warning and the news', () => {
+  it('names the effective credit floor in the warning and the news', () => {
     const state = treasury(RULES.upkeep.disbandBelow - 1);
     withCredit(state);
     const floor = disbandFloor(state, 0);

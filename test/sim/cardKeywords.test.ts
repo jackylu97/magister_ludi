@@ -90,10 +90,8 @@ describe('which card carries which keyword', () => {
     // it is seated, so it is no Charter and carries no keyword.
     expect(orderKeyword('theSenateCharter' as OrderId)).toBe('charter');
     expect(orderDef('theSenateCharter' as OrderId).text).not.toMatch(/^Charter\. /);
-    // The Great Loan is still a commission in its data (the on-draft grant has
-    // no arm for twenty turns of income, nor for a timed loss), so it carries
-    // the keyword its data is: Commission, not Boon.
-    expect(orderKeyword('theGreatLoan' as OrderId)).toBe('commission');
+    // The Great Loan pays when drafted and records its repayment at the same time.
+    expect(orderKeyword('theGreatLoan' as OrderId)).toBe('boon');
     // The Captured Arms counts kills over the whole game, seated or not. A
     // Scaler counts only while seated, so it is not one.
     expect(orderKeyword('theCapturedArms' as OrderId)).toBeNull();
@@ -166,13 +164,21 @@ describe('the keyword on the card', () => {
   });
 
   it('says a charter as what it opens', () => {
-    expect(said('theFishTraps' as OrderId)).toEqual(['Charter', 'opens the Fish Traps for your workers to build']);
+    expect(said('theFishTraps' as OrderId)).toEqual([
+      'Charter', 'Build Fish Traps. +2 food, +1 production on coast or lake.',
+      'Build Wild Orchard. +2 food, +2 gold in forest or jungle.',
+    ]);
+    const paired = describeCard('theDesertAndTheSnow').map(line => line.text).join(' ');
+    expect(paired).toContain('[[improvement:nazcaLines|Nazca Lines]]');
+    expect(paired).toContain('[[improvement:inuksuk|Inuksuk]]');
+    const hillfort = said('theHillforts').join(' ');
+    expect(hillfort.match(/\+5 defence/g)).toHaveLength(1);
     expect(said('theGlassmakersCharter' as OrderId).slice(0, 2)).toEqual(['Charter', 'opens Optics for you to research']);
     expect(said('theFast' as OrderId)[1]).toMatch(/^your cities may keep Rite of Fasting: /);
   });
 
   it('says a Boon as "On draft: …"', () => {
-    expect(said('theFirstCaravan' as OrderId)).toEqual(['Boon', 'On draft: a Trader joins you in your capital']);
+    expect(said('theFirstCaravan' as OrderId)).toEqual(['Boon', 'On draft: a Trader joins you in your capital', 'On draft: +1 trade route for the rest of the game']);
     expect(said('theFirstOffering' as OrderId)).toEqual(['Boon', 'On draft: +25 faith']);
   });
 

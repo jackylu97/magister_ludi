@@ -978,13 +978,13 @@ describe('civilians', () => {
     expect(calls(text('combat'))).toHaveLength(1);
     expect(calls(text('arrival'))).toHaveLength(1);
 
-    // And the one in `combat.ts` is the convert, not a civilian: the clause it
-    // sits in is guarded by the pact's behaviour rule.
     const combat = text('combat');
-    const call = combat.indexOf('captureUnit(state');
-    const clause = combat.slice(combat.lastIndexOf('if (', call), call);
-    expect(clause).toMatch(/barbarianKillsConvert/);
-    expect(clause).toMatch(/turning !== null/);
+    const caller = combat.indexOf('takeDefeatedUnit(state, defender');
+    const guard = combat.slice(combat.indexOf('const turning =', combat.lastIndexOf('let defenderDied', caller)), caller);
+    expect(guard).toMatch(/barbarianKillsConvert/);
+    expect(guard).toMatch(/turning !== null/);
+    expect(guard).toMatch(/shipJoinsVictor/);
+    expect(combat).toMatch(/takeDefeatedUnit\(state, attacker,/);
   });
 
   /**

@@ -174,7 +174,7 @@ describe('feature D: copies lent and deal partners', () => {
     expect(paid()).toEqual({ culture: 8, production: 4 });
   });
 
-  it('pays The Treaty Ports +5% production for each partner, on the city stage, at most +25%', () => {
+  it('pays The Treaty Ports +8% production for each partner, on the city stage, at most +40%', () => {
     const { state, home } = pair();
     seat(state, 0, TREATY_PORTS);
     const percent = (): number =>
@@ -200,10 +200,10 @@ describe('feature D: copies lent and deal partners', () => {
     expect(dealPartnerSeats(state, 0)).toEqual([]);
     expect(percent()).toBe(0);
     lend(state, 1, 0, { goldPerTurn: 2 });
-    expect(percent()).toBe(5);
+    expect(percent()).toBe(8);
     expect(cityYieldPercents(state, home).find((line) => line.card === TREATY_PORTS)?.stage).toBe('city');
     const effect = orderDef(TREATY_PORTS).effects[0] as CardPaysEffect;
-    expect([effect.percent, effect.max]).toEqual([5, 5]);
+    expect([effect.percent, effect.max]).toEqual([8, 5]);
   });
 });
 

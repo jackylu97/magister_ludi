@@ -98,7 +98,6 @@ import {
   cardAuthority,
   explainCardCityYields,
   cardCombatLines,
-  cardCombatPercent,
   explainCardEmpireYields,
   cardProduction,
   cardUnitStat,
@@ -1115,8 +1114,6 @@ describe('the legacies this pass built', () => {
     expect(fight(g.state, horse, tile, 'attack')).toBe(2);
     expect(fight(g.state, horse, tile, 'defend')).toBe(2);
     expect(fight(g.state, foot, tile, 'attack')).toBe(0);
-    // No percentage is left on the row.
-    expect(cardCombatPercent(g.state, horse)).toBe(0);
     // The movement half is unchanged.
     expect(cardUnitStat(g.state, horse, 'movement')).toBe(1);
     expect(cardUnitStat(g.state, foot, 'movement')).toBe(0);
@@ -1133,8 +1130,6 @@ describe('the legacies this pass built', () => {
     expect(fight(g.state, horse, tile, 'attack')).toBe(3);
     expect(fight(g.state, bow, tile, 'defend')).toBe(3);
     expect(fight(g.state, foot, tile, 'attack')).toBe(0);
-    expect(cardCombatPercent(g.state, horse)).toBe(0);
-    expect(cardCombatPercent(g.state, bow)).toBe(0);
   });
 
   it('Tycho Brahe reads the sky off the ground, and wants both halves of it', () => {
@@ -1321,14 +1316,14 @@ describe('the legacies this pass built', () => {
     // The building half is built now, so the row says both and one of its two
     // deferred sentences is gone (the timed unhappiness is the one that stays).
     // Twenty off since batch GP1 of 2026-11-12 (it was thirty).
-    expect(printed('crassus')[0]).toBe('all units and buildings cost −20% to buy');
+    expect(printed('crassus')[0]).toBe('You gain 25% buying power on all units and buildings');
     // The timed half is built now too, so both of Crassus' clauses are real and
     // nothing on his row is deferred.
     expect(printed('crassus')).toEqual([
-      'all units and buildings cost −20% to buy',
+      'You gain 25% buying power on all units and buildings',
       'buying anything costs your empire -1 happiness for 10 turns',
     ]);
-    expect(printed('jakobFugger')).toContain('all units and buildings cost −10% to buy');
+    expect(printed('jakobFugger')).toContain('You gain 11.11% buying power on all units and buildings');
     // And the other side of a fight, which `combatLine` could not say until
     // `vsClass` existed.
     expect(printed('lautaro')).toEqual(['+5 combat strength against mounted units']);

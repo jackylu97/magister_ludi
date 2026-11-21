@@ -89,6 +89,7 @@ import {
   unitById,
   spendCulture,
   spendFaith,
+  buyWithFaith,
   buyWithGold,
   spendGold,
 } from './state';
@@ -803,8 +804,7 @@ function explainCulturePrice(
 }
 
 /**
- * Town and empire discounts apply to the same base price. The explanation
- * lists each source and shows when the combined discount reaches its limit.
+ * Town and empire buying power add together. The price lists their sources.
  */
 function applyRiders(
   state: GameState,
@@ -1485,7 +1485,7 @@ export function purchaseItemAt(
     // Through the one subtraction (Devotion batch DV3), so a faith purchase
     // counts as faith spent (`Player.faithSpent`). It announces the bank for
     // the meters too.
-    spendFaith(state, player, price.total);
+    buyWithFaith(state, player, price.total);
   } else if (price.currency === 'culture') {
     // **Magnificence** (Magisterial batch MG11; the triage's reading 36): the
     // culture comes out of the draft pool, through the one subtraction that
@@ -1514,7 +1514,10 @@ export function purchaseItemAt(
     buyWithGold(state, player, price.total);
     recordScalingOccasion(state, player.id, 'goldSpent', price.total);
     // A Guild Commission's count: a building, bought with gold.
-    if (item.kind === 'building') recordScalingOccasion(state, player.id, 'buildingBoughtWithGold');
+    if (item.kind === 'building') {
+      player.buildingsBoughtWithGold = (player.buildingsBoughtWithGold ?? 0) + 1;
+      recordScalingOccasion(state, player.id, 'buildingBoughtWithGold');
+    }
   }
   if (item.kind === 'unit' && unitDef(item.id).consecrates === true) {
     player.augursPurchased += 1;

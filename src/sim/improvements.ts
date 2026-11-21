@@ -66,6 +66,7 @@
  * hex back the way it found it. See `removeImprovementError` for the rules.
  */
 
+import { tileHasFreshWater } from './improvementFields';
 import {
   claimTile,
   nearestOwnedCity,
@@ -97,6 +98,7 @@ import {
   improvementDef,
   improvementForResource,
   isCardOpenedWork,
+  isUniqueImprovement,
   isImprovementId,
   isTendedWork,
   prospectDef,
@@ -166,7 +168,6 @@ import { isExplorer, unitDef, unitMaxHp } from './unitData';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from './resourceEffects';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
-import { hasFreshWater } from './water';
 import { bumpEconomy } from './slate';
 import { recomputeVisibility } from './visibility';
 
@@ -471,6 +472,8 @@ export function improvementGroundError(
       return `${ARow(def)} ${rowNeeds(def)} ${def.landBeside} of your land hexes beside it`;
     }
   }
+  if (!anywhere && def.requiresRiver && tile.riverEdges === 0) return `${ARow(def)} needs a river`;
+  if (!anywhere && def.requiresDryGround && drinks(state, ownerId, tile, improvementId)) return `${ARow(def)} needs land without fresh water`;
   if (!anywhere && def.validFeatures !== undefined && !def.validFeatures.includes(tile.feature)) {
     // A bare hex fails this clause as the feature "none", which is a word for
     // the data and not for a player — so the refusal names what the row wants
@@ -669,7 +672,7 @@ function hasAdjacentImprovement(
  * map alone, because only farms carry the water.
  */
 function drinks(state: GameState, ownerId: number, tile: Tile, improvementId: ImprovementId): boolean {
-  if (hasFreshWater(tile)) return true;
+  if (tileHasFreshWater(state, tile)) return true;
   if (!improvementCountsAs(improvementId, 'farm')) return false;
   // The water reaches a hex only beside one of this empire's farms, or beside
   // one of its works that waters the hexes around it (Scientific batch S5, the
@@ -763,7 +766,7 @@ export function improvementCardError(
   const card = cardThatOpensImprovement(improvementId);
   if (card === null) return `${ARow(def)} ${rowNeeds(def)} a card no deck deals`;
   // A row a seated card opens waits for the card to sit in a chair.
-  const seated = def.unlockedByCard === true ? ' in a chair' : '';
+  const seated = orderDef(card).charter ? '' : ' in a chair';
   return `${ARow(def)} ${rowNeeds(def)} the card ${orderDef(card).name}${seated}`;
 }
 
@@ -942,8 +945,10 @@ export function buildImprovementAt(
   }
   // What the new row replaces, for the ring below: a farm laid over a work ends
   // the work.
-  const replaced = tile.improvement;
+  const previous = { ...tile };
   raiseImprovement(tile, improvementId, state.turn);
+  recordScalingOccasion(state, unit.ownerId, 'improvementBuilt');
+  if (isUniqueImprovement(improvementId)) recordScalingOccasion(state, unit.ownerId, 'uniqueImprovementBuilt');
   // **The seam the spade opened** (batch M3, `slate.ts`): an improvement is one
   // of `openedResource`'s clauses, so what the empire holds — and the happiness
   // a unique luxury pays — is not what it was on the line above. Announced at
@@ -957,7 +962,7 @@ export function buildImprovementAt(
   // already holds the hex.
   claimGroundForWork(state, unit.ownerId, tile, improvementId, unowned);
   refreshWateredNeighbours(state, tile, improvementId);
-  refreshRingDerived(state, tile, replaced);
+  refreshRingDerived(state, tile, previous);
   payWorkLaidRiders(state, unit.ownerId, tile, improvementId);
   return spendBuilderCharge(state, unit, improvementId);
 }
@@ -1239,8 +1244,12 @@ export function explainImprovementPreview(
   tile: Tile,
   improvementId: ImprovementId,
   before = explainTileYield(tile, tileContextAt(state, playerId, tile)),
+  repair = false,
 ): ImprovementPreview {
-  const work = tileWithWork(tile, improvementId, state.turn);
+  const damaged = repair && tile.damagedImprovement?.id === improvementId ? tile.damagedImprovement : undefined;
+  const work = damaged ? { ...tile } : tileWithWork(tile, improvementId, state.turn);
+  // Repair preserves the original build turn. Orders can price an older work differently.
+  if (damaged) raiseImprovement(work, damaged.id, damaged.improvedOn ?? state.turn);
   const ghost = boardWithWork(state, playerId, work, markInsteadOf(tile, improvementId) === undefined);
   const lines = explainTileYield(work, tileContextAt(ghost, playerId, work));
   return { lines, before, delta: yieldDifference(foldTileLines(lines), foldTileLines(before)) };
@@ -1373,7 +1382,7 @@ function workerMaintenanceError(state: GameState, unitId: number, action: 'remov
  * own (register entry 22, see `refreshCityDerived`).
  */
 export function removeImprovementAt(state: GameState, unit: Unit, tile: Tile): void {
-  const was = tile.improvement;
+  const previous = { ...tile };
   // The age goes with the work — see `razeImprovement`. Ground cleared back to
   // bare is ground with no history to inherit.
   razeImprovement(tile);
@@ -1382,9 +1391,9 @@ export function removeImprovementAt(state: GameState, unit: Unit, tile: Tile): v
   bumpEconomy(state);
   refreshTileDerived(state, tile);
   // A Qanat taken up dries the farms beside it (Scientific batch S5).
-  if (was !== undefined) refreshWateredNeighbours(state, tile, was);
+  if (previous.improvement) refreshWateredNeighbours(state, tile, previous.improvement);
   // A work taken up stops paying the hexes beside it (batch DT16).
-  refreshRingDerived(state, tile, was);
+  refreshRingDerived(state, tile, previous);
   unit.movesLeft = 0;
 }
 
@@ -1405,11 +1414,12 @@ function townWorkLimitError(state: GameState, tile: Tile, id: ImprovementId): st
 /** A repair restores the original work and spends the worker's remaining movement. */
 export function repairImprovementAt(state: GameState, unit: Unit, tile: Tile): void {
   const damaged = tile.damagedImprovement!;
+  const previous = { ...tile };
   raiseImprovement(tile, damaged.id, damaged.improvedOn ?? state.turn);
   bumpEconomy(state);
   refreshTileDerived(state, tile);
   refreshWateredNeighbours(state, tile, damaged.id);
-  refreshRingDerived(state, tile, damaged.id);
+  refreshRingDerived(state, tile, previous);
   unit.movesLeft = 0;
 }
 
@@ -1679,14 +1689,17 @@ export function chopFeatureAt(state: GameState, unit: Unit, tile: Tile): boolean
     settleCultureWindfall(state, player);
   }
 
+  const previous = { ...tile };
   tile.feature = 'none';
-  // A tended work that needs the wood (a forest garden, a wild orchard) goes
-  // with the wood: felling the trees removes the garden.
-  if (tile.improvement !== undefined && isTendedWork(tile.improvement)) {
-    const needs = improvementDef(tile.improvement).validFeatures;
-    if (needs !== undefined && !needs.includes('none')) razeImprovement(tile);
+  // Removing the trees also removes a charter work that needs the canopy.
+  const work = tile.improvement ?? tile.damagedImprovement?.id;
+  if (work && isCardOpenedWork(work)) {
+    const features = improvementDef(work).validFeatures;
+    if (features && !features.includes('none')) razeImprovement(tile);
   }
+  bumpEconomy(state);
   refreshTileDerived(state, tile);
+  refreshRingDerived(state, tile, previous);
   unit.movesLeft = 0;
   const left = chargesLeft(unit) - cost;
   if (left <= 0) {
@@ -2139,6 +2152,7 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     heal: 0,
     warning: null,
   };
+  const previous = { ...tile };
   // Tended works survive a raid on the road beneath them.
   if (tile.improvement !== undefined && !isTendedWork(tile.improvement)) {
     report.improvement = tile.improvement;
@@ -2157,7 +2171,7 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   // A burnt Qanat dries the farms beside it (Scientific batch S5).
   if (report.improvement !== undefined) refreshWateredNeighbours(state, tile, report.improvement);
   // A burnt work stops paying the hexes beside it (batch DT16).
-  refreshRingDerived(state, tile, report.improvement);
+  refreshRingDerived(state, tile, previous);
   // Tyranny's `freePillage`, and the one place the raid's single point is
   // spent — so a law that says pillaging costs no movement is one clause read
   // here rather than a second pillage verb. The gate is untouched: a column
@@ -2214,6 +2228,7 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
         const owner = tileOwnerPlayerId(state, near.col, near.row);
         if (owner === null || owner === unit.ownerId) continue;
         if (!atWar(state, unit.ownerId, owner)) continue;
+        const previousNear = { ...near };
         const burnt = near.improvement;
         damageImprovement(near, state.turn);
         delete near.road;
@@ -2223,7 +2238,7 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
         // own hex (`refreshCityDerived`'s register, entry 5).
         refreshTileDerived(state, near);
         refreshWateredNeighbours(state, near, burnt);
-        refreshRingDerived(state, near, burnt);
+        refreshRingDerived(state, near, previousNear);
         const more = windfallPayout(state, player.id, 'pillage', IMPROVEMENTS.pillageGold, 0, facts);
         const gold = payPillage(state, player, unit, near, more, report, touched);
         (report.spread ??= []).push({ col: near.col, row: near.row, improvement: burnt, gold });

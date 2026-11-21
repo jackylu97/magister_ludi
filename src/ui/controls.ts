@@ -175,7 +175,7 @@ import {
   productionSettledBy,
   queueItemName,
   withinWorkRadius,
-  workRadiusOf,
+  workRadiusTiles,
 } from '../sim/cities';
 import { roundYield, signedYield } from '../sim/yieldFormat';
 import { buildingDef } from '../sim/buildingData';
@@ -5028,8 +5028,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function workRadiusCells(city: City): CellRef[] {
     const { state } = getGame();
-    const centre = tileHex(cityTile(state.map, city));
-    return mapRange(state.map, centre, workRadiusOf(state, city)).map((tile) => ({
+    return workRadiusTiles(state, city).map((tile) => ({
       col: tile.col,
       row: tile.row,
     }));
@@ -6577,7 +6576,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // ceremony until the work is laid. Asked of the state after the command,
     // as the selection below always was.
     if (unitById(getGame().state, unit.id)) {
-      announce(`${view.name} stays, and can still lay their work`, { mark: 'greatPerson', news: view.name });
+      const nextAct = greatPersonActError(getGame().state, localPlayerId, unit.id);
+      const activity = nextAct === null ? 'can take another action' : 'can still lay their work';
+      announce(`${view.name} stays and ${activity}`, { mark: 'greatPerson', news: view.name });
     } else {
       // The legacy is the half that survives the choice, and it is worth its
       // own line: the board decision was burst or ground, and the card is

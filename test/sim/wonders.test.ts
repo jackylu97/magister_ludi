@@ -83,6 +83,7 @@ import { stockDoctrines } from './statecraftHelpers';
 import { zocField } from '../../src/sim/pathfind';
 
 import { fullMovement } from '../../src/sim/units';
+import { bumpEconomy } from '../../src/sim/slate';
 import { claimTile, ownedTiles } from '../../src/sim/cities';
 
 
@@ -801,7 +802,10 @@ describe('a site requirement', () => {
     expect(result.ok ? '' : result.error).toContain('wants a harbour');
 
     // Give it a coast and the refusal goes away — one evaluator, one answer.
-    ring(g.state.map, inland)[0]!.terrain = 'coast';
+    const coast = ring(g.state.map, inland)[0]!;
+    coast.terrain = 'coast';
+    claimTile(g.state, city, coast);
+    bumpEconomy(g.state);
     expect(buildError(g.state, 0, 'building', 'colossus', city)).toBeNull();
   });
 

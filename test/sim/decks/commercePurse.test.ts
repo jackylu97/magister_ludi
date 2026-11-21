@@ -17,7 +17,7 @@
  *     fold as a give-back line.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { foundCityAt, tilePurchaseError, tilePurchasePrice } from '../../../src/sim/cities';
 import { type Command, applyCommand } from '../../../src/sim/commands';
@@ -59,7 +59,7 @@ import { cityYieldPercents } from '../../../src/sim/yields/town';
 import { buyCommandFor, tradeContext } from '../../../src/ui/tradeScreen';
 import { at, bareState } from '../improvementHelpers';
 
-const LETTERS = 'lettersOfCredit' as OrderId;
+const LETTERS = 'boughtSwords' as OrderId;
 const STRONGBOX = 'theStrongbox' as OrderId;
 const GUILDS = 'theMerchantGuilds' as OrderId;
 const MERCENARIES = 'mercenaryContracts' as OrderId;
@@ -167,7 +167,7 @@ describe('The Open Market', () => {
     const base = prices();
     expect(base[4]).toBe(10 * renownThreshold(state, player));
     seat(state, 0, 'commerceOpenMarket');
-    expect(prices()).toEqual(base.map(price => Math.floor(price * 80 / 100)));
+    expect(prices()).toEqual(base.map(price => Math.ceil(price / 1.25)));
     expect(greatPersonOfferPrice(state, 0, 'faith')).toBe(RULES.greatPeople.offerPriceFaith);
     setGold(state, greatPersonOfferPrice(state, 0, 'gold'));
     expect(applyCommand(state, { type: 'purchaseGreatPersonOffer', playerId: 0, buys: 'gold' }).ok).toBe(true);
@@ -175,20 +175,28 @@ describe('The Open Market', () => {
     expect(player.greatPersonOffer).toBeDefined();
   });
 
-  it('caps stacked discounts and preserves a larger individual discount', () => {
+  it('adds the buying power of all sources before rounding the price', () => {
     const price = (rates: number[]) => 100 + purchaseDiscountLines(
       100, rates.map(percent => ({ source: 'Discount', percent })),
     ).reduce((sum, line) => sum + line.amount, 0);
-    expect(price([-20, -20])).toBe(60);
-    expect(price([-40, -20])).toBe(50);
-    expect(price([-75, -20])).toBe(25);
-    expect(price([-75, -20, 10])).toBe(35);
+    expect(price([-20, -20])).toBe(67);
+    expect(price([-40, -20])).toBe(53);
+    expect(price([-75, -20])).toBe(24);
+    expect(price([-75, -20, 10])).toBe(26);
   });
 });
 
 // --- Letters of Credit --------------------------------------------------------
 
-describe('Letters of Credit: buying below zero', () => {
+describe('The credit rule below zero', () => {
+  const fixture = orderDef(LETTERS);
+  const { effects, text } = fixture;
+  beforeEach(() => {
+    fixture.effects = [{ kind: 'rule', rule: 'buysOnCredit', credit: 150 }];
+    fixture.text = 'Your treasury may fall to −150 with no penalty.';
+  });
+  afterEach(() => { fixture.effects = effects; fixture.text = text; });
+
   it('reads the floor off the row, and none without the card', () => {
     const { state } = town();
     expect(cardSpendFloor(state, 0)).toBe(0);

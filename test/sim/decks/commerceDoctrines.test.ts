@@ -89,7 +89,7 @@ import {
 import { runEndOfTurn } from '../../../src/sim/turn';
 import { openWar } from '../../../src/sim/wars';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
-import { collectYields } from '../../../src/sim/yields/empire';
+import { collectYields, explainEmpireCardYields } from '../../../src/sim/yields/empire';
 import { explainCity, explainSurplusMoved, foldCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
@@ -106,6 +106,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theFlyingMoney', 2],
   ['theYearAndADay', 3],
   ['theMuda', 3],
+  ['theColleganza', 3],
   ['theTurnpikeTrusts', 3],
   ['theSeaBan', 4],
   ['thePeaceOfLodi', 4],
@@ -245,13 +246,13 @@ describe('The Apoikia', () => {
     const worker = goldPrice(state, city, 'worker').total;
     const warrior = goldPrice(state, city, 'warrior').total;
     hold(state, 'theApoikia');
-    expect(goldPrice(state, city, 'settler').total).toBe(Math.floor(settler / 2));
-    expect(goldPrice(state, city, 'worker').total).toBe(Math.floor(worker / 2));
+    expect(goldPrice(state, city, 'settler').total).toBe(Math.ceil(settler / 2));
+    expect(goldPrice(state, city, 'worker').total).toBe(Math.ceil(worker / 2));
     expect(goldPrice(state, city, 'warrior').total).toBe(warrior);
     // Rule 5: the line is named, and the price is the fold of the lines.
     const lines = goldPrice(state, city, 'settler').lines;
     expect(lines.some((line) => line.source.includes('The Apoikia'))).toBe(true);
-    expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBe(Math.floor(settler / 2));
+    expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBe(Math.ceil(settler / 2));
   });
 
   it('leaves the production price alone', () => {
@@ -272,7 +273,7 @@ describe('The Apoikia', () => {
 });
 
 describe('The Delian League', () => {
-  it('takes 1 off the authority of a coastal town, and off no inland town', () => {
+  it('keeps the usual authority cost for coastal and inland towns', () => {
     const state = bareState(24, 10);
     coastAt(state, 9);
     town(state, 2, 2);
@@ -281,11 +282,11 @@ describe('The Delian League', () => {
     const coastal = townCost(state, shore);
     const founded = townCost(state, inland);
     hold(state, 'theDelianLeague');
-    expect(townCost(state, shore)).toBe(coastal - 1);
+    expect(townCost(state, shore)).toBe(coastal);
     expect(townCost(state, inland)).toBe(founded);
   });
 
-  it('keeps a coastal capital free, and discounts a captured and a puppet coastal town (batch DT19c)', () => {
+  it('keeps a coastal capital free, and keeps the usual price for captured and puppet towns', () => {
     const state = bareState(30, 10);
     coastAt(state, 9);
     const capital = town(state, 8, 2);
@@ -299,8 +300,8 @@ describe('The Delian League', () => {
     expect(townCost(state, puppet)).toBe(3);
     hold(state, 'theDelianLeague');
     expect(townCost(state, capital)).toBe(0);
-    expect(townCost(state, taken)).toBe(3);
-    expect(townCost(state, puppet)).toBe(2);
+    expect(townCost(state, taken)).toBe(4);
+    expect(townCost(state, puppet)).toBe(3);
   });
 
   describe('with The Highland Clans, on a coastal town on hills (batch DT19c)', () => {
@@ -314,7 +315,7 @@ describe('The Delian League', () => {
       return { state, hill };
     }
 
-    it('takes 1 under either Doctrine and 2 under both', () => {
+    it('keeps the Highland Clans discount when both Doctrines apply', () => {
       const { state, hill } = shoreHill();
       // The ladder prices it at the founded price. It priced a coastal town as
       // a cheaper port until batch TT1 removed the coastal discount
@@ -323,13 +324,13 @@ describe('The Delian League', () => {
       hold(state, 'theHighlandClans');
       expect(townCost(state, hill)).toBe(2);
       hold(state, 'theDelianLeague');
-      expect(townCost(state, hill)).toBe(1);
+      expect(townCost(state, hill)).toBe(2);
     });
 
-    it('takes 1 under The Delian League alone', () => {
+    it('charges the full price under The Delian League alone', () => {
       const { state, hill } = shoreHill();
       hold(state, 'theDelianLeague');
-      expect(townCost(state, hill)).toBe(2);
+      expect(townCost(state, hill)).toBe(3);
     });
 
     it('quotes the same price on the founding preview', () => {
@@ -343,8 +344,8 @@ describe('The Delian League', () => {
       expect(quote()).toBe(3);
       hold(state, 'theHighlandClans');
       hold(state, 'theDelianLeague');
-      expect(quote()).toBe(1);
-      expect(townCost(state, town(state, 8, 5))).toBe(1);
+      expect(quote()).toBe(2);
+      expect(townCost(state, town(state, 8, 5))).toBe(2);
     });
 
     it('holds a row that prints a minimum to it, and adds a surcharge back', () => {
@@ -353,17 +354,14 @@ describe('The Delian League', () => {
       // The Commanderies prints "minimum one": from 2 its discount takes 1.
       hold(state, 'theCommanderies');
       expect(townCost(state, hill)).toBe(1);
-      // Under both, the two discounts with no minimum bring the town to 1, and
-      // The Commanderies' minimum keeps it there.
       hold(state, 'theDelianLeague');
       expect(townCost(state, hill)).toBe(1);
-      // The Mandarinate's +1 cancels The Commanderies' -1, so the town stays at 1.
       hold(state, 'theMandarinate');
-      expect(townCost(state, hill)).toBe(1);
+      expect(townCost(state, hill)).toBe(2);
     });
   });
 
-  it('quotes the cheaper town on the founding preview, and no cheaper inland', () => {
+  it('keeps the founding preview price for both sites', () => {
     const state = bareState(24, 10);
     coastAt(state, 9);
     town(state, 2, 2);
@@ -372,17 +370,20 @@ describe('The Delian League', () => {
     const before = quote(8);
     const inland = quote(18);
     hold(state, 'theDelianLeague');
-    expect(quote(8)).toBe(before + 1);
+    expect(quote(8)).toBe(before);
     expect(quote(18)).toBe(inland);
   });
 
-  it('pays +3 production in a coastal town, and nothing inland', () => {
+  it('pays three production and three gold in coastal towns', () => {
     const state = bareState(24, 10);
     coastAt(state, 9);
     const shore = town(state, 8, 5, 3);
     const inland = town(state, 18, 5, 3);
     const before = [explainCity(state, shore).flats.production, explainCity(state, inland).flats.production];
+    const gold = [explainCity(state, shore).flats.gold, explainCity(state, inland).flats.gold];
     hold(state, 'theDelianLeague');
+    expect(explainCity(state, shore).flats.gold).toBe(gold[0]! + 3);
+    expect(explainCity(state, inland).flats.gold).toBe(gold[1]!);
     expect(explainCity(state, shore).flats.production).toBe(before[0]! + 3);
     expect(explainCity(state, inland).flats.production).toBe(before[1]!);
   });
@@ -400,12 +401,18 @@ describe('The Sogdian Colonies', () => {
     return { state, holding, plain };
   }
 
-  it('pays +3 culture in a town holding your post, and nothing elsewhere', () => {
-    const { state, holding, plain } = posted();
-    const before = [explainCity(state, holding).flats.culture, explainCity(state, plain).flats.culture];
+  function postCulture(state: GameState): number {
+    return explainEmpireCardYields(state, 0)
+      .filter(line => line.card === 'theSogdianColonies').reduce((sum, line) => sum + line.culture, 0);
+  }
+
+  it('pays culture to the post owner once for each established town', () => {
+    const { state, plain } = posted();
     hold(state, 'theSogdianColonies');
-    expect(explainCity(state, holding).flats.culture).toBe(before[0]! + 3);
-    expect(explainCity(state, plain).flats.culture).toBe(before[1]!);
+    expect(postCulture(state)).toBe(3);
+    plain.posts = [{ by: 0, since: state.turn - TERM }];
+    bumpRevision(state);
+    expect(postCulture(state)).toBe(6);
   });
 
   it('pays +3 renown toward merchants for each such town', () => {
@@ -426,18 +433,17 @@ describe('The Sogdian Colonies', () => {
     const holding = town(state, 3, 4, 3);
     holding.posts = [{ by: 0, since: state.turn - TERM }];
     bumpRevision(state);
-    const before = explainCity(state, holding).flats.culture;
     hold(state, 'theSogdianColonies');
-    expect(explainCity(state, holding).flats.culture).toBe(before + 3);
+    expect(postCulture(state)).toBe(3);
     // A heavy hull of another seat stands off the harbour.
     createUnit(state, 1, 'carrack', 4, 4);
     bumpRevision(state);
     expect(cityBlockaded(state, holding)).toBe(true);
-    expect(explainCity(state, holding).flats.culture).toBe(before);
+    expect(postCulture(state)).toBe(0);
     expect(cardRenownLines(state, 0).filter((line) => line.card === 'theSogdianColonies')).toEqual([]);
   });
 
-  it('pays nothing for a post still in its term, or for a post in a foreign town', () => {
+  it('counts an established foreign post and skips a new domestic post', () => {
     const state = bareState(24, 9);
     state.wars = [];
     const young = town(state, 3, 4, 3);
@@ -449,7 +455,8 @@ describe('The Sogdian Colonies', () => {
     hold(state, 'theSogdianColonies');
     expect(explainCity(state, young).flats.culture).toBe(before[0]!);
     expect(explainCity(state, foreign).flats.culture).toBe(before[1]!);
-    expect(cardRenownLines(state, 0).filter((line) => line.card === 'theSogdianColonies')).toEqual([]);
+    expect(postCulture(state)).toBe(3);
+    expect(cardRenownLines(state, 0).find(line => line.card === 'theSogdianColonies')?.amount).toBe(3);
   });
 });
 
@@ -503,7 +510,7 @@ describe('The Turnpike Trusts', () => {
     hold(state, 'theTurnpikeTrusts');
     const lines = explainRoutePrice(state, 0, home.id)!;
     expect(lines[lines.length - 1]!.source).toContain('The Turnpike Trusts');
-    expect(foldUnitCost(lines)).toBe(Math.floor(plain / 2));
+    expect(foldUnitCost(lines)).toBe(Math.ceil(plain / 2));
   });
 
   it('halves the whole price, the step for each running route included (batch TR2)', () => {
@@ -521,7 +528,7 @@ describe('The Turnpike Trusts', () => {
       '1 trade route running',
       expect.stringContaining('The Turnpike Trusts'),
     ]);
-    expect(foldUnitCost(lines)).toBe(Math.floor(stepped / 2));
+    expect(foldUnitCost(lines)).toBe(Math.ceil(stepped / 2));
   });
 
   it('charges the halved price when a caravan is bought, and the purse check asks the same figure', () => {
@@ -530,7 +537,7 @@ describe('The Turnpike Trusts', () => {
     bumpRevision(state);
     const plain = routePrice(state, 0, home.id);
     hold(state, 'theTurnpikeTrusts');
-    const half = Math.floor(plain / 2);
+    const half = Math.ceil(plain / 2);
     expect(explainPurchaseCost(state, 0, home.id, { kind: 'route' }, 'gold')!.total).toBe(half);
     const before = seat(state).gold;
     const result = applyCommand(state, {
@@ -547,7 +554,7 @@ describe('The Turnpike Trusts', () => {
     const { state, home, other } = homePair();
     const plain = routePrice(state, 0, home.id);
     hold(state, 'theTurnpikeTrusts');
-    seat(state).gold = Math.floor(plain / 2);
+    seat(state).gold = Math.ceil(plain / 2);
     bumpRevision(state);
     const result = applyCommand(state, {
       type: 'buyRoute',
@@ -563,7 +570,7 @@ describe('The Turnpike Trusts', () => {
     const { state, home } = homePair();
     const plain = readRoutes(state, 0).price;
     hold(state, 'theTurnpikeTrusts');
-    expect(readRoutes(state, 0).price).toBe(Math.floor(plain / 2));
+    expect(readRoutes(state, 0).price).toBe(Math.ceil(plain / 2));
     expect(readRoutes(state, 0).price).toBe(routePrice(state, 0, home.id));
   });
 
@@ -727,7 +734,7 @@ describe('The Laurion Leases (batch DT6)', () => {
     const lines = explainTilePurchase(state, 0, city.id, seam);
     const named = lines.filter((line) => line.source.includes('The Laurion Leases'));
     expect(named).toHaveLength(1);
-    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.floor(before / 4));
+    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.ceil(before / 4));
     expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(foldTilePrice(lines));
   });
 
@@ -753,7 +760,7 @@ describe('The Laurion Leases (batch DT6)', () => {
     const lines = explainTilePurchase(state, 0, city.id, hidden);
     const discount = lines.filter((line) => line.source.includes('The Laurion Leases'));
     expect(discount).toHaveLength(1);
-    expect(foldTilePrice(lines)).toBe(Math.floor((foldTilePrice(lines) - discount[0]!.amount) / 4));
+    expect(foldTilePrice(lines)).toBe(Math.ceil((foldTilePrice(lines) - discount[0]!.amount) / 4));
   });
 
   it('is silent to a caller with no hex in hand', () => {
@@ -762,7 +769,7 @@ describe('The Laurion Leases (batch DT6)', () => {
     expect(cardRulePercent(state, 0, 'tilePurchase')).toEqual([]);
   });
 
-  it('keeps the larger individual discount when another discount applies', () => {
+  it('adds buying power before rounding the tile price', () => {
     const { state, city, seam, plain } = ground();
     const before = { seam: tilePurchasePrice(state, 0, city.id, seam), plain: tilePurchasePrice(state, 0, city.id, plain) };
     lent.push(
@@ -770,8 +777,8 @@ describe('The Laurion Leases (batch DT6)', () => {
     );
     hold(state, 'theApoikia');
     hold(state, 'theLaurionLeases');
-    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.floor(before.seam * 0.25));
-    expect(tilePurchasePrice(state, 0, city.id, plain)).toBe(Math.floor(before.plain * 0.9));
+    expect(tilePurchasePrice(state, 0, city.id, seam)).toBe(Math.ceil(before.seam / (4 + 1 / 9)));
+    expect(tilePurchasePrice(state, 0, city.id, plain)).toBe(Math.ceil(before.plain * 0.9));
   });
 
   it('charges the discounted price when the hex is bought', () => {
@@ -828,7 +835,7 @@ describe('The Muda (batch DT6)', () => {
     return state.players.find((player) => player.barbarian === true)!.id;
   }
 
-  it('pays the sender +3 science and +3 culture on a route abroad, and nothing on a route at home', () => {
+  it('pays the sender +6 science and +6 culture on a route abroad, and nothing on a route at home', () => {
     const { state, domestic, foreign } = roads();
     const senderPays = (unit: Unit) => foldRouteYield(explainRouteSenderYield(state, unit));
     const beforeHome = foldRouteYield(explainRouteYield(state, domestic));
@@ -836,8 +843,8 @@ describe('The Muda (batch DT6)', () => {
     hold(state, 'theMuda');
     expect(foldRouteYield(explainRouteYield(state, domestic))).toEqual(beforeHome);
     const after = senderPays(foreign);
-    expect(after.science).toBe(beforeAbroad.science + 3);
-    expect(after.culture).toBe(beforeAbroad.culture + 3);
+    expect(after.science).toBe(beforeAbroad.science + 6);
+    expect(after.culture).toBe(beforeAbroad.culture + 6);
     expect(after.gold).toBe(beforeAbroad.gold);
     expect(explainRouteSenderYield(state, foreign).filter((line) => line.source.includes('The Muda'))).toHaveLength(1);
   });
@@ -1062,9 +1069,9 @@ describe('The Flying Money (batch DT7)', () => {
     const house = explainPurchaseCost(state, 0, rich.id, LIBRARY, 'gold')!.total;
     hold(state, 'theFlyingMoney');
     const price = goldPrice(state, rich, 'warrior');
-    expect(price.total).toBe(Math.floor((unit * 80) / 100));
+    expect(price.total).toBe(Math.ceil((unit * 80) / 100));
     expect(price.lines.some((line) => line.source.includes('The Flying Money'))).toBe(true);
-    expect(explainPurchaseCost(state, 0, rich.id, LIBRARY, 'gold')!.total).toBe(Math.floor((house * 80) / 100));
+    expect(explainPurchaseCost(state, 0, rich.id, LIBRARY, 'gold')!.total).toBe(Math.ceil((house * 80) / 100));
   });
 
   it('sells in a town with a gold building', () => {
@@ -1100,7 +1107,7 @@ describe('The Flying Money (batch DT7)', () => {
 
   it('prints that the rule is about gold, as the user chose on 2026-11-06', () => {
     expect(doctrineDef('theFlyingMoney').text).toBe(
-      'Your towns with a gold building buy units and buildings 20% cheaper. Your other towns cannot buy them with gold.',
+      'In towns with a gold building, your gold buys 25% more when buying units and buildings. Your other towns cannot buy them with gold.',
     );
     // The clause agrees. 'leaves a shut town its faith' holds a faith purchase open.
     expect(describeCard('theFlyingMoney').map((clause) => clause.text)).toContain(

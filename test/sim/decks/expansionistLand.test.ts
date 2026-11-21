@@ -111,8 +111,7 @@ describe('the Expansionist batch E3: The Woodland Bands', () => {
     tile.feature = 'jungle';
     tile.hills = true;
     bumpRevision(state);
-    // The hill still costs its climb: only the woods' own price goes.
-    const plain = { ...tile, feature: 'none' as const };
+    const plain = { ...tile, feature: 'none' as const, hills: false };
     expect(tileMoveCost(tile, moveProfile(state, worker))).toBe(tileMoveCost(plain));
   });
 
@@ -276,8 +275,8 @@ describe('the Expansionist batch E3: a town\'s reach and its mountains', () => {
     slot(state, 0, 'theMountainTerraces');
     expect(assignableTiles(state, city)).toContain(peak);
     const yieldOf = foldTile(peak, yieldContextFor(state, 0));
-    expect(yieldOf.science).toBe(2);
-    expect(yieldOf.production).toBe(1);
+    expect(yieldOf.science).toBe(4);
+    expect(yieldOf.production).toBe(2);
     // When the card leaves, the mountain is no longer a citizen's seat.
     unseat(state, 0);
     expect(assignableTiles(state, city)).not.toContain(peak);
@@ -402,7 +401,7 @@ describe('the Expansionist batch E3: the two new tile fields', () => {
 describe('the Expansionist batch E3: the words', () => {
   it('prints all ten cards in plain words', () => {
     expect(said('theWoodlandBands')).toEqual([
-      'your units pay only the open-ground cost to enter forest or jungle',
+      'your units pay only the open-ground cost to enter forests, jungles and hills',
     ]);
     expect(said('theProspectors')).toEqual([
       '+3 production on every hex with a Mine over a seam you surfaced',
@@ -428,7 +427,7 @@ describe('the Expansionist batch E3: the words', () => {
     ]);
     expect(said('theMountainTerraces')).toEqual([
       'your cities may work the mountains in their borders',
-      '+1 production, +2 science on every mountain hex',
+      '+2 production, +4 science on every mountain hex',
     ]);
   });
 });

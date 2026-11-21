@@ -184,8 +184,9 @@ describe('the purchase-with-gold moment', () => {
     // written, and `spendGold` has exactly two callers, `buyWithGold` and
     // `contributeAt`.
     const sim = simSources();
-    const writers = Object.entries(sim).filter(([, text]) => text.includes("'goldPurchase'"));
-    expect(writers.map(([path]) => path.split('/').pop())).toEqual(['state.ts', 'statecraftData.ts']);
+    const writers = Object.entries(sim).filter(([, text]) =>
+      /recordScalingOccasion\(state, [^,]+, 'goldPurchase'/.test(text));
+    expect(writers.map(([path]) => path.split('/').pop())).toEqual(['state.ts']);
     const callers = (needle: string): string[] =>
       Object.entries(sim)
         .flatMap(([path, text]) =>

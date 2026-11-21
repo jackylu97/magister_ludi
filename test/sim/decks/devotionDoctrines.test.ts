@@ -679,12 +679,12 @@ describe('The Canons of the Holy Sepulchre', () => {
   const faithPrice = (state: GameState, city: City, item: PurchaseSubject): number =>
     explainPurchaseCost(state, 0, city.id, item, 'faith')!.total;
 
-  it('takes 30% off a faith price in a town with a holy site, as a labelled line', () => {
+  it('adds faith buying power in a town with a holy site and names its source', () => {
     const { state, holy } = board();
     const before = faithPrice(state, holy, WARRIOR);
     hold(state, 'theCanonsOfTheHolySepulchre');
     const price = explainPurchaseCost(state, 0, holy.id, WARRIOR, 'faith')!;
-    expect(price.total).toBe(Math.floor((before * 70) / 100));
+    expect(price.total).toBe(Math.ceil((before * 70) / 100));
     expect(price.lines.some((line) => line.source.includes('The Canons of the Holy Sepulchre'))).toBe(true);
   });
 
@@ -697,7 +697,7 @@ describe('The Canons of the Holy Sepulchre', () => {
     bumpRevision(state);
     const before = faithPrice(state, holy, TEMPLE);
     hold(state, 'theCanonsOfTheHolySepulchre');
-    expect(faithPrice(state, holy, TEMPLE)).toBe(Math.floor((before * 70) / 100));
+    expect(faithPrice(state, holy, TEMPLE)).toBe(Math.ceil((before * 70) / 100));
   });
 
   it('leaves a town with no holy site at the full price', () => {

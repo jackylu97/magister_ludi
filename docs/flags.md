@@ -3138,7 +3138,7 @@ read 'city cannot purchase without free tiles'".
   is not ruled; it stays as it is.
 - Owner: Astra (a rule in `src/sim`).
 
-## A coastal city is a city that owns a coast hex within two hexes (ruled 2026-11-20, not built)
+## A coastal city owns a coast hex within two hexes (ruled 2026-11-20)
 
 **Ruled:** the user confirmed the narrow form on 2026-11-20 ("confirm all the commerce 5 points"). On 48 starts it raises coastal capitals from 17 to 26. The text below is the proposal as first written.
 
@@ -3148,21 +3148,9 @@ with access to the coast i.e. controls a coastal tile. that way, you can
 settle two tiles from the coast and still build a lighthouse, get coastal
 bonuses, settle more flexibily, what do you think?"
 
-- Today a city is coastal only when its own hex is beside water.
-- **Proposed:** a city is coastal when a water hex is in its borders (or, a
-  narrower form, within its first two rings). It may then build the
-  Lighthouse, the Harbour and ships, and every "coastal" scope reads it.
-- **What the builder must settle:** where a ship built in such a city
-  appears (my proposal: on the nearest water hex the city owns, chosen by a
-  fixed order); whether the city can be attacked from the sea; whether sea
-  trade routes start from it; and whether the reading changes when a city
-  gains or loses its only water hex (it is derived, never stored).
-- My advice to the user: yes, in the narrower form (a water hex within two
-  rings that the city owns). It makes the sea theme live for many more
-  starts without dealing rules, and it ends the choice between a good city
-  site and a coastal one. It also makes every coastal bonus more common, so
-  the sea cards of the Commerce pass should be priced after it.
-- Owner once ruled: Astra (a rule in `src/sim`).
+- Lighthouse, Harbour, ships and coastal city effects require that this city owns a coast hex at distance one or two. A lake, the open ocean and another city’s territory do not qualify. A change of ownership updates the reading immediately.
+- A ship uses the city centre if ships can enter it and there is room. Otherwise it launches on the nearest legal coast hex the city owns. Ties use map index order. A siege prevents an off-centre launch.
+- Sea movement, attacks and trade routes still need a physical route and the usual range. Inland city centres do not become ship passages.
 
 ## A lumber mill gives +2 production (built)
 
@@ -3281,8 +3269,7 @@ Not percentages of strength, so not in the list: the damage roll's band of
 ±20%; a hull that boards an embarked column takes half of the counter-blow
 (`embarkedCounterPercent`, a share of damage); the Opus breach rule (a share
 of banked production). No unit row and no other card carries a percentage of
-strength. The `combatPercent` stat stays in the vocabulary until The Volley
-Fire changes, and then nothing reads it.
+strength. The Volley Fire now contributes a flat defender line through the ordinary combat forecast.
 
 ### The naval rulings (2026-11-21)
 
@@ -3316,22 +3303,14 @@ alone. If the card returns, give it a flat form: the raider's strength less
 The user's comments on the Compendium pass's page:
 
 - **Strategic resources may be traded** (on Iron's entry): "we should probably
-  allow players to trade strategics." Today a deal can lend a luxury and not a
-  strategic resource. Not built. Owner: Astra (deals in `src/sim`, and the
-  diplomacy screen's offers, which the Claude session owns). To settle in the
-  build: a copy that is lent is counted for the units that need it, as a
-  luxury's lent copy is counted for happiness; what happens to a unit that
-  needs the copy when the deal ends.
-- **Fish traps are a normal improvement** (on Fish Traps' entry): "didn't we
-  determine that we wanted to replace 'tended work' with unique improvement?
-  That said, fish traps should just be a normal improvement." So fish traps
-  need no charter and no card: a worker builds them once the seat has the
-  technology that suits them (the builder proposes it). This changes the
-  Expansionist pass, where fish traps were a unique improvement opened by a
-  card: that card needs another job or a cut, and the unique-improvement
-  pay-offs no longer read fish traps. Not built. Owner: Astra, with the
-  Expansionist build. The word "tended" leaves the game in that build too;
-  until then the Compendium prints what the data says.
+  allow players to trade strategics." A deal can lend a free copy of a strategic resource. The borrower can use it after researching its reveal technology. Units already in play keep fighting when the loan ends. The bot can offer spare copies. Claude owns the controls for composing offers.
+- **Fish Traps require the Expansionist charter.** The user clarified on
+  2026-11-21: "not everyone should be able to build fish traps, keep it gated
+  by the order." This supersedes the earlier Compendium comment. Keep the
+  closed Expansionist design: The Gathering Grounds opens Fish Traps and
+  orchards. Both count as unique improvements.
+- **Wonders on city tiles** keep their three shared monuments. The user
+  confirmed this on 2026-11-21.
 - **Fortify until healed** (on the combat page): "could we add a 'fortify
   until healed option' and in the grey fortified button on the unit panel, it
   currently says +3 fortify, could we add a short line that says +X HP for how

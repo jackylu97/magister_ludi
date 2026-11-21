@@ -381,20 +381,17 @@ describe('the levy cards and the retired soldier read nought without a levy card
 
 // --- the commissions -----------------------------------------------------------
 
-describe('the five Expansionist commissions are priced by D16’s commission price (E13)', () => {
-  const FIVE = ['sixGardens', 'commissionBreakTheSod', 'theWideCountry', 'theHeartland', 'theDomesdaySurvey'];
+describe('Expansionist commission prices', () => {
+  const liveRows = ['commissionBreakTheSod', 'commissionBreadAndWater', 'commissionTheReclaimedLands', 'theDomesdaySurvey'];
+  const retiredRows = ['sixGardens', 'theWideCountry', 'theHeartland'];
 
-  it('names three live Expansionist commissions, and the two that batch DS1 retired', () => {
-    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired Six
-    // Gardens and The Heartland. A save can still hold them, so the price
-    // below still covers all five.
-    const RETIRED_IN_DS1 = ['sixGardens', 'theHeartland'];
+  it('registers the live commissions and retains the retired rewards', () => {
     const live = ORDER_IDS.filter((id) => {
       const def = orderDef(id);
       return def.commission !== undefined && def.retired !== true && def.decks.includes('expansionist');
     });
-    expect([...live].sort()).toEqual(FIVE.filter((id) => !RETIRED_IN_DS1.includes(id)).sort());
-    for (const id of RETIRED_IN_DS1) {
+    expect([...live].sort()).toEqual([...liveRows].sort());
+    for (const id of retiredRows) {
       expect(orderDef(id as OrderId).retired, id).toBe(true);
       expect(orderDef(id as OrderId).commission, id).toBeDefined();
     }
@@ -404,20 +401,24 @@ describe('the five Expansionist commissions are priced by D16’s commission pri
     const { state, player, cities } = board(2, 20);
     const hexes = ring(state, cities[0]!);
     work(state, cities[0]!, hexes.slice(0, 3), 'farm', 5);
+    const orchards = ring(state, cities[1]!).slice(0, 2);
+    for (const tile of orchards) tile.feature = 'forest';
+    work(state, cities[1]!, orchards, 'wildOrchard', 5);
+    cities[0]!.buildings.push('aqueduct');
+    bumpRevision(state);
     const ctx: ValueContext = valueContext(state, player);
-    for (const id of FIVE) {
+    for (const id of [...retiredRows, ...liveRows]) {
       const priced = explainCommission(id as OrderId, ctx);
       expect(priced, id).not.toBeNull();
-      const reward = priced!.terms[0]!.parts!;
-      for (const line of orderDef(id as OrderId).commission!.reward) {
-        for (const effect of line.lasting ?? []) {
-          const term = reward.find((entry) => entry.label === `for the rest of the game: ${effect.kind}`);
-          expect(term, `${id} ${effect.kind}`).toBeDefined();
-          expect(term!.value, `${id} ${effect.kind}`).toBeGreaterThan(0);
-          // The board's own price of the effect, wherever the board has one.
-          const board = scoreEffects([effect], ctx);
-          if (board !== 0) expect(term!.value, `${id} ${effect.kind}`).toBe(board);
-        }
+      const terms = priced!.terms[0]!.parts!.filter(entry => entry.label.startsWith('for the rest of the game: '));
+      const effects = orderDef(id as OrderId).commission!.reward.flatMap(reward => reward.lasting ?? []);
+      expect(terms, id).toHaveLength(effects.length);
+      for (const [index, effect] of effects.entries()) {
+        const term = terms[index]!;
+        expect(term.label, id).toBe(`for the rest of the game: ${effect.kind}`);
+        expect(term.value, id).toBeGreaterThan(0);
+        const board = scoreEffects([effect], ctx);
+        if (board !== 0) expect(term.value, `${id} ${effect.kind}`).toBe(board);
       }
     }
   });

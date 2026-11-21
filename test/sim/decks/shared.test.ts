@@ -202,7 +202,7 @@ describe('the shared cards of the four approved decks', () => {
     expect(orderIsDealt('mercenaryContracts' as OrderId)).toBe(true);
   });
 
-  it('turns the two purchase discounts into gold, ruling (qqqqqq) 1', () => {
+  it('shares sea captures with Dominion and temple gold with Devotion', () => {
     for (const id of ['lettersOfMarque', 'commonTheTithe']) {
       const kinds = orderDef(id as OrderId).effects.map((effect) => effect.kind);
       expect(kinds, id).not.toContain('purchaseRider');
@@ -213,9 +213,9 @@ describe('the shared cards of the four approved decks', () => {
     expect(orderDef('commonTheTithe' as OrderId).effects).toEqual([
       expect.objectContaining({ kind: 'pays', where: 'city', basis: 'share', from: 'faith', to: 'gold', percent: 25 }),
     ]);
-    // Batch DS2 cut Letters of Marque's harbour gold with its other harbour
-    // clause, so only the kill reward is left.
-    expect(orderDef('lettersOfMarque' as OrderId).effects.map((effect) => effect.kind)).toEqual(['windfallRider']);
+    expect(orderDef('lettersOfMarque' as OrderId).effects).toEqual([
+      { kind: 'rulePercent', rule: 'defeatedShipJoins', percent: 50 },
+    ]);
   });
 });
 

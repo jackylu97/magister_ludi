@@ -23,9 +23,10 @@
  * `readings.ts` — the memos sit above this layer, never inside it.
  */
 
+import { improvementFields } from '../improvementFields';
 import { type BuildingId } from '../buildingData';
-import { type Tile, neighborTiles, tileHex } from '../map';
-import { improvementDef, improvementYield } from '../improvementData';
+import { type Tile, neighborTiles, tileHex, tileIndex } from '../map';
+import { type ImprovementId, improvementDef, improvementYield } from '../improvementData';
 import { resourceDef, resourceIsVisibleTo, resourceYield } from '../resourceData';
 import { type CardId } from '../statecraftData';
 import {
@@ -167,6 +168,7 @@ export interface TileYieldContribution extends TileYield {
  * for this module to know about research.
  */
 export interface TileYieldContext {
+  neighbourGifts?: (tile: Tile) => readonly ImprovementId[] | undefined;
   /** Technologies the owning player holds. `Player.techsResearched`. */
   techs: readonly TechId[];
   /**
@@ -332,6 +334,8 @@ export function yieldContextFor(
   // that carried the ring only when a *card* had already spoken would answer the
   // same question two ways. It costs one function reference and is never called
   // unless a condition asks the neighbours. See `TileYieldContext.neighbours`.
+  const gifts = improvementFields(state).gifts;
+  if (gifts) ctx.neighbourGifts = tile => gifts[tileIndex(state.map, tile.col, tile.row)];
   ctx.neighbours = (tile) => neighborTiles(state.map, tileHex(tile));
   // **The clock, for the one condition that asks a date** — written whatever the
   // law says, for the ring's reason exactly: a fact about the world does not
@@ -579,6 +583,17 @@ export function explainTileYield(
     list.push(entryOf(resourceDef(tile.resource).name, 'add', resourceYield(tile.resource)));
   }
 
+  // **The ring of six, taken once and only if asked** (`TileCondition`'s
+  // `beside`). The same bargain as the reading above it: the context hands in
+  // how to get it, the one arm that wants it is the only thing that calls, and a
+  // context with no board behind it leaves the thunk absent so the condition
+  // answers no. Memoised per hex, because a card that dresses farms beside roads
+  // is asked of every line on every tile of every town.
+  let ring: readonly Tile[] | undefined;
+  const near = ctx?.neighbours;
+  const besideThunk =
+    near === undefined ? undefined : (): readonly Tile[] => (ring ??= near(tile));
+
   const improvement = tile.improvement;
   // Where the works' own entries begin, so a card that raises *them* by a
   // percentage can be paid off exactly what they pay and nothing else. See the
@@ -603,6 +618,18 @@ export function explainTileYield(
       }
     }
     list.push(entryOf(def.name, 'add', works));
+    if (def.perNeighbour && besideThunk) {
+      const { on, yields } = def.perNeighbour;
+      let count = 0;
+      for (const next of besideThunk()) {
+        if (tileConditionHolds(next, on, undefined, undefined, ctx?.turn, ctx?.ground)) count++;
+      }
+      if (count) {
+        const bonus = emptyTileYield();
+        for (const key of TILE_YIELD_KEYS) bonus[key] = count * (yields[key] ?? 0);
+        list.push(entryOf(`${def.name} · neighbouring tiles`, 'add', bonus));
+      }
+    }
     // The renewals, each its own entry, and only for an empire that has earned
     // them. Walked in the table's own order so two renewals on one improvement
     // always read in the same order (design ledger, Entry I).
@@ -632,6 +659,16 @@ export function explainTileYield(
     }
   }
   const worksTo = list.length;
+  const gifts = ctx?.neighbourGifts?.(tile);
+  if (gifts) {
+    for (const source of gifts) {
+      const def = improvementDef(source);
+      const gift = def.givesNeighbours!;
+      if (tileConditionHolds(tile, gift.on, undefined, undefined, ctx?.turn, ctx?.ground)) {
+        list.push(entryOf(def.name, 'add', { ...emptyTileYield(), ...gift.yields }));
+      }
+    }
+  }
 
   // **The lasting marks** (Expansionist batch E3: The Raising of the Land, The
   // Coming of the Water), after the works and outside their bracket: a mark is
@@ -663,16 +700,7 @@ export function explainTileYield(
   let paid: TileYield | undefined;
   const paidSoFar = (): TileYield => (paid ??= foldTileLines(list));
 
-  // **The ring of six, taken once and only if asked** (`TileCondition`'s
-  // `beside`). The same bargain as the reading above it: the context hands in
-  // how to get it, the one arm that wants it is the only thing that calls, and a
-  // context with no board behind it leaves the thunk absent so the condition
-  // answers no. Memoised per hex, because a card that dresses farms beside roads
-  // is asked of every line on every tile of every town.
-  let ring: readonly Tile[] | undefined;
-  const near = ctx?.neighbours;
-  const besideThunk =
-    near === undefined ? undefined : (): readonly Tile[] => (ring ??= near(tile));
+
 
   // The empire's law, holdings and works, last, and as ordinary `add` entries:
   // Common Granary's food on a resource hex, a granary's food on water, tyrian's

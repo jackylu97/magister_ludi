@@ -2792,6 +2792,27 @@ describe('The Peregrini (batch DT16)', () => {
       removeImprovementAt(state, second, tile);
       expect(other.workedTiles).toEqual([]);
     });
+
+    it('refreshes a neighbouring Baray when the changed tile becomes or stops being a farm', () => {
+      const { state, other } = board();
+      const tile = at(state, WORK_HEX.col, WORK_HEX.row);
+      const baray = at(state, RING_HEX.col, RING_HEX.row);
+      raiseImprovement(baray, 'baray', state.turn);
+      bumpRevision(state);
+      stale(other);
+      const build = (id: 'mine' | 'farm') => {
+        const worker = createUnit(state, 0, 'worker', tile.col, tile.row);
+        buildImprovementAt(state, worker, tile, id);
+      };
+      build('mine');
+      expect(other.workedTiles).toEqual([]);
+      build('farm');
+      expect(other.workedTiles.length).toBeGreaterThan(0);
+      stale(other);
+      const worker = createUnit(state, 0, 'worker', tile.col, tile.row);
+      removeImprovementAt(state, worker, tile);
+      expect(other.workedTiles.length).toBeGreaterThan(0);
+    });
   });
 
   describe('the discount', () => {

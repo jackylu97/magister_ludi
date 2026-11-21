@@ -921,7 +921,7 @@
       "name": "The Alms Box",
       "axis": "none",
       "flavor": "The box by the door is never locked, and it is never empty for long.",
-      "text": "Towns that follow buy with faith for 20% less.",
+      "text": "Your faith buys 25% more in towns that follow this religion.",
       "effects": [
         {
           "kind": "purchaseRider",
@@ -1039,7 +1039,7 @@
       "name": "Apostles",
       "axis": "none",
       "flavor": "Twelve of them, and none with a fixed address.",
-      "text": "Apostles cost 30% less faith.",
+      "text": "Your faith buys 42.86% more when buying apostles.",
       "effects": [
         {
           "kind": "purchaseRider",

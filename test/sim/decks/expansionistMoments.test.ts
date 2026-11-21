@@ -274,16 +274,16 @@ describe('the Expansionist batch E2: completions, censuses and roads', () => {
 });
 
 describe('the Expansionist batch E2: founding and the counts', () => {
-  it('The Great Colonies starts a town at a third of the largest town, and The Seed Grain adds one', () => {
+  it('The Great Colonies starts a town at a quarter of the largest town, and The Seed Grain adds one', () => {
     const state = bareState(16, 10);
     slot(state, 0, 'theGreatColonies');
     town(state, 2, 2, 10);
     const first = foundCityAt(state, 0, at(state, 9, 6));
-    expect(first.population).toBe(3);
-    expect(first.largestSize).toBe(3);
+    expect(first.population).toBe(2);
+    expect(first.largestSize).toBe(2);
     slot(state, 0, 'theSeedGrain');
     const second = foundCityAt(state, 0, at(state, 13, 2));
-    expect(second.population).toBe(4);
+    expect(second.population).toBe(3);
   });
 
   it('The Great Colonies never starts a town smaller than usual', () => {
@@ -372,7 +372,7 @@ describe('the Expansionist batch E2: the words', () => {
       'a city being joined to your capital by road for the first time grants production equal to 20 times its population',
     ]);
     expect(said('theGreatColonies')).toEqual([
-      'new cities start with a third of the citizens of your largest city, rounded down',
+      'new cities start with a quarter of the citizens of your largest city, rounded down',
     ]);
     expect(said('theLandsGreatWork')).toEqual([
       '+5% production toward The Magnum Opus per city of 8 or more citizens (at most +40%)',

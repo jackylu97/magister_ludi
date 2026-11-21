@@ -1174,6 +1174,8 @@ interface LevyRules {
 interface CityRules {
   /** How far from its centre a city may assign citizens, in hexes. */
   workRadius: number;
+  /** A city can use the coast it owns within this distance. */
+  coastalReach: number;
   /** How far from its centre a city's borders may ever reach, in hexes. */
   claimRadius: number;
   /**
@@ -1655,8 +1657,6 @@ interface ProductionRules {
    * which is the moment buying is worth least.
    */
   goldPerHammer: number;
-  /** Maximum combined discount unless one source offers more. */
-  purchaseDiscountCap: number;
   /**
    * Faith one hammer of a **contribution** costs (design ledger Entry LV).
    *
@@ -2162,6 +2162,11 @@ interface SiteRules {
   coast: number;
   /** Each hill in the ring — the ground a town works for stone. */
   hills: number;
+  /** Maximum number of hills that add a site bonus. Their normal yields still count. */
+  hillBonusLimit: number;
+  /** Steps at which a known barbarian camp starts to reduce a site score. */
+  campRiskRadius: number;
+  campRiskPerStep: number;
   /** Closer than this to a town of our own and the site is crowded. */
   comfortableSpacing: number;
   /** What each hex of that crowding costs the site. */
@@ -2252,6 +2257,8 @@ interface ScoreRules {
 interface UiRules {
   /** How many recommended sites the settler lens marks at once. */
   recommendedSites: number;
+  workerAdviceRadius: number;
+  workerAdviceCount: number;
 }
 
 interface RulesConfig {

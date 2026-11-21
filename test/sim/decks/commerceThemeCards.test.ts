@@ -40,12 +40,14 @@
  *     at most +30% (reading 30). Since batch DS4 it is +1% for every 10 gold
  *     the empire makes each turn;
  *   · The Grain Barges: a domestic trade route pays its destination +1 food
- *     and +1 production for every four citizens of its origin (reading 40);
+ *     and +1 production for every three citizens of its origin (reading 40);
  *   · Merchant Scholars, shared with Scientific: Tier III, and a foreign trade
  *     route gains +2 science for each Academy in its origin's borders
  *     (reading 36).
  */
 
+import { purchaseItemAt } from '../../../src/sim/purchase';
+import { scalerFace } from '../../../src/ui/scalerValue';
 import { describe, expect, it } from 'vitest';
 
 import { foundCityAt, ownedTiles, refreshCityDerived, resourceCopies } from '../../../src/sim/cities';
@@ -201,9 +203,11 @@ describe('Commerce batch T1: the gold percentages', () => {
     // the rule that lets every town build a Caravanserai.
     expect(orderDef('theMarketWrit' as OrderId).effects).toEqual([
       expect.objectContaining({ kind: 'pays', where: 'empire', to: 'authority', count: 'buildingsOfKind' }),
+      expect.objectContaining({ kind: 'pays', where: 'empire', to: 'happiness', count: 'buildingsOfKind' }),
     ]);
     expect(orderDef('theFactorsHouses' as OrderId).effects).toEqual([
-      expect.objectContaining({ kind: 'pays', where: 'city', gold: 2, culture: 4, scope: { test: 'holdsPost' } }),
+      expect.objectContaining({ kind: 'pays', where: 'empire', to: 'gold', amount: 2, count: 'allPostCities' }),
+      expect.objectContaining({ kind: 'pays', where: 'empire', to: 'culture', amount: 4, count: 'allPostCities' }),
     ]);
     expect(orderDef('caravanseraiCities' as OrderId).effects).toEqual([
       { kind: 'rule', rule: 'buildsEverywhere', building: 'caravanserai' },
@@ -233,29 +237,29 @@ describe('Commerce batch T1: the cards that pay something new', () => {
     expect(named(quiet, { kind: 'building', id: 'granary' })).toEqual([]);
   });
 
-  it('Bought and Paid For pays +4% production and culture a building bought there with gold, at most +24%', () => {
+  it('keeps the purchase count when a city changes owners and shows the capped percentage', () => {
     const state = bareState(16, 10);
     const city = town(state, 3, 5, 4);
     const other = town(state, 11, 5, 4);
-    slot(state, 0, 'boughtAndPaidFor');
-    addBuilding(state, city, 'monument', 'gold');
-    addBuilding(state, city, 'granary', 'gold');
-    // A building bought with faith, or built, does not count.
+    const player = playerById(state, 0)!;
+    player.gold = 10000;
+    const card = 'boughtAndPaidFor' as OrderId;
+    purchaseItemAt(state, player, city, { kind: 'building', id: 'granary' }, 'gold');
     addBuilding(state, city, 'shrine', 'faith');
     addBuilding(state, city, 'library');
-    bumpRevision(state);
-    expect(townPercent(state, city, 'boughtAndPaidFor', 'production')).toBe(8);
-    expect(townPercent(state, city, 'boughtAndPaidFor', 'culture')).toBe(8);
-    expect(townPercent(state, other, 'boughtAndPaidFor', 'production')).toBe(0);
-    for (const id of ['barracks', 'palisade', 'market', 'temple', 'amphitheater', 'aqueduct'] as const) {
-      addBuilding(state, city, id, 'gold');
+    slot(state, 0, card);
+    for (const owned of [city, other]) {
+      expect(townPercent(state, owned, card, 'production')).toBe(2);
+      expect(townPercent(state, owned, card, 'culture')).toBe(2);
     }
+    city.ownerId = 1;
     bumpRevision(state);
-    expect(townPercent(state, city, 'boughtAndPaidFor', 'production')).toBe(24);
-    expect(townPercent(state, city, 'boughtAndPaidFor', 'culture')).toBe(24);
-    for (const line of explainCardPercentYields(state, city).filter((l) => l.card === 'boughtAndPaidFor')) {
-      expect(line.stage).toBe('city');
-    }
+    expect(scalerFace(state, 0, card)?.figure).toBe('+2%');
+    expect(townPercent(state, other, card, 'production')).toBe(2);
+    player.buildingsBoughtWithGold = 18;
+    bumpRevision(state);
+    expect(scalerFace(state, 0, card)?.figure).toBe('+30%');
+    expect(townPercent(state, other, card, 'culture')).toBe(30);
   });
 
   it('Money at Work pays every town +1 science for every 20 gold you make each turn (batch DS4)', () => {
@@ -303,17 +307,15 @@ describe('Commerce batch T1: the cards that pay something new', () => {
     expect((orderDef('theNestEgg' as OrderId).effects[0] as { max?: number }).max).toBeUndefined();
   });
 
-  it('The Customs Houses pays no hex gold, no renown and no gold percentage any more', () => {
-    const effects = orderDef('theCustomsHouses' as OrderId).effects;
-    expect(effects.map((e) => e.kind)).toEqual(['pays', 'pays']);
-    for (const effect of effects) {
-      expect(effect).toMatchObject({ where: 'city', basis: 'count', count: 'tilesInBorders', within: 'city', amount: 4 });
-    }
+  it('The Customs Houses pays the two yields on the improvement', () => {
+    expect(orderDef('theCustomsHouses' as OrderId).effects).toEqual([{
+      kind: 'pays', where: 'hex', on: { test: 'improvement', improvement: 'customsHouse' }, science: 8, culture: 8,
+    }]);
   });
 });
 
 describe('Commerce batch T1: the commissions', () => {
-  it('Corner the Market leaves +2 happiness for each luxury held twice or more, and no gold or merchant', () => {
+  it('Corner the Market leaves +2 happiness for each different luxury, and no gold or merchant', () => {
     const state = bareState();
     const city = town(state, 5, 5, 4);
     const player = playerById(state, 0)!;
@@ -339,7 +341,7 @@ describe('Commerce batch T1: the commissions', () => {
     expect(resourceCopies(state, 0, luxuries[1]!)).toBe(1);
     // The goal is unchanged: four copies of one luxury.
     expect(orderDef('cornerTheMarket' as OrderId).commission!.goals).toEqual([
-      { kind: 'reached', figure: 'luxuryCopies', count: 4 },
+      { kind: 'reached', figure: 'luxuryCopies', count: 3 },
     ]);
     slot(state, 0, 'cornerTheMarket');
     const before = happinessOf(state, 0);
@@ -351,13 +353,13 @@ describe('Commerce batch T1: the commissions', () => {
     expect(commissionFulfilledTurn(player.statecraft, 'cornerTheMarket' as OrderId)).toBe(state.turn);
     expect(seated(state, 'cornerTheMarket')).toBe(false);
     // One luxury is held twice: +2 happiness, for the rest of the game.
-    expect(happinessOf(state, 0)).toBe(before + 2);
+    expect(happinessOf(state, 0)).toBe(before + 4);
     expect(player.gold).toBe(gold);
     expect(player.greatPersonOffer).toBeUndefined();
     const words = describeCard('cornerTheMarket' as OrderId).map((clause) => stripRefs(clause.text));
     expect(words[1]).toBe(
-      'Goal: hold 4 copies of one luxury, counting copies you receive in deals. ' +
-        'Reward: +2 happiness per luxury you hold two or more copies of',
+      'Goal: hold 3 copies of one luxury, counting copies you receive in deals. ' +
+        'Reward: +2 happiness per unique luxury',
     );
   });
 
@@ -458,7 +460,7 @@ describe('Commerce batch T1: tiers, retirements and moves', () => {
     // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
     // Waqf. Its row stays in the shared file under its id, with no type, and
     // neither deck is dealt it.
-    const retired = ['theWaqf'];
+    const retired = ['theWaqf', 'theSilkRoadMonks'];
     for (const [id, [partner, type, band]] of Object.entries(moved)) {
       const def = orderDef(id as OrderId);
       const isRetired = retired.includes(id);
@@ -675,9 +677,9 @@ describe('Commerce batch T2: the route cards', () => {
     slot(state, 0, 'theGrainBarges');
     const named = (lines: ReturnType<typeof explainRouteYieldBetween>) =>
       foldRouteYield(lines.filter((line) => line.source.includes('The Grain Barges')));
-    // Nine citizens at the origin are two helpings.
+    // Nine citizens at the origin give three payments.
     const paid = named(explainRouteYieldBetween(state, from, to));
-    expect([paid.food, paid.production]).toEqual([2, 2]);
+    expect([paid.food, paid.production]).toEqual([3, 3]);
     // The count is the origin's: the small town sends less.
     const back = named(explainRouteYieldBetween(state, to, from));
     expect([back.food, back.production]).toEqual([0, 0]);
@@ -686,12 +688,12 @@ describe('Commerce batch T2: the route cards', () => {
     expect([abroad.food, abroad.production]).toEqual([0, 0]);
   });
 
-  it('Merchant Scholars sits at Tier III and pays foreign routes +2 science for each Academy in the origin city', () => {
+  it('Retired Merchant Scholars keeps its effect for existing chairs and pays foreign routes +2 science for each Academy in the origin city', () => {
     const def = orderDef('merchantScholars' as OrderId);
-    expect([def.band, def.rarity, def.type]).toEqual([3, 'uncommon', 'civic']);
+    expect([def.band, def.rarity, def.type]).toEqual([3, 'uncommon', undefined]);
     expect(def.decks).toEqual(['commerce', 'scientific']);
     expect(DECK_FILE_ORDERS.common).toContain('merchantScholars');
-    expect(orderIsDealt('merchantScholars' as OrderId)).toBe(true);
+    expect(orderIsDealt('merchantScholars' as OrderId)).toBe(false);
     const state = bareState(24, 10);
     const from = town(state, 3, 5, 4);
     const home = town(state, 9, 5, 4);

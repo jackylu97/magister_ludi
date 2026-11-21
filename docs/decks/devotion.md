@@ -38,7 +38,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 14 | 2 | 0 | 16 | 0 |
 | Tier IV | 10 | 0 | 0 | 10 | 0 |
 | **All** | **60** | **3** | **0** | **63** | **2** |
-| Shared | 21 | 1 | 0 | 22 | 1 |
+| Shared | 23 | 0 | 0 | 23 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -50,7 +50,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 2 | 2 | 11 | 1 |
 | Tier IV | 1 | 1 | 7 | 1 |
 | **All** | **5** | **11** | **42** | **5** |
-| Shared | 4 | 2 | 16 | 0 |
+| Shared | 4 | 2 | 17 | 0 |
 
 The deck's data holds 63 live rows. Without the two charters, 61 of them take a chair: 6, 13, 16, 16 and 10 across Tiers 0 to IV. By type they are 5 Military, 11 Economic, 40 Civic and 5 Wildcard.
 
@@ -136,7 +136,7 @@ The deck's data holds 63 live rows. Without the two charters, 61 of them take a 
 |---|---|---|
 | **The Imarets** | devout realm | Your devout towns grow 25% faster. |
 | **Canossa** | spreading faith | You and an empire whose capital follows your religion cannot declare war on each other. |
-| **The Canons of the Holy Sepulchre** | holy places | Towns with a holy site buy with faith at 30% less. |
+| **The Canons of the Holy Sepulchre** | holy places | Your faith buys 42.86% more in towns with a holy site. |
 | **The Martyr's Crown** | holy war | Each of your units that dies in battle presses your religion on every town within three hexes. |
 
 **Orders:**
@@ -154,7 +154,7 @@ The deck's data holds 63 live rows. Without the two charters, 61 of them take a 
 | **The Mass Baptisms** | uncommon | implemented | The first time a foreign town turns to your religion, gain science and culture equal to twenty times its population. | Civic |
 | **The Conversion of Kings** | rare | implemented | Goal: convert a rival's capital. Reward: a Prophet and 500 culture. | Wildcard |
 | **The Turning of Swords** | rare | implemented | An enemy unit you kill on land that follows your religion joins your side instead, at most once a turn. | Military |
-| **The Offering Chests** | common | implemented | Military units bought with faith cost 30% less. | Military |
+| **The Offering Chests** | common | implemented | Your faith buys 42.86% more when buying military units. | Military |
 | **The Pious Masons** | rare | modify: as built | Towns with a Cathedral may buy a half-built wonder with faith. | Economic |
 | **The Offered Stones** | uncommon | implemented | Buildings you bought with faith give +2 culture each. | Economic |
 | **The Learned Clergy** | uncommon | implemented | +2 science and +2 culture for every 10 faith your empire makes each turn. | Civic |
@@ -203,7 +203,7 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
 | **Rites of Passage** | common | Dominion | 0 | implemented | Gaining a military unit grants 12 faith. | Civic |
-| **Sacred Groves** | uncommon | Expansionist | 0 | implemented | Worked, unimproved forests gain +1 food and +1 faith. | Civic |
+| **Sacred Groves** | uncommon | Expansionist | 0 | implemented | Worked forests gain +1 food and +1 faith. | Civic |
 | **The Merchant Shrines** | common | Commerce | 0 | implemented | Towns working an improved luxury gain +2 faith. | Civic |
 | **The Ambarvalia** | common | Expansionist | 0 | implemented | Each town gains +1 faith for every two improved tiles. | Civic |
 | **The Holy Spring** | common | Expansionist | 0 | implemented | Towns beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
@@ -216,7 +216,6 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 | **The Priest-Astronomers** | common | Scientific | I | implemented | Your capital gains +2 science and +2 faith for each town keeping a rite. | Civic |
 | **Pilgrim Markets** | uncommon | Commerce | II | implemented | Trade routes to or from a town with a Holy Site gain +3 gold and +3 faith. | Civic |
 | **The Tithe** | rare | Commerce | II | implemented | Towns with a Temple gain gold equal to 25% of their faith. | Economic |
-| **The Silk Road Monks** | uncommon | Commerce | II | modify: as built | Trade routes to a town that follows your religion gain +3 gold and +3 culture. | Civic |
 | **The Cloister** | rare | Scientific | II | implemented | Towns with a Temple gain science equal to 30% of their faith. | Civic |
 | **The Blessed Forges** | uncommon | Scientific | II | implemented | Improved strategic resources gain +1 faith and +1 production. | Civic |
 | **The Crusader Orders** | uncommon | Dominion | II | implemented | Military units gain +3 strength in land that does not follow your religion. | Military |
@@ -224,6 +223,8 @@ These rows live in `data/decks/common.json`. A seat holding Devotion or the deck
 | **Sacred Commissions** | uncommon | Magisterial | II | implemented | Towns with a Holy Site build wonders 30% faster. | Economic |
 | **Sacred Patronage** | rare | Magisterial | III | implemented | You may buy a great-person draft for 750 faith. | Civic |
 | **The Monastic University** | rare | Scientific | III | implemented | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. | Civic |
+| **The Incense Road** | common | Commerce | I | implemented | +2 faith for each different luxury you hold. | Civic |
+| **The Votive Accounts** | uncommon | Commerce | I | implemented | Starts at +2 culture and +2 faith for your empire. Gains +1 of each every time you buy something with gold or faith, or start a rite, at most +20. | Civic |
 
 ## Retired rows
 

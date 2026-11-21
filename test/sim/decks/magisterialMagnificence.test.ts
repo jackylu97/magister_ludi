@@ -198,6 +198,20 @@ describe('the culture price (reading 36)', () => {
     );
   });
 
+  it('applies Crassus buying power to a wonder bought with culture', () => {
+    const { state, city } = builder({ culture: 5000, banked: 1 });
+    const quote = () => explainPurchaseCost(state, 0, city.id, BUY_WONDER, 'culture')!;
+    const full = quote().total;
+    playerById(state, 0)!.legacies.push({ id: 'crassus', age: 3 });
+    bumpRevision(state);
+    seat(state, 'commerceOpenMarket');
+    const price = quote();
+    expect(price.total).toBe(Math.ceil(full * 4 / 5));
+    expect(price.lines.filter(line => line.source.startsWith('Buying power'))).toEqual([
+      { source: expect.stringContaining('Crassus'), amount: price.total - full },
+    ]);
+  });
+
   it('lets a purchase rider ride on it, as in the other banks', () => {
     // The Brokers' Redraw carried the one Order rider with no bank named on it
     // ("All other purchasing is 10% more expensive") until batch DS4 cut that
@@ -212,7 +226,7 @@ describe('the culture price (reading 36)', () => {
       const plain = explainPurchaseCost(state, 0, city.id, BUY_WONDER, 'culture')!.total;
       seat(state, BROKERS);
       const dearer = explainPurchaseCost(state, 0, city.id, BUY_WONDER, 'culture')!;
-      expect(dearer.total).toBe(Math.floor((plain * 110) / 100));
+      expect(dearer.total).toBe(Math.ceil((plain * 110) / 100));
       expect(dearer.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(dearer.total);
     } finally {
       def.effects = before;

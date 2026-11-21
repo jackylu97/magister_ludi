@@ -4562,7 +4562,7 @@ function readTerms(value: unknown): DealTerms | null {
   // `dealSideError`, and the split is the one that matters: a refusal must
   // still be a refusal, and a `for…of` over a number would throw rather than
   // return, which is the one thing hard rule 1 cannot survive.
-  for (const key of ['luxuries', 'cities']) {
+  for (const key of ['luxuries', 'strategics', 'cities']) {
     if (terms[key] !== undefined && !Array.isArray(terms[key])) return null;
   }
   return value as DealTerms;

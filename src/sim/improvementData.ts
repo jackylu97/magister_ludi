@@ -164,9 +164,11 @@ import {
   emptyTileYield,
   readTileYield,
 } from './terrainData';
-import { type TechId, isTechId } from './techData';
+import type { TileCondition } from './statecraftData';
+import { type TechId, isTechId, isCharterTech } from './techData';
 
 export type ImprovementId =
+  | 'nazcaLines' | 'inuksuk' | 'totemPole' | 'stepwell' | 'baray' | 'hillfort'
   | 'paradiseGarden'
   | 'farm'
   // **The Terraces** (batch L8, `docs/flags.md` (bbbbb)): a farm of the high
@@ -391,6 +393,13 @@ export interface ImprovementDef {
   hillsIf?: HillsWaiver[];
   /** A worker needs a mountain beside the site to build this improvement. */
   requiresAdjacentMountain?: boolean;
+  requiresRiver?: boolean;
+  requiresDryGround?: boolean;
+  /** Each qualifying neighbour contributes this amount to the work's yield. */
+  perNeighbour?: { on: TileCondition; yields: Partial<TileYield> };
+  /** This work adds a yield to nearby tiles that match the condition. */
+  givesNeighbours?: { on: TileCondition; yields: Partial<TileYield> };
+  renown?: { family: Family; amount: number };
   /**
    * The row this one **stands in for** wherever the rules read an improvement,
    * or absent for the ordinary row that is only itself.
@@ -568,6 +577,7 @@ export interface ImprovementDef {
    * card. It waters only farms, and only while it stands.
    */
   watersBeside?: boolean;
+  watersAllNeighbours?: true;
   // Batch S5 added two more fields for Niter Beds: `besideImprovement` (a row
   // that must stand beside the hex when it is built) and `suppliesResource`
   // (one copy of a resource with no seam under the work). Niter Beds was the
@@ -776,11 +786,14 @@ export function isTendedWork(id: ImprovementId): boolean {
   return improvementDef(id).tended === true;
 }
 
-/**
- * **Does a card open this row?** A tended work waits for its charter, and a row
- * marked `unlockedByCard` waits for a seated card that names it (Expansionist
- * batch E4). Every other row is opened by the tree, a figure or a great person.
- */
+/** A restricted work counts for unique-improvement Orders whenever its tile is intact. */
+export function isUniqueImprovement(id: ImprovementId): boolean {
+  const def = improvementDef(id);
+  return def.unlockedByLeader === true || def.unlockedByCard === true ||
+    (def.requiresTech !== undefined && isCharterTech(def.requiresTech));
+}
+
+/** Retired charters still open their original works for players who already hold them. */
 export function isCardOpenedWork(id: ImprovementId): boolean {
   const def = improvementDef(id);
   return def.tended === true || def.unlockedByCard === true;

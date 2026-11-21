@@ -555,9 +555,8 @@
       "name": "Fish Traps",
       "emoji": "🐟",
       "chargeCost": 1,
-      "tended": true,
       "yields": {
-        "food": 1,
+        "food": 2,
         "production": 1,
         "gold": 0
       },
@@ -565,23 +564,24 @@
         "coast",
         "lake"
       ],
-      "clearsClutter": false
+      "clearsClutter": false,
+      "unlockedByCard": true
     },
     "wildOrchard": {
       "name": "Wild Orchard",
       "emoji": "🍎",
       "chargeCost": 1,
-      "tended": true,
       "yields": {
-        "food": 1,
+        "food": 2,
         "production": 0,
-        "gold": 1
+        "gold": 2
       },
       "validFeatures": [
         "forest",
         "jungle"
       ],
-      "clearsClutter": false
+      "clearsClutter": false,
+      "unlockedByCard": true
     },
     "burnedCountry": {
       "name": "Burned Country",
@@ -627,7 +627,7 @@
     "polder": {
       "name": "Polder",
       "emoji": "🌾",
-      "chargeCost": 2,
+      "chargeCost": 1,
       "unlockedByCard": true,
       "yields": {
         "food": 0,
@@ -642,7 +642,8 @@
         "terrain": "grassland",
         "improvement": "farm"
       },
-      "clearsClutter": false
+      "clearsClutter": false,
+      "countsAs": "farm"
     },
     "outpost": {
       "name": "Outpost",
@@ -733,6 +734,196 @@
       ],
       "requiresHills": false,
       "clearsClutter": true
+    },
+    "nazcaLines": {
+      "name": "Nazca Lines",
+      "emoji": "〰️",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0,
+        "faith": 2,
+        "culture": 2
+      },
+      "clearsClutter": true,
+      "validTerrain": [
+        "desert"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "requiresHills": false,
+      "perNeighbour": {
+        "on": {
+          "test": "anyImprovement",
+          "improvements": [
+            "nazcaLines"
+          ]
+        },
+        "yields": {
+          "faith": 2
+        }
+      }
+    },
+    "inuksuk": {
+      "name": "Inuksuk",
+      "emoji": "🪨",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0,
+        "culture": 2
+      },
+      "clearsClutter": false,
+      "validTerrain": [
+        "tundra",
+        "snow"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "perNeighbour": {
+        "on": {
+          "test": "anyImprovement",
+          "improvements": [
+            "inuksuk"
+          ]
+        },
+        "yields": {
+          "culture": 1
+        }
+      }
+    },
+    "totemPole": {
+      "name": "Totem Pole",
+      "emoji": "🪵",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0,
+        "culture": 3
+      },
+      "clearsClutter": false,
+      "validFeatures": [
+        "forest",
+        "jungle"
+      ],
+      "onePerTown": true,
+      "givesNeighbours": {
+        "on": {
+          "test": "anyFeature",
+          "features": [
+            "forest",
+            "jungle"
+          ]
+        },
+        "yields": {
+          "culture": 1,
+          "production": 1
+        }
+      }
+    },
+    "stepwell": {
+      "name": "Stepwell",
+      "emoji": "🪜",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "yields": {
+        "food": 2,
+        "production": 0,
+        "gold": 0
+      },
+      "clearsClutter": true,
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "requiresHills": false,
+      "requiresDryGround": true,
+      "onePerTown": true,
+      "watersBeside": true,
+      "watersAllNeighbours": true,
+      "renown": {
+        "family": "engineer",
+        "amount": 1
+      }
+    },
+    "hillfort": {
+      "name": "Hillfort",
+      "emoji": "🏯",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "yields": {
+        "food": 0,
+        "production": 2,
+        "gold": 0
+      },
+      "clearsClutter": true,
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "requiresHills": true,
+      "onePerTown": true,
+      "defense": 5,
+      "perNeighbour": {
+        "on": {
+          "test": "anyImprovement",
+          "improvements": [
+            "farm",
+            "pasture",
+            "camp"
+          ]
+        },
+        "yields": {
+          "production": 1
+        }
+      }
+    },
+    "baray": {
+      "name": "Baray",
+      "emoji": "🟦",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "yields": {
+        "food": 2,
+        "production": 0,
+        "gold": 0
+      },
+      "clearsClutter": true,
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "requiresHills": false,
+      "requiresRiver": true,
+      "onePerTown": true,
+      "perNeighbour": {
+        "on": {
+          "test": "anyImprovement",
+          "improvements": [
+            "farm"
+          ]
+        },
+        "yields": {
+          "production": 2
+        }
+      }
     }
   }
 }

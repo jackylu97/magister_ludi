@@ -7,7 +7,7 @@
  *
  *   1. The Apprentices: finishing a world wonder or the Magnum Opus grants
  *      nothing, and every other building grants 5 science;
- *   2. The Scholars' Roads: +50% science and culture on routes, and no lost
+ *   2. The Scholars' Roads: +100% science and culture on routes, and no lost
  *      route capacity;
  *   3. Market Gardens at Tier II, and The Country Fair at Tier 0: +1 gold on a
  *      worked luxury hex, improved or not;
@@ -149,17 +149,17 @@ describe('The Apprentices (batch R1)', () => {
 // --- 2. The Scholars' Roads -----------------------------------------------------------
 
 describe('The Scholars’ Roads (batch R1)', () => {
-  it('pays +50% science and culture on routes, and costs no route capacity', () => {
+  it('pays +100% science and culture on routes, and costs no route capacity', () => {
     const def = orderDef(SCHOLARS_ROADS);
-    expect(def.text).toBe('Your routes gain +50% science and culture.');
+    expect(def.text).toBe('Your routes pay twice their science and culture.');
     expect(def.effects.some((effect) => effect.kind === 'routeRider')).toBe(false);
     expect(def.effects).toEqual([
       {
         kind: 'pays',
         where: 'route',
         share: [
-          { yield: 'science', percent: 50 },
-          { yield: 'culture', percent: 50 },
+          { yield: 'science', percent: 100 },
+          { yield: 'culture', percent: 100 },
         ],
       },
     ]);
@@ -171,7 +171,7 @@ describe('The Scholars’ Roads (batch R1)', () => {
     seat(state, SCHOLARS_ROADS);
     expect(routeSlots(state, 0)).toBe(before);
     expect(describeCard(SCHOLARS_ROADS).map((clause) => stripRefs(clause.text))).toEqual([
-      '+50% science and culture on every trade route you send',
+      '+100% science and culture on every trade route you send',
     ]);
   });
 });

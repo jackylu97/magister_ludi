@@ -51,6 +51,7 @@ import {
   settlePopulationWindfall,
   settleProductionWindfall,
 } from './cities';
+import { dealPartnerSeats } from './deals';
 import type { Family } from './greatPeopleData';
 import { grantGreatPersonOffer } from './greatPeople';
 import { type WorkFamily, improvementDef, isGreatPersonWork, isTendedWork } from './improvementData';
@@ -93,6 +94,7 @@ import {
 import { refitSlots, settleCouncilFit } from './statecraft/council';
 import {
   countCitiesAdmitted,
+  publicWorksInTown,
   countTilesInBorders,
   ghostWorksInTown,
   ordersHeldCount,
@@ -138,6 +140,8 @@ export function commissionFigure(
   const player = state.players[playerId];
   if (!player) return 0;
   switch (figure) {
+    case 'publicWorks':
+      return citiesOf(state, playerId).reduce((sum, city) => sum + publicWorksInTown(state, city), 0);
     case 'treasury':
       return player.gold;
     case 'empirePopulation':
@@ -301,6 +305,8 @@ export function commissionFigure(
       }
       return admitted;
     }
+    case 'dealPartners':
+      return dealPartnerSeats(state, playerId).length;
     case 'tradePartnerEmpires':
       // The World's Fair (Commerce batch T4, the triage's reading 11): the
       // `tradePartnerEmpires` count's walk, which the reward reads again.

@@ -451,6 +451,10 @@ const EXCUSED = new Map<string, string>([
     'writes the turn report, not the board — the bead diff, already announced by `awardBead`',
   ],
   [
+    'cities.ts#raiseOnDraft',
+    'adds the draft penalty to the payout. payWindfallGrants writes the player effect and advances the economy clock',
+  ],
+  [
     'evaluator.ts#windfallPayout',
     'builds a payout descriptor; `payWindfallGrants` is what hangs it on the realm',
   ],
@@ -666,8 +670,7 @@ const POSITION_READERS = new Map<string, string>([
   ['evaluator.ts#besideGreatGeneral', 'not under a reading: the combat ledger'],
   ['evaluator.ts#besideMatching', 'not under a reading: the combat ledger'],
   ['evaluator.ts#nearLearning', 'not under a reading: the combat ledger'],
-  // `combatScaleCount` read a piece's hex for the Hoplite's town count until
-  // batch DS6 removed that count.
+  ['evaluator.ts#combatScaleCount', 'The Fyrd reads the yield of the tile occupied by the unit in combat.'],
   ['evaluator.ts#cardUnitStat', 'not under a reading: a piece’s own stat, not a yield'],
   ['evaluator.ts#escortAt', 'not under a reading: a founding rider’s condition'],
   ['evaluator.ts#harvestEnemyHexes', 'not under a reading: a grant being paid, which announces'],

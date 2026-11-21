@@ -75,10 +75,7 @@
  * `docs/flags.md` ("Attacking across a river is a flat −3" and "The naval
  * rulings").
  *
- * The only percentage of strength left is the cards' share,
- * `cardCombatPercent`. It multiplies a unit's own base before any flat line
- * joins. One Doctrine uses it today, The Volley Fire, and another build will
- * change that Doctrine to flat points.
+ * Cards add flat strength lines to the same total as terrain and fortification.
  *
  * A city's strength
  * -----------------
@@ -336,7 +333,7 @@ import {
   tileMoveCost,
 } from './pathfind';
 import { siegeDamageBonus } from './statecraft/evaluator';
-import { nextRange } from './rng';
+import { nextFloat, nextRange } from './rng';
 import { RULES } from './rulesData';
 import {
   type CombatSituation,
@@ -345,7 +342,6 @@ import {
   cardBehaviorRule,
   cardCityStat,
   cardCombatLines,
-  cardCombatPercent,
   cardUnitStat,
   heldReligions,
   payWindfallGrants,
@@ -366,7 +362,7 @@ import { cardBehaviorRuleFor, cardTraderShielded } from './statecraft/evaluator'
 import { cardAmplifier, cardAmplifierFlat, lawCountsStrikes } from './statecraft/evaluator';
 // Scientific batch S9, The Breaching Batteries: the share of a town's banked
 // Opus production one blow removes, and whether the town is raising the Opus.
-import { cardOpusBreachPercent, isRaisingOpus } from './statecraft/evaluator';
+import { cardOpusBreachPercent, cardRulePercent, foldCardRulePercent, isRaisingOpus } from './statecraft/evaluator';
 // Devotion batch DV8, The Turning of Swords: the card that turns a soldier
 // killed on the faith's ground, and its once-a-turn stamp.
 import { cardTurningSides, stampSidesTurned } from './statecraft/evaluator';
@@ -1305,17 +1301,6 @@ interface CombatStrengthLine {
   amount: number;
 }
 
-/**
- * A signed whole percentage, for a strength line's label. `+25%`, `-10%`.
- *
- * Rounded to whole points because every percentage in the combat rules is one,
- * and a label is not the place a rounding difference should first appear.
- */
-function signedPercent(percent: number): string {
-  const whole = Math.round(percent);
-  return `${whole > 0 ? '+' : ''}${whole}%`;
-}
-
 /** The fold of a strength breakdown. The only sum of one. */
 export function foldCombatStrength(lines: readonly CombatStrengthLine[]): number {
   let total = 0;
@@ -2213,48 +2198,13 @@ function planCombat(
     }
   }
 
-  const bonusFor = (side: 'attacker' | 'defender'): number => {
-    let total = 0;
-    for (const line of bonuses) {
-      if (line.side === side) total += line.amount;
-    }
-    return total;
-  };
-
-  // Master of Maps' drawback, applied to the unit's **own base** before any
-  // flat line joins (the river crossing is one of them): "−10% combat strength"
-  // is a fact about this army, not a discount on the terrain somebody else is
-  // standing on. See `cardCombatPercent`.
-  // The situation travels with it since the Statue of Zeus: a share may name one
-  // kind of fight ("+15% attacking cities"), and it is asked of the same triple
-  // the flat lines are asked of, through the same one evaluator.
-  const attackerPercent = cardCombatPercent(state, attacker, situationFor(attacker, 'attacker'));
   const attackerStat = kind === 'ranged' ? def.rangedStrength! : def.combatStrength;
-  const attackerBase = Math.floor((attackerStat * (100 + attackerPercent)) / 100);
-  // Every flat line joins after the cards' percentage: the river crossing and
-  // the shot at a hull among them. See `CombatBonusLine` for why a flat line
-  // must not scale with the unit.
-  const attackerStrength = attackerBase + bonusFor('attacker');
-
-  /**
-   * The attacker's arithmetic, in the order it happened. This is hard rule 5's
-   * breakdown for `attackerStrength`, which is its fold and nothing else: the
-   * roster's printed strength, then the cards' percentage, then every flat line
-   * (the river crossing or the shot at a hull first). The percentage names
-   * itself in the label and pays in points (see `CombatStrengthLine`).
-   */
   const attackerLines: CombatStrengthLine[] = [{ source: def.name, amount: attackerStat }];
-  if (attackerBase !== attackerStat) {
-    attackerLines.push({
-      source: `Cards ${signedPercent(attackerPercent)}`,
-      amount: attackerBase - attackerStat,
-    });
-  }
   for (const line of bonuses) {
     if (line.side === 'attacker') attackerLines.push({ source: line.source, amount: line.amount });
   }
 
-  let defenderStrength: number;
+  const attackerStrength = foldCombatStrength(attackerLines);
   let defenderFortify = 0;
   let defenderName: string;
   let defenderHp: number;
@@ -2284,7 +2234,6 @@ function planCombat(
     // the law are already `bonuses` and are folded through `bonusFor` like every
     // other line, so nothing here adds a palisade a second time.
     const own = explainCityStrength(state, target.city);
-    defenderStrength = foldCityLines(own) + bonusFor('defender');
     for (const line of own) defenderLines.push({ source: line.source, amount: line.amount });
     defenderName = target.city.name;
     defenderHp = target.city.hp;
@@ -2293,22 +2242,7 @@ function planCombat(
     const defenderUnit = target.unit!;
     const defenderDef = unitDef(defenderUnit.type);
     defenderFortify = fortifyBonus(defenderUnit);
-    const defenderPercent = cardCombatPercent(
-      state,
-      defenderUnit,
-      situationFor(defenderUnit, 'defender'),
-    );
-    const defenderBase = Math.floor(
-      (defenderDef.combatStrength * (100 + defenderPercent)) / 100,
-    );
-    defenderStrength = defenderBase + terrainBonus + defenderFortify + bonusFor('defender');
     defenderLines.push({ source: defenderDef.name, amount: defenderDef.combatStrength });
-    if (defenderBase !== defenderDef.combatStrength) {
-      defenderLines.push({
-        source: `Cards ${signedPercent(defenderPercent)}`,
-        amount: defenderBase - defenderDef.combatStrength,
-      });
-    }
     // The ground, one line per reason it is hard — "Hills +3", "Forest +2" —
     // rather than a summed "terrain" a player cannot check. Cover and height are
     // two different advantages and the table already knows which is which.
@@ -2337,6 +2271,8 @@ function planCombat(
   for (const line of bonuses) {
     if (line.side === 'defender') defenderLines.push({ source: line.source, amount: line.amount });
   }
+
+  const defenderStrength = foldCombatStrength(defenderLines);
 
   // --- damage ------------------------------------------------------------
 
@@ -2914,16 +2850,13 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         const turning = fromWild ? null : turningCardFor(state, attacker, defender, tile);
         if (
           (fromWild && cardBehaviorRule(state, attacker.ownerId, 'barbarianKillsConvert')) ||
-          turning !== null
+          turning !== null || shipJoinsVictor(state, attacker.ownerId, defender)
         ) {
-          captureUnit(state, defender, attacker.ownerId);
-          defender.hp = unitMaxHp(defender, unitHealthBonus(state, defender.ownerId));
+          takeDefeatedUnit(state, defender, attacker.ownerId);
           outcome.capturedUnitId = defender.id;
           defenderDied = true;
-          if (turning !== null) {
-            stampSidesTurned(state, attacker.ownerId, turning);
-            recordWarLoss(state, fallenOwner, attacker.ownerId, 'unit');
-          }
+          if (turning !== null) stampSidesTurned(state, attacker.ownerId, turning);
+          if (!fromWild) recordWarLoss(state, fallenOwner, attacker.ownerId, 'unit');
         } else {
           outcome.killed.push(snapshotFallen(defender));
           removeUnit(state, defender.id);
@@ -2991,7 +2924,14 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
 
   // 3 & 4 — the attacker's own fate and bookkeeping. A dead attacker needs
   // neither, and must not be left holding a standing order it can never walk.
-  if (attacker.hp <= 0) {
+  const counterOwner = target.city?.ownerId ?? target.unit?.ownerId;
+  if (attacker.hp <= 0 && counterOwner !== undefined && shipJoinsVictor(state, counterOwner, attacker)) {
+    const originalOwner = attacker.ownerId;
+    takeDefeatedUnit(state, attacker, counterOwner);
+    recordWarLoss(state, originalOwner, counterOwner, 'unit');
+    outcome.attackerSurvived = false;
+    outcome.capturedUnitId = attacker.id;
+  } else if (attacker.hp <= 0) {
     outcome.killed.push(snapshotFallen(attacker));
     const fallenOwner = attacker.ownerId;
     const defenderOwner = target.city ? target.city.ownerId : target.unit?.ownerId;
@@ -3266,7 +3206,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         state,
         target.unit,
         outcome.attackerSurvived ? 'survived' : 'kill',
-        attacker.ownerId,
+        outcome.attackerOwnerId,
       );
       settleRanksEarned(state, target.unit, ranks);
     }
@@ -3284,6 +3224,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     attacker.ownerId,
     ...(target.unit ? [target.unit.ownerId] : []),
     ...(target.city ? [target.city.ownerId] : []),
+    outcome.attackerOwnerId,
     ...(defenderOwnerBefore === null ? [] : [defenderOwnerBefore]),
     ...(townOwnerBefore === null ? [] : [townOwnerBefore]),
   ]);
@@ -3661,6 +3602,18 @@ function worksAndWondersIn(state: GameState, city: City): number {
     if (work !== undefined && isGreatPersonWork(work)) works += 1;
   }
   return works + city.buildings.filter((id) => isWonder(id)).length;
+}
+
+function takeDefeatedUnit(state: GameState, unit: Unit, victor: number): void {
+  captureUnit(state, unit, victor);
+  unit.hp = unitMaxHp(unit, unitHealthBonus(state, victor));
+}
+
+/** Draw only when a ship could change sides. Other fights keep their normal roll sequence. */
+function shipJoinsVictor(state: GameState, victor: number, fallen: Unit): boolean {
+  if (!isNaval(unitDef(fallen.type))) return false;
+  const chance = foldCardRulePercent(cardRulePercent(state, victor, 'defeatedShipJoins'));
+  return chance > 0 && nextFloat(state.rng) * 100 < chance;
 }
 
 /**

@@ -77,7 +77,8 @@ import {
   cancelDealsBetween,
   dealIsOngoing,
   dealsBetween,
-  isLendableResource,
+  lendsLuxuryToAnother,
+  loanedResources,
   openDeal,
   proposalById,
   seatsMayBargain,
@@ -450,15 +451,21 @@ export function dealSideError(
     return 'A tribute must be a whole number of coins a turn';
   }
 
-  const named = terms.luxuries ?? [];
+  const named = loanedResources(terms);
   const seen: string[] = [];
   for (const id of named) {
     if (!isResourceId(id)) return `There is no such thing as ${String(id)}`;
-    if (!isLendableResource(id)) {
-      return `${resourceDef(id).name} is not a luxury and cannot be lent`;
+    const kind = resourceDef(id).kind;
+    if (terms.luxuries?.includes(id) && kind !== 'luxury') return `${resourceDef(id).name} is not a luxury`;
+    if (terms.strategics?.includes(id) && kind !== 'strategic') return `${resourceDef(id).name} is not a strategic resource`;
+    if (kind === 'luxury') {
+      const banned = luxuryLendingBan(state, giverId);
+      if (banned !== null) return banned;
+      if (lendsLuxuryToAnother(state, giverId, receiverId, id)) {
+        const card = cardHoldingRule(state, giverId, 'oneBorrowerPerLuxury');
+        if (card !== null) return `Under ${card}, the ${giver.name} already lend ${resourceDef(id).name} to another empire`;
+      }
     }
-    const banned = luxuryLendingBan(state, giverId);
-    if (banned !== null) return banned;
     if (seen.includes(id)) return `${resourceDef(id).name} is named twice`;
     seen.push(id);
     // **Copies it owns, not copies it holds** (the ruling of 2026-11-17: a
@@ -474,7 +481,7 @@ export function dealSideError(
       if (availableCopies(state, giverId, id) < 1) {
         return `The ${giver.name} have no ${name} to spare — every copy is already spoken for`;
       }
-      return `The ${giver.name} have ${name} only on loan, and a borrowed luxury cannot be lent to another empire`;
+      return `The ${giver.name} have ${name} only on loan, and a borrowed ${kind === 'luxury' ? 'luxury' : 'strategic resource'} cannot be lent to another empire`;
     }
   }
 
@@ -851,7 +858,8 @@ export function proposePeaceError(
   if (actor.barbarian === true || target.barbarian === true) {
     return 'The wild keeps no treaties — there is nobody to talk to';
   }
-  if (warBetween(state, actor.id, target.id) === undefined) {
+  const war = warBetween(state, actor.id, target.id);
+  if (war === undefined) {
     return `You are not at war with the ${seatPeople(state, target.id)}`;
   }
   if (offered !== undefined) {
@@ -859,6 +867,18 @@ export function proposePeaceError(
     if (mine !== null) return mine;
     const theirs = dealSideError(state, target.id, actor.id, offered.take, true);
     if (theirs !== null) return theirs;
+  } else if (war.terms !== undefined && war.terms.by !== actor.id) {
+    // An army or a second trade can take a promised copy before the peace is signed.
+    for (const [giver, receiver, terms] of [[war.a, war.b, war.terms.a], [war.b, war.a, war.terms.b]] as const) {
+      const loans: DealTerms = {};
+      if (terms.strategics?.length) loans.strategics = terms.strategics;
+      if (terms.luxuries?.length && cardHoldingRule(state, giver, 'oneBorrowerPerLuxury') !== null) {
+        loans.luxuries = terms.luxuries;
+      }
+      if (!loans.strategics && !loans.luxuries) continue;
+      const refusal = dealSideError(state, giver, receiver, loans, true);
+      if (refusal !== null) return refusal;
+    }
   }
   // The idempotence clause, asked last because the two above are about the
   // paper and this one is about the signature. `setPeaceOffer` answers whether

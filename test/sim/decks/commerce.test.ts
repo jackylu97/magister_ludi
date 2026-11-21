@@ -103,7 +103,6 @@ import {
 } from '../../../src/sim/religion';
 import { RELIGION } from '../../../src/sim/religionData';
 import {
-  cardRenownLines,
   cardRouteYieldLines,
   cardUnitStamp,
   cityScopeAdmits,
@@ -199,8 +198,8 @@ describe('the Commerce deck is one deck', () => {
     // live rows, which stay in the file for saves. Batch DS4 adds two Tier 0
     // rows, The Pack Trail and The First Caravan, so 111 rows become 113.
     // The Open Market adds one live Tier 0 row.
-    expect(COMMERCE.length).toBe(114);
-    expect(retired().length).toBe(43);
+    expect(COMMERCE.length).toBe(144);
+    expect(retired().length).toBe(59);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -263,10 +262,10 @@ describe('the Commerce deck is one deck', () => {
     // at Tier IV: 8 / 13 / 20 / 16 / 11.
     // Batch DS4 adds two rows at Tier 0 (The Pack Trail, The First Caravan):
     // 10 / 13 / 20 / 16 / 11.
-    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([18, 22, 36, 23, 15]);
+    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([23, 28, 44, 32, 17]);
     const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
     expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
-      11, 13, 20, 16, 11,
+      15, 19, 21, 20, 10,
     ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
@@ -291,7 +290,7 @@ describe('the Commerce deck is one deck', () => {
 });
 
 describe('a live Commerce row is a card', () => {
-  it('pays through forty-three rows, and every one of them is dealt', () => {
+  it('pays through 85 rows, and every one of them is dealt', () => {
     // The World's Exchange joined them with D2b: hammers behind a thing may be
     // counted off a thing the realm holds now, and the courts its roads reach
     // are one such thing. **Civic Receipts joined with D2c**: a purchase now
@@ -390,7 +389,7 @@ describe('a live Commerce row is a card', () => {
     // Strongbox, The Merchant Guilds).
     // **Batch DS1**: sixty-eight. Nine live rows are retired.
     // **Batch DS4**: seventy. The Pack Trail and The First Caravan are new.
-    expect(live().length).toBe(71);
+    expect(live().length).toBe(85);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -443,7 +442,8 @@ describe('a live Commerce row is a card', () => {
             effect.hp !== undefined ||
               effect.strength !== undefined ||
               effect.movement !== undefined ||
-              effect.timed !== undefined,
+              effect.timed !== undefined ||
+              effect.rank !== undefined,
             where,
           ).toBe(true);
           break;
@@ -506,19 +506,19 @@ describe('a live Commerce row is a card', () => {
     // Chartered Metropolis') and a price rider at the counter (Foreign
     // Procurement's).
     expect([...kinds].sort()).toEqual([
-      'buildingYieldPercent',
+      'cardYieldAmplifier',
       'cityRenownPercent',
+      'combatLine',
       'effectAmplifier',
+      'landfall',
       'offerRider',
       'pays',
       'percentYields',
-      'periodic',
       'productionBonus',
       'purchaseRider',
       'renown',
-      'routeRider',
       'rule',
-      'rulePercent',
+      'unitStamp',
       'unitStat',
       'windfallRider',
     ]);
@@ -927,10 +927,10 @@ function checkAgainstRow(card: SheetCard, id: OrderId): void {
 
 describe('the Commerce deck: the sheet of record', () => {
   it('holds the Doctrine rows to the sheet’s four tables', () => {
-    expect(sheetDoctrines('commerce').length).toBe(14);
+    expect(sheetDoctrines('commerce').length).toBe(15);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('commerce').filter((row) => row.band === band).length),
-    ).toEqual([3, 4, 3, 4]);
+    ).toEqual([3, 4, 4, 4]);
     expectSheetDoctrinesMatchData('commerce');
   });
 
@@ -1044,15 +1044,15 @@ describe('the Commerce deck: the sheet of record', () => {
     // Batch DS1 retires nine of the sheet's cards and six shared cards.
     // Batch DS4 adds The Pack Trail and The First Caravan. Batch R1 adds the
     // shared The Country Fair.
-    expect(sheet).toHaveLength(71);
-    expect(shared).toHaveLength(18);
+    expect(sheet).toHaveLength(85);
+    expect(shared).toHaveLength(25);
   });
 
-  it('types every listed row, 71 of this file and 18 shared, and nothing else of this file', () => {
+  it('types every listed row, 85 private and 25 shared, and nothing else of this file', () => {
     // 59 after batch T1, the eight new rows of batch T2, the three of batch
     // T3, the one of batch T4, the three of batch T5 and the three of batch T6.
     // Batch DS1 retires nine. Batch DS4 adds two.
-    expect(LISTED).toHaveLength(71);
+    expect(LISTED).toHaveLength(85);
     for (const id of COMMERCE) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();
@@ -1065,7 +1065,7 @@ describe('the Commerce deck: the sheet of record', () => {
     // 21 after batch T1. Batch T7 adds two: The Art Dealers (a new row) and
     // The Standing Army (moved from the Dominion file). Batch DS1 retires six.
     // Batch R1 adds The Country Fair.
-    expect(sharedRows).toHaveLength(18);
+    expect(sharedRows).toHaveLength(25);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 });
@@ -1371,7 +1371,7 @@ describe('C2 — the counts, the ring and the two counter rules', () => {
           (effect.kind === 'pays' && effect.count === 'tilesInBorders') ||
           (effect.kind === 'renown' && effect.count === 'tilesInBorders'),
       ),
-    ).toEqual(['oreCaravans', 'luxuryCaravans', 'theCustomsHouses', 'theMerchantDynasties']);
+    ).toEqual(['oreCaravans', 'luxuryCaravans', 'theMerchantDynasties', 'theGarumWorks']);
     expect(writers((effect) => effect.kind === 'pays' && effect.count === 'empiresMet')).toEqual([
       'travellersLetters',
     ]);
@@ -1446,25 +1446,16 @@ describe('C2 — the counts, the ring and the two counter rules', () => {
     expect(foldRouteYield(named()).gold).toBe(2);
   });
 
-  it('pays a town science and culture for each customs house in its borders', () => {
-    // Since batch T1 The Customs Houses does what The Merchant Dynasties did,
-    // at +4 of each, and pays no renown (the triage's reading 33).
+  it('pays science and culture on each customs house hex', () => {
     const g = bench(['theCustomsHouses']);
     const city = town(g);
-    city.workedTiles = [];
-    const paid = (voice: 'science' | 'culture') =>
-      explainCardCityYields(g.state, city)
-        .filter((line) => line.card === 'theCustomsHouses')
-        .reduce((sum, line) => sum + line[voice], 0);
-    expect(paid('science')).toBe(0);
-    for (const tile of around(g, city).slice(0, 2)) {
-      raiseImprovement(tile, 'customsHouse', g.state.turn);
-    }
+    const tile = around(g, city)[0]!;
+    const paid = () => explainTileYield(tile, cityContext(g.state, city)).filter((line) => line.source.includes('Customs Houses'));
+    expect(paid()).toEqual([]);
+    raiseImprovement(tile, 'customsHouse', g.state.turn);
     bumpRevision(g.state);
-    // Two customs houses, and nobody works either of them.
-    expect(paid('science')).toBe(8);
-    expect(paid('culture')).toBe(8);
-    expect(cardRenownLines(g.state, 0).filter((line) => line.card === 'theCustomsHouses')).toEqual([]);
+    expect(paid()).toEqual([expect.objectContaining({ science: 8, culture: 8 })]);
+    expect(explainCardCityYields(g.state, city).filter((line) => line.card === 'theCustomsHouses')).toEqual([]);
   });
 
   it('counts the empires a seat has met, and never the wild or itself', () => {
@@ -1704,7 +1695,7 @@ describe('C3 — the five cards that lift a rule', () => {
     );
     expect(
       writers((effect) => effect.kind === 'windfallRider' && effect.anyBuilding === true),
-    ).toEqual(['civicReceipts']);
+    ).toEqual(['civicReceipts', 'theEndowment']);
   });
 
   // --- The Gilded Scaffold ---------------------------------------------------
@@ -2679,7 +2670,7 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
     // Commerce file.
     expect(
       writers((effect) => effect.kind === 'pays' && effect.count === 'purchasedBuildings'),
-    ).toEqual(['theEndowment', 'boughtAndPaidFor', 'theWaqf']);
+    ).toEqual(['theWaqf']);
     expect(
       writers(
         (effect) => effect.kind === 'effectAmplifier' && effect.target === 'luxuryMineCopies',
@@ -2844,32 +2835,16 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
       expect(buildingBank(city, 'library')).toBeUndefined();
     });
 
-    it('pays two beakers a bought roof, and nothing for one that was built', () => {
+    it('grants science from the gold paid at the purchase counter', () => {
       const g = bench(['theEndowment']);
       const city = town(g);
-      const named = () =>
-        explainCity(g.state, city).lines.filter((line: CityYieldLine) =>
-          line.source.includes('Endowment'),
-        );
-      addBuilding(g.state, city, 'monument');
-      bumpRevision(g.state);
-      expect(named()).toEqual([]);
-
-      addBuilding(g.state, city, 'granary', 'gold');
-      bumpRevision(g.state);
-      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(2);
-
-      // **Either bank counts.** A library bought with faith is as bought as one
-      // bought with gold, which is what the card's "purchased" says.
-      addBuilding(g.state, city, 'library', 'faith');
-      bumpRevision(g.state);
-      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(4);
-
-      // And the sheet's ceiling: at most three roofs a town, so six beakers.
-      addBuilding(g.state, city, 'shrine', 'gold');
-      addBuilding(g.state, city, 'barracks', 'gold');
-      bumpRevision(g.state);
-      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(6);
+      const player = playerById(g.state, 0)!;
+      player.gold = 10000;
+      const item = { kind: 'building', id: 'granary' } as const;
+      const price = explainPurchaseCost(g.state, 0, city.id, item, 'gold')!.total;
+      const before = player.sciencePool;
+      purchaseItemAt(g.state, player, city, item, 'gold');
+      expect(player.sciencePool - before).toBe(Math.floor(price / 4));
     });
 
     it('goes through the purchase counter, which is the only seam that rings', () => {

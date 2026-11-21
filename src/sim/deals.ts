@@ -71,6 +71,8 @@ export interface DealTerms {
    * must be the giver's own: a copy lent to it cannot be lent on.
    */
   luxuries?: ResourceId[];
+  /** Each strategic loan supplies one copy until the deal ends. */
+  strategics?: ResourceId[];
   /**
    * This side's borders are open: the other empire's soldiers may cross its
    * territory at peace. Granted per side, so a one-sided right of way is
@@ -83,6 +85,13 @@ export interface DealTerms {
    * deal naming a city is refused in plain words.
    */
   cities?: number[];
+}
+
+/** A loan supplies the same copy to the receiver that it takes from the giver. */
+export function loanedResources(terms: DealTerms): readonly ResourceId[] {
+  if (!terms.strategics?.length) return terms.luxuries ?? [];
+  if (!terms.luxuries?.length) return terms.strategics;
+  return [...terms.luxuries, ...terms.strategics];
 }
 
 /**
@@ -171,7 +180,7 @@ export function termsKey(terms: DealTerms): string {
   return [
     String(terms.gold ?? 0),
     String(terms.goldPerTurn ?? 0),
-    (terms.luxuries ?? []).join('+'),
+    loanedResources(terms).join('+'),
     terms.openBorders === true ? 'open' : '',
     (terms.cities ?? []).join('+'),
   ].join('/');
@@ -182,7 +191,7 @@ export function termsAreEmpty(terms: DealTerms): boolean {
   return (
     (terms.gold ?? 0) === 0 &&
     (terms.goldPerTurn ?? 0) === 0 &&
-    (terms.luxuries ?? []).length === 0 &&
+    loanedResources(terms).length === 0 &&
     terms.openBorders !== true &&
     (terms.cities ?? []).length === 0
   );
@@ -201,7 +210,7 @@ export function termsAreEmpty(terms: DealTerms): boolean {
 function termsAreOngoing(terms: DealTerms): boolean {
   return (
     (terms.goldPerTurn ?? 0) > 0 ||
-    (terms.luxuries ?? []).length > 0 ||
+    loanedResources(terms).length > 0 ||
     terms.openBorders === true
   );
 }
@@ -226,6 +235,7 @@ function ongoingPart(terms: DealTerms): DealTerms {
   const kept: DealTerms = {};
   if ((terms.goldPerTurn ?? 0) > 0) kept.goldPerTurn = terms.goldPerTurn;
   if ((terms.luxuries ?? []).length > 0) kept.luxuries = [...terms.luxuries!];
+  if (terms.strategics?.length) kept.strategics = [...terms.strategics];
   if (terms.openBorders === true) kept.openBorders = true;
   return kept;
 }
@@ -283,6 +293,12 @@ export function otherSeatOf(deal: DealState, playerId: number): number | null {
   if (deal.a === playerId) return deal.b;
   if (deal.b === playerId) return deal.a;
   return null;
+}
+
+/** The Colleganza can send more copies of a luxury to its current borrower. */
+export function lendsLuxuryToAnother(state: GameState, giver: number, receiver: number, luxury: ResourceId): boolean {
+  return state.deals.some(deal => dealIsLive(state, deal)
+    && otherSeatOf(deal, giver) !== receiver && sideGivenBy(deal, giver).luxuries?.includes(luxury));
 }
 
 // --- the three standing readings --------------------------------------------
@@ -351,7 +367,7 @@ export function lentCopiesAwayBy(state: GameState, playerId: number): LentCopies
   const copies: LentCopies = {};
   for (const deal of state.deals) {
     if (!dealIsLive(state, deal)) continue;
-    for (const id of sideGivenBy(deal, playerId).luxuries ?? []) {
+    for (const id of loanedResources(sideGivenBy(deal, playerId))) {
       copies[id] = (copies[id] ?? 0) + 1;
     }
   }
@@ -371,7 +387,7 @@ export function lentCopiesToPlayer(state: GameState, playerId: number): LentCopi
   const copies: LentCopies = {};
   for (const deal of state.deals) {
     if (!dealIsLive(state, deal)) continue;
-    for (const id of sideTakenBy(deal, playerId).luxuries ?? []) {
+    for (const id of loanedResources(sideTakenBy(deal, playerId))) {
       copies[id] = (copies[id] ?? 0) + 1;
     }
   }
@@ -473,9 +489,9 @@ export function proposalById(state: GameState, id: number): DealProposal | undef
   return undefined;
 }
 
-/** Is this a luxury the deal vocabulary may lend? See `DealTerms.luxuries`. */
+/** Bonus resources have no copies to lend. */
 export function isLendableResource(id: ResourceId): boolean {
-  return resourceDef(id).kind === 'luxury';
+  return resourceDef(id).kind !== 'bonus';
 }
 
 /** Neither seat may be the wild, and neither may be nobody. See the docblock. */

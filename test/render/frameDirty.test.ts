@@ -18,7 +18,7 @@ import { applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, raiseImprovement } from '../../src/sim/map';
 import { layRoad } from '../../src/sim/roads';
-import { slotLayout } from '../../src/sim/statecraftData';
+import { orderFitsSlot, slotLayout } from '../../src/sim/statecraftData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { newGame } from '../sim/newGameHelpers';
 
@@ -227,7 +227,8 @@ describe('a camera frame draws without re-reading the state', () => {
     state.visibility[0]!.fill(2);
     const council = state.players[0]!.statecraft;
     council.government = 'councilOfElders';
-    council.slots = slotLayout(council.government).map(() => null);
+    const chairs = slotLayout(council.government);
+    council.slots = chairs.map(() => null);
     const cards = ['lightKit', 'marketGardens', 'lettersOfMarque', 'fieldAcademies'] as const;
     council.orders.push(...cards);
 
@@ -257,7 +258,9 @@ describe('a camera frame draws without re-reading the state', () => {
     expectCurrent(0);
     const initial = instances(layer);
     builds.mockClear();
-    for (const [slotIndex, cardId] of cards.entries()) {
+    for (const cardId of cards) {
+      const slotIndex = chairs.findIndex((chair, index) => council.slots[index] === null && orderFitsSlot(cardId, chair));
+      expect(slotIndex, cardId).toBeGreaterThanOrEqual(0);
       const result = applyCommand(state, {type: 'slotOrder', playerId: 0, cardId, slotIndex});
       expect(result.ok, JSON.stringify(result)).toBe(true);
       f.runtime.noteStateChanged();

@@ -27,12 +27,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { AI, withAiTuning } from '../../src/ai/aiConfig';
-import { botSitting, focusReading, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { botSitting, focusReading, nextBotDecision, valueContext, workerAdvice } from '../../src/ai/bot';
 import type { BotDecision } from '../../src/ai/decision';
 import { type ImprovementPlan, buildImprovementPlan, explainWorkerCraving, rankPlanFor } from '../../src/ai/plan';
-import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
+import { foundCityAt, refreshCityDerived, tileContextAt } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
-import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import { type GameMap, type Tile, createMap, getTileAt, tileIndex, tileNeighbors } from '../../src/sim/map';
+import { HIDDEN, VISIBLE } from '../../src/sim/visibility';
+import { improvementErrorAt, improvementYieldDelta } from '../../src/sim/improvements';
 import { findPath } from '../../src/sim/pathfind';
 import type { ResourceId } from '../../src/sim/resourceData';
 import type { CitizenFocus } from '../../src/sim/rulesData';
@@ -134,6 +136,7 @@ it('repairs a damaged farm on worked wheat without using a charge', () => {
   tile.damagedImprovement = { id: 'farm', improvedOn: 1 };
   const worker = createUnit(state, 0, 'worker', 5, 4);
   const charges = worker.chargesLeft;
+  expect(workerAdvice(state, 0, worker.id)[0]).toMatchObject({ col: 5, row: 4, action: 'repair', improvement: 'farm' });
   const command = decisionFor(state, worker.id)?.command;
   expect(command).toEqual({ type: 'repairImprovement', playerId: 0, unitId: worker.id });
   expect(applyCommand(state, command!).ok).toBe(true);
@@ -187,6 +190,63 @@ describe("the worker's choice shares the city's rule (bot batch BP13b)", () => {
     // And the arm walks there.
     const order = decisionFor(state, worker.id);
     expect(order?.command).toMatchObject({ type: 'moveUnit', target: { col: 5, row: 4 } });
+  });
+
+  it('offers the same nearby farm as the bot, reports the tile delta and reuses the answer until the board changes', () => {
+    const state = bench('plains');
+    wheatTown(state);
+    const worker = createUnit(state, 0, 'worker', 6, 5);
+    const tile = at(state.map, 5, 4);
+    const before = JSON.stringify(state);
+    const advice = workerAdvice(state, 0, worker.id);
+    expect(advice).toHaveLength(1);
+    expect(advice[0]).toMatchObject({ col: 5, row: 4, improvement: 'farm', action: 'build',
+      delta: improvementYieldDelta(tile, 'farm', tileContextAt(state, 0, tile)) });
+    expect(improvementErrorAt(state, 0, tile, 'farm')).toBeNull();
+    expect(findPath(state, worker, tile)).not.toBeNull();
+    expect(workerAdvice(state, 0, worker.id)).toBe(advice);
+    expect(workerAdvice(state, 1, worker.id)).toEqual([]);
+    expect(JSON.stringify(state)).toBe(before);
+    const { command } = decisionFor(state, worker.id)!;
+    expect(command).toMatchObject({ type: 'moveUnit', target: { col: 5, row: 4 } });
+    state.visibility[0]![tileIndex(state.map, 5, 4)] = HIDDEN;
+    bumpRevision(state);
+    expect(workerAdvice(state, 0, worker.id)).toEqual([]);
+  });
+
+  it('places Nazca lines beside existing lines and includes the gain on the existing tile', () => {
+    const state = bench('desert');
+    townOn(state, { '5,4': { improvement: 'nazcaLines' } }, 6);
+    seat(state).statecraft.orders.push('theDesertAndTheSnow');
+    const worker = createUnit(state, 0, 'worker', 5, 5);
+    bumpRevision(state);
+    const { plan } = planOf(state);
+    const existing = at(state.map, 5, 4);
+    const adjacent = new Set(tileNeighbors(state.map, existing));
+    const paired = plan.entries.find(row => row.improvement === 'nazcaLines' && adjacent.has(at(state.map, row.col, row.row)))!;
+    const isolated = plan.entries.find(row => row.improvement === 'nazcaLines' && !adjacent.has(at(state.map, row.col, row.row)))!;
+    expect(paired.improvement).toBe('nazcaLines');
+    expect(isolated.improvement).toBe('nazcaLines');
+    expect(paired.seatless).toBeGreaterThan(isolated.seatless);
+    expect(paired.value).toBeGreaterThan(isolated.value);
+    expect(workerAdvice(state, 0, worker.id)[0]?.improvement).toBe('nazcaLines');
+  });
+
+  it('offers an outpost on known land three hexes beyond the border and values the land it claims', () => {
+    const state = bench('plains');
+    townOn(state, {}, 1);
+    const worker = createUnit(state, 0, 'worker', 9, 5);
+    state.visibility[0]!.fill(VISIBLE);
+    const tile = at(state.map, 9, 5);
+    expect(improvementErrorAt(state, 0, tile, 'outpost')).not.toBeNull();
+    seat(state).statecraft.orders.push('outposts');
+    bumpRevision(state);
+    expect(improvementErrorAt(state, 0, tile, 'outpost')).toBeNull();
+    const { plan } = planOf(state);
+    const chosen = plan.byTile.get(tileIndex(state.map, tile.col, tile.row));
+    expect(chosen?.improvement).toBe('outpost');
+    expect(chosen?.seatless).toBeGreaterThan(0);
+    expect(workerAdvice(state, 0, worker.id).some(row => row.improvement === 'outpost')).toBe(true);
   });
 
   it('counts a hex no citizen works yet in full when its improved yield would win a citizen', () => {

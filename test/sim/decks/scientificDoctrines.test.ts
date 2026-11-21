@@ -71,7 +71,6 @@ import {
   cardBehaviorRuleFor,
   cardCapitalIds,
   cardCityStat,
-  cardCombatPercent,
   cardLimitLifts,
   cardProspectCityCost,
   cardUpgradeStrength,
@@ -640,14 +639,23 @@ describe('The Volley Fire', () => {
     expect(applyCombat(state, siege.id, { col: 8, row: 5 }).ok).toBe(false);
   });
 
-  it('takes 10% off a melee unit’s strength, and nothing off a bow', () => {
-    const state = bareState();
-    const melee = createUnit(state, 0, 'warrior', 4, 4);
-    const bow = createUnit(state, 0, 'crossbowman', 4, 6);
-    expect(cardCombatPercent(state, melee)).toBe(0);
-    hold(state, 'theVolleyFire');
-    expect(cardCombatPercent(state, melee)).toBe(-10);
-    expect(cardCombatPercent(state, bow)).toBe(0);
+  it('subtracts four points only when an archer defends against a melee attack', () => {
+    for (const [type, attacker, expected] of [
+      ['archer', 'warrior', -4], ['crossbowman', 'knight', -4],
+      ['archer', 'crossbowman', 0], ['spearman', 'warrior', 0],
+    ] as const) {
+      const state = bareState();
+      const defender = createUnit(state, 0, type, 7, 5);
+      const enemy = createUnit(state, 1, attacker, 8, 5);
+      hold(state, 'theVolleyFire');
+      const view = previewCombat(state, enemy.id, defender);
+      if (!view.ok) throw new Error(view.error);
+      const line = view.defenderLines.find(entry => entry.source.includes('The Volley Fire'));
+      expect(line?.amount ?? 0, type + ' vs ' + attacker).toBe(expected);
+      const counter = previewCombat(state, defender.id, enemy);
+      if (!counter.ok) throw new Error(counter.error);
+      expect(counter.attackerLines.some(entry => entry.source.includes('The Volley Fire'))).toBe(false);
+    }
   });
 });
 

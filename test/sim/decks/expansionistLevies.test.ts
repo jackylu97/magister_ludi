@@ -113,7 +113,7 @@ describe('the Expansionist batch E1: the levy gate', () => {
     // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
     // Labour Feasts, The Labour Rolls, The Slack Season and The Trained Bands,
     // so three gated cards are left to deal.
-    expect(gated).toEqual(expect.arrayContaining(['theGleaners', 'seasonalLevies', 'theMita']));
+    expect(gated).toEqual(expect.arrayContaining(['theTerracesOfMoray', 'seasonalLevies', 'theMita']));
     const everyBand = (): OrderId[] =>
       TIER_LADDER.flatMap((rung) => eligibleFor(g.state, seat, rung.drafts));
     expect(holdsLevyGrant(g.state, 0)).toBe(false);
@@ -356,7 +356,7 @@ describe('the Expansionist batch E1: units a levy raises', () => {
 
   it('The General Levy\'s conscripts pay their own upkeep (batch DS3 removed the rebate)', () => {
     expect(orderDef('theGeneralLevy' as OrderId).effects).toEqual([
-      { kind: 'levy', use: 'conscript', everyAtWar: 1 },
+      { kind: 'levy', use: 'conscript', everyAtWar: 2 },
     ]);
     const state = bareState();
     const city = town(state, 5, 5, 8);

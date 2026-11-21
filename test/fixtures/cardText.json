@@ -796,8 +796,8 @@
     "text": "newly created workers gain +1 charge"
    },
    {
-    "raw": "+1 food on every tended hex",
-    "text": "+1 food on every tended hex"
+    "raw": "+1 food, +1 production on every hex with a [[improvement:farm|Farm]]",
+    "text": "+1 food, +1 production on every hex with a Farm"
    }
   ],
   "theGiftOfTheRiver": [
@@ -1024,28 +1024,24 @@
   ],
   "theApoikia": [
    {
-    "raw": "settlers cost −50% to buy with gold",
-    "text": "settlers cost −50% to buy with gold"
+    "raw": "Your gold buys 100% more when buying settlers",
+    "text": "Your gold buys 100% more when buying settlers"
    },
    {
-    "raw": "workers cost −50% to buy with gold",
-    "text": "workers cost −50% to buy with gold"
+    "raw": "Your gold buys 100% more when buying workers",
+    "text": "Your gold buys 100% more when buying workers"
    }
   ],
   "theLaurionLeases": [
    {
-    "raw": "a hex carrying a resource costs 75% less to buy",
-    "text": "a hex carrying a resource costs 75% less to buy"
+    "raw": "Your gold buys 300% more when buying a hex carrying a resource",
+    "text": "Your gold buys 300% more when buying a hex carrying a resource"
    }
   ],
   "theDelianLeague": [
    {
-    "raw": "the authority a coastal city costs falls by 1",
-    "text": "the authority a coastal city costs falls by 1"
-   },
-   {
-    "raw": "+3 production in every coastal city",
-    "text": "+3 production in every coastal city"
+    "raw": "+3 production, +3 gold in every coastal city",
+    "text": "+3 production, +3 gold in every coastal city"
    }
   ],
   "theGrandCanal": [
@@ -1056,12 +1052,12 @@
   ],
   "theSogdianColonies": [
    {
-    "raw": "+3 culture in every city that holds your trading post",
-    "text": "+3 culture in every city that holds your trading post"
+    "raw": "+3 culture per city holding your trading post",
+    "text": "+3 culture per city holding your trading post"
    },
    {
-    "raw": "+3 renown per turn in every city that holds your trading post, favouring merchants",
-    "text": "+3 renown per turn in every city that holds your trading post, favouring merchants"
+    "raw": "+3 renown per turn per city holding your trading post, favouring merchants",
+    "text": "+3 renown per turn per city holding your trading post, favouring merchants"
    }
   ],
   "theForbiddenSilks": [
@@ -1076,8 +1072,8 @@
   ],
   "theFlyingMoney": [
    {
-    "raw": "all units and buildings cost −20% to buy with gold, in every city with a gold building",
-    "text": "all units and buildings cost −20% to buy with gold, in every city with a gold building"
+    "raw": "Your gold buys 25% more when buying all units and buildings, in every city with a gold building",
+    "text": "Your gold buys 25% more when buying all units and buildings, in every city with a gold building"
    },
    {
     "raw": "units and buildings may be bought with gold only in a city with a gold building",
@@ -1096,8 +1092,8 @@
   ],
   "theMuda": [
    {
-    "raw": "+3 science, +3 culture on every trade route that ends in another empire’s city",
-    "text": "+3 science, +3 culture on every trade route that ends in another empire’s city"
+    "raw": "+6 science, +6 culture on every trade route that ends in another empire’s city",
+    "text": "+6 science, +6 culture on every trade route that ends in another empire’s city"
    },
    {
     "raw": "your trade units on routes to other empires cannot be attacked or plundered",
@@ -1106,8 +1102,8 @@
   ],
   "theTurnpikeTrusts": [
    {
-    "raw": "hiring a caravan costs 50% less",
-    "text": "hiring a caravan costs 50% less"
+    "raw": "Your gold buys 100% more when buying caravans",
+    "text": "Your gold buys 100% more when buying caravans"
    },
    {
     "raw": "+1 gold on every hex with a road",
@@ -1152,6 +1148,20 @@
    {
     "raw": "-10% gold in every city",
     "text": "-10% gold in every city"
+   }
+  ],
+  "theColleganza": [
+   {
+    "raw": "each luxury you lend in a deal still counts as 100% of a copy for you",
+    "text": "each luxury you lend in a deal still counts as 100% of a copy for you"
+   },
+   {
+    "raw": "-4 combat strength",
+    "text": "-4 combat strength"
+   },
+   {
+    "raw": "you can lend each kind of luxury to only one empire at a time",
+    "text": "you can lend each kind of luxury to only one empire at a time"
    }
   ],
   "theTheoricFund": [
@@ -1214,8 +1224,8 @@
   ],
   "theCanonsOfTheHolySepulchre": [
    {
-    "raw": "all units and buildings cost −30% to buy with faith, in every city with a [[improvement:holySite|Holy Site]]",
-    "text": "all units and buildings cost −30% to buy with faith, in every city with a Holy Site"
+    "raw": "Your faith buys 42.86% more when buying all units and buildings, in every city with a [[improvement:holySite|Holy Site]]",
+    "text": "Your faith buys 42.86% more when buying all units and buildings, in every city with a Holy Site"
    }
   ],
   "theMartyrsCrown": [
@@ -1346,8 +1356,8 @@
     "text": "ranged units may attack twice a turn"
    },
    {
-    "raw": "-10% combat strength for melee units",
-    "text": "-10% combat strength for melee units"
+    "raw": "-4 combat strength for ranged units against melee units when defending",
+    "text": "-4 combat strength for ranged units against melee units when defending"
    }
   ],
   "theKulliye": [
@@ -1680,8 +1690,8 @@
   ],
   "landGrants": [
    {
-    "raw": "a hex costs 25% less to buy",
-    "text": "a hex costs 25% less to buy"
+    "raw": "Your gold buys 33.33% more when buying a hex",
+    "text": "Your gold buys 33.33% more when buying a hex"
    },
    {
     "raw": "+40% border expansion",
@@ -1798,8 +1808,8 @@
     "text": "buying a hex grants +5 science"
    },
    {
-    "raw": "a hex costs 15% less to buy",
-    "text": "a hex costs 15% less to buy"
+    "raw": "Your gold buys 17.65% more when buying a hex",
+    "text": "Your gold buys 17.65% more when buying a hex"
    }
   ],
   "foreignQuarters": [
@@ -1836,8 +1846,8 @@
     "text": "+50% border expansion"
    },
    {
-    "raw": "a hex costs 25% less to buy",
-    "text": "a hex costs 25% less to buy"
+    "raw": "Your gold buys 33.33% more when buying a hex",
+    "text": "Your gold buys 33.33% more when buying a hex"
    }
   ],
   "provincialGovernors": [
@@ -2462,8 +2472,8 @@
   ],
   "coinCharter": [
    {
-    "raw": "unlocks the [[building:assayHouse|Assay House]] — +2 gold; everything this city buys costs 5% less; +1 renown per turn, favouring merchants",
-    "text": "unlocks the Assay House — +2 gold; everything this city buys costs 5% less; +1 renown per turn, favouring merchants"
+    "raw": "unlocks the [[building:assayHouse|Assay House]] — +2 gold; Your gold buys 5.26% more in this city; +1 renown per turn, favouring merchants",
+    "text": "unlocks the Assay House — +2 gold; Your gold buys 5.26% more in this city; +1 renown per turn, favouring merchants"
    }
   ],
   "waterwrightsCharter": [
@@ -2591,8 +2601,8 @@
   ],
   "theMarshalsPurse": [
    {
-    "raw": "military units cost −25% to buy",
-    "text": "military units cost −25% to buy"
+    "raw": "You gain 33.33% buying power on military units",
+    "text": "You gain 33.33% buying power on military units"
    }
   ],
   "knightlyOrders": [
@@ -3078,8 +3088,8 @@
     "text": "newly created military units bought with gold gain +2 combat strength"
    },
    {
-    "raw": "all units cost −20% to buy",
-    "text": "all units cost −20% to buy"
+    "raw": "You gain 25% buying power on all units",
+    "text": "You gain 25% buying power on all units"
    }
   ],
   "theEntrepot": [
@@ -3786,8 +3796,8 @@
   ],
   "mercenaryCompanies": [
    {
-    "raw": "military units cost −25% to buy, in every city with a [[building:barracks|Barracks]]",
-    "text": "military units cost −25% to buy, in every city with a Barracks"
+    "raw": "You gain 33.33% buying power on military units, in every city with a [[building:barracks|Barracks]]",
+    "text": "You gain 33.33% buying power on military units, in every city with a Barracks"
    },
    {
     "raw": "newly created military units bought with gold gain +10 maximum health",
@@ -4734,6 +4744,144 @@
     "text": "+6 production in every city per military building or fortification there"
    }
   ],
+  "theThousandVillages": [
+   {
+    "raw": "+1 culture per 2 citizens",
+    "text": "+1 culture per 2 citizens"
+   }
+  ],
+  "theWaterBoards": [
+   {
+    "raw": "your public works pay +100%",
+    "text": "your public works pay +100%"
+   }
+  ],
+  "theMountainSluices": [
+   {
+    "raw": "+1 production on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]], once for every adjacent hex that is mountain or with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]]",
+    "text": "+1 production on every hex with a Mine or Quarry, once for every adjacent hex that is mountain or with a Mine or Quarry"
+   }
+  ],
+  "theCadastre": [
+   {
+    "raw": "+3 science on every hex with a unique improvement",
+    "text": "+3 science on every hex with a unique improvement"
+   }
+  ],
+  "theBarays": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:baray|Baray]]. +2 food on flat river tiles. +2 production per adjacent Farm. One in each city.",
+    "text": "Build Baray. +2 food on flat river tiles. +2 production per adjacent Farm. One in each city."
+   }
+  ],
+  "theFyrd": [
+   {
+    "raw": "+1 combat strength for military units per 2 yields on this tile (at most +6) while standing inside your territory",
+    "text": "+1 combat strength for military units per 2 yields on this tile (at most +6) while standing inside your territory"
+   }
+  ],
+  "theStepwells": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:stepwell|Stepwell]]. +2 food on dry flat land. +1 engineer renown per turn. Gives adjacent tiles fresh water. One in each city.",
+    "text": "Build Stepwell. +2 food on dry flat land. +1 engineer renown per turn. Gives adjacent tiles fresh water. One in each city."
+   }
+  ],
+  "theMansiones": [
+   {
+    "raw": "+2 culture in every city joined to your capital by road per public work standing there",
+    "text": "+2 culture in every city joined to your capital by road per public work standing there"
+   }
+  ],
+  "commissionBreadAndWater": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: hold 12 public works. Reward: +1 food and +1 production in every city per public work standing there",
+    "text": "Goal: hold 12 public works. Reward: +1 food and +1 production in every city per public work standing there"
+   }
+  ],
+  "commissionTheReclaimedLands": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: build 8 unique improvements. Reward: +1 food, +1 production on every hex with a unique improvement",
+    "text": "Goal: build 8 unique improvements. Reward: +1 food, +1 production on every hex with a unique improvement"
+   }
+  ],
+  "theSevenFatYears": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: each of your towns gains 1 citizen",
+    "text": "On draft: each of your towns gains 1 citizen"
+   }
+  ],
+  "theBeacons": [
+   {
+    "raw": "all units: +1 movement inside your territory",
+    "text": "all units: +1 movement inside your territory"
+   }
+  ],
+  "theThermae": [
+   {
+    "raw": "+2 science in every city per public work standing there",
+    "text": "+2 science in every city per public work standing there"
+   }
+  ],
+  "theTimberYards": [
+   {
+    "raw": "+1 production on every hex with a [[improvement:lumbermill|Lumbermill]], once for every adjacent forest or jungle hex",
+    "text": "+1 production on every hex with a Lumbermill, once for every adjacent forest or jungle hex"
+   }
+  ],
+  "theTotemPoles": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:totemPole|Totem Pole]]. +3 culture in forest or jungle. Adjacent forest or jungle gains +1 production, +1 culture. One in each city.",
+    "text": "Build Totem Pole. +3 culture in forest or jungle. Adjacent forest or jungle gains +1 production, +1 culture. One in each city."
+   }
+  ],
+  "theMakersOfLand": [
+   {
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +1 science and +1 culture for every 3 improvements you have built",
+    "text": "Gains +1 science and +1 culture for every 3 improvements you have built"
+   }
+  ],
+  "theDesertAndTheSnow": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:nazcaLines|Nazca Lines]]. +2 culture, +2 faith on flat desert. +2 faith per adjacent Nazca Lines.",
+    "text": "Build Nazca Lines. +2 culture, +2 faith on flat desert. +2 faith per adjacent Nazca Lines."
+   },
+   {
+    "raw": "Build [[improvement:inuksuk|Inuksuk]]. +1 food, +2 culture on tundra or snow. +1 culture per adjacent Inuksuk.",
+    "text": "Build Inuksuk. +1 food, +2 culture on tundra or snow. +1 culture per adjacent Inuksuk."
+   }
+  ],
   "smallholdings": [
    {
     "raw": "+1 food, +1 gold on every hex with a [[improvement:farm|Farm]], [[improvement:terraces|Terraces]] or [[improvement:pasture|Pasture]]",
@@ -4764,8 +4912,12 @@
     "text": "Charter"
    },
    {
-    "raw": "opens the [[improvement:fishTraps|Fish Traps]] for your workers to build",
-    "text": "opens the Fish Traps for your workers to build"
+    "raw": "Build [[improvement:fishTraps|Fish Traps]]. +2 food, +1 production on coast or lake.",
+    "text": "Build Fish Traps. +2 food, +1 production on coast or lake."
+   },
+   {
+    "raw": "Build [[improvement:wildOrchard|Wild Orchard]]. +2 food, +2 gold in forest or jungle.",
+    "text": "Build Wild Orchard. +2 food, +2 gold in forest or jungle."
    }
   ],
   "sweetWater": [
@@ -4812,8 +4964,8 @@
   ],
   "theWoodlandBands": [
    {
-    "raw": "your units pay only the open-ground cost to enter forest or jungle",
-    "text": "your units pay only the open-ground cost to enter forest or jungle"
+    "raw": "your units pay only the open-ground cost to enter forests, jungles and hills",
+    "text": "your units pay only the open-ground cost to enter forests, jungles and hills"
    }
   ],
   "theFoundingFurrow": [
@@ -4858,8 +5010,8 @@
     "text": "Charter"
    },
    {
-    "raw": "opens the [[improvement:wildOrchard|Wild Orchard]] for your workers to build",
-    "text": "opens the Wild Orchard for your workers to build"
+    "raw": "Build [[improvement:wildOrchard|Wild Orchard]]. +2 food, +2 gold in forest or jungle.",
+    "text": "Build Wild Orchard. +2 food, +2 gold in forest or jungle."
    }
   ],
   "theBurningSeason": [
@@ -4912,8 +5064,12 @@
   ],
   "outposts": [
    {
-    "raw": "while this card is seated, your workers may build an [[improvement:outpost|Outpost]]: on unowned wild ground up to 3 hexes beyond your borders; it claims its hex and every unowned hex next to it for your nearest city",
-    "text": "while this card is seated, your workers may build an Outpost: on unowned wild ground up to 3 hexes beyond your borders; it claims its hex and every unowned hex next to it for your nearest city"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:outpost|Outpost]]. On unowned ground up to 3 hexes beyond your borders. It claims its hex and every unowned hex next to it for your nearest city.",
+    "text": "Build Outpost. On unowned ground up to 3 hexes beyond your borders. It claims its hex and every unowned hex next to it for your nearest city."
    }
   ],
   "theProspectors": [
@@ -4970,8 +5126,8 @@
   ],
   "theRoadTowns": [
    {
-    "raw": "+2 production in every city joined to your capital by road",
-    "text": "+2 production in every city joined to your capital by road"
+    "raw": "+4 production in every city joined to your capital by road",
+    "text": "+4 production in every city joined to your capital by road"
    }
   ],
   "theBuildersLevy": [
@@ -5020,14 +5176,14 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: work 12 improved tiles at the same time, not counting tended tiles. Reward: +1 food on every hex with a [[improvement:farm|Farm]]",
-    "text": "Goal: work 12 improved tiles at the same time, not counting tended tiles. Reward: +1 food on every hex with a Farm"
+    "raw": "Goal: work 12 improved tiles at the same time. Reward: +1 food on every hex with a [[improvement:farm|Farm]]",
+    "text": "Goal: work 12 improved tiles at the same time. Reward: +1 food on every hex with a Farm"
    }
   ],
   "theLandHunger": [
    {
-    "raw": "+25% production toward settlers",
-    "text": "+25% production toward settlers"
+    "raw": "+50% production toward settlers",
+    "text": "+50% production toward settlers"
    }
   ],
   "theMarlPits": [
@@ -5112,8 +5268,8 @@
   ],
   "theEngineersYards": [
    {
-    "raw": "+2 production on every improved hex beside a [[improvement:manufactory|Manufactory]]",
-    "text": "+2 production on every improved hex beside a Manufactory"
+    "raw": "+4 production on every improved hex beside a [[improvement:manufactory|Manufactory]]",
+    "text": "+4 production on every improved hex beside a Manufactory"
    }
   ],
   "theTendedCountry": [
@@ -5130,14 +5286,14 @@
   ],
   "theHedgerows": [
    {
-    "raw": "+2 food on every hex with a [[improvement:farm|Farm]] beside a tended hex",
-    "text": "+2 food on every hex with a Farm beside a tended hex"
+    "raw": "+3 food on every hex with a [[improvement:farm|Farm]] beside a forest or jungle",
+    "text": "+3 food on every hex with a Farm beside a forest or jungle"
    }
   ],
   "theGreatHouseholds": [
    {
-    "raw": "+2% production in every city per citizen there (at most +30% production)",
-    "text": "+2% production in every city per citizen there (at most +30% production)"
+    "raw": "+1 production in every city per 2 citizens there",
+    "text": "+1 production in every city per 2 citizens there"
    }
   ],
   "theHarbourCities": [
@@ -5236,8 +5392,12 @@
   ],
   "thePolders": [
    {
-    "raw": "while this card is seated, your workers may build a [[improvement:polder|Polder]]: on a coast hex with 3 of your land hexes beside it; for 2 work charges; it yields as a farm on grassland",
-    "text": "while this card is seated, your workers may build a Polder: on a coast hex with 3 of your land hexes beside it; for 2 work charges; it yields as a farm on grassland"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:polder|Polder]]. Counts as a farm. On a coast hex with 3 of your land hexes beside it. It yields as a farm on grassland.",
+    "text": "Build Polder. Counts as a farm. On a coast hex with 3 of your land hexes beside it. It yields as a farm on grassland."
    }
   ],
   "publicWorks": [
@@ -5377,8 +5537,8 @@
   ],
   "theGreatColonies": [
    {
-    "raw": "new cities start with a third of the citizens of your largest city, rounded down",
-    "text": "new cities start with a third of the citizens of your largest city, rounded down"
+    "raw": "new cities start with a quarter of the citizens of your largest city, rounded down",
+    "text": "new cities start with a quarter of the citizens of your largest city, rounded down"
    }
   ],
   "theRaisingOfTheLand": [
@@ -5411,8 +5571,8 @@
     "text": "your cities may work the mountains in their borders"
    },
    {
-    "raw": "+1 production, +2 science on every mountain hex",
-    "text": "+1 production, +2 science on every mountain hex"
+    "raw": "+2 production, +4 science on every mountain hex",
+    "text": "+2 production, +4 science on every mountain hex"
    }
   ],
   "theStakedClaims": [
@@ -5481,8 +5641,8 @@
   ],
   "thePhilosophersPeaks": [
    {
-    "raw": "+2 science in every city per mountain hex there (at most +6 science)",
-    "text": "+2 science in every city per mountain hex there (at most +6 science)"
+    "raw": "+4 science in every city per mountain hex there (at most +12 science)",
+    "text": "+4 science in every city per mountain hex there (at most +12 science)"
    }
   ],
   "theInheritanceOfFields": [
@@ -5509,8 +5669,8 @@
   ],
   "theGeneralLevy": [
    {
-    "raw": "a town may spend one citizen for a [[concept:grantedUnit|melee unit]], which does not count as trained (once every 5 turns, or every turn while you are at war)",
-    "text": "a town may spend one citizen for a melee unit, which does not count as trained (once every 5 turns, or every turn while you are at war)"
+    "raw": "a town may spend one citizen for a [[concept:grantedUnit|melee unit]], which does not count as trained (once every 5 turns, or every 2 turns while you are at war)",
+    "text": "a town may spend one citizen for a melee unit, which does not count as trained (once every 5 turns, or every 2 turns while you are at war)"
    }
   ],
   "theGreatMigration": [
@@ -5531,8 +5691,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: own 120 hexes and work 40 improved tiles at the same time. Reward: +1 science on every improved or tended hex",
-    "text": "Goal: own 120 hexes and work 40 improved tiles at the same time. Reward: +1 science on every improved or tended hex"
+    "raw": "Goal: own 120 hexes and work 40 improved tiles at the same time. Reward: +1 science on every improved hex",
+    "text": "Goal: own 120 hexes and work 40 improved tiles at the same time. Reward: +1 science on every improved hex"
    }
   ],
   "theTwoHarvests": [
@@ -5561,8 +5721,12 @@
   ],
   "theKeeps": [
    {
-    "raw": "while this card is seated, your workers may build a [[improvement:townKeep|Keep]]: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind",
-    "text": "while this card is seated, your workers may build a Keep: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind"
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:townKeep|Keep]]. One in each city. It yields what each of your hexes around it yields, except a city or another of its kind.",
+    "text": "Build Keep. One in each city. It yields what each of your hexes around it yields, except a city or another of its kind."
    }
   ],
   "thePublicGood": [
@@ -5926,8 +6090,8 @@
   ],
   "commerceOpenMarket": [
    {
-    "raw": "Everything you buy with gold costs 20% less",
-    "text": "Everything you buy with gold costs 20% less"
+    "raw": "Your gold buys 25% more",
+    "text": "Your gold buys 25% more"
    }
   ],
   "commerceSaltTithes": [
@@ -5996,8 +6160,8 @@
   ],
   "theMineralTrade": [
    {
-    "raw": "+1 gold on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]]",
-    "text": "+1 gold on every hex with a Mine or Quarry"
+    "raw": "+2 gold on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]]",
+    "text": "+2 gold on every hex with a Mine or Quarry"
    }
   ],
   "coastalEstates": [
@@ -6026,8 +6190,8 @@
   ],
   "civicReceipts": [
    {
-    "raw": "buying a building grants culture equal to 15% of the gold paid",
-    "text": "buying a building grants culture equal to 15% of the gold paid"
+    "raw": "buying a building grants culture equal to 25% of the gold paid",
+    "text": "buying a building grants culture equal to 25% of the gold paid"
    }
   ],
   "provisioningContracts": [
@@ -6073,8 +6237,12 @@
   ],
   "theFactorsHouses": [
    {
-    "raw": "+2 gold, +4 culture in every city that holds your trading post",
-    "text": "+2 gold, +4 culture in every city that holds your trading post"
+    "raw": "+2 gold per city holding your trading post",
+    "text": "+2 gold per city holding your trading post"
+   },
+   {
+    "raw": "+4 culture per city holding your trading post",
+    "text": "+4 culture per city holding your trading post"
    }
   ],
   "thePlantersCharter": [
@@ -6083,8 +6251,8 @@
     "text": "Charter"
    },
    {
-    "raw": "you may buy the [[building:plantationHouse|Plantation House]] with gold: +1 gold; +1 food, +1 gold on every hex with a [[improvement:plantation|Plantation]]",
-    "text": "you may buy the Plantation House with gold: +1 gold; +1 food, +1 gold on every hex with a Plantation"
+    "raw": "you may buy the [[building:plantationHouse|Plantation House]] with gold: +1 gold; +2 food, +2 gold on every hex with a [[improvement:plantation|Plantation]]",
+    "text": "you may buy the Plantation House with gold: +1 gold; +2 food, +2 gold on every hex with a Plantation"
    }
   ],
   "boughtSwords": [
@@ -6117,8 +6285,8 @@
   ],
   "theTreatyPorts": [
    {
-    "raw": "+5% production in every city per empire you hold a deal with (at most +25% production)",
-    "text": "+5% production in every city per empire you hold a deal with (at most +25% production)"
+    "raw": "+8% production in every city per empire you hold a deal with (at most +40% production)",
+    "text": "+8% production in every city per empire you hold a deal with (at most +40% production)"
    }
   ],
   "thePostRiders": [
@@ -6136,8 +6304,8 @@
   ],
   "theMarketWrit": [
    {
-    "raw": "+1 authority capacity per 2 [[building:market|Markets]]",
-    "text": "+1 authority capacity per 2 Markets"
+    "raw": "+1 authority capacity and +1 happiness per 2 [[building:market|Markets]]",
+    "text": "+1 authority capacity and +1 happiness per 2 Markets"
    }
   ],
   "commercialEducation": [
@@ -6291,16 +6459,10 @@
     "text": "+1 gold per 4 hexes between the two cities, on trade routes run by sea"
    }
   ],
-  "theLeagueOfCities": [
-   {
-    "raw": "+20% production in every city a trade route sets out from",
-    "text": "+20% production in every city a trade route sets out from"
-   }
-  ],
   "theCharterFleet": [
    {
-    "raw": "ships cost −20% to buy",
-    "text": "ships cost −20% to buy"
+    "raw": "You gain 25% buying power on ships",
+    "text": "You gain 25% buying power on ships"
    },
    {
     "raw": "newly created ships bought with gold gain +1 movement",
@@ -6325,14 +6487,14 @@
   ],
   "theScholarsRoads": [
    {
-    "raw": "+50% science and culture on every trade route you send",
-    "text": "+50% science and culture on every trade route you send"
+    "raw": "+100% science and culture on every trade route you send",
+    "text": "+100% science and culture on every trade route you send"
    }
   ],
   "theCustomsHouses": [
    {
-    "raw": "+4 science and +4 culture in every city per hex with a [[improvement:customsHouse|Customs House]] there",
-    "text": "+4 science and +4 culture in every city per hex with a Customs House there"
+    "raw": "+8 science, +8 culture on every hex with a [[improvement:customsHouse|Customs House]]",
+    "text": "+8 science, +8 culture on every hex with a Customs House"
    }
   ],
   "strategicExports": [
@@ -6396,8 +6558,8 @@
   ],
   "theEndowment": [
    {
-    "raw": "+2 science in every city per purchased building there (at most +6 science)",
-    "text": "+2 science in every city per purchased building there (at most +6 science)"
+    "raw": "buying a building grants science equal to 25% of the gold paid",
+    "text": "buying a building grants science equal to 25% of the gold paid"
    }
   ],
   "thePaidArmy": [
@@ -6406,8 +6568,8 @@
     "text": "military units cost 1 less gold in maintenance"
    },
    {
-    "raw": "military units cost −25% to buy",
-    "text": "military units cost −25% to buy"
+    "raw": "You gain 33.33% buying power on military units",
+    "text": "You gain 33.33% buying power on military units"
    }
   ],
   "merchantPrinces": [
@@ -6418,14 +6580,14 @@
   ],
   "theWorldsExchange": [
    {
-    "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per other empire you trade with (at most +40%)",
-    "text": "+10% production toward The Magnum Opus per other empire you trade with (at most +40%)"
+    "raw": "+20% production toward [[building:theMagnumOpus|The Magnum Opus]] per other empire you trade with",
+    "text": "+20% production toward The Magnum Opus per other empire you trade with"
    }
   ],
   "theCharteredMetropolis": [
    {
-    "raw": "+35% food, +35% production and +35% culture in every city 3 or more trade routes set out from",
-    "text": "+35% food, +35% production and +35% culture in every city 3 or more trade routes set out from"
+    "raw": "+50% food, +50% production and +50% culture in every city 3 or more trade routes set out from",
+    "text": "+50% food, +50% production and +50% culture in every city 3 or more trade routes set out from"
    }
   ],
   "theAdmiraltyOfTrade": [
@@ -6482,8 +6644,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold 4 copies of one luxury, counting copies you receive in deals. Reward: +2 happiness per luxury you hold two or more copies of",
-    "text": "Goal: hold 4 copies of one luxury, counting copies you receive in deals. Reward: +2 happiness per luxury you hold two or more copies of"
+    "raw": "Goal: hold 3 copies of one luxury, counting copies you receive in deals. Reward: +2 happiness per unique luxury",
+    "text": "Goal: hold 3 copies of one luxury, counting copies you receive in deals. Reward: +2 happiness per unique luxury"
    }
   ],
   "theStrongroom": [
@@ -6528,16 +6690,20 @@
    {
     "raw": "On draft: a [[unit:trader|Trader]] joins you in your capital",
     "text": "On draft: a Trader joins you in your capital"
+   },
+   {
+    "raw": "On draft: +1 trade route for the rest of the game",
+    "text": "On draft: +1 trade route for the rest of the game"
    }
   ],
   "theStapleRight": [
    {
-    "raw": "+3 gold per luxury you hold two or more copies of",
-    "text": "+3 gold per luxury you hold two or more copies of"
+    "raw": "+4 gold per luxury you hold two or more copies of",
+    "text": "+4 gold per luxury you hold two or more copies of"
    },
    {
-    "raw": "+2 culture per luxury you hold two or more copies of",
-    "text": "+2 culture per luxury you hold two or more copies of"
+    "raw": "+3 culture per luxury you hold two or more copies of",
+    "text": "+3 culture per luxury you hold two or more copies of"
    }
   ],
   "numidianCavalryCharter": [
@@ -6552,12 +6718,12 @@
   ],
   "housesOfAccount": [
    {
-    "raw": "+2 happiness per gold building",
-    "text": "+2 happiness per gold building"
+    "raw": "+1 happiness per gold building",
+    "text": "+1 happiness per gold building"
    },
    {
-    "raw": "+1 renown per turn per gold building you hold",
-    "text": "+1 renown per turn per gold building you hold"
+    "raw": "+2 renown per turn per gold building you hold",
+    "text": "+2 renown per turn per gold building you hold"
    }
   ],
   "aGuildCommission": [
@@ -6606,8 +6772,8 @@
   ],
   "theSpiceExchange": [
    {
-    "raw": "+5% science and +5% culture in every city per luxury you hold two or more copies of (at most +30% each)",
-    "text": "+5% science and +5% culture in every city per luxury you hold two or more copies of (at most +30% each)"
+    "raw": "+4% science and +4% culture in every city per unique luxury (at most +32% each)",
+    "text": "+4% science and +4% culture in every city per unique luxury (at most +32% each)"
    }
   ],
   "moneyAtWork": [
@@ -6618,8 +6784,12 @@
   ],
   "boughtAndPaidFor": [
    {
-    "raw": "+4% production and +4% culture in every city per building bought with gold there (at most +24% each)",
-    "text": "+4% production and +4% culture in every city per building bought with gold there (at most +24% each)"
+    "raw": "+2% production in every city per building you bought with gold (at most +30% production)",
+    "text": "+2% production in every city per building you bought with gold (at most +30% production)"
+   },
+   {
+    "raw": "+2% culture in every city per building you bought with gold (at most +30% culture)",
+    "text": "+2% culture in every city per building you bought with gold (at most +30% culture)"
    }
   ],
   "theEmbargo": [
@@ -6651,18 +6821,22 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have trade routes to 4 other empires at the same time. Reward: your trading post, established at once, in the capital of each empire your trade routes reach",
-    "text": "Goal: have trade routes to 4 other empires at the same time. Reward: your trading post, established at once, in the capital of each empire your trade routes reach"
+    "raw": "Goal: have trade routes to 4 other empires at the same time. Reward: +100% everything on every trade route that ends in another empire’s city",
+    "text": "Goal: have trade routes to 4 other empires at the same time. Reward: +100% everything on every trade route that ends in another empire’s city"
    }
   ],
   "theGreatLoan": [
    {
-    "raw": "[[concept:commission|Commission]]",
-    "text": "Commission"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
    },
    {
-    "raw": "Goal: earn at least 1 gold per turn. Reward: gold equal to 20 times your gold per turn at that moment, and for 40 turns, -25% gold in every city",
-    "text": "Goal: earn at least 1 gold per turn. Reward: gold equal to 20 times your gold per turn at that moment, and for 40 turns, -25% gold in every city"
+    "raw": "On draft: gain gold equal to 20 turns of your gold",
+    "text": "On draft: gain gold equal to 20 turns of your gold"
+   },
+   {
+    "raw": "On draft: -25% gold in every city for 40 turns",
+    "text": "On draft: -25% gold in every city for 40 turns"
    }
   ],
   "theTradeWinds": [
@@ -6695,8 +6869,8 @@
   ],
   "theMarketHalls": [
    {
-    "raw": "+1 food and +1 production in every city with a [[building:market|Market]] per 3 citizens there",
-    "text": "+1 food and +1 production in every city with a Market per 3 citizens there"
+    "raw": "+1 food and +1 production in every city with a [[building:market|Market]] or with a [[building:lighthouse|Lighthouse]] per 3 citizens there",
+    "text": "+1 food and +1 production in every city with a Market or with a Lighthouse per 3 citizens there"
    }
   ],
   "namesInStone": [
@@ -6719,8 +6893,8 @@
   ],
   "theGrainBarges": [
    {
-    "raw": "+1 food, +1 production per 4 citizens in the origin city, on trade routes between two of your own cities",
-    "text": "+1 food, +1 production per 4 citizens in the origin city, on trade routes between two of your own cities"
+    "raw": "+1 food, +1 production per 3 citizens in the origin city, on trade routes between two of your own cities",
+    "text": "+1 food, +1 production per 3 citizens in the origin city, on trade routes between two of your own cities"
    }
   ],
   "theFondaci": [
@@ -6775,8 +6949,16 @@
   ],
   "lettersOfCredit": [
    {
-    "raw": "your treasury may fall to −150 with no penalty",
-    "text": "your treasury may fall to −150 with no penalty"
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: +400 gold",
+    "text": "On draft: +400 gold"
+   },
+   {
+    "raw": "On draft: -30% gold in every city for 15 turns",
+    "text": "On draft: -30% gold in every city for 15 turns"
    }
   ],
   "theStrongbox": [
@@ -6793,6 +6975,216 @@
    {
     "raw": "+1 trade route per 2 merchants in the trades",
     "text": "+1 trade route per 2 merchants in the trades"
+   }
+  ],
+  "theFishingFleets": [
+   {
+    "raw": "+1 production, +1 faith on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
+    "text": "+1 production, +1 faith on every hex with a Fishing Boat"
+   }
+  ],
+  "theProvisionTrade": [
+   {
+    "raw": "+1 food, +1 production on every improved hex carrying a bonus resource",
+    "text": "+1 food, +1 production on every improved hex carrying a bonus resource"
+   }
+  ],
+  "thePeriplus": [
+   {
+    "raw": "+1 science, +1 culture in every coastal city",
+    "text": "+1 science, +1 culture in every coastal city"
+   }
+  ],
+  "thePalaceStores": [
+   {
+    "raw": "+2 production and +2 culture in your capital per unique luxury",
+    "text": "+2 production and +2 culture in your capital per unique luxury"
+   }
+  ],
+  "theEstateLands": [
+   {
+    "raw": "+1 food, +1 gold on every hex beside an improved hex carrying a luxury resource",
+    "text": "+1 food, +1 gold on every hex beside an improved hex carrying a luxury resource"
+   }
+  ],
+  "theSaltPans": [
+   {
+    "raw": "+1 food, +1 production on every water hex, in every city with a [[building:lighthouse|Lighthouse]]",
+    "text": "+1 food, +1 production on every water hex, in every city with a Lighthouse"
+   }
+  ],
+  "theDyeWorks": [
+   {
+    "raw": "+2 culture on every improved hex carrying a luxury resource",
+    "text": "+2 culture on every improved hex carrying a luxury resource"
+   }
+  ],
+  "theSlipways": [
+   {
+    "raw": "+50% production toward ships",
+    "text": "+50% production toward ships"
+   },
+   {
+    "raw": "+50% production toward [[building:lighthouse|Lighthouses]]",
+    "text": "+50% production toward Lighthouses"
+   },
+   {
+    "raw": "+50% production toward [[building:harbour|Harbours]]",
+    "text": "+50% production toward Harbours"
+   }
+  ],
+  "theGarumWorks": [
+   {
+    "raw": "+1 happiness per hex with a [[improvement:fishingBoats|Fishing Boat]] in your borders",
+    "text": "+1 happiness per hex with a Fishing Boat in your borders"
+   }
+  ],
+  "theTeaHorseRoad": [
+   {
+    "raw": "+1 gold, +1 culture per 6 hexes between the two cities",
+    "text": "+1 gold, +1 culture per 6 hexes between the two cities"
+   }
+  ],
+  "theWaysideInns": [
+   {
+    "raw": "+1 food, +1 production on every hex with a road",
+    "text": "+1 food, +1 production on every hex with a road"
+   }
+  ],
+  "theTiraz": [
+   {
+    "raw": "+1 production in every city per unique luxury",
+    "text": "+1 production in every city per unique luxury"
+   }
+  ],
+  "theBondedWarehouses": [
+   {
+    "raw": "+2 production, +2 gold on every hex with a [[improvement:customsHouse|Customs House]] or beside a [[improvement:customsHouse|Customs House]]",
+    "text": "+2 production, +2 gold on every hex with a Customs House or beside a Customs House"
+   }
+  ],
+  "theMerchantConsuls": [
+   {
+    "raw": "[[concept:boon|Boon]]",
+    "text": "Boon"
+   },
+   {
+    "raw": "On draft: you gain a great merchant to call",
+    "text": "On draft: you gain a great merchant to call"
+   }
+  ],
+  "theEpibatai": [
+   {
+    "raw": "a unit of yours that comes ashore from the water gains +5 combat strength for 3 turns",
+    "text": "a unit of yours that comes ashore from the water gains +5 combat strength for 3 turns"
+   }
+  ],
+  "theClothHalls": [
+   {
+    "raw": "+3 production in every city per gold building there",
+    "text": "+3 production in every city per gold building there"
+   }
+  ],
+  "theLatifundia": [
+   {
+    "raw": "the yields of every improved hex carrying a luxury resource are doubled",
+    "text": "the yields of every improved hex carrying a luxury resource are doubled"
+   }
+  ],
+  "theStatoDaMar": [
+   {
+    "raw": "the yields of every water hex are doubled",
+    "text": "the yields of every water hex are doubled"
+   }
+  ],
+  "commissionTheHarbourLeague": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: have 5 cities with a [[building:harbour|Harbour]], at the same time. Reward: +1 science, +1 culture on every water hex",
+    "text": "Goal: have 5 cities with a Harbour, at the same time. Reward: +1 science, +1 culture on every water hex"
+   }
+  ],
+  "theFreePorts": [
+   {
+    "raw": "+20% production and +20% culture in every city with a [[building:harbour|Harbour]]",
+    "text": "+20% production and +20% culture in every city with a Harbour"
+   }
+  ],
+  "theCompanyOfTheStaple": [
+   {
+    "raw": "Your great merchants may take their action or build their work 2 times in any combination",
+    "text": "Your great merchants may take their action or build their work 2 times in any combination"
+   }
+  ],
+  "theHerringFleets": [
+   {
+    "raw": "+1 production, +2 culture on every coast hex",
+    "text": "+1 production, +2 culture on every coast hex"
+   }
+  ],
+  "theWoodenWalls": [
+   {
+    "raw": "+6 combat strength for ships",
+    "text": "+6 combat strength for ships"
+   },
+   {
+    "raw": "ships: +1 movement",
+    "text": "ships: +1 movement"
+   }
+  ],
+  "thePottersQuarter": [
+   {
+    "raw": "+1 production, +1 science on every hex beside your capital",
+    "text": "+1 production, +1 science on every hex beside your capital"
+   }
+  ],
+  "theTenThousand": [
+   {
+    "raw": "military units you gain bought with gold start as Veterans",
+    "text": "military units you gain bought with gold start as Veterans"
+   }
+  ],
+  "commissionTheTradeMission": [
+   {
+    "raw": "[[concept:commission|Commission]]",
+    "text": "Commission"
+   },
+   {
+    "raw": "Goal: hold active deals with 2 empires at once. Reward: a great merchant to call",
+    "text": "Goal: hold active deals with 2 empires at once. Reward: a great merchant to call"
+   }
+  ],
+  "theWeighHouse": [
+   {
+    "raw": "+3 production, +3 gold on every hex with a [[improvement:customsHouse|Customs House]], once for every adjacent improved hex carrying a resource",
+    "text": "+3 production, +3 gold on every hex with a Customs House, once for every adjacent improved hex carrying a resource"
+   }
+  ],
+  "theStipendium": [
+   {
+    "raw": "+1 combat strength per 50 gold earned each turn (at most +8)",
+    "text": "+1 combat strength per 50 gold earned each turn (at most +8)"
+   }
+  ],
+  "theFeitorias": [
+   {
+    "raw": "+1 science and +1 culture per 4 citizens of each city holding your trading post",
+    "text": "+1 science and +1 culture per 4 citizens of each city holding your trading post"
+   }
+  ],
+  "theSeaLords": [
+   {
+    "raw": "citizens may work water one ring beyond the usual reach in every coastal city",
+    "text": "citizens may work water one ring beyond the usual reach in every coastal city"
+   }
+  ],
+  "theDoubleEntry": [
+   {
+    "raw": "Orders that pay for purchases pay twice as much",
+    "text": "Orders that pay for purchases pay twice as much"
    }
   ],
   "devotionFirstRites": [
@@ -7184,8 +7576,8 @@
   ],
   "theOfferingChests": [
    {
-    "raw": "military units cost −30% to buy with faith",
-    "text": "military units cost −30% to buy with faith"
+    "raw": "Your faith buys 42.86% more when buying military units",
+    "text": "Your faith buys 42.86% more when buying military units"
    }
   ],
   "theRogations": [
@@ -8753,8 +9145,8 @@
     "text": "+2 renown per turn per wonder you hold"
    },
    {
-    "raw": "culture buildings cost −20% to buy, in every city containing a wonder",
-    "text": "culture buildings cost −20% to buy, in every city containing a wonder"
+    "raw": "You gain 25% buying power on culture buildings, in every city containing a wonder",
+    "text": "You gain 25% buying power on culture buildings, in every city containing a wonder"
    }
   ],
   "theMusesCall": [
@@ -8773,8 +9165,8 @@
     "text": "+2 renown per turn in every city working a great person's work"
    },
    {
-    "raw": "culture buildings cost −25% to buy, in every city working a great person's work",
-    "text": "culture buildings cost −25% to buy, in every city working a great person's work"
+    "raw": "You gain 33.33% buying power on culture buildings, in every city working a great person's work",
+    "text": "You gain 33.33% buying power on culture buildings, in every city working a great person's work"
    }
   ],
   "theWorkingCourt": [
@@ -9488,6 +9880,16 @@
     "text": "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken"
    }
   ],
+  "theHillforts": [
+   {
+    "raw": "[[concept:charter|Charter]]",
+    "text": "Charter"
+   },
+   {
+    "raw": "Build [[improvement:hillfort|Hillfort]]. +2 production on hills. +1 production per adjacent Farm, Pasture or Camp. One in each city. +5 defence on this tile.",
+    "text": "Build Hillfort. +2 production on hills. +1 production per adjacent Farm, Pasture or Camp. One in each city. +5 defence on this tile."
+   }
+  ],
   "frontierGarrisons": [
    {
     "raw": "+2 food in every city with a unit standing in it of 5 or fewer citizens",
@@ -9508,8 +9910,8 @@
   ],
   "lettersOfMarque": [
    {
-    "raw": "for ships alone, killing a unit grants +60 gold",
-    "text": "for ships alone, killing a unit grants +60 gold"
+    "raw": "a ship you defeat has a 50% chance to join you",
+    "text": "a ship you defeat has a 50% chance to join you"
    }
   ],
   "commonRitesOfPassage": [
@@ -9580,8 +9982,8 @@
   ],
   "sacredGroves": [
    {
-    "raw": "+1 food, +1 faith on every forest unimproved hex",
-    "text": "+1 food, +1 faith on every forest unimproved hex"
+    "raw": "+1 food, +1 faith on every forest hex",
+    "text": "+1 food, +1 faith on every forest hex"
    }
   ],
   "harvestOfferings": [
@@ -9610,8 +10012,8 @@
   ],
   "gardenCities": [
    {
-    "raw": "+1 culture in every city with a [[building:monument|Monument]] per 3 unimproved hexes worked there",
-    "text": "+1 culture in every city with a Monument per 3 unimproved hexes worked there"
+    "raw": "+1 culture in every city with a [[building:monument|Monument]] per 3 hexes worked there",
+    "text": "+1 culture in every city with a Monument per 3 hexes worked there"
    }
   ],
   "theSculptedLandscape": [
@@ -9749,8 +10151,12 @@
   ],
   "theMerchantNavigators": [
    {
-    "raw": "+5 science on every trade route sent from every city with a [[building:harbour|Harbour]]",
-    "text": "+5 science on every trade route sent from every city with a Harbour"
+    "raw": "+2 science on every hex with a [[improvement:fishingBoats|Fishing Boat]], in every city with a [[building:lighthouse|Lighthouse]]",
+    "text": "+2 science on every hex with a Fishing Boat, in every city with a Lighthouse"
+   },
+   {
+    "raw": "+2 science on every hex with a [[improvement:fishingBoats|Fishing Boat]], in every city with a [[building:harbour|Harbour]]",
+    "text": "+2 science on every hex with a Fishing Boat, in every city with a Harbour"
    }
   ],
   "gardenProvinces": [
@@ -10434,6 +10840,70 @@
     "raw": "On draft: each town completes its current unit or building, except wonders and the Magnum Opus",
     "text": "On draft: each town completes its current unit or building, except wonders and the Magnum Opus"
    }
+  ],
+  "theSutlers": [
+   {
+    "raw": "+1 gold in every city with a unit standing in it per citizen there",
+    "text": "+1 gold in every city with a unit standing in it per citizen there"
+   }
+  ],
+  "theArmyContractors": [
+   {
+    "raw": "for military units alone, buying anything grants production equal to 25% of the gold paid",
+    "text": "for military units alone, buying anything grants production equal to 25% of the gold paid"
+   }
+  ],
+  "theFoundersStores": [
+   {
+    "raw": "new cities are founded with a [[building:granary|Granary]]",
+    "text": "new cities are founded with a Granary"
+   }
+  ],
+  "theGrainMerchants": [
+   {
+    "raw": "20% of the food in every city is gained again as gold",
+    "text": "20% of the food in every city is gained again as gold"
+   }
+  ],
+  "theIncenseRoad": [
+   {
+    "raw": "+2 faith per unique luxury",
+    "text": "+2 faith per unique luxury"
+   }
+  ],
+  "theLeagueOfCities": [
+   {
+    "raw": "your largest town besides your capital also counts as your capital for your cards",
+    "text": "your largest town besides your capital also counts as your capital for your cards"
+   }
+  ],
+  "thePatronsLedger": [
+   {
+    "raw": "buying a building grants renown equal to 10% of the gold paid",
+    "text": "buying a building grants renown equal to 10% of the gold paid"
+   }
+  ],
+  "theRoyalPatents": [
+   {
+    "raw": "completing a technology grants +100 gold for each age reached",
+    "text": "completing a technology grants +100 gold for each age reached"
+   }
+  ],
+  "thePatronsQuarter": [
+   {
+    "raw": "+2 production, +2 culture on every hex carrying a great person's work, for each gold building in its town",
+    "text": "+2 production, +2 culture on every hex carrying a great person's work, for each gold building in its town"
+   }
+  ],
+  "theVotiveAccounts": [
+   {
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +1 culture and +1 faith each time you buy something with gold or you buy something with faith or one of your cities starts a rite, up to +18 each",
+    "text": "Gains +1 culture and +1 faith each time you buy something with gold or you buy something with faith or one of your cities starts a rite, up to +18 each"
+   }
   ]
  },
  "belief": {
@@ -10723,8 +11193,8 @@
   ],
   "theAlmsBox": [
    {
-    "raw": "all units and buildings cost −20% to buy with faith, in every city that follows the religion",
-    "text": "all units and buildings cost −20% to buy with faith, in every city that follows the religion"
+    "raw": "Your faith buys 25% more when buying all units and buildings, in every city that follows the religion",
+    "text": "Your faith buys 25% more when buying all units and buildings, in every city that follows the religion"
    }
   ],
   "reliquaries": [
@@ -10773,8 +11243,8 @@
   ],
   "apostles": [
    {
-    "raw": "apostles cost −30% to buy with faith",
-    "text": "apostles cost −30% to buy with faith"
+    "raw": "Your faith buys 42.86% more when buying apostles",
+    "text": "Your faith buys 42.86% more when buying apostles"
    }
   ],
   "sacredCartography": [
@@ -12142,8 +12612,8 @@
   ],
   "crassus": [
    {
-    "raw": "all units and buildings cost −20% to buy",
-    "text": "all units and buildings cost −20% to buy"
+    "raw": "You gain 25% buying power on all units and buildings",
+    "text": "You gain 25% buying power on all units and buildings"
    },
    {
     "raw": "buying anything costs your empire -1 happiness for 10 turns",
@@ -12442,8 +12912,8 @@
     "text": "-1 authority capacity per 3 cities you hold"
    },
    {
-    "raw": "all units and buildings cost −10% to buy",
-    "text": "all units and buildings cost −10% to buy"
+    "raw": "You gain 11.11% buying power on all units and buildings",
+    "text": "You gain 11.11% buying power on all units and buildings"
    }
   ],
   "zhengHe": [
@@ -12572,8 +13042,8 @@
   ],
   "fanLi": [
    {
-    "raw": "buildings cost −15% to buy",
-    "text": "buildings cost −15% to buy"
+    "raw": "You gain 17.65% buying power on buildings",
+    "text": "You gain 17.65% buying power on buildings"
    }
   ],
   "harkhuf": [
@@ -12804,8 +13274,8 @@
   ],
   "fatimaAlFihri": [
    {
-    "raw": "buildings that supply science or faith cost −30% to buy",
-    "text": "buildings that supply science or faith cost −30% to buy"
+    "raw": "You gain 42.86% buying power on buildings that supply science or faith",
+    "text": "You gain 42.86% buying power on buildings that supply science or faith"
    }
   ],
   "hippocrates": [

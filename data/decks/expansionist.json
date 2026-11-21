@@ -1,5 +1,452 @@
 {
   "orders": {
+    "theThousandVillages": {
+      "name": "The Thousand Villages",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "The census recorded a different song in every valley.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "population",
+          "to": "culture",
+          "amount": 1,
+          "per": 2
+        }
+      ],
+      "band": 4,
+      "text": "+1 culture for every two citizens in your empire.",
+      "rarity": "common",
+      "type": "civic"
+    },
+    "theWaterBoards": {
+      "name": "The Water Boards",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "One town dug the channel. The next agreed to keep it clear.",
+      "effects": [
+        {
+          "kind": "buildingYieldPercent",
+          "percent": 100,
+          "publicWork": true
+        }
+      ],
+      "band": 4,
+      "text": "Your public works yield twice as much.",
+      "rarity": "uncommon",
+      "type": "economic"
+    },
+    "theMountainSluices": {
+      "name": "The Mountain Sluices",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "A channel cut in stone carried water to the next working.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "anyImprovement",
+            "improvements": [
+              "mine",
+              "quarry"
+            ]
+          },
+          "production": 1,
+          "perNeighbour": {
+            "test": "any",
+            "of": [
+              {
+                "test": "terrain",
+                "terrain": "mountain"
+              },
+              {
+                "test": "anyImprovement",
+                "improvements": [
+                  "mine",
+                  "quarry"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "band": 3,
+      "text": "Mines and quarries gain +1 production for each mountain, mine or quarry beside them.",
+      "rarity": "uncommon",
+      "type": "economic"
+    },
+    "theCadastre": {
+      "name": "The Cadastre",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "Each entry described who worked the land and what it bore.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "uniqueImprovement"
+          },
+          "science": 3
+        }
+      ],
+      "band": 3,
+      "text": "Unique improvements gain +3 science.",
+      "rarity": "uncommon",
+      "type": "civic"
+    },
+    "theBarays": {
+      "name": "The Barays",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "A straight bank held water for the fields below.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "improvement": "baray"
+        }
+      },
+      "band": 3,
+      "text": "Workers may dig one baray in each town, on flat land beside a river: +2 food, and +2 production for each farm beside it.",
+      "rarity": "uncommon",
+      "type": "economic"
+    },
+    "theFyrd": {
+      "name": "The Fyrd",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "The men who held the field had worked it the week before.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "unitOnOwnGround"
+          },
+          "scaled": {
+            "count": "tileYield",
+            "per": 2,
+            "max": 6
+          },
+          "class": {
+            "category": "military"
+          }
+        }
+      ],
+      "band": 2,
+      "text": "Military units gain +1 combat strength in your territory for every 2 yields on the tile they occupy, up to +6 strength.",
+      "rarity": "common",
+      "type": "military"
+    },
+    "theStepwells": {
+      "name": "The Stepwells",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "In a dry month the steps led farther down.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "improvement": "stepwell"
+        }
+      },
+      "band": 2,
+      "text": "Workers may dig one stepwell in each town, on flat land with no fresh water: +2 food and +1 renown toward great engineers, and the hexes beside it have fresh water.",
+      "rarity": "uncommon",
+      "type": "economic"
+    },
+    "theMansiones": {
+      "name": "The Mansiones",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "Travellers shared news at each stop on the road.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "publicWorks",
+          "to": "culture",
+          "amount": 2,
+          "within": "city",
+          "scope": {
+            "test": "connected"
+          }
+        }
+      ],
+      "band": 2,
+      "text": "Towns joined to your capital by road gain +2 culture for each public work.",
+      "rarity": "common",
+      "type": "civic"
+    },
+    "commissionBreadAndWater": {
+      "name": "Commission: Bread and Water",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "The first petition asked for clean water.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "publicWorks",
+            "count": 12
+          }
+        ],
+        "reward": [
+          {
+            "lasting": [
+              {
+                "kind": "pays",
+                "where": "city",
+                "basis": "count",
+                "count": "publicWorks",
+                "to": "food",
+                "amount": 1,
+                "within": "city"
+              },
+              {
+                "kind": "pays",
+                "where": "city",
+                "basis": "count",
+                "count": "publicWorks",
+                "to": "production",
+                "amount": 1,
+                "within": "city"
+              }
+            ]
+          }
+        ]
+      },
+      "band": 2,
+      "text": "Goal: hold 12 public works. Reward: each public work gives its town +1 food and +1 production.",
+      "rarity": "uncommon",
+      "type": "wildcard"
+    },
+    "commissionTheReclaimedLands": {
+      "name": "Commission: The Reclaimed Lands",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "The mapmaker came back to draw the fields.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "uniqueImprovementBuilt",
+            "count": 8
+          }
+        ],
+        "reward": [
+          {
+            "lasting": [
+              {
+                "kind": "pays",
+                "where": "hex",
+                "on": {
+                  "test": "uniqueImprovement"
+                },
+                "food": 1,
+                "production": 1
+              }
+            ]
+          }
+        ]
+      },
+      "band": 2,
+      "text": "Goal: build 8 unique improvements. Reward: unique improvements gain +1 food and +1 production.",
+      "rarity": "uncommon",
+      "type": "wildcard"
+    },
+    "theSevenFatYears": {
+      "name": "The Seven Fat Years",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "There was enough grain to set another place at every table.",
+      "effects": [],
+      "onDraft": [
+        {
+          "grant": "citizensInEveryTown",
+          "amount": 1
+        }
+      ],
+      "band": 2,
+      "text": "On draft: each of your towns gains a citizen.",
+      "rarity": "uncommon",
+      "type": "economic"
+    },
+    "theBeacons": {
+      "name": "The Beacons",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "One fire gave the next hill its signal.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "where": "ownTerritory"
+        }
+      ],
+      "lastBand": 2,
+      "band": 1,
+      "text": "Your units gain +1 movement inside your borders.",
+      "rarity": "common",
+      "type": "military"
+    },
+    "theThermae": {
+      "name": "The Thermae",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "The engineer drew the water from the high side of the town.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "publicWorks",
+          "to": "science",
+          "amount": 2,
+          "within": "city"
+        }
+      ],
+      "band": 2,
+      "text": "Each public work gives its town +2 science.",
+      "rarity": "uncommon",
+      "type": "civic"
+    },
+    "theTimberYards": {
+      "name": "The Timber Yards",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "A short haul keeps the saws busy.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "lumbermill"
+          },
+          "production": 1,
+          "perNeighbour": {
+            "test": "anyFeature",
+            "features": [
+              "forest",
+              "jungle"
+            ]
+          }
+        }
+      ],
+      "band": 1,
+      "text": "Lumber mills gain +1 production for each forest or jungle hex beside them.",
+      "rarity": "common",
+      "type": "economic"
+    },
+    "theTotemPoles": {
+      "name": "The Totem Poles",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "The carver chose a cedar that would stand for generations.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "improvement": "totemPole"
+        }
+      },
+      "band": 1,
+      "text": "Workers may raise one totem pole in each town, in a forest or jungle: +3 culture, and each forest or jungle hex beside it gains +1 culture and +1 production.",
+      "rarity": "uncommon",
+      "type": "economic"
+    },
+    "theMakersOfLand": {
+      "name": "The Makers of Land",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "Each new field gave the surveyor another line to draw.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "tally",
+          "to": "science",
+          "amount": 1,
+          "per": 3,
+          "tally": "improvementBuilt"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "tally",
+          "to": "culture",
+          "amount": 1,
+          "per": 3,
+          "tally": "improvementBuilt"
+        }
+      ],
+      "band": 1,
+      "text": "Gains +1 science and +1 culture for every 3 improvements you build.",
+      "rarity": "uncommon",
+      "type": "civic"
+    },
+    "theDesertAndTheSnow": {
+      "name": "The Desert and the Snow",
+      "decks": [
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "A path of stones shows where people have passed.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "improvements": [
+            "nazcaLines",
+            "inuksuk"
+          ]
+        }
+      },
+      "band": 1,
+      "text": "Workers may draw Nazca lines on flat desert (+2 faith, +2 culture, and +2 faith more for each Nazca line beside it) and raise inuksuit on tundra and snow (+1 food, +2 culture, and +1 culture more for each inuksuk beside it).",
+      "rarity": "uncommon",
+      "type": "economic"
+    },
     "smallholdings": {
       "name": "Smallholdings",
       "decks": ["expansionist"],
@@ -80,16 +527,26 @@
       ]
     },
     "theFishTraps": {
-      "name": "The Fish Traps",
-      "decks": ["expansionist"],
-      "band": 1,
+      "name": "The Gathering Grounds",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 0,
       "line": "none",
-      "rarity": "common",
+      "rarity": "uncommon",
       "type": "economic",
       "flavor": "Stone walls in the shallows, and the tide does the rest.",
-      "text": "Workers may build fish traps on lake and coast tiles: +1 food and +1 production.",
-      "charter": { "unlocks": { "improvement": "fishTraps" } },
-      "effects": []
+      "text": "Workers may build fish traps on coast and lake tiles (+2 food, +1 production) and orchards in forest and jungle (+2 food, +2 gold).",
+      "charter": {
+        "unlocks": {
+          "improvements": [
+            "fishTraps",
+            "wildOrchard"
+          ]
+        }
+      },
+      "effects": [],
+      "lastBand": 1
     },
     "sweetWater": {
       "name": "Sweet Water",
@@ -205,15 +662,20 @@
     },
     "theWoodlandBands": {
       "name": "The Woodland Bands",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 0,
       "line": "none",
       "rarity": "common",
       "type": "military",
       "flavor": "They know every path under the trees, and the trees hide them.",
-      "text": "Your units ignore the movement cost of forest and jungle.",
+      "text": "Your units ignore the movement cost of forest, jungle and hills.",
       "effects": [
-        { "kind": "rule", "rule": "woodsWalk" }
+        {
+          "kind": "rule",
+          "rule": "woodsWalk"
+        }
       ]
     },
     "theFoundingFurrow": {
@@ -256,16 +718,22 @@
     },
     "levyOfTheLand": {
       "name": "Levy of the Land",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "economic",
       "flavor": "The field gives up a son and calls it a harvest.",
       "text": "A town may spend a citizen for production equal to the food it took to grow. Once every five turns.",
       "effects": [
-        { "kind": "levy", "use": "production" }
-      ]
+        {
+          "kind": "levy",
+          "use": "production"
+        }
+      ],
+      "lastBand": 2
     },
     "expansionistTinkersGuild": {
       "name": "Tinkers' Guild",
@@ -287,11 +755,12 @@
     },
     "theOldSongs": {
       "name": "The Old Songs",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "Unploughed ground keeps the older tunes.",
       "text": "Worked unimproved land gains +2 culture.",
       "note": "Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.",
@@ -300,9 +769,12 @@
           "kind": "pays",
           "where": "hex",
           "culture": 2,
-          "on": { "test": "unimproved" }
+          "on": {
+            "test": "unimproved"
+          }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLocalCensus": {
       "name": "The Local Census",
@@ -334,17 +806,21 @@
     },
     "theWildOrchards": {
       "name": "The Wild Orchards",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "Nobody planted these trees, and everybody picks from them.",
       "text": "Workers may tend a forest or jungle tile into an orchard: +1 food and +1 gold.",
       "charter": {
-        "unlocks": { "improvement": "wildOrchard" }
+        "unlocks": {
+          "improvement": "wildOrchard"
+        }
       },
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theBurningSeason": {
       "name": "The Burning Season",
@@ -483,16 +959,21 @@
     },
     "outposts": {
       "name": "Outposts",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "A hut, a fire and a flag, a day ahead of the settlers.",
-      "text": "Workers may plant an outpost on a wild tile near your border. It claims its hex and the ring around it.",
-      "effects": [
-        { "kind": "unlocksImprovement", "improvement": "outpost" }
-      ]
+      "text": "Workers may plant an outpost on an unowned hex within three hexes of your border. It claims its hex and the ring around it.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "improvement": "outpost"
+        }
+      }
     },
     "theProspectors": {
       "name": "The Prospectors",
@@ -520,21 +1001,33 @@
     },
     "sixGardens": {
       "name": "Six Gardens",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "One garden is a hobby; six are a way of life.",
       "text": "Needs tended land. Commission. Have six tended tiles. Then, for the rest of the game, tended tiles gain +1 culture. The card leaves its chair.",
-      "needsTendedWork": true,
       "commission": {
         "goals": [
-          { "kind": "reached", "figure": "tendedTiles", "count": 6 }
+          {
+            "kind": "reached",
+            "figure": "tendedTiles",
+            "count": 6
+          }
         ],
         "reward": [
           {
             "lasting": [
-              { "kind": "pays", "where": "hex", "culture": 1, "on": { "test": "tended" } }
+              {
+                "kind": "pays",
+                "where": "hex",
+                "culture": 1,
+                "on": {
+                  "test": "tended"
+                }
+              }
             ]
           }
         ]
@@ -634,11 +1127,12 @@
     },
     "theWildMarches": {
       "name": "The Wild Marches",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "civic",
       "flavor": "Past the last field, the land belongs to the old songs.",
       "text": "+1 culture for every four wild hexes you own.",
       "effects": [
@@ -647,12 +1141,15 @@
           "where": "empire",
           "basis": "count",
           "count": "tilesInBorders",
-          "tile": { "test": "unimproved" },
+          "tile": {
+            "test": "unimproved"
+          },
           "to": "culture",
           "amount": 1,
           "per": 4
         }
-      ]
+      ],
+      "retired": true
     },
     "theQuietProvinces": {
       "name": "The Quiet Provinces",
@@ -678,19 +1175,23 @@
     },
     "theRoadTowns": {
       "name": "The Road Towns",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "economic",
       "flavor": "The road brings the trade, and the trade brings the town.",
-      "text": "Towns joined to your capital by road gain +2 production.",
+      "text": "Towns joined to your capital by road gain +4 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "production": 2,
-          "scope": { "test": "connected" }
+          "production": 4,
+          "scope": {
+            "test": "connected"
+          }
         }
       ]
     },
@@ -739,11 +1240,12 @@
     },
     "theGleaners": {
       "name": "The Gleaners",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "What the reapers leave, the poor may gather.",
       "text": "After a town levies a citizen, it gains +3 food for ten turns.",
       "needsLevy": true,
@@ -754,11 +1256,16 @@
             "turns": 10,
             "every": 10,
             "effects": [
-              { "kind": "pays", "where": "city", "food": 3 }
+              {
+                "kind": "pays",
+                "where": "city",
+                "food": 3
+              }
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGrainCensus": {
       "name": "The Grain Census",
@@ -800,25 +1307,31 @@
     },
     "theGardenFrontier": {
       "name": "The Garden Frontier",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "rare",
       "flavor": "The gardener goes first, and the border follows the garden.",
       "text": "Needs tended land. Workers may tend unowned wild hexes up to two hexes beyond your borders. A hex tended there joins your nearest town.",
-      "needsTendedWork": true,
       "effects": [
-        { "kind": "worksBeyond", "works": "tended", "reach": 2 }
+        {
+          "kind": "worksBeyond",
+          "works": "tended",
+          "reach": 2
+        }
       ],
       "retired": true
     },
     "theBurhs": {
       "name": "The Burhs",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "A wall for every town, and a town for every wall.",
       "text": "Towns gain +3 defence for each defensive building.",
       "effects": [
@@ -828,7 +1341,8 @@
           "amount": 3,
           "count": "defensiveBuildings"
         }
-      ]
+      ],
+      "retired": true
     },
     "commissionBreakTheSod": {
       "name": "Commission: Break the Sod",
@@ -864,19 +1378,23 @@
     },
     "theLandHunger": {
       "name": "The Land Hunger",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "economic",
       "flavor": "Their towns fill the valley. Ours will fill the next one.",
-      "text": "Towns build settlers 25% faster.",
+      "text": "Towns build settlers 50% faster.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "unit",
-          "percent": 25,
-          "class": { "type": "settler" }
+          "percent": 50,
+          "class": {
+            "type": "settler"
+          }
         }
       ]
     },
@@ -1015,10 +1533,12 @@
     },
     "provincialCouncils": {
       "name": "Provincial Councils",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "civic",
       "flavor": "The province speaks, and is not always wrong.",
       "text": "Towns joined to your capital by road cost 1 less authority.",
@@ -1027,7 +1547,9 @@
           "kind": "meterRule",
           "rule": "cityCost",
           "delta": -1,
-          "scope": { "test": "connected" }
+          "scope": {
+            "test": "connected"
+          }
         }
       ]
     },
@@ -1051,10 +1573,12 @@
     },
     "expansionistTheWaterworks": {
       "name": "The Waterworks",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "civic",
       "flavor": "A fountain in the square, and nobody leaves.",
       "text": "Aqueducts give +3 happiness.",
@@ -1063,7 +1587,10 @@
           "kind": "happiness",
           "amount": 3,
           "per": "city",
-          "scope": { "test": "hasBuilding", "building": "aqueduct" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "aqueduct"
+          }
         }
       ]
     },
@@ -1115,13 +1642,14 @@
     },
     "theLandscapeGarden": {
       "name": "The Landscape Garden",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A garden made to look as if nobody made it.",
       "text": "Needs tended land. Tended tiles beside a great-person work or a wonder gain +3 culture.",
-      "needsTendedWork": true,
       "effects": [
         {
           "kind": "pays",
@@ -1130,17 +1658,23 @@
           "on": {
             "test": "all",
             "of": [
-              { "test": "tended" },
+              {
+                "test": "tended"
+              },
               {
                 "test": "any",
                 "of": [
                   {
                     "test": "beside",
-                    "of": { "test": "greatWork" }
+                    "of": {
+                      "test": "greatWork"
+                    }
                   },
                   {
                     "test": "beside",
-                    "of": { "test": "wonderTown" }
+                    "of": {
+                      "test": "wonderTown"
+                    }
                   }
                 ]
               }
@@ -1152,25 +1686,32 @@
     },
     "theEngineersYards": {
       "name": "The Engineers' Yards",
-      "decks": ["expansionist"],
-      "band": 2,
+      "decks": [
+        "expansionist"
+      ],
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "type": "economic",
       "flavor": "The yard is where the plans meet the timber.",
-      "text": "Improvements beside a manufactory gain +2 production.",
+      "text": "Improvements beside a manufactory gain +4 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "production": 2,
+          "production": 4,
           "on": {
             "test": "all",
             "of": [
-              { "test": "improved" },
+              {
+                "test": "improved"
+              },
               {
                 "test": "beside",
-                "of": { "test": "improvement", "improvement": "manufactory" }
+                "of": {
+                  "test": "improvement",
+                  "improvement": "manufactory"
+                }
               }
             ]
           }
@@ -1179,22 +1720,25 @@
     },
     "theTendedCountry": {
       "name": "The Tended Country",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "The field and the wood have always helped each other.",
       "text": "Needs tended land. Tended tiles gain +2 production.",
-      "needsTendedWork": true,
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
           "production": 2,
-          "on": { "test": "tended" }
+          "on": {
+            "test": "tended"
+          }
         }
-      ]
+      ],
+      "retired": true
     },
     "theOldFields": {
       "name": "The Old Fields",
@@ -1234,26 +1778,36 @@
     },
     "theHedgerows": {
       "name": "The Hedgerows",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "common",
       "type": "economic",
       "flavor": "The hedge keeps the cattle in and the birds busy.",
-      "text": "Needs tended land. Worked farms beside a tended tile gain +2 food, once per farm.",
-      "needsTendedWork": true,
+      "text": "Farms beside a forest or jungle gain +3 food.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 2,
+          "food": 3,
           "on": {
             "test": "all",
             "of": [
-              { "test": "improvement", "improvement": "farm" },
+              {
+                "test": "improvement",
+                "improvement": "farm"
+              },
               {
                 "test": "beside",
-                "of": { "test": "tended" }
+                "of": {
+                  "test": "anyFeature",
+                  "features": [
+                    "forest",
+                    "jungle"
+                  ]
+                }
               }
             ]
           }
@@ -1262,24 +1816,25 @@
     },
     "theGreatHouseholds": {
       "name": "The Great Households",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "economic",
       "flavor": "A household of twenty can raise a barn in a day.",
-      "text": "Each town gains +2% production for each citizen, at most +30%.",
+      "text": "Each town gains +1 production for every 2 citizens.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
-          "to": "production",
-          "percent": 2,
-          "stage": "city",
           "count": "population",
-          "within": "city",
-          "max": 15
+          "to": "production",
+          "amount": 1,
+          "per": 2,
+          "within": "city"
         }
       ]
     },
@@ -1563,10 +2118,12 @@
     },
     "seasonalLevies": {
       "name": "Seasonal Levies",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "economic",
       "flavor": "Take them in the winter and give the spring back.",
       "text": "After a town levies a citizen, it gains +60% food for ten turns.",
@@ -1578,7 +2135,11 @@
             "turns": 10,
             "every": 10,
             "effects": [
-              { "kind": "percentYields", "yield": "food", "percent": 60 }
+              {
+                "kind": "percentYields",
+                "yield": "food",
+                "percent": 60
+              }
             ]
           }
         }
@@ -1586,22 +2147,25 @@
     },
     "theLongTending": {
       "name": "The Long Tending",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "A grandmother's garden feeds her grandchildren best.",
       "text": "Tended tiles gain +3 food.",
-      "needsTendedWork": true,
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
           "food": 3,
-          "on": { "test": "tended" }
+          "on": {
+            "test": "tended"
+          }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMountainSchools": {
       "name": "The Mountain Schools",
@@ -1635,16 +2199,21 @@
     },
     "thePolders": {
       "name": "The Polders",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "economic",
       "flavor": "God made the sea; we made the land.",
-      "text": "Workers may build a polder on a coast tile beside three of your land tiles. It yields as a farm.",
-      "effects": [
-        { "kind": "unlocksImprovement", "improvement": "polder" }
-      ]
+      "text": "Workers may build a polder on a coast tile beside three of your land tiles. A polder is a farm.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "improvement": "polder"
+        }
+      }
     },
     "publicWorks": {
       "name": "Public Works",
@@ -1663,40 +2232,60 @@
     },
     "aCourtOfEngineers": {
       "name": "A Court of Engineers",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "civic",
       "flavor": "The king listens to the people who build his bridges.",
       "text": "Gain +50% renown, but great-person offers contain only great engineers.",
       "effects": [
-        { "kind": "cityRenownPercent", "percent": 50, "where": "empire" },
-        { "kind": "offerRider", "offer": "greatPerson", "family": "engineer" }
+        {
+          "kind": "cityRenownPercent",
+          "percent": 50,
+          "where": "empire"
+        },
+        {
+          "kind": "offerRider",
+          "offer": "greatPerson",
+          "family": "engineer"
+        }
       ]
     },
     "theWideCountry": {
       "name": "The Wide Country",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "wildcard",
       "flavor": "Room to grow, and the will to fill it.",
       "text": "Goal: claim 12 hexes by outposts, cleared camps or buying. Reward: your borders grow 25% faster.",
       "commission": {
         "goals": [
-          { "kind": "counted", "occasion": "hexClaimed", "count": 12 }
+          {
+            "kind": "counted",
+            "occasion": "hexClaimed",
+            "count": 12
+          }
         ],
         "reward": [
           {
             "lasting": [
-              { "kind": "rulePercent", "rule": "borderCulture", "percent": 25 }
+              {
+                "kind": "rulePercent",
+                "rule": "borderCulture",
+                "percent": 25
+              }
             ]
           }
         ]
       },
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "oldWorkings": {
       "name": "Old Workings",
@@ -1927,13 +2516,14 @@
     },
     "theManagedWild": {
       "name": "The Managed Wild",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The wild was never empty. It was always somebody's garden.",
       "text": "Needs tended land. Each town gains +5% food for every tended tile in its borders, at most +25%.",
-      "needsTendedWork": true,
       "effects": [
         {
           "kind": "pays",
@@ -1944,7 +2534,9 @@
           "stage": "city",
           "count": "tilesInBorders",
           "within": "city",
-          "tile": { "test": "tended" },
+          "tile": {
+            "test": "tended"
+          },
           "max": 5
         }
       ],
@@ -1952,16 +2544,21 @@
     },
     "theMita": {
       "name": "The Mit'a",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "economic",
       "flavor": "A year of service on the great works, and then home to the village.",
       "text": "Needs a levy. A citizen spent on a levy returns to its town twenty turns later.",
       "needsLevy": true,
       "effects": [
-        { "kind": "levy", "returnsAfter": 20 }
+        {
+          "kind": "levy",
+          "returnsAfter": 20
+        }
       ]
     },
     "theSlackSeason": {
@@ -1999,10 +2596,12 @@
     },
     "theFreedomOfTheCity": {
       "name": "The Freedom of the City",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "economic",
       "flavor": "A city that size makes its own laws, and pays for its own walls.",
       "text": "The first time a town reaches 15 citizens, it gains production equal to forty times its population.",
@@ -2086,15 +2685,20 @@
     },
     "theGreatColonies": {
       "name": "The Great Colonies",
-      "decks": ["expansionist"],
-      "band": 3,
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
       "line": "none",
       "rarity": "rare",
       "type": "economic",
-      "flavor": "The mother city sends out a third of her people, and they take her name with them.",
-      "text": "Towns you found start with a third of the citizens of your largest town.",
+      "flavor": "The settlers left the largest town together.",
+      "text": "Towns you found start with a fourth of the citizens of your largest town.",
       "effects": [
-        { "kind": "foundingRider", "fromLargest": 3 }
+        {
+          "kind": "foundingRider",
+          "fromLargest": 4
+        }
       ]
     },
     "theRaisingOfTheLand": {
@@ -2166,35 +2770,48 @@
     },
     "theMountainTerraces": {
       "name": "The Mountain Terraces",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "civic",
       "flavor": "Where the goats walked, the barley grows.",
-      "text": "Your towns may work the mountains in their borders. A worked mountain yields 2 science and 1 production.",
+      "text": "Your towns may work the mountains in their borders. A worked mountain yields 4 science and 2 production.",
       "effects": [
-        { "kind": "rule", "rule": "workMountains" },
+        {
+          "kind": "rule",
+          "rule": "workMountains"
+        },
         {
           "kind": "pays",
           "where": "hex",
-          "science": 2,
-          "production": 1,
-          "on": { "test": "terrain", "terrain": "mountain" }
+          "science": 4,
+          "production": 2,
+          "on": {
+            "test": "terrain",
+            "terrain": "mountain"
+          }
         }
       ]
     },
     "theStakedClaims": {
       "name": "The Staked Claims",
-      "decks": ["expansionist"],
-      "band": 2,
+      "decks": [
+        "expansionist"
+      ],
+      "band": 1,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "rare",
       "type": "economic",
       "flavor": "A stake at every corner, and a name on every stake.",
       "text": "Each town you found claims every unowned hex within two hexes of it.",
       "effects": [
-        { "kind": "foundingRider", "claimRadius": 2 }
+        {
+          "kind": "foundingRider",
+          "claimRadius": 2
+        }
       ]
     },
     "theSovereignWrit": {
@@ -2230,10 +2847,12 @@
     },
     "theCapitolia": {
       "name": "The Capitolia",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "civic",
       "flavor": "Every town raises its own small copy of the Capitol.",
       "text": "Each empire building you hold gives each of your towns +1 culture.",
@@ -2289,14 +2908,14 @@
     },
     "theGardenOfTheWorld": {
       "name": "The Garden of the World",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The whole country one garden, and every hand a gardener.",
       "text": "Tended tiles gain +2 food, +1 production and +1 culture.",
-      "needsTendedWork": true,
       "effects": [
         {
           "kind": "pays",
@@ -2304,9 +2923,12 @@
           "food": 2,
           "production": 1,
           "culture": 1,
-          "on": { "test": "tended" }
+          "on": {
+            "test": "tended"
+          }
         }
-      ]
+      ],
+      "retired": true
     },
     "theHeartland": {
       "name": "The Heartland",
@@ -2356,15 +2978,20 @@
     },
     "theCorvee": {
       "name": "The Corvée",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "economic",
       "flavor": "Every town sends hands to the one great building.",
       "text": "Your towns may levy a citizen toward the Magnum Opus.",
       "effects": [
-        { "kind": "levy", "use": "opus" }
+        {
+          "kind": "levy",
+          "use": "opus"
+        }
       ]
     },
     "theMasterOfWorks": {
@@ -2395,13 +3022,15 @@
     },
     "thePhilosophersPeaks": {
       "name": "The Philosophers' Peaks",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "civic",
       "flavor": "From the summit, the whole argument is laid out below.",
-      "text": "Each town gains +2 science for every mountain in its borders, at most +6.",
+      "text": "Each town gains +4 science for every mountain in its borders, at most +12.",
       "effects": [
         {
           "kind": "pays",
@@ -2409,9 +3038,12 @@
           "basis": "count",
           "count": "tilesInBorders",
           "within": "city",
-          "tile": { "test": "terrain", "terrain": "mountain" },
+          "tile": {
+            "test": "terrain",
+            "terrain": "mountain"
+          },
           "to": "science",
-          "amount": 2,
+          "amount": 4,
           "max": 3
         }
       ]
@@ -2448,10 +3080,12 @@
     },
     "theMeasureOfTheLand": {
       "name": "The Measure of the Land",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "civic",
       "flavor": "Count the land, and you know what the realm is worth.",
       "text": "Every town gains +1 science for every 25 hexes your empire owns, at most +10.",
@@ -2461,7 +3095,10 @@
           "where": "city",
           "basis": "count",
           "count": "tilesInBorders",
-          "tile": { "test": "all", "of": [] },
+          "tile": {
+            "test": "all",
+            "of": []
+          },
           "to": "science",
           "amount": 1,
           "per": 25,
@@ -2503,15 +3140,21 @@
     },
     "theGeneralLevy": {
       "name": "The General Levy",
-      "decks": ["expansionist"],
-      "band": 4,
+      "decks": [
+        "expansionist"
+      ],
+      "band": 3,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "military",
       "flavor": "When the war comes, every farm sends someone.",
-      "text": "Your towns may spend a citizen to raise a melee unit. At war, they may do it every turn.",
+      "text": "Your towns may spend a citizen to raise a melee unit. At war, they may do it every 2 turns.",
       "effects": [
-        { "kind": "levy", "use": "conscript", "everyAtWar": 1 }
+        {
+          "kind": "levy",
+          "use": "conscript",
+          "everyAtWar": 2
+        }
       ]
     },
     "theGreatMigration": {
@@ -2542,17 +3185,27 @@
     },
     "theDomesdaySurvey": {
       "name": "The Domesday Survey",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "Every field, every ox, every plough, written down.",
-      "text": "Goal: own 120 hexes and work 40 improved or tended tiles. Reward: each town gains +1 science for each improved or tended tile it works.",
+      "text": "Goal: own 120 hexes and work 40 improved tiles. Reward: each town gains +1 science for each improved tile it works.",
       "commission": {
         "goals": [
-          { "kind": "reached", "figure": "hexesOwned", "count": 120 },
-          { "kind": "reached", "figure": "improvedTilesWorked", "count": 40 }
+          {
+            "kind": "reached",
+            "figure": "hexesOwned",
+            "count": 120
+          },
+          {
+            "kind": "reached",
+            "figure": "improvedOnlyTilesWorked",
+            "count": 40
+          }
         ],
         "reward": [
           {
@@ -2561,7 +3214,7 @@
                 "kind": "pays",
                 "where": "hex",
                 "science": 1,
-                "on": { "test": "any", "of": [{ "test": "improved" }, { "test": "tended" }] }
+                "on": { "test": "improved" }
               }
             ]
           }
@@ -2571,24 +3224,35 @@
     },
     "theTwoHarvests": {
       "name": "The Two Harvests",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "rare",
       "flavor": "The field below and the orchard above.",
       "text": "Needs tended land. Your worked farms, mines and lumber mills also count as tended for your cards, but not as wild.",
-      "needsTendedWork": true,
       "effects": [
-        { "kind": "rule", "rule": "fieldsTended", "improvements": ["farm", "mine", "lumbermill"] }
+        {
+          "kind": "rule",
+          "rule": "fieldsTended",
+          "improvements": [
+            "farm",
+            "mine",
+            "lumbermill"
+          ]
+        }
       ],
       "retired": true
     },
     "theTheodosianWalls": {
       "name": "The Theodosian Walls",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "military",
       "flavor": "The more people inside, the more hands on the walls.",
       "text": "Your towns gain +1 defence for every two citizens.",
@@ -2625,10 +3289,12 @@
     },
     "theImperialHighways": {
       "name": "The Imperial Highways",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "economic",
       "flavor": "Every road in the empire leads to the great work.",
       "text": "The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%.",
@@ -2639,23 +3305,30 @@
           "building": "theMagnumOpus",
           "percent": 3,
           "count": "citiesAdmitted",
-          "admits": { "test": "connected" },
+          "admits": {
+            "test": "connected"
+          },
           "max": 15
         }
       ]
     },
     "theKeeps": {
       "name": "The Keeps",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "rare",
       "type": "economic",
       "flavor": "A tower, a well and a wall, and the valley around them answers to all three.",
       "text": "Workers may build one Keep in each town. A Keep gains the yields of every tile around it.",
-      "effects": [
-        { "kind": "unlocksImprovement", "improvement": "townKeep" }
-      ]
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "improvement": "townKeep"
+        }
+      }
     },
     "thePublicGood": {
       "name": "The Public Good",
@@ -3239,7 +3912,7 @@
       "band": 1,
       "line": "none",
       "flavor": "The serf goes with the field, and the field goes on.",
-      "text": "Workers gain +1 charge. Tended tiles gain +1 food.",
+      "text": "Workers gain +1 charge. Farms gain +1 food and +1 production.",
       "effects": [
         {
           "kind": "unitStat",
@@ -3252,10 +3925,12 @@
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
           "on": {
-            "test": "tended"
-          }
+            "test": "improvement",
+            "improvement": "farm"
+          },
+          "food": 1,
+          "production": 1
         }
       ]
     },
@@ -3499,7 +4174,6 @@
       ],
       "band": 2,
       "line": "none",
-      "needsTendedWork": true,
       "flavor": "Take only what the wood can spare, and it will spare a little more.",
       "text": "Needs tended land. Tended works cost your workers no charge. Workers you gain from now on have one less charge.",
       "effects": [
@@ -3515,7 +4189,8 @@
             "type": "worker"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "cropRotation": {
       "name": "Crop Rotation",
@@ -3695,7 +4370,6 @@
       ],
       "band": 3,
       "line": "none",
-      "needsTendedWork": true,
       "flavor": "What looks like wild forest to a stranger is someone's grandmother's orchard.",
       "text": "Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture.",
       "effects": [
@@ -3709,7 +4383,8 @@
             "test": "tended"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePhysiocrats": {
       "name": "The Physiocrats",
@@ -3907,7 +4582,6 @@
       ],
       "band": 4,
       "line": "none",
-      "needsTendedWork": true,
       "flavor": "The shepherds never called it a garden. They only kept it.",
       "text": "Needs tended land. Your tended tiles also count as improved for every card.",
       "effects": [
@@ -3915,7 +4589,8 @@
           "kind": "rule",
           "rule": "tendedCountsImproved"
         }
-      ]
+      ],
+      "retired": true
     }
   }
 }

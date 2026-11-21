@@ -1548,7 +1548,7 @@
       "rarity": "common",
       "type": "military",
       "flavor": "A chest with three locks stands in every church, and the army is paid from it.",
-      "text": "Military units bought with faith cost 30% less.",
+      "text": "Your faith buys 42.86% more when buying military units.",
       "effects": [
         {
           "kind": "purchaseRider",
@@ -1560,7 +1560,7 @@
           "percent": -30
         }
       ],
-      "note": "A unit bought with gold pays the full price. The discount adds to any other discount before it applies."
+      "note": "Bonuses to buying power add before the price is rounded up."
     },
     "theRogations": {
       "name": "The Rogations",
@@ -2687,7 +2687,7 @@
       "line": "none",
       "needsReligion": true,
       "flavor": "The canons keep the door, and the door is never shut.",
-      "text": "Towns with a holy site buy with faith at 30% less.",
+      "text": "Your faith buys 42.86% more in towns with a holy site.",
       "effects": [
         {
           "kind": "purchaseRider",

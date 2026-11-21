@@ -4042,7 +4042,7 @@ describe('the site, refused out loud (batch X8)', () => {
 });
 
 describe('a unitStat is read by which stat it is (batch X8)', () => {
-  it('prices a heal as a share of a piece and a percent as a percent of one', () => {
+  it('prices healing and movement in their own units', () => {
     const { state, player } = x8Realm(2, 6);
     const ctx = valueContext(state, player);
     const piece = aiJson.weights.military * aiJson.score.combatScale;
@@ -4052,10 +4052,6 @@ describe('a unitStat is read by which stat it is (batch X8)', () => {
     expect(scoreEffects(full, ctx)).toBeCloseTo(piece * (1 + ctx.threat), 9);
     const half: CardEffect[] = [{ kind: 'unitStat', stat: 'heal', amount: 50 }];
     expect(scoreEffects(half, ctx)).toBeCloseTo(0.5 * piece * (1 + ctx.threat), 9);
-    // A percentage of a piece is priced against what this file already means by
-    // a piece, so twenty-five percent is a quarter of one.
-    const percent: CardEffect[] = [{ kind: 'unitStat', stat: 'combatPercent', amount: 25 }];
-    expect(scoreEffects(percent, ctx)).toBeCloseTo(0.25 * piece * (1 + ctx.threat), 9);
     // The four points of a piece's own quality are untouched: the reading this
     // arm has always taken, off `weights.unitEdge` since batch U9 split a hex of
     // movement from a point of combat strength (see the knob).

@@ -61,6 +61,7 @@
  * command.
  */
 
+import { type TileContextField, tileContextField } from './ground';
 import type { AiConfig } from './aiConfig';
 // The seat's books, a type only: `armySupport.ts` is a leaf this file only names.
 import type { SeatBooks } from './armySupport';
@@ -151,7 +152,7 @@ import {
 } from '../sim/cities';
 // Scientific batch S13: the ground half of a work's gate, asked of a row whose
 // technology the seat does not know yet (`worksForecast`).
-import { improvementGroundError, improvementYieldDelta } from '../sim/improvements';
+import { improvementCardError, improvementGroundError, improvementLeaderError, improvementTechError, improvementYieldDelta } from '../sim/improvements';
 // Batch X5c: a wall's hit points are read as a share of the bar the simulation
 // itself keeps, and priced against the strength that same simulation says the
 // town fights with — `cityMaxHp` and `cityBaseStrength`, never a hand-read row.
@@ -384,6 +385,7 @@ import {
   type RiderBuildingTest,
   type CardPeriodicEffect,
   type CharterSpec,
+  charterImprovements,
   type CityScope,
   type CombatCondition,
   type CommissionFigure,
@@ -445,12 +447,13 @@ import {
   researchExpansion,
 } from '../sim/tech';
 import { ALL_TECH_IDS, type TechAge, type TechId, highestAge, isTechId, techDef } from '../sim/techData';
-import { IMPROVEMENT_IDS, type ImprovementId, improvementDef, isTendedWork, workForFamily } from '../sim/improvementData';
+import { improvementCountsAs, isUniqueImprovement, IMPROVEMENT_IDS, type ImprovementId, improvementDef, isTendedWork, workForFamily } from '../sim/improvementData';
 import { readTileYield } from '../sim/terrainData';
 import {
   UNIT_TYPE_IDS,
   type UnitTypeId,
   isCombatant,
+  isNaval,
   isUnitTypeId,
   unitDef,
   unitMaxHp,
@@ -1611,12 +1614,11 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
  * The strength ladder moved one of them and not the other.
  */
 function unitStatPoints(
-  stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range' | 'combatPercent',
+  stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range',
   amount: number,
   ctx: ValueContext,
 ): number {
   const piece = ctx.ai.weights.military * ctx.ai.score.combatScale;
-  if (stat === 'combatPercent') return (amount / 100) * piece;
   if (stat === 'heal') return (Math.min(Math.abs(amount), pieceBar()) / pieceBar()) * Math.sign(amount) * piece;
   return amount * ctx.ai.weights.unitEdge;
 }
@@ -2251,7 +2253,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
     // appraised in isolation cannot see the deck it would be drafted into, and
     // the marginal reading `V(deck ∪ card) − V(deck)` is batch F2's.
     case 'cardYieldAmplifier': {
-      if (effect.reads === 'buildingOrders' || effect.reads === 'capitalCards') {
+      if (effect.reads === 'buildingOrders' || effect.reads === 'capitalCards' || effect.reads === 'purchaseOrders') {
         return targetedYieldAmplifierWorth(effect, ctx);
       }
       const each = (effect.amount ?? 0) + ((effect.percent ?? 0) / 100) * nominal;
@@ -2964,6 +2966,13 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     // that also protects.
     case 'noForeignRoutes':
       return 0 - foreignRoutesLost(ctx);
+    case 'oneBorrowerPerLuxury': {
+      let extra = 0;
+      for (const id of controlledResources(ctx.state, ctx.playerId, 'luxury')) {
+        extra += Math.max(0, lendableCopies(ctx.state, ctx.playerId, id) - 1);
+      }
+      return -extra * ctx.ai.war.luxuryGptBaseline * voiceWeight(ctx, 'gold');
+    }
     case 'noLuxuryLending':
       return 0 - luxuryLoansLost(ctx);
     case 'buysOnlyInScope':
@@ -3037,6 +3046,8 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     // The other town rules, which this arm does not price yet.
     case 'pacified':
     case 'workMountains':
+    case 'widerWaterReach':
+      return townsAdmitting(ctx, effect.scope) * stand;
     case 'widerReach':
       return stand;
     default:
@@ -3846,9 +3857,16 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
       case 'doctrineOffer':
         rate += doctrineOfferWorth(ctx).worth;
         break;
+      case 'effects':
+        rate += explainEffects(grant.effects, ctx, id).total *
+          (grant.turns === undefined ? 1 : Math.min(grant.turns, boonTurns(ctx)) / boonTurns(ctx));
+        break;
       case 'greatPerson':
       case 'windfall':
         once += magisterialDraftGrantWorth(grant, ctx);
+        break;
+      case 'citizensInEveryTown':
+        once += explainYields({ food: citiesOf(ctx.state, ctx.playerId).length * grant.amount * growthThreshold(ctx) }, ctx).total;
         break;
       case 'completeQueues': {
         const hammers = citiesOf(ctx.state, ctx.playerId)
@@ -4284,6 +4302,11 @@ function ruleRewriteValue(
   const share = effect.percent / 100;
   const rule = effect.rule;
   switch (rule) {
+    case 'defeatedShipJoins': {
+      const rivals = ctx.state.units.filter(unit => unit.ownerId !== ctx.playerId && isNaval(unitDef(unit.type)));
+      return rivals.length === 0 ? 0 : share * ctx.ai.weights.military *
+        (rivals.reduce((sum, unit) => sum + unitDef(unit.type).combatStrength, 0) / rivals.length) * occasionRate('kill', ctx);
+    }
     case 'roadStepCost':
       return -share * ctx.ai.weights.military * countProbe(ctx, 'unitsInField');
     case 'unitUpkeep':
@@ -4525,6 +4548,13 @@ function scoreAmplifier(
     }
     case 'triumphRenown':
       return share * renownPerTurn(ctx.state, ctx.playerId) * ctx.ai.weights.renown;
+    case 'greatPersonUses': {
+      const family = effect.family;
+      const people = ctx.state.units.filter(unit => unit.ownerId === ctx.playerId && unit.person &&
+        (family === undefined || greatPersonDef(unit.person).family === family) && !unit.extraUsesTaken).length;
+      return share * (people / boonTurns(ctx) + occasionForecastRate('greatPersonGained', ctx)) *
+        Math.max(0, ratesOf(ctx).goldPerTurn ?? 0) * RULES.greatPeople.actGainTurns * voiceWeight(ctx, 'gold');
+    }
     case 'greatPersonAct':
     case 'riteDuration':
       // An act is priced where it is chosen (`bot.ts` weighs the acts it is
@@ -4990,9 +5020,11 @@ function slottedOrderEffects(ctx: ValueContext): CardEffect[] {
 function targetedYieldAmplifierWorth(
   amplifier: Extract<CardEffect, { kind: 'cardYieldAmplifier' }>,
   ctx: ValueContext,
+  recurringOnly = false,
 ): number {
   let worth = 0;
   for (const { card, effect } of liveEffects(ctx.state, ctx.playerId)) {
+    if (recurringOnly && effect.kind === 'windfallRider') continue;
     if (!yieldAmplifierReads(amplifier, card, effect)) continue;
     worth += Math.max(0, scoreEffects([effect], ctx, card));
   }
@@ -5660,13 +5692,14 @@ export function stampSight(effect: CardEffect): StampSight {
     case 'renown':
     case 'upkeepRebate':
     case 'upkeepSurcharge':
-    case 'cardYieldAmplifier':
     case 'buildingYieldPercent':
     case 'cityRenownPercent':
     case 'cardTypeAmplifier':
     case 'productionToCulture':
     case 'workAge':
       return 'books';
+    case 'cardYieldAmplifier':
+      return effect.reads === 'purchaseOrders' ? 'own' : 'books';
     case 'rulePercent':
       // A share of the food surplus is growth, which no turn's books show, unless
       // a card moves that surplus into production (see `ownBeyond`).
@@ -5793,6 +5826,11 @@ function ownBeyond(effect: CardEffect, ctx: ValueContext, card: CardId | undefin
   let value = 0;
   if (effect.kind === 'surplusToProduction') {
     value = -surplusMoved(effect, ctx) * voiceWeight(ctx, 'food');
+  } else if (effect.kind === 'cardYieldAmplifier' && effect.reads === 'purchaseOrders') {
+    // The stamp includes today's Scaler payments. A purchase also triggers
+    // one-time payments, and the Scalers can grow before the horizon ends.
+    value = targetedYieldAmplifierWorth(effect, ctx) -
+      targetedYieldAmplifierWorth(effect, todayContext(ctx), true);
   } else if (effect.kind === 'slotPosition') {
     if (effect.whole === true) return { label: `${label}: a chair still to fill`, value: walkOne(effect, ctx, card) };
     const holder = playerById(ctx.state, ctx.playerId);
@@ -5939,6 +5977,7 @@ function rulePercentInBooks(rule: Extract<CardEffect, { kind: 'rulePercent' }>['
     case 'happinessDemand':
     case 'unitLossWeariness':
       return true;
+    case 'defeatedShipJoins':
     case 'roadStepCost':
     case 'growthSurplus':
     case 'guildInflow':
@@ -6004,6 +6043,7 @@ function amplifierSight(target: Extract<CardEffect, { kind: 'effectAmplifier' }>
     case 'strategicCopies':
       return 'own';
     case 'triumphRenown':
+    case 'greatPersonUses':
     case 'greatPersonAct':
     case 'riteDuration':
     case 'luxuryMineCopies':
@@ -6085,6 +6125,7 @@ function flagRuleSight(effect: Extract<CardEffect, { kind: 'rule' }>): StampSigh
     case 'rareWeight':
     case 'workCheapensPerson':
     case 'noForeignRoutes':
+    case 'oneBorrowerPerLuxury':
     case 'noLuxuryLending':
     case 'buysOnlyInScope':
     case 'faithfulPeace':
@@ -6129,6 +6170,7 @@ function flagRuleSight(effect: Extract<CardEffect, { kind: 'rule' }>): StampSigh
     case 'freshwater':
     case 'pacified':
     case 'workMountains':
+    case 'widerWaterReach':
     case 'widerReach':
       return 'none';
     default:
@@ -7487,6 +7529,9 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       return player.hexesPillaged ?? 0;
     case 'sizeRecord':
       return boardTempo(ctx).growths;
+    case 'improvementBuilt':
+    case 'uniqueImprovementBuilt':
+      return citiesOf(ctx.state, ctx.playerId).reduce((sum, city) => sum + ownedTiles(ctx.state, city).filter(tile => tile.improvement !== undefined && (occasion === 'improvementBuilt' || isUniqueImprovement(tile.improvement))).length, 0);
     case 'publicWorkCompleted':
       // Expansionist batch E11, The Aediles (batch E13). No record of its own:
       // the public works this seat's towns have built. It is partial, as
@@ -7508,6 +7553,7 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
     case 'foreignCityConverted':
     case 'warEnded':
       return null;
+    case 'faithPurchase':
     case 'goldPurchase':
       // Batch R1, The Strongbox. The board keeps no count of purchases with
       // gold, so there is no record and the forecast reads the default.
@@ -7692,11 +7738,7 @@ function rewardTerms(
     });
   }
   for (const effect of reward.lasting ?? []) {
-    // **Never less than the goal guarantees** (Commerce batch T9, Corner the
-    // Market): a goal of four copies of one luxury leaves at least one luxury
-    // held twice, so an institution paying for each luxury held twice pays at
-    // least once when the goal is met. `guaranteedCount` says what a goal
-    // guarantees; the reading is `explainForecastCount`'s, at that count.
+    // Price the reward on today's board and at the minimum its own goal requires.
     const guaranteed = guaranteedCount(effect, goals);
     const board = lastingWorth(effect, ctx);
     const counted =
@@ -7708,10 +7750,23 @@ function rewardTerms(
     // the effect's own scope leaves at least that many when it is met. See
     // `guaranteedTownsWorth`.
     const towns = guaranteedTownsWorth(effect, goals, ctx);
-    const floor = Math.max(counted, towns.worth);
+    let routesWorth = 0;
+    if (effect.kind === 'pays' && effect.where === 'route' && effect.crossing === 'international' &&
+        effect.share?.length === 1 && effect.share[0]?.yield === 'all') {
+      const base = RULES.trade.international;
+      for (const goal of goals) {
+        if (goal.kind !== 'reached' || goal.figure !== 'tradePartnerEmpires') continue;
+        // Each required partner entails a route that pays the foreign sender rate.
+        routesWorth = goal.count * effect.share[0].percent / 100 *
+          valueOfYields({ gold: base.gold, science: base.science, culture: base.culture }, ctx);
+      }
+    }
+    const floor = Math.max(counted, towns.worth, routesWorth);
     lasting({
       label:
-        floor > board
+        floor > board && floor === routesWorth
+          ? 'for the rest of the game: the foreign routes the goal requires'
+          : floor > board
           ? counted >= towns.worth
             ? `for the rest of the game: ${effect.kind}, at the ${guaranteed} the goal guarantees`
             : `for the rest of the game: ${effect.kind}, in the ${towns.towns} towns the goal guarantees`
@@ -8110,9 +8165,7 @@ export function explainCharter(id: OrderId, ctx: ValueContext): Appraisal | null
  *     (`explainRite`, on a one-town context as the levy's rite reads it), times
  *     the seat's towns, at nought or more, because the seat need not say a rite
  *     that costs it;
- *   · **a tended work** (The Fish Traps, The Wild Orchards): nothing, because
- *     this bot lays no tended work (its roster, `workers.improvements`, holds
- *     none), so the row opens nothing for it.
+ *   · **improvements** use the best known legal sites and their neighbours.
  *
  * Something the seat has opened already is worth nothing more.
  */
@@ -8166,10 +8219,104 @@ function explainCharterOpening(unlocks: CharterSpec['unlocks'], ctx: ValueContex
       });
     }
   }
-  if (unlocks.improvement !== undefined) {
-    terms.push({ label: 'a tended work, which this bot does not lay', value: 0 });
+  for (const id of charterImprovements({ unlocks })) {
+    const value = charterSiteValue(ctx, id);
+    terms.push({ label: `${improvementDef(id).name} on the best legal sites`, value });
   }
   return terms.length === 0 ? null : appraise(terms);
+}
+
+/** Index tiles beside owned works that gain from a new neighbour. An ordinary farm rarely affects another work. */
+function nearReceiver(ctx: ValueContext, tile: Tile): boolean {
+  const { state, playerId } = ctx;
+  const sites = slateMemo(state, 'economy', 'workReceivingNeighbours', String(playerId), () => {
+    const found: Record<number, true> = {};
+    for (const city of citiesOf(state, playerId)) {
+      for (const candidate of ownedTiles(state, city)) {
+        if (!candidate.improvement || !improvementDef(candidate.improvement).perNeighbour) continue;
+        for (const near of tileNeighbors(state.map, candidate)) found[tileIndex(state.map, near.col, near.row)] = true;
+      }
+    }
+    return found;
+  });
+  return sites[tileIndex(state.map, tile.col, tile.row)] === true;
+}
+
+/** Benefits that do not require a citizen on the proposed tile. Both workers and Charter picks use this estimate. */
+export function workPlacementTerms(ctx: ValueContext, tile: Tile, id: ImprovementId, ground: TileContextField): ValueTerm[] {
+  const def = improvementDef(id);
+  const old = tile.improvement ? improvementDef(tile.improvement) : undefined;
+  const terms: ValueTerm[] = [];
+  if (def.claimsUnowned !== undefined) {
+    let value = 0;
+    for (const near of mapRange(ctx.state.map, tileHex(tile), def.claimsUnowned)) {
+      if (tileOwnerCityId(ctx.state, near.col, near.row) !== null || !isExploredBy(ctx.state, ctx.playerId, near.col, near.row)) continue;
+      value += claimedHexWorth(ctx, near);
+    }
+    if (value) terms.push({ label: 'the known unowned ground it claims', value });
+  }
+  const defense = (def.defense ?? 0) - (old?.defense ?? 0);
+  if (defense) terms.push({ label: 'strength when defending this tile', value: defense * ctx.ai.workers.workDefenseValue });
+  const renown = (def.renown?.amount ?? 0) - (old?.renown?.amount ?? 0);
+  if (renown) terms.push({ label: 'renown each turn', value: renown * ctx.ai.score.scientific.workGift });
+  if (!def.givesNeighbours && !def.watersBeside && !old?.givesNeighbours && !old?.watersBeside && !nearReceiver(ctx, tile)) return terms;
+
+  const after: Tile = { ...tile, improvement: id };
+  let value = 0;
+  for (const next of tileNeighbors(ctx.state.map, tile)) {
+    const townId = tileOwnerCityId(ctx.state, next.col, next.row);
+    if (townId === null) continue;
+    const city = cityById(ctx.state, townId);
+    if (!city || city.ownerId !== ctx.playerId || (city.col === next.col && city.row === next.row)) continue;
+    const local = ground(next);
+    const worksHere = city.workedTiles.some(cell => cell.col === next.col && cell.row === next.row);
+    const share = worksHere ? 1 : ctx.ai.score.magisterial.claimedHexShare;
+    const matches = (target: Tile, rule: TileCondition) =>
+      tileConditionHolds(target, rule, undefined, undefined, ctx.state.turn, local?.ground);
+    const received = next.improvement && improvementDef(next.improvement).perNeighbour;
+    if (received) {
+      const count = Number(matches(after, received.on)) - Number(matches(tile, received.on));
+      if (count) value += count * share * valueOfYields(received.yields, ctx);
+    }
+    for (const [gift, sign] of [[def.givesNeighbours, 1], [old?.givesNeighbours, -1]] as const) {
+      if (gift && matches(next, gift.on)) value += sign * share * valueOfYields(gift.yields, ctx);
+    }
+    if (def.watersBeside && !old?.watersBeside && !next.freshwater && !local?.irrigates &&
+        !local?.ground?.watered?.(next) && next.improvement && improvementCountsAs(next.improvement, 'farm')) {
+      value += share * ctx.ai.score.scientific.workGift;
+    }
+  }
+  if (value) terms.push({ label: 'the change on neighbouring fields, weighted by use', value });
+  return terms;
+}
+
+/** Price each new work on the best sites that the seat can already identify. A unique work occupies one slot per town. */
+function charterSiteValue(ctx: ValueContext, id: ImprovementId): number {
+  const state = ctx.state;
+  if (!ctx.ai.workers.improvements.includes(id) || improvementCardError(state, ctx.playerId, id) === null ||
+      improvementLeaderError(state, ctx.playerId, id) !== null || improvementTechError(state, ctx.playerId, id) !== null) return 0;
+  const def = improvementDef(id);
+  const borderReach = def.beyondBorders;
+  const ground = tileContextField(state, ctx.playerId);
+  const seen = new Set<Tile>();
+  let total = 0;
+  for (const city of citiesOf(state, ctx.playerId)) {
+    const owned = ownedTiles(state, city);
+    const tiles = borderReach === undefined ? owned : owned.flatMap(tile => mapRange(state.map, tileHex(tile), borderReach));
+    const scores: number[] = [];
+    for (const tile of tiles) {
+      if (seen.has(tile)) continue;
+      seen.add(tile);
+      if (!isExploredBy(state, ctx.playerId, tile.col, tile.row) || improvementGroundError(state, ctx.playerId, tile, id) !== null) continue;
+      const own = improvementYieldDelta(tile, id, ground(tile));
+      const value = valueOfYields(bagOfTileYield(own), ctx) + foldTerms(workPlacementTerms(ctx, tile, id, ground));
+      if (value > 0) scores.push(value);
+    }
+    scores.sort((a, b) => b - a);
+    const limit = def.onePerTown ? 1 : ctx.ai.score.scientific.worksPerTown;
+    for (const score of scores.slice(0, limit)) total += score;
+  }
+  return total;
 }
 
 /**
@@ -8544,6 +8691,9 @@ function scientificLinePoints(
   const per = scale.per > 0 ? scale.per : 1;
   let helpings: number;
   switch (scale.count) {
+    case 'goldIncome':
+      helpings = Math.floor(Math.max(0, ratesOf(ctx).goldPerTurn ?? 0) / per);
+      break;
     case 'greatPeopleGained':
       helpings = countProbe(ctx, 'greatPeopleGained') / per;
       break;
@@ -10179,6 +10329,7 @@ function commerceCountAhead(
         why: `${open} met empires at peace with no deal yet, at most ${table.dealPartners}`,
       };
     }
+    case 'allPostCitizens':
     case 'postCitizens': {
       const each = perTownOf(effect);
       let pending = 0;
@@ -10217,16 +10368,14 @@ function perTownOf(effect: CardPaysEffect): number {
 }
 
 /**
- * **The count a commission's goal guarantees for a lasting effect**, or nought
- * (Commerce batch T9). Corner the Market's goal, four copies of one luxury,
- * leaves at least one luxury held two or more times, so its institution (+2
- * happiness for each such luxury) pays at least once when the goal is met.
+ * A goal requiring copies of one luxury guarantees at least one distinct luxury.
+ * If it needs two or more copies, it also guarantees one duplicate luxury.
  */
 function guaranteedCount(effect: CardEffect, goals: readonly CommissionGoal[]): number {
   if (effect.kind !== 'pays' || effect.basis !== 'count') return 0;
-  if (effect.count !== 'duplicateLuxuries') return 0;
+  if (effect.count !== 'duplicateLuxuries' && effect.count !== 'uniqueLuxuries') return 0;
   for (const goal of goals) {
-    if (goal.kind === 'reached' && goal.figure === 'luxuryCopies' && goal.count >= 2) return 1;
+    if (goal.kind === 'reached' && goal.figure === 'luxuryCopies' && goal.count >= (effect.count === 'uniqueLuxuries' ? 1 : 2)) return 1;
   }
   return 0;
 }
@@ -10244,8 +10393,8 @@ function onePostGain(population: number, ctx: ValueContext): number {
   for (const { card, effect } of effectsOfKind(ctx.state, ctx.playerId, 'pays')) {
     if (effect.basis !== 'count') continue;
     let step = 0;
-    if (effect.count === 'postCities') step = 1;
-    else if (effect.count === 'postCitizens') step = Math.floor(population / perTownOf(effect));
+    if (effect.count === 'postCities' || effect.count === 'allPostCities') step = 1;
+    else if (effect.count === 'postCitizens' || effect.count === 'allPostCitizens') step = Math.floor(population / perTownOf(effect));
     if (step <= 0) continue;
     const now = countOf(ctx.state, ctx.playerId, card, effect);
     const more = helpings(now + step, effect.per, effect.max) - helpings(now, effect.per, effect.max);

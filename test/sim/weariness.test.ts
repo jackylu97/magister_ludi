@@ -562,6 +562,8 @@ describe('the register of the places that record a loss', () => {
       // civilian captured on arrival. It writes no `recordWarCapture`: that
       // records towns taken, and no town changes hands.
       'combat.ts#applyCombat',
+      // A ship can join the defender when its attack fails.
+      'combat.ts#applyCombat',
       // A town taken by force.
       'combat.ts#captureCity',
     ]);

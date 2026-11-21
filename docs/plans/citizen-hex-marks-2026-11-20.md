@@ -318,7 +318,7 @@ dock's position.
 - **Narrow screens** (the user: "check this overflow"). At 1280 wide the bar
   with the two keys was wider than its cap, and its ends stuck out of its
   paper. Under 1360px the keys are the marks alone (each word is the key's
-  tooltip and `aria-label`) and the buttons' side padding is 10px. The cap is
+  panel hover note and `aria-label`) and the buttons' side padding is 10px. The cap is
   the gap less 32px on each side. Measured at 1280x800 and 1280x720: 9px of
   paper round every part, and 75px or more to each rail.
 

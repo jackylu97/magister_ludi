@@ -3702,7 +3702,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         '</svg>';
       // The word is hidden on a narrow screen, so the key carries it as well.
       key.setAttribute('aria-label', label);
-      key.title = label;
+      noteOn(key, label, false);
       key.append(mark, element('span', 'citizen-key-word', label));
       keys.append(key);
     }

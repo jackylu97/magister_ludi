@@ -6168,6 +6168,7 @@ describe("the card-shapes pass of 2026-09-04", () => {
     expect(cityScopeAdmits(g.state, city, { test: "coastal" })).toBe(false);
     expect(paid("The Salting Houses", "production", { food: 40 })).toBe(0);
     getTileAt(g.state.map, city.col + 1, city.row)!.terrain = "coast";
+    bumpRevision(g.state);
     expect(paid("The Salting Houses", "production", { food: 40 })).toBe(4);
     // Two conversions on one town read the **same** handed-in fold, so neither
     // is paid on the other's output and their order cannot change either.
@@ -7442,7 +7443,7 @@ describe("a charter carries the description of the building it opens", () => {
     );
     expect(words("keep")).toContain("+5 healing");
     expect(words("assizeCourt")).toContain("15% less");
-    expect(words("assayHouse")).toContain("costs 5% less");
+    expect(words("assayHouse")).toContain("Your gold buys 5.26% more in this city");
     expect(words("cistern")).toContain("beside fresh water");
     expect(words("almshouse")).toContain("bought with faith");
     expect(words("gildedHall")).toContain("bought with gold and never built");
@@ -8805,7 +8806,8 @@ describe("the engine shapes", () => {
     // a route flat. Magisterial batch MG4 took Travelling Players off it for
     // the same reason: it now counts the decks among the seated cards.
     "theGrainExchange · routeYield",
-    "theMerchantNavigators · routeYield",
+    "theWaterBoards · buildingYieldPercent",
+    "theDoubleEntry · cardYieldAmplifier",
     // The generic set adds a capital renown Order.
     "theHallOfFame · cityRenownPercent",
     // Commerce batch T1: The Silk Road Monks, moved here from the Commerce
@@ -8873,7 +8875,7 @@ describe("the engine shapes", () => {
     // byte-identity claim was ever protecting.
     for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS])
       walk(cardDef(id).effects, id);
-    expect(seen).toEqual(ORDERS_USING_A_SHAPE);
+    expect([...seen].sort()).toEqual([...ORDERS_USING_A_SHAPE].sort());
     seen.length = 0;
 
     for (const id of BUILDING_IDS) walk(buildingDef(id).effects, id);

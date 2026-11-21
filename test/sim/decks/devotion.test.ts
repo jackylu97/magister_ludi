@@ -1139,10 +1139,10 @@ describe('the Devotion deck: the sheet of record', () => {
     expect(sheet.filter((card) => card.status === 'add').map((card) => card.name)).toEqual([]);
     expect(sheet.some((card) => card.name === 'The Votive Lamp')).toBe(false);
     expect(sheet.filter(isCharterRow)).toHaveLength(2);
-    expect(shared).toHaveLength(22);
+    expect(shared).toHaveLength(23);
   });
 
-  it('types every listed row, 63 of this file and 22 shared, and nothing else of this file', () => {
+  it('types every listed row, 63 of this file and 23 shared, and nothing else of this file', () => {
     expect(LISTED).toHaveLength(63);
     for (const id of DEVOTION) {
       const def = orderDef(id);
@@ -1157,7 +1157,7 @@ describe('the Devotion deck: the sheet of record', () => {
     // The Shrine Guards, The Blessed Forges and The Schoolmen's Charter, and
     // batch DV3 The Rising Nave. Every row of the shared table has data now.
     // Batch DS1 retired seven, The Rising Nave among them.
-    expect(sharedRows).toHaveLength(22);
+    expect(sharedRows).toHaveLength(23);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 });

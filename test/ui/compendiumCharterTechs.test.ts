@@ -287,15 +287,16 @@ describe('the rows the charter technologies open', () => {
       const def = improvementDef(id);
       const texts = entryOf(compendiumId('improvement', id)).clauses.map((clause) => clause.text);
       const has = (part: string): boolean => texts.some((text) => text.includes(part));
-      expect(has('count as having fresh water'), id).toBe(def.watersBeside === true);
+      expect(has('count as having fresh water'), id).toBe(def.watersBeside === true && !def.watersAllNeighbours);
+      expect(has('neighbouring hexes have fresh water'), id).toBe(def.watersAllNeighbours === true);
       // Niter Beds' neighbour and niter went with the row in batch DS6, so no
       // page says either.
       expect(has('Can only be built next to'), id).toBe(false);
       expect(has('with no seam needed on the hex'), id).toBe(false);
       if (def.watersBeside === true) said += 1;
     }
-    // The Qanat's water.
-    expect(said).toBe(1);
+    // The Qanat waters farms. The Stepwell waters all neighbouring hexes.
+    expect(said).toBe(2);
   });
 });
 

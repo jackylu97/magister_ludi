@@ -22,7 +22,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier III | 19 | 0 | 0 | 19 | 3 |
 | Tier IV | 13 | 0 | 0 | 13 | 3 |
 | **All** | **82** | **0** | **0** | **82** | **14** |
-| Shared | 22 | 0 | 0 | 22 |  |
+| Shared | 24 | 0 | 0 | 24 |  |
 
 **By type** (the chair a card fits):
 
@@ -34,7 +34,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier III | 5 | 4 | 8 | 2 |
 | Tier IV | 5 | 2 | 3 | 3 |
 | **All** | **27** | **20** | **25** | **10** |
-| Shared | 12 | 4 | 5 | 1 |
+| Shared | 14 | 4 | 5 | 1 |
 
 ## Tier 0
 
@@ -204,7 +204,6 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **Rites of Passage** | common | Devotion | 0 | implemented | Gaining a military unit grants 12 faith. | Civic |
 | **The Shrine Guards** | common | Devotion | I | implemented | Towns with a Shrine may buy melee units with faith. | Military |
 | **The Standing Army** | uncommon | Commerce | I | implemented | Garrisoned units cost no upkeep. | Military |
-| **The Escorted Roads** | uncommon | Commerce | II | implemented | Trade routes from a garrisoned town gain +5 gold. | Economic |
 | **Field Academies** | uncommon | Scientific | I | implemented | Your first kill each turn grants 25 science. | Civic |
 | **The Barbarian Frontier** | uncommon | Expansionist | I | implemented | Clearing a barbarian camp claims its hex and the unowned hexes around it. | Economic |
 | **The Oriflamme** | uncommon | Devotion | I | implemented | Military units beside one of your religious units gain +4 strength. | Military |
@@ -212,6 +211,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Sword of State** | common | Magisterial | I | implemented | On draft: gain a melee unit. It costs no upkeep. | Military |
 | **The Muster of the Fields** | uncommon | Expansionist | I | implemented | Towns of 5 or more citizens may spend a citizen to raise a melee unit. | Military |
 | **The Frontier Militia** | common | Expansionist | 0 | implemented | Each town you found starts with a melee unit. | Military |
+| **The Hillforts** | uncommon | Expansionist | II | implemented | Workers may build one hillfort in each town, on a hill: +2 production, and +1 production more for each farm, pasture or camp beside it. A unit on it gains +5 strength when it defends. | Military |
 | **The Farming Garrisons** | common | Expansionist | I | implemented | Hexes with a fortified unit gain +1 food and +1 production. | Economic |
 | **Examinations of State** | rare | Magisterial | II | implemented | Garrisoned towns gain +1 science and +1 culture for every three citizens. | Civic |
 | **The Crusader Orders** | uncommon | Devotion | II | implemented | Military units gain +3 strength in land that does not follow your religion. | Military |
@@ -220,9 +220,11 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Soldier-Scholars** | uncommon | Scientific | II | implemented | Each military unit in your towns gives +2 science. | Military |
 | **Professional Soldiers** | uncommon | Commerce | III | implemented | Units you purchase gain +3 combat strength. | Military |
 | **The Chartered Company** | uncommon | Commerce | III | implemented | Unlocks the Company Guard, a melee unit you buy with gold. | Military |
-| **Letters of Marque** | rare | Commerce | III | implemented | Naval kills grant 60 gold. | Economic |
+| **Letters of Marque** | rare | Commerce | III | implemented | A ship you defeat has a 50% chance to join your side. | Military |
 | **Mercenary Contracts** | uncommon | Commerce | III | implemented | Military units you buy cost no upkeep for twenty turns. | Military |
 | **The New Code** | rare | Magisterial | III | implemented | Capturing a city deals you a free Order hand, at most once every ten turns. | Wildcard |
+| **The Sutlers** | uncommon | Commerce | II | implemented | Garrisoned towns gain +1 gold for each citizen. | Economic |
+| **The Army Contractors** | uncommon | Commerce | II | implemented | Buying a military unit grants its town production equal to a quarter of the gold paid. | Economic |
 
 ## Retired rows
 

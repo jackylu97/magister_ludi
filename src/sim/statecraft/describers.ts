@@ -14,6 +14,7 @@
  * `../statecraft.ts` re-exports it, so no import path in the tree changed.
  */
 
+import { buyingPowerWords } from '../purchaseDiscount';
 import { signedPlain as signed } from '../yieldFormat';
 import {
 } from '../yields/town';
@@ -41,6 +42,7 @@ import {
   type ImprovementDef,
   type ImprovementId,
   IMPROVEMENT_IDS,
+  isUniqueImprovement,
   improvementDef,
   isGreatPersonWork,
   workForFamily,
@@ -97,6 +99,7 @@ import {
   isOrderId,
   orderDef,
   onDraftUnitCount,
+  charterImprovements,
   orderKeyword,
   scalerShape,
   type RenownShareRows,
@@ -1048,12 +1051,17 @@ export function describeCard(id: CardId): CardClause[] {
     // the grant is the whole card, so it is printed as its clause. The keyword
     // says that drafting it is what opens the work and that it takes no chair
     // (batch DS8), so the clause says only what it opens.
-    const work = orderDef(id).charter?.unlocks.improvement;
-    if (work !== undefined) {
-      const name = improvementDef(work).name;
-      clauses.push({
-        text: `opens the ${ref('improvement', work, name)} for your workers to build`,
-      });
+    for (const work of charterImprovements(orderDef(id).charter)) {
+      const row = improvementDef(work);
+      const name = ref('improvement', work, row.name);
+      const facts = workRowFacts(work);
+      if (isUniqueImprovement(work)) {
+        const sentences = [`Build ${name}`, ...facts.map(fact => fact.charAt(0).toUpperCase() + fact.slice(1))];
+        clauses.push({ text: sentences.join('. ') + '.' });
+      } else {
+        clauses.push({ text: `opens the ${name} for your workers to build` });
+        for (const fact of facts) clauses.push({ text: fact });
+      }
       // **A row that marks an improved hex** (Expansionist batch E9, The
       // Burning Season): what the build does where a work already stands,
       // said from the mark's own row in the rule book.
@@ -1318,12 +1326,15 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
   militaryGained: 'you gain a military unit',
   warEnded: 'you end a war',
   sizeRecord: 'one of your cities grows past its largest size',
+  improvementBuilt: 'you build an improvement',
+  uniqueImprovementBuilt: 'you build a unique improvement',
   publicWorkCompleted: 'you finish a public work',
   buildingCompleted: 'you finish a building',
   techCompleted: 'you complete a technology',
   charterTechCompleted: 'you complete a charter technology',
   // Batch R1, The Strongbox: a purchase of any kind with gold.
   goldPurchase: 'you buy something with gold',
+  faithPurchase: 'you buy something with faith',
   orderGained: 'you gain an Order',
   greatPersonGained: 'you gain a great person',
   wonderCompleted: 'you complete a wonder',
@@ -1623,7 +1634,7 @@ export function effectLine(effect: CardEffect, who?: string): string | null {
       // The charge is still written once, when the worker is made, so the
       // short line means only workers trained after the technology lands. The
       // user's own example drops "newly created" (`docs/flags.md` (kkkkkkk)).
-      if (!onlyFields(effect, ['stat', 'amount', 'class']) || effect.stat === 'combatPercent') return null;
+      if (!onlyFields(effect, ['stat', 'amount', 'class'])) return null;
       const noun =
         effect.stat === 'charges'
           ? Math.abs(effect.amount) === 1
@@ -1829,6 +1840,7 @@ export function describeUnitRow(type: UnitTypeId): CardClause[] {
   const own = unitPluralWords(def.name);
   for (const clause of describeEffects(def.effects ?? [])) {
     const text = clause.text
+      .replace(`when buying ${own}`, 'when buying this unit')
       .replace(`for ${own} alone, `, '')
       .replace(` for ${own}`, '')
       .replace(`${own}: `, '');
@@ -1918,11 +1930,9 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
     out.push({ text: `this city’s citizens ask ${def.demandRelief}% less of you` });
   }
   if (def.purchaseDiscount !== undefined && def.purchaseDiscount !== 0) {
-    // "costs less", never "−5% cost": the sign belongs to the price, exactly as
-    // it does in the `purchaseRider` arm a card writes the same promise with.
     const off = def.purchaseDiscount;
     out.push({
-      text: `everything this city buys costs ${Math.abs(off)}% ${off < 0 ? 'less' : 'more'}`,
+      text: off < 0 ? `Your gold buys ${buyingPowerWords(off)} more in this city` : `Purchases in this city cost ${off}% more gold`,
     });
   }
   if (def.healsAdjacent !== undefined && def.healsAdjacent !== 0) {
@@ -2735,14 +2745,6 @@ function describeEffect(
       }
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       const amount = effect.amount;
-      if (effect.stat === 'combatPercent') {
-        // The kind of fight, where the row names one — the Statue of Zeus'
-        // assault. Through the one condition-describer, so a share and a flat
-        // line say "against cities" in the same words.
-        const when = effect.when === undefined ? '' : ` ${combatWhenWords(effect.when)}`;
-        out.push({ text: `${signed(amount)}% combat strength for ${who}${where}${when}` });
-        return;
-      }
       // **Charges are the one stat that is not a standing fact about a piece.**
       // Every other `unitStat` is asked of a unit that is already on the board —
       // `fullMovement`, `sightOf`, `healUnits` all read the card each time — but
@@ -3672,6 +3674,11 @@ function describeEffect(
       return;
     }
     case 'effectAmplifier': {
+      if (effect.target === 'greatPersonUses') {
+        const people = effect.family === undefined ? 'great people' : `great ${effect.family}s`;
+        out.push({ text: `Your ${people} may take their action or build their work ${1 + Math.floor((effect.percent ?? 0) / 100)} times in any combination` });
+        return;
+      }
       // Two dials, one clause each, and a row that turns both says both — the
       // flat step first, because that is the order the arithmetic takes it in.
       //
@@ -4027,9 +4034,15 @@ function describeEffect(
       // kind of unit and cannot name a building at all, so `on` supplies the
       // noun and `class` narrows it only where narrowing means anything.
       const on = effect.on ?? 'unit';
+      const currency = effect.currency ?? (on === 'route' ? 'gold' : undefined);
+      const power = currency
+        ? `Your ${currency} buys ${buyingPowerWords(percent)} more`
+        : `You gain ${buyingPowerWords(percent)} buying power`;
       if (on === 'everyPurchase') {
         const bank = effect.currency === undefined ? '' : ` with ${effect.currency}`;
-        out.push({ text: `Everything you buy${bank} costs ${Math.abs(percent)}% ${percent < 0 ? 'less' : 'more'}` });
+        out.push({ text: percent < 0
+          ? power
+          : `Everything you buy${bank} costs ${percent}% more` });
         return;
       }
       // **Which shelf**, where the building half names one (The Tithe's
@@ -4079,6 +4092,12 @@ function describeEffect(
       // stem with the wrong number and a second verb for the same act. So the
       // road gets its own sentence, in the same order and with the same sign
       // discipline.
+      if (percent < 0) {
+        const subject = on === 'route' ? 'caravans' : what;
+        const target = currency ? `when buying ${subject}` : `on ${subject}`;
+        out.push({ text: `${power} ${target}${where}` });
+        return;
+      }
       if (on === 'route') {
         out.push({
           text:
@@ -4235,6 +4254,10 @@ function describeEffect(
       return;
     }
     case 'cardYieldAmplifier': {
+      if (effect.reads === 'purchaseOrders') {
+        out.push({ text: `Orders that pay for purchases pay ${effect.percent === 100 ? 'twice as much' : signed(effect.percent ?? 0) + '%'}` });
+        return;
+      }
       if (effect.reads === 'buildingOrders') {
         const increase = effect.percent === 100 ? 'pay double' : `pay ${effect.percent ?? 0}% more`;
         out.push({ text: `Orders that add yields to buildings ${increase}` });
@@ -4643,7 +4666,7 @@ function buildingClassWords(effect: CardBuildingYieldPercentEffect): string {
     const def = buildingDef(effect.building);
     return ref('building', effect.building, buildingPlural(def.name, 2));
   }
-  const noun = effect.wonder === true ? 'wonders' : 'buildings';
+  const noun = effect.publicWork ? 'public works' : effect.wonder === true ? 'wonders' : 'buildings';
   const kind = effect.category === undefined ? noun : `${effect.category} ${noun}`;
   return effect.pays === undefined ? kind : `${kind} that ${suppliesWord(false)} ${effect.pays}`;
 }
@@ -4870,6 +4893,12 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
     flush();
     say();
     switch (grant.grant) {
+      case 'effects':
+        for (const clause of describeEffects(grant.effects)) {
+          const term = grant.turns === undefined ? 'for the rest of the game' : `for ${grant.turns} turns`;
+          out.push(`${lead}${clause.text} ${term}`);
+        }
+        break;
       case 'greatPerson': {
         const who = grant.family === undefined ? 'a great person' : `a great ${grant.family}`;
         out.push(`${lead}you gain ${who} to call`);
@@ -4877,6 +4906,9 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
       }
       case 'doctrineOffer':
         out.push(`${lead}you gain a Doctrine offer`);
+        break;
+      case 'citizensInEveryTown':
+        out.push(`${lead}each of your towns gains ${grant.amount} citizen${grant.amount === 1 ? '' : 's'}`);
         break;
       case 'completeQueues':
         out.push(`${lead}each town completes its current unit or building, except wonders and the Magnum Opus`);
@@ -5212,8 +5244,8 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   }
   // **A share of each foreign town's citizens** (Commerce batch T3, The
   // Foreign Factor): the divisor is per town, so the words say "each".
-  if (effect.count === 'postCitizens' && effect.perTown !== undefined && effect.perTown > 1) {
-    const words = `${Math.floor(effect.perTown)} citizens of each foreign city holding your trading post`;
+  if ((effect.count === 'postCitizens' || effect.count === 'allPostCitizens') && effect.perTown !== undefined && effect.perTown > 1) {
+    const words = `${Math.floor(effect.perTown)} citizens of each ${effect.count === 'postCitizens' ? 'foreign ' : ''}city holding your trading post`;
     return { one: words, many: words };
   }
   // **The gap on a road is the gap to the far end** (Scientific batch S3,
@@ -5224,6 +5256,10 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
       one: 'technology the destination’s owner knows that you do not',
       many: 'technologies the destination’s owner knows that you do not',
     };
+  }
+  if (effect.count === 'workedTilesInCity' && effect.tile) {
+    const words = tileConditionWords(effect.tile);
+    return { one: `${words} worked ${place || 'here'}`, many: `${words.replace(/hex\b/, 'hexes')} worked ${place || 'here'}` };
   }
   if (effect.count === 'tilesInBorders' && effect.tile !== undefined) {
     const words = tileConditionWords(effect.tile);
@@ -5882,10 +5918,38 @@ export function indefinite(name: string): string {
 function workRowFacts(id: ImprovementId): string[] {
   const def = improvementDef(id);
   const facts: string[] = [];
+  if (isUniqueImprovement(id)) {
+    const base = bagWords(readTileYield(def.yields));
+    const terrain = orListWords((def.validTerrain ?? []).map(t => terrainDef(t).name.toLowerCase()));
+    const features = orListWords((def.validFeatures ?? []).filter(f => f !== 'none'));
+    let ground = '';
+    if (def.requiresRiver) ground = def.requiresHills === false ? 'on flat river tiles' : 'on river tiles';
+    else if (def.requiresDryGround) ground = def.requiresHills === false ? 'on dry flat land' : 'on dry land';
+    else if (def.validFeatures?.length && !def.validFeatures.includes('none')) ground = `in ${features}`;
+    else if (def.validTerrain?.length && def.validTerrain.length < 5 && !def.landBeside) {
+      ground = `on ${def.requiresHills === false ? 'flat ' : ''}${terrain}`;
+    } else if (def.requiresHills === true) ground = 'on hills';
+    if (base) facts.push(ground ? `${base} ${ground}` : base);
+    if (def.perNeighbour) {
+      const { on, yields } = def.perNeighbour;
+      const neighbour = on.test === 'anyImprovement'
+        ? orListWords(on.improvements.map(i => improvementDef(i).name))
+        : tileConditionWords(on);
+      facts.push(`${bagWords(yields)} per adjacent ${neighbour}`);
+    }
+    if (def.givesNeighbours) {
+      const { on, yields } = def.givesNeighbours;
+      const neighbour = on.test === 'anyFeature' ? orListWords(on.features) : tileConditionWords(on);
+      facts.push(`adjacent ${neighbour} gains ${bagWords(yields)}`);
+    }
+    if (def.renown) facts.push(`+${def.renown.amount} ${def.renown.family} renown per turn`);
+    if (def.watersAllNeighbours) facts.push('gives adjacent tiles fresh water');
+    if (def.countsAs) facts.push(`counts as a ${improvementDef(def.countsAs).name.toLowerCase()}`);
+  }
   if (def.onePerTown === true) facts.push('one in each city');
   if (def.beyondBorders !== undefined) {
     const hexes = def.beyondBorders === 1 ? 'hex' : 'hexes';
-    facts.push(`on unowned wild ground up to ${def.beyondBorders} ${hexes} beyond your borders`);
+    facts.push(`on unowned ground up to ${def.beyondBorders} ${hexes} beyond your borders`);
   }
   if (def.landBeside !== undefined) {
     const ground = (def.validTerrain ?? []).join(' or ');
@@ -5909,7 +5973,7 @@ function workRowFacts(id: ImprovementId): string[] {
           : `it claims every unowned hex within ${def.claimsUnowned} hexes of it for your nearest city`,
     );
   }
-  if (def.defense !== undefined) facts.push(`units on its hex gain ${signed(def.defense)} strength when defending`);
+  if (def.defense !== undefined) facts.push(`${signed(def.defense)} defence on this tile`);
   return facts;
 }
 
@@ -6490,6 +6554,9 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
     case 'wonderTown':
       into.qualifiers.push('with a city that holds a wonder');
       return;
+    case 'ownCapital':
+      into.qualifiers.push('with your capital');
+      return;
     case 'townCentre':
       // Read through `beside`, which takes "with" off: "beside a city".
       into.qualifiers.push('with a city');
@@ -6519,6 +6586,9 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       return;
     case 'all':
       for (const inner of on.of) tilePhrase(inner, into);
+      return;
+    case 'uniqueImprovement':
+      into.qualifiers.push('with a unique improvement');
       return;
     case 'tended':
       into.adjectives.push('tended');
@@ -6657,10 +6727,11 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
   // A price, said as the saving. "−25% the price of buying a hex" is a discount
   // written as a negative bonus on a cost; this is the sentence a player acts on.
   // The hexes a row names (The Laurion Leases, batch DT6) take the place of "a hex".
+  defeatedShipJoins: (percent) => `a ship you defeat has a ${percent}% chance to join you`,
   tilePurchase: (percent, { tile }) => {
     const words = tile === undefined ? undefined : tileConditionWords(tile);
     const hex = words === undefined ? 'a hex' : `${indefinite(words)} ${words}`;
-    return percent < 0 ? `${hex} costs ${-percent}% less to buy` : `${hex} costs ${percent}% more to buy`;
+    return percent < 0 ? `Your gold buys ${buyingPowerWords(percent)} more when buying ${hex}` : `${hex} costs ${percent}% more to buy`;
   },
   borderCulture: (percent) => `${signed(percent)}% border expansion`,
   settlerCost: (percent) =>
@@ -6810,6 +6881,7 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   always: '',
   vsBarbarians: 'against barbarians',
+  unitOnOwnGround: 'while standing inside your territory',
   ownTerritory: 'inside your territory',
   foreignTerritory: 'outside your territory',
   onHills: 'on hills',
@@ -6950,6 +7022,7 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   cities: { one: 'city you hold', many: 'cities you hold' },
   // `adjacentFriendlies` counts **combatants** and nothing else, so the words
   // say so: a settler standing beside a spearman is not a shield wall.
+  tileYield: { one: 'yield on this tile', many: 'yields on this tile' },
   adjacentFriendlies: {
     one: 'adjacent friendly combat unit',
     many: 'adjacent friendly combat units',
@@ -6975,6 +7048,7 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
     many: 'great people’s works in your capital',
   },
   uniqueLuxuries: { one: 'kind of luxury you control', many: 'kinds of luxury you control' },
+  goldIncome: { one: 'gold earned each turn', many: 'gold earned each turn' },
   bankedGold: { one: 'gold in your treasury', many: 'gold in your treasury' },
   // Dominion batch D8, Weight of Numbers.
   attacksOnTarget: {
@@ -7370,6 +7444,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   revealedTiles: { one: 'hex you have revealed', many: 'hexes you have revealed' },
   roadHexes: { one: 'road hex you have laid', many: 'road hexes you have laid' },
   sightedCities: { one: 'foreign city you have sighted', many: 'foreign cities you have sighted' },
+  agesReached: { one: 'age reached', many: 'ages reached' },
   agesClosed: { one: 'age that has closed', many: 'ages that have closed' },
   // "Called", the great people's own verb everywhere else — they are called,
   // never built or bought — and "you have" rather than "your realm has" because
@@ -7396,6 +7471,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   buildingsOfCategory: { one: 'building', many: 'buildings' },
   // Provenance rather than purpose, so the noun says what was asked: "per
   // purchased building" and not "per building".
+  buildingsBoughtWithGold: { one: 'building you bought with gold', many: 'buildings you bought with gold' },
   purchasedBuildings: { one: 'purchased building', many: 'purchased buildings' },
   // The list is not in these words either, for `buildingsOfCategory`'s reason —
   // `countNoun` prints it, so any pair of categories is one entry.
@@ -7496,6 +7572,8 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   worldWonders: { one: 'wonder in the world', many: 'wonders in the world' },
   // "Foreign" is in the words because it is in the count: a post in one of your
   // own towns is not tallied here. See the count.
+  allPostCities: { one: 'city holding your trading post', many: 'cities holding your trading post' },
+  allPostCitizens: { one: 'citizen of a city holding your trading post', many: 'citizens of cities holding your trading post' },
   postCities: {
     one: 'foreign city holding your trading post',
     many: 'foreign cities holding your trading post',
@@ -7740,6 +7818,8 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   },
   // Expansionist batch E11, The Aediles. Built, bought or granted, as the
   // tally counts them.
+  improvementBuilt: { one: 'improvement you have built', many: 'improvements you have built' },
+  uniqueImprovementBuilt: { one: 'unique improvement you have built', many: 'unique improvements you have built' },
   publicWorkCompleted: {
     one: 'public work you have finished',
     many: 'public works you have finished',
@@ -7753,6 +7833,7 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     many: 'charter technologies you have completed',
   },
   // Batch R1, The Strongbox: a purchase of any kind with gold.
+  faithPurchase: { one: 'purchase you have made with faith', many: 'purchases you have made with faith' },
   goldPurchase: { one: 'purchase you have made with gold', many: 'purchases you have made with gold' },
   // Magisterial batch MG4. No growing card counts these; the two commissions
   // do, and the table is total.
@@ -7906,6 +7987,7 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   // **No "more" after a signed percent** (batch L1, §1c) — the sign already says
   // the direction, and "pays +100% more" read as a quadrupling.
   routeYields: (percent) => `trade routes pay ${signed(percent)}%`,
+  greatPersonUses: (percent) => `great people may act or build a work ${1 + Math.floor(percent / 100)} times`,
   greatPersonAct: (percent) => `a great person's act pays ${signed(percent)}%`,
   connectionYields: (percent) => `city connections pay ${signed(percent)}%`,
   // The figure leads, for `cityRenownPercent`'s reason: "pays +100% renown"
@@ -7967,6 +8049,7 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
   lentLuxuryCopies: (amount) => `each luxury you lend in a deal counts ${signed(amount)} copies for you`,
   riteDuration: (amount) => `rites last ${signed(amount)} turns longer`,
   routeYields: (amount) => `each trade route pays ${signed(amount)} more`,
+  greatPersonUses: (amount) => `great people gain ${amount} additional uses`,
   greatPersonAct: (amount) => `a great person's act pays ${signed(amount)} more`,
   connectionYields: (amount) => `each connected city pays ${signed(amount)} gold`,
   triumphRenown: (amount) => `every Triumph pays ${signed(amount)} more renown`,
@@ -8198,6 +8281,7 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
     'your trade units on routes to other empires cannot be attacked or plundered',
   // The two bans of batch DT7 that bind a seat's dealings. Each says what the seat
   // may not do, because that is the whole of the rule.
+  oneBorrowerPerLuxury: 'you can lend each kind of luxury to only one empire at a time',
   noLuxuryLending: 'you cannot lend luxuries in deals',
   // Canossa (batch DT7): both directions are in the sentence, as on the card.
   faithfulPeace: 'you and an empire whose capital follows your religion cannot declare war on each other',
@@ -8233,7 +8317,7 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Expansionist batch E3: The Woodland Bands and The Water Courts
   // (`BehaviorRuleId`), then The Mountain Terraces and The Common Domain
   // (`CityRuleId`, the second with its scope appended).
-  woodsWalk: 'your units pay only the open-ground cost to enter forest or jungle',
+  woodsWalk: 'your units pay only the open-ground cost to enter forests, jungles and hills',
   farmChainsWater:
     'your farms joined to a farm on fresh water by a chain of your farms count as having fresh water',
   // Expansionist batch E9, The Two Harvests. The row names the works, and the
@@ -8252,6 +8336,7 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // it; this is the sentence for a row with none, which carries nothing.
   routesCarrySurplus: 'your domestic routes carry part of their origin\'s surplus food to their destination',
   workMountains: 'your cities may work the mountains in their borders',
+  widerWaterReach: 'citizens may work water one ring beyond the usual reach',
   widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
   // Expansionist batch E12, The Cura Aquarum. The row names the building and
   // the `rule` arm says it by name with the row's towns; this is the sentence
@@ -8713,6 +8798,8 @@ const COMMISSION_COUNTED_WORDS: Record<
     counter: 'citizens past a record',
   },
   // Expansionist batch E11. No commission counts this yet; the table is total.
+  improvementBuilt: { verb: 'build', one: 'improvement', many: 'improvements', counter: 'improvements built' },
+  uniqueImprovementBuilt: { verb: 'build', one: 'unique improvement', many: 'unique improvements', counter: 'unique improvements built' },
   publicWorkCompleted: {
     verb: 'finish',
     one: 'public work',
@@ -8730,6 +8817,7 @@ const COMMISSION_COUNTED_WORDS: Record<
     counter: 'charter technologies completed',
   },
   // Batch R1. No commission counts this yet; the table is total.
+  faithPurchase: { verb: 'make', one: 'purchase with faith', many: 'purchases with faith', counter: 'purchases with faith' },
   goldPurchase: { verb: 'make', one: 'purchase with gold', many: 'purchases with gold', counter: 'purchases with gold' },
   // Magisterial batch MG4: Commission: The Eighth Wonder and Commission: The
   // Wonder of the Age.
@@ -8788,8 +8876,9 @@ const COMMISSION_FIGURE_WORDS: Record<
     noun: 'the improved tiles you work',
   },
   // Expansionist batch E5, Commission: Break the Sod (the triage's reading 2).
+  publicWorks: { goal: n => `hold ${n} public works`, counter: 'public works held', noun: 'your public works' },
   improvedOnlyTilesWorked: {
-    goal: (count) => `work ${count} improved tiles at the same time, not counting tended tiles`,
+    goal: (count) => `work ${count} improved tiles at the same time`,
     counter: 'improved tiles worked',
     noun: 'the improved tiles you work',
   },
@@ -8857,6 +8946,11 @@ const COMMISSION_FIGURE_WORDS: Record<
     goal: (count) => `have ${count} cities of the kind this card names`,
     counter: 'cities of that kind',
     noun: 'your cities of that kind',
+  },
+  dealPartners: {
+    goal: (count) => `hold active deals with ${count} empires at once`,
+    counter: 'empires with active deals',
+    noun: 'the empires you hold deals with',
   },
   // Commerce batch T4, The World's Fair.
   tradePartnerEmpires: {

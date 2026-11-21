@@ -10,8 +10,6 @@ export {
   cardActionRuleAt,
   cardAmplifier,
   cardCollectionShare,
-  // Batch DT16: whether a work laid changes what this empire's hexes around it pay.
-  cardHexLinesReadWorksBeside,
   // Batch DT17: the towns that count as the capital for Orders and Doctrines, and
   // the town that would be the second.
   cardCapitalIds,
@@ -49,7 +47,6 @@ export {
   cardCityRenownShares,
   cardCityStat,
   cardCombatLines,
-  cardCombatPercent,
   cardRallyRange,
   // Scientific batch S9: the figures of the Opus and prototype rules.
   cardOpusEarlyPercent,

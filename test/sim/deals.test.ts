@@ -142,6 +142,28 @@ function onlyProposal(state: GameState): number {
 // --- 1. the registers -------------------------------------------------------
 
 describe('the deal registers', () => {
+  it('lets the Colleganza send a second copy of a luxury to the same borrower', () => {
+    const state = bench(3);
+    const town = foundCityAt(state, 0, at(state.map, 5, 5));
+    for (const col of [4, 5, 6]) giveLuxury(state, town, col, 4, 'wine');
+    state.players[0]!.statecraft.doctrines.push('theColleganza');
+    bumpRevision(state);
+    const wine = { luxuries: ['wine'] };
+    expect(applyCommand(state, propose(0, 2, wine, {})).ok).toBe(true);
+    const secondSeatOffer = onlyProposal(state);
+    expect(applyCommand(state, propose(0, 1, wine, {})).ok).toBe(true);
+    const firstSeatOffer = state.dealProposals.find(row => row.to === 1)!.id;
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: firstSeatOffer }).ok).toBe(true);
+    const before = snapshotState(state);
+    const result = applyCommand(state, { type: 'acceptDeal', playerId: 2, dealId: secondSeatOffer });
+    expect(result.ok ? '' : result.error).toContain('already lend Wine to another empire');
+    expect(snapshotState(state)).toBe(before);
+    expect(applyCommand(state, propose(0, 1, wine, {})).ok).toBe(true);
+    state.turn = state.deals[0]!.untilTurn;
+    bumpRevision(state);
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 2, dealId: secondSeatOffer }).ok).toBe(true);
+  });
+
   it('leaves a world nobody has bargained in with two empty arrays', () => {
     const state = bench();
     expect(state.deals).toEqual([]);

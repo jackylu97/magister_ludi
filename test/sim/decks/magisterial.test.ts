@@ -800,7 +800,7 @@ describe('the Magisterial deck: the sheet of record', () => {
     // file, and the merge of the two batches added them here. Batch DS1
     // retired seven rows of the tier tables and four shared rows.
     expect(sheet).toHaveLength(67);
-    expect(shared).toHaveLength(15);
+    expect(shared).toHaveLength(18);
   });
 
   it('assigns a card type to every listed Order and shared Order', () => {
@@ -823,7 +823,7 @@ describe('the Magisterial deck: the sheet of record', () => {
     // The 19 rows of the shared table. The Rising Nave, the last of them, has
     // had a data row since Devotion batch DV3. Batch DS1 retired four of them,
     // The Rising Nave among them.
-    expect(sharedRows).toHaveLength(15);
+    expect(sharedRows).toHaveLength(18);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 

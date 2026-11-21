@@ -101,7 +101,7 @@ import {
   createUnit,
   playerById,
   removeUnit,
-  spendFaith,
+  buyWithFaith,
   buyWithGold,
   unitById,
 } from './state';
@@ -798,7 +798,7 @@ function chargeBank(
   // The faith arm goes through its own seam (Devotion batch DV3), so a draft
   // bought with faith counts as faith spent (`Player.faithSpent`). Each bank
   // keeps its own record.
-  spendFaith(state, player, price);
+  buyWithFaith(state, player, price);
 }
 
 // --- taking a name ----------------------------------------------------------
@@ -1229,6 +1229,7 @@ export function greatPersonActAt(
   // chair. The legacy, the `greatPersonSpent` tally and the spent moment wait
   // for the work, which spends the piece (`greatPersonWorkAt`). The act uses no
   // movement, so the person may walk on this turn.
+  if (useAdditionalPersonAction(state, player, unit, def.family)) return done;
   if (stays) {
     unit.acted = true;
     return done;
@@ -1326,6 +1327,16 @@ function stampTimed(
   // sorted, because the cheap answer is the safe one.
   bumpEconomy(state);
   return expiresTurn;
+}
+
+/** Each additional use can pay for a family action or a work. The final use grants the legacy. */
+function useAdditionalPersonAction(state: GameState, player: Player, unit: Unit, family: Family): boolean {
+  if (unit.acted) return false;
+  const allowed = Math.floor(cardAmplifier(state, player.id, 'greatPersonUses', family) / 100);
+  const used = unit.extraUsesTaken ?? 0;
+  if (used >= allowed) return false;
+  unit.extraUsesTaken = used + 1;
+  return true;
 }
 
 /**
@@ -1579,6 +1590,7 @@ export function greatPersonWorkAt(
   // **A lasting work is stamped like any other** (batch D2d): an academy that
   // has stood a long while is Scientific's whole Continuity line, and the hex
   // learns its age at the one seam that puts the stones down.
+  const previous = { ...tile };
   raiseImprovement(tile, work, state.turn);
   // **A work opens the seam it covers** ("Iron · academy"), which is
   // `openedResource`'s clause and so `controlledHoldings`' answer — announced at
@@ -1590,13 +1602,15 @@ export function greatPersonWorkAt(
   refreshTileDerived(state, tile);
   // A work changes what a line such as The Peregrini's pays on the six hexes around
   // it, and another town may work those hexes (register entry 35).
-  refreshRingDerived(state, tile, work);
+  refreshRingDerived(state, tile, previous);
   // **A work laid is a work built** (Scientific batch S5, The Founding Gift;
   // new reading 75): the riders on laying a work down are paid here as a
   // worker's build pays them, with the hex as where the grant lands.
   payWorkLaidRiders(state, player.id, tile, work);
 
-  spendGreatPerson(state, player, unit, id, work);
+  if (!useAdditionalPersonAction(state, player, unit, def.family)) {
+    spendGreatPerson(state, player, unit, id, work);
+  }
   const discount = cardWorkDiscount(state, player.id);
   if (discount > 0) {
     player.personDiscount = discount;

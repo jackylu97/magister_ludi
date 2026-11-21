@@ -2188,14 +2188,16 @@
       "band": 3,
       "line": "none",
       "flavor": "One rank shoots, one rank draws, one rank steps up. The rain does not stop.",
-      "text": "Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength.",
+      "text": "Your archer line may attack twice a turn. These units lose 4 strength when defending against a melee attack.",
       "effects": [
         {"kind": "rule", "rule": "secondAttack", "class": {"modelClass": "ranged"}},
         {
-          "kind": "unitStat",
-          "stat": "combatPercent",
-          "amount": -10,
-          "class": {"modelClass": "melee"}
+          "kind": "combatLine",
+          "amount": -4,
+          "side": "defend",
+          "class": {"modelClass": "ranged"},
+          "vsClass": {"ranged": false},
+          "when": {"test": "always"}
         }
       ]
     },

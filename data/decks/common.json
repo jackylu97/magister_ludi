@@ -1,5 +1,24 @@
 {
   "orders": {
+    "theHillforts": {
+      "name": "The Hillforts",
+      "decks": [
+        "expansionist",
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The bank and ditch followed the shape of the hill.",
+      "charter": {
+        "unlocks": {
+          "improvement": "hillfort"
+        }
+      },
+      "effects": [],
+      "text": "Workers may build one hillfort in each town, on a hill: +2 production, and +1 production more for each farm, pasture or camp beside it. A unit on it gains +5 strength when it defends."
+    },
     "frontierGarrisons": {
       "name": "Frontier Garrisons",
       "decks": [
@@ -57,11 +76,13 @@
     },
     "commonTheEscortedRoads": {
       "name": "The Escorted Roads",
-      "decks": ["dominion", "commerce"],
+      "decks": [
+        "dominion",
+        "commerce"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "Where the guard walks, the merchant does not hurry.",
       "text": "Trade routes from a garrisoned town gain +5 gold.",
       "effects": [
@@ -69,9 +90,12 @@
           "kind": "pays",
           "where": "route",
           "gold": 5,
-          "origin": { "test": "garrisoned" }
+          "origin": {
+            "test": "garrisoned"
+          }
         }
-      ]
+      ],
+      "retired": true
     },
     "lettersOfMarque": {
       "name": "Letters of Marque",
@@ -82,23 +106,16 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
+      "type": "military",
       "flavor": "A signature turns a pirate into a patriot.",
-      "text": "Naval kills grant 60 gold.",
+      "text": "A ship you defeat has a 50% chance to join your side.",
       "effects": [
         {
-          "kind": "windfallRider",
-          "occasion": "kill",
-          "class": {
-            "category": "naval"
-          },
-          "grant": {
-            "yield": "gold",
-            "amount": 60
-          }
+          "kind": "rulePercent",
+          "rule": "defeatedShipJoins",
+          "percent": 50
         }
-      ],
-      "note": "The coin is for a kill made by one of your ships, wherever it happens."
+      ]
     },
     "commonRitesOfPassage": {
       "name": "Rites of Passage",
@@ -346,13 +363,16 @@
     },
     "sacredGroves": {
       "name": "Sacred Groves",
-      "decks": ["expansionist", "devotion"],
+      "decks": [
+        "expansionist",
+        "devotion"
+      ],
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Some trees were here before the altar, and knew it.",
-      "text": "Worked, unimproved forests gain +1 food and +1 faith.",
+      "text": "Worked forests gain +1 food and +1 faith.",
       "effects": [
         {
           "kind": "pays",
@@ -360,8 +380,8 @@
           "food": 1,
           "faith": 1,
           "on": {
-            "test": "all",
-            "of": [{ "test": "feature", "feature": "forest" }, { "test": "unimproved" }]
+            "test": "feature",
+            "feature": "forest"
           }
         }
       ]
@@ -434,23 +454,32 @@
     },
     "gardenCities": {
       "name": "Garden Cities",
-      "decks": ["expansionist", "magisterial"],
+      "decks": [
+        "expansionist",
+        "magisterial"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Plant the square, and the square will plant the town.",
-      "text": "Towns with a Monument gain +1 culture for every three wild tiles they work.",
+      "text": "Towns with a Monument gain +1 culture for every three improved tiles they work.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
-          "count": "workedUnimprovedTiles",
+          "count": "workedTilesInCity",
           "to": "culture",
           "amount": 1,
           "per": 3,
-          "scope": { "test": "hasBuilding", "building": "monument" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "monument"
+          },
+          "tile": {
+            "test": "improved"
+          }
         }
       ]
     },
@@ -528,11 +557,13 @@
     },
     "merchantScholars": {
       "name": "Merchant Scholars",
-      "decks": ["commerce", "scientific"],
+      "decks": [
+        "commerce",
+        "scientific"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "He went for pepper and came back with a grammar.",
       "text": "Foreign routes gain +2 science for each Academy in the origin city.",
       "effects": [
@@ -543,10 +574,14 @@
           "basis": "count",
           "count": "tilesInBorders",
           "within": "city",
-          "tile": { "test": "improvement", "improvement": "academy" },
+          "tile": {
+            "test": "improvement",
+            "improvement": "academy"
+          },
           "science": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theExchangeOfDiscoveries": {
       "name": "The Exchange of Discoveries",
@@ -882,19 +917,42 @@
     },
     "theMerchantNavigators": {
       "name": "The Merchant Navigators",
-      "decks": ["commerce", "scientific"],
+      "decks": [
+        "commerce",
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "common",
       "type": "civic",
       "flavor": "The chart was drawn to find a market, and found a world.",
-      "text": "Trade routes from a town with a Harbour gain +5 science.",
+      "text": "A town's fishing boats gain +2 science for its Lighthouse and +2 science for its Harbour.",
       "effects": [
         {
           "kind": "pays",
-          "where": "route",
-          "science": 5,
-          "origin": { "test": "hasBuilding", "building": "harbour" }
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "lighthouse"
+          },
+          "science": 2
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "harbour"
+          },
+          "science": 2
         }
       ]
     },
@@ -2289,16 +2347,27 @@
     },
     "theSilkRoadMonks": {
       "name": "The Silk Road Monks",
-      "decks": ["commerce", "devotion"],
+      "decks": [
+        "commerce",
+        "devotion"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "They travelled with the silk, and left more than they sold.",
       "text": "Trade routes to a town that follows your religion gain +3 gold and +3 culture.",
       "effects": [
-        { "kind": "pays", "where": "route", "gold": 3, "culture": 3, "destination": { "test": "follows" } }
-      ]
+        {
+          "kind": "pays",
+          "where": "route",
+          "gold": 3,
+          "culture": 3,
+          "destination": {
+            "test": "follows"
+          }
+        }
+      ],
+      "retired": true
     },
     "theBrokersRedraw": {
       "name": "The Brokers' Redraw",
@@ -2839,6 +2908,271 @@
       "note": "Puppet towns keep their queues. A finished unit needs the same space as a bought unit.",
       "onDraft": [{ "grant": "completeQueues" }],
       "effects": []
+    },
+    "theSutlers": {
+      "name": "The Sutlers",
+      "decks": [
+        "dominion",
+        "commerce"
+      ],
+      "line": "none",
+      "flavor": "Their carts followed the garrison to its next post.",
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "economic",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "population",
+          "within": "city",
+          "scope": {
+            "test": "garrisoned"
+          }
+        }
+      ],
+      "text": "Garrisoned towns gain +1 gold for each citizen."
+    },
+    "theArmyContractors": {
+      "name": "The Army Contractors",
+      "decks": [
+        "dominion",
+        "commerce"
+      ],
+      "line": "none",
+      "flavor": "The smiths took part of the price in iron.",
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "economic",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "purchase",
+          "grant": {
+            "yield": "production",
+            "amount": 0.25,
+            "fromOccasion": "gold"
+          },
+          "class": {
+            "category": "military"
+          }
+        }
+      ],
+      "text": "Buying a military unit grants its town production equal to a quarter of the gold paid."
+    },
+    "theFoundersStores": {
+      "name": "The Founders' Stores",
+      "decks": [
+        "expansionist",
+        "commerce"
+      ],
+      "line": "none",
+      "flavor": "The first wagons brought seed and the timbers for a storehouse.",
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "economic",
+      "effects": [
+        {
+          "kind": "foundingRider",
+          "building": "granary"
+        }
+      ],
+      "text": "Towns you found start with a Granary."
+    },
+    "theGrainMerchants": {
+      "name": "The Grain Merchants",
+      "decks": [
+        "expansionist",
+        "commerce"
+      ],
+      "line": "none",
+      "flavor": "The wheat was sold before the barges cast off.",
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "economic",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "from": "food",
+          "to": "gold",
+          "percent": 20
+        }
+      ],
+      "text": "Towns gain gold equal to 20% of their food."
+    },
+    "theIncenseRoad": {
+      "name": "The Incense Road",
+      "decks": [
+        "commerce",
+        "devotion"
+      ],
+      "line": "none",
+      "flavor": "The camels carried resin packed in straw.",
+      "band": 1,
+      "rarity": "common",
+      "type": "civic",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 2,
+          "count": "uniqueLuxuries"
+        }
+      ],
+      "text": "+2 faith for each different luxury you hold."
+    },
+    "theLeagueOfCities": {
+      "name": "The League of Cities",
+      "decks": [
+        "commerce",
+        "magisterial"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "The league is a promise between markets, not between kings.",
+      "text": "Cards that pay your capital also pay your second-largest town.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "secondCapital"
+        }
+      ]
+    },
+    "thePatronsLedger": {
+      "name": "The Patrons' Ledger",
+      "decks": [
+        "commerce",
+        "magisterial"
+      ],
+      "line": "none",
+      "flavor": "The builder recorded the patron’s name above the price.",
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "civic",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "purchase",
+          "grant": {
+            "renown": 0.1,
+            "fromOccasion": "gold"
+          },
+          "anyBuilding": true
+        }
+      ],
+      "text": "Buying a building grants renown equal to 10% of the gold paid."
+    },
+    "theRoyalPatents": {
+      "name": "The Royal Patents",
+      "decks": [
+        "commerce",
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The inventor received a purse with the royal seal.",
+      "band": 3,
+      "rarity": "uncommon",
+      "type": "economic",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": {
+            "yield": "gold",
+            "amount": 100,
+            "perCount": {
+              "count": "agesReached"
+            }
+          }
+        }
+      ],
+      "text": "Researching a technology grants 100 gold for each age you have reached."
+    },
+    "thePatronsQuarter": {
+      "name": "The Patrons' Quarter",
+      "decks": [
+        "commerce",
+        "magisterial"
+      ],
+      "line": "none",
+      "flavor": "The goldsmiths paid the rent on the workshop.",
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "civic",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "greatWork"
+          },
+          "basis": "count",
+          "count": "buildingsOfCategory",
+          "within": "city",
+          "category": "gold",
+          "production": 2,
+          "culture": 2
+        }
+      ],
+      "text": "Great-person works gain +2 production and +2 culture for each gold building in their town."
+    },
+    "theVotiveAccounts": {
+      "name": "The Votive Accounts",
+      "decks": [
+        "commerce",
+        "devotion"
+      ],
+      "line": "none",
+      "flavor": "The steward kept receipts for wax and lamp oil.",
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "civic",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "culture": 2,
+          "faith": 2
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "tally",
+          "tally": "goldPurchase",
+          "alsoTallies": [
+            "faithPurchase",
+            "riteStarted"
+          ],
+          "max": 18
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "tally",
+          "tally": "goldPurchase",
+          "alsoTallies": [
+            "faithPurchase",
+            "riteStarted"
+          ],
+          "max": 18
+        }
+      ],
+      "text": "Starts at +2 culture and +2 faith for your empire. Gains +1 of each every time you buy something with gold or faith, or start a rite, at most +20."
     }
   }
 }

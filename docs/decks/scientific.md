@@ -59,7 +59,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 4 | 2 | 5 | 1 |
 | Tier IV | 4 | 3 | 3 | 2 |
 | **All** | **15** | **21** | **28** | **4** |
-| Shared | 1 | 0 | 15 | 0 |
+| Shared | 1 | 1 | 14 | 0 |
 
 Without the charters, the deck holds 55 cards that take a chair: 7, 15, 13, 10 and 10 across Tiers 0 to IV. By type they are 9 Military, 19 Economic, 23 Civic and 4 Wildcard.
 
@@ -151,7 +151,7 @@ Without the charters, the deck holds 55 cards that take a chair: 7, 15, 13, 10 a
 |---|---|---|
 | **The Directorate of Arms** | engine (the lead); bridge to the elite army | While no empire you have met knows more technologies than you, your units gain +3 combat strength. |
 | **The Universitas** | great cities | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. |
-| **The Volley Fire** | elite army | Your archer line (Archer to Crossbowman) may attack twice a turn. Your melee units fight at −10% strength. |
+| **The Volley Fire** | elite army | Your archer line may attack twice a turn. These units lose 4 strength when defending against a melee attack. |
 | **The Külliye** | institutions | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings, except the Magnum Opus and its works. |
 
 **Orders:**
@@ -222,13 +222,13 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **The Schoolmen's Charter** | uncommon | Devotion | I | implemented | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Civic |
 | **The Priest-Astronomers** | common | Devotion | I | implemented | Your capital gains +2 science and +2 faith for each town keeping a rite. | Civic |
 | **The Cloister** | rare | Devotion | II | implemented | Towns with a Temple gain science equal to 30% of their faith. | Civic |
-| **The Merchant Navigators** | common | Commerce | II | implemented | Trade routes from a town with a Harbour gain +5 science. | Civic |
+| **The Merchant Navigators** | common | Commerce | II | implemented | A town's fishing boats gain +2 science for its Lighthouse and +2 science for its Harbour. | Civic |
 | **The Blessed Forges** | uncommon | Devotion | II | implemented | Improved strategic resources gain +1 faith and +1 production. | Civic |
 | **Carried-Off Scholars** | common | Dominion | II | implemented | Capturing a city grants science equal to ten times its population. | Civic |
 | **The Soldier-Scholars** | uncommon | Dominion | II | implemented | Each military unit in your towns gives +2 science. | Military |
-| **Merchant Scholars** | uncommon | Commerce | III | implemented | Foreign routes gain +2 science for each Academy in the origin city. | Civic |
 | **The House of Wisdom** | uncommon | Magisterial | III | implemented | Towns working an Academy build wonders 30% faster. | Civic |
 | **The Monastic University** | rare | Devotion | III | implemented | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. | Civic |
+| **The Royal Patents** | uncommon | Commerce | III | implemented | Researching a technology grants 100 gold for each age you have reached. | Economic |
 
 ## Retired rows
 

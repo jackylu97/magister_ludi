@@ -834,7 +834,7 @@ export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGe
   Object.fromEntries(
     IMPROVEMENT_IDS.map((id) => {
       const drawn = improvementBaseRow(id);
-      const build = DRAWN_IMPROVEMENT_PROPS[drawn] ?? (isApprovedWork(id) ? DRAWN_IMPROVEMENT_PROPS[APPROVED_WORKS[id].fallback] : undefined);
+      const build = DRAWN_IMPROVEMENT_PROPS[id] ?? DRAWN_IMPROVEMENT_PROPS[drawn] ?? (isApprovedWork(id) ? DRAWN_IMPROVEMENT_PROPS[APPROVED_WORKS[id].fallback] : undefined);
       if (build === undefined) throw new Error(`No prop is drawn for improvement "${drawn}"`);
       return [id, build];
     }),

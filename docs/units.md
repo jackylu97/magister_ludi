@@ -130,9 +130,9 @@ blow read the same plan.
 - **No counter from an embarked unit** — a ship that attacks an embarked unit
   takes no damage back (`boardsAtSea`, a clause of the counter in `planCombat`;
   the same ruling).
-- **One percentage of strength remains**: a card's own `cardCombatPercent`. It
-  multiplies the unit's base before any flat line joins. Only The Volley Fire
-  uses it, and another build will change that Doctrine to flat points.
+- The Volley Fire gives the archer line a second attack. Its archers lose four
+  strength when defending against a melee attack. The preview shows the loss
+  as a line on the defender’s side.
 - **A town defends with the strongest unit its owner could train right now**
   (`cityBaseStrength`, floored at `rules.combat.cityMinStrength`) plus its walls,
   cards and buildings; its health is `cityMaxHp`, never `cityBaseHp`.

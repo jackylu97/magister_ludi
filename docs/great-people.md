@@ -225,7 +225,7 @@ blank for the balance pass.
 | `generalAuraRange` | 2 | How far a great general’s standing aura reaches while the piece is alive. |  |
 | `generalAuraStrength` | 3 | Strength every friendly soldier inside that aura fights with. |  |
 | `citadelClaimRadius` | 1 | How far a citadel claims ground around itself, in hexes. |  |
-| `offerGoldPerRenown` | 10 | Gold per point of the next renown threshold, before purchase discounts. |  |
+| `offerGoldPerRenown` | 10 | Gold per point of the next renown threshold, before buying power. |  |
 | `offerPriceFaith` | 750 | The same out of the faith bank, under Sacred Patronage. The price is flat: it does not rise. |  |
 | `scholarDraftFaith` | 1000 | What The Academy charges in faith for a scholars-only hand, leaving the ladder where it stands. |  |
 | `renown.base` | 75 | What the first great person costs in renown — the ladder’s floor. |  |
@@ -268,7 +268,7 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Lu Ban | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +15% production toward buildings · newly created workers gain +1 charge |  |
 | Theodorus of Samos | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +3 production in every city with a Smithy |  |
 | Hanno the Navigator | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +2 gold in every coastal city · founding a city grants +60 gold |  |
-| Fan Li | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | buildings cost −15% to buy |  |
+| Fan Li | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | You gain 17.65% buying power on buildings |  |
 | Harkhuf | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +2 gold per unique luxury |  |
 | Fu Hao | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength inside your territory · +2 faith in every city with a unit standing in it |  |
 | Sun Tzu | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | military units: +1 sight · +4 combat strength against a wounded unit |  |
@@ -316,7 +316,7 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Zhang Qian | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +2 gold per 80 hexes you have revealed |  |
 | Nanaivandak | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | each connected city pays +2 gold |  |
 | Hippalus | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +2 gold on every hex with a Fishing Boat |  |
-| Crassus | Merchant | ● defining | 8 turns of gold | Customs House (+4 gold) | all units and buildings cost −20% to buy · buying anything costs your empire -1 happiness for 10 turns |  |
+| Crassus | Merchant | ● defining | 8 turns of gold | Customs House (+4 gold) | You gain 25% buying power on all units and buildings · buying anything costs your empire -1 happiness for 10 turns |  |
 | Pytheas | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | your trade units cannot be attacked or plundered · +3 gold on every trade route that ends in another empire’s city |  |
 | Hannibal | General | ● defining | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +5 combat strength when attacking outside your territory · -4 combat strength when defending inside your territory |  |
 | Han Xin | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +4 combat strength beside fresh water |  |
@@ -383,7 +383,7 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Dürer | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +2 culture per wonder you hold · your wonders pay +50% |  |
 | Leonardo | Engineer | ● defining | 60 production × age | Manufactory (+4 production) | +20% production toward wonders · a great person's act pays +50% |  |
 | Taqī al-Dīn | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +3 science in every city with a Workshop |  |
-| Jakob Fugger | Merchant | ● defining | 8 turns of gold | Customs House (+4 gold) | +20% gold in every city · -1 authority capacity per 3 cities you hold · all units and buildings cost −10% to buy |  |
+| Jakob Fugger | Merchant | ● defining | 8 turns of gold | Customs House (+4 gold) | +20% gold in every city · -1 authority capacity per 3 cities you hold · You gain 11.11% buying power on all units and buildings |  |
 | Willem Beukelszoon | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | the works on every hex with a Fishing Boat pay +100% | proposed name (fold-in 2026-09-09) — yours to change |
 | Gracia Mendes Nasi | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +3 authority capacity · +1 happiness per spare authority · +5 gold per spare authority |  |
 | Jacques Cœur | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 culture per 100 gold you have spent buying (at most +60 culture) |  |
@@ -404,7 +404,7 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Johannes Gutenberg | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +2 science, +2 culture in every city with a Printing House · +50% production toward Printing Houses |  |
 | Jang Yeong-sil | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +1 food, +1 science on every hex with a Farm beside fresh water |  |
 | Aḥmad ibn Mājid | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 trade route · your trade routes by sea pay +50% |  |
-| Fatima al-Fihri | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | buildings that supply science or faith cost −30% to buy |  |
+| Fatima al-Fihri | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | You gain 42.86% buying power on buildings that supply science or faith |  |
 | Li Qingzhao | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +4 culture per unique luxury |  |
 | Hildegard of Bingen | Artist | ◆ strong | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +2 food, +2 production, +2 science, +2 culture, +2 faith in every city with a Cathedral |  |
 | Filippo Brunelleschi | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +25% production toward buildings and +25% production toward wonders, in your capital |  |

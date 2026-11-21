@@ -209,6 +209,8 @@ import {
 } from './sittingPhases';
 import {
   type ImprovementPlan,
+  type PlanEntry,
+  nearbyImprovementPlan,
   buildImprovementPlan,
   explainWorkerCraving,
   rankPlanFor,
@@ -299,6 +301,7 @@ import { improvementDef } from '../sim/improvementData';
 import {
   type QueueItem,
   capitalCityOf,
+  unitById,
   citiesOf,
   cityById,
   hasEndedTurn,
@@ -357,7 +360,7 @@ import {
   familyLayingWork,
   familyWork,
 } from '../sim/greatPeople';
-import { improvementError, improvementErrorAt, prospectError, repairImprovementError } from '../sim/improvements';
+import { buildsImprovements, chargesLeft, explainImprovementPreview, improvementError, improvementErrorAt, prospectError, repairImprovementError, workChargeCost } from '../sim/improvements';
 import { type ImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import type { ResourceId } from '../sim/resourceData';
@@ -9914,6 +9917,83 @@ function holdAfterStepBack(state: GameState, unit: Unit, choice: UnitChoice | nu
   );
 }
 
+export interface WorkerAdvice {
+  col: number;
+  row: number;
+  improvement: ImprovementId;
+  action: 'build' | 'repair';
+  /** Change to this tile if a citizen works it. The score also includes benefits elsewhere. */
+  delta: TileYield;
+  score: number;
+}
+
+/** A worker and the board use the same checks before spending a route search on a target. */
+function workerTargetError(
+  state: GameState, player: Player, unit: Unit, entry: PlanEntry, ai: AiConfig,
+  budget: { used: number }, sitting?: BotSitting, chartedRoute = false,
+): string | null {
+  const id = entry.improvement;
+  if (unit.col === entry.col && unit.row === entry.row) {
+    if (entry.repair) return repairImprovementError(state, unit.id);
+    return id === null ? prospectError(state, unit.id) : improvementError(state, unit.id, id);
+  }
+  if (id && !entry.repair && chargesLeft(unit) < workChargeCost(state, unit, id)) return 'too few worker charges';
+  const tile = getTileAt(state.map, entry.col, entry.row);
+  if (!tile) return 'no route to it';
+  const danger = threatenedTarget(state, player, ai, tile, sitting);
+  if (danger !== null) return `${dangerWords(state, danger)} could reach it, and no guard holds it`;
+  if (budget.used >= ai.search.pathProbes) return `beyond the ${ai.search.pathProbes} routes this bot will pay to ask about`;
+  budget.used++;
+  const path = findPath(state, unit, tile);
+  if (!path || (chartedRoute && path.some(step => !isExploredBy(state, player.id, step.col, step.row)))) return 'no route to it';
+  return null;
+}
+
+/** All worker selections on an unchanged board have the same prices, guards and threat readings. */
+const adviceSittings = new WeakMap<GameState, { revision: number; seats: Map<number, BotSitting> }>();
+
+function adviceSitting(state: GameState, playerId: number): BotSitting {
+  let held = adviceSittings.get(state);
+  if (!held || held.revision !== state.revision) {
+    held = { revision: state.revision, seats: new Map() };
+    adviceSittings.set(state, held);
+  }
+  let sitting = held.seats.get(playerId);
+  if (!sitting) {
+    sitting = botSitting(playerId);
+    held.seats.set(playerId, sitting);
+  }
+  return sitting;
+}
+
+/** Return nearby build or repair targets for a selected worker. The board may request this several times per frame. */
+export function workerAdvice(state: GameState, playerId: number, unitId: number): readonly WorkerAdvice[] {
+  const worker = unitById(state, unitId);
+  const player = playerById(state, playerId);
+  if (!worker || !player || worker.ownerId !== playerId || worker.hp <= 0 || !buildsImprovements(worker)) return [];
+  return slateMemo(state, 'revision', 'workerAdvice', String(unitId), () => withFieldsHeld(() => inDecision(() => {
+    const sitting = adviceSitting(state, playerId);
+    const guarded = workerGuard(state, player, worker, sitting);
+    const immediate = guarded !== null && guarded.threat.turns <= 1;
+    if (immediate && guarded.job === null) return [];
+    if (civilianDanger(state, player, worker, guarded?.job?.soldier ?? civilianCover(state, player, worker)) !== null) return [];
+    const ctx = seatContext(state, player, sitting);
+    const plan = nearbyImprovementPlan(state, player, worker, ctx, RULES.ui.workerAdviceRadius);
+    const rows: WorkerAdvice[] = [];
+    const budget = { used: 0 };
+    for (const row of rankPlanFor(plan, state, worker, ctx)) {
+      const { col, row: y, improvement, repair } = row.entry;
+      if (improvement === null || (immediate && row.distance !== 0)) continue;
+      if (workerTargetError(state, player, worker, row.entry, ctx.ai, budget, sitting, true) !== null) continue;
+      const tile = getTileAt(state.map, col, y)!;
+      rows.push({ col, row: y, improvement, action: repair ? 'repair' : 'build',
+        delta: explainImprovementPreview(state, player.id, tile, improvement, undefined, repair).delta, score: row.score });
+      if (rows.length >= RULES.ui.workerAdviceCount) break;
+    }
+    return rows;
+  })));
+}
+
 /**
  * The worker's answer after the danger clause: the war's flight, then the
  * improvement plan. `guarded` is the worker's guard reading, or `null` for a
@@ -9961,7 +10041,7 @@ function workerChoice(
 
   const tried: BotCandidate[] = [];
   let taken: { command: Command; summary: string; focus?: { col: number; row: number } } | null = null;
-  let probes = 0;
+  const budget = { used: 0 };
 
   for (const row of shortlist) {
     const label = row.entry.label;
@@ -9969,26 +10049,20 @@ function workerChoice(
       tried.push({ label, score: row.score, chosen: false, terms: row.terms });
       continue;
     }
+    const refusal = workerTargetError(state, player, unit, row.entry, ai, budget, sitting);
+    if (refusal !== null) {
+      tried.push(refused(label, refusal));
+      continue;
+    }
     const standing = row.entry.col === unit.col && row.entry.row === unit.row;
     if (standing) {
       const improvement = row.entry.improvement;
       if (row.entry.repair) {
-        const refusal = repairImprovementError(state, unit.id);
-        if (refusal !== null) {
-          tried.push(refused(label, refusal));
-          continue;
-        }
         tried.push({ label, score: row.score, chosen: true, terms: row.terms });
         taken = {
           command: { type: 'repairImprovement', playerId: player.id, unitId: unit.id },
           summary: label,
         };
-        continue;
-      }
-      const refusal =
-        improvement === null ? prospectError(state, unit.id) : improvementError(state, unit.id, improvement);
-      if (refusal !== null) {
-        tried.push(refused(label, refusal));
         continue;
       }
       tried.push({ label, score: row.score, chosen: true, terms: row.terms });
@@ -10006,26 +10080,6 @@ function workerChoice(
                 `Lays ${improvementDef(improvement).name} where it stands — the best-scoring hex in reach at ` +
                 `${round1(row.score)} a turn, and it is under its feet.`,
             };
-      continue;
-    }
-    // **No walk into danger** (bot batch BP15): a hex a hostile could reach first
-    // is refused before its route is priced, so it costs none of the probes.
-    const target = getTileAt(state.map, row.entry.col, row.entry.row);
-    const danger = target === undefined ? null : threatenedTarget(state, player, ai, target, sitting);
-    if (danger !== null) {
-      tried.push(refused(label, `${dangerWords(state, danger)} could reach it, and no guard holds it`));
-      continue;
-    }
-    // A route is the most expensive question this bot asks (`search.pathProbes`),
-    // so the walk is only priced for the few best rows.
-    if (probes >= ai.search.pathProbes) {
-      tried.push(refused(label, `beyond the ${ai.search.pathProbes} routes this bot will pay to ask about`));
-      continue;
-    }
-    probes += 1;
-    const tile = target;
-    if (!tile || findPath(state, unit, tile) === null) {
-      tried.push(refused(label, 'no route to it'));
       continue;
     }
     tried.push({ label, score: row.score, chosen: true, terms: row.terms });

@@ -216,7 +216,16 @@ const SHELF_ROWS = ORDER_IDS.filter((id) => !DECK_ROWS.has(id));
  * the Dominion sheet by the user's edit, and Dominion batch D9 retired its row
  * (`docs/plans/dominion-themes-triage.md`, reading 7).
  */
-const RETIRED_DECK_DOCTRINES: readonly DoctrineId[] = ['theServianReforms', 'weightOfNumbers', 'totalMobilisation'];
+function expectInBand(id: OrderId, band: number): void {
+  const row = orderDef(id);
+  expect(row.band, id).toBeLessThanOrEqual(band);
+  expect(row.lastBand ?? row.band, id).toBeGreaterThanOrEqual(band);
+}
+
+const RETIRED_DECK_DOCTRINES: readonly DoctrineId[] = [
+  'theServianReforms', 'weightOfNumbers', 'totalMobilisation',
+  'theWildwoodCompact', 'theGardenPeoples', 'arcadia',
+];
 
 describe('the schema, as landed', () => {
   it('gives every Order and Doctrine row a deck list and a band', () => {
@@ -676,8 +685,8 @@ describe('the schema, as landed', () => {
     // Ten final Orders complete the generic set.
     // The Dominion and Magisterial revisions add twelve more live Orders between them.
     // The Open Market adds one live Commerce Order.
-    expect(live).toBe(518);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(518);
+    expect(live).toBe(548);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(548);
   });
 
   /**
@@ -1134,7 +1143,7 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
       ).toHaveLength(0);
       // The generic set retired sixteen rows. The next two deck revisions retire ten more.
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(446);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(474);
     }
   });
 
@@ -1233,7 +1242,7 @@ describe('with the shelf stocked', () => {
     expect(researchAgeOf(ada)).toBe(1);
     expect(currentBandOf(ada)).toBe(1);
     expect(dealt!.offer.options.length).toBeGreaterThan(0);
-    for (const id of dealt!.offer.options) expect(orderDef(id).band, id).toBe(1);
+    for (const id of dealt!.offer.options) expectInBand(id, 1);
   });
 
   // One test per tier: at its rung, in each research age, the bag is that
@@ -1300,22 +1309,17 @@ describe('with the shelf stocked', () => {
     const ada = playerById(g.state, 0)!;
     // Only one band is dealt at a time (the user, 2026-10-13): an earlier band
     // leaves the bag when a later one opens. The seat never leaves age one.
-    const bandsOf = (): number[] => [...new Set(eligibleFor(g.state, ada).map((id) => orderDef(id).band))].sort();
-    expect(bandsOf()).toEqual([0]);
-    ada.statecraft.drafts = 4;
-    expect(bandsOf()).toEqual([1]);
-    ada.statecraft.drafts = 10;
-    expect(bandsOf()).toEqual([2]);
-    // Double Time is dealt in Tiers II and III (`lastBand`), so the Tier III
-    // bag may hold a Tier II row that names Tier III as its last band.
-    ada.statecraft.drafts = 18;
-    for (const id of eligibleFor(g.state, ada)) expect((orderDef(id).lastBand ?? orderDef(id).band), id).toBe(3);
-    ada.statecraft.drafts = 26;
-    expect(bandsOf()).toEqual([4]);
+    for (const [drafts, band] of [[0, 0], [4, 1], [10, 2], [18, 3], [26, 4]] as const) {
+      ada.statecraft.drafts = drafts;
+      expect(currentBandOf(ada)).toBe(band);
+      const bag = eligibleFor(g.state, ada);
+      expect(bag.length).toBeGreaterThan(0);
+      for (const id of bag) expectInBand(id, band);
+    }
     expect(researchAgeOf(ada)).toBe(1);
   });
 
-  it('deals a seat at band 2 no card of band 0 or band 1', () => {
+  it('deals only cards whose window includes band two', () => {
     const g = seated();
     for (const seat of [0, 1]) {
       const player = playerById(g.state, seat)!;
@@ -1323,11 +1327,11 @@ describe('with the shelf stocked', () => {
       expect(currentBandOf(player)).toBe(2);
       const bag = eligibleFor(g.state, player);
       expect(bag.length).toBeGreaterThan(0);
-      for (const id of bag) expect(orderDef(id).band, id).toBe(2);
+      for (const id of bag) expectInBand(id, 2);
       // Twenty seeded hands: every card dealt is band 2.
       for (let n = 0; n < 20; n++) {
         delete player.statecraft.pendingOrder;
-        for (const id of drawOrderOffer(g.state, player).options) expect(orderDef(id).band, id).toBe(2);
+        for (const id of drawOrderOffer(g.state, player).options) expectInBand(id, 2);
       }
     }
   });
@@ -1391,7 +1395,7 @@ describe('with the shelf stocked', () => {
     expect(dealt).not.toBeNull();
     expect(sc.drafts).toBe(4);
     expect(dealt!.offer.options.length).toBeGreaterThan(0);
-    for (const id of dealt!.offer.options) expect(orderDef(id).band, id).toBe(1);
+    for (const id of dealt!.offer.options) expectInBand(id, 1);
   });
 
   it('deals two positions from the seat’s decks and the third by the cadence, over twenty seeded hands', () => {
@@ -1849,7 +1853,7 @@ describe('a charter’s face (tidy batch Z3)', () => {
     expect(said('thePlantersCharter')).toEqual([
       'Charter',
       'you may buy the Plantation House with gold: +1 gold; ' +
-        '+1 food, +1 gold on every hex with a Plantation',
+        '+2 food, +2 gold on every hex with a Plantation',
     ]);
     expect(said('numidianCavalryCharter')).toEqual([
       'Charter',

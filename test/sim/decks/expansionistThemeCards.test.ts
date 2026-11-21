@@ -252,8 +252,8 @@ describe('the Expansionist batch E7: the counts that changed their pay', () => {
     expect(paid).toEqual([['production', 30]]);
   });
 
-  it('The Staked Claims is dealt from Tier II', () => {
-    expect(orderDef('theStakedClaims' as OrderId).band).toBe(2);
+  it('The Staked Claims is dealt from Tier I', () => {
+    expect(orderDef('theStakedClaims' as OrderId).band).toBe(1);
   });
 });
 
@@ -298,7 +298,7 @@ describe('the Expansionist batch E7: the three institutions', () => {
     expect([home.population, other.population]).toEqual(before);
   });
 
-  it('The Domesday Survey leaves +1 science on every improved or tended hex, doubled on improved ones by The Age of Improvement', () => {
+  it('The Domesday Survey leaves +1 science on every improved hex and doubles it by The Age of Improvement', () => {
     const state = bareState();
     const city = town(state, 5, 5, 4);
     const [field, garden, wild] = ring(state, city);
@@ -308,17 +308,17 @@ describe('the Expansionist batch E7: the three institutions', () => {
     // The goals are 120 hexes and 40 tiles now (the sheet's text).
     expect(orderDef('theDomesdaySurvey' as OrderId).commission!.goals).toEqual([
       { kind: 'reached', figure: 'hexesOwned', count: 120 },
-      { kind: 'reached', figure: 'improvedTilesWorked', count: 40 },
+      { kind: 'reached', figure: 'improvedOnlyTilesWorked', count: 40 },
     ]);
     slot(state, 0, 'theDomesdaySurvey');
     expect(hexPays(state, field!, 'Domesday', 'science')).toBe(0);
-    withGoals('theDomesdaySurvey', [{ kind: 'reached', figure: 'improvedTilesWorked', count: 1 }], () => {
+    withGoals('theDomesdaySurvey', [{ kind: 'reached', figure: 'improvedOnlyTilesWorked', count: 1 }], () => {
       expect(runCommissions(state)).toHaveLength(1);
     });
     bumpRevision(state);
     expect(seated(state, 'theDomesdaySurvey')).toBe(false);
     expect(hexPays(state, field!, 'Domesday', 'science')).toBe(1);
-    expect(hexPays(state, garden!, 'Domesday', 'science')).toBe(1);
+    expect(hexPays(state, garden!, 'Domesday', 'science')).toBe(0);
     expect(hexPays(state, wild!, 'Domesday', 'science')).toBe(0);
     // No great engineer and no lump of production any more.
     expect(city.hammerBasket ?? 0).toBe(0);
@@ -376,7 +376,7 @@ describe('the Expansionist batch E7: retirements and types', () => {
       expect(orderIsDealt(id as OrderId), id).toBe(false);
     }
     // Built in batch E9 (`expansionistThemeLand.test.ts`).
-    expect(orderDef('theTwoHarvests' as OrderId).needsTendedWork).toBe(true);
+    expect(orderDef('theTwoHarvests' as OrderId).needsTendedWork).toBeUndefined();
   });
 });
 
@@ -464,7 +464,7 @@ describe('the Expansionist batch E8: five new cards in shapes that already exist
     // rival condition and the settlers' movement. The condition still lives
     // for The Defiant Kingdom (`dominionEconomy.test.ts`).
     expect(orderDef('theLandHunger' as OrderId).effects).toEqual([
-      { kind: 'productionBonus', category: 'unit', percent: 25, class: { type: 'settler' } },
+      { kind: 'productionBonus', category: 'unit', percent: 50, class: { type: 'settler' } },
     ]);
     const state = bareState(20, 10);
     const home = town(state, 2, 5, 3);
@@ -476,7 +476,7 @@ describe('the Expansionist batch E8: five new cards in shapes that already exist
     const toward = (id: 'settler' | 'worker'): number => buildPercent(state, home, { kind: 'unit', id }, 'theLandHunger');
     // Nobody else holds a town at all, and the bonus still applies.
     bumpRevision(state);
-    expect(toward('settler')).toBe(25);
+    expect(toward('settler')).toBe(50);
     expect(fullMovement(settler, state)).toBe(settlerBase);
     // Settlers only: not workers, and not the great person, who shares the
     // settler's model (reading 39).

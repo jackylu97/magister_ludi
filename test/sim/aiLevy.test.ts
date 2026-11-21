@@ -217,10 +217,9 @@ describe('the levy cards are priced on the levy rate', () => {
     const needs = ORDER_IDS.filter((id) => orderDef(id).needsLevy === true && orderDef(id).retired !== true);
     // The register: the cards the deal gate holds back until a levy is held.
     // Batch R1 added The Terraces of Moray, which pays on a levy's production.
-    expect([...needs].sort()).toEqual(['seasonalLevies', 'theGleaners', 'theMita', 'theTerracesOfMoray'].sort());
-    // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired five
-    // of them. A save can still hold one, so the bot still prices them.
-    const retired = ['theLabourFeasts', 'theLabourRolls', 'theSlackSeason', 'theTrainedBands', 'watchAndWard'];
+    expect([...needs].sort()).toEqual(['seasonalLevies', 'theMita', 'theTerracesOfMoray'].sort());
+    // Retired levy cards can still occur in an existing collection.
+    const retired = ['theGleaners', 'theLabourFeasts', 'theLabourRolls', 'theSlackSeason', 'theTrainedBands', 'watchAndWard'];
     for (const id of retired) {
       expect(orderDef(id as OrderId).needsLevy, id).toBe(true);
       expect(orderDef(id as OrderId).retired, id).toBe(true);

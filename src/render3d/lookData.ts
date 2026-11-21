@@ -2861,7 +2861,8 @@ const rawImprovementProps = viewJson.improvements.props as Record<
  */
 function improvementPropSpec(id: ImprovementId): ImprovementPropSpec {
   const drawn = improvementBaseRow(id);
-  const spec = rawImprovementProps[drawn] ?? (isApprovedWork(id) ? rawImprovementProps[APPROVED_WORKS[id].fallback] : undefined);
+  const own = rawImprovementProps[id] ?? rawImprovementProps[drawn];
+  const spec = own ?? (isApprovedWork(id) ? rawImprovementProps[APPROVED_WORKS[id].fallback] : undefined);
   if (spec === undefined) {
     throw new Error(`view3d.json: improvements.props has no row for "${drawn}"`);
   }
@@ -2872,7 +2873,7 @@ function improvementPropSpec(id: ImprovementId): ImprovementPropSpec {
     // Added back only when the row has one, so a row without the key stays
     // without it: `gilt: undefined` would serialise as a present-but-empty ink
     // and make "has a gilt element" a truthiness test rather than a fact.
-    ...(gilt === undefined ? {} : { gilt: named(gilt, `improvements.props.${drawn}.gilt`) }),
+    ...(gilt === undefined || !own ? {} : { gilt: named(gilt, `improvements.props.${drawn}.gilt`) }),
   };
 }
 

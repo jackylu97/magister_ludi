@@ -249,9 +249,7 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
 - **Founder side** → the owner of the holy city, derived
   (`religionFounder`; falls back to `founderId` only when no stones stand on
   owned ground). Pays the enhancers' empire lines + the **founder trickle**
-  (+1🕯 per foreign following city, +1💰 per two). Capture moves it. No card
-  amplifies the trickle since batch B1 (Apostles doubled it until then; it now
-  makes an apostle 30% cheaper in faith).
+  (+1🕯 per foreign following city, +1💰 per two). Capture moves it. The Apostles belief gives the founder 42.86% more buying power when buying apostles with faith.
 - **The founder's share is its own source.** Its live entries and lines carry
   `founderShare: ReligionId` (`LiveCardEffect`, `CardYieldLine`,
   `EmpireYieldLine`); the Ledger files the line under religion by that field
@@ -263,10 +261,7 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
 - **Follower beliefs** → city-local, to whoever OWNS each following city
   (a rival's faith in your town is a gift). A follower row that pays an
   empire fails `religionDataProblems`.
-  - A purchase rider on a follower belief (The Alms Box, batch B1: towns that
-    follow buy with faith for 20% less) is read by `cardPurchaseRiders` from
-    the town's own cards (`cityLocalEffects`) when the price is asked in that
-    town, and only for the town's owner.
+  - The Alms Box gives the town’s owner 25% more buying power on faith purchases in that town. `cardPurchaseRiders` reads the town’s follower beliefs through `cityLocalEffects`.
 - **Enhancers** → the tide itself: `{ kind: 'pressureRule', rule, delta }`
   over `rules.religion`, read only in `explainPressure`. Some also pay the
   founder: Ecclesia (+1🕯 on each holy site for each town in the world that

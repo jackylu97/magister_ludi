@@ -211,13 +211,12 @@ describe('the Doctrine data model', () => {
     ];
     expect(DECK_FILE_DOCTRINES.dominion).toEqual(dominion);
     expect(fromDecks).toEqual(expect.arrayContaining(dominion));
-    const retired: readonly DoctrineId[] = [SERVIAN, MOBILISATION, WEIGHT];
+    const retired: readonly DoctrineId[] = [SERVIAN, MOBILISATION, WEIGHT, 'theWildwoodCompact', 'theGardenPeoples', 'arcadia'];
     for (const id of fromDecks) {
       expect(STATECRAFT.doctrines[id], id).toBeDefined();
       expect(DOCTRINE_IDS, id).toContain(id);
       const def = doctrineDef(id);
-      // Every deck Doctrine is live but these three, each of which keeps its tier
-      // and effects so that a save holding it reads the same.
+      // Retired Doctrines keep their tier and effects.
       if (retired.includes(id)) expect(def.retired, id).toBe(true);
       else expect(def.retired, id).toBeUndefined();
       expect(def.tier, id).toBe(governmentTierForDoctrineBand(def.band));
@@ -852,7 +851,7 @@ describe('the gates on the Doctrine offer (batch DT5)', () => {
     for (const id of ['thePatrimonyOfPeter', 'theImarets', 'theCanonsOfTheHolySepulchre', 'theMartyrsCrown', 'theTwoSanctuaries']) {
       expect(NEEDS_RELIGION, id).toContain(id);
     }
-    expect(NEEDS_TENDED).toContain(GARDEN);
+    expect(NEEDS_TENDED).toEqual([]);
     for (const id of GATED) {
       const def = doctrineDef(id);
       expect(def.needsReligion === true && def.needsTendedWork === true, id).toBe(false);
@@ -911,19 +910,14 @@ describe('the gates on the Doctrine offer (batch DT5)', () => {
     for (const id of NEEDS_RELIGION) expect(bag, id).not.toContain(id);
   });
 
-  it('admits The Garden Peoples for a tended-work charter, seated or not', () => {
+  it('keeps The Garden Peoples out of new offers after a player drafts a unique improvement charter', () => {
     const { state, seat } = board();
     const tier = doctrineDef(GARDEN).tier;
+    expect(doctrineDef(GARDEN).retired).toBe(true);
     expect(doctrineBagFor(state, seat, tier)).not.toContain(GARDEN);
-    // In the collection, in no chair: a charter takes none.
-    seat.statecraft.orders.push('theForestGardens' as never);
+    seat.statecraft.orders.push('theFishTraps');
     bumpRevision(state);
-    expect(seat.statecraft.slots.some((slot) => slot?.card === 'theForestGardens')).toBe(false);
-    expect(doctrineBagFor(state, seat, tier)).toContain(GARDEN);
-    // In a chair as well, by a direct write. It reads the same.
-    seat.statecraft.slots.push({ card: 'theForestGardens' as never, sealedUntil: state.turn });
-    bumpRevision(state);
-    expect(doctrineBagFor(state, seat, tier)).toContain(GARDEN);
+    expect(doctrineBagFor(state, seat, tier)).not.toContain(GARDEN);
   });
 
   it('does not admit The Garden Peoples for a charter that opens no tended work', () => {

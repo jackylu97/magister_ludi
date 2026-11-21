@@ -137,14 +137,13 @@ import {
   bestExpansionTile,
   borderGrowth,
   buildingProductionCost,
-  cityTile,
   mirrorRowFor,
   tileCopies,
   tileOwnerCityId,
   tileOwnerPlayerId,
   tilePurchaseError,
   tilePurchasePrice,
-  workRadiusOf,
+  workRadiusTiles,
   yieldScore,
 } from '../sim/cities';
 import { improvementErrorAt } from '../sim/improvements';
@@ -920,7 +919,7 @@ function pricedOffers(
   const asked: (PricedHex & { index: number; rank: number })[] = [];
   // The town's own reach (`workRadiusOf`, The Common Domain since Expansionist
   // batch E3), the same one the purchase gate asks.
-  for (const tile of mapRange(map, tileHex(cityTile(map, city)), workRadiusOf(state, city))) {
+  for (const tile of workRadiusTiles(state, city)) {
     const index = tileIndex(map, tile.col, tile.row);
     if (state.tileOwner[index] !== null) continue;
     if (!atTheFrontier(map, owners, owner, tile)) continue;

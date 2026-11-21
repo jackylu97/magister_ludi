@@ -64,6 +64,8 @@ import { RULES } from './rulesData';
 // of `tech.ts` while the modules are being evaluated — and it is asserted by
 // `test/mapgen/moduleCycles.test.ts` like every other edge in this graph.
 import { hasAbility } from './tech';
+import { improvementFields } from './improvementFields';
+import { improvementDef } from './improvementData';
 import { citySpecialistYields } from './specialists';
 import {
   type City,
@@ -165,11 +167,17 @@ export function explainRenownByTown(state: GameState, playerId: number): RenownT
     lines.push(line);
     marked.push({ cityId, line });
   };
+  const renownWorks = improvementFields(state).renown;
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const shares = cardCityRenownShares(state, city);
     const shelf = townShelf(state, city);
     for (const line of explainCityRenown(city, shares, shelf, state)) push(city.id, line);
+    for (const index of renownWorks) {
+      if (state.tileOwner[index] !== city.id) continue;
+      const work = improvementDef(state.map.tiles[index]!.improvement!);
+      if (work.renown) push(city.id, { source: `${city.name} · ${work.name}`, ...work.renown, perTurn: true });
+    }
     // And what its guilds pay back (Entry XLVIII). *Beside* the buildings rather
     // than inside `explainCityRenown`, and the separation is load-bearing: that
     // list is what fills this town's guild bar, and a specialist feeding the bar

@@ -432,6 +432,7 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
 const MOVED_READERS: Record<string, string> = {
   'arrival.ts › arriveOnTile': 'the herds a town keeps (`buildingRestoresMovementOn`)',
   'cities.ts › explainGrowthPercent': 'the water (`cityIsWatered`)',
+  'cities.ts › explainTilePurchase': 'the local gold buying power from the Assay House',
   'cities.ts › realiseItem': 'the keep a town takes off its pieces (`buildingUnitUpkeepRebate`)',
   'combat.ts › cityWallsStrength': 'the walls (`buildingCityStat`)',
   'combat.ts › planCombat': 'the walls and the hit points',
@@ -467,6 +468,7 @@ const MOVED_READERS: Record<string, string> = {
   'statecraft/evaluator.ts › buildingProductionBonusMatches': 'the building The Capital’s Example checks in the capital',
   'statecraft/evaluator.ts › townHoldsBuilding': 'the reading',
   'statecraft/evaluator.ts › townShelf': 'the reading',
+  'statecraft/evaluator.ts › publicWorksInTown': 'public works a town holds',
   'statecraft/evaluator.ts › cardPressureSources': 'a building\'s pressure',
   'trade.ts › explainRouteSlots': 'the route slots',
   'healing.ts › keepHealLines': 'the heal beside a town',

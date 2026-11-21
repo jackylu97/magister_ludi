@@ -112,7 +112,7 @@ opens the row for whoever owns a following town; the town is where the rule is a
 | Temple Spires | hearth | Unlocks the Wat: +3 happiness, and +1 faith for every 2 citizens. |
 | The Open Kitchen | hearth | Unlocks the Gurdwara: +3 food, +3 faith, and +1 science for every 3 citizens. |
 | The Eternal Flame | sun | Unlocks the Dar-e Mehr: +25% faith in its town. |
-| The Alms Box | none | Towns that follow buy with faith for 20% less. |
+| The Alms Box | none | Your faith buys 25% more in towns that follow this religion. |
 
 ## Enhancer beliefs
 
@@ -128,7 +128,7 @@ world-scale counts live here.
 | Itinerant Preachers | road | Towns that follow press your religion 5 hexes further. |
 | The Pulse of Bells | sky | A proclamation reaches 4 hexes further and presses 20 faith harder. |
 | Ecclesia | stone | Each holy site gives +1 faith for each town in the world that follows your religion. |
-| Apostles | none | Apostles cost 30% less faith. |
+| Apostles | none | Your faith buys 42.86% more when buying apostles. |
 | Sacred Cartography | water | Your trade routes press your religion at both ends. |
 | Holy Order | war | Unlocks Knights Templar, bought with faith. They gain +6 strength in land that follows your religion. |
 | Congregation | hearth | +2 faith for every town in the world that follows your religion. |
