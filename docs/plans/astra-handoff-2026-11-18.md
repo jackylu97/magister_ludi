@@ -477,6 +477,34 @@ one built adds 4 (14, 18, 22, 26); a settler costs 36 and each one built adds
 further pass"), so keep every figure in data. The docs with sync tests
 (`docs/production-costs.md`, `docs/yields.md`) change with the data.
 
+### 3.16 Unit pieces from a shared kit (a trial to take further)
+
+`art/unit-kit-trial/`: read its `README.md` first. The user likes the form
+of three reference pieces from an image generator (`reference.png`: a turned
+base with a gold band, a faceted cloak body, a plain sphere head, a mantle,
+hood or helmet, block sleeves, one large prop), and wants "the overall form
+and not the render quality". The Claude session built the archer and the
+spearman from one Blender script kit in four passes.
+
+- **Start from the third pass,** which is the state of the folder. The user
+  judged the fourth pass worse; it is in `pass4/` so that nobody repeats it.
+- The README lists what is right, what still does not match (the arms most
+  of all, then how the archer's hood joins its cloak), the outline measured
+  at five heights against the reference, and which changes of the fourth
+  pass measured right and may be worth trying one at a time.
+- You can open the models in Blender and adjust a part while you look at
+  it. The Claude session worked from renders only, which is why its last
+  pass disturbed as much as it fixed.
+- The user's request: "give them to astra … to see if it can improve on
+  them". Show the user the two pieces beside the reference, and at board
+  size in three seat colours, before you build more units.
+- If the user approves the pair: a new unit on foot is a new prop and new
+  headgear on the same body. Mounted units, ships and siege engines need
+  their own bodies; try one horse only after three or four more foot units
+  hold. "Seat" and "SeatDark" are the two materials to recolour for a seat.
+- The game does not load these models. Loading them is your decision with
+  the user (3.13 describes what the board draws today).
+
 ## 4. Rules that apply to every change
 
 - **Rulings go in a file before work starts.** `docs/flags.md` for open
