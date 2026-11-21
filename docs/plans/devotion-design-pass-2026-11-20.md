@@ -106,7 +106,7 @@ Your words that shaped this round, 2026-11-21:
 |---|---|---|---|
 | Rite of the Harvest | Divination | Hexes that give food give +1 more. | It lasts already. No change. |
 | Omen Reading | Divination | +1 science for each building in the town. | No change. |
-| Consecration of the Bounds | Stonecraft | Resource hexes gain +1 culture. | Your line (90). The border clause goes. |
+| Consecration of the Bounds | Stonecraft | Resource hexes gain +1 culture, and this town's borders grow 30% faster. | Your line (90). The border clause stays (the user, 2026-11-21: "keep the faster borders"). |
 | Blessing of Arms | Bronze Working | +10 defence for the town. | No change. |
 | Rite of Plenty | Currency | The town gains +1 gold for each citizen. | Your line (91). |
 | Rite of Fasting | The Fast, a charter | The town does not grow, and gains +1 science and +1 culture for each citizen. | No change. |
@@ -238,7 +238,7 @@ You made no comment on the five open points, so each default stands. They are in
 | Where | Your words | Result |
 |---|---|---|
 | The deck in numbers, the Civic count of 49 | "could we move a few civics to economic" | Eight cards move to the Economic chair (89). 41 Civic and 22 Economic. |
-| The rites table, Consecration of the Bounds | "modify: resource hexes gain +1 culture" | The rite reads: Resource hexes gain +1 culture (90). I read your line as the whole text, so the border clause goes. |
+| The rites table, Consecration of the Bounds | "modify: resource hexes gain +1 culture" | The rite reads: Resource hexes gain +1 culture, and this town's borders grow 30% faster. (90). The user confirmed that the border clause stays. |
 | The rites table, Rite of Plenty | "gains +1 gold for every population in the city." | The rite reads: This town gains +1 gold for each citizen (91). |
 | The rites table, Restoring of the Host | "this needs to be a city-wide bonus, not an empire wide bonus" | Units within three hexes of the town heal 25 health each turn (92). The Vigil of Arms has the same reach. |
 | The House of Worship | "let's add an addtional bonus: buildings that supply faith give +1 science and +1 culture." | Added, with no cap (93). |
@@ -268,7 +268,7 @@ You made no comment on the five open points, so each default stands. They are in
 - I left the purse cards that pay culture or science for faith spent as Civic, as Commerce's Civic Receipts is.
 - **A fifth age:** no card, Doctrine, rite or charter of this deck needs one.
 
-- **To rule:** Nothing to rule. Say if the border clause of the Consecration of the Bounds should stay.
+- **To rule:** Nothing to rule. The user confirmed on 2026-11-21 that the border clause of the Consecration of the Bounds stays.
 
 ## 2. Ready for the build
 
@@ -369,7 +369,7 @@ You made no comment on the five open points, so each default stands. They are in
 | `nightWatch` | new, from the Scientific pass | This city gains +1 science for each citizen. | The Observers' Charter |
 | `votiveOffering` | changed (83) | This town gains production equal to its faith. | The Votive Gifts, while seated |
 | `restoringOfTheHost` | changed (84, 92) | Your units within three hexes of this town heal 25 health each turn. | The Host Restored, while seated |
-| `consecrationOfTheBounds` | changed (90) | Resource hexes gain +1 culture. | Stonecraft |
+| `consecrationOfTheBounds` | changed (90) | Resource hexes gain +1 culture, and this town's borders grow 30% faster. | Stonecraft |
 | `riteOfPlenty` | changed (91) | This town gains +1 gold for each citizen. | Currency |
 | the five other live rites | unchanged |  |  |
 
@@ -744,7 +744,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 | 87 | The Call to Prayer: what the charter opens | III | approved |  | Opens Liturgy: your holy sites press your religion twice as far. |
 | 88 | The House of Worship: the text (Doctrine) | III | approved |  | Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. |
 | 89 | Eight cards move from the Civic chair to the Economic chair | 0 to III | your text | "could we move a few civics to economic" | Lay Offerings, The Megaliths, The Hallowed Ground, The Cliff Monasteries, The Old Holy Places, The Pilgrim Towns, The Consecration Feast and The Prince-Bishops are Economic. The deck has 41 Civic cards and 22 Economic cards. |
-| 90 | Consecration of the Bounds: your line | a rite | your text | "modify: resource hexes gain +1 culture" | Resource hexes gain +1 culture. |
+| 90 | Consecration of the Bounds: your line | a rite | your text | "modify: resource hexes gain +1 culture" | Resource hexes gain +1 culture, and this town's borders grow 30% faster. |
 | 91 | Rite of Plenty: your line | a rite | your text | "gains +1 gold for every population in the city." | This town gains +1 gold for each citizen. |
 | 92 | The Restoring of the Host: a town's own ground | IV | your text | "this needs to be a city-wide bonus, not an empire wide bonus" | Towns may keep the Restoring of the Host, a rite: for ten turns your units within three hexes of the town heal 25 health each turn. |
 | 93 | The House of Worship: one more bonus (Doctrine) | III | your text | "let's add an addtional bonus: buildings that supply faith give +1 science and +1 culture." | Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. Buildings that supply faith give +1 science and +1 culture. |
@@ -771,13 +771,13 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 - **Answers:** your comment on the rites table
 - **Tier, rarity, type:** A rite of the technology tree (Stonecraft)
 - **Now:** Luxury hexes gain +1 culture, and this town's borders grow 30% faster.
-- **Proposed:** Resource hexes gain +1 culture.
+- **Proposed:** Resource hexes gain +1 culture, and this town's borders grow 30% faster.
 - **Why:** Your line. It reaches every resource, not only a luxury.
 - **Arithmetic:** A town works three or four resource hexes: +3 or +4 culture for ten turns, where it had +1 or +2.
 - **Synergy:** It is a rite of every seat, not only of this deck.
 - **Shape:** Data only: the hex test of the rite's `pays` line. The border line goes from the row.
 - **Confidence:** good
-- **Depends, joins and notes:** A reading: your line replaces the whole text, so the rite no longer makes borders grow faster. Say if the border clause should stay.
+- **Depends, joins and notes:** The user confirmed on 2026-11-21: "nope, keep the faster borders". Only the first half changed: luxury hexes became resource hexes.
 
 #### 91. Rite of Plenty: your line (rework)
 
@@ -2594,7 +2594,7 @@ user's rule: no comment means approved).
 | Where | The user's words | Result |
 |---|---|---|
 | "The deck in numbers", the Civic count of 49 | "could we move a few civics to economic" | Eight cards move from the Civic chair to the Economic chair (change 89). |
-| The rites table, Consecration of the Bounds | "modify: resource hexes gain +1 culture" | The rite reads: Resource hexes gain +1 culture (change 90). |
+| The rites table, Consecration of the Bounds | "modify: resource hexes gain +1 culture" | The rite reads: Resource hexes gain +1 culture, and this town's borders grow 30% faster. (change 90). The user then confirmed: "nope, keep the faster borders". |
 | The rites table, Rite of Plenty | "gains +1 gold for every population in the city." | The rite reads: This town gains +1 gold for each citizen (change 91). |
 | The rites table, Restoring of the Host | "this needs to be a city-wide bonus, not an empire wide bonus" | Units within three hexes of the town heal 25 health each turn (change 92). |
 | The House of Worship | "let's add an addtional bonus: buildings that supply faith give +1 science and +1 culture." | Added to the Doctrine, with no cap (change 93). |
