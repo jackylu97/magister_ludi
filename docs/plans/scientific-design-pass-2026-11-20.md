@@ -1,6 +1,6 @@
 # Scientific design pass (2026-11-20)
 
-**Status, 2026-11-20, round two:** your rulings on all 68 changes and the five questions are folded in. Fourteen new changes (69 to 82) answer what you asked for, and none of them is ruled. Five questions are open. Nothing is built, and no game data changed in this pass.
+**Status, 2026-11-21, round three: the pass is closed, with two points open.** Your rulings on rounds one and two are folded in, all 82 changes carry a ruling, and this round adds no card. The two open points are a name for the card of change 71 and the places of four new charter technologies on your chart. Nothing is built by this pass, and no game data changed.
 
 Your request, 2026-11-20:
 
@@ -8,23 +8,647 @@ Your request, 2026-11-20:
 
 > *"I think base science and culture is a bit too strong, i think i want to nerf the passive science from population, and the base science and culture buildings that scale off population."*
 
-Your words on round one:
+Your words on round two, 2026-11-21:
 
-> *"ok i commented on the scientific deck"*
+> *"commented on the scientific deck"*
 
-> *"your analysis is good, my immediate reaction is that we need to also add science to this deck."*
+> *"lets make it shared, i kind of dont care if scientific has fewer solo cards, i only care about total common/uncommon/rare per deck"*
 
-> *"this deck seems to have plenty of science now."*
+> *"copies is fine, i do want a few broken combos"*
 
-- This file is the current state. Section 1 is round two: what changed, and each open point. Section 2 holds the new changes. Section 3 is the deck after your rulings and round two. Section 4 gives every change of round one with your words.
-- The record of round one (the diagnosis, the notes and the 68 entries as first proposed) is at the foot, with the section of your rulings that the coordinator added.
-- The base rates changed after round one (`docs/flags.md`, "Base science, culture and unit prices"): a citizen gives 0.25 science, a Library +3, a University +6, an Amphitheater +4 culture, a soldier costs its size plus 80%, and technology prices stay. The arithmetic of this round uses them, and the bot study `docs/plans/benchmarks/base-economy-2026-11-20.md`: a mean seat makes 6 science at turn 50 and 95 at turn 100, and a median seat 483 at turn 150. Seats reach age II at about turn 63, age III at 94 and age IV at 129.
-- I ran no bot games in this round. Every number is a first guess to tune in playtest.
-- The review page keeps the anchors `change-01` to `change-68`. The new changes are `change-69` to `change-82`, and the open points are `r2-1` to `r2-13` and `r2-q1` to `r2-q5`.
+> *"i will adjust if it feels too abusable"*
 
-## 1. Round two
+- This file is the current state. Section 1 says where the pass stands and what is open. Section 2 is the list a builder follows. Section 3 is the final deck. Section 4 gives every change with your words.
+- I count the deck your way: every card a Scientific seat can be dealt, this deck's own and the shared ones, by common, uncommon and rare.
+- The base rules of 2026-11-21 change no card here. The river is a flat −3, and the naval lines are flat. The Volley Fire was the last percentage of combat strength, and change 59 is built (save version 254). Strategic resources may be traded, fish traps stay behind their charter, and the order "Fortify until healed" exists.
+- I ran no bot games. Every number is a first guess to tune in playtest.
+- The review page keeps the anchors `change-01` to `change-82`. The blocks of this round are `r3-1` to `r3-9`. The blocks `r2-1` to `r2-13` are in the record.
 
-### r2-1. Your rulings are folded in
+## 1. Where the pass stands
+
+### r3-1. The deck in numbers
+
+- **A Scientific seat can be dealt 87 cards:** 67 of this deck and 20 shared with another deck. Today it is 84: 68 and 16.
+- **By rarity, your measure:** 37 common, 36 uncommon and 14 rare. By tier: 12, 28, 24, 18 and 5.
+- **By chair:** 16 Military, 18 Economic, 50 Civic and 3 Wildcard. The deck's own 67 are 15, 17, 32 and 3.
+- **Charters: 17.** Fourteen are this deck's own, two are shared with Devotion and one with Expansionist. By tier: 2, 6, 5 and 4.
+- **Also:** 2 boons, 3 commissions, 1 scaler, 15 Doctrines.
+- Of the 82 changes: 47 are approved as proposed, 18 carry your text, 12 are cut by you, and 2 are not adopted (53 and 77). Three were sent back in round one, and changes 73, 75 and 79 answer them.
+
+| Tier | Common | Uncommon | Rare | All | Own | Shared | Charters |
+|---|---|---|---|---|---|---|---|
+| 0 | 8 | 3 | 1 | 12 | 9 | 3 | 2 |
+| I | 12 | 13 | 3 | 28 | 19 | 9 | 6 |
+| II | 10 | 10 | 4 | 24 | 20 | 4 | 5 |
+| III | 5 | 8 | 5 | 18 | 14 | 4 | 4 |
+| IV | 2 | 2 | 1 | 5 | 5 | 0 | 0 |
+| **All** | 37 | 36 | 14 | **87** | 67 | 20 | 17 |
+
+- **To rule:** Nothing to rule. Say if a count looks wrong.
+
+### r3-2. Your round-two rulings are in
+
+- **Shared:** The Herbalists' Charter with Expansionist (69), and the Night Watch's charter with Devotion (81).
+- **Cut:** The Corps of Works (70) and The Flying Columns (72).
+- **Your lines:** units gain +10 health after a kill (71); the qanat gives fresh water to the hexes within one hex (73); a siege unit on entering an age (78); The Closed Book is a rare charter at Tier III (79); the Night Watch pays science equal to twice the city's population (81).
+- **Kept as today:** The Royal Academies counts copies (77).
+- **Approved:** the Glasshouse (74), The Archivists' Charter (75), The Invitations (76), The Smelters' Charter (80), The Blessed Forges at Tier I (82).
+- **The Blessed Forges is settled here:** Tier I, kept. The Devotion page still shows it as open or cut (its changes 58 and 73), and this ruling overrules both.
+
+- **To rule:** Nothing to rule.
+
+### r3-3. 69: The Herbalists' Charter is shared with Expansionist
+
+- **This deck's sheet:** the row leaves the Tier 0 table and joins the shared table. Tier 0 holds nine of the deck's own cards and one of its own charters, the Smelters'.
+- **The Expansionist sheet:** its shared table gains the row (Tier 0, common, Civic, a charter) and The Founders' Schools from round one, so it shares 19 cards with other decks, from 17. Its list of unique improvements already names the Physic Garden and the qanat, and gains the smelter.
+- **The data:** the row `theHerbalistsCharter` moves from `data/decks/scientific.json` to `data/decks/common.json` with both decks, and keeps its id.
+- **What it gives Expansionist:** a twelfth work for Commission: The Reclaimed Lands and The Cadastre, and happiness on the map. The garden wants woods beside it, which The Totem Poles, The Timber Yards and The Hedgerows also keep.
+
+- **To rule:** Nothing to rule.
+
+### r3-4. 71: a plain card, and its name
+
+- **Your line:** "your units gain +10 health after killing a unit."
+- **It is a card that takes a chair, not a charter.** A charter opens a technology, and the technology must open something: a building, a work, a rite or a trait for a line. This is one plain rule for every unit, so it is a card: Tier II, common, Military.
+- **The size.** A unit has 100 health. A kill gives back 10, so a unit that wins three fights gains 30, which is about one more fight. The old line healed every unit every turn, and you called that far too strong.
+- **Three names from history:**
+- **The Barber-Surgeons (recommended).** The surgeons who marched with medieval armies were barbers by trade. The name says healing, and it fits Tier II.
+- **The Capsarii.** The bandagers of the Roman legion, named for the box of dressings they carried. Exact, and few players know the word.
+- **The Wound-Dressers.** Plain English for the same men. It is the easiest to read and the least like a name.
+- None of the three is near Dominion's Field Surgeons.
+
+- **To rule:** Pick a name. With no answer the build uses The Barber-Surgeons.
+
+### r3-5. 73: the qanat, with fresh water
+
+- **The work now:** one in each town, on flat land beside a hill or a mountain. +2 food and +1 production, and +1 food more for each hill or mountain beside it. The six hexes beside it have fresh water.
+- **What fresh water does for those hexes in this game:**
+- **Farms.** A farm may stand on desert, tundra and snow, and on a hill, only where there is fresh water. After Irrigation a farm with fresh water gains +1 food.
+- **The Physic Garden.** It needs flat land with fresh water, so a qanat lets a dry town plant its garden.
+- **The settler's rule.** A town with no fresh water grows 30% more slowly until an Aqueduct waters it. For the builder: a town whose own hex is beside a qanat takes the reading that the stepwell has today.
+- **Cards and people that read it.** Expansionist: Sweet Water (+1 food on hexes with fresh water), The Watercourses (irrigated farms +2 production) and the Doctrine The Hydraulic Empire. Leaders: Jayavarman VII's farms beside fresh water. Great people: Li Bing (+1 production on such farms), Jang Yeong-sil (+1 food and +1 science on them), Han Xin (+4 strength on such hexes). The beliefs River Mother and Holy Water read a town on fresh water.
+- **The total.** With two hills beside it the qanat's own hex pays 4 food and 1 production over the ground. Three farms beside it gain +1 food each after Irrigation. That is about 8 a turn from one worker charge, and more for a seat with Sweet Water.
+
+| Unique improvement | Tier | Its own hex, typical | What else it does |
+|---|---|---|---|
+| Qanat | I | +4 food, +1 production (two hills beside it) | fresh water for the six hexes beside it |
+| Stepwell (Expansionist) | II | +2 food, +1 engineer renown | fresh water for the six hexes beside it |
+| Smelter | 0 | +3 production, +2 science (two mines beside it) | nothing |
+| Physic Garden | 0 | +2 science, +2 happiness, +2 science (two woods) | nothing |
+| Hillfort (shared) | II | +4 production (two farms beside it) | a unit on it defends at +5 |
+| Baray (Expansionist) | III | +2 food, +6 production (three farms) | nothing |
+| Totem pole (Expansionist) | I | +3 culture | +1 culture and +1 production on each wood beside it |
+
+- The qanat is level with the hillfort and under the baray. **It is better than the stepwell in every line but renown.** The two want different ground: the qanat needs high ground beside it, and the stepwell needs land with no fresh water. A seat with both decks will dig the qanat first. I would watch this in play and change nothing now.
+
+- **To rule:** Nothing to rule.
+
+### r3-6. 81: the Night Watch
+
+- **Your line:** for ten turns the city gains science equal to twice its population. It has no drawback. Its charter is shared with Devotion: Tier I, uncommon.
+- **This is the one place where science from citizens returns.** You cut it from the base rules: a citizen gives 0.25, and no building pays for a citizen. The rite gives 2 a citizen, on purpose, for ten turns, at a price in faith.
+- **The price.** A rite costs 20 faith, and 5 more for each rite the empire has started.
+- **With the Devotion rule that rite lengths add:** The Octave is +100%, a Chapel in the town is +50% and Chichen Itza is +50%, each of the rite's own ten turns. So the Night Watch lasts 20 turns under The Octave, 15 in a Chapel town, 25 with both, and 30 with all three. The length is fixed when the rite starts. The price does not change, so a long rite is a cheap one.
+- **It is a rite that lasts,** so The Rites Commonwealth carries it to every town, The Double Feast lets a town keep it beside a second rite, and The Rogations, The Psalter and The Priest-Astronomers count it.
+- **For the Devotion pass:** its charter The Fast opens a rite that pays science and culture equal to the population, and the town does not grow. The Night Watch pays twice the science with no drawback. The Fast still has its culture. That pass should look at The Fast again.
+
+| The city | Science a turn | One rite of ten turns | First rite, 20 faith | Tenth rite, 65 faith | With The Octave, 20 turns |
+|---|---|---|---|---|---|
+| 8 citizens | +16 | 160 science | 8 science for each faith | 2.5 for each faith | 320 science for the same price |
+| 16 citizens | +32 | 320 science | 16 for each faith | 4.9 for each faith | 640 science |
+
+- A town of 8 with a Library makes 5 science by itself (2 from citizens, 3 from the Library). The rite makes it 21.
+- A mean seat makes 95 science at turn 100. Six towns of 8 on the rite add +96, and the six casts cost 195 faith the first time, 375 the second and 555 the third.
+
+- **To rule:** Nothing to rule here. The Fast is the Devotion pass's point.
+
+### r3-7. Known strong combinations
+
+- You wrote: "i do want a few broken combos" and "i will adjust if it feels too abusable". So none of these has a cap. The list is for the build and for playtest.
+
+| The combination | What it does | Its size | What it needs |
+|---|---|---|---|
+| The Second Seat with The Royal Academies | Each second copy of an empire building adds +5% production and culture in every town. | Eight kinds and four copies at Tier III: +60%. All fourteen kinds twice: +140%. | A rare and an uncommon, both Tier III, and 135 to 680 hammers for each copy. |
+| The same, with the Doctrine The Mustansiriya | Every Academy town may build its own copy of each empire building, and each copy counts. | Four Academy towns and ten kinds: forty buildings, +200%. | A Tier III Doctrine and four Academies. |
+| The Second Seat with the Great Archive, the Aldine Press and the Mouseion | A second copy of each pays again. | Two Archives: +10 science for each charter technology, +100 for ten. Two presses: +2 culture for each technology, +100 for fifty. Two Mouseions: +4 culture for each empire building. | The three charters and their technologies. |
+| The Royal Estates under all of these | Empire buildings are built 50% faster, and each gives its town +3 food and +3 production. | A copy of 231 hammers takes the time of 154. | A Tier I common. |
+| The Night Watch with The Rites Commonwealth | One rite in the capital is kept by every town. | Eight towns of 12: +192 science a turn for one cast of 20 to 65 faith. With The Octave, a Chapel in the capital and Chichen Itza it lasts 30 turns. | A shared charter and a Devotion rare. It is the seat of Harun al-Rashid. |
+| The Collected Works with The Invitations and The Invisible College | A scholar for each kind of empire building, two more on a draft, and each acts twice. | Eight to fourteen scholars, each worth two treatises of eight turns of science, or a treatise and an Academy. | Two rares of Tiers II and III and a Tier IV rare. |
+| Sejong with The Collected Works | Three turns of renown for each technology, and each scholar ends up to two. | Three or four more scholars before the price of a great person grows faster than the loop. | The leader and one rare. |
+| The Laboratories with the schools | +10% production for each science building in a town. | A town with a Library, a University, a Scriptorium, a Printing House and an Observatory: +50%. It adds to The Royal Academies and The Round City. | A Tier IV common. |
+| The Alfonsine Tables, The Lodge Books or Carried-Off Scholars, aimed at Alchemy | A draft, a wonder or a captured city ends a technology of 8,000 science. | About 17 turns of a median seat at turn 150. The Closed Book then holds the other empires for ten turns. | One of three cards, and the charter. |
+| The Ordinance Companies at the window | Three free units of the new age on the turn the army upgrades, with +3 from The Armoury Patterns. | At age IV: a Longswordsman, a Crossbowman and a Trebuchet, 1,094 hammers. | An uncommon and a common of Tier II. |
+
+- **To rule:** Nothing to rule. First on the playtest list: the first two rows.
+
+### r3-8. Unit abilities: what is left
+
+- You wrote: "I like the idea of having unique abilities for units." After your cuts the deck holds seven.
+- **The Clay Map** (Tier 0): scouts gain +1 sight and receive double bonuses from discoveries.
+- **The Barber-Surgeons** (Tier II): units gain +10 health after killing a unit.
+- **The Mechanists' Charter** (Tier II): catapults gain +1 range, and the archer line may move after it shoots.
+- **The Model Army** (Tier III): research upgrades units with no strategic resource, and an upgrade heals the unit.
+- **The Collected Works** (Tier III): great scholars may act twice.
+- **The Ordinance Companies** (Tier II) and **The Volley Fire** (a Doctrine): three units on a new age, and an archer line that attacks twice.
+- **Two candidates, if you want more.** They are a line each and not changes.
+- *The Trench Line:* your ranged units keep their fortification when they shoot. The rule exists in the game (`attackKeepsFortification`). It suits the deck's archers and the new order "Fortify until healed".
+- *The Captured Engines:* a melee unit of yours that defeats a siege unit captures it. Rome built its first fleet from a captured ship. The game has one way to change a unit's owner (`captureUnit`), and Letters of Marque uses it for ships.
+
+- **To rule:** Say if you want either. I recommend neither now: seven is enough for a deck with a small army.
+
+### r3-9. Open with you, and gaps
+
+- **I found no gap that needs a card.** Tier III has one Military card that takes a chair (The Model Army) and three army charters, and the earlier tiers supply the chairs. Great cities has three cards, and in round two you did not ask for a fourth. The deeds that complete a technology are one boon and two shared cards, and you cut the rest.
+- **Open 1: the name of the card of change 71.** Recommended: The Barber-Surgeons (block r3-4).
+- **Open 2: four new charter technologies need a place on your star chart.** Smelting (first age, beside Herbals, 24 science), Astronomy (second age, 100), Record-Keeping (third age, 360) and Ciphers (fourth age, 1,960). Each stands in the cheapest column of its age until you place it. The lanes of the chart are yours.
+- **Not open, and for another pass:** The Fast beside the Night Watch (block r3-6), which is the Devotion pass's card.
+- **Readings taken, which stand unless you mark them:** a find that grants a unit grants two under The Clay Map. The Ordinance Companies grants no siege unit while the seat can build none. "−30% gold" on The Alfonsine Tables is the gold of your towns, as on Commerce's Letters of Credit.
+
+- **To rule:** Rule on the two open points. Everything else is ready for the build.
+
+## 2. Ready for the build
+
+- This section and section 3 are the whole list a builder follows. A number in brackets is the change it comes from.
+- The Commerce and Expansionist builds are in the data already. So the shapes `perNeighbour`, `watersAllNeighbours` and `onePerTown` exist on improvement rows, and the shared rows The Royal Patents and The Merchant Navigators need nothing from this pass.
+- **The Volley Fire (59) is built** (save version 254). It was the last percentage of combat strength in the game. The sheet's cell must take the data's words.
+- A retired row keeps its row with `retired: true`, so that a save which holds it still loads. Every new row needs a `flavor` line, and none is written here.
+
+### Cuts
+
+- **Retire 12 rows of `data/decks/scientific.json`:** Learned Foundations (`learnedCommissions`, 14), The Common Tables (15), The Quiet Faculties (23), Enduring Institutions (24), The Prototype Works (31), The Age of Reason (33), The Proving Ground (38), The Foundation Stone (40), The Great Instrument (42), The Republic of Letters (44), The Naval Gunners' Charter (46), The Walls of Learning (49).
+- **Retire one Doctrine:** The Nassau Reforms (58).
+- The rule `gapTechCost` and the charter technology Naval Gunnery then have no live card. Keep both for saves.
+
+### Text changes on a row that stays
+
+- **Tier 0:** The Apprentices (02): a fifth of the building's production cost, wonders excepted. The War Manuals (03): ranged units +2 strength.
+- **Tier I:** The Scribes' Hall (10): Libraries +2 science, on the Library's own line. The Royal Estates (11): +3 food and +3 production, and +50% production towards empire buildings. The Sky Watchers (12): +1 faith and +2 science. The Dedications (13): culture equal to the building's production cost. The Charter Rolls (18): the new text.
+- **Tier II:** The Lecture Halls (21), on the row `theFoundingGift`, renamed. The Latin Quarter (22). The Translation Movement (25). The Armoury Patterns (26). The City Architects (27). The Invitations (76).
+- **Tier III:** The Humanists (34). The Model Army (35). The Second Seat (37). The Lynx-Eyed Academy (43): three Academies, and a lasting +5 science and +5 culture on Academies. The Closed Book (79): it becomes a charter.
+- **Tier IV:** The Sum of Knowledge (48).
+- **The Second Seat (37), your rule:** if the card leaves its chair while a second copy is in a queue, that copy leaves the queue. A second copy that is built stays.
+- **Charter rows whose opened thing changes:** the Physic Garden (01), the qanat (73), the Glasshouse (09, 74), the Aldine Press (28), the Tophane (36). The list of charters below has each.
+
+### Moves and rarity changes
+
+- **Tier:** The Royal Tutors to Tier I (04). The Charter Rolls to Tier I (18). The Old Academy to Tier II (20). The Lecture Halls to Tier II (21). The Military Engineers' Charter (45), The Lynx-Eyed Academy (43) and The Closed Book (79) to Tier III.
+- **To common:** The Bronze-Founders' Charter, The Edge of the Sword (19); The Surveyors' Charter (73); The Old Academy (20); The Paper-Makers' Charter, The Physicians' Charter, The Palace Schools, The Strategikon, The Roll of Scholars (32); The Humanists (34); The Nizamiyya (47); The Military Engineers' Charter (45); The Great Catalogue (52).
+- **To uncommon:** The Librarians' Charter (19); The Mechanists' Charter (32); The Latin Quarter (22); The Model Army (35); The Lynx-Eyed Academy (43); The Sum of Knowledge (48).
+- **To rare:** The Secret Arts (19). The Closed Book stays rare (79).
+- **Chair:** The Lecture Halls is Civic (21). The Sum of Knowledge is Economic (48).
+
+### New cards of this deck (12)
+
+- **Tier 0:** The Clay Map (05), The House of Life (06), The Smelters' Charter (80).
+- **Tier I:** The Reform of the Calendar (16), Commission: The Old Learning (17).
+- **Tier II:** The Alfonsine Tables (29), The Archivists' Charter (75), The Ordinance Companies (78), The Barber-Surgeons (71; the name is open).
+- **Tier III:** The Collected Works (39).
+- **Tier IV:** The Laboratories (50), The Invisible College (51).
+- Section 3 has each card's text, rarity and chair.
+
+### Shared cards, and what changes on other decks' sheets
+
+- All shared rows live in `data/decks/common.json`.
+- **Expansionist** (`docs/decks/expansionist.md`): two rows join its shared table. The Herbalists' Charter moves in from this deck's file (69): Tier 0, common, Civic, a charter. The Founders' Schools is new (64): Tier I, uncommon, Civic. Its list of unique improvements gains the smelter.
+- **Devotion** (`docs/decks/devotion.md`): The Blessed Forges moves to Tier I and is kept (82). This overrules the cut on the Devotion page. The Observers' Charter is new (81): Tier I, uncommon, Civic, a charter. The Night Watch joins that deck's list of rites, and its rule for rite lengths applies to it.
+- **Dominion** (`docs/decks/dominion.md`): Field Academies takes its new text (67). Carried-Off Scholars takes its new text, moves to Tier III and becomes uncommon (66).
+- **Magisterial** (`docs/decks/magisterial.md`): The Lodge Books is new (65): Tier II, rare, Civic.
+- **Commerce:** nothing.
+
+### Doctrines
+
+- The Jixian Academy (57): the penalty row goes.
+- The Peripatetic School to Tier II (56). The Platonic Academy to Tier III (61).
+- The Külliye is renamed The Mustansiriya (60). The id stays.
+- The Court of Rudolf II (62): the new text.
+- The Trace Italienne is new, at Tier IV (63).
+- The Volley Fire (59) is built. The Nassau Reforms is retired (58).
+- 15 Doctrines today (4, 3, 4 and 4 by tier) and 15 after the changes (3, 4, 5 and 3).
+
+### Charters
+
+| Charter | Technology row | The thing it opens, and its data row | Model and icon |
+|---|---|---|---|
+| The Smelters' Charter (new) | `smelting`: age I, the cheapest second column, 24; parent Mining | improvement `smelter`: one in each town; +1 production; `perNeighbour` on a mine or a quarry: +1 production and +1 science | needed: a board prop, an icon and a flair-gallery entry |
+| The Observers' Charter (new, shared) | `astronomy`: age II, 100; parent Calendar | rite `nightWatch`: ten turns; science equal to twice the city's population | none: a rite has no prop |
+| The Archivists' Charter (new) | `recordKeeping`: age III, 360; parent Rhetoric | building `greatArchive`: one in an empire; +5 science for each charter technology known (`charterTechsKnown`) | needed: a building icon, and a model if empire buildings show on the board |
+| The Closed Book (changed) | `ciphers`: age IV, 1,960; parent Scholarship | the rule `closedBook`, moved from the card to the technology | none |
+| The Herbalists' Charter (changed, shared) | `herbals`, as today | improvement `physicGarden`: `perNeighbour` on forest or jungle: +1 science | the prop exists |
+| The Surveyors' Charter (changed) | `surveying`, as today | improvement `qanat`: one in each town; flat land beside a hill or a mountain; +2 food and +1 production; `perNeighbour` on a hill or a mountain: +1 food; `watersAllNeighbours` | the prop exists |
+| The Glassmakers' Charter (changed) | `optics`, shown as Glassmaking | building `specularium`, shown as the Glasshouse: +3 food, and +1 science for each farm its town works | the icon exists |
+| The Printers' Charter (changed) | `printing`, as today: +1 trade route | building `aldinePress`: one in an empire; +1 culture for each technology known | the icon exists |
+| The Gunfounders' Charter (changed) | `gunfounding`, as today | building `tophane`: production toward military units from 25% to 50%; +4 strength stays | the icon exists |
+
+- A work with no board prop stops the game at load. So the smelter's model and icon land in the same batch as its row.
+- The eight other charters keep their rows: the Bronze-Founders', the Librarians', the Paper-Makers', the Physicians', the Mechanists', the Military Engineers', the Alchemists' and the shared Schoolmen's. They change tier or rarity only.
+
+### New rites
+
+- **The Night Watch** (81): a rite row with `tech: astronomy`, ten turns: the city gains science equal to twice its population. It is a rite that lasts, so The Rites Commonwealth carries it and the cards that count a rite started count it. Its length takes The Octave, the Chapel and Chichen Itza by the Devotion pass's rule.
+
+### Base rules
+
+- None. A charter technology keeps the ordinary price of its column (53 was not adopted). The qanat, the Physic Garden and the smelter are rows of this deck's charters.
+
+### Every new shape and small extension, once
+
+| Kind | What is new | Cards that need it |
+|---|---|---|
+| New shape | A rider on the moment `ageEntered`, with two grants: an Order draft opens; units of three classes | The Reform of the Calendar, The Ordinance Companies |
+| New shape | A grant "complete the current technology", on a draft and on a wonder completed | The Alfonsine Tables, The Lodge Books |
+| New shape | A grant of a technology from a captured city's owner (`techGap` gives the list; the cheapest is taken) | Carried-Off Scholars |
+| New improvement | `smelter` | The Smelters' Charter |
+| New building | `greatArchive` | The Archivists' Charter |
+| New rite | `nightWatch`, with a count of the city's population | The Observers' Charter |
+| New charter technologies | `smelting`, `astronomy`, `recordKeeping`, `ciphers` | the four charters |
+| Small extension | `perNeighbour` with a test for a forest or jungle hex, and for a hill or a mountain | the Physic Garden, the qanat |
+| Small extension | A placement test "flat land beside a hill or a mountain" | the qanat |
+| Small extension | The cost of a finished building as a measure of a grant | The Apprentices, The Dedications |
+| Small extension | A unit heals a fixed amount when it kills | The Barber-Surgeons |
+| Small extension | A scout doubles what a discovery pays | The Clay Map |
+| Small extension | The unit filter `newestAge` on a strength line, and on a production bonus for buildings and wonders | The Armoury Patterns, The City Architects |
+| Small extension | An extra card in an Order hand that is a charter | The Charter Rolls |
+| Small extension | A rider that pays once for each kind of building | The Invitations |
+| Small extension | A second copy of every empire building, removed from a queue when the card leaves its chair | The Second Seat |
+| Small extension | A technology price by the age of the technology | The Translation Movement |
+| Small extension | A commission goal "knows every technology of an age" | Commission: The Old Learning |
+| Small extension | A share of the empire's science paid to the town that raises the Opus | The Court of Rudolf II |
+| Small extension | A building counted by the farms its town works; a building counted by technologies known | the Glasshouse, the Aldine Press |
+| From the Commerce build | A boon with a timed effect on gold; a great person of one family acts twice; a hex row that counts the buildings of its town; a grant that counts ages reached | The Alfonsine Tables, The Collected Works, The Lecture Halls, Field Academies |
+| Data only | Shapes the game has today | every other row |
+
+### Known strong combinations
+
+You asked for a few, with no cap. Tune them after play.
+
+| The combination | What it does | Its size | What it needs |
+|---|---|---|---|
+| The Second Seat with The Royal Academies | Each second copy of an empire building adds +5% production and culture in every town. | Eight kinds and four copies at Tier III: +60%. All fourteen kinds twice: +140%. | A rare and an uncommon, both Tier III, and 135 to 680 hammers for each copy. |
+| The same, with the Doctrine The Mustansiriya | Every Academy town may build its own copy of each empire building, and each copy counts. | Four Academy towns and ten kinds: forty buildings, +200%. | A Tier III Doctrine and four Academies. |
+| The Second Seat with the Great Archive, the Aldine Press and the Mouseion | A second copy of each pays again. | Two Archives: +10 science for each charter technology, +100 for ten. Two presses: +2 culture for each technology, +100 for fifty. Two Mouseions: +4 culture for each empire building. | The three charters and their technologies. |
+| The Royal Estates under all of these | Empire buildings are built 50% faster, and each gives its town +3 food and +3 production. | A copy of 231 hammers takes the time of 154. | A Tier I common. |
+| The Night Watch with The Rites Commonwealth | One rite in the capital is kept by every town. | Eight towns of 12: +192 science a turn for one cast of 20 to 65 faith. With The Octave, a Chapel in the capital and Chichen Itza it lasts 30 turns. | A shared charter and a Devotion rare. It is the seat of Harun al-Rashid. |
+| The Collected Works with The Invitations and The Invisible College | A scholar for each kind of empire building, two more on a draft, and each acts twice. | Eight to fourteen scholars, each worth two treatises of eight turns of science, or a treatise and an Academy. | Two rares of Tiers II and III and a Tier IV rare. |
+| Sejong with The Collected Works | Three turns of renown for each technology, and each scholar ends up to two. | Three or four more scholars before the price of a great person grows faster than the loop. | The leader and one rare. |
+| The Laboratories with the schools | +10% production for each science building in a town. | A town with a Library, a University, a Scriptorium, a Printing House and an Observatory: +50%. It adds to The Royal Academies and The Round City. | A Tier IV common. |
+| The Alfonsine Tables, The Lodge Books or Carried-Off Scholars, aimed at Alchemy | A draft, a wonder or a captured city ends a technology of 8,000 science. | About 17 turns of a median seat at turn 150. The Closed Book then holds the other empires for ten turns. | One of three cards, and the charter. |
+| The Ordinance Companies at the window | Three free units of the new age on the turn the army upgrades, with +3 from The Armoury Patterns. | At age IV: a Longswordsman, a Crossbowman and a Trebuchet, 1,094 hammers. | An uncommon and a common of Tier II. |
+
+### UI asked for
+
+- **The Second Seat:** say why a second copy left the queue when the card left its chair.
+- **The Alfonsine Tables:** show the turns left of the gold penalty. The Commerce build needs the same for Letters of Credit.
+- **The Charter Rolls:** mark the extra card as the charter that the card adds.
+- **The star chart:** a place for Smelting, Astronomy, Record-Keeping and Ciphers. The charter shelf shows a charter technology only when its charter is drafted.
+- **The Armoury Patterns and The City Architects:** the forecast and the build list name "your current age" where the line applies.
+
+### For the builder to check
+
+- That a great scholar granted before Epic Poetry can be called (Commission: The Old Learning).
+- That a second copy of Chart the Stars, The Turning Heavens or The Alchemical Codex grants no second bead, and that The Second Seat cannot copy the Magnum Opus.
+- That The Humanists and Magisterial's The Learned Patron read base figures and do not feed each other.
+- That a town whose hex is beside a qanat reads fresh water as it does beside a stepwell.
+- That The Ordinance Companies grants no siege unit while the seat can build none.
+- That a find which grants a unit grants two under The Clay Map.
+- `docs/decks/scientific.md` and `test/sim/decks/scientific.test.ts` change with the data. The sheets of the four partner decks change for their shared rows. `test/fixtures/cardText.json` holds the text of every changed, new and retired row.
+- The bots price a charter at nothing today (`src/ai/value.ts`). They need a price for the smelter, the qanat, the Great Archive and the Night Watch.
+
+## 3. The final deck
+
+| Tier | Own cards today | Own cards after | Military | Economic | Civic | Wildcard | Common | Uncommon | Rare | Own charters |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 8 | 9 | 2 | 4 | 3 | 0 | 5 | 3 | 1 | 1 |
+| I | 19 | 19 | 2 | 5 | 11 | 1 | 9 | 7 | 3 | 4 |
+| II | 17 | 20 | 6 | 3 | 10 | 1 | 9 | 9 | 2 | 5 |
+| III | 12 | 14 | 4 | 2 | 7 | 1 | 5 | 5 | 4 | 4 |
+| IV | 12 | 5 | 1 | 3 | 1 | 0 | 2 | 2 | 1 | 0 |
+| **Own** | 68 | **67** | 15 | 17 | 32 | 3 | 30 | 26 | 11 | 14 |
+| Shared | 16 | 20 | 1 | 1 | 18 | 0 | 7 | 10 | 3 | 3 |
+| **All** | 84 | **87** | 16 | 18 | 50 | 3 | 37 | 36 | 14 | 17 |
+
+- 68 own cards today. Twelve are retired, The Herbalists' Charter becomes shared, and twelve are new: 67.
+- 51 of the deck's own cards take a chair: fourteen are charters and two are boons.
+- The deck leans Civic: 50 of 87. Eleven of the Civic cards are charters or boons, which take no chair.
+
+### Tier 0 (9 cards of this deck)
+
+| Card | Text | Rarity | Chair | Status |
+|---|---|---|---|---|
+| The Royal Workshops | Completing a technology grants 15 production in your capital. | common | Economic | unchanged |
+| The Curators of Works | Public works give +1 science and +1 happiness. | common | Civic | unchanged |
+| The Scribes | +1 science in every town. | common | Civic | unchanged |
+| The Apprentices | Finishing a building grants science equal to a fifth of its production cost. Wonders do not count. | common | Economic | changed (02) |
+| The War Manuals | Your ranged units gain +2 strength. | common | Military | changed (03) |
+| The Prospectors' Notes | Building a mine or a quarry grants its town 25 production. | uncommon | Economic | unchanged |
+| The Clay Map | Scouts gain +1 sight and receive double bonuses from discoveries. | uncommon | Military | new (05) |
+| The Smelters' Charter | Opens Smelting: workers may build one smelter in each town: +1 production, and +1 production and +1 science more for each mine or quarry beside it. | uncommon | Economic (Charter) | new (80) |
+| The House of Life | Your capital gains science equal to half its production. | rare | Civic | new (06) |
+
+### Tier I (19 cards of this deck)
+
+| Card | Text | Rarity | Chair | Status |
+|---|---|---|---|---|
+| The Bronze-Founders' Charter | Opens Casting: your spear and chariot lines gain +2 strength for good. | common | Military (Charter) | changed (19): common |
+| The Surveyors' Charter | Opens Surveying: you may build the Aqueduct early, and workers may dig one qanat in each town, on flat land beside a hill or a mountain: +2 food and +1 production, and +1 food more for each hill or mountain beside it. The hexes within one hex of a qanat have fresh water. | common | Economic (Charter) | changed (08, 73) |
+| The Scholars' Fame | Completing a technology grants scholar renown equal to a twentieth of its cost. | common | Civic | unchanged |
+| The Royal Estates | Each empire building gives its town +3 food and +3 production. +50% production towards empire buildings. | common | Economic | changed (11) |
+| The Edge of the Sword | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. | common | Military | changed (19): common |
+| The Scribes' Hall | Libraries give +2 science. | common | Civic | changed (10) |
+| The Sky Watchers | Shrines give +1 faith and +2 science. | common | Civic | changed (12) |
+| The Almanac | Libraries give +2 production. | common | Economic | unchanged |
+| The Royal Tutors | +2 scholar renown each turn for each science building. | common | Civic | moved from Tier 0 (04) |
+| The Glassmakers' Charter | Opens Glassmaking, which unlocks the Glasshouse: +3 food, and +1 science for each farm its town works. | uncommon | Civic (Charter) | changed (09, 74) |
+| The Librarians' Charter | Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold. | uncommon | Civic (Charter) | changed (19): uncommon |
+| The Astronomical Diaries | Gains +1 culture and +1 production each time you complete a technology. | uncommon | Civic (Scaler) | unchanged |
+| The Dedications | Finishing a science building or an empire building grants culture equal to its production cost. | uncommon | Civic | changed (13) |
+| The Free Cities | While you hold at most five towns, your towns build buildings and wonders 20% faster. | uncommon | Economic | unchanged |
+| Commission: The Old Learning | Goal: know every technology of the first age. Reward: choose a great scholar. | uncommon | Wildcard | new (17) |
+| The Charter Rolls | Your drafts contain an additional charter if one is available. | uncommon | Civic | changed (18): from Tier II |
+| The Forward Plans | You may build Universities before you know Scholarship. | rare | Civic | unchanged |
+| The Reform of the Calendar | Entering a new age opens an Order draft at once. | rare | Civic | new (16) |
+| The Secret Arts | Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5. | rare | Economic | changed (19): rare |
+
+### Tier II (20 cards of this deck)
+
+| Card | Text | Rarity | Chair | Status |
+|---|---|---|---|---|
+| The Paper-Makers' Charter | Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy. | common | Civic (Charter) | changed (32): common |
+| The Physicians' Charter | Opens Medicine, which unlocks the Bimaristan: +25% food in its town. | common | Economic (Charter) | changed (32): common |
+| The Barber-Surgeons | Your units gain +10 health after killing a unit. | common | Military | new (71); the name is open |
+| The Roll of Scholars | +4% production and culture for each great scholar you have gained this game, at most +28%. | common | Civic | changed (32): common |
+| The Palace Schools | Units gained in a town with an empire building start with +4 strength. | common | Military | changed (32): common |
+| The City Architects | +30% production towards buildings and wonders of your current age. | common | Economic | changed (27) |
+| The Strategikon | Your units gain +4 strength within two hexes of an Academy. | common | Military | changed (32): common |
+| The Armoury Patterns | Units of your current age gain +3 strength. | common | Military | changed (26) |
+| The Old Academy | Academies gain +3 food and +3 production. | common | Economic | moved from Tier I (20) |
+| The Mechanists' Charter | Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots. | uncommon | Military (Charter) | changed (32): uncommon |
+| The Printers' Charter | Opens Printing: +1 trade route, and you may build the Aldine Press, one in your empire: +1 culture for each technology you know. | uncommon | Civic (Charter) | changed (28) |
+| The Archivists' Charter | Opens Record-Keeping, which unlocks the Great Archive, one in your empire: +5 science for each charter technology you know. | uncommon | Civic (Charter) | new (75) |
+| The Royal Charter Commission | Goal: complete a charter technology. Reward: a great scholar and 100 culture. | uncommon | Wildcard | unchanged |
+| The Translation Movement | Technologies of an age before your newest cost you a third less research. | uncommon | Civic | changed (25) |
+| The Latin Quarter | Hexes on or beside an Academy gain +2 science and +1 culture. | uncommon | Civic | changed (22) |
+| The Round City | +1% production and culture for each citizen in your capital, at most +30%. | uncommon | Civic | unchanged |
+| The Lecture Halls | An Academy gains +2 science for each science building in its town. | uncommon | Civic | changed (21): was The Founding Gift, from Tier I |
+| The Ordinance Companies | Entering a new age grants a melee unit, a ranged unit and a siege unit in your capital. They cost no upkeep. | uncommon | Military | new (78) |
+| The Invitations | The first time you complete each empire building, gain a great scholar. | rare | Civic | changed (76) |
+| The Alfonsine Tables | On draft: complete the technology you are researching. −30% gold for fifteen turns. | rare | Civic (Boon) | new (29) |
+
+### Tier III (14 cards of this deck)
+
+| Card | Text | Rarity | Chair | Status |
+|---|---|---|---|---|
+| The Military Engineers' Charter | Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points. | common | Military (Charter) | moved from Tier IV (45) |
+| The Journeymen | Completing a technology grants each town production equal to three times its population. | common | Economic | unchanged |
+| The Nizamiyya | Academies yield 50% more. | common | Civic | changed (47): common |
+| The Doctorate | Gaining a great scholar grants culture equal to eight turns of your culture. | common | Civic | unchanged |
+| The Humanists | Towns with a Library gain culture equal to a quarter of their science. | common | Civic | changed (34) |
+| The Alchemists' Charter | Opens Chemistry: your warrior line gains +1 strength for each charter technology you know. | uncommon | Military (Charter) | unchanged |
+| The Gunfounders' Charter | Opens Gunfounding, which unlocks the Tophane: its town builds military units 50% faster, with +4 strength. | uncommon | Military (Charter) | changed (36) |
+| The Royal Academies | +5% production and culture for each empire building you hold. | uncommon | Civic | unchanged (77 not adopted) |
+| The Model Army | Research upgrades your units even when you lack the strategic resource the new unit needs, and an upgrade heals the unit. | uncommon | Military | changed (35) |
+| The Lynx-Eyed Academy | Goal: hold three Academies. Reward: a great scholar, and Academies gain +5 science and +5 culture. | uncommon | Wildcard | changed (43): from Tier IV |
+| The Second Seat | You may build a second copy of all empire buildings, while this is active. | rare | Civic | changed (37) |
+| The Queen of Cities | Towns of at least 15 citizens produce twice their food and production. | rare | Economic | unchanged |
+| The Collected Works | Your great scholars may act twice. | rare | Civic | new (39) |
+| The Closed Book | Opens Ciphers: if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns. | rare | Civic (Charter) | changed (41, 79): a charter, from Tier IV |
+
+### Tier IV (5 cards of this deck)
+
+| Card | Text | Rarity | Chair | Status |
+|---|---|---|---|---|
+| The Great Catalogue | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. | common | Economic | changed (52): common |
+| The Laboratories | Science buildings give +10% production. | common | Economic | new (50) |
+| The Breaching Batteries | Each hit your siege units land on a city removes 5% of its Magnum Opus progress. | uncommon | Military | unchanged |
+| The Sum of Knowledge | The town raising your Magnum Opus gains +2 production for each technology you know. | uncommon | Economic | changed (48) |
+| The Invisible College | On draft: choose two great scholars. | rare | Civic (Boon) | new (51) |
+
+Retired rows (12): Learned Foundations and The Common Tables (Tier I); The Quiet Faculties, Enduring Institutions and The Prototype Works (Tier II and IV); The Proving Ground, The Age of Reason, The Great Instrument, The Foundation Stone and The Republic of Letters; The Naval Gunners' Charter and The Walls of Learning. Proposed and not built: the star tower, The Summa, The Natural Histories, The Corps of Works, The Flying Columns.
+
+### Shared with another deck (20)
+
+| Card | Text | Shared with | Tier | Rarity | Chair | Status |
+|---|---|---|---|---|---|---|
+| The Herbalists' Charter | Opens Herbals: workers may plant one Physic Garden in each town, on flat land with fresh water: +2 science and +2 happiness, and +1 science more for each forest or jungle hex beside it. | Expansionist | 0 | common | Civic (Charter) | changed (01, 69): now shared |
+| Illuminated Treatises | Libraries give +1 culture. Monuments give +1 science. | Magisterial | 0 | common | Civic | unchanged |
+| The Mountain Observatories | Cities with a mountain in their borders gain +3 science. | Expansionist | 0 | common | Civic | unchanged |
+| Field Academies | Your first kill each turn grants 25 science for each age you have reached. | Dominion | I | uncommon | Civic | changed (67) |
+| The Assay | Hexes with a strategic resource gain +2 science. | Expansionist | I | common | Civic | unchanged |
+| The Founders' Schools | Towns you found start with a Library. | Expansionist | I | uncommon | Civic | new (64) |
+| The Exchange of Discoveries | Mines and quarries on a resource gain +2 science. | Commerce | I | uncommon | Civic | unchanged |
+| The Monastery Libraries | Libraries give +2 faith. Temples give +2 science. | Devotion | I | common | Civic | unchanged |
+| The Schoolmen's Charter | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Devotion | I | uncommon | Civic (Charter) | unchanged |
+| The Priest-Astronomers | Your capital gains +2 science and +2 faith for each town keeping a rite. | Devotion | I | common | Civic | unchanged |
+| The Blessed Forges | Improved strategic resources gain +1 faith and +1 production. | Devotion | I | uncommon | Civic | moved from Tier II (68, 82) |
+| The Observers' Charter | Opens Astronomy: your towns may keep the Night Watch, a rite: for ten turns the city gains science equal to twice its population. | Devotion | I | uncommon | Civic (Charter) | new (81) |
+| The Cloister | Towns with a Temple gain science equal to 30% of their faith. | Devotion | II | rare | Civic | unchanged |
+| The Merchant Navigators | A town's fishing boats gain +2 science for its Lighthouse and +2 science for its Harbour. | Commerce | II | common | Civic | unchanged (the Commerce build changed it) |
+| The Soldier-Scholars | Each military unit in your towns gives +2 science. | Dominion | II | uncommon | Military | unchanged |
+| The Lodge Books | Completing a wonder completes the technology you are researching. | Magisterial | II | rare | Civic | new (65) |
+| Carried-Off Scholars | Capturing a city grants a technology that its owner knows and you do not. If there is none, it grants science equal to thirty times its population. | Dominion | III | uncommon | Civic | changed (66): from Tier II |
+| The Royal Patents | Researching a technology grants 100 gold for each age you have reached. | Commerce | III | uncommon | Economic | unchanged (the Commerce build added it) |
+| The House of Wisdom | Towns working an Academy build wonders 30% faster. | Magisterial | III | uncommon | Civic | unchanged |
+| The Monastic University | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. | Devotion | III | rare | Civic | unchanged |
+
+- 20 shared cards, from 16 today. By pair: Dominion 3, Expansionist 4, Commerce 3, Devotion 7, Magisterial 3.
+- Three shared cards are charters: the Herbalists', the Schoolmen's and the Observers'.
+
+### Doctrines (15)
+
+| Doctrine | Tier | Theme | Text | Status |
+|---|---|---|---|---|
+| The Pythagorean Brotherhood | I | engine | +2 science in every city, doubled in cities with a Shrine. | unchanged |
+| The Removal to Xianyang | I | great cities | Your towns grow 30% faster. Settlers cost twice as much. | unchanged |
+| The Workshops of Syracuse | I | elite army | Your military units gain +5 combat strength. They cost 50% more to build and to buy. | unchanged |
+| The Jixian Academy | II | engine | Completing a technology grants culture equal to a fifth of its cost. | changed (57) |
+| The Academy of Gondishapur | II | institutions | Towns with an empire building gain +15% science. +20% production toward empire buildings, except the Magnum Opus and its works. | unchanged |
+| The Pandidakterion | II | learned land | Hexes with an Academy have double yields, applied after every other change to the hex. | unchanged |
+| The Peripatetic School | II | learned land | Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown. | moved from Tier I (56) |
+| The Directorate of Arms | III | engine | While no empire you have met knows more technologies than you, your units gain +3 combat strength. | unchanged |
+| The Universitas | III | great cities | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. | unchanged |
+| The Volley Fire | III | elite army | Your archer line may attack twice a turn. They lose 4 combat strength when defending against a melee attack. | changed (59): built, save version 254 |
+| The Mustansiriya | III | institutions | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings, except the Magnum Opus and its works. | renamed (60): was The Külliye |
+| The Platonic Academy | III | learned land | Your great people of every family found an Academy as their work, in place of their own. | moved from Tier IV (61) |
+| The Court of Rudolf II | IV | engine | The town raising your Magnum Opus gains production equal to a tenth of your science. | changed (62) |
+| The Two Capitals | IV | great cities | Your largest town besides your capital also counts as your capital for your cards. Your other towns grow 25% more slowly. | unchanged |
+| The Trace Italienne | IV | elite army | Your towns gain +10 defence, and your units gain +4 strength inside your borders. Your units lose 4 strength outside them. | new (63) |
+
+### The charters (17)
+
+| Charter | Tier, rarity | Technology, age and price | What it opens | Status |
+|---|---|---|---|---|
+| The Herbalists' Charter | 0, common, shared with Expansionist | Herbals, I, 24 | the Physic Garden, an improvement | changed |
+| The Smelters' Charter | 0, uncommon | Smelting, I, 24 | the smelter, an improvement | new |
+| The Bronze-Founders' Charter | I, common | Casting, I, 50 | a trait for the spear line and the chariot line: +2 strength | unchanged text |
+| The Surveyors' Charter | I, common | Surveying, II, 100 | the Aqueduct early, and the qanat, an improvement | changed |
+| The Glassmakers' Charter | I, uncommon | Glassmaking, II, 190 | the Glasshouse, a building | changed |
+| The Librarians' Charter | I, uncommon | Cataloguing, II, 100 | the Mouseion, an empire building | unchanged text |
+| The Observers' Charter | I, uncommon, shared with Devotion | Astronomy, II, 100 | the Night Watch, a rite | new |
+| The Schoolmen's Charter | I, uncommon, shared with Devotion | Scholasticism, III, 360 | the Cathedral School, a building | unchanged |
+| The Paper-Makers' Charter | II, common | Papermaking, III, 650 | the Scriptorium, a building | unchanged text |
+| The Physicians' Charter | II, common | Medicine, III, 360 | the Bimaristan, an empire building | unchanged text |
+| The Mechanists' Charter | II, uncommon | Mechanics, III, 1,150 | traits: catapults +1 range, the archer line moves after it shoots | unchanged text |
+| The Printers' Charter | II, uncommon | Printing, III, 650 | one trade route, and the Aldine Press, an empire building | changed |
+| The Archivists' Charter | II, uncommon | Record-Keeping, III, 360 | the Great Archive, an empire building | new |
+| The Military Engineers' Charter | III, common | Military Architecture, IV, 3,250 | the Bastion, a building | moved |
+| The Alchemists' Charter | III, uncommon | Chemistry, IV, 3,250 | a trait for the warrior line: +1 strength for each charter technology | unchanged |
+| The Gunfounders' Charter | III, uncommon | Gunfounding, IV, 3,250 | the Tophane, an empire building | changed |
+| The Closed Book | III, rare | Ciphers, IV, 1,960 | a rule: ten turns before other empires may begin the Opus | changed |
+
+- 17 charters: 2, 6, 5 and 4 by tier. Fourteen are this deck's own. A charter technology costs what an ordinary technology of its column costs.
+- **A seat sees a charter of its own deck** in 34% of games in Tier 0, 77% in Tier I, 88% in Tier II and 91% in Tier III, with 4, 6, 8 and 8 hands. The three shared charters come in the hand's third position, on one draft in four. Today the four figures are 33%, 60%, 62% and 57%.
+- A seat is offered about 5 of the 17 in a game, from 3 of 13 today. With The Charter Rolls seated every hand holds one.
+
+### The notes
+
+| Note | 0 | I | II | III | IV | Own | Shared cards that serve it |
+|---|---|---|---|---|---|---|---|
+| Charters | 1 | 4 | 5 | 4 | 0 | 14 | the Herbalists', the Observers', the Schoolmen's |
+| Charters dealt or counted | 0 | 1 | 1 | 0 | 1 | 3 |  |
+| Discovery: the moment and the deeds | 1 | 2 | 1 | 1 | 1 | 6 | The Lodge Books, Carried-Off Scholars, The Royal Patents |
+| The plan: the age you are in | 0 | 2 | 2 | 0 | 0 | 4 |  |
+| The window: the army | 2 | 1 | 5 | 1 | 1 | 10 | Field Academies, The Soldier-Scholars |
+| The lead | 0 | 1 | 0 | 0 | 0 | 1 |  |
+| The learned land: works, Academies, scholars | 1 | 0 | 4 | 4 | 1 | 10 | The Mountain Observatories, The Assay, The Exchange of Discoveries, The Monastic University |
+| Schools and institutions | 0 | 6 | 1 | 3 | 1 | 11 | The Founders' Schools, Illuminated Treatises, The Monastery Libraries, The House of Wisdom |
+| Great cities | 0 | 1 | 1 | 1 | 0 | 3 |  |
+| Towns, buildings and deeds in general | 4 | 1 | 0 | 0 | 0 | 5 | The Merchant Navigators |
+| Faith and rites | 0 | 0 | 0 | 0 | 0 | 0 | The Priest-Astronomers, The Blessed Forges, The Cloister |
+| **All** | 9 | 19 | 20 | 14 | 5 | **67** | 20 |
+
+- Each card is counted once. The Clay Map, The Barber-Surgeons and The Ordinance Companies are in the window.
+- **Thin, and left so by your rulings:** the deeds that complete a technology (one boon of this deck and two shared cards), great cities (three cards) and the lead (one card and a Doctrine).
+- **15 of the deck's own 67 cards pay science,** and none pays for a citizen. Two shared charters add the Physic Garden and the Night Watch, which is the one rite that pays for citizens.
+
+### How often each rare is seen
+
+| Tier | Own commons | Own uncommons | Own rares | Each common | Each uncommon | Each rare | A named own rare is offered in | Shared rares |
+|---|---|---|---|---|---|---|---|---|
+| 0 | 5 | 3 | 1 | 12% | 10% | 10% | 34% of games | none |
+| I | 9 | 7 | 3 | 6.7% | 4.3% | 3.3% | 18% | none |
+| II | 9 | 9 | 2 | 6.7% | 3.3% | 5% | 34% | The Cloister, The Lodge Books |
+| III | 5 | 5 | 4 | 12% | 6% | 2.5% | 18% | The Monastic University |
+| IV | 2 | 2 | 1 | 30% | 15% | 10% | 27% | none |
+
+- The table gives the chance that one named card is the deck's card in a hand, and the chance that a named rare is offered at least once in its tier, with 4, 6, 8 and 8 hands in Tiers 0 to III and 3 in Tier IV.
+- **The eleven own rares:** The House of Life (0); The Forward Plans, The Reform of the Calendar, The Secret Arts (I); The Invitations, The Alfonsine Tables (II); The Second Seat, The Queen of Cities, The Collected Works, The Closed Book (III); The Invisible College (IV).
+- **The three shared rares** are dealt in the hand's third position with every other shared card of the seat's two decks. A seat has two such hands in Tier II and two in Tier III, so it is offered a named shared rare in about one game in twelve.
+- Tier II's two own rares are seen a little more often than its uncommons (5% against 3.3%). By your measure the tier holds four rares with the shared ones.
+
+### What I could not determine
+
+- **No play evidence yet.** Every number is a first guess. The base-economy study of 2026-11-20 is the only measure under the new rates.
+- **How fast the tiers open** now that culture is lower. I kept 4, 6, 8 and 8 hands for Tiers 0 to III.
+- **How much faith a seat of this deck makes** without Devotion, for the Night Watch.
+- **The history is from my own knowledge,** not from a source in the repo.
+
+## 4. Every change, with your ruling
+
+| # | Card | Tier when proposed | Ruling | Your words | The line to build |
+|---|---|---|---|---|---|
+| 01 | The Herbalists' Charter | 0 | approved | "great" and "should this be a shared card with expansionist?" | Approved, with the new garden. The card is now shared with Expansionist (change 69). |
+| 02 | The Apprentices | 0 | approved | "great" | Tier 0, common, Economic: Finishing a building grants science equal to a fifth of its production cost. Wonders do not count. |
+| 03 | The War Manuals | 0 | approved | "great" | Tier 0, common, Military: Your ranged units gain +2 strength. |
+| 04 | The Royal Tutors | 0 to I | approved | "great" | The Royal Tutors moves to Tier I, with the same text. |
+| 05 | The Clay Map | 0 | approved with your text | "too similar to other cards in the game. I like the idea of having unique abilities for units. how about we rework: scouts gain +1 sight and receive double bonuses from discoveries." | Tier 0, uncommon, Military: Scouts gain +1 sight and receive double bonuses from discoveries. |
+| 06 | The House of Life | 0 | approved | "good" | Tier 0, rare, Civic: Your capital gains science equal to half its production. |
+| 07 | The Astronomers' Charter | I | cut by you | "i think this is quite a steep penalty, cut" | Not built. The star tower leaves the pass. |
+| 08 | The Surveyors' Charter | I | reworked in change 73 | "Rework: give the qanat yields and change to a single hex. this is easier to read and reason about." | Reworked in change 73: the qanat is one hex with its own yields. |
+| 09 | The Glassmakers' Charter | I | approved | "great" and "can we rename this to greenhouses, or something more in line with what the specularium does." | Approved: +3 food, and +1 science for each farm its town works. Change 74 names the building the Glasshouse. |
+| 10 | The Scribes' Hall | I | approved | "good" | Tier I, common, Civic: Libraries give +2 science. |
+| 11 | The Royal Estates | I | approved with your text | "Additional buff: +50% production towards empire buildings." | Tier I, common, Economic: Each empire building gives its town +3 food and +3 production. +50% production towards empire buildings. |
+| 12 | The Sky Watchers | I | approved | "good" | Tier I, common, Civic: Shrines give +1 faith and +2 science. |
+| 13 | The Dedications | I | approved | "good" | Tier I, uncommon, Civic: Finishing a science building or an empire building grants culture equal to its production cost. |
+| 14 | Learned Foundations | I | cut, as proposed | "great" | Cut. Learned Foundations is retired. |
+| 15 | The Common Tables | I | cut, as proposed | "great" | Cut. The Common Tables is retired. |
+| 16 | The Reform of the Calendar | I | approved | "great" | Tier I, rare, Civic: Entering a new age opens an Order draft at once. |
+| 17 | Commission: The Old Learning | I | approved | "great" | Tier I, uncommon, Wildcard: Goal: know every technology of the first age. Reward: choose a great scholar. |
+| 18 | The Charter Rolls | II to I | approved with your text | "the wording of this is confusing. I'm not sure how useful this is. Let's add it in for now, with some clearer text: 'your drafts contain an additional charter if one is available' or something along those lines" | Tier I, uncommon, Civic: Your drafts contain an additional charter if one is available. |
+| 19 | Tier I rarities | I | approved | "sure" | The Librarians' Charter is uncommon. The Bronze-Founders' Charter and The Edge of the Sword are common. The Secret Arts is rare. |
+| 20 | The Old Academy | I to II | approved | "sure" | The Old Academy moves to Tier II and is common, with the same text. |
+| 21 | The Lecture Halls (was The Founding Gift) | I to II | approved | "great" | Tier II, uncommon, Civic: An Academy gains +2 science for each science building in its town. It takes the row of The Founding Gift. |
+| 22 | The Latin Quarter | II | approved | "sure" | Tier II, uncommon, Civic: Hexes on or beside an Academy gain +2 science and +1 culture. |
+| 23 | The Quiet Faculties | II | cut, as proposed | "great" | Cut. The Quiet Faculties is retired. |
+| 24 | Enduring Institutions | II | reworked in change 75 | "this one feels not very impactful. How about we add a charter that unlocks a new type of science based empire building." | Enduring Institutions is retired. Change 75 is the charter and its empire building. |
+| 25 | The Translation Movement | II | approved | "that's interesting, i like it" | Tier II, uncommon, Civic: Technologies of an age before your newest cost you a third less research. |
+| 26 | The Armoury Patterns | II | approved with your text | "Hmm interesting. This could be really good for timing attacks, which should be a play pattern for the scientific player. lets rephrase it: units of your current age gain +3 strength. (+4 is probably too strong)." | Tier II, common, Military: Units of your current age gain +3 strength. |
+| 27 | The City Architects | II | approved with your text | "lets rephrase: '30% production towards buildings and wonders of your current age'" | Tier II, common, Economic: +30% production towards buildings and wonders of your current age. |
+| 28 | The Printers' Charter | II | approved | "great" | Tier II, uncommon, Charter: Opens Printing: +1 trade route, and you may build the Aldine Press, one in your empire: +1 culture for each technology you know. |
+| 29 | The Alfonsine Tables | II | approved with your text | "i don't like this. How about: complete the technology you are researching, -30% _gold_ for fifteen turns." | Tier II, rare, Boon: On draft: complete the technology you are researching. −30% gold for fifteen turns. |
+| 30 | The Summa | II | cut by you | "not very fun, cut" | Not built. The Summa leaves the pass. |
+| 31 | The Prototype Works | IV to II | cut by you | "not very useful. you can pre-build units that are cheaper that are automatically upgraded when you finish the tech. cut" | Cut. The Prototype Works is retired. |
+| 32 | Tier II rarities | II | approved | "sure" | The Mechanists' Charter is uncommon. The Paper-Makers' Charter, The Physicians' Charter, The Palace Schools, The Strategikon and The Roll of Scholars are common. |
+| 33 | The Age of Reason | III | cut by you | "cut" | Cut. The Age of Reason is retired. |
+| 34 | The Humanists | III | approved | "sure" | Tier III, common, Civic: Towns with a Library gain culture equal to a quarter of their science. |
+| 35 | The Model Army | III | approved | "Ok sure" | Tier III, uncommon, Military: Research upgrades your units even when you lack the strategic resource the new unit needs, and an upgrade heals the unit. |
+| 36 | The Gunfounders' Charter | III | approved with your text | "+6 strength is massive, revise: It's town builds military units 50% faster, with +4 strength" | Tier III, uncommon, Charter: Opens Gunfounding, which unlocks the Tophane: its town builds military units 50% faster, with +4 strength. |
+| 37 | The Second Seat | III | approved with your text | "lets just remove the library requirement altogether." and "rephrase: you may build a second copy of all empire buildings, while this is active." and "make sure: if this is unslotted while an empire building is in queue, it should remove it from the queue." | Tier III, rare, Civic: You may build a second copy of all empire buildings, while this is active. If the card leaves its chair, a second copy in a queue leaves that queue. The Royal Academies counts the copies (block r3-7). |
+| 38 | The Proving Ground | III | cut, as proposed | "great" | Cut. The Proving Ground is retired. |
+| 39 | The Collected Works | III | approved | "wow thats crazy powerful, ok add it." | Tier III, rare, Civic: Your great scholars may act twice. |
+| 40 | The Foundation Stone | IV to III | cut by you | "remove, not very useful." | Cut. The Foundation Stone is retired. |
+| 41 | The Closed Book | IV to III | reworked in change 79 | "wouldn't this show up way too early? lets keep it as is." and "OR: make it a charter so it doesn't need to be slotted, keep at tier 3" | Two readings. Change 79 recommends the charter at Tier III. |
+| 42 | The Great Instrument | IV to III | cut by you | "Cut, not impactful enough" | Cut. The Great Instrument is retired. |
+| 43 | Commission: The Lynx-Eyed Academy | IV to III | approved | "great" | Tier III, uncommon, Wildcard: Goal: hold three Academies. Reward: a great scholar, and Academies gain +5 science and +5 culture. |
+| 44 | The Republic of Letters | IV to III | cut by you | "i think we have too many academy synergies. lets cut this one." | Cut. The Republic of Letters is retired. |
+| 45 | The Military Engineers' Charter | IV to III | approved | "sure" | The Military Engineers' Charter moves to Tier III and is common. |
+| 46 | The Naval Gunners' Charter | IV | cut, as proposed | "cut" | Cut. The Naval Gunners' Charter is retired. |
+| 47 | Tier III rarities | III | approved | "sure" | The Nizamiyya is common. |
+| 48 | The Sum of Knowledge | IV | approved | "great" | Tier IV, uncommon, Economic: The town raising your Magnum Opus gains +2 production for each technology you know. |
+| 49 | The Walls of Learning | IV | cut, as proposed | "cut" and "great" | Cut. The Walls of Learning is retired. |
+| 50 | The Laboratories | IV | approved with your text | "this is too small for a tier 4. Science buildings give +10% production" | Tier IV, common, Economic: Science buildings give +10% production. |
+| 51 | The Invisible College | IV | approved | "great" | Tier IV, rare, Boon: On draft: choose two great scholars. |
+| 52 | The Great Catalogue | IV | approved | "great" | The Great Catalogue is common. |
+| 53 | A charter technology costs half the price of its column | Rule | not adopted | "lets have it cost the same as an ordinary technology. half feels too powerful. this deck seems to have plenty of science now." | No change. A charter technology costs what an ordinary technology of its column costs, as today. |
+| 54 | A charter is dealt in its own tier and in the next | Rule | cut by you | "cut, lets just add more charters" | Not built. A charter is dealt in its own tier only. Changes 75, 79, 80 and 81 add four charters. |
+| 55 | The Natural Histories | Doctrine I | cut by you | "i don't like that this doesn't scale well, cut" | Not built. The Natural Histories leaves the pass. |
+| 56 | The Peripatetic School | Doctrine I to II | approved | "sure" | The Peripatetic School moves to Tier II. |
+| 57 | The Jixian Academy | Doctrine II | approved | "great" | Tier II Doctrine: Completing a technology grants culture equal to a fifth of its cost. |
+| 58 | The Nassau Reforms | Doctrine IV to II | cut by you | "Seems not very good, as you tend to build soldiers later in the game. cut" | Cut. The Nassau Reforms is retired, and is not moved. |
+| 59 | The Volley Fire | Doctrine III | approved with your text | "revise: your archer line may attack twice a turn, they lose 4 combat strength when defending against a melee attack (non-ranged attack)" | Tier III Doctrine: Your archer line may attack twice a turn. They lose 4 combat strength when defending against a melee attack. |
+| 60 | The Mustansiriya (was The Külliye) | Doctrine III | approved | "sure" | The Doctrine The Külliye is named The Mustansiriya. |
+| 61 | The Platonic Academy | Doctrine IV to III | approved | "that's cool, great" | The Platonic Academy moves to Tier III. |
+| 62 | The Court of Rudolf II | Doctrine IV | approved | "great" | Tier IV Doctrine: The town raising your Magnum Opus gains production equal to a tenth of your science. |
+| 63 | The Trace Italienne | Doctrine IV | approved | "great" | Tier IV Doctrine: Your towns gain +10 defence, and your units gain +4 strength inside your borders. Your units lose 4 strength outside them. |
+| 64 | The Founders' Schools | I | approved | "sure" | Tier I, uncommon, Civic, shared with Expansionist: Towns you found start with a Library. |
+| 65 | The Lodge Books | II | approved | "cool" | Tier II, rare, Civic, shared with Magisterial: Completing a wonder completes the technology you are researching. |
+| 66 | Carried-Off Scholars | II | approved with your text | "Cool, lets make this tier 3" | Tier III, uncommon, Civic, shared with Dominion: Capturing a city grants a technology that its owner knows and you do not. If there is none, it grants science equal to thirty times its population. |
+| 67 | Field Academies | I | approved | "cool" | Tier I, uncommon, Civic, shared with Dominion: Your first kill each turn grants 25 science for each age you have reached. |
+| 68 | The Blessed Forges | II | approved with your text | "let's move this to tier 1" | Kept, and moved to Tier I. Change 82 writes it for both decks. |
+| 69 | The Herbalists' Charter stays in this deck | 0 | approved with your text | "make it shared" and "lets make it shared, i kind of dont care if scientific has fewer solo cards, i only care about total common/uncommon/rare per deck" | The Herbalists' Charter is shared with Expansionist: Tier 0, common, Civic, a charter, with the text of change 01. My recommendation was not adopted. |
+| 70 | The Corps of Works | I | cut by you | "interesting, but probably not widely applicable enough, cut" | Not built. The Corps of Works leaves the pass. |
+| 71 | The Surgeons' Charter | II | approved with your text | "this is way too strong i think. How about: your units gain +10 health after killing a unit. needs a new name" | Tier II, common, Military, a card that takes a chair and not a charter: Your units gain +10 health after killing a unit. Its name is open: I recommend The Barber-Surgeons (block r3-4). |
+| 72 | The Flying Columns | III | cut by you | "interesting, not sure if this would be strong enough to take over other options. lets cut for now" | Not built. The Flying Columns leaves the pass. |
+| 73 | The Surveyors' Charter: the qanat as one hex | I | approved with your text | "add: give fresh water to tiles within 1 hex." and "cool" | Tier I, common, Economic, a charter: Opens Surveying: you may build the Aqueduct early, and workers may dig one qanat in each town, on flat land beside a hill or a mountain: +2 food and +1 production, and +1 food more for each hill or mountain beside it. The hexes within one hex of a qanat have fresh water. |
+| 74 | The Glassmakers' Charter: the Glasshouse | I | approved | "great" and "glasshouse" | The building is the Glasshouse and the technology is Glassmaking. The charter keeps its name. |
+| 75 | The Archivists' Charter | II | approved | "ok sure" | Tier II, uncommon, Civic, a charter: Opens Record-Keeping, which unlocks the Great Archive, one in your empire: +5 science for each charter technology you know. |
+| 76 | The Invitations | II | approved | "Ok great" | Tier II, rare, Civic: The first time you complete each empire building, gain a great scholar. |
+| 77 | The Royal Academies | III | not adopted | "keep as is, i like the combo with second copies" | No change. The Royal Academies keeps today's text and counts copies: +5% production and culture for each empire building you hold. |
+| 78 | The Ordinance Companies | II | approved with your text | "Add: gain a siege unit as well" | Tier II, uncommon, Military: Entering a new age grants a melee unit, a ranged unit and a siege unit in your capital. They cost no upkeep. |
+| 79 | The Closed Book as a charter | III | approved with your text | "Sure. lets make it rare" and "Sure" | Tier III, rare, Civic, a charter: Opens Ciphers: if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns. |
+| 80 | The Smelters' Charter | 0 | approved | "sure" | Tier 0, uncommon, Economic, a charter: Opens Smelting: workers may build one smelter in each town: +1 production, and +1 production and +1 science more for each mine or quarry beside it. |
+| 81 | The Observers' Charter | I | approved with your text | "the malice is too high. How about for ten turns: city gains science equal to twice its population. shared with devotion" and "yes" | Tier I, uncommon, Civic, a charter shared with Devotion: Opens Astronomy: your towns may keep the Night Watch, a rite: for ten turns the city gains science equal to twice its population. |
+| 82 | The Blessed Forges at Tier I | II to I | approved | "sure" | Final: Tier I, uncommon, Civic, shared with Devotion: Improved strategic resources gain +1 faith and +1 production. |
+
+| Question of round one | Your words | Result |
+|---|---|---|
+| Does the technology lead stay a quantity that cards read? | "yes" | The Secret Arts, The Edge of the Sword and the Doctrine The Directorate of Arms stay. |
+| May a card complete a technology? | "yes" | The Alfonsine Tables, The Lodge Books and Carried-Off Scholars do. You cut The Summa. |
+| Do the Opus cards move to Tier III, and may Tier IV hold five cards? | "sure" | Tier IV holds five. You cut two of the three Opus cards, and change 79 settles the third. |
+| Should a charter technology cost half, and should a charter be dealt in two tiers? | "two tiers sure, charter technology should cost the same, not half" | The price stays. Your later comment on change 54 cut the two tiers ("cut, lets just add more charters"), and that comment stands. |
+| Should the science cards be sized for today's rates, or for the cut? | "they're fine as is." | The base rates are now ruled, and block r2-12 gives the arithmetic again. |
+
+| Question of round two | Your words | Result |
+|---|---|---|
+| Is The Herbalists' Charter shared with Expansionist? | "make it shared" | Shared. Block r3-3 says what changes on each sheet. |
+| The Closed Book: a charter at Tier III, or as it is? | "Sure" | A Tier III charter, and rare. |
+| May The Invitations and The Royal Academies count kinds of empire building, not copies? | "copies is fine, i do want a few broken combos" | The Royal Academies counts copies. The Invitations takes the text of change 76, which you approved there. Block r3-7 lists the strong combinations. |
+| May a charter of this deck open a rite, which costs faith? | "yes" | The Night Watch, with your line. |
+| The name: the Glasshouse or the Greenhouse? | "glasshouse" | The Glasshouse. |
+
+## Record: round two, as first written
+
+- These are the blocks and the entries of round two before your rulings. Where they and sections 1 to 4 differ, sections 1 to 4 are the spec.
+
+#### r2-1. Your rulings are folded in
 
 - Of the 68 changes: 42 are approved as proposed, 12 carry your text, 10 are cut by you, 3 are sent back for a new design (08, 24, 41), and 1 is not adopted (53: the price of a charter technology stays).
 - **Your lines, word for word:** 05 The Clay Map, 11 The Royal Estates, 18 The Charter Rolls, 26 The Armoury Patterns, 27 The City Architects, 29 The Alfonsine Tables, 36 the Tophane, 37 The Second Seat, 50 The Laboratories, 59 The Volley Fire. 66 moves to Tier III and 68 to Tier I.
@@ -34,7 +658,7 @@ Your words on round one:
 
 - **To rule:** Nothing to rule.
 
-### r2-2. 01: should The Herbalists' Charter be shared with Expansionist?
+#### r2-2. 01: should The Herbalists' Charter be shared with Expansionist?
 
 - **Recommended: no** (change 69). A shared card is dealt on one draft in four. Shared, this deck's seat would be offered the garden in about one game in eight, where it is one game in three as the deck's own common.
 - The Expansionist seat gains the garden's benefits only when it is paired with this deck, and then the keyword already does the work: the garden is a unique improvement, so The Cadastre and Commission: The Reclaimed Lands read it.
@@ -42,7 +666,7 @@ Your words on round one:
 
 - **To rule:** Rule on change 69.
 
-### r2-3. 05: unit abilities
+#### r2-3. 05: unit abilities
 
 - The Clay Map takes your line: "Scouts gain +1 sight and receive double bonuses from discoveries." A map holds seven or eight ruins and villages on each continent. A find pays 7 science, 7 culture, 15 faith, 20 food, 20 production, 25 gold, or a scout or a worker. A seat that claims four finds with scouts gains about 60 to 80 more yield in Tier 0, which is a Tier 0 lump (50 to 100). A reading to confirm: a find that grants a unit grants two.
 - **Three more cards of that kind,** each an ability and not a number:
@@ -54,7 +678,7 @@ Your words on round one:
 
 - **To rule:** Rule on changes 70, 71 and 72.
 
-### r2-4. 08: the qanat as one hex
+#### r2-4. 08: the qanat as one hex
 
 - **The ground rule:** flat land beside a hill or a mountain, one in each town.
 - **The yields:** +2 food and +1 production, and +1 food more for each hill or mountain beside it.
@@ -70,7 +694,7 @@ Your words on round one:
 
 - **To rule:** Rule on change 73.
 
-### r2-5. 09: a name for the Specularium
+#### r2-5. 09: a name for the Specularium
 
 - **Recommended: the Glasshouse,** opened by the technology Glassmaking, with the charter's name kept (change 74).
 - **The Greenhouse,** your own word. Then the charter is better named The Gardeners' Charter, because a greenhouse does not say glass.
@@ -78,7 +702,7 @@ Your words on round one:
 
 - **To rule:** Pick a name. Question r2-q5.
 
-### r2-6. 24: a charter for a science empire building, and the check with 11 and 37
+#### r2-6. 24: a charter for a science empire building, and the check with 11 and 37
 
 - **The Archivists' Charter** (change 75) opens the Great Archive, one in your empire: +5 science for each charter technology you know.
 - **Why this count.** I tested five. Science for each empire building grows as the square of the copies under The Second Seat. Science for each science building asks the seat to build more Libraries, which is the habit the diagnosis found. A doubler for one town's schools pays about +20. Science for each technology known is the Aldine Press's line for culture. Charter technologies are the deck's own keyword, the seat must choose and research each one, and the count is linear.
@@ -88,7 +712,7 @@ Your words on round one:
 
 - **To rule:** Rule on changes 75, 76 and 77. Question r2-q3.
 
-### r2-7. 26: timing attacks as a play pattern
+#### r2-7. 26: timing attacks as a play pattern
 
 - **What a timing attack is in this game.** Research upgrades every unit of a line in place, for no cost. On the turn a military technology lands, the seat's army is one age ahead: +10 to +15 strength. With the new unit prices the free upgrade is worth more: six Legionaries become six Longswordsmen, which is 1,866 hammers of difference. You named the other half yourself: build the cheap unit before the technology lands.
 - **What the pattern holds after your rulings:**
@@ -102,7 +726,7 @@ Your words on round one:
 
 - **To rule:** Rule on change 78.
 
-### r2-8. 41: The Closed Book
+#### r2-8. 41: The Closed Book
 
 - **Recommended: make it a charter, at Tier III** (change 79).
 - In a chair the card is idle until Alchemy, which is thirty to fifty turns. A charter holds no chair, and its price is a technology of 1,960 science, which the seat pays in this deck's own currency.
@@ -110,7 +734,7 @@ Your words on round one:
 
 - **To rule:** Rule on change 79. Question r2-q2.
 
-### r2-9. 54: more charters
+#### r2-9. 54: more charters
 
 - After your rulings the deck holds 12 charters: you cut the star tower and The Naval Gunners' Charter. Round two adds five: three new charters, the charter for the science empire building, and The Closed Book as a charter.
 - Each new charter opens something new: a work (the smelter), a rite (the Night Watch), a building (the Great Archive), an ability for every unit (Surgery), and a rule for the last technology (Ciphers).
@@ -132,14 +756,14 @@ Your words on round one:
 
 - **To rule:** Rule on changes 80 and 81.
 
-### r2-10. 68: The Blessed Forges stays, at Tier I
+#### r2-10. 68: The Blessed Forges stays, at Tier I
 
 - Your ruling overrules the cut in both passes. Change 82 writes the row for both sheets: Tier I, uncommon, Civic, the same text.
 - **For the Devotion agent:** your change 58 does not stand. The pair shares six cards: The Monastery Libraries, The Schoolmen's Charter, The Priest-Astronomers and The Blessed Forges in Tier I, The Cloister in Tier II and The Monastic University in Tier III.
 
 - **To rule:** Nothing to rule.
 
-### r2-11. The notes after your rulings
+#### r2-11. The notes after your rulings
 
 - **A. Discovery: deeds that complete a technology.** You cut The Summa, The Age of Reason, The Great Instrument and The Foundation Stone. What is left: one boon of this deck (The Alfonsine Tables) and two shared cards (The Lodge Books, Carried-Off Scholars). Five cards pay on the moment: The Royal Workshops, The Astronomical Diaries, The Scholars' Fame, The Journeymen and the shared The Royal Patents. **This note is now too thin to draft toward.** I would leave it so: the three deeds are good cards alone, and you found the capstones dull.
 - **B. The plan and the window.** This note is the strongest after round two: 14 cards. The plan: The Reform of the Calendar, Commission: The Old Learning, The Translation Movement, The City Architects. The window: The Armoury Patterns, The Ordinance Companies, The Flying Columns, The Model Army, The War Manuals, The Clay Map, The Edge of the Sword, The Palace Schools, The Strategikon, The Breaching Batteries. Six charters serve it.
@@ -167,7 +791,7 @@ Your words on round one:
 
 - **To rule:** Say if you want a card for great cities or for the deeds. I recommend neither now.
 
-### r2-12. Science: what the deck pays, by tier, under the new base rates
+#### r2-12. Science: what the deck pays, by tier, under the new base rates
 
 - **17 of the 71 cards pay science** (24%), and none of them pays for a citizen.
 - **Tier 0 (6):** The Scribes (+1 a town), The Curators of Works (+1 a public work), The Apprentices (a fifth of each building's cost), the Physic Garden (+2, and +1 a wood), the smelter (+1 a mine or quarry beside it), The House of Life (half the capital's production). The Clay Map doubles a find of 7 science.
@@ -199,7 +823,7 @@ Your words on round one:
 
 - **To rule:** Nothing to rule.
 
-### r2-13. The recount
+#### r2-13. The recount
 
 - 71 cards: 10, 21, 20, 15 and 5 by tier. 16 Military, 18 Economic, 34 Civic and 3 Wildcard. 32 common, 29 uncommon and 10 rare.
 - 17 charters, 2 boons, 3 commissions and 1 scaler. 52 cards take a chair.
@@ -212,36 +836,9 @@ Your words on round one:
 
 - **To rule:** Say if a count looks wrong.
 
-### Questions for you
+#### The entries 69 to 82, as first proposed
 
-Five questions change the build. Each has my recommended answer.
-
-- **r2-q1. Is The Herbalists' Charter shared with Expansionist?** Recommended: no. Shared, this deck's seat sees its own garden in one game in eight. The keyword already lets Expansionist's cards read the garden when the decks are paired (change 69).
-- **r2-q2. The Closed Book: a charter at Tier III, or as it is?** Recommended: a charter at Tier III (change 79). It then holds no chair for the thirty to fifty turns before Alchemy, and the seat that wants it can find it.
-- **r2-q3. May The Invitations and The Royal Academies count kinds of empire building, not copies?** Recommended: yes (changes 76 and 77). With your line for The Second Seat they pay fourteen more scholars and +140%. If you want the large case as a prize for three rares, reject both.
-- **r2-q4. May a charter of this deck open a rite, which costs faith?** Recommended: yes (change 81). The price is small, The Blessed Forges and The Sky Watchers pay it, and the rite's real cost is the town's production. If no, the charter opens a project in its place: a town turns two hammers into one science, with no faith.
-- **r2-q5. The name: the Glasshouse or the Greenhouse?** Recommended: the Glasshouse, with the technology Glassmaking, so that The Glassmakers' Charter keeps its name (change 74).
-
-## 2. The new changes (69 to 82)
-
-| # | Card | Tier | Change | Answers your comment on | Confidence | Ruling |
-|---|---|---|---|---|---|---|
-| 69 | The Herbalists' Charter stays in this deck | 0 | keep | 01 | good |  |
-| 70 | The Corps of Works | I | new | 05 | good |  |
-| 71 | The Surgeons' Charter | II | new | 05 and 54 | good |  |
-| 72 | The Flying Columns | III | new | 05 and 26 | speculative |  |
-| 73 | The Surveyors' Charter: the qanat as one hex | I | rework | 08 | good |  |
-| 74 | The Glassmakers' Charter: the Glasshouse | I | rework | 09 | good |  |
-| 75 | The Archivists' Charter | II | new | 24 | good |  |
-| 76 | The Invitations | II | rework | 24 and 37 | strong |  |
-| 77 | The Royal Academies | III | rework | 37 | good |  |
-| 78 | The Ordinance Companies | II | new | 26 | good |  |
-| 79 | The Closed Book as a charter | III | rework | 41 | good |  |
-| 80 | The Smelters' Charter | 0 | new | 54 | good |  |
-| 81 | The Observers' Charter | I | new | 54 | good |  |
-| 82 | The Blessed Forges at Tier I | II to I | move | 68 | good |  |
-
-### 69. The Herbalists' Charter stays in this deck (keep)
+##### 69. The Herbalists' Charter stays in this deck (keep)
 
 - **Tier, rarity, type:** 0, common, Civic (Charter)
 - **Answers:** your comment on change 01
@@ -254,7 +851,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** **If the answer is yes:** the row moves to `data/decks/common.json` with both decks. This deck's sheet lists it in the shared table, Tier 0 holds nine cards and one charter (the smelter of change 80), and the pair shares four cards. The Expansionist sheet's shared table goes from 17 to 18, and its list of unique improvements gains nothing new, because the garden is on it already. **If the answer is no:** this deck's sheet takes the new text, and the Expansionist sheet does not change.
 
-### 70. The Corps of Works (new)
+##### 70. The Corps of Works (new)
 
 - **Tier, rarity, type:** I, common, Economic
 - **Answers:** your comment on change 05
@@ -266,7 +863,7 @@ Five questions change the build. Each has my recommended answer.
 - **Shape:** Small extension: the rule `tendedWorksFree` waived the charge for tended works. It needs the test for a unique improvement in its place.
 - **Confidence:** good
 
-### 71. The Surgeons' Charter (new)
+##### 71. The Surgeons' Charter (new)
 
 - **Tier, rarity, type:** II, common, Military (Charter)
 - **Answers:** your comment on change 05 and 54
@@ -279,7 +876,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** The name is near Dominion's Field Surgeons. If that is a problem: The Bone-Setters' Charter.
 
-### 72. The Flying Columns (new)
+##### 72. The Flying Columns (new)
 
 - **Tier, rarity, type:** III, uncommon, Military
 - **Answers:** your comment on change 05 and 26
@@ -292,7 +889,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** speculative
 - **Depends, joins and notes:** If zone of control matters less in play than I think, this is the first of the three to drop.
 
-### 73. The Surveyors' Charter: the qanat as one hex (rework)
+##### 73. The Surveyors' Charter: the qanat as one hex (rework)
 
 - **Tier, rarity, type:** I, uncommon to common, Economic (Charter)
 - **Answers:** your comment on change 08
@@ -305,7 +902,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** The card becomes a common, so that the seat sees one more charter in Tier I (block r2-9).
 
-### 74. The Glassmakers' Charter: the Glasshouse (rework)
+##### 74. The Glassmakers' Charter: the Glasshouse (rework)
 
 - **Tier, rarity, type:** I, uncommon, Civic (Charter)
 - **Answers:** your comment on change 09
@@ -319,7 +916,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** The other candidates: **the Greenhouse**, your own word, with the charter renamed The Gardeners' Charter; and **the Forcing House**, the old word for a heated glass house, which few players know.
 
-### 75. The Archivists' Charter (new)
+##### 75. The Archivists' Charter (new)
 
 - **Tier, rarity, type:** II, uncommon, Civic (Charter)
 - **Answers:** your comment on change 24
@@ -333,7 +930,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** **The check with changes 11 and 37.** The Royal Estates makes the Archive cheap and adds +3 and +3 to its town. The Second Seat allows a second Archive, so each charter technology then pays +10: 80 science for eight. That grows in a straight line and I would leave it. The broken cases are two older cards, in changes 76 and 77.
 
-### 76. The Invitations (rework)
+##### 76. The Invitations (rework)
 
 - **Tier, rarity, type:** II, rare, Civic
 - **Answers:** your comment on change 24 and 37
@@ -346,7 +943,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** strong
 - **Depends, joins and notes:** It guards change 37.
 
-### 77. The Royal Academies (rework)
+##### 77. The Royal Academies (rework)
 
 - **Tier, rarity, type:** III, uncommon, Civic
 - **Answers:** your comment on change 37
@@ -359,7 +956,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** It guards change 37. The Mouseion pays +2 culture for each empire building, copies included. With a second Mouseion that is 2 times 28 times 2, 112 culture. I would leave it.
 
-### 78. The Ordinance Companies (new)
+##### 78. The Ordinance Companies (new)
 
 - **Tier, rarity, type:** II, uncommon, Military
 - **Answers:** your comment on change 26
@@ -372,7 +969,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** Four units in a game are few, so the deck's rule of a small army holds.
 
-### 79. The Closed Book as a charter (rework)
+##### 79. The Closed Book as a charter (rework)
 
 - **Tier, rarity, type:** III, uncommon, Civic (Charter)
 - **Answers:** your comment on change 41
@@ -385,7 +982,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** If you keep it as it is, it stays a Tier IV rare in a chair, and Tier IV holds six cards.
 
-### 80. The Smelters' Charter (new)
+##### 80. The Smelters' Charter (new)
 
 - **Tier, rarity, type:** 0, uncommon, Economic (Charter)
 - **Answers:** your comment on change 54
@@ -399,7 +996,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** Commerce's Mining Districts was cut because it asked for mines in a cluster and paid +2 gold. This reads the same cluster through one work that the player places once.
 
-### 81. The Observers' Charter (new)
+##### 81. The Observers' Charter (new)
 
 - **Tier, rarity, type:** I, uncommon, Civic (Charter)
 - **Answers:** your comment on change 54
@@ -413,7 +1010,7 @@ Five questions change the build. Each has my recommended answer.
 - **Confidence:** good
 - **Depends, joins and notes:** Question r2-q4: a rite costs faith, and this deck makes little. The other form is a project with no faith price, at two hammers for one science.
 
-### 82. The Blessed Forges at Tier I (move)
+##### 82. The Blessed Forges at Tier I (move)
 
 - **Tier, rarity, type:** II to I, uncommon, Civic (shared with Devotion)
 - **Answers:** your comment on change 68
@@ -425,294 +1022,6 @@ Five questions change the build. Each has my recommended answer.
 - **Shape:** Data only: `band` 2 to 1.
 - **Confidence:** good
 - **Depends, joins and notes:** **For the Devotion pass:** the user overruled the cut that both passes proposed (this pass's change 68 and the Devotion pass's change 58). The row stays in `data/decks/common.json` with both decks, at Tier I, with its text unchanged. The pair then shares six cards, four of them in Tier I: The Monastery Libraries, The Schoolmen's Charter, The Priest-Astronomers and The Blessed Forges. The Devotion sheet's shared table needs this row at Tier I.
-
-## 3. The deck after your rulings and round two
-
-| Tier | Today | After | Military | Economic | Civic | Wildcard | Common | Uncommon | Rare | Charters |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 0 | 8 | 10 | 2 | 4 | 4 | 0 | 6 | 3 | 1 | 2 |
-| I | 19 | 21 | 2 | 6 | 12 | 1 | 10 | 8 | 3 | 5 |
-| II | 17 | 20 | 6 | 3 | 10 | 1 | 9 | 9 | 2 | 6 |
-| III | 12 | 15 | 5 | 2 | 7 | 1 | 5 | 7 | 3 | 4 |
-| IV | 12 | 5 | 1 | 3 | 1 | 0 | 2 | 2 | 1 | 0 |
-| **All** | 68 | **71** | 16 | 18 | 34 | 3 | 32 | 29 | 10 | 17 |
-
-- The table counts changes 69 to 82 as approved. Without them the deck holds 64 cards and 12 charters.
-- 17 charters, 2 boons (The Alfonsine Tables, The Invisible College), 3 commissions and 1 scaler. 52 cards take a chair.
-
-**How often each card is seen:**
-
-| Tier | Commons | Uncommons | Rares | Each common | Each uncommon | Each rare | A named rare is offered in |
-|---|---|---|---|---|---|---|---|
-| 0 | 6 | 3 | 1 | 10% | 10% | 10% | 34% of games |
-| I | 10 | 8 | 3 | 6% | 3.75% | 3.3% | 18% |
-| II | 9 | 9 | 2 | 6.7% | 3.3% | 5% | 34% |
-| III | 5 | 7 | 3 | 12% | 4.3% | 3.3% | 24% |
-| IV | 2 | 2 | 1 | 30% | 15% | 10% | 27% |
-
-### Tier 0 (10 cards)
-
-| Card | Text | Rarity | Chair | Status |
-|---|---|---|---|---|
-| The Herbalists' Charter | Opens Herbals: workers may plant one Physic Garden in each town, on flat land with fresh water: +2 science and +2 happiness, and +1 science more for each forest or jungle hex beside it. | common | Civic (Charter) | approved (01) |
-| The Royal Workshops | Completing a technology grants 15 production in your capital. | common | Economic | unchanged |
-| The Curators of Works | Public works give +1 science and +1 happiness. | common | Civic | unchanged |
-| The Scribes | +1 science in every town. | common | Civic | unchanged |
-| The Apprentices | Finishing a building grants science equal to a fifth of its production cost. Wonders do not count. | common | Economic | approved (02) |
-| The War Manuals | Your ranged units gain +2 strength. | common | Military | approved (03) |
-| The Prospectors' Notes | Building a mine or a quarry grants its town 25 production. | uncommon | Economic | unchanged |
-| The Clay Map | Scouts gain +1 sight and receive double bonuses from discoveries. | uncommon | Military | your text (05) |
-| The Smelters' Charter | Opens Smelting: workers may build one smelter in each town: +1 production, and +1 production and +1 science more for each mine or quarry beside it. | uncommon | Economic (Charter) | new this round (80) |
-| The House of Life | Your capital gains science equal to half its production. | rare | Civic | approved (06) |
-
-### Tier I (21 cards)
-
-| Card | Text | Rarity | Chair | Status |
-|---|---|---|---|---|
-| The Bronze-Founders' Charter | Opens Casting: your spear and chariot lines gain +2 strength for good. | common | Military (Charter) | approved (19) |
-| The Surveyors' Charter | Opens Surveying: you may build the Aqueduct early, and workers may dig one qanat in each town, on flat land beside a hill or a mountain: +2 food and +1 production, and +1 food more for each hill or mountain beside it. | common | Economic (Charter) | new this round (73) |
-| The Scholars' Fame | Completing a technology grants scholar renown equal to a twentieth of its cost. | common | Civic | unchanged |
-| The Royal Estates | Each empire building gives its town +3 food and +3 production. +50% production towards empire buildings. | common | Economic | your text (11) |
-| The Edge of the Sword | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. | common | Military | approved (19) |
-| The Scribes' Hall | Libraries give +2 science. | common | Civic | approved (10) |
-| The Sky Watchers | Shrines give +1 faith and +2 science. | common | Civic | approved (12) |
-| The Almanac | Libraries give +2 production. | common | Economic | unchanged |
-| The Royal Tutors | +2 scholar renown each turn for each science building. | common | Civic | approved (04) |
-| The Corps of Works | Building a unique improvement costs your workers no charge. | common | Economic | new this round (70) |
-| The Glassmakers' Charter | Opens Glassmaking, which unlocks the Glasshouse: +3 food, and +1 science for each farm its town works. | uncommon | Civic (Charter) | approved (09); name, new this round (74) |
-| The Librarians' Charter | Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold. | uncommon | Civic (Charter) | approved (19) |
-| The Observers' Charter | Opens Astronomy: your towns may keep the Night Watch, a rite: for ten turns the town builds nothing, and gains science equal to its production. | uncommon | Civic (Charter) | new this round (81) |
-| The Astronomical Diaries | Gains +1 culture and +1 production each time you complete a technology. | uncommon | Civic (Scaler) | unchanged |
-| The Dedications | Finishing a science building or an empire building grants culture equal to its production cost. | uncommon | Civic | approved (13) |
-| The Free Cities | While you hold at most five towns, your towns build buildings and wonders 20% faster. | uncommon | Economic | unchanged |
-| Commission: The Old Learning | Goal: know every technology of the first age. Reward: choose a great scholar. | uncommon | Wildcard | approved (17) |
-| The Charter Rolls | Your drafts contain an additional charter if one is available. | uncommon | Civic | your text (18) |
-| The Forward Plans | You may build Universities before you know Scholarship. | rare | Civic | unchanged |
-| The Reform of the Calendar | Entering a new age opens an Order draft at once. | rare | Civic | approved (16) |
-| The Secret Arts | Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5. | rare | Economic | approved (19) |
-
-### Tier II (20 cards)
-
-| Card | Text | Rarity | Chair | Status |
-|---|---|---|---|---|
-| The Paper-Makers' Charter | Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy. | common | Civic (Charter) | approved (32) |
-| The Physicians' Charter | Opens Medicine, which unlocks the Bimaristan: +25% food in its town. | common | Economic (Charter) | approved (32) |
-| The Surgeons' Charter | Opens Surgery: your units heal every turn, even on a turn in which they move or fight. | common | Military (Charter) | new this round (71) |
-| The Roll of Scholars | +4% production and culture for each great scholar you have gained this game, at most +28%. | common | Civic | approved (32) |
-| The Palace Schools | Units gained in a town with an empire building start with +4 strength. | common | Military | approved (32) |
-| The City Architects | +30% production towards buildings and wonders of your current age. | common | Economic | your text (27) |
-| The Strategikon | Your units gain +4 strength within two hexes of an Academy. | common | Military | approved (32) |
-| The Armoury Patterns | Units of your current age gain +3 strength. | common | Military | your text (26) |
-| The Old Academy | Academies gain +3 food and +3 production. | common | Economic | approved (20) |
-| The Mechanists' Charter | Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots. | uncommon | Military (Charter) | approved (32) |
-| The Printers' Charter | Opens Printing: +1 trade route, and you may build the Aldine Press, one in your empire: +1 culture for each technology you know. | uncommon | Civic (Charter) | approved (28) |
-| The Archivists' Charter | Opens Record-Keeping, which unlocks the Great Archive, one in your empire: +5 science for each charter technology you know. | uncommon | Civic (Charter) | new this round (75) |
-| The Royal Charter Commission | Goal: complete a charter technology. Reward: a great scholar and 100 culture. | uncommon | Wildcard | unchanged |
-| The Translation Movement | Technologies of an age before your newest cost you a third less research. | uncommon | Civic | approved (25) |
-| The Latin Quarter | Hexes on or beside an Academy gain +2 science and +1 culture. | uncommon | Civic | approved (22) |
-| The Round City | +1% production and culture for each citizen in your capital, at most +30%. | uncommon | Civic | unchanged |
-| The Lecture Halls | An Academy gains +2 science for each science building in its town. | uncommon | Civic | approved (21) |
-| The Ordinance Companies | Entering a new age grants a melee unit and a ranged unit in your capital. They cost no upkeep. | uncommon | Military | new this round (78) |
-| The Invitations | The first time you complete each empire building, gain a great scholar. | rare | Civic | new this round (76) |
-| The Alfonsine Tables | On draft: complete the technology you are researching. −30% gold for fifteen turns. | rare | Civic (Boon) | your text (29) |
-
-### Tier III (15 cards)
-
-| Card | Text | Rarity | Chair | Status |
-|---|---|---|---|---|
-| The Military Engineers' Charter | Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points. | common | Military (Charter) | approved (45) |
-| The Journeymen | Completing a technology grants each town production equal to three times its population. | common | Economic | unchanged |
-| The Nizamiyya | Academies yield 50% more. | common | Civic | approved (47) |
-| The Doctorate | Gaining a great scholar grants culture equal to eight turns of your culture. | common | Civic | unchanged |
-| The Humanists | Towns with a Library gain culture equal to a quarter of their science. | common | Civic | approved (34) |
-| The Alchemists' Charter | Opens Chemistry: your warrior line gains +1 strength for each charter technology you know. | uncommon | Military (Charter) | unchanged |
-| The Gunfounders' Charter | Opens Gunfounding, which unlocks the Tophane: its town builds military units 50% faster, with +4 strength. | uncommon | Military (Charter) | your text (36) |
-| The Closed Book | Opens Ciphers: if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns. | uncommon | Civic (Charter) | new this round (79) |
-| The Royal Academies | +5% production and culture for each different empire building you hold. | uncommon | Civic | new this round (77) |
-| The Model Army | Research upgrades your units even when you lack the strategic resource the new unit needs, and an upgrade heals the unit. | uncommon | Military | approved (35) |
-| Commission: The Lynx-Eyed Academy | Goal: hold three Academies. Reward: a great scholar, and Academies gain +5 science and +5 culture. | uncommon | Wildcard | approved (43) |
-| The Flying Columns | Units of your current age ignore enemy zone of control. | uncommon | Military | new this round (72) |
-| The Second Seat | You may build a second copy of all empire buildings, while this is active. | rare | Civic | your text (37) |
-| The Queen of Cities | Towns of at least 15 citizens produce twice their food and production. | rare | Economic | unchanged |
-| The Collected Works | Your great scholars may act twice. | rare | Civic | approved (39) |
-
-### Tier IV (5 cards)
-
-| Card | Text | Rarity | Chair | Status |
-|---|---|---|---|---|
-| The Great Catalogue | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. | common | Economic | approved (52) |
-| The Laboratories | Science buildings give +10% production. | common | Economic | your text (50) |
-| The Breaching Batteries | Each hit your siege units land on a city removes 5% of its Magnum Opus progress. | uncommon | Military | unchanged |
-| The Sum of Knowledge | The town raising your Magnum Opus gains +2 production for each technology you know. | uncommon | Economic | approved (48) |
-| The Invisible College | On draft: choose two great scholars. | rare | Civic (Boon) | approved (51) |
-
-Retired rows (12): Learned Foundations and The Common Tables (Tier I); The Quiet Faculties, Enduring Institutions and The Prototype Works; The Proving Ground, The Age of Reason, The Great Instrument, The Foundation Stone and The Republic of Letters; The Naval Gunners' Charter and The Walls of Learning. The Founding Gift's row becomes The Lecture Halls.
-
-### Shared with another deck (18)
-
-| Card | Text | Shared with | Tier | Rarity | Chair | Status |
-|---|---|---|---|---|---|---|
-| Illuminated Treatises | Libraries give +1 culture. Monuments give +1 science. | Magisterial | 0 | common | Civic | unchanged |
-| The Mountain Observatories | Cities with a mountain in their borders gain +3 science. | Expansionist | 0 | common | Civic | unchanged |
-| Field Academies | Your first kill each turn grants 25 science for each age you have reached. | Dominion | I | uncommon | Civic | approved (67) |
-| The Assay | Hexes with a strategic resource gain +2 science. | Expansionist | I | common | Civic | unchanged |
-| The Founders' Schools | Towns you found start with a Library. | Expansionist | I | uncommon | Civic | approved (64) |
-| The Exchange of Discoveries | Mines and quarries on a resource gain +2 science. | Commerce | I | uncommon | Civic | unchanged |
-| The Monastery Libraries | Libraries give +2 faith. Temples give +2 science. | Devotion | I | common | Civic | unchanged |
-| The Schoolmen's Charter | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Devotion | I | uncommon | Civic (Charter) | unchanged |
-| The Priest-Astronomers | Your capital gains +2 science and +2 faith for each town keeping a rite. | Devotion | I | common | Civic | unchanged |
-| The Blessed Forges | Improved strategic resources gain +1 faith and +1 production. | Devotion | I | uncommon | Civic | your text (68): moved from Tier II (82) |
-| The Cloister | Towns with a Temple gain science equal to 30% of their faith. | Devotion | II | rare | Civic | unchanged |
-| The Merchant Navigators | A town's fishing boats gain +2 science for its Lighthouse and +2 science for its Harbour. | Commerce | II | common | Civic | changed by the Commerce pass |
-| The Soldier-Scholars | Each military unit in your towns gives +2 science. | Dominion | II | uncommon | Military | unchanged |
-| The Lodge Books | Completing a wonder completes the technology you are researching. | Magisterial | II | rare | Civic | approved (65) |
-| Carried-Off Scholars | Capturing a city grants a technology that its owner knows and you do not. If there is none, it grants science equal to thirty times its population. | Dominion | III | uncommon | Civic | your text (66): Tier III |
-| The Royal Patents | Researching a technology grants 100 gold for each age you have reached. | Commerce | III | uncommon | Economic | new in the Commerce pass |
-| The House of Wisdom | Towns working an Academy build wonders 30% faster. | Magisterial | III | uncommon | Civic | unchanged |
-| The Monastic University | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. | Devotion | III | rare | Civic | unchanged |
-
-- By pair: Dominion 3, Expansionist 3, Commerce 3, Devotion 6, Magisterial 3. The Commerce pass cut Merchant Scholars.
-- If you answer yes to question r2-q1, The Herbalists' Charter joins this table and Expansionist has 4.
-
-### Doctrines (15)
-
-| Doctrine | Tier | Theme | Text | Status |
-|---|---|---|---|---|
-| The Pythagorean Brotherhood | I | engine | +2 science in every city, doubled in cities with a Shrine. | unchanged |
-| The Removal to Xianyang | I | great cities | Your towns grow 30% faster. Settlers cost twice as much. | unchanged |
-| The Workshops of Syracuse | I | elite army | Your military units gain +5 combat strength. They cost 50% more to build and to buy. | unchanged |
-| The Jixian Academy | II | engine | Completing a technology grants culture equal to a fifth of its cost. | approved (57) |
-| The Academy of Gondishapur | II | institutions | Towns with an empire building gain +15% science. +20% production toward empire buildings, except the Magnum Opus and its works. | unchanged |
-| The Pandidakterion | II | learned land | Hexes with an Academy have double yields, applied after every other change to the hex. | unchanged |
-| The Peripatetic School | II | learned land | Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown. | approved (56): from Tier I |
-| The Directorate of Arms | III | engine | While no empire you have met knows more technologies than you, your units gain +3 combat strength. | unchanged |
-| The Universitas | III | great cities | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. | unchanged |
-| The Volley Fire | III | elite army | Your archer line may attack twice a turn. They lose 4 combat strength when defending against a melee attack. | your text (59) |
-| The Mustansiriya | III | institutions | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings, except the Magnum Opus and its works. | approved (60): was The Külliye |
-| The Platonic Academy | III | learned land | Your great people of every family found an Academy as their work, in place of their own. | approved (61): from Tier IV |
-| The Court of Rudolf II | IV | engine | The town raising your Magnum Opus gains production equal to a tenth of your science. | approved (62) |
-| The Two Capitals | IV | great cities | Your largest town besides your capital also counts as your capital for your cards. Your other towns grow 25% more slowly. | unchanged |
-| The Trace Italienne | IV | elite army | Your towns gain +10 defence, and your units gain +4 strength inside your borders. Your units lose 4 strength outside them. | approved (63) |
-
-- 15 Doctrines: 3, 4, 5 and 3. The Nassau Reforms is retired, and The Natural Histories is not built.
-- The Mustansiriya with The Invitations had the fault that change 76 mends: a copy in every Academy town, and a scholar for each.
-
-### New shapes and small extensions, each listed once
-
-| Kind | What is new | Cards that need it |
-|---|---|---|
-| New shape | A rider on the moment `ageEntered`, with a grant "an Order draft opens" | The Reform of the Calendar, The Ordinance Companies (the same rider, with a unit grant) |
-| New shape | A grant "complete the current technology", on a draft and on a wonder; a grant of a technology from a captured city's owner | The Alfonsine Tables, The Lodge Books, Carried-Off Scholars |
-| New improvement | `smelter`: a row, a way to open it, a model, an icon | The Smelters' Charter |
-| New building | `greatArchive`, one in an empire | The Archivists' Charter |
-| New charter technologies | `smelting`, `astronomy`, `recordKeeping`, `surgery`, `ciphers`, each placed on the chart | the five new charters |
-| Small extension | A yield "for each hex beside it that…" on an improvement row (the Expansionist build adds it) | the Physic Garden, the qanat, the smelter |
-| Small extension | The cost of a finished building as a measure | The Apprentices, The Dedications |
-| Small extension | A rite that pays production as science | The Observers' Charter |
-| Small extension | A healing rule that does not ask for rest | The Surgeons' Charter |
-| Small extension | The unit filter `newestAge` on a strength line, on a zone-of-control rule and on a production bonus for buildings and wonders | The Armoury Patterns, The Flying Columns, The City Architects |
-| Small extension | A charge waiver for unique improvements | The Corps of Works |
-| Small extension | A scout doubles what a discovery pays | The Clay Map |
-| Small extension | An extra card in an Order hand that is a charter | The Charter Rolls |
-| Small extension | A count of empire buildings by kind, and a rider that pays once for each kind | The Royal Academies, The Invitations |
-| Small extension | A second copy of every empire building, removed from a queue when the card leaves its chair | The Second Seat |
-| Small extension | A hex row that counts the buildings of its town (the Commerce build adds it) | The Lecture Halls |
-| Small extension | A technology price by the age of the technology | The Translation Movement |
-| Small extension | A commission goal "knows every technology of an age" | Commission: The Old Learning |
-| Small extension | A boon with a timed effect on gold (the Commerce build adds it); a great scholar acts twice (the Commerce build adds the shape) | The Alfonsine Tables, The Collected Works |
-| Small extension | A share of the empire's science paid to the town that raises the Opus | The Court of Rudolf II |
-| Data only | Shapes the game has today | every other row |
-
-### What I could not determine in round two
-
-- **How fast the tiers open under the new base rates.** Culture is lower too, since the Amphitheater pays a flat 4. The base-economy study gives ages and science, not drafts. I kept 4, 6, 8 and 8 hands for Tiers 0 to III.
-- **Whether zone of control decides fights** often enough for The Flying Columns to matter.
-- **How much faith a seat of this deck makes** without Devotion, for the Night Watch.
-- **Whether a second copy of an Opus work grants a bead,** and whether The Second Seat can copy the Magnum Opus.
-- **What the Devotion pass rules** on the stone circle and the cliff monastery, which are unique improvements that The Corps of Works would build for no charge.
-- **The chart.** Five new charter technologies need a place on your star chart.
-- **The history is from my own knowledge,** not from a source in the repo.
-
-## 4. Every change of round one, with your ruling
-
-| # | Card | Tier in round one | Ruling | Your words | The line to build |
-|---|---|---|---|---|---|
-| 01 | The Herbalists' Charter | 0 | approved | "great" and "should this be a shared card with expansionist?" | Approved as proposed. Change 69 answers the question: no. |
-| 02 | The Apprentices | 0 | approved | "great" | Tier 0, common, Economic: Finishing a building grants science equal to a fifth of its production cost. Wonders do not count. |
-| 03 | The War Manuals | 0 | approved | "great" | Tier 0, common, Military: Your ranged units gain +2 strength. |
-| 04 | The Royal Tutors | 0 to I | approved | "great" | The Royal Tutors moves to Tier I, with the same text. |
-| 05 | The Clay Map | 0 | approved with your text | "too similar to other cards in the game. I like the idea of having unique abilities for units. how about we rework: scouts gain +1 sight and receive double bonuses from discoveries." | Tier 0, uncommon, Military: Scouts gain +1 sight and receive double bonuses from discoveries. Changes 70, 71 and 72 are three more cards of this kind. |
-| 06 | The House of Life | 0 | approved | "good" | Tier 0, rare, Civic: Your capital gains science equal to half its production. |
-| 07 | The Astronomers' Charter | I | cut by you | "i think this is quite a steep penalty, cut" | Not built. The star tower leaves the pass. |
-| 08 | The Surveyors' Charter | I | reworked | "Rework: give the qanat yields and change to a single hex. this is easier to read and reason about." | Reworked in change 73: the qanat is one hex with its own yields. |
-| 09 | The Glassmakers' Charter | I | approved | "great" and "can we rename this to greenhouses, or something more in line with what the specularium does." | Approved: +3 food, and +1 science for each farm its town works. Change 74 names the building the Glasshouse. |
-| 10 | The Scribes' Hall | I | approved | "good" | Tier I, common, Civic: Libraries give +2 science. |
-| 11 | The Royal Estates | I | approved with your text | "Additional buff: +50% production towards empire buildings." | Tier I, common, Economic: Each empire building gives its town +3 food and +3 production. +50% production towards empire buildings. |
-| 12 | The Sky Watchers | I | approved | "good" | Tier I, common, Civic: Shrines give +1 faith and +2 science. |
-| 13 | The Dedications | I | approved | "good" | Tier I, uncommon, Civic: Finishing a science building or an empire building grants culture equal to its production cost. |
-| 14 | Learned Foundations | I | cut, as proposed | "great" | Cut. Learned Foundations is retired. |
-| 15 | The Common Tables | I | cut, as proposed | "great" | Cut. The Common Tables is retired. |
-| 16 | The Reform of the Calendar | I | approved | "great" | Tier I, rare, Civic: Entering a new age opens an Order draft at once. |
-| 17 | Commission: The Old Learning | I | approved | "great" | Tier I, uncommon, Wildcard: Goal: know every technology of the first age. Reward: choose a great scholar. |
-| 18 | The Charter Rolls | II to I | approved with your text | "the wording of this is confusing. I'm not sure how useful this is. Let's add it in for now, with some clearer text: 'your drafts contain an additional charter if one is available' or something along those lines" | Tier I, uncommon, Civic: Your drafts contain an additional charter if one is available. |
-| 19 | Tier I rarities | I | approved | "sure" | The Librarians' Charter is uncommon. The Bronze-Founders' Charter and The Edge of the Sword are common. The Secret Arts is rare. |
-| 20 | The Old Academy | I to II | approved | "sure" | The Old Academy moves to Tier II and is common, with the same text. |
-| 21 | The Lecture Halls (was The Founding Gift) | I to II | approved | "great" | Tier II, uncommon, Civic: An Academy gains +2 science for each science building in its town. It takes the row of The Founding Gift. |
-| 22 | The Latin Quarter | II | approved | "sure" | Tier II, uncommon, Civic: Hexes on or beside an Academy gain +2 science and +1 culture. |
-| 23 | The Quiet Faculties | II | cut, as proposed | "great" | Cut. The Quiet Faculties is retired. |
-| 24 | Enduring Institutions | II | reworked | "this one feels not very impactful. How about we add a charter that unlocks a new type of science based empire building." | Enduring Institutions is retired. Change 75 is the charter and its empire building. |
-| 25 | The Translation Movement | II | approved | "that's interesting, i like it" | Tier II, uncommon, Civic: Technologies of an age before your newest cost you a third less research. |
-| 26 | The Armoury Patterns | II | approved with your text | "Hmm interesting. This could be really good for timing attacks, which should be a play pattern for the scientific player. lets rephrase it: units of your current age gain +3 strength. (+4 is probably too strong)." | Tier II, common, Military: Units of your current age gain +3 strength. |
-| 27 | The City Architects | II | approved with your text | "lets rephrase: '30% production towards buildings and wonders of your current age'" | Tier II, common, Economic: +30% production towards buildings and wonders of your current age. |
-| 28 | The Printers' Charter | II | approved | "great" | Tier II, uncommon, Charter: Opens Printing: +1 trade route, and you may build the Aldine Press, one in your empire: +1 culture for each technology you know. |
-| 29 | The Alfonsine Tables | II | approved with your text | "i don't like this. How about: complete the technology you are researching, -30% _gold_ for fifteen turns." | Tier II, rare, Boon: On draft: complete the technology you are researching. −30% gold for fifteen turns. |
-| 30 | The Summa | II | cut by you | "not very fun, cut" | Not built. The Summa leaves the pass. |
-| 31 | The Prototype Works | IV to II | cut by you | "not very useful. you can pre-build units that are cheaper that are automatically upgraded when you finish the tech. cut" | Cut. The Prototype Works is retired. |
-| 32 | Tier II rarities | II | approved | "sure" | The Mechanists' Charter is uncommon. The Paper-Makers' Charter, The Physicians' Charter, The Palace Schools, The Strategikon and The Roll of Scholars are common. |
-| 33 | The Age of Reason | III | cut by you | "cut" | Cut. The Age of Reason is retired. |
-| 34 | The Humanists | III | approved | "sure" | Tier III, common, Civic: Towns with a Library gain culture equal to a quarter of their science. |
-| 35 | The Model Army | III | approved | "Ok sure" | Tier III, uncommon, Military: Research upgrades your units even when you lack the strategic resource the new unit needs, and an upgrade heals the unit. |
-| 36 | The Gunfounders' Charter | III | approved with your text | "+6 strength is massive, revise: It's town builds military units 50% faster, with +4 strength" | Tier III, uncommon, Charter: Opens Gunfounding, which unlocks the Tophane: its town builds military units 50% faster, with +4 strength. |
-| 37 | The Second Seat | III | approved with your text | "lets just remove the library requirement altogether." and "rephrase: you may build a second copy of all empire buildings, while this is active." and "make sure: if this is unslotted while an empire building is in queue, it should remove it from the queue." | Tier III, rare, Civic: You may build a second copy of all empire buildings, while this is active. If the card leaves its chair, a second copy in a queue leaves that queue. Changes 76 and 77 guard two cards against it. |
-| 38 | The Proving Ground | III | cut, as proposed | "great" | Cut. The Proving Ground is retired. |
-| 39 | The Collected Works | III | approved | "wow thats crazy powerful, ok add it." | Tier III, rare, Civic: Your great scholars may act twice. |
-| 40 | The Foundation Stone | IV to III | cut by you | "remove, not very useful." | Cut. The Foundation Stone is retired. |
-| 41 | The Closed Book | IV to III | reworked | "wouldn't this show up way too early? lets keep it as is." and "OR: make it a charter so it doesn't need to be slotted, keep at tier 3" | Two readings. Change 79 recommends the charter at Tier III. |
-| 42 | The Great Instrument | IV to III | cut by you | "Cut, not impactful enough" | Cut. The Great Instrument is retired. |
-| 43 | Commission: The Lynx-Eyed Academy | IV to III | approved | "great" | Tier III, uncommon, Wildcard: Goal: hold three Academies. Reward: a great scholar, and Academies gain +5 science and +5 culture. |
-| 44 | The Republic of Letters | IV to III | cut by you | "i think we have too many academy synergies. lets cut this one." | Cut. The Republic of Letters is retired. |
-| 45 | The Military Engineers' Charter | IV to III | approved | "sure" | The Military Engineers' Charter moves to Tier III and is common. |
-| 46 | The Naval Gunners' Charter | IV | cut, as proposed | "cut" | Cut. The Naval Gunners' Charter is retired. |
-| 47 | Tier III rarities | III | approved | "sure" | The Nizamiyya is common. |
-| 48 | The Sum of Knowledge | IV | approved | "great" | Tier IV, uncommon, Economic: The town raising your Magnum Opus gains +2 production for each technology you know. |
-| 49 | The Walls of Learning | IV | cut, as proposed | "cut" and "great" | Cut. The Walls of Learning is retired. |
-| 50 | The Laboratories | IV | approved with your text | "this is too small for a tier 4. Science buildings give +10% production" | Tier IV, common, Economic: Science buildings give +10% production. |
-| 51 | The Invisible College | IV | approved | "great" | Tier IV, rare, Boon: On draft: choose two great scholars. |
-| 52 | The Great Catalogue | IV | approved | "great" | The Great Catalogue is common. |
-| 53 | A charter technology costs half the price of its column | Rule | not adopted | "lets have it cost the same as an ordinary technology. half feels too powerful. this deck seems to have plenty of science now." | No change. A charter technology costs what an ordinary technology of its column costs, as today. |
-| 54 | A charter is dealt in its own tier and in the next | Rule | cut by you | "cut, lets just add more charters" | Not built. A charter is dealt in its own tier only. Changes 71, 75, 79, 80 and 81 add charters. |
-| 55 | The Natural Histories | Doctrine I | cut by you | "i don't like that this doesn't scale well, cut" | Not built. The Natural Histories leaves the pass. |
-| 56 | The Peripatetic School | Doctrine I to II | approved | "sure" | The Peripatetic School moves to Tier II. |
-| 57 | The Jixian Academy | Doctrine II | approved | "great" | Tier II Doctrine: Completing a technology grants culture equal to a fifth of its cost. |
-| 58 | The Nassau Reforms | Doctrine IV to II | cut by you | "Seems not very good, as you tend to build soldiers later in the game. cut" | Cut. The Nassau Reforms is retired, and is not moved. |
-| 59 | The Volley Fire | Doctrine III | approved with your text | "revise: your archer line may attack twice a turn, they lose 4 combat strength when defending against a melee attack (non-ranged attack)" | Tier III Doctrine: Your archer line may attack twice a turn. They lose 4 combat strength when defending against a melee attack. |
-| 60 | The Mustansiriya (was The Külliye) | Doctrine III | approved | "sure" | The Doctrine The Külliye is named The Mustansiriya. |
-| 61 | The Platonic Academy | Doctrine IV to III | approved | "that's cool, great" | The Platonic Academy moves to Tier III. |
-| 62 | The Court of Rudolf II | Doctrine IV | approved | "great" | Tier IV Doctrine: The town raising your Magnum Opus gains production equal to a tenth of your science. |
-| 63 | The Trace Italienne | Doctrine IV | approved | "great" | Tier IV Doctrine: Your towns gain +10 defence, and your units gain +4 strength inside your borders. Your units lose 4 strength outside them. |
-| 64 | The Founders' Schools | I | approved | "sure" | Tier I, uncommon, Civic, shared with Expansionist: Towns you found start with a Library. |
-| 65 | The Lodge Books | II | approved | "cool" | Tier II, rare, Civic, shared with Magisterial: Completing a wonder completes the technology you are researching. |
-| 66 | Carried-Off Scholars | II | approved with your text | "Cool, lets make this tier 3" | Tier III, uncommon, Civic, shared with Dominion: Capturing a city grants a technology that its owner knows and you do not. If there is none, it grants science equal to thirty times its population. |
-| 67 | Field Academies | I | approved | "cool" | Tier I, uncommon, Civic, shared with Dominion: Your first kill each turn grants 25 science for each age you have reached. |
-| 68 | The Blessed Forges | II | approved with your text | "let's move this to tier 1" | Kept, and moved to Tier I. Change 82 writes it for both decks. |
-
-| Question of round one | Your words | Result |
-|---|---|---|
-| Does the technology lead stay a quantity that cards read? | "yes" | The Secret Arts, The Edge of the Sword and the Doctrine The Directorate of Arms stay. |
-| May a card complete a technology? | "yes" | The Alfonsine Tables, The Lodge Books and Carried-Off Scholars do. You cut The Summa. |
-| Do the Opus cards move to Tier III, and may Tier IV hold five cards? | "sure" | Tier IV holds five. You cut two of the three Opus cards, and change 79 settles the third. |
-| Should a charter technology cost half, and should a charter be dealt in two tiers? | "two tiers sure, charter technology should cost the same, not half" | The price stays. Your later comment on change 54 cut the two tiers ("cut, lets just add more charters"), and that comment stands. |
-| Should the science cards be sized for today's rates, or for the cut? | "they're fine as is." | The base rates are now ruled, and block r2-12 gives the arithmetic again. |
 
 ## Record: round one, as first written
 
@@ -1001,50 +1310,7 @@ In three sentences:
   - **The University is hardly built.** A cut to its rate changes little in bot games. If the cut makes it weaker still, The Forward Plans, The Second Seat and Copernicus's line for the Observatory lose their base.
   - **Leader lines on citizens.** Sejong's The Correct Sounds (+1 science and +1 culture for every four citizens) and Nezahualcoyotl's Flower and Song are the same kind of science and culture. If the cut does not reach them, those two leaders gain against the field.
 
-### R4. Example councils, as first proposed
-
-#### Early, end of Tier I: the garden towns (five chairs, the Priest-King)
-
-- **Chairs:** The War Manuals (0, Military), The Almanac (I, Economic), The House of Life (0, Civic), The Scribes' Hall (I, Civic), Commission: The Old Learning (I, Wildcard). Taken on the way, with no chair: the Herbalists' Charter and the Astronomers' Charter. Doctrine: The Natural Histories.
-- **How it plays:** each town gets a Physic Garden beside its woods and a star tower on the bare edge of its land. The workers give each town one farm, one mine and one pasture before a second farm. The capital turns half its hammers into science. The seat goes back for the cheap first-age technologies it left, and the commission pays its first great scholar at about turn 55.
-
-#### Early, end of Tier II: the new age (six chairs, the Aristocracy)
-
-- **Chairs:** The Armoury Patterns (II, Military), The City Architects (II, Economic), The Charter Rolls (I, Civic), The Astronomical Diaries (I, Civic), The Lecture Halls (II, Civic), The Summa (II, in the Wildcard chair). Taken as a boon: The Alfonsine Tables. Doctrine: The Nassau Reforms.
-- **How it plays:** the seat learns Rhetoric early to enter age 3. From that turn its age-3 buildings and wonders come 30% faster, and each unit line gains +4 when its technology lands, and +2 for good from the Doctrine. Every hand shows a charter. The first scholar founds an Academy in the town with the Library and the Scriptorium. The second writes a treatise, aimed at a technology of 1,150.
-
-#### Late, Tier III then Tier IV: the race to Alchemy (eight chairs under the Divine Mandate, then eleven under The Curia)
-
-- **Chairs, Tier III:** The Armoury Patterns and The Model Army (Military); The Journeymen (Economic); The Astronomical Diaries, The Summa and The Collected Works (Civic); The Age of Reason and The Closed Book (the Wildcard chairs). Tier IV adds The Foundation Stone, The Republic of Letters and The Sum of Knowledge, and The Invisible College as a boon.
-- **How it plays:** every scholar ends two technologies. Each technology pays production in every town twice and heals the army's line. The Opus starts when Alchemy is half done. Two scholars from The Invisible College end Alchemy, and the rivals wait ten turns.
-
-### R5. Pairs, leaders and great people, as first written
-
-- **Dominion, the military edge (3 cards: one in Tier I, two in Tier II).** Field Academies pays science for a kill by the age reached (change 67). Carried-Off Scholars gives a technology for a captured city (change 66). The Soldier-Scholars stays. Dominion raises kills, captures and garrisons, and this deck pays in science and technologies.
-- **Expansionist, the engineers (3 cards: one in Tier 0, two in Tier I).** The Mountain Observatories and The Assay stay. The Founders' Schools gives each new town a Library (change 64). Expansionist raises towns founded, mountains and resources. Its The Cadastre and Commission: The Reclaimed Lands count the Physic Garden, the qanat and the star tower.
-- **Commerce, the patrons (3 cards, as its pass left them).** The Exchange of Discoveries, The Merchant Navigators and The Royal Patents. I change none. The Royal Patents pays 100 gold for each age on every technology, so the deeds of note A are worth gold to this pair, and The Age of Reason doubles it.
-- **Devotion, scholars of the faith (5 cards, from 6).** I cut The Blessed Forges (change 68) and leave the other five to the Devotion pass. If that pass wants three, The Priest-Astronomers and The Monastery Libraries are the two plain ones.
-- **Magisterial, the academy (3 cards, from 2).** Illuminated Treatises and The House of Wisdom stay. The Lodge Books turns a wonder into a technology (change 65). Magisterial raises wonders, great people and drafts. The Reform of the Calendar and The Charter Rolls add drafts and cards for its counters.
-
-- **Mehmed the Conqueror (Dominion and Scientific): richer.** The Enderun counts great scholars gained, and the pass gives a scholar earlier (change 17). The Great Bombard's science for a capture adds to the new Carried-Off Scholars. The Janissary stands in the warrior line, which the Alchemists' Charter raises, and the seat now sees its charters. The Tophane is larger. Their building The Külliye shares its name with a Doctrine today (change 60).
-- **Nezahualcoyotl (Expansionist and Scientific): richer.** The Dikes pays farms in Aqueduct towns, and the Surveyors' Charter gives the Aqueduct early and a qanat that makes farm land. The Natural Histories suits a seat that improves everything.
-- **Cleopatra (Commerce and Scientific): richer.** The Museion pays +2 science for every great person called, in every city. The pass adds two commissions for scholars at lower tiers and The Invisible College. The Queen's Alliances pays for each age reached, which note B asks the seat to raise early. The Printers' Charter still gives a route.
-- **Harun al-Rashid (Devotion and Scientific): richer.** The Learned Court pays faith equal to a fifth of each technology's cost, so every deed that completes a technology pays them faith: Alchemy by a treatise is 1,600 faith. The Storehouse of Wisdom pays on the Library and the Shrine, beside The Scribes' Hall and The Sky Watchers.
-- **Sejong the Great (Scientific and Magisterial): much richer, and the one to test.** The Royal Lectures gives three turns of renown for each technology. With The Summa and The Collected Works a scholar ends two technologies, which is six turns of renown toward the next scholar. At 100 to 150 renown a turn that is 600 to 900 renown, when the eighth to eleventh person costs 654 to 1,100. So the loop nearly pays for itself for three or four scholars, and then the price of a great person grows faster than the loop. You wrote that you want one leader whose way to play is to call as many scholars as possible. The Correct Sounds pays science for citizens, so the cut to passive science may reach it.
-- **Ibn Battuta (every deck):** one more chair and a free redraw. The Charter Rolls gives their hand a fifth card.
-
-- **Ibn al-Haytham** ("your libraries pay double") now doubles The Scribes' Hall's +2 science, The Almanac's +2 production, Cai Lun's line and Harun's.
-- **Copernicus** doubles Observatories, which bot seats do not build (note I). No change of this pass helps that.
-- **The five legacies that count "buildings that supply science"** (Aristotle, Zhang Heng, Maimonides, Āryabhaṭa, Brahmagupta) lose nothing. The pass cuts one card that counted them (The Common Tables) and adds one (The Laboratories).
-- **A scholar's work** pays 4 and grows to 8 under the great-people pass. The Lecture Halls, The Latin Quarter and the commission's reward add to it on the hex, where The Nizamiyya and The Pandidakterion multiply.
-
-- **The Devotion pass** runs beside this one. It may rule on the six shared cards first. Nothing in this pass reads a rite, a follower or faith spent.
-- **The Commerce build** adds four things that this pass reuses: a boon with a timed effect, a great person who acts twice, a hex row that counts the buildings of its town, and a grant that counts ages reached.
-- **The Expansionist build** adds the yield "for each hex beside it that…" and the keyword unique improvement. The star tower joins that list, with the Physic Garden and the qanat.
-- **Three names to settle outside the cards.** The Doctrine and Mehmed's building are both The Külliye. The shared card The House of Wisdom has the name of a wonder. The charter building the Mouseion and Cleopatra's building The Museion are one word in two spellings.
-- **One text differs from the game's own words.** The sheet says that the Doctrine The Volley Fire gives the archer line a second attack. The game's words say "ranged units may attack twice a turn".
-
-### R6. The 68 entries, as first proposed
+### R4. The 68 entries, as first proposed
 
 **Tier 0**
 
