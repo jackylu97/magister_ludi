@@ -1963,13 +1963,15 @@ export function effectsOfKind<K extends CardEffect['kind']>(
   return cut;
 }
 
-/** Every live effect of one kind for **one city**, its own rites included. */
+/** City effects follow empire effects. Every town can reuse the empire list for this kind. */
 function cityEffectsOfKind<K extends CardEffect['kind']>(
   state: GameState,
   city: City,
   kind: K,
-): LiveOfKind<K>[] {
-  return pickKind(liveCityEffects(state, city), kind);
+): readonly LiveOfKind<K>[] {
+  const empire = effectsOfKind(state, city.ownerId, kind);
+  const local = pickKind(cityLocalEffects(state, city), kind);
+  return local.length === 0 ? empire : [...empire, ...local];
 }
 
 // --- conditions -------------------------------------------------------------
@@ -3706,7 +3708,7 @@ export function countOf(
       const here = (town: City): number => {
         // Every building in this count uses the same town and card conditions.
         // Resolve them inside the supply depth guard, once for this town.
-        let payments: LiveOfKind<'pays'>[] | undefined;
+        let payments: readonly LiveOfKind<'pays'>[] | undefined;
         const readPayments = () => (payments ??= cityEffectsOfKind(state, town, 'pays'));
         let found = 0;
         for (const id of townBuildings(state, town)) {

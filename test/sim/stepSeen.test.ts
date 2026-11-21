@@ -447,6 +447,33 @@ describe('a piece at a town’s gate', () => {
     expectHonest(state, 0);
   });
 
+  it('keeps empire and city income in order when their garrison changes', () => {
+    const state = board();
+    const town = inlandTown(state);
+    const other = inlandTown(state, 0, 18, 8);
+    give(state, 0, [{ kind: 'pays', where: 'city', gold: 3 }]);
+    town.timed = [{
+      card: 'theRegimentalSchools',
+      expiresTurn: state.turn + 1,
+      effect: { kind: 'pays', where: 'city', gold: 7, scope: { test: 'garrisoned' } },
+    }];
+    const ground = groundOf(state, town);
+    const soldier = createUnit(state, 0, 'warrior', ground.col, ground.row);
+    chartEverything(state);
+    bumpRevision(state);
+
+    const payouts = (city: City): number[] => readCity(state, city).lines
+      .filter((line) => line.card === 'theLongWatch' || line.card === 'theRegimentalSchools')
+      .map((line) => line.gold);
+    expect(payouts(town)).toEqual([3]);
+    step(state, soldier, at(state, town.col, town.row));
+    expect(payouts(town)).toEqual([3, 7]);
+    expect(payouts(other)).toEqual([3]);
+    step(state, soldier, ground);
+    expect(payouts(town)).toEqual([3]);
+    expectHonest(state, 0);
+  });
+
   it('moves a scope that asks for a great general', () => {
     const state = board();
     const town = inlandTown(state);
