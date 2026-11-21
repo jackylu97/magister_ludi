@@ -139,12 +139,12 @@
  * | tenant | clock | why |
  * |---|---|---|
  * | `meterEffects` | economy | walks towns, buildings, luxuries and law — and, through the card evaluator, the **garrisons** standing in the towns and the **banks** behind them (M3's correction: The Long Watch counts pieces and Pilgrim Roads counts banked faith, so the seams that write one announce) |
- * | `controlledHoldings` | economy | walks the ground |
+ * | `controlledHoldings` | ground | reads resources and ownership, which survive a change confined to a garrison |
  * | `readEmpirePercents` | economy | those, plus the treasury |
  * | `readMeter` | economy | the lines and total for happiness or authority |
  * | `readCity` | economy | a town's list; see below |
  * | `readEmpire` | economy | that reading summed, with the empire's own lines |
- * | `readEmpireRates` | economy | the same lists, folded for a question about a rate |
+ * | `readEmpireRates` | economy | base rates, using the same city totals as the headline |
  *
  * A town's list can see a piece, for instance a hull in the harbour mouth or a
  * garrison in a town. It sits on the economy clock since batch P1 because every
@@ -161,6 +161,7 @@
  */
 
 import type { City, GameState } from './state';
+import { type BuildingId, buildingDef } from './buildingData';
 import {
   emptyCityYields,
   foldUnitCost,
@@ -193,6 +194,8 @@ import {
   explainCity,
   foldCity,
   type CityReading,
+  cityBuildingLine,
+  explainBuildingYield,
   type EmpirePercents,
 } from './yields/town';
 import {
@@ -203,7 +206,7 @@ import {
 } from './yields/empire';
 import { type EmpireRates, readingAtRest } from './statecraft/evaluator';
 import { CITY_YIELD_KEYS } from './resourceData';
-import { slateMemo } from './slate';
+import { memoTableRow, slateMemo } from './slate';
 
 /** The guide and the top bar use the same meter after a command. A change to
  * the economy invalidates both the total and its labelled contributions. */
@@ -289,6 +292,15 @@ export function readEmpirePercents(state: GameState, playerId: number): EmpirePe
   );
 }
 
+// Fixed building yields are shared across towns. Only science per citizen reads population.
+const buildingLinesAtPopulation = memoTableRow((id: BuildingId, population: number) =>
+  explainBuildingYield(id).map((entry) => Object.freeze(cityBuildingLine(entry, population))),
+);
+
+function readBuildingLines(id: BuildingId, population: number) {
+  return buildingLinesAtPopulation(id, buildingDef(id).sciencePerPop === 0 ? 0 : population);
+}
+
 /**
  * **One town's labelled list, once per tick of the economy clock** — steps 1–11 of
  * `docs/yields.md`, and the single source of truth every surface that prints a
@@ -309,9 +321,10 @@ export function readCity(state: GameState, city: City): CityReading {
   // hull that cuts a caravan's pay, and every such step announces (`stepIsSeen`,
   // `movement.ts`). Any other accepted command moves this clock when it ends, and
   // the only commands that may leave it still are the five in `COMMAND_CLOCKS`.
-  return slateMemo(state, 'economy', 'towns', String(city.id), () =>
-    readingAtRest(() => explainCity(state, city, [], readEmpirePercents(state, city.ownerId))),
-  );
+  return slateMemo(state, 'economy', 'towns', String(city.id), () => readingAtRest(() => {
+    const empire = readEmpirePercents(state, city.ownerId);
+    return explainCity(state, city, [], empire, undefined, readBuildingLines);
+  }));
 }
 
 /**
@@ -343,6 +356,14 @@ export function readEmpire(state: GameState, playerId: number): EmpireReading {
   return slateMemo(state, 'economy', 'empires', String(playerId), () =>
     readingAtRest(() => empireReading(state, playerId)),
   );
+}
+
+/** Both the headline and the base rates price production against the current queue item. */
+function currentTownReading(state: GameState, city: City): TownReading {
+  return slateMemo(state, 'economy', 'townsAtCurrentProduction', String(city.id), () => {
+    const reading = readCity(state, city);
+    return { city, reading, total: foldCity(state, city, [], city.queue[0], reading) };
+  });
 }
 
 /**
@@ -377,7 +398,7 @@ export function readEmpireRates(state: GameState, playerId: number): Readonly<Em
     readingAtRest(() =>
       foldEmpireRates(state, playerId, {
         percents: readEmpirePercents(state, playerId),
-        listOf: (city) => readCity(state, city),
+        totalOf: (city) => currentTownReading(state, city).total,
       }),
     ),
   );
@@ -728,8 +749,7 @@ function empireReading(state: GameState, playerId: number): EmpireReading {
   const towns: TownReading[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    const reading = readCity(state, city);
-    towns.push({ city, reading, total: foldCity(state, city, [], city.queue[0], reading) });
+    towns.push(currentTownReading(state, city));
   }
   // A `pays` rate card reads the empire's books (bot batch BP15). This reading is
   // at rest, so the books are `readEmpireRates`, folded off the town lists read

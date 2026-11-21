@@ -306,14 +306,17 @@ function collectArrears(state: GameState, report?: TurnReport): void {
  * cities a third time, and "a turn of science" means one thing in the game.
  *
  * **`taken` hands in what a caller already holds** (batch P1): the seat's meters and
- * each town's list. It is `explainCity`'s `empire` parameter one scale out, and the
- * figure is the same because `readEmpireRates` hands in these very calls, remembered.
- * Callers inside the simulation pass nothing and take fresh readings.
+ * each town's labelled list or its completed total for current production.
+ * Mutation handlers omit these inputs and take a fresh reading.
  */
 export function foldEmpireRates(
   state: GameState,
   playerId: number,
-  taken?: { percents: EmpirePercents; listOf: (city: City) => CityReading },
+  taken?: {
+    percents: EmpirePercents;
+    listOf?: (city: City) => CityReading;
+    totalOf?: (city: City) => CityYields;
+  },
 ): {
   faithPerTurn: number;
   culturePerTurn: number;
@@ -359,8 +362,9 @@ export function foldEmpireRates(
   const held = heldReligions(state, playerId).map((religion) => religion.id);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    const list = taken?.listOf(city) ?? explainCity(state, city, [], percents);
-    const yields = foldCity(state, city, [], city.queue[0], list);
+    const yields = taken?.totalOf?.(city) ?? foldCity(
+      state, city, [], city.queue[0], taken?.listOf?.(city) ?? explainCity(state, city, [], percents),
+    );
     rates.faithPerTurn += yields.faith;
     rates.culturePerTurn += yields.culture;
     rates.goldPerTurn += yields.gold;

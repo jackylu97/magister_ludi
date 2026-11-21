@@ -64,6 +64,12 @@
  *     `Command['type']`, and `test/sim/readings.test.ts` fails the day a kind is
  *     in neither list.
  *
+ * Ground indexes also use the economy counter. A citizen focus order or a
+ * step whose only economic change is entering or leaving a city keeps these
+ * indexes. Any other economy write expires them. A march can also reuse
+ * the published city and empire readings it held before entering a town, if
+ * the same unit leaves that town and the two steps were the only changes.
+ *
  * **Two rows of that table were wrong, and batch M3's shadow run found them.**
  * `meterEffects` does not open `state.units` and does not read the treasury —
  * but the **card evaluator** it folds does both: The Long Watch pays "+1
@@ -249,11 +255,8 @@
 
 import type { GameState } from './state';
 
-/**
- * Which clock a reading is a reading of — see "The two clocks" above. A tenant
- * declares one and gets exactly that lifetime; nothing may be on both.
- */
-type SlateClock = 'revision' | 'economy';
+/** Ground indexes survive a focus order or a step that changes only the garrison. */
+type SlateClock = 'revision' | 'economy' | 'ground';
 
 /** One clock's remembered answers, at the stamp they were taken under. */
 interface Half {
@@ -266,6 +269,7 @@ interface Half {
 interface Slate {
   revision: Half;
   economy: Half;
+  ground?: Half;
 }
 
 const SLATES = new WeakMap<GameState, Slate>();
@@ -299,6 +303,59 @@ export function economyStamp(state: GameState): number {
   return ECONOMY.get(state) ?? 0;
 }
 
+/** Keep only the published yield readings whose position dependencies movement checks. */
+const STANDING_READINGS = ['towns', 'townsAtCurrentProduction', 'empires', 'rates', 'percents', 'happiness', 'authority'];
+
+export interface CityGateReadings {
+  cityId: number;
+  stamp: number;
+  epoch: number;
+  buckets: Half['buckets'];
+}
+
+/** Carry only indexes that were valid immediately before this change. */
+function bumpKeepingGround(state: GameState, changedGarrison?: string): Half['buckets'] | undefined {
+  const slate = SLATES.get(state);
+  const previous = slate?.economy;
+  const stamp = economyStamp(state);
+  const buckets = previous?.stamp === stamp && previous.epoch === epoch ? previous.buckets : undefined;
+  bumpEconomy(state);
+  if (slate?.ground?.stamp === stamp) slate.ground.stamp = stamp + 1;
+  if (buckets === undefined) return undefined;
+  // A city's garrison is its owner's combat units on its centre. A preview
+  // with a different city owner has a separate entry at the same coordinates.
+  const garrisons = buckets.get('garrison');
+  if (garrisons !== undefined) {
+    if (changedGarrison !== undefined) garrisons.delete(changedGarrison);
+    halfOf(state, 'economy').buckets.set('garrison', garrisons);
+  }
+  return buckets;
+}
+
+/** Assigning worked tiles changes income, including income from another town's routes or Orders. */
+export function bumpCitizenFocus(state: GameState): void {
+  bumpKeepingGround(state);
+}
+
+/** A city gate can change income across several empires. Ground indexes and other towns' garrison rosters survive. */
+export function bumpCityGate(
+  state: GameState, cityId: number, ownerId: number, entering: boolean,
+): CityGateReadings | undefined {
+  const stamp = economyStamp(state);
+  const buckets = bumpKeepingGround(state, `${cityId}:${ownerId}`);
+  return entering && buckets !== undefined ? { cityId, stamp, epoch, buckets } : undefined;
+}
+
+/** The same piece left the town it entered. Any other announced write cancels reuse. */
+export function restoreAfterCityGate(state: GameState, cityId: number, prior: CityGateReadings | undefined): void {
+  if (prior?.cityId !== cityId || prior.epoch !== epoch || economyStamp(state) !== prior.stamp + 2) return;
+  const current = halfOf(state, 'economy').buckets;
+  for (const name of STANDING_READINGS) {
+    const entries = prior.buckets.get(name);
+    if (entries !== undefined) current.set(name, entries);
+  }
+}
+
 /**
  * **The table under the world** — raised when the *data* a reading folds is
  * swapped out from under it, which the revision cannot see.
@@ -316,6 +373,20 @@ let epoch = 0;
 /** The rows changed: every remembered answer on every board is void. */
 export function discardSlates(): void {
   epoch += 1;
+}
+
+/** Use for game data whose result depends only on the row and one numeric input.
+ * Keep one result per row. A table change or a different input replaces it. */
+export function memoTableRow<Id extends string, Value>(calculate: (id: Id, input: number) => Value) {
+  const rows = new Map<Id, { epoch: number; input: number; value: Value }>();
+  return (id: Id, input: number): Value => {
+    if (shadow) return calculate(id, input);
+    const last = rows.get(id);
+    if (last?.epoch === epoch && last.input === input) return last.value;
+    const value = calculate(id, input);
+    rows.set(id, { epoch, input, value });
+    return value;
+  };
 }
 
 /**
@@ -395,7 +466,7 @@ function halfOf(state: GameState, clock: SlateClock): Half {
     slate = { revision: emptyHalf(), economy: emptyHalf() };
     SLATES.set(state, slate);
   }
-  const half = slate[clock];
+  const half = clock === 'ground' ? (slate.ground ??= emptyHalf()) : slate[clock];
   const stamp = clock === 'revision' ? state.revision : economyStamp(state);
   if (half.stamp !== stamp || half.epoch !== epoch) {
     half.stamp = stamp;

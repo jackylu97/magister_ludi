@@ -137,7 +137,7 @@ import {
 import { isBeadEndeavourId } from './beadData';
 import { LIVE_CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
 import { nextInt } from './rng';
-import { bumpEconomy, slateMemo } from './slate';
+import { bumpCitizenFocus, bumpEconomy, slateMemo } from './slate';
 import { anyBeadDef } from './beadData';
 // The great-person draft a completion grant opens, and the great person an
 // Order hands over when it is drafted (`grantGreatPersonOffer`, Magisterial
@@ -716,7 +716,7 @@ function groundCopies(state: GameState, playerId: number, resourceId: ResourceId
   // count — a fact about the board — so that the law can still be applied
   // outside it. Both are ground facts; neither reads a card.
   return ownCopies(
-    slateMemo(state, 'economy', `copies:${resourceId}`, String(playerId), () =>
+    slateMemo(state, 'ground', `copies:${resourceId}`, String(playerId), () =>
       sweepOwnCopies(state, playerId, resourceId),
     ),
     state,
@@ -1248,7 +1248,7 @@ interface SweptCopies {
  * made of plain records and arrays, so the slate's shadow check can print it.
  */
 function resourceSites(state: GameState): ResourceSites {
-  return slateMemo(state, 'economy', 'resourceSites', '', () => {
+  return slateMemo(state, 'ground', 'resourceSites', '', () => {
     const sites: ResourceSites = { byResource: {}, all: [] };
     const tiles = state.map.tiles;
     for (let index = 0; index < tiles.length; index++) {
@@ -1342,7 +1342,7 @@ export function controlledHoldings(
   // them and what a bargain lent away. Where a piece is standing cannot enter
   // it, and a seat that spends its turn marching now pays for this once instead
   // of once a step. See "The two clocks" in `slate.ts`.
-  const swept = slateMemo(state, 'economy', `holdings:${kind}`, String(playerId), () =>
+  const swept = slateMemo(state, 'ground', `holdings:${kind}`, String(playerId), () =>
     sweepHoldings(state, playerId, kind),
   );
   // **The remembered list, handed straight back — identity and all** (the claim
@@ -1791,7 +1791,7 @@ export function ownedTiles(state: GameState, city: City): Tile[] {
  * print it and compare.
  */
 function outlyingTiles(state: GameState): Readonly<Record<number, readonly Tile[]>> {
-  return slateMemo(state, 'economy', 'outlyingTiles', '', () => {
+  return slateMemo(state, 'ground', 'outlyingTiles', '', () => {
     const { map } = state;
     const centres = new Map<number, Hex>();
     for (const city of state.cities) centres.set(city.id, offsetToAxial(city.col, city.row));
@@ -2508,7 +2508,7 @@ export function workableSeats(state: GameState, city: City): number {
  * one rung finer: the cap stops at the swap that would put the town into
  * deficit rather than abandoning the whole arrangement.
  */
-export function assignCitizens(state: GameState, city: City): void {
+export function assignCitizens(state: GameState, city: City, cause?: 'citizenFocus'): void {
   // **Announced only when the citizens actually moved** (batch M3, `slate.ts`).
   //
   // A worked hex is a field an empire-wide reading can fold — a card paying per
@@ -2553,7 +2553,10 @@ export function assignCitizens(state: GameState, city: City): void {
   if (city.avoidGrowth === true && surplusMoverFor(state, city, city.queue[0]) === null) {
     capFoodSurplus(state, city, weights);
   }
-  if (!sameAssignment(before, city.workedTiles)) bumpEconomy(state);
+  if (!sameAssignment(before, city.workedTiles)) {
+    if (cause === 'citizenFocus') bumpCitizenFocus(state);
+    else bumpEconomy(state);
+  }
 }
 
 /** writeAssignment stores a new sorted list, so equal coordinates mean the same citizens stayed in place. */
@@ -3049,8 +3052,8 @@ function chooseCitizens(
  *
  * One call, one city, no allocation.
  */
-export function refreshCityDerived(state: GameState, city: City): void {
-  assignCitizens(state, city);
+export function refreshCityDerived(state: GameState, city: City, cause?: 'citizenFocus'): void {
+  assignCitizens(state, city, cause);
 }
 
 /**

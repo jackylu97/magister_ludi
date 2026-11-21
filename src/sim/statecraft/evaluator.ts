@@ -6811,7 +6811,7 @@ export function workLineAt(state: GameState, playerId: number, tile: Tile): numb
  * nothing depends on the order a `Map` or a `Set` iterates.
  */
 export function workLinesOf(state: GameState, playerId: number): WorkLines {
-  return slateMemo(state, 'economy', 'workLines', String(playerId), () => {
+  return slateMemo(state, 'ground', 'workLines', String(playerId), () => {
     const { map } = state;
     const owners = tileOwnerField(state);
     const counted = new Uint8Array(map.tiles.length);
@@ -6958,7 +6958,7 @@ interface FarmWaterField {
  * no such work pays one walk a clock tick and nothing per empire.
  */
 function wateringWorks(state: GameState): readonly number[] {
-  return slateMemo(state, 'economy', 'wateringWorks', 'map', () => {
+  return slateMemo(state, 'ground', 'wateringWorks', 'map', () => {
     const found: number[] = [];
     const tiles = state.map.tiles;
     for (let index = 0; index < tiles.length; index++) {

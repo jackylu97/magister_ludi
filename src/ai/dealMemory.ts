@@ -49,7 +49,7 @@ import type { Command } from '../sim/commands';
 import { type DealTerms, proposalById } from '../sim/deals';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
-import { foldEmpireRates } from '../sim/yields/empire';
+import { readEmpireRates } from '../sim/readings';
 
 /** One paper, refused, on a board the fingerprint describes. */
 interface RefusalRecord {
@@ -167,7 +167,7 @@ function holdingsKey(state: GameState, refuserId: number, give: DealTerms, take:
   }
   const tribute = take.goldPerTurn ?? 0;
   if (tribute > 0) {
-    const rate = foldEmpireRates(state, refuserId).goldPerTurn ?? 0;
+    const rate = readEmpireRates(state, refuserId).goldPerTurn ?? 0;
     parts.push(`tribute:${rate >= tribute ? 'enough' : 'short'}`);
   }
   for (const cityId of [...(take.cities ?? [])].sort((a, b) => a - b)) {

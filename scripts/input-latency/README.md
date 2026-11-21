@@ -61,4 +61,4 @@ For Dawnreach, capture `turn120-city-actions.json` with both bot modes. Pass one
 node scripts/input-latency/check-yields.mjs dawnreach /tmp/dawnreach-on-off.json
 ```
 
-The final move passes through Dawnreach. Its measured ceiling per run is **17 fresh city breakdowns and one fresh empire breakdown**. The previous seven clicks have zero budgets. A future improvement may reduce either count. These budgets apply to the named routes and end at visible feedback. Work that happens later needs its own measurement.
+The final move passes through Dawnreach and leaves its garrison as it started. All eight clicks now have a budget of **zero fresh city and empire breakdowns** in each mode. Before the cache change, the last click rebuilt 17 city lists and one empire list in each mode. The budget ends at the first visible response. A move that stops in the city can change its income and has a separate simulation test.

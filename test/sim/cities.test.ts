@@ -113,6 +113,10 @@ import { PROJECT_IDS } from '../../src/sim/projectData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { roundYield } from '../../src/sim/yieldFormat';
+import { readCity, readEmpire } from '../../src/sim/readings';
+import { connectedCityIds } from '../../src/sim/roads';
+import { slateMemo } from '../../src/sim/slate';
+import { garrisonedUnitIds } from '../../src/sim/statecraft/evaluator';
 import { createGame, newGame } from './newGameHelpers';
 
 const CITIES = RULES.cities;
@@ -1175,6 +1179,49 @@ describe('setCitizenFocus', () => {
     expect(city.focus).toBe('production');
     // Immediately, not at the end of the turn: register entry 21.
     expect(worked(city)).toEqual(['9,4']);
+  });
+
+  it('keeps ground and garrison indexes while updating income in the capital and a foreign trade partner', () => {
+    const state = flatState(24, 12);
+    state.wars = [];
+    const capital = plant(state, 0, 2, 5);
+    const city = town(state);
+    const partner = plant(state, 1, 16, 5);
+    const trader = createUnit(state, 0, 'trader', city.col, city.row);
+    trader.trade = { from: city.id, to: partner.id, outbound: true };
+    state.players[0]!.timed = [{
+      card: 'theNestEgg', expiresTurn: 999,
+      effect: { kind: 'pays', where: 'capital', basis: 'count', count: 'empireYield', voice: 'production', to: 'science', amount: 1 },
+    }];
+    state.players[1]!.timed = [{
+      card: 'theLongWatch', expiresTurn: 999,
+      effect: { kind: 'pays', where: 'city', gold: 5, scope: { test: 'routeEndsHere', farEnd: { test: 'workingImprovement', improvements: ['mine'] } } },
+    }];
+    bumpRevision(state);
+    const roads = connectedCityIds(state, 0);
+    garrisonedUnitIds(state, 0);
+    const garrison = () => slateMemo(state, 'economy', 'garrison', `${city.id}:0`, () => {
+      throw new Error('The warmed garrison index expired.');
+    });
+    const roster = garrison();
+    const capitalScience = readCity(state, capital).flats.science;
+    const partnerGold = readCity(state, partner).flats.gold;
+    readEmpire(state, 0);
+    readEmpire(state, 1);
+
+    expect(applyCommand(state, point(0, city.id, 'production'))).toEqual({ ok: true });
+    expect(worked(city)).toEqual(['9,4']);
+    expect(connectedCityIds(state, 0)).toBe(roads);
+    expect(garrison()).toBe(roster);
+    expect(readCity(state, capital).flats.science).toBeGreaterThan(capitalScience);
+    expect(readCity(state, partner).flats.gold).toBeGreaterThan(partnerGold);
+    const fresh = clone(state);
+    for (const seat of [0, 1]) expect(readEmpire(state, seat)).toEqual(readEmpire(fresh, seat));
+
+    const soldier = createUnit(state, 0, 'warrior', city.col, city.row);
+    expect(applyCommand(state, point(0, city.id, 'food'))).toEqual({ ok: true });
+    expect(garrisonedUnitIds(state, 0).has(soldier.id)).toBe(true);
+    expect(connectedCityIds(state, 0)).not.toBe(roads);
   });
 
   it('writes nothing at all for Default — presence is the state', () => {
@@ -3702,7 +3749,7 @@ describe('the mid-turn refresh register', () => {
       }
     }
     expect(callers).toEqual([
-      'cities.ts: assignCitizens(state, city);',
+      'cities.ts: assignCitizens(state, city, cause);',
       'yields/empire.ts: assignCitizens(state, city);',
     ]);
     // And by name, so that two calls in the wrong two places cannot pass:

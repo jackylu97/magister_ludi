@@ -226,7 +226,7 @@ export function connectedCities(state: GameState, playerId: number): ConnectedCi
  * because its other callers ask it once for a whole phase or a whole fold.
  */
 export function connectedCityIds(state: GameState, playerId: number): readonly number[] {
-  return slateMemo(state, 'economy', 'connectedCityIds', String(playerId), () =>
+  return slateMemo(state, 'ground', 'connectedCityIds', String(playerId), () =>
     connectedCities(state, playerId).map((entry) => entry.city.id),
   );
 }

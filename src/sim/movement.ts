@@ -89,7 +89,7 @@ import { cardLandfallEffects, timedEffectIsLive } from './statecraft';
 import { lawReadsTrenches, opusSiegeInForce, upkeepAsksWhere } from './statecraft/evaluator';
 import { isWaterTerrain } from './terrainData';
 import { isCombatant, unitDef } from './unitData';
-import { bumpEconomy } from './slate';
+import { type CityGateReadings, bumpCityGate, bumpEconomy, restoreAfterCityGate } from './slate';
 
 
 /**
@@ -180,18 +180,25 @@ interface AdvanceResult {
  * `advanceAlongPath` announces a hex it paved, and `recomputeMarchSight` a seat's
  * sight: the two other things a plain order can write that these readings fold.
  */
-function stepIsSeen(state: GameState, unit: Unit, from: Tile, to: Tile): boolean {
+function stepIsSeen(
+  state: GameState, unit: Unit, from: Tile, to: Tile,
+): boolean | { cityId: number; entering: boolean } {
   if (unit.fortifiedTurns !== undefined && lawReadsTrenches(state, unit.ownerId)) return true;
   const def = unitDef(unit.type);
   const soldier = isCombatant(def);
-  if (cityAt(state, from.col, from.row) || cityAt(state, to.col, to.row)) {
-    if (soldier || def.greatWork === true || upkeepAsksWhere(state, unit, 'gate')) return true;
-  }
+  const left = cityAt(state, from.col, from.row);
+  const entered = cityAt(state, to.col, to.row);
   const wasHome = tileOwnerPlayerId(state, from.col, from.row) === unit.ownerId;
   const isHome = tileOwnerPlayerId(state, to.col, to.row) === unit.ownerId;
   if (wasHome !== isHome && upkeepAsksWhere(state, unit, 'border')) return true;
   if (blockades(state, unit)) return true;
-  return soldier && opusSiegeInForce(state);
+  if (soldier && opusSiegeInForce(state)) return true;
+  const town = left ?? entered;
+  if (town && (soldier || def.greatWork === true || upkeepAsksWhere(state, unit, 'gate'))) {
+    if (left && entered) return true;
+    return { cityId: town.id, entering: entered !== undefined };
+  }
+  return false;
 }
 
 /**
@@ -227,6 +234,7 @@ export function advanceAlongPath(
   let cleared = false;
   let index = 0;
   const arrivals: ArrivalReport[] = [];
+  let gateEntry: CityGateReadings | undefined;
   // The route being walked: `path`, until a detour replaces it.
   let route: readonly Cell[] = path;
   const walked: Cell[] = [];
@@ -306,7 +314,13 @@ export function advanceAlongPath(
     // After all the writes, because `arriveOnTile` below asks the meters. A step of
     // a plain order that nothing can see does not announce: that is what lets a seat
     // march without pricing its empire again. See `stepIsSeen`.
-    if (seen) bumpEconomy(state);
+    if (seen === true) {
+      bumpEconomy(state);
+      gateEntry = undefined;
+    } else if (seen) {
+      const prior = bumpCityGate(state, seen.cityId, unit.ownerId, seen.entering);
+      if (seen.entering) gateEntry = prior;
+    }
     // And the other half of "the unit entered a tile": whatever was standing on
     // it. Beside `breakFortify` for exactly its reason — one place a position
     // changes, one place that can forget — and per *step* rather than at the end
@@ -328,7 +342,13 @@ export function advanceAlongPath(
     // bill and the connected towns read roads, and a plain order's result does not
     // report one, so that order announces it here.
     if (plainOrder && unpaved && tile.road !== undefined) bumpEconomy(state);
-    if (!isEmptyArrival(found)) arrivals.push(found);
+    if (!isEmptyArrival(found)) {
+      arrivals.push(found);
+      gateEntry = undefined;
+    } else if (typeof seen === 'object' && !seen.entering) {
+      restoreAfterCityGate(state, seen.cityId, gateEntry);
+      gateEntry = undefined;
+    }
     walked.push({ col: tile.col, row: tile.row });
     steps += 1;
     index += 1;

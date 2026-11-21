@@ -23,6 +23,7 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS } from '../../src/sim/buildingData';
 import { getTileAt } from '../../src/sim/map';
 import { readCity, readEmpirePercents } from '../../src/sim/readings';
+import { setSlateShadow, slateShadow } from '../../src/sim/slate';
 import { type GameConfig, type GameState, bumpRevision, realPlayers } from '../../src/sim/state';
 import { cardBuildingPercents, cardCountsTownGround } from '../../src/sim/statecraft/evaluator';
 import type { DoctrineId, OrderId } from '../../src/sim/statecraftData';
@@ -79,6 +80,52 @@ function compareEveryRow(state: GameState): Tally {
 }
 
 describe('a what-if handed the town’s plain reading', () => {
+  it('keeps the held building lines and appends only new candidates in their original order', () => {
+    const { state } = growDuel(30);
+    const city = state.cities.find((town) => town.ownerId === 0)!;
+    city.buildings = ['granary'];
+    bumpRevision(state);
+    const empire = readEmpirePercents(state, 0);
+    const standing = readCity(state, city);
+    const candidates = ['library', 'granary', 'library'] as const;
+    const preview = explainCity(state, city, candidates, empire, standing);
+    expect(preview).toStrictEqual(explainCity(state, city, candidates, empire));
+    expect(preview.lines.find((line) => line.step === 8)).toBe(standing.lines.find((line) => line.step === 8));
+  });
+
+  it('reuses fixed building yields across a population change and updates science per citizen', () => {
+    const { state } = growDuel(30);
+    const city = state.cities.find((town) => town.ownerId === 0)!;
+    const before = slateShadow();
+    setSlateShadow(false);
+    try {
+      city.buildings = ['granary'];
+      bumpRevision(state);
+      const fixed = readCity(state, city).lines.find((line) => line.step === 8)!;
+      city.population += 1;
+      bumpRevision(state);
+      expect(readCity(state, city).lines.find((line) => line.step === 8)).toBe(fixed);
+
+      city.buildings.push('museion');
+      bumpRevision(state);
+      const scienceAt = () => readCity(state, city).lines.find((line) => line.building === 'museion')!.science;
+      const science = scienceAt();
+      city.population += 1;
+      bumpRevision(state);
+      expect(scienceAt()).toBe(science + 0.5);
+      expect(readCity(state, city)).toStrictEqual(explainCity(state, city));
+
+      city.buildings.reverse();
+      bumpRevision(state);
+      expect(readCity(state, city)).toStrictEqual(explainCity(state, city));
+      city.buildings.pop();
+      bumpRevision(state);
+      expect(readCity(state, city)).toStrictEqual(explainCity(state, city));
+    } finally {
+      setSlateShadow(before);
+    }
+  });
+
   it('gives the list a full walk gives, for every building in every town', () => {
     const { state } = growDuel(30);
     const tally = compareEveryRow(state);

@@ -102,7 +102,7 @@ import { buildingCityStat, foldBuildingCityStat } from '../sim/buildingEffects';
 import { controlledResources, hasResource, lendableCopies, lentCopyPercent, resourceCopies } from '../sim/cities';
 import { cityBaseStrength } from '../sim/combat';
 import { explainTerrainDefense } from '../sim/terrainData';
-import { foldEmpireRates } from '../sim/yields/empire';
+import { readEmpireRates } from '../sim/readings';
 import type { Command } from '../sim/commands';
 import {
   type DealProposal,
@@ -1587,18 +1587,9 @@ export function counterTerms(
   return counter;
 }
 
-/**
- * What an empire actually earns in a turn — the cap on a tribute.
- *
- * The simulation's own books (`foldEmpireRates`), which is the same fold the
- * bot's solvency reads and the top bar prints, rather than `explainEmpireGold`:
- * that one is the *ledger of standing costs* (connections against maintenance)
- * and a rich empire can read nought on it. A tribute nobody can pay is not a
- * term, and an uncapped one would close every gap the counter is asked to fill
- * — which would make the town clause below unreachable.
- */
+/** Tribute uses the same net gold rate as the bot's solvency check. */
 function goldRate(state: GameState, playerId: number): number {
-  return foldEmpireRates(state, playerId).goldPerTurn ?? 0;
+  return readEmpireRates(state, playerId).goldPerTurn ?? 0;
 }
 
 /**

@@ -330,7 +330,6 @@ import { foldTile } from '../sim/yields/hex';
 // weighing of a hex and the seams in reach, which the board's own marker reads.
 import { explainSite, siteWorth } from '../sim/sites';
 import {
-  empirePercents,
   explainCity,
   foldCity,
   type CityReading,
@@ -5680,8 +5679,9 @@ function frontRowWorth(
 ): Appraisal {
   if (item.kind === 'building') {
     const empire = readEmpirePercents(state, player.id);
-    const base = foldCity(state, city, [], null, readCity(state, city));
-    const after = foldCity(state, city, [item.id], null, explainCity(state, city, [item.id], empire));
+    const standing = readCity(state, city);
+    const base = foldCity(state, city, [], null, standing);
+    const after = foldCity(state, city, [item.id], null, explainCity(state, city, [item.id], empire, standing));
     const terms: ValueTerm[] = [
       nest('what this town would actually make with it', explainYields(yieldDelta(after, base), ctx)),
       nest('what its row gives beyond a yield', explainBuildingRow(item.id, ctx, city)),
@@ -6366,7 +6366,7 @@ function buildCandidates(
     if (buildingDef(id).endsTheGame === true && !isOpusTown(state, player, city)) continue;
     const after =
       seat < 0
-        ? foldCity(state, city, [id], null, explainCity(state, city, [id], empirePercents(state, player.id)))
+        ? foldCity(state, city, [id], null, explainCity(state, city, [id], readEmpirePercents(state, player.id), standing))
         : folds.with(seat, id);
     const delta = yieldDelta(after, base);
     const terms: ValueTerm[] = [

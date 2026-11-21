@@ -417,7 +417,7 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   const scopedDemand = cardRuleIsScoped(state, playerId, 'happinessDemand');
   const realmDemand = ruleFactor(state, playerId, 'happinessDemand');
   // One tile scan serves every city and player until ownership or its improvements change.
-  const happyWorks = slateMemo(state, 'economy', 'improvementHappiness', 'cities', () => {
+  const happyWorks = slateMemo(state, 'ground', 'improvementHappiness', 'cities', () => {
     const byCity = new Map<number, { name: string; amount: number }[]>();
     for (let i = 0; i < state.map.tiles.length; i++) {
       const id = state.map.tiles[i]!.improvement;

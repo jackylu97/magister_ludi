@@ -1420,6 +1420,22 @@ export interface CityYieldLine extends CityYields {
   class: LedgerClass;
 }
 
+/** Only the printed science per citizen depends on the town. Keep fractions in each line. */
+export function cityBuildingLine(entry: BuildingYieldContribution, population: number): CityYieldLine {
+  return {
+    step: 8,
+    source: entry.source,
+    class: isWonder(entry.building) ? 'wonders' : 'buildings',
+    building: entry.building,
+    food: entry.food,
+    production: entry.production,
+    gold: entry.gold,
+    science: entry.science + population * entry.sciencePerPop,
+    culture: entry.culture,
+    faith: entry.faith,
+  };
+}
+
 /**
  * The six voices a list of lines adds up to — **the** sum of one, and what
  * `CityReading.flats` is.
@@ -1510,17 +1526,21 @@ export function explainCity(
    *   - steps 1 and 2 when the candidates cannot change the ground
    *     (`candidateReachesGround`): they read `hypothetical` only through
    *     `cityContext`;
+   *   - step 8 for the buildings the town already holds. A candidate can
+   *     add a building, and the town's population stays the same;
    *   - step 9 when no share a card puts on the town's buildings reaches a
    *     candidate (`sharesReachCandidate`): it then reads only the buildings
    *     the town holds;
    *   - the percentages when both readings were handed the same `empire`.
    *
-   * Steps 8 and 10 are always worked out here. The copied lines are the same
+   * Step 10 uses the new total. The copied lines are the same
    * objects in the same order, so the list, its fold and every figure are what a
    * full walk gives. The bot's what-if grid asks a town this question for every
    * building it weighs (`townFolds.ts`).
    */
   standing?: CityReading,
+  /** Settled readers can reuse a building row across cities with the same inputs. */
+  linesForBuilding?: (id: BuildingId, population: number) => readonly CityYieldLine[],
 ): CityReading {
   const lines: CityYieldLine[] = [];
   // The lines a what-if may copy (see `standing`). `null` for every real reading.
@@ -1695,33 +1715,20 @@ export function explainCity(
     for (const line of explainPalaceYield(state, city)) say(7, line.source, 'buildings', line);
   }
 
-  // **8 — the buildings.** `explainCityBuildings` is the only place a building's
-  // worth is read — a candidate the city already has is skipped in there, because
-  // a preview that promised a second library would be a preview that lies. A
-  // wonder is told from an ordinary building by `isWonder` and not by a name.
-  for (const entry of explainCityBuildings(state, city, hypothetical)) {
-    say(
-      8,
-      entry.source,
-      isWonder(entry.building) ? 'wonders' : 'buildings',
-      {
-        food: entry.food,
-        production: entry.production,
-        gold: entry.gold,
-        // Per *entry* rather than per building, and exact since batch X: two
-        // half-science sources pay for two halves and both halves are kept. It
-        // rides on the line's own science because the town banks one figure —
-        // the split between the row's beaker and the citizens' is a fact about
-        // the row, which `BuildingYieldContribution` still carries.
-        science: entry.science + city.population * entry.sciencePerPop,
-        culture: entry.culture,
-        // The shrine and the temple are why this voice is here: a building may
-        // pay faith since 2026-08-26, and faith is banked into
-        // `Player.faithPool` by `collectYields` like every other source of it.
-        faith: entry.faith,
-      },
-      { building: entry.building },
-    );
+  // Step 8 has one source per held building, including buildings granted by an Order.
+  // A preview can reuse those lines and price only the additions.
+  if (borrowed !== null) {
+    copySteps(lines, borrowed, 8, 8);
+    for (const id of hypothetical) {
+      if (borrowed.some((line) => line.step === 8 && line.building === id)) continue;
+      for (const entry of explainBuildingYield(id)) lines.push(cityBuildingLine(entry, city.population));
+    }
+  } else if (linesForBuilding !== undefined && hypothetical.length === 0) {
+    for (const id of townBuildings(state, city)) lines.push(...linesForBuilding(id, city.population));
+  } else {
+    for (const entry of explainCityBuildings(state, city, hypothetical)) {
+      lines.push(cityBuildingLine(entry, city.population));
+    }
   }
 
   // **9 — the cards' building shares.** What the deck adds to those same shelves

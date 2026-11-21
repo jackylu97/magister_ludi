@@ -40,7 +40,7 @@ import * as empireGold from '../../src/sim/empireGold';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { type GameState, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
-import { readEmpire } from '../../src/sim/readings';
+import { readEmpire, readEmpireRates } from '../../src/sim/readings';
 import { setSlateShadow, slateShadow } from '../../src/sim/slate';
 import { tradeLedger } from '../../src/ui/tradeScreen';
 import { empireGlance } from '../../src/ui/empireDrawer';
@@ -144,6 +144,21 @@ function counting<T>(
 }
 
 describe('the empire’s percentages are taken once a render', () => {
+  it.each(['rates first', 'headline first'])('shares each completed city total in either order: %s', (order) => {
+    const state = empire(12);
+    const folded = counting(town, 'foldCity', () => {
+      if (order === 'rates first') readEmpireRates(state, 0);
+      const headline = readEmpire(state, 0);
+      const rates = readEmpireRates(state, 0);
+      return { headline, rates };
+    });
+    expect(folded.count).toBe(12);
+    expect(folded.result.rates.foodPerTurn).toBe(folded.result.headline.totals.food);
+    for (const { city, total } of folded.result.headline.towns) {
+      expect(total).toEqual(town.foldCity(state, city, [], city.queue[0]));
+    }
+  });
+
   it('sweeps the meters once for a twelve-town empire, not two dozen times', () => {
     // **One**, and it is `readEmpire`' own hoist. Before that hoist it was one
     // sweep per town — twenty-four — and the strip is redrawn on every accepted
@@ -209,7 +224,8 @@ describe('the empire’s percentages are taken once a render', () => {
     expect(source('topBar.ts')).toContain('readEmpire(state, playerId).totals');
     expect(source('topBar.ts')).not.toContain('function civYields(');
     const reading = declaration('export function readCity(', 'readings.ts');
-    expect(reading).toContain('explainCity(state, city, [], readEmpirePercents(state, city.ownerId))');
+    expect(reading).toContain('const empire = readEmpirePercents(state, city.ownerId)');
+    expect(reading).toContain('explainCity(state, city, [], empire');
     expect(declaration('export function readEmpirePercents(', 'readings.ts')).toContain(
       'empirePercents(state, playerId)',
     );

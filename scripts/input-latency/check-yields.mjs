@@ -47,13 +47,9 @@ for (const report of reports) {
       total.cities += cities;
       total.empires += empires;
       total.clicks++;
-      // Only the last move in the Dawnreach recording crosses the city tile.
-      const crossesCity = !known && i === expected.length - 1;
-      const cityLimit = crossesCity ? 17 : 0, empireLimit = crossesCity ? 1 : 0;
       const label = `${scenario}, bots ${run.mode}, action ${i + 1} (${event.expected.kind} ${event.expected.unit})`;
-      assert.ok(cities <= cityLimit && empires <= empireLimit,
-        `${label}: ${cities} city and ${empires} empire breakdowns; limits are ${cityLimit} and ${empireLimit}.`);
-      if (crossesCity) console.log(`${label}: ${cities}/${cityLimit} city and ${empires}/${empireLimit} empire breakdowns.`);
+      assert.equal(cities, 0, `${label} rebuilt ${cities} city breakdowns.`);
+      assert.equal(empires, 0, `${label} rebuilt ${empires} empire breakdowns.`);
     }
     // Older captures lack the hook list. At least one economic reader must be present in each of those runs.
     if (report.measuredFunctions === undefined) assert.ok(total.reads > readsBefore, 'The capture contains no evidence of yield instrumentation.');

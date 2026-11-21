@@ -331,7 +331,7 @@ describe('the audit holds in the source', () => {
     // building's per-citizen beaker into the building's own line; both are still
     // the exact product, which is the claim.
     { path: 'src/sim/yields/town.ts', snippet: 'science: city.population * CITIES.sciencePerPop,' },
-    { path: 'src/sim/yields/town.ts', snippet: 'science: entry.science + city.population * entry.sciencePerPop,' },
+    { path: 'src/sim/yields/town.ts', snippet: 'science: entry.science + population * entry.sciencePerPop,' },
     { path: 'src/sim/yields/hex.ts', snippet: 'share[voice] = (share[voice] * worksPercent) / 100;' },
     { path: 'src/sim/yields/hex.ts', snippet: 'share[voice] = (ground[voice] * groundPercent) / 100;' },
     { path: 'src/sim/cities.ts', snippet: 'return surplus * factor;' },

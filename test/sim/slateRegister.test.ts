@@ -746,10 +746,13 @@ describe('the register of what can see a piece', () => {
     // order. A walk inside a phase announces every step.
     const walk = bodyOf('movement.ts', 'advanceAlongPath')!;
     expect(walk).toContain('const seen = !plainOrder || stepIsSeen(state, unit, from, tile);');
-    expect(walk).toContain('if (seen) bumpEconomy(state);');
-    // After both writes, because `arriveOnTile` asks the meters.
-    expect(walk.indexOf('if (seen) bumpEconomy(state);')).toBeGreaterThan(walk.indexOf('breakFortify(unit);'));
-    expect(walk.indexOf('if (seen) bumpEconomy(state);')).toBeLessThan(walk.indexOf('arriveOnTile('));
+    // Each visible change announces after both writes and before arrival reads the meters.
+    for (const call of ['bumpEconomy(state);', 'bumpCityGate(state, seen.cityId, unit.ownerId, seen.entering)']) {
+      expect(walk.indexOf(call)).toBeGreaterThan(walk.indexOf('breakFortify(unit);'));
+      expect(walk.indexOf(call)).toBeLessThan(walk.indexOf('arriveOnTile('));
+    }
+    expect(walk).toContain('if (seen === true)');
+    expect(walk).toContain('else if (seen)');
     // A road is the arrival's own write, and the order announces it after the arrival.
     expect(walk).toContain('if (plainOrder && unpaved && tile.road !== undefined) bumpEconomy(state);');
     expect(walk.indexOf('tile.road !== undefined) bumpEconomy')).toBeGreaterThan(walk.indexOf('arriveOnTile('));

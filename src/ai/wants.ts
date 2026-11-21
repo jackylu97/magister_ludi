@@ -1878,8 +1878,9 @@ function explainRelic(
   for (const city of ownedCities(state, player.id)) {
     if (city.buildings.includes(RELIC)) continue;
     if (!cityKeepsRelics(city)) continue;
-    const before = foldCity(state, city, [], null, readCity(state, city));
-    const after = foldCity(state, city, [RELIC], null, explainCity(state, city, [RELIC], empire));
+    const standing = readCity(state, city);
+    const before = foldCity(state, city, [], null, standing);
+    const after = foldCity(state, city, [RELIC], null, explainCity(state, city, [RELIC], empire, standing));
     const worth = explainYields(yieldDelta(after, before), ctx);
     if (worth.terms.length === 0) continue;
     return { town: city.name, worth };

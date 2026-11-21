@@ -37,8 +37,7 @@
 import { leaderBannerInk } from '../art/leaderBanners';
 import { type LeaderId, leaderDef, seatName } from '../sim/leaderData';
 import type { CardClause } from '../sim/statecraft';
-import { type MeterContribution, explainAuthority, explainHappiness } from '../sim/meters';
-import { readEmpire } from '../sim/readings';
+import { readEmpire, readMeter } from '../sim/readings';
 import { isUnlocked } from '../sim/tech';
 import { improvementOpenTo } from '../sim/improvements';
 import type { ImprovementId } from '../sim/improvementData';
@@ -191,19 +190,15 @@ export function leaderLedgerLines(state: GameState, playerId: number): LeaderLed
   }
 
   const lines = order.map((source) => byLabel.get(source)!);
-  const meters: { word: string; list: MeterContribution[] }[] = [
-    { word: 'happiness', list: explainHappiness(state, playerId) },
-    { word: 'authority', list: explainAuthority(state, playerId) },
-  ];
-  for (const meter of meters) {
-    for (const entry of meter.list) {
+  for (const meter of ['happiness', 'authority'] as const) {
+    for (const entry of readMeter(state, playerId, meter).entries) {
       const card = labels.get(entry.source);
       if (card === undefined || entry.value === 0) continue;
       lines.push({
         source: entry.source,
         card,
         yields: {},
-        meter: { word: meter.word, value: entry.value },
+        meter: { word: meter, value: entry.value },
       });
     }
   }

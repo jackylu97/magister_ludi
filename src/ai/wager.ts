@@ -114,7 +114,7 @@ import {
   wagerStakeOf,
   wagerStanding,
 } from '../sim/wagers';
-import { foldEmpireRates } from '../sim/yields/empire';
+import { readEmpireRates } from '../sim/readings';
 import { worldAgeCountdown } from '../sim/worldClock';
 
 // --- what a reading is asking for --------------------------------------------
@@ -244,7 +244,7 @@ function aimOf(id: WagerId): WagerAim {
 function flowRates(state: GameState, playerId: number): Partial<Record<WagerCount, number>> {
   const bag = ledgerBagOfEmpire(state, playerId);
   const seat = capitalCityOf(state, playerId);
-  const rates = foldEmpireRates(state, playerId);
+  const rates = readEmpireRates(state, playerId);
 
   const food = rates.foodPerTurn ?? 0;
   const production = rates.productionPerTurn ?? 0;

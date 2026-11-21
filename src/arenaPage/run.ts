@@ -12,11 +12,7 @@
  *   1. **The game is played with the real driver.** Every command comes out of
  *      `driveBots`, which is the loop the product plays its bots with. A page
  *      with a loop of its own would be a page measuring a game nobody plays.
- *   2. **Nothing is counted here.** Every figure is the simulation's own —
- *      `foldEmpireRates` for the four banked voices (the very fold
- *      `collectYields` banks, maintenance included), `foldCity` for food and
- *      hammers, `city.population` for citizens. This file sums over cities and
- *      filters unit rows; it computes no rate and invents no rule.
+ *   2. The final report uses the simulation's base rates, population and unit roles.
  *
  * The tuning sheet rides in through `withAiTuning` (see its docblock in
  * `aiConfig.ts`), which is scoped: a thrown exception cannot leave a dial turned
@@ -27,13 +23,7 @@ import { type PersonaOverride, withAiTuning } from '../ai/aiConfig';
 import { driveBots } from '../ai/driver';
 import { type Game, createGame } from '../sim/game';
 import { type PlayerSpec, realPlayers } from '../sim/state';
-import {
-  foldCity,
-} from '../sim/yields/town';
-import {
-  foldEmpireRates,
-} from '../sim/yields/empire';
-import { authorityOf, happinessOf } from '../sim/meters';
+import { readEmpireRates, readMeter } from '../sim/readings';
 import { isCombatant, isExplorer, unitDef } from '../sim/unitData';
 import { seatName } from '../sim/leaderData';
 
@@ -56,14 +46,7 @@ export interface ArenaSpec {
   tuning: PersonaOverride | null;
 }
 
-/**
- * One seat's state of the world at the final turn.
- *
- * The four rate voices are per-turn (`foldEmpireRates`); `food` and
- * `production` are the same per-turn reading summed over the empire's towns,
- * because there is no empire-scale fold of those two — a basket and a hammer are
- * city-scoped facts and the sim never adds them up.
- */
+/** Food and production in the base rates are the sums of the cities' current yields. */
 interface SeatReading {
   playerId: number;
   name: string;
@@ -193,21 +176,14 @@ export function runArenaGame(spec: ArenaSpec, onTurn?: (turn: number) => void): 
 function readSeat(game: Game, playerId: number): SeatReading {
   const { state } = game;
   const player = state.players[playerId]!;
-  const rates = foldEmpireRates(state, playerId);
+  const rates = readEmpireRates(state, playerId);
 
   let cities = 0;
   let population = 0;
-  let food = 0;
-  let production = 0;
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     cities += 1;
     population += city.population;
-    // The town priced toward what it is actually building, which is the reading
-    // `foldEmpireRates` takes for the other four voices — one set of books.
-    const yields = foldCity(state, city, [], city.queue[0]);
-    food += yields.food;
-    production += yields.production;
   }
 
   let units = 0;
@@ -231,8 +207,8 @@ function readSeat(game: Game, playerId: number): SeatReading {
     eliminated: player.eliminated === true,
     cities,
     population,
-    food,
-    production,
+    food: rates.foodPerTurn ?? 0,
+    production: rates.productionPerTurn ?? 0,
     gold: player.gold,
     // `EmpireRates`'s voices are optional — a reading may be asked of a shape
     // that banks nothing — so a missing line is nought rather than a hole.
@@ -240,10 +216,8 @@ function readSeat(game: Game, playerId: number): SeatReading {
     science: rates.sciencePerTurn ?? 0,
     culture: rates.culturePerTurn ?? 0,
     faith: rates.faithPerTurn ?? 0,
-    // The two meters are standings, not rates — the same folds the top bar
-    // prints (`happinessOf`/`authorityOf`), asked once at the reading turn.
-    happiness: happinessOf(state, playerId),
-    authority: authorityOf(state, playerId),
+    happiness: readMeter(state, playerId, 'happiness').total,
+    authority: readMeter(state, playerId, 'authority').total,
     units,
     soldiers,
     scouts,

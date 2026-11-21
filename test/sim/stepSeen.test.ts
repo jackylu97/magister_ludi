@@ -23,7 +23,9 @@ import { applyCommand } from '../../src/sim/commands';
 import { type Tile, createMap, getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { advanceAlongPath } from '../../src/sim/movement';
 import { townFolds } from '../../src/ai/townFolds';
+import { raiseToRank } from '../../src/sim/ranks';
 import { readCity, readEmpire, readEmpireRates } from '../../src/sim/readings';
+import { connectedCityIds } from '../../src/sim/roads';
 import { economyStamp, setSlateShadow, slateShadow } from '../../src/sim/slate';
 import {
   type City,
@@ -341,6 +343,70 @@ describe('the data `lawReadsTrenches` relies on', () => {
 });
 
 describe('a piece at a town’s gate', () => {
+  it('reuses the ordered yield lists when a soldier crosses a town in a single march', () => {
+    const state = board();
+    const town = inlandTown(state);
+    give(state, 0, [
+      { kind: 'pays', where: 'city', basis: 'count', to: 'gold', amount: 5, count: 'garrison' },
+    ] as CardEffect[]);
+    const soldier = createUnit(state, 0, 'warrior', 11, 8);
+    const city = readCity(state, town);
+    const empire = readEmpire(state, 0);
+    const stamp = economyStamp(state);
+    const march = advanceAlongPath(state, rested(soldier), [{ col: 12, row: 8 }, { col: 13, row: 8 }], undefined, true);
+    expect(march.steps).toBe(2);
+    expect(economyStamp(state)).toBe(stamp + 2);
+    expect(readCity(state, town)).toBe(city);
+    expect(readEmpire(state, 0)).toBe(empire);
+    expectHonest(state, 0);
+  });
+
+  it('prices a discovery collected while crossing a town', () => {
+    const state = board();
+    const town = inlandTown(state);
+    at(state, town.col, town.row).discovery = 'village';
+    const soldier = createUnit(state, 0, 'warrior', 11, 8);
+    const empire = readEmpire(state, 0);
+    const march = advanceAlongPath(state, rested(soldier), [{ col: 12, row: 8 }, { col: 13, row: 8 }], undefined, true);
+    expect(march.steps).toBe(2);
+    expect(march.arrivals).toHaveLength(1);
+    expect(readEmpire(state, 0)).not.toBe(empire);
+    expectHonest(state, 0);
+  });
+
+  it('updates a rank bonus when two soldiers trade places at a town', () => {
+    const state = board();
+    const town = inlandTown(state);
+    give(state, 0, [
+      { kind: 'pays', where: 'city', gold: 5, scope: { test: 'garrisonRank', rank: 'veteran' } },
+    ] as CardEffect[]);
+    const veteran = createUnit(state, 0, 'warrior', 11, 8);
+    raiseToRank(state, veteran, 'veteran');
+    const recruit = createUnit(state, 0, 'warrior', town.col, town.row);
+    const before = readCity(state, town);
+    step(state, veteran, at(state, town.col, town.row));
+    expect([recruit.col, recruit.row]).toEqual([11, 8]);
+    expect(readCity(state, town).flats.gold).toBe(before.flats.gold + 5);
+    expectHonest(state, 0);
+  });
+
+  it('refreshes income when a march through a town reveals new ground', () => {
+    const state = board();
+    inlandTown(state);
+    give(state, 0, [
+      { kind: 'pays', where: 'empire', basis: 'count', to: 'gold', amount: 1, count: 'revealedTiles' },
+    ] as CardEffect[]);
+    const soldier = createUnit(state, 0, 'warrior', 11, 8);
+    state.visibility[0]![8 * state.map.width + 14] = HIDDEN;
+    bumpRevision(state);
+    const before = readEmpire(state, 0);
+    const stamp = economyStamp(state);
+    step(state, soldier, at(state, 13, 8));
+    expect(economyStamp(state)).toBeGreaterThanOrEqual(stamp + 3);
+    expect(readEmpire(state, 0).totals.gold).toBeGreaterThan(before.totals.gold);
+    expectHonest(state, 0);
+  });
+
   it('moves the garrison count going in and coming out', () => {
     const state = board();
     const town = inlandTown(state);
@@ -352,9 +418,11 @@ describe('a piece at a town’s gate', () => {
     chartEverything(state);
     bumpRevision(state);
     const outside = readEmpire(state, 0).totals.gold;
+    const roads = connectedCityIds(state, 0);
 
     step(state, soldier, at(state, town.col, town.row));
     expect(readEmpire(state, 0).totals.gold).toBeGreaterThan(outside);
+    expect(connectedCityIds(state, 0)).toBe(roads);
     expectHonest(state, 0);
 
     step(state, soldier, ground);

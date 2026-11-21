@@ -69,7 +69,7 @@ import type { TriumphId } from "./triumphData";
 // The economy clock lives beside the slate rather than on the state (batch M2,
 // `slate.ts`). That file is a true leaf — a type-only import of `GameState` and
 // no runtime edge at all — so this edge cannot make a cycle from here either.
-import { bumpEconomy } from "./slate";
+import { bumpCitizenFocus, bumpEconomy } from "./slate";
 import type { GameMap } from "./map";
 import { generateMap, getMapSize } from "./mapgen";
 import { type LeaderId, isLeaderId, leaderDecks } from "./leaderData";
@@ -5168,9 +5168,10 @@ export function claimWonder(
  * state by hand means by it. Saying the narrower thing is `bumpPiecesOnly`, and
  * it has exactly one caller.
  */
-export function bumpRevision(state: GameState): void {
+export function bumpRevision(state: GameState, cause?: 'citizenFocus'): void {
   state.revision += 1;
-  bumpEconomy(state);
+  if (cause === 'citizenFocus') bumpCitizenFocus(state);
+  else bumpEconomy(state);
 }
 
 // --- sunk progress (schema 111) ---------------------------------------------

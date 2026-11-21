@@ -2875,7 +2875,7 @@ function applySetCitizenFocus(
     if (avoid) city.avoidGrowth = true;
     else delete city.avoidGrowth;
   }
-  refreshCityDerived(state, city);
+  refreshCityDerived(state, city, 'citizenFocus');
   return ok();
 }
 
@@ -5124,8 +5124,11 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
   // door says only the pieces did. This is the one caller allowed to take it,
   // because this is the one place that holds both the command and its result —
   // see `economyMoved` and `COMMAND_CLOCKS`.
-  if (economyMoved(command, result)) bumpRevision(state);
-  else bumpPiecesOnly(state);
+  if (economyMoved(command, result)) {
+    // A focus order changes only the assignment and growth instructions.
+    // If it gains another write, use the default revision until that write is classified.
+    bumpRevision(state, command.type === 'setCitizenFocus' ? 'citizenFocus' : undefined);
+  } else bumpPiecesOnly(state);
   return result;
 }
 

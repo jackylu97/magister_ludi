@@ -966,7 +966,7 @@ describe('nobody rebuilds the town’s list', () => {
     // conservative by default (`bumpRevision`) and only `applyCommand` may say
     // the narrow thing.
     const state = read('state.ts');
-    expect(state).toContain('state.revision += 1;\n  bumpEconomy(state);');
+    expect(state).toContain("state.revision += 1;\n  if (cause === 'citizenFocus') bumpCitizenFocus(state);\n  else bumpEconomy(state);");
     expect(state).toContain('export function bumpPiecesOnly');
     const callers = Object.entries(SOURCE).filter(
       ([path, text]) => !path.endsWith('/state.ts') && code(text).includes('bumpPiecesOnly'),

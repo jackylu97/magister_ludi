@@ -712,7 +712,7 @@ describe('the committed reading is on no clock at all', () => {
     // batch BP13c the sweep is `groundCopies`, which `resourceCopies` and the
     // count an empire may lend (`ownedCopiesKept`) both read.
     expect(bodyOf('resourceCopies')).toContain('groundCopies(');
-    expect(bodyOf('groundCopies')).toContain("slateMemo(state, 'economy'");
+    expect(bodyOf('groundCopies')).toContain("slateMemo(state, 'ground'");
     // And the argument is written down beside the code, not only here.
     expect(SOURCE).toContain('This is not on the slate, and that is deliberate');
   });

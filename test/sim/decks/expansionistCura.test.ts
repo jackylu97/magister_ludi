@@ -22,6 +22,7 @@ import { describe, expect, it } from 'vitest';
 import { cityIsWatered } from '../../../src/sim/buildingEffects';
 import { explainGrowthPercent, foundCityAt, realiseItem, refreshCityDerived } from '../../../src/sim/cities';
 import { explainHappiness } from '../../../src/sim/meters';
+import { readCity } from '../../../src/sim/readings';
 import { purchaseError } from '../../../src/sim/purchase';
 import { layRoad } from '../../../src/sim/roads';
 import { type City, type GameState, addBuilding, bumpRevision, playerById } from '../../../src/sim/state';
@@ -99,13 +100,16 @@ const OF_KIND: CardPaysEffect = {
 describe('the Expansionist batch E12: what a town holds', () => {
   it('gives an Aqueduct to a town joined to the capital by road, and to no other town', () => {
     const { state, capital, joined, apart } = board();
+    const aqueductLine = () => readCity(state, joined).lines.find((line) => line.step === 8 && line.building === 'aqueduct');
     // With no such card, a town holds what it built, and the list is its own.
     expect(townBuildings(state, joined)).toBe(joined.buildings);
     expect(townHoldsBuilding(state, joined, 'aqueduct')).toBe(false);
+    expect(aqueductLine()).toBeUndefined();
 
     slot(state, 0, CURA);
     expect(townHoldsBuilding(state, joined, 'aqueduct')).toBe(true);
     expect(townBuildings(state, joined)).toEqual([...joined.buildings, 'aqueduct']);
+    expect(aqueductLine()).toBeDefined();
     // The capital is what the others are joined to, so it never counts.
     expect(townHoldsBuilding(state, capital, 'aqueduct')).toBe(false);
     expect(townHoldsBuilding(state, apart, 'aqueduct')).toBe(false);
@@ -119,6 +123,7 @@ describe('the Expansionist batch E12: what a town holds', () => {
     delete at(state, 5, 4).road;
     bumpRevision(state);
     expect(townHoldsBuilding(state, joined, 'aqueduct')).toBe(false);
+    expect(aqueductLine()).toBeUndefined();
   });
 
   it('answers for the town owner\'s law only, and holds a built Aqueduct once', () => {
@@ -469,6 +474,7 @@ const MOVED_READERS: Record<string, string> = {
   'visibility.ts › sightSources': 'the sight',
   'yields/hex.ts › cityContext': 'the ground\'s lines and the irrigation',
   'yields/town.ts › explainCityBuildings': 'the building lines of the town fold (steps 8 and 9)',
+  'yields/town.ts › explainCity': 'includes granted buildings when the city reuses their printed yields',
   'yields/town.ts › productionModifiers': 'the buildings\' production bonuses',
 };
 
