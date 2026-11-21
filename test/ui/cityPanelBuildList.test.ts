@@ -513,11 +513,11 @@ describe('the board’s tile price plates, in the price column’s three looks',
 describe('the Buy tiles button asks the simulation', () => {
   it('is greyed by the tile gate’s town-wide answer, which Purchased Prosperity lifts', () => {
     // At the bottom centre since 2026-11-20 (`renderBuyDock`), with why it is
-    // greyed on a line beside it.
+    // greyed on a line in the dock's drawer.
     const dock = braceBody(uiSource('cityPanel.ts'), 'function renderBuyDock(');
     expect(dock).toContain('tileBuyingError(state, localPlayerId(), city.id)');
     expect(dock).not.toContain('growth.frozen');
-    expect(dock).toContain("if (refusal !== null) row.append(refusalLineElement(refusal, 'row'));");
+    expect(dock).toContain("if (refusal !== null) drawer.append(refusalLineElement(refusal, 'row'));");
   });
 });
 

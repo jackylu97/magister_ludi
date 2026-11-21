@@ -2372,6 +2372,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     options;
   const isBuyMode = options.isBuyMode ?? ((): boolean => false);
   const isCitizenMode = options.isCitizenMode ?? ((): boolean => false);
+  /** What the bottom dock's drawer held at the last render (`renderBuyDock`), so it opens once and not at each rebuild. */
+  let drawnDrawerKey = '';
   const isTutorialActive = options.isTutorialActive ?? ((): boolean => false);
   // No card handed in: the act happens on the click. See `askConfirm`.
   const askConfirm =
@@ -3715,16 +3717,39 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   function renderBuyDock(city: City): HTMLElement {
     const { state } = getGame();
+    // **One dock** (the user, 2026-11-21: "could we integrate the buttons on
+    // the bottom better? I also like having a 'leave city screen' button on
+    // the bottom, like before."). It is one bar of the screen's own paper,
+    // with three controls of one height in a fixed order: the two modes, then
+    // Leave city behind a thin rule. What a mode has to say (the caption, the
+    // legend, why buying is refused) is a drawer inside the same bar, over
+    // the buttons, so that nothing floats beside the dock.
     const dock = element('div', 'city-buy-dock');
     const active = isBuyMode();
-    dock.classList.toggle('is-on', active);
-    // The caption first, over the button, while the mode is on or the guide is up.
+    const managing = options.setCitizenMode !== undefined && isCitizenMode();
+    dock.classList.toggle('is-on', active || managing);
+    const drawer = element('div', 'city-dock-drawer');
     const caption = renderBoardCaption(city);
-    if (caption) dock.append(caption);
+    if (caption) drawer.append(caption);
     const row = element('div', 'city-buy-dock-row');
-    const buy = element('button', 'city-buy-tiles');
+    // A mode button is a toggle: its name stays, and the pressed state says it is on.
+    if (options.setCitizenMode) {
+      if (managing) drawer.append(renderCitizenLegend());
+      const manage = element('button', 'city-buy-tiles city-manage-citizens', 'Manage citizens');
+      manage.type = 'button';
+      manage.setAttribute('aria-pressed', managing ? 'true' : 'false');
+      manage.classList.toggle('is-active', managing);
+      noteOn(manage, managing
+        ? 'Stop managing citizens (Esc)'
+        : 'Show which hexes this city works, and pin citizens to hexes');
+      manage.addEventListener('click', () => {
+        options.setCitizenMode?.(!isCitizenMode());
+        onChanged();
+      });
+      row.append(manage);
+    }
+    const buy = element('button', 'city-buy-tiles', 'Buy tiles');
     buy.type = 'button';
-    buy.textContent = active ? 'Stop buying' : 'Buy tiles';
     buy.classList.toggle('is-active', active);
     buy.setAttribute('aria-pressed', active ? 'true' : 'false');
     // The ended turn is the panel's own lock and is said at the foot of the work
@@ -3738,31 +3763,28 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       setBuyMode(!isBuyMode());
       onChanged();
     });
-    // Manage citizens, the second mode of this dock (the user, 2026-11-20: the
-    // button "might be nice for hiding the complexity of citizen selection").
-    // While it is off the board shows no citizen marks and this dock shows no
-    // legend. `controls.ts` owns the mode (`setCitizenMode`); Escape stops it
-    // there too. The two modes exclude each other.
-    if (options.setCitizenMode) {
-      const managing = isCitizenMode();
-      dock.classList.toggle('is-on', active || managing);
-      if (managing) dock.append(renderCitizenLegend());
-      const manage = element('button', 'city-buy-tiles city-manage-citizens', managing ? 'Stop managing' : 'Manage citizens');
-      manage.type = 'button';
-      manage.setAttribute('aria-pressed', managing ? 'true' : 'false');
-      manage.classList.toggle('is-active', managing);
-      noteOn(manage, managing
-        ? 'Stop managing citizens (Esc)'
-        : 'Show which hexes this city works, and pin citizens to hexes');
-      manage.addEventListener('click', () => {
-        options.setCitizenMode?.(!isCitizenMode());
-        onChanged();
-      });
-      row.append(manage);
-    }
     row.append(buy);
     // Why it is greyed, on a line (never only a note).
-    if (refusal !== null) row.append(refusalLineElement(refusal, 'row'));
+    if (refusal !== null) drawer.append(refusalLineElement(refusal, 'row'));
+    // The way out, at the foot again. Until the layout of 2026-11-20 a wide
+    // "Leave the town" button stood here with its Esc key cap; the head's ×
+    // (`renderLeave`) stays as every sheet has one. Both call the one close.
+    const leave = element('button', 'city-buy-tiles city-dock-leave');
+    leave.type = 'button';
+    leave.append(document.createTextNode('Leave city '), element('kbd', 'btn-key', 'Esc'));
+    leave.setAttribute('aria-keyshortcuts', 'Escape');
+    noteOn(leave, 'Back to the world (Esc)');
+    leave.addEventListener('click', onClose);
+    row.append(element('span', 'city-dock-rule'), leave);
+    // The drawer opens with a short height change, and only when what it holds
+    // has changed: the panel rebuilds on every command, and a drawer that
+    // opened again each time would flicker.
+    const drawerKey = [city.id, active ? 'buy' : managing ? 'citizens' : '', drawer.childElementCount].join('|');
+    if (drawer.childElementCount > 0) {
+      drawer.classList.toggle('is-opening', drawerKey !== drawnDrawerKey);
+      dock.append(drawer);
+    }
+    drawnDrawerKey = drawerKey;
     dock.append(row);
     return dock;
   }

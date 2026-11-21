@@ -268,3 +268,24 @@ the option 3 view: "let's remove the tokens from the option 3 view."
   In the mode the rim is at `ground.manageRim` (0.35) under the outlines.
 - **The legend** shows worked, pinned (a double line), free, and not yours.
 - **Tests** were updated to agree and were not run, because tests were paused.
+
+## The bottom dock (2026-11-21)
+
+The user's words: "city screen looks good", and "could we integrate the
+buttons on the bottom better? I also like having a 'leave city screen' button
+on the bottom, like before."
+
+- `renderBuyDock` in `src/ui/cityPanel.ts` builds one bar (`.city-buy-dock`)
+  in the paper of the screen's cards: the same edge, corners and shadow.
+- It holds three controls of one height in a fixed order: Manage citizens,
+  Buy tiles, then Leave city with an Esc key cap behind a thin rule.
+- The two modes are toggles. Their names do not change, the one that is on is
+  filled with ink, and only one can be on.
+- The caption, the citizens' legend, the treasury line and the reason buying
+  is refused are a drawer inside the bar, over the buttons. It opens in 150 ms
+  when its content changes, and not at each rebuild of the panel.
+- Leave city is the wide "Leave the town" button that stood at the bottom
+  centre until the layout of 2026-11-20 (commit 4d035185 moved it to the head
+  as a ×). The × in the head stays. Both call the one `onClose`.
+- The dock is centred on the screen, and its width is capped so that it clears
+  the work rail: `min(36rem, 100vw - 2 * (360px + 28px))`.

@@ -387,14 +387,20 @@ describe('every command the panel sent before is still sent by the same control'
     expect(braceBody(PANEL, 'function renderBuildables(')).not.toContain('onOpenTrade');
   });
 
-  it('moves the way out to the head, and puts nothing of the panel at the foot but Buy tiles', () => {
+  it('keeps the × in the head, and puts one dock at the foot: the two modes and Leave city', () => {
     expect(braceBody(PANEL, 'function renderBand(')).toContain('band.append(renderLeave());');
     const render = braceBody(PANEL, '  function render(): void {');
     expect(render).not.toContain('renderLeave()');
     expect(render).toContain('container.append(renderBuyDock(city));');
     expect(rule('.city-buy-dock')).toContain('bottom: 14px;');
-    // The caption stands in the dock, over the button.
+    // The caption stands in the dock's drawer, over the buttons.
     expect(rule('.city-board-caption')).toContain('position: static;');
+    // Leave city is at the foot again (the user, 2026-11-21), with its Esc key cap, on the one close.
+    const dock = braceBody(PANEL, 'function renderBuyDock(');
+    expect(dock).toContain("element('kbd', 'btn-key', 'Esc')");
+    expect(dock).toContain("leave.addEventListener('click', onClose);");
+    expect(dock.indexOf('row.append(manage)')).toBeLessThan(dock.indexOf('row.append(buy)'));
+    expect(dock.indexOf('row.append(buy)')).toBeLessThan(dock.indexOf("row.append(element('span', 'city-dock-rule'), leave)"));
   });
 });
 

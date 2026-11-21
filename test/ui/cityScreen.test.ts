@@ -240,7 +240,12 @@ describe("the panel's controls", () => {
     expect(dock).toContain('const caption = renderBoardCaption(city);');
     expect(dock).toContain('setBuyMode(!isBuyMode());');
     expect(dock).toContain('tileBuyingError(state, localPlayerId(), city.id)');
-    expect(dock.indexOf('dock.append(caption)')).toBeLessThan(dock.indexOf('dock.append(row)'));
+    expect(dock).toContain('if (caption) drawer.append(caption);');
+    expect(dock.indexOf('dock.append(drawer)')).toBeLessThan(dock.indexOf('dock.append(row)'));
+    // One bar of the screen's own paper, as the rails' cards are.
+    for (const property of ['border', 'border-radius', 'box-shadow']) {
+      expect(`${property}: ${declaration('.city-buy-dock', property)}`).toBe(`${property}: ${declaration('.city-card', property)}`);
+    }
     expect(fn('cityPanel.ts', 'render')).toContain('container.append(renderBuyDock(city));');
     // And the panel no longer carries the button.
     expect(fn('cityPanel.ts', 'renderBorders')).not.toContain('city-buy-tiles');

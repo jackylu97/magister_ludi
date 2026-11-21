@@ -6940,12 +6940,18 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--rubric);
 }
 
-/* --- Buy tiles at the bottom centre (the user, 2026-11-20) ------------------
+/* --- the bottom dock (the user, 2026-11-20 and 2026-11-21) ------------------
    "let's have buy tiles appear at the bottom-center as its own
-   button/interface": the button, and over it while the mode is on (or the
-   guide is up) the board caption with the treasury and how the board's prices
-   read (`renderBuyDock`). The bottom-left corner is the tile readout's and the
-   bottom-right is End Turn's, so the centre is free. The dock takes the
+   button/interface", then "could we integrate the buttons on the bottom
+   better? I also like having a 'leave city screen' button on the bottom, like
+   before." (`renderBuyDock`).
+
+   One bar of the screen's own paper (`.city-card`'s edge, radius, ground and
+   shadow), at the bottom centre between the two rails. It holds three controls
+   of one height: the two modes, then Leave city behind a thin rule. What a
+   mode has to say (the caption, the citizens' legend, why buying is refused)
+   is a drawer inside the bar, over the buttons. The bottom-left corner is the
+   tile readout's and the bottom-right is End Turn's. The dock takes the
    pointer; the rest of the mode does not. */
 .city-buy-dock {
   position: absolute;
@@ -6955,38 +6961,84 @@ body:has(.city-mode:not([hidden])) #hud-context {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  align-items: stretch;
+  gap: 0;
   width: max-content;
-  max-width: 34rem;
+  /* It is centred on the screen, so its half width must clear the wider rail
+     (the work rail, 360px, and the gaps beside it). */
+  max-width: min(36rem, calc(100vw - 2 * (360px + 28px)));
+  padding: 5px;
   pointer-events: auto;
+  border: 1px solid var(--edge);
+  border-radius: var(--paper-radius);
+  background: color-mix(in srgb, var(--parchment) 96%, transparent);
+  box-shadow: var(--paper-shadow);
 }
 
 .city-buy-dock-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 4px 10px;
+  gap: 5px;
 }
 
-.city-buy-dock-row > .refusal-line {
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--parchment) 92%, transparent);
+/* The thin rule that sets Leave city apart from the two modes. */
+.city-dock-rule {
+  flex: 0 0 1px;
+  margin: 3px 4px;
+  background: var(--ink-line);
 }
 
-/* The one instruction, and only while somebody is being taught or is shopping
-   for ground (`renderBoardCaption`). In the dock, over the Buy tiles button. */
+/* Inside the bar the three controls are flat: the bar has the shadow. */
+.city-buy-dock .city-buy-tiles {
+  box-shadow: none;
+}
+
+.city-dock-leave {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* The drawer: what the mode that is on has to say, inside the bar. It opens
+   with a short height change, once (`is-opening`), not at each rebuild. */
+.city-dock-drawer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 7px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid var(--edge);
+  overflow: hidden;
+}
+
+.city-dock-drawer.is-opening {
+  animation: city-dock-open 150ms ease-out;
+}
+
+@keyframes city-dock-open {
+  from { max-height: 0; padding-block: 0; margin-bottom: 0; opacity: 0; }
+  to { max-height: 9rem; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .city-dock-drawer.is-opening { animation: none; }
+}
+
+.city-dock-drawer > .refusal-line {
+  padding: 0 4px;
+}
+
+/* The one instruction, and only while somebody is being taught or a mode is on
+   (`renderBoardCaption`). In the dock's drawer, over the buttons. */
 .city-board-caption {
   position: static;
-  max-width: 34rem;
+  max-width: 32rem;
   margin: 0;
-  padding: 4px 10px;
+  padding: 0 4px;
   pointer-events: none;
-  border: 1px dashed var(--ink-line);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--parchment) 86%, transparent);
   font-size: var(--size-label);
   text-align: center;
   color: var(--ink-soft);
@@ -23095,23 +23147,18 @@ body.compendium-page {
    while Manage citizens is on. Each swatch is a small hex of meadow drawn like
    the thing it names. The panel sets the outline colour, the rim colour and the
    two set-back tones from `territory.citizens` in `data/view3d.json`, which is
-   what the board reads, so only the meadow colour is this sheet's own. The
-   strip itself is the dock's paper: the Buy tiles button's edge, face and
-   shadow. */
+   what the board reads, so only the meadow colour is this sheet's own. It
+   stands in the dock's drawer, on the dock's paper. */
 .city-citizen-legend {
   --citizen-ground: #a9bb62;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 5px 16px;
-  padding: 6px 14px;
-  border: 1px solid var(--ink);
-  border-radius: var(--radius-sm);
-  background: var(--parchment);
+  padding: 0 4px;
   color: var(--ink);
   font-family: var(--face-ui);
   font-size: var(--size-label);
-  box-shadow: var(--paper-shadow);
 }
 .city-citizen-key { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
 /* A filter on the clipped hex itself would be clipped away, so the thin dark
