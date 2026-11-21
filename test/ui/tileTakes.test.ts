@@ -91,7 +91,10 @@ describe('the take in the city screen', () => {
     f.point(5, 4);
     expect(f.controls.takeHint()).toBeNull();
     f.controls.setOpenCity(f.home.id);
+    // A town open, but the player does not manage citizens: a click takes nothing, so no hint.
     f.point(hex.col, hex.row);
+    expect(f.controls.takeHint()).toBeNull();
+    f.controls.setCitizenMode(true);
     expect(f.controls.takeHint()).toBe(`Take from ${cityDisplayName(f.state, f.next)}`);
     // The open town's own hex, and the other town's centre, say nothing.
     f.point(2, 4);
@@ -103,6 +106,12 @@ describe('the take in the city screen', () => {
   it('pins the hex on a click, and the pin takes it', () => {
     const f = fixture();
     f.controls.setOpenCity(f.home.id);
+    // With Manage citizens off (the default), the click pins nothing.
+    f.point(5, 4);
+    f.click();
+    expect(f.game.log.some((command) => command.type === 'setLockedTiles')).toBe(false);
+    f.controls.setOpenCity(f.home.id);
+    f.controls.setCitizenMode(true);
     f.point(5, 4);
     f.click();
     expect(f.game.log.some((command) => command.type === 'setLockedTiles')).toBe(true);

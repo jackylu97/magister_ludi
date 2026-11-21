@@ -99,6 +99,17 @@ export interface PaintedBoard extends BuiltBoard {
   applyFog(levels: ArrayLike<number> | null, at?: number): number;
   /** Walks the eased reveals. Returns how many cells are still moving. */
   advanceReveal(now: number): number;
+  /**
+   * The city screen's set-back ground, one number for each cell: 0 lit, 1 free,
+   * 2 not available, 3 the city's own hex. `null` turns it off. Returns the
+   * number of cells that changed. It patches the board and never rebuilds it.
+   * `shade` and `rim` are the strengths of the shade and of a worked hex's
+   * warm rim, each 0 to 1 (1 if left out). With `at` (milliseconds) the change
+   * fades; `advanceSetBack` moves the fade and returns true while it was
+   * still moving.
+   */
+  applySetBack(kinds: ArrayLike<number> | null, at?: number, shade?: number, rim?: number): number;
+  advanceSetBack(now: number): boolean;
   revealMs: number;
   readonly revealStamps: number;
   readonly revealing: number;

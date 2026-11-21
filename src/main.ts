@@ -4513,7 +4513,6 @@ async function boot(initial: Game | null): Promise<void> {
 
   const controls = createGameControls({
     signal,
-    citizenDots: saveStorage.getItem('webciv.citizenDots') !== 'off',
     viewport: viewportEl,
     renderer,
     getGame: () => game,
@@ -6012,11 +6011,8 @@ async function boot(initial: Game | null): Promise<void> {
     onClose: () => controls.setOpenCity(null),
     // The panel dispatches for itself too — the star chart's argument exactly.
     onCommitted: (command, result) => controls.reportCommand(command, result),
-    citizenDots: () => controls.citizenDots(),
-    setCitizenDots: (on) => {
-      controls.setCitizenDots(on);
-      saveStorage.setItem('webciv.citizenDots', on ? 'on' : 'off');
-    },
+    isCitizenMode: () => controls.isCitizenMode(),
+    setCitizenMode: (on) => controls.setCitizenMode(on),
     isBuyMode: () => controls.isBuyMode(),
     setBuyMode: (on) => controls.setBuyMode(on),
     onOpenTrade: () => trade?.open(),

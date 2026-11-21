@@ -367,6 +367,8 @@ describe('every command the panel sent before is still sent by the same control'
       ['function renderFaithCard(', 'performRite(city.id, row.id);', 'a rite’s price'],
       // Buy tiles moved to the bottom centre by the user's ruling of 2026-11-20.
       ['function renderBuyDock(', 'setBuyMode(!isBuyMode());', 'Buy tiles'],
+      // Manage citizens is a mode beside it since the styling pass of 2026-11-20. It sends no command.
+      ['function renderBuyDock(', 'options.setCitizenMode?.(!isCitizenMode());', 'Manage citizens'],
       ['function renderLeave(', "leave.addEventListener('click', onClose);", 'the ×'],
       ['function renderRoutes(', "all.addEventListener('click', () => onOpenTrade());", 'All routes'],
       ['function renderFaithCard(', "link.addEventListener('click', () => openRites(city.id));", 'the faith sheet link'],

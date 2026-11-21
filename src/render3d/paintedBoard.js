@@ -913,6 +913,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       return changed;
     },
     advanceReveal(now) { return disposed ? 0 : fog.advanceReveal(now); },
+    /** The city screen's set-back ground: texel writes and one uniform, never a rebuild. See `paintedFog.js`. */
+    applySetBack(kinds, at, shade, rim) { return disposed ? 0 : fog.applySetBack(kinds, at, shade, rim); },
+    advanceSetBack(now) { return !disposed && fog.advanceSetBack(now); },
     get revealMs() { return fog.revealMs; },
     set revealMs(value) { fog.revealMs = value; },
     get revealStamps() { return fog.revealStamps; },

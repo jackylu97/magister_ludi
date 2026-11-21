@@ -516,6 +516,9 @@ function riteShelvesClause(city: City): string {
 /** And while the city screen's Buy Tiles mode is up. */
 const BUY_MODE_NOTICE = 'Buy tiles — click a priced hex to purchase it (Esc cancels)';
 
+/** And while the city screen's Manage citizens mode is on. */
+const CITIZEN_MODE_NOTICE = 'Manage citizens: click a hex to pin a citizen there, or a pinned hex to free it (Esc stops)';
+
 /**
  * A line for the context card: the standing description of a mode the player
  * has put themselves in, a one-off refusal that flashes and fades, or a one-off
@@ -1528,7 +1531,6 @@ export function statecraftPauseNotice(kind: StatecraftPause): string {
 }
 
 export interface GameControlsOptions {
-  citizenDots?: boolean;
   signal?: AbortSignal;
   viewport: HTMLElement;
   /**
@@ -1951,8 +1953,13 @@ export interface GameControlsOptions {
 }
 
 export interface GameControls {
-  citizenDots(): boolean;
-  setCitizenDots(on: boolean): void;
+  /**
+   * Whether the city screen's Manage citizens mode is on: the board shows the
+   * citizens' marks, and a click on a hex of the open city pins or unpins.
+   */
+  isCitizenMode(): boolean;
+  /** Starts or stops that mode. It does nothing without an open city of the local seat. */
+  setCitizenMode(on: boolean): void;
   /** Drops the selection and its overlays. Called on turn change and new games. */
   clearSelection(): void;
 
@@ -2714,7 +2721,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * panel adds its own glyphs without disturbing it.
    */
   let yieldsOn = LENS_DEFAULTS.yields;
-  let citizenDots = options.citizenDots ?? true;
+  /**
+   * The city screen's Manage citizens mode (`setCitizenMode`). Like `buyMode`,
+   * it belongs to the open city, so it is off each time a city opens.
+   */
+  let citizenMode = false;
   /**
    * The resource roundels, as the player left them. Not a lens either, and
    * unlike the glyphs it starts *on* — see `LENS_DEFAULTS`. Nothing automatic
@@ -2814,7 +2825,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // disarms a move order (see `setOpenCity`) and buy mode lives inside an open
     // city — but the order is stated rather than assumed, so the line stays
     // right if that ever stops being true.
-    else onNotice?.(buyMode ? BUY_MODE_NOTICE : null, 'mode');
+    else onNotice?.(buyMode ? BUY_MODE_NOTICE : citizenMode && openCity() ? CITIZEN_MODE_NOTICE : null, 'mode');
   }
 
   /** Reports an order the game would not take, visibly and briefly. */
@@ -4221,8 +4232,40 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const next = on && openCity() !== null && canOrder();
     if (next === buyMode) return;
     buyMode = next;
+    // The two city modes exclude each other: a click on a hex means one thing.
+    if (buyMode) citizenMode = false;
     clearUnitHover();
     viewport.classList.toggle('is-buy-mode', buyMode);
+    publishNotice();
+    refreshOverlays();
+    renderer.invalidate();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Starts or stops the city screen's Manage citizens mode.
+   *
+   * The user, 2026-11-20: "the citizen management button feels like it doesn't
+   * really do anything, but it might be nice for hiding the complexity of
+   * citizen selection." So the button is a mode, as Buy tiles is.
+   *
+   * - Off (the default each time a city opens): the board shows no citizen
+   *   marks, and a click on a hex does not pin or unpin a citizen.
+   * - On: the board shades the ground, lights the worked hexes and shows the
+   *   yields (`effectiveLens`), and a click on a hex pins or unpins
+   *   (`toggleCitizen`).
+   *
+   * It needs an open city of the local seat. It does not need an open turn: a
+   * player who has ended the turn can still look, and `toggleCitizen` refuses
+   * the click with its own sentence. It stops Buy tiles, because the two modes
+   * give a click on a hex different meanings.
+   */
+  function setCitizenMode(on: boolean): void {
+    const next = on && openCity() !== null;
+    if (next === citizenMode) return;
+    if (next) setBuyMode(false);
+    citizenMode = next;
+    clearUnitHover();
     publishNotice();
     refreshOverlays();
     renderer.invalidate();
@@ -4704,6 +4747,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // nothing yet.
     selectedId = null;
     openCityId = null;
+    citizenMode = false;
     hoveredCityId = null;
     pointer = null;
     clearUnitHover();
@@ -4932,9 +4976,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       cells: null,
       resources: resourcesOn,
       resourceCells: null,
+      // An open city always shows the yields of its hexes (the user,
+      // 2026-11-21: "yields should appear by default on the city screen").
+      // The outlines and the full set-back ground are the Manage citizens
+      // mode's. With the mode off the board sets the other ground back a
+      // little and lights the worked hexes.
       yields: lensShowsYields(mode, yieldsOn, city !== null),
       yieldCells: null,
-      citizens: city ? { cityId: city.id, dots: citizenDots } : undefined,
+      citizens: city ? { cityId: city.id, manage: citizenMode } : undefined,
       playerId,
     };
   }
@@ -5037,6 +5086,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (id !== null && openCityId !== null) {
       openCityId = null;
       setBuyMode(false);
+      citizenMode = false;
       renderer.invalidate();
     }
     // Move mode is a property of *this* selection: dropping the unit, or
@@ -5101,6 +5151,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // leaving — closed, or swapped for another town. Carrying it across would
     // arm a purchase against a city the player is no longer looking at.
     setBuyMode(false);
+    // Manage citizens belongs to the open city too. Each city opens with it off.
+    citizenMode = false;
+    publishNotice();
     refreshOverlays();
     renderer.invalidate();
     onUpdate(selectedUnit(), renderer.getHover());
@@ -5296,7 +5349,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function takeHint(): string | null {
     const city = openCity();
     const hover = renderer.getHover();
-    if (!city || !hover || !canOrder()) return null;
+    // A click takes a hex only while the player manages citizens, so the hint shows only then.
+    if (!city || !hover || !citizenMode || !canOrder()) return null;
     const { state } = getGame();
     const take = takeableTiles(state, city).find(
       (entry) => entry.tile.col === hover.tile.col && entry.tile.row === hover.tile.row,
@@ -7075,7 +7129,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // *means*, and a click that pinned a citizen instead of spending the
         // gold the tag just quoted would be the mode lying about itself.
         if (buyMode && purchaseTile(col, row)) return;
-        if (toggleCitizen(hover)) return;
+        // Row 3b. A click pins or unpins a citizen only while the player
+        // manages citizens. With that mode off the click falls through.
+        if (citizenMode && toggleCitizen(hover)) return;
         // Inside the radius but not a tile this city may work or take — its own
         // centre, or ground a rival owns. The panel stays open and the click falls
         // through to the ordinary contract, which on the city tile itself means
@@ -8177,7 +8233,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // The open city's ground is a purchase/pin target before it is a stack
     // target. Badges and model silhouettes still select above that ground.
     if (tile && city && withinWorkRadius(getGame().state, city, tile.col, tile.row) &&
-        (buyMode || pinnableTile(getGame().state, city, tile.col, tile.row) !== undefined)) {
+        (buyMode || (citizenMode && pinnableTile(getGame().state, city, tile.col, tile.row) !== undefined))) {
       tile = null;
     }
     renderer.setHoveredUnitId(unitPointerTarget(pointer, tile)?.id ?? null);
@@ -8254,6 +8310,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       effectiveLens().mode,
       moveMode ? 'm' : '',
       buyMode ? 'b' : '',
+      citizenMode ? 'c' : '',
       openCityId ?? '-',
     ].join('|');
   }
@@ -8455,6 +8512,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // panel. Backing out of both at once would lose the city a player only
       // meant to stop shopping in.
       else if (buyMode) setBuyMode(false);
+      // Manage citizens is the same kind of layer, and the two never stand together.
+      else if (citizenMode) setCitizenMode(false);
       else if (openCity()) setOpenCity(null);
       else clearSelection();
       return;
@@ -8660,12 +8719,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setLens,
     yieldsShown: () => yieldsOn,
     setYields,
-    citizenDots: () => citizenDots,
-    setCitizenDots(on) {
-      if (citizenDots === on) return;
-      citizenDots = on;
-      refreshLens();
-    },
+    isCitizenMode: () => citizenMode && openCity() !== null,
+    setCitizenMode,
     resourcesShown: () => resourcesOn,
     setResources,
     setHoveredCity,
@@ -8759,6 +8814,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     refresh: (seatId = 0) => {
       selectedId = null;
       openCityId = null;
+      citizenMode = false;
       // City ids do not survive a new game; the lens the player chose does.
       hoveredCityId = null;
       pointer = null;

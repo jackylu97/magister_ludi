@@ -62,10 +62,10 @@ import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instan
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D } from './lookData';
 import type { MaterialLibrary } from './toon';
+import { citizenOutlines, type OutlineStrip } from './citizenMarks';
 import { movementEdges, movementFrontier, frontierRibbon } from './movementBoundary';
 
 const OVERLAY = VIEW3D.overlay;
-const TERRITORY = VIEW3D.territory;
 
 /** An offset cell an overlay can be anchored to. */
 export interface CellRef {
@@ -174,29 +174,21 @@ interface OverlayState {
    */
   siteRadius?: readonly CellRef[];
   /**
-   * Tiles the city under the pointer (or in the open panel) works, drawn as
-   * small chips. Empty when no city is being looked at — it answers "where do
-   * these yields come from?", and that is only a question while somebody is
-   * asking it.
+   * The hexes the city under the pointer works, each drawn with an outline a
+   * little inside the hex. Empty when the pointer is on no city, and while a
+   * city screen is open (the lens layer marks the hexes then).
    */
   worked: readonly CellRef[];
   /**
    * The subset of `worked` the player has *pinned* (see `City.lockedTiles`):
-   * its ring takes the player's colour instead of bone white, so a citizen the
-   * player placed by hand never looks like one the assignment happened to
-   * choose.
+   * it has a second outline inside the first, so a citizen the player placed
+   * by hand never looks like one the assignment happened to choose.
    *
    * Only honoured pins are passed in. A pin on a tile the city cannot currently
    * work is real state, but drawing a marker on a tile with nobody on it would
    * say the opposite of what is true.
    */
   locked: readonly CellRef[];
-  /**
-   * The local seat's piece colour, for the pinned rings. Optional because the
-   * callers that have no seat (the overlay tests, gallery harnesses) have no
-   * player to take a colour from; the data-file accent stands in.
-   */
-  lockedColor?: number;
   /**
    * The seat's **primary** ink for the selection ring (the user, 2026-09-11,
    * `docs/flags.md` (qqqq): *"the unit outline on the tile when it's selected
@@ -244,9 +236,12 @@ export class OverlayLayer {
   private boundaryMap: GameMap | null = null;
   private boundaryKey = '';
   private boundary: BufferGeometry[] = [];
+  private workedMap: GameMap | null = null;
+  private workedKey = '';
+  private workedOutlines: OutlineStrip[] = [];
 
   /** Terraces or another relief replacement changed the registered terrain. */
-  invalidateSurface(): void { this.boundaryMap = null; }
+  invalidateSurface(): void { this.boundaryMap = null; this.workedMap = null; }
 
   /** Rebuilds every decal from scratch. See the module docblock. */
   build(
@@ -419,25 +414,19 @@ export class OverlayLayer {
       }
     }
 
-    // Worked-tile marks: one small hex ring per worked tile, no filled dot. The
-    // ring says "a citizen works here" and its colour says who decided — bone
-    // white for the assignment's own choice, the seat's piece colour for a tile
-    // the player pinned by hand. An outline rather than a dot on purpose: the
-    // yield glyphs sit at the same anchor, and a chip under them was a smudge
-    // behind the numbers, where a ring frames them instead.
-    const pinned = new Set(state.locked.map((cell) => `${cell.col},${cell.row}`));
-    const lockedTint = state.lockedColor ?? TERRITORY.lockedColor;
-    for (const cell of state.worked) {
-      const at = anchor(cell);
-      if (!at) continue;
-      const lockedHere = pinned.has(`${cell.col},${cell.row}`);
-      const s = TERRITORY.ringScale;
-      collector.add(
-        geometry.ring,
-        [lockedHere ? lockedTint : TERRITORY.workedColor],
-        new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
-        { onTop: true, opacity: lockedHere ? TERRITORY.lockedRingOpacity : TERRITORY.workedOpacity },
-      );
+    // The hexes of the city under the pointer: one outline a little inside each
+    // worked hex, and a second inside the first on each pinned hex (the user,
+    // 2026-11-20: "The inset outlines replace the mouseover effect when you
+    // mouse over a city"). They are the Manage citizens mode's own outlines
+    // (`citizenOutlines`). The shapes are kept until the cells change.
+    const workedKey = JSON.stringify([state.worked, state.locked]);
+    if (this.workedMap !== map || this.workedKey !== workedKey) {
+      this.workedOutlines.forEach(strip => strip.geometry.dispose());
+      this.workedMap = map; this.workedKey = workedKey;
+      this.workedOutlines = map && state.worked.length ? citizenOutlines(map, state.worked, state.locked) : [];
+    }
+    for (const strip of this.workedOutlines) {
+      collector.add(strip.geometry, [strip.color], new Matrix4(), { onTop: true, opacity: strip.opacity, order: strip.order });
     }
 
     // Selection under hover: when a unit is selected and the cursor is over its
@@ -476,5 +465,7 @@ export class OverlayLayer {
     disposeInstancedGroup(this.group);
     this.boundary.forEach(g => g.dispose()); this.boundary = [];
     this.boundaryMap = null; this.boundaryKey = '';
+    this.workedOutlines.forEach(strip => strip.geometry.dispose()); this.workedOutlines = [];
+    this.workedMap = null; this.workedKey = '';
   }
 }

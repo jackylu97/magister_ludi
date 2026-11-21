@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Quaternion } from 'three';
-import { citizenCells, CitizenMarks } from '../../src/render3d/citizenMarks';
+import { citizenCells, citizenGroundKinds, citizenOutlines, CitizenMarks, GROUND_KIND } from '../../src/render3d/citizenMarks';
+import { VIEW3D } from '../../src/render3d/lookData';
+import { createPaintedLightField } from '../../src/render3d/paintedFogLook';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { NO_LENS, sameLens, seenTileYields } from '../../src/render3d/lens3d';
 import { foundCityAt } from '../../src/sim/cities';
@@ -62,25 +64,88 @@ describe('citizen marks', () => {
     expect(yieldTiles.some(t => fog[id(t.col,t.row)] === HIDDEN)).toBe(false);
   });
 
-  it('reuses the shade for unchanged assignments and rebuilds for a pin or the Citizens toggle', () => {
+  it('draws the outlines only in the mode, reuses them, and rebuilds for a pin', () => {
     const { state, city, fog } = fixture(), marks = new CitizenMarks();
     const materials = new MaterialLibrary(3, 0x222222), face = new Quaternion();
-    const update = (dots: boolean) => marks.update(state, city, citizenCells(state, city, fog), dots, face, materials);
+    const update = (manage: boolean, groundShaded: boolean) =>
+      marks.update(state, city, citizenCells(state, city, fog), face, materials, manage, groundShaded);
     try {
-      update(true);
-      const first = marks.group.children[0], dots = marks.group.children.length;
-      update(true);
+      // A city screen with the mode off: the ground is the board's job, and there is no mark.
+      update(false, true);
+      expect(marks.group.children).toHaveLength(0);
+      update(true, true);
+      const first = marks.group.children[0], shaded = marks.group.children.length;
+      // One worked and one pinned hex: two strips for the outer rings, two for the pinned hex's second ring.
+      expect(shaded).toBe(4);
+      update(true, true);
       expect(marks.group.children[0]).toBe(first);
-      update(false);
-      expect(marks.group.children[0]).not.toBe(first);
-      expect(marks.group.children.length).toBeLessThan(dots);
-      const toggled = marks.group.children[0];
+      // The frozen toon board has no painted ground, so the marks add a wash decal there.
+      update(true, false);
+      expect(marks.group.children.length).toBeGreaterThan(shaded);
       city.lockedTiles = [];
-      update(false);
-      expect(marks.group.children[0]).not.toBe(toggled);
-      expect(sameLens({ ...NO_LENS, citizens: { cityId: 1, dots: true } }, { ...NO_LENS, citizens: { cityId: 1, dots: false } })).toBe(false);
+      update(true, true);
+      expect(marks.group.children[0]).not.toBe(first);
+      expect(marks.group.children).toHaveLength(2);
+      // The lens's `citizens` field: no city, a city open, and the mode are three pictures.
+      const open = { ...NO_LENS, citizens: { cityId: 1, manage: false } };
+      expect(sameLens(open, NO_LENS)).toBe(false);
+      expect(sameLens(open, { ...NO_LENS, citizens: { cityId: 1, manage: true } })).toBe(false);
+      expect(sameLens(open, { ...NO_LENS, citizens: { cityId: 1, manage: false } })).toBe(true);
       marks.clear();
       expect(marks.group.children).toHaveLength(0);
     } finally { marks.dispose(); materials.dispose(); }
   });
+
+  it('outlines a worked hex once and a pinned hex twice, a little inside the hex', () => {
+    const { state, id } = fixture();
+    void id;
+    const worked = [{ col: 0, row: 4 }, { col: 1, row: 3 }], pinned = [{ col: 1, row: 3 }];
+    const strips = citizenOutlines(state.map, worked, pinned);
+    // Ink over backing for the outer rings, and the same pair for the pinned hex's second ring.
+    expect(strips).toHaveLength(4);
+    expect(citizenOutlines(state.map, worked, [])).toHaveLength(2);
+    expect(citizenOutlines(state.map, [], [])).toHaveLength(0);
+    const art = VIEW3D.territory.citizens;
+    expect(strips.map((strip) => strip.color)).toEqual([art.outlineBacking, art.outlineColor, art.outlineBacking, art.outlineColor]);
+    // Every point of the outer ring is inside the hex, clear of the territory border's band and stitch.
+    const reach = (strip: (typeof strips)[number]): number => { strip.geometry.computeBoundingBox(); const box = strip.geometry.boundingBox!; return (box.max.z - box.min.z) / 2; };
+    const border = VIEW3D.territory.borderWidth + VIEW3D.territory.stitchWidth;
+    expect(reach(strips[1]!)).toBeLessThan(VIEW3D.board.hexRadius * (1 - border) * 2);
+    expect(reach(strips[3]!)).toBeLessThan(reach(strips[1]!));
+    for (const strip of strips) strip.geometry.dispose();
+  });
+
+  it('tells the board which ground to set back', () => {
+    const { state, city, id, fog } = fixture();
+    const ground = citizenGroundKinds(state.map, citizenCells(state, city, fog));
+    expect(ground).toHaveLength(state.map.tiles.length);
+    expect(ground[id(0, 4)]).toBe(GROUND_KIND.worked);
+    expect(ground[id(1, 3)]).toBe(GROUND_KIND.pinned);
+    expect(GROUND_KIND.pinned).toBe(GROUND_KIND.worked);
+    expect(ground[id(17, 4)]).toBe(GROUND_KIND.free);
+    expect(ground[id(1, 4)]).toBe(GROUND_KIND.centre);
+    // Another town's worked hex, a mountain, and ground far away are all set back furthest.
+    expect(ground[id(3, 4)]).toBe(GROUND_KIND.unavailable);
+    expect(ground[id(1, 5)]).toBe(GROUND_KIND.unavailable);
+    expect(ground[id(12, 0)]).toBe(GROUND_KIND.unavailable);
+  });
+
+  it('sets the ground back in two spare channels of the light field, and takes it off again', () => {
+    const field = createPaintedLightField(4, 2);
+    const data = (field.texture.image as { data: Uint8Array }).data;
+    field.write(0, 255, 255);
+    expect(field.writeBack(0, 255, 0)).toBe(true);
+    expect(field.writeBack(0, 255, 0)).toBe(false);
+    // Cell 0 is texel 0; texel 1 is the mean of cells 0 and 1. Red and green are untouched.
+    expect([...data.slice(0, 4)]).toEqual([255, 255, 255, 0]);
+    expect(data[4 + 2]).toBe(127);
+    expect(field.writeBack(1, 255, 255)).toBe(true);
+    expect(data[4 + 2]).toBe(255);
+    expect(data[4 + 3]).toBe(127);
+    for (const cell of [0, 1]) field.writeBack(cell, 0, 0);
+    expect([...data].filter((_, i) => i % 4 >= 2).every((value) => value === 0)).toBe(true);
+    expect([...data.slice(0, 2)]).toEqual([255, 255]);
+    field.dispose();
+  });
+
 });

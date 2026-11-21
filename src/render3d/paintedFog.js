@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {
-  PAINTED_FOG_GLSL, PAINTED_REVEAL_MS, createPaintedLightField, paintedFogUniforms, paintedRevealEase,
+  PAINTED_FOG_GLSL, PAINTED_REVEAL_MS, PAINTED_SET_BACK_MS, createPaintedLightField, paintedFogUniforms, paintedRevealEase,
 } from './paintedFogLook';
 
 // One texel per canonical cell. Every wrap copy and every terrain/prop batch
@@ -31,6 +31,8 @@ export function createPaintedFog(width, height, onCanopyChange) {
   const toLit = new Uint8Array(cells), toCharted = new Uint8Array(cells);
   const stamped = new Float64Array(cells);
   let stamps = 0, revealMs = PAINTED_REVEAL_MS;
+  // The set-back ground's fade: a comparison against a stamp, as a reveal is.
+  let backFade = null;
   function write(cell, channel, value) {
     if (cell < 0 || cell >= width * height) return false;
     const index = cell * 4 + channel, previous = data[index];
@@ -98,6 +100,45 @@ export function createPaintedFog(width, height, onCanopyChange) {
     },
     reserve(cell, radius) { return write(cell, 2, Math.round(Math.max(0, Math.min(1, radius)) * 255)); },
     unsuppress(cell) { return write(cell, 1, 0); },
+    /**
+     * The city screen's set-back ground (`SET_BACK_PAINT` in `paintedFogLook.ts`).
+     * `kinds` gives each cell 0 (lit: the open city works it), 1 (set back: free),
+     * 2 (set back further: not available) or 3 (the city's own hex: lit, no rim).
+     * `null` turns it off. It writes texels and one uniform, and returns how many
+     * cells changed.
+     *
+     * `shade` and `rim` are the strengths to reach, each 0 to 1. `at` is the
+     * fade's clock, in milliseconds. With one, the two strengths ease to their
+     * new values over `PAINTED_SET_BACK_MS`, driven by `advanceSetBack`. Without
+     * one they arrive whole. Turning it off keeps the texels, so the ground has
+     * something to fade from; at strength 0 the shader reads none.
+     */
+    applySetBack(kinds, at, shade = 1, rim = 1) {
+      let changed = 0;
+      if (kinds !== null) {
+        for (let cell = 0; cell < cells; cell++) {
+          const kind = kinds[cell] ?? 2;
+          if (light.writeBack(cell, kind === 1 || kind === 2 ? 255 : 0, kind >= 2 ? 255 : 0)) changed++;
+        }
+      }
+      const to = kinds === null ? [0, 0] : [shade, rim];
+      const now = [uniforms.paintedBackOn.value, uniforms.paintedRimOn.value];
+      if (at === undefined || PAINTED_SET_BACK_MS <= 0) {
+        [uniforms.paintedBackOn.value, uniforms.paintedRimOn.value] = to; backFade = null;
+      } else if ((backFade ? backFade.to : now).some((value, i) => value !== to[i])) {
+        backFade = { from: now, to, at };
+      }
+      return changed;
+    },
+    /** Moves the set-back fade to `now`. True while it was still moving, so the caller asks for another frame. */
+    advanceSetBack(now) {
+      if (!backFade) return false;
+      const eased = paintedRevealEase((now - backFade.at) / PAINTED_SET_BACK_MS);
+      uniforms.paintedBackOn.value = backFade.from[0] + (backFade.to[0] - backFade.from[0]) * eased;
+      uniforms.paintedRimOn.value = backFade.from[1] + (backFade.to[1] - backFade.from[1]) * eased;
+      if (eased >= 1) backFade = null;
+      return true;
+    },
     visible(cell, grade = 0) {
       return data[cell * 4] > 0 && (grade === 0 || data[cell * 4 + 1] < grade);
     },
@@ -155,7 +196,7 @@ ${depth ? '' : PAINTED_FOG_GLSL.registerWeight}
 #include <opaque_fragment>`);
     }
   };
-  material.customProgramCacheKey = () => `${cacheKey()}:painted-fog-v4:${depth}:${shared}`;
+  material.customProgramCacheKey = () => `${cacheKey()}:painted-fog-v5:${depth}:${shared}`;
   return material;
 }
 

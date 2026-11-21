@@ -58,12 +58,16 @@
 
 import {
   BufferGeometry, Color, DataTexture, Float32BufferAttribute, LinearFilter,
-  RGBAFormat, RepeatWrapping, UnsignedByteType, Vector2, type IUniform,
+  RGBAFormat, RepeatWrapping, UnsignedByteType, Vector2, Vector3, Vector4, type IUniform,
 } from 'three';
 
 import { VIEW3D } from './lookData';
 
 const PAINTED_FOG = VIEW3D.painted.fog;
+/** The city screen's set-back ground and the rim of light on a worked hex. See `SET_BACK_PAINT`. */
+const SET_BACK = VIEW3D.territory.citizens.ground;
+/** How long the ground takes to set back and to come back, in milliseconds. Zero arrives whole. */
+export const PAINTED_SET_BACK_MS = SET_BACK.fadeMs;
 
 /**
  * A palette name to its colour. The sheet names inks rather than writing them
@@ -116,6 +120,12 @@ interface PaintedLightField {
   lit: Uint8Array;
   charted: Uint8Array;
   write(cell: number, lit: number, charted: number): boolean;
+  /**
+   * The city screen's set-back ground (see `SET_BACK_PAINT`). `back` is 255
+   * for a hex the open city does not work and 0 for one it works; `far` is 255
+   * for a hex that city cannot work at all, and for the city's own hex.
+   */
+  writeBack(cell: number, back: number, far: number): boolean;
   /** The CPU's reading of what the shader samples. Bilinear, wrapped in x. */
   read(x: number, z: number): { lit: number; charted: number };
   dispose(): void;
@@ -133,7 +143,6 @@ interface PaintedLightField {
 export function createPaintedLightField(width: number, height: number): PaintedLightField {
   const lightWidth = width * 2, cells = width * height;
   const data = new Uint8Array(lightWidth * height * 4);
-  for (let i = 3; i < data.length; i += 4) data[i] = 255;
   const texture = new DataTexture(data, lightWidth, height, RGBAFormat, UnsignedByteType);
   texture.minFilter = texture.magFilter = LinearFilter;
   // The board's three wrap copies sample one field: 2W texels are one world
@@ -142,16 +151,24 @@ export function createPaintedLightField(width: number, height: number): PaintedL
   texture.generateMipmaps = false;
   texture.needsUpdate = true;
   const lit = new Uint8Array(cells), charted = new Uint8Array(cells);
-  function paint(x: number, y: number, litValue: number, chartedValue: number): void {
-    const i = (y * lightWidth + ((x % lightWidth) + lightWidth) % lightWidth) * 4;
-    data[i] = litValue; data[i + 1] = chartedValue;
-  }
-  function mean(col: number, row: number, step: number): void {
-    // The interleaved texel sits halfway between two same-row hexes, so it
-    // carries their mean and the ramp between two cell centres stays straight.
-    const other = ((col + step) % width + width) % width;
-    const a = row * width + col, b = row * width + other;
-    paint(col * 2 + (row & 1) + step, row, (lit[a]! + lit[b]!) / 2, (charted[a]! + charted[b]!) / 2);
+  // Blue and alpha: the city screen's set-back ground. Zero everywhere unless
+  // the player manages a city's citizens.
+  const back = new Uint8Array(cells), far = new Uint8Array(cells);
+  const channels = [lit, charted, back, far];
+  /** Writes one pair of channels of one cell: its own texel and the two mean texels beside it. */
+  function paint(cell: number, first: number): void {
+    const row = Math.floor(cell / width), col = cell - row * width;
+    for (const step of [0, 1, -1]) {
+      // The interleaved texel sits halfway between two same-row hexes, so it
+      // carries their mean and the ramp between two cell centres stays straight.
+      const other = row * width + ((col + step) % width + width) % width;
+      const x = col * 2 + (row & 1) + step;
+      const i = (row * lightWidth + ((x % lightWidth) + lightWidth) % lightWidth) * 4;
+      for (const channel of [first, first + 1]) {
+        data[i + channel] = (channels[channel]![cell]! + channels[channel]![other]!) / 2;
+      }
+    }
+    texture.needsUpdate = true;
   }
   return {
     texture, size: new Vector2(lightWidth, height), lit, charted,
@@ -159,10 +176,14 @@ export function createPaintedLightField(width: number, height: number): PaintedL
       if (cell < 0 || cell >= cells) return false;
       if (lit[cell] === litValue && charted[cell] === chartedValue) return false;
       lit[cell] = litValue; charted[cell] = chartedValue;
-      const row = Math.floor(cell / width), col = cell - row * width;
-      paint(col * 2 + (row & 1), row, litValue, chartedValue);
-      mean(col, row, 1); mean(col, row, -1);
-      texture.needsUpdate = true;
+      paint(cell, 0);
+      return true;
+    },
+    writeBack(cell, backValue, farValue) {
+      if (cell < 0 || cell >= cells) return false;
+      if (back[cell] === backValue && far[cell] === farValue) return false;
+      back[cell] = backValue; far[cell] = farValue;
+      paint(cell, 2);
       return true;
     },
     read(x, z) {
@@ -201,6 +222,16 @@ export function paintedFogUniforms(light: PaintedLightField): PaintedFogUniforms
     paintedFogShadowedCool: { value: PAINTED_FOG.shadowedCool },
     paintedFogShadowedShade: { value: PAINTED_FOG.shadowedShade },
     paintedFogSoak: { value: PAINTED_FOG.chartSoak },
+    // The city screen's set-back ground. `paintedBackOn` is 0 unless the player
+    // manages citizens, and the shader skips the whole block at 0.
+    paintedBackOn: { value: 0 },
+    paintedRimOn: { value: 0 },
+    paintedBackEdge: { value: SET_BACK.edge },
+    paintedBackFree: { value: new Vector3(SET_BACK.freeShade, SET_BACK.freeGrey, SET_BACK.freeCool) },
+    paintedBackFar: { value: new Vector3(SET_BACK.farShade, SET_BACK.farGrey, SET_BACK.farCool) },
+    paintedBackInk: { value: new Color(SET_BACK.ink) },
+    paintedRimColor: { value: new Color(SET_BACK.rim) },
+    paintedRim: { value: new Vector4(SET_BACK.rimInset, SET_BACK.rimReach, SET_BACK.rimWarmth, SET_BACK.rimLift) },
   };
 }
 
@@ -272,6 +303,14 @@ uniform float paintedFogRuleWidth;
 uniform float paintedFogShadowedSun;
 uniform float paintedFogShadowedCool;
 uniform float paintedFogShadowedShade;
+uniform float paintedBackOn;
+uniform float paintedRimOn;
+uniform float paintedBackEdge;
+uniform vec3 paintedBackFree;
+uniform vec3 paintedBackFar;
+uniform vec3 paintedBackInk;
+uniform vec3 paintedRimColor;
+uniform vec4 paintedRim;
 `;
 
 /**
@@ -283,8 +322,8 @@ uniform float paintedFogShadowedShade;
  * `sunFalloff` hexes so the edge of sight is a soft one.
  */
 const REGISTER_WEIGHT = `
-float paintedLit = smoothstep(.5 - paintedFogEdge * .5, .5 + paintedFogEdge * .5,
-  texture2D(paintedLight, vPaintedLightUv).r);
+vec4 paintedField = texture2D(paintedLight, vPaintedLightUv);
+float paintedLit = smoothstep(.5 - paintedFogEdge * .5, .5 + paintedFogEdge * .5, paintedField.r);
 float paintedSun = mix(paintedFogShadowedSun, 1.0, paintedLit);
 `;
 
@@ -299,13 +338,81 @@ vec3 paintedCool = mix(outgoingLight, paintedFogInk, paintedFogShadowedCool) * p
 outgoingLight = mix(paintedCool, outgoingLight, paintedLit);
 `;
 
+/**
+ * **The city screen's set-back ground**, for the Manage citizens mode.
+ *
+ * The user, 2026-11-20, on the first styling pass: "i hate the artifacts from
+ * the gray shading in the background, could we do that more naturally?" That
+ * shade was one flat grey decal on each hex. It showed seams between hexes and
+ * steps where neighbours differ in height, and it lay as a film over trees and
+ * water.
+ *
+ * So the shade is made the way remembered ground is made: in the board's own
+ * materials, from the board's own colours. A hex the open city does not work
+ * keeps its pigment and its shape, a little darker and a little greyer, and
+ * its trees and water go with it. There is no decal, so there is no seam.
+ *
+ * It reads the two spare channels of the light field:
+ *   blue   1 on a hex that is set back, 0 on a hex the city works;
+ *   alpha  1 on a hex the city cannot work at all (set back further), and on
+ *          the city's own hex (which is lit, and has no rim).
+ *
+ * Each fragment reads the field twice. The reading at its own hex centre is
+ * exact, so the inside of a hex is one even tone and a lit hex has the shape
+ * of a hex. The reading at its own position is the filtered one, and the two
+ * are blended over the last `paintedBackEdge` of the way to the hex edge. Both
+ * neighbours reach the same filtered value on their shared edge, so the tone
+ * is continuous and the step between a lit hex and a set-back hex is soft.
+ *
+ * **The rim.** A worked hex has a band of warmer, brighter ground just inside
+ * its edge (`paintedRim`: where it starts, how far in it reaches, how much of
+ * the warm colour it adds, how much it lifts the ground's own colour). It is
+ * light on the model and not a mark laid on top, so the territory border and
+ * everything else that is drawn over the ground stay over it.
+ *
+ * Cost: with the mode off, one uniform test for each fragment. With it on, one
+ * more texture reading and the arithmetic of one hex. Turning the mode on or
+ * off writes texels of one small texture and one uniform. Nothing is rebuilt.
+ * `paintedBackOn` is the strength of the shade and `paintedRimOn` of the rim,
+ * each 0 to 1. A city screen with the mode off shows a lighter shade and the
+ * full rim; the mode shows the full shade and a fainter rim under its
+ * outlines. Both move over `PAINTED_SET_BACK_MS` (`applySetBack`).
+ */
+const SET_BACK_PAINT = `
+if (paintedBackOn > 0.0) {
+  vec2 paintedHexCentre = paintedCellCentre(vPaintedWorld.xz);
+  vec2 paintedOff = vPaintedWorld.xz - paintedHexCentre;
+  float paintedHexEdge = max(abs(paintedOff.x), max(abs(paintedOff.x * .5 + paintedOff.y * .8660254),
+    abs(-paintedOff.x * .5 + paintedOff.y * .8660254))) / .8660254;
+  vec4 paintedOwn = texture2D(paintedLight, vec2(
+    (paintedHexCentre.x * ${TEXEL_PER_X.toFixed(7)} + .5) / paintedLightSize.x,
+    (paintedHexCentre.y / ${ROW_PITCH.toFixed(1)} + .5) / paintedLightSize.y));
+  vec2 paintedBack = mix(paintedOwn.ba, paintedField.ba,
+    smoothstep(1.0 - paintedBackEdge, 1.0, paintedHexEdge));
+  float paintedFar = paintedBack.x * paintedBack.y, paintedFree = paintedBack.x - paintedFar;
+  float paintedGrey = dot(outgoingLight, vec3(.2126, .7152, .0722));
+  vec3 paintedFreeTone = mix(mix(outgoingLight, vec3(paintedGrey), paintedBackFree.y),
+    paintedBackInk * paintedGrey, paintedBackFree.z) * paintedBackFree.x;
+  vec3 paintedFarTone = mix(mix(outgoingLight, vec3(paintedGrey), paintedBackFar.y),
+    paintedBackInk * paintedGrey, paintedBackFar.z) * paintedBackFar.x;
+  float paintedDepth = 1.0 - paintedHexEdge;
+  float paintedRimBand = (1.0 - step(.5, paintedOwn.b)) * (1.0 - step(.5, paintedOwn.a))
+    * smoothstep(0.0, paintedRim.x, paintedDepth)
+    * (1.0 - smoothstep(paintedRim.x, paintedRim.y, paintedDepth)) * paintedRimOn;
+  outgoingLight = mix(outgoingLight, paintedFreeTone, paintedFree * paintedBackOn);
+  outgoingLight = mix(outgoingLight, paintedFarTone, paintedFar * paintedBackOn);
+  outgoingLight = outgoingLight * (1.0 + paintedRim.w * paintedRimBand)
+    + paintedRimColor * (paintedRim.z * paintedRimBand);
+}
+`;
+
 /** The board's materials: the head, the vertex hook and the register paint. */
 export const PAINTED_FOG_GLSL = {
   lightHead: LIGHT_HEAD,
   lightVertex: LIGHT_VERTEX,
   registerHead: REGISTER_HEAD + RULE_FUNCTIONS,
   registerWeight: REGISTER_WEIGHT,
-  registerPaint: REGISTER_PAINT,
+  registerPaint: REGISTER_PAINT + SET_BACK_PAINT,
   painterlySun: PAINTERLY_SUN,
   /**
    * The paper's own shader. It reads the world's progress at its cell centre —

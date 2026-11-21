@@ -212,7 +212,7 @@ describe('actual controls pointer gestures', () => {
   it('keeps a city drag from pinning citizens while still accepting a wobbling click', () => {
     const f = controlsFixture(), city = foundCityAt(f.state, 0, getTileAt(f.state.map, 2, 3)!);
     f.state.visibility[0]!.fill(VISIBLE);
-    f.controls.setOpenCity(city.id); f.point(3, 3);
+    f.controls.setOpenCity(city.id); f.controls.setCitizenMode(true); f.point(3, 3);
     f.viewport.emit('pointerdown');
     f.viewport.emit('pointermove', { clientX: 70 });
     f.viewport.emit('pointerup', { clientX: 70 });
@@ -279,6 +279,7 @@ describe('actual controls pointer gestures', () => {
     const f = controlsFixture(), city = foundCityAt(f.state, 0, getTileAt(f.state.map, 2, 3)!);
     f.state.visibility[0]!.fill(VISIBLE);
     f.controls.setOpenCity(city.id);
+    f.controls.setCitizenMode(true);
     f.point(3, 3);
     expect(f.renderer.setHoveredUnitId).toHaveBeenLastCalledWith(null);
     f.click();

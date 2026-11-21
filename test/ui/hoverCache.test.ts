@@ -185,7 +185,7 @@ describe('what makes the hover work run again over the same hex', () => {
     expect(rerunsAfter((f) => { f.controls.setMoveMode(true); }).readouts).toBe(1);
   });
 
-  it('a city being opened, and buy mode', () => {
+  it('a city being opened, buy mode, and Manage citizens', () => {
     expect(rerunsAfter((f) => {
       const city = foundCityAt(f.state, 0, getTileAt(f.state.map, 8, 8)!);
       bumpRevision(f.state);
@@ -200,6 +200,14 @@ describe('what makes the hover work run again over the same hex', () => {
       f.point(6, 3, 41);
       f.work();
       f.controls.setBuyMode(true);
+    }, false).readouts).toBe(1);
+    expect(rerunsAfter((f) => {
+      const city = foundCityAt(f.state, 0, getTileAt(f.state.map, 8, 8)!);
+      bumpRevision(f.state);
+      f.controls.setOpenCity(city.id);
+      f.point(6, 3, 41);
+      f.work();
+      f.controls.setCitizenMode(true);
     }, false).readouts).toBe(1);
   });
 
@@ -228,7 +236,7 @@ describe('the key is checked before the expensive half', () => {
   it('names every fact the readout and the path preview read', () => {
     const body = braceBody(uiSource('controls.ts'), 'function hoverWorkKey(');
     for (const term of ['hover.tile.col', 'state.revision', 'localPlayerId', 'unit.col', 'unit.movesLeft',
-      'effectiveLens().mode', 'moveMode', 'buyMode', 'openCityId']) {
+      'effectiveLens().mode', 'moveMode', 'buyMode', 'citizenMode', 'openCityId']) {
       expect(body).toContain(term);
     }
   });

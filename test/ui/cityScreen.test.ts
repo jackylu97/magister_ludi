@@ -726,12 +726,15 @@ describe('the city mode', () => {
   });
 
   it('prints its one board instruction only when somebody is asking', () => {
-    // An instruction that is always on screen is one nobody reads. Two readers
-    // are left: a player being taught, and a player who has armed Buy Tiles.
+    // An instruction that is always on screen is one nobody reads. Three
+    // readers are left: a player being taught, a player who buys tiles, and a
+    // player who manages citizens.
     const printer = fn('cityPanel.ts', 'renderBoardCaption');
     expect(printer).toContain('isBuyMode()');
+    expect(printer).toContain('isCitizenMode()');
     expect(printer).toContain('isTutorialActive()');
-    expect(printer).toContain('An outlined hex is a tile this city works');
+    expect(printer).toContain('A lit hex is a tile this city works');
+    expect(printer).toContain('Press Manage citizens to see which hexes this city works');
   });
 });
 
@@ -895,12 +898,13 @@ describe('the build list', () => {
  * caught by somebody reading it — which is exactly what happened.
  */
 describe('what the panel says at the foot of a list', () => {
-  it('describes the outline shared by both citizen settings', () => {
-    // `overlays.ts` has drawn a *ring* on every worked hex since the overlay
-    // pass — bone white for the assignment's choice, the seat's ink for a pin.
+  it('describes the lit hex that the board draws while the player manages citizens', () => {
+    // `citizenMarks.ts` lights a worked hex and draws no outline and no dot
+    // (the styling pass of 2026-11-20).
     const text = source('cityPanel.ts');
     expect(text).not.toContain('Dots on the map');
-    expect(text).toContain('An outlined hex is a tile this city works');
+    expect(text).not.toContain('An outlined hex');
+    expect(text).toContain('A lit hex is a tile this city works');
   });
 
   it('says what a gold price is, and leaves the treasury to the price columns’ heads', () => {

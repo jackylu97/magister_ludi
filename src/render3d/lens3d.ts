@@ -135,7 +135,7 @@ import type { CellRef, LensView } from '../ui/mapView';
 
 import { type TileIcons, YIELD_KEYS } from './badges3d';
 import { playerColor } from './cities3d';
-import { citizenCells, CitizenMarks } from './citizenMarks';
+import { citizenCells, citizenGroundKinds, CitizenMarks } from './citizenMarks';
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
@@ -219,7 +219,7 @@ function sameCells(
 /** Are two lens views asking for the same picture? */
 export function sameLens(a: LensView, b: LensView): boolean {
   if (a.mode !== b.mode || a.playerId !== b.playerId) return false;
-  if (a.citizens?.cityId !== b.citizens?.cityId || a.citizens?.dots !== b.citizens?.dots) return false;
+  if (a.citizens?.cityId !== b.citizens?.cityId || a.citizens?.manage !== b.citizens?.manage) return false;
   if (a.yields !== b.yields || a.resources !== b.resources) return false;
   // A restriction only means anything while the half it scopes is up; comparing
   // it when that half is down would rebuild the layer for a change nobody can
@@ -237,6 +237,14 @@ export function sameLens(a: LensView, b: LensView): boolean {
 export class LensLayer {
   readonly group = new Group();
   private citizenMarks: CitizenMarks | null = null;
+  /**
+   * While a city screen is open: one number for each cell, for the painted
+   * board's set-back ground (`PaintedBoard.applySetBack`). Null otherwise.
+   * `citizenManage` says whether the Manage citizens mode is on, which sets
+   * the ground back fully. The renderer reads both after each `build`.
+   */
+  citizenGround: Uint8Array | null = null;
+  citizenManage = false;
   private faintSource: MeshBasicMaterial | null = null;
   private faintGlyphs: MeshBasicMaterial | null = null;
   private drawCallCount = 0;
@@ -263,6 +271,8 @@ export class LensLayer {
     icons: TileIcons | null,
     faceCamera: Quaternion,
     levels: FogLevels = null,
+    /** True when the painted board sets the ground back itself; false draws the fallback wash decals. */
+    groundShaded = false,
   ): void {
     disposeInstancedGroup(this.group);
     this.drawCallCount = 0;
@@ -270,9 +280,15 @@ export class LensLayer {
     const citizens = city && state ? citizenCells(state, city, levels) : null;
     if (citizens && city && state) {
       this.citizenMarks ??= new CitizenMarks();
-      this.citizenMarks.update(state, city, citizens, lens.citizens!.dots, faceCamera, materials);
+      this.citizenMarks.update(state, city, citizens, faceCamera, materials, lens.citizens!.manage, groundShaded);
       this.group.add(this.citizenMarks.group);
-    } else this.citizenMarks?.clear();
+      this.citizenGround = citizenGroundKinds(state.map, citizens);
+      this.citizenManage = lens.citizens!.manage;
+    } else {
+      this.citizenMarks?.clear();
+      this.citizenGround = null;
+      this.citizenManage = false;
+    }
     if (!state) return;
     // Every half is independent and any of them may be off; with all of them off
     // there is nothing to build and no collector worth allocating.

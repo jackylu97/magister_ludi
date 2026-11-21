@@ -23091,26 +23091,59 @@ body.compendium-page {
   align-self: flex-end;
 }
 
+/* The key to the board's citizen marks (`renderCitizenLegend`), shown only
+   while Manage citizens is on. Each swatch is a small hex of meadow drawn like
+   the thing it names. The panel sets the outline colour, the rim colour and the
+   two set-back tones from `territory.citizens` in `data/view3d.json`, which is
+   what the board reads, so only the meadow colour is this sheet's own. The
+   strip itself is the dock's paper: the Buy tiles button's edge, face and
+   shadow. */
 .city-citizen-legend {
+  --citizen-ground: #a9bb62;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 5px 11px;
-  padding: 5px 9px;
+  gap: 5px 16px;
+  padding: 6px 14px;
   border: 1px solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--parchment);
   color: var(--ink);
-  font-size: .72rem;
+  font-family: var(--face-ui);
+  font-size: var(--size-label);
+  box-shadow: var(--paper-shadow);
 }
-.city-citizen-key { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-.city-citizen-key i { display: inline-block; width: .83em; height: .83em; border: 1.5px solid currentColor; }
-.city-citizen-key .citizen-key-dot, .city-citizen-key .citizen-key-pin { border-radius: 50%; }
-.city-citizen-key .citizen-key-dot { background: #f6edda; }
-.city-citizen-key .citizen-key-pin, .city-citizen-key .citizen-key-lock { background: var(--citizen-seat); }
-.city-citizen-key .citizen-key-lock { border-radius: 2px; height: .65em; position: relative; margin-top: .22em; }
-.citizen-key-lock::before { content: ''; position: absolute; width: 45%; height: .43em; left: 14%; bottom: 100%; border: 1.5px solid var(--citizen-seat); border-radius: 50% 50% 0 0; }
-.city-citizen-key .citizen-key-outline { clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--ink); position: relative; }
-.citizen-key-outline::after { content: ''; position: absolute; inset: 0; background: var(--parchment); clip-path: inherit; }
-.city-citizen-key .citizen-key-free { background: rgba(30, 27, 33, .32); }
-.city-citizen-key .citizen-key-dark { background: rgba(30, 27, 33, .61); }
+.city-citizen-key { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+/* A filter on the clipped hex itself would be clipped away, so the thin dark
+   edge that keeps a pale swatch off the paper is the frame's. */
+.citizen-key-frame { position: relative; display: inline-flex; filter: drop-shadow(0 0 .6px var(--citizen-ink)); }
+.citizen-key {
+  position: relative;
+  display: inline-block;
+  width: 1.56em;
+  height: 1.8em;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: var(--citizen-ground);
+}
+/* Worked and pinned: lit ground with the warm rim inside its edge. */
+.citizen-key.is-worked,
+.citizen-key.is-pinned {
+  background: radial-gradient(closest-side, transparent 48%, color-mix(in srgb, var(--citizen-rim) 50%, transparent) 100%), var(--citizen-ground);
+}
+/* The outline: two hexes laid over the swatch leave a ring a little inside its
+   edge, in the board's own neutral ink. A pinned hex has a second ring inside
+   the first, made the same way by one more element. */
+.citizen-key.is-worked::before, .citizen-key.is-worked::after,
+.citizen-key.is-pinned::before, .citizen-key.is-pinned::after,
+.citizen-key-second, .citizen-key-second::after {
+  content: '';
+  position: absolute;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+.citizen-key.is-worked::before, .citizen-key.is-pinned::before { inset: 2.5px; background: var(--citizen-outline); }
+.citizen-key.is-worked::after, .citizen-key.is-pinned::after { inset: 3.8px; background: var(--citizen-ground); }
+.citizen-key-second { inset: 5.6px; z-index: 1; background: var(--citizen-outline); }
+.citizen-key-second::after { inset: 1.3px; background: var(--citizen-ground); }
+/* Free and not available: the same ground, set back as the board sets it back. */
+.citizen-key.is-free { filter: var(--citizen-free); }
+.citizen-key.is-far { filter: var(--citizen-far); }

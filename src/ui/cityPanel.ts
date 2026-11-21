@@ -232,6 +232,7 @@ import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
 import { seatName } from '../sim/leaderData';
 import { beadMarkNode } from './newsMark';
+import { VIEW3D } from '../render3d/lookData';
 
 
 /**
@@ -1306,8 +1307,13 @@ const openDisclosures = new Set<string>();
 const closedDisclosures = new Set<string>();
 
 interface CityPanelOptions {
-  citizenDots?: () => boolean;
-  setCitizenDots?: (on: boolean) => void;
+  /**
+   * The Manage citizens mode, which `controls.ts` owns as it owns Buy tiles.
+   * Optional for `setBuyMode`'s reason: a panel built without a board has no
+   * button for it.
+   */
+  isCitizenMode?: () => boolean;
+  setCitizenMode?: (on: boolean) => void;
   signal?: AbortSignal;
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
@@ -2365,6 +2371,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   const { container, getGame, localPlayerId, getCity, onClose, onChanged, onOpenTrade } =
     options;
   const isBuyMode = options.isBuyMode ?? ((): boolean => false);
+  const isCitizenMode = options.isCitizenMode ?? ((): boolean => false);
   const isTutorialActive = options.isTutorialActive ?? ((): boolean => false);
   // No card handed in: the act happens on the click. See `askConfirm`.
   const askConfirm =
@@ -3667,6 +3674,45 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * used from here. Why it is greyed is said on a line beside it, never only in
    * a note.
    */
+  /**
+   * The key to the board's citizen marks, shown only while the player manages
+   * citizens. Each swatch is a small hex of meadow drawn like the thing it
+   * names. How far the free and the unavailable ground are set back, and the
+   * colours, come from the same `territory.citizens` data the board reads
+   * (`citizenMarks.ts`, `paintedFogLook.ts`), so the key cannot disagree with
+   * the board.
+   */
+  function renderCitizenLegend(): HTMLElement {
+    const art = VIEW3D.territory.citizens, ground = art.ground;
+    const hex = (color: number): string => '#' + color.toString(16).padStart(6, '0');
+    // The board darkens light before its tone curve, and a CSS filter darkens
+    // the screen's own values. The exponent turns the board's factor into the
+    // screen's. The two were set by eye against the board; ground the city
+    // cannot work is also outside the city screen's own wash, so it is darker.
+    const tone = (shade: number, grey: number, power: number): string =>
+      `brightness(${(shade ** power).toFixed(3)}) saturate(${(1 - grey).toFixed(3)})`;
+    const legend = element('div', 'city-citizen-legend');
+    legend.setAttribute('role', 'group');
+    legend.setAttribute('aria-label', 'Citizen marks on the board');
+    legend.style.setProperty('--citizen-ink', hex(art.outlineBacking));
+    legend.style.setProperty('--citizen-rim', hex(ground.rim));
+    legend.style.setProperty('--citizen-outline', hex(art.outlineColor));
+    legend.style.setProperty('--citizen-free', tone(ground.freeShade, ground.freeGrey, 0.7));
+    legend.style.setProperty('--citizen-far', tone(ground.farShade, ground.farGrey, 1.3));
+    for (const [kind, label] of [['worked', 'worked'], ['pinned', 'pinned'], ['free', 'free'], ['far', 'not yours']] as const) {
+      const item = element('span', 'city-citizen-key');
+      const swatch = element('i', `citizen-key is-${kind}`);
+      swatch.setAttribute('aria-hidden', 'true');
+      // A pinned hex has a second outline inside the first.
+      if (kind === 'pinned') swatch.append(element('b', 'citizen-key-second'));
+      const frame = element('span', 'citizen-key-frame');
+      frame.append(swatch);
+      item.append(frame, document.createTextNode(label));
+      legend.append(item);
+    }
+    return legend;
+  }
+
   function renderBuyDock(city: City): HTMLElement {
     const { state } = getGame();
     const dock = element('div', 'city-buy-dock');
@@ -3692,29 +3738,27 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       setBuyMode(!isBuyMode());
       onChanged();
     });
-    if (options.setCitizenDots) {
-      const dots = options.citizenDots?.() ?? true;
-      const legend = element('div', 'city-citizen-legend');
-      legend.setAttribute('role', 'group');
-      legend.setAttribute('aria-label', 'Citizen assignments');
-      legend.style.setProperty('--citizen-seat', state.players[city.ownerId]!.color);
-      for (const [symbol, label] of [[dots ? 'dot' : 'outline', 'worked'], [dots ? 'pin' : 'lock', 'pinned by you'], ['free', 'free'], ['dark', 'not yours']]) {
-        const item = element('span', 'city-citizen-key');
-        const icon = element('i', 'citizen-key-' + symbol);
-        icon.setAttribute('aria-hidden', 'true');
-        item.append(icon, document.createTextNode(label!));
-        legend.append(item);
-      }
-      const toggle = element('button', 'city-buy-tiles citizen-dot-toggle', 'Citizens');
-      toggle.type = 'button';
-      toggle.setAttribute('aria-pressed', String(dots));
-      toggle.classList.toggle('is-active', dots);
-      toggle.addEventListener('click', () => {
-        options.setCitizenDots?.(!dots);
+    // Manage citizens, the second mode of this dock (the user, 2026-11-20: the
+    // button "might be nice for hiding the complexity of citizen selection").
+    // While it is off the board shows no citizen marks and this dock shows no
+    // legend. `controls.ts` owns the mode (`setCitizenMode`); Escape stops it
+    // there too. The two modes exclude each other.
+    if (options.setCitizenMode) {
+      const managing = isCitizenMode();
+      dock.classList.toggle('is-on', active || managing);
+      if (managing) dock.append(renderCitizenLegend());
+      const manage = element('button', 'city-buy-tiles city-manage-citizens', managing ? 'Stop managing' : 'Manage citizens');
+      manage.type = 'button';
+      manage.setAttribute('aria-pressed', managing ? 'true' : 'false');
+      manage.classList.toggle('is-active', managing);
+      noteOn(manage, managing
+        ? 'Stop managing citizens (Esc)'
+        : 'Show which hexes this city works, and pin citizens to hexes');
+      manage.addEventListener('click', () => {
+        options.setCitizenMode?.(!isCitizenMode());
         onChanged();
       });
-      row.append(toggle);
-      dock.append(legend);
+      row.append(manage);
     }
     row.append(buy);
     // Why it is greyed, on a line (never only a note).
@@ -5782,16 +5826,23 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       }
       return caption;
     }
+    // While the player manages citizens, the caption says what a click does.
+    // The legend under it names the marks.
+    if (isCitizenMode()) {
+      return element(
+        'p',
+        'city-board-caption',
+        'A lit hex is a tile this city works. Click a hex to pin a citizen ' +
+          'there, or a pinned hex to free it.',
+      );
+    }
     if (!isTutorialActive()) return null;
     return element(
       'p',
       'city-board-caption',
-      // The board draws a *ring* on every worked hex and has since the overlay
-      // pass — bone white where the assignment chose the tile, the seat's own
-      // ink where the player pinned it (`overlays.ts`).
-      'An outlined hex is a tile this city works. Click one to pin a citizen ' +
-        'there, or any other hex in the radius to move one to it. A unit ' +
-        'standing in the radius is selected by clicking its badge.',
+      'Press Manage citizens to see which hexes this city works and to pin a ' +
+        'citizen to a hex. A unit standing near the city is selected by ' +
+        'clicking its badge.',
     );
   }
 
@@ -5846,7 +5897,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const key =
       city === null
         ? null
-        : panelRenderKey(drawing, city, localPlayerId(), isBuyMode(), isTutorialActive(), notice) + String(options.citizenDots?.() ?? true);
+        : panelRenderKey(drawing, city, localPlayerId(), isBuyMode(), isTutorialActive(), notice) + (isCitizenMode() ? '|citizens' : '');
     if (key !== null && drawing === drawnState && key === drawnKey) return;
     drawnState = drawing;
     drawnKey = key;

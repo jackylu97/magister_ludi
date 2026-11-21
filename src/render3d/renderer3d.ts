@@ -2947,7 +2947,6 @@ export class Renderer3D implements MapView {
         worked: this.workedTiles,
         locked: this.lockedTiles,
         siteRadius: this.siteRadius,
-        lockedColor: seatColor,
         selectionColor: seatColor,
         moveMode: this.moveMode,
       },
@@ -2985,7 +2984,15 @@ export class Renderer3D implements MapView {
       // city's, whichever the camera is settling on (`DioramaCamera.facing`).
       this.view.facing.clone(),
       this.fogLevels(),
+      this.paintedBoard !== null,
     );
+    // An open city screen sets the ground the city does not work back, in the
+    // painted board's own materials: lightly while the screen is only open,
+    // fully in the Manage citizens mode. This writes texels and two uniforms,
+    // and rebuilds nothing.
+    const ground = VIEW3D.territory.citizens.ground, managing = this.lens.citizenManage;
+    this.paintedBoard?.applySetBack(this.lens.citizenGround, performance.now(),
+      managing ? 1 : ground.openLevel, managing ? ground.manageRim : ground.openRim);
     this.redraw();
   }
 
@@ -4528,6 +4535,8 @@ export class Renderer3D implements MapView {
     // what is left over would throw that frame away.
     const revealing = (this.paintedBoard?.revealing ?? 0) > 0;
     if (revealing) this.paintedBoard!.advanceReveal(now);
+    // The city screen's set-back ground fades on the same footing.
+    const settingBack = this.paintedBoard?.advanceSetBack(now) ?? false;
     // The visual test version's motion (the sea and the idle motion):
     // a time uniform on geometry that is already there, so a frame drawn for it
     // rebuilds nothing. It is drawn at `visualTest.motionFps`, not at the
@@ -4560,7 +4569,7 @@ export class Renderer3D implements MapView {
     if (ground?.ready && this.closeGround && this.closeGround.update(this.renderer, this.view.target.x, this.view.target.z,
       this.view.camera.right, this.view.camera.top, this.view.elevationDegrees, this.view.atClosestZoom,
       this.closeGroundCut)) this.frameDirty = true;
-    const asked = this.stateDirty || this.frameDirty || hadWalkers || hadFallers || hadGlows || panned || fading || settled || revealing;
+    const asked = this.stateDirty || this.frameDirty || hadWalkers || hadFallers || hadGlows || panned || fading || settled || revealing || settingBack;
     // The motion has gone to rest: keep the time of the last frame drawn, which
     // is the time the motion's clock stopped at.
     if (!awake && this.restingSince == null) this.restingSince = this.lastDrawn;

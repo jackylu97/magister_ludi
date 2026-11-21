@@ -125,8 +125,14 @@ export const LENS_DEFAULTS: { readonly yields: boolean; readonly resources: bool
  * are not lenses.
  */
 export interface LensView {
-  /** An open city replaces the general yield overlay with its assignment marks. */
-  citizens?: { cityId: number; dots: boolean };
+  /**
+   * Set while a city screen is open. The board sets the ground the city does
+   * not work back a little, gives each worked hex a warm rim, and replaces
+   * the general yield overlay with the yields of that city's hexes. With
+   * `manage` true (the Manage citizens mode) it sets that ground back fully
+   * and draws the outlines.
+   */
+  citizens?: { cityId: number; manage: boolean };
   mode: LensMode;
   /**
    * Restrict the mode's wash to these cells, or `null` for the whole map.

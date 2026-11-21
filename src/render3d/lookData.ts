@@ -664,19 +664,21 @@ interface TerritorySpec {
    * is how a board with one-colour borders is asked for.
    */
   stitchWidth: number;
-  /** An auto-assigned citizen's ring: bone white, the board's quiet voice. */
-  workedColor: number;
-  workedOpacity: number;
   /**
-   * A pinned tile's ring colour — a *fallback* only: the overlay is handed the
-   * local seat's own piece colour and uses this when no seat is set (galleries,
-   * the omniscient dev board).
+   * How the board shows which hexes a city's citizens work (`citizenMarks.ts`):
+   * the inset outlines (the pointer on a city, and the Manage citizens mode).
+   * `ground` is the set-back ground and the warm rim of a worked hex, which
+   * the painted board's own materials paint while a city screen is open
+   * (`SET_BACK_PAINT` in `paintedFogLook.ts`): for a free hex and for a hex
+   * the city cannot work, how dark (`Shade`, 1 is no change), how grey and how
+   * far toward `ink`. `openLevel` is the share of that shade a city screen
+   * shows with the mode off (the mode shows all of it). `openRim` and
+   * `manageRim` are the share of the rim in the two views: the mode has
+   * outlines, so its rim is fainter. `fadeMs` is how long a change takes.
    */
-  lockedColor: number;
-  /** Both rings' size, as a fraction of the full tile hex ring. */
-  ringScale: number;
-  lockedRingOpacity: number;
-  citizens: Omit<typeof viewJson.territory.citizens, 'ink'> & { ink: number };
+  citizens: Omit<typeof viewJson.territory.citizens, CitizenColorKey | 'ground'> & Record<CitizenColorKey, number> & {
+    ground: Omit<typeof viewJson.territory.citizens.ground, 'ink' | 'rim'> & { ink: number; rim: number };
+  };
 }
 
 /**
@@ -2876,6 +2878,9 @@ for (const [name, value] of Object.entries(rawPalette)) {
   palette[name] = parseColor(value, `palette.${name}`);
 }
 
+const CITIZEN_COLOR_KEYS = ['ink', 'paper', 'outlineBacking', 'outlineColor'] as const;
+type CitizenColorKey = (typeof CITIZEN_COLOR_KEYS)[number];
+
 /** Resolves a palette *name* to its colour, so the tables cannot invent inks. */
 function named(name: string, where: string): number {
   const color = palette[name];
@@ -3195,12 +3200,18 @@ export const VIEW3D: View3DData = {
     // Floored at zero and nowhere else: a negative width turns a quad inside
     // out (`bandEnd`'s note), and "no stitch" is a real thing to ask for.
     stitchWidth: Math.max(0, viewJson.territory.stitchWidth),
-    workedColor: named(viewJson.territory.workedColor, 'territory.workedColor'),
-    workedOpacity: viewJson.territory.workedOpacity,
-    lockedColor: named(viewJson.territory.lockedColor, 'territory.lockedColor'),
-    ringScale: viewJson.territory.ringScale,
-    lockedRingOpacity: viewJson.territory.lockedRingOpacity,
-    citizens: { ...viewJson.territory.citizens, ink: named(viewJson.territory.citizens.ink, 'territory.citizens.ink') },
+    citizens: {
+      ...viewJson.territory.citizens,
+      ...namedTable<CitizenColorKey>(
+        Object.fromEntries(CITIZEN_COLOR_KEYS.map((key) => [key, viewJson.territory.citizens[key]])),
+        'territory.citizens',
+      ),
+      ground: {
+        ...viewJson.territory.citizens.ground,
+        ink: named(viewJson.territory.citizens.ground.ink, 'territory.citizens.ground.ink'),
+        rim: named(viewJson.territory.citizens.ground.rim, 'territory.citizens.ground.rim'),
+      },
+    },
   },
   look: viewJson.look,
   camera: viewJson.camera,
