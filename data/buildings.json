@@ -1,5 +1,55 @@
 {
   "buildings": {
+    "bellTower": {
+      "name": "Bell Tower",
+      "category": "faith",
+      "size": "small",
+      "column": 4,
+      "unlockedByCard": true,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 1,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pressure",
+          "amount": 1,
+          "range": 3,
+          "count": "buildingsSupplying",
+          "voice": "faith"
+        }
+      ]
+    },
+    "greatArchive": {
+      "name": "Great Archive",
+      "category": "science",
+      "size": "large",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "empireBuilding": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "charterTechsKnown",
+          "amount": 5,
+          "to": "science",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "greatArchive"
+          }
+        }
+      ]
+    },
     "schoolOfMieza": {
       "name": "The School of Mieza",
       "category": "military",
@@ -2385,7 +2435,7 @@
       }
     },
     "specularium": {
-      "name": "Specularium",
+      "name": "Glasshouse",
       "category": "food",
       "size": "medium",
       "food": 3,
@@ -2399,14 +2449,17 @@
           "kind": "pays",
           "where": "city",
           "basis": "count",
-          "count": "population",
-          "within": "city",
-          "per": 2,
-          "to": "science",
+          "count": "workedTilesInCity",
           "amount": 1,
+          "to": "science",
           "scope": {
             "test": "hasBuilding",
             "building": "specularium"
+          },
+          "within": "city",
+          "tile": {
+            "test": "improvement",
+            "improvement": "farm"
           }
         }
       ]
@@ -2452,8 +2505,24 @@
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 2,
-      "sciencePerPop": 0
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "empireBuilding": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "techsKnown",
+          "amount": 1,
+          "to": "culture",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "aldinePress"
+          }
+        }
+      ]
     },
     "bimaristan": {
       "name": "Bimaristan",
@@ -2506,7 +2575,7 @@
         {
           "kind": "productionBonus",
           "category": "unit",
-          "percent": 25,
+          "percent": 50,
           "class": {
             "category": "military"
           },
@@ -2526,11 +2595,11 @@
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 0,
-      "faith": 1,
+      "culture": 2,
+      "faith": 2,
       "sciencePerPop": 0,
       "unlockedByCard": true,
-      "ritePays": 5
+      "riteDurationPercent": 50
     },
     "keep": {
       "name": "Keep",

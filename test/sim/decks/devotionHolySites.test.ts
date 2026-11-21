@@ -130,11 +130,11 @@ describe('the four rows', () => {
   it('deals The Anchorites, The Caliphate, The Abbeys and The Interdict to a Devotion seat', () => {
     const mine = ordersForDecks(['devotion']);
     const expected: [OrderId, number, string][] = [
-      [ANCHORITES, 2, 'uncommon'],
+      [ANCHORITES, 2, 'common'],
       [CALIPHATE, 3, 'rare'],
-      [ABBEYS, 3, 'rare'],
       [INTERDICT, 4, 'rare'],
     ];
+    expect(mine).not.toContain(ABBEYS);
     for (const [id, band, rarity] of expected) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(mine, id).toContain(id);
@@ -156,7 +156,7 @@ describe('the four rows', () => {
     expect(words(INTERDICT)).toEqual([
       'a rival city that follows your religion adds no production toward a Magnum Opus',
     ]);
-    expect(words(CALIPHATE)).toEqual(['the authority a devout city costs is 0']);
+    expect(words(CALIPHATE)).toEqual(['the authority a devout city costs is 1']);
   });
 });
 
@@ -402,7 +402,7 @@ describe('The Caliphate', () => {
     return 0 - line.value;
   }
 
-  it('makes devout towns cost no authority, and a town that does not follow pays in full', () => {
+  it('makes devout towns cost one authority, and a town that does not follow pays in full', () => {
     const state = bareState(40, 10);
     const towns = [3, 9, 15, 21, 27].map((col) => town(state, 0, col, 5, 4));
     const devout = towns.slice(0, 4);
@@ -411,7 +411,7 @@ describe('The Caliphate', () => {
     const before = towns.map((city) => townWrit(state, city));
     expect(before.some((was) => was > 0)).toBe(true);
     slot(state, 0, CALIPHATE);
-    for (const city of devout) expect(townWrit(state, city), city.name).toBe(0);
+    for (const city of devout) expect(townWrit(state, city), city.name).toBe(1);
     expect(townWrit(state, other)).toBe(before[4]);
   });
 });

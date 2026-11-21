@@ -83,7 +83,7 @@ import {
 } from './state';
 import { hasTech, researchSettledBy, settleResearchWindfall } from './tech';
 import { awardOccasion } from './triumphs';
-import { type UnitTypeId, unitDef } from './unitData';
+import { type UnitTypeId, isExplorer, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
 import { bumpEconomy } from './slate';
 
@@ -223,6 +223,9 @@ export function claimDiscoveryAt(state: GameState, unit: Unit, tile: Tile): Disc
     // somebody looked at a screen.
     options: drawDiscoveryOffer(state, kind, offerSize(state, player.id, 'discovery')),
   };
+  if (isExplorer(unitDef(unit.type)) && cardOfferRule(state, player.id, 'doubleScoutDiscovery')) {
+    offer.doubleReward = true;
+  }
   player.pendingDiscovery = offer;
   // A Ruin Read. **After** the offer is stored, and the ordering matters: a
   // triumph pays renown, renown can fill the ladder, and the great-person offer
@@ -290,7 +293,7 @@ function explainDiscoveryOption(
   id: DiscoveryId,
 ): DiscoveryPayoff {
   const def = discoveryDef(id);
-  const { effect } = def;
+  const effect = discoveryEffectFor(offer, def.effect);
   const payoff: DiscoveryPayoff = {
     id,
     name: def.name,
@@ -304,7 +307,7 @@ function explainDiscoveryOption(
   };
 
   if (effect.kind === 'unit') {
-    payoff.unitName = unitDef(effect.unitType).name;
+    payoff.unitName = `${offer.doubleReward ? '2 × ' : ''}${unitDef(effect.unitType).name}`;
     return payoff;
   }
 
@@ -335,6 +338,11 @@ function explainDiscoveryOption(
     if (player) payoff.completes = draftSettledBy(state, player, effect.amount);
   }
   return payoff;
+}
+
+function discoveryEffectFor(offer: DiscoveryOffer, effect: DiscoveryEffect): DiscoveryEffect {
+  if (!offer.doubleReward || effect.kind === 'unit') return effect;
+  return { ...effect, amount: effect.amount * 2 };
 }
 
 /** Every option on an offer, in the order it was dealt. */
@@ -415,7 +423,12 @@ function payDiscovery(
     // A ruin's escort is a thing the world handed over, so it costs its finder
     // nothing to keep. See `Unit.freeUpkeep`, entry 5.
     createUnit(state, player.id, effect.unitType, seat.col, seat.row).freeUpkeep = true;
-    return { cityName: null, unitName: unitDef(effect.unitType).name, completed: null, warning: null };
+    const second = offer.doubleReward && tile ? grantTileFor(state, tile, effect.unitType) : null;
+    if (second) createUnit(state, player.id, effect.unitType, second.col, second.row).freeUpkeep = true;
+    return {
+      cityName: null, unitName: `${second ? '2 × ' : ''}${unitDef(effect.unitType).name}`, completed: null,
+      warning: offer.doubleReward && !second ? 'no space for the second unit' : null,
+    };
   }
 
   if (effect.kind === 'cityYield') {
@@ -558,7 +571,8 @@ export function settleDiscovery(
     settleCultureWindfall(state, player);
   }
   const def = discoveryDef(id);
-  const paid = payDiscovery(state, player, offer, def.effect);
+  const effect = discoveryEffectFor(offer, def.effect);
+  const paid = payDiscovery(state, player, offer, effect);
   // The Athenaeum of the Road: the other two options are paid as well. Taken
   // after the chosen one so the announced settlement is still the card the
   // player clicked, and so a growth or a completion resolves in the order the
@@ -568,14 +582,14 @@ export function settleDiscovery(
       if (i === optionIndex) continue;
       const other = offer.options[i];
       if (other === undefined || !isDiscoveryId(other)) continue;
-      payDiscovery(state, player, offer, discoveryDef(other).effect);
+      payDiscovery(state, player, offer, discoveryEffectFor(offer, discoveryDef(other).effect));
     }
   }
   return {
     id,
     name: def.name,
     yield: discoveryYieldKey(def.effect),
-    amount: def.effect.kind === 'unit' ? 0 : def.effect.amount,
+    amount: effect.kind === 'unit' ? 0 : effect.amount,
     ...paid,
   };
 }

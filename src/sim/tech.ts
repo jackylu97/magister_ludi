@@ -455,7 +455,7 @@ import type { CityScope, FirstKind } from './statecraftData';
 // Value imports from two runtime leaves (the JSON tables and their readers):
 // the charter gate asks the card rows which technologies a charter opens, and
 // the ability fold asks the rite table which ability a chartered rite is.
-import { charteredTechIds, isOrderId, techIsChartered } from './statecraftData';
+import { isOrderId } from './statecraftData';
 import { riteAbility } from './religionData';
 import {
   cardGrantsAbility,
@@ -503,8 +503,11 @@ import {
   type QueueKind,
   type Unit,
   aimResearchAt,
+  bankTowardTech,
   bankedTowardTech,
   cityById,
+  frontKey,
+  reaimProduction,
   clearTechProgress,
   markFirst,
   playerById,
@@ -514,6 +517,7 @@ import {
 import {
   type AbilityId,
   ALL_TECH_IDS,
+  CHARTER_TECH_IDS,
   BUILDING_UNLOCK_TECH,
   type TechId,
   LAST_TECH_AGE,
@@ -1111,13 +1115,10 @@ interface BuildGateOptions {
  * (`buildsEverywhere`, read through `cardLimitLifts`) in two ways:
  *
  *   - outright, with no count and no towns: Caravanserai Cities' yards;
- *   - for a counted number of extra copies in all, in the towns a scope admits:
- *     The Second Seat's one second copy of one great house, in a town with a
- *     University (the triage's reading 47).
+ *   - for additional copies of each eligible building, in the towns its scope admits.
  *
  * A copy is **extra** when the empire already holds or is building another
- * copy of the same row. The count is over every row the limit still binds,
- * standing or queued, and it counts the copy being asked about. A town is
+ * copy of the same row. The count includes completed and queued copies of that building. A town is
  * needed to ask a counted lift at all, so a caller with none gets the
  * stricter reading.
  *
@@ -1172,14 +1173,7 @@ function oneToARealmError(
   return `${plain}, and ${copies} already standing or being built`;
 }
 
-/**
- * **How many extra copies of the great houses this empire would hold** if
- * this town added one more copy of `adding` (Scientific batch S8, The Second
- * Seat). For each row the one-to-a-realm limit still binds (marked
- * `oncePerEmpire` and lifted outright by no card), every copy past the first
- * is extra, standing or queued. See `oneToARealmError` for which queues
- * count.
- */
+/** Other towns can reserve a copy by building it or by putting it in their queue. */
 function extraCopiesWith(
   state: GameState,
   playerId: number,
@@ -1187,34 +1181,48 @@ function extraCopiesWith(
   city: City,
   options: BuildGateOptions | undefined,
 ): number {
-  const copies: Partial<Record<BuildingId, number>> = {};
-  const count = (row: BuildingId): void => {
-    if (buildingDef(row).oncePerEmpire !== true) return;
-    copies[row] = (copies[row] ?? 0) + 1;
-  };
+  let copies = 0;
   for (const town of state.cities) {
     if (town.ownerId !== playerId) continue;
-    for (const row of town.buildings) count(row);
-    const replaced = options?.replacing?.cityId === town.id;
-    const queued: readonly BuildingId[] = replaced
-      ? (options?.replacing?.buildings ?? [])
-      : town.queue.flatMap((item) => (item.kind === 'building' && isBuildingId(item.id) ? [item.id] : []));
-    for (const row of queued) {
-      if (town.id === city.id && row === adding) continue;
-      count(row);
+    if (town.buildings.includes(adding)) copies++;
+    if (town.id === city.id) continue;
+    const replacing = options?.replacing;
+    const queued = replacing?.cityId === town.id
+      ? replacing.buildings?.includes(adding)
+      : town.queue.some(item => item.kind === 'building' && item.id === adding);
+    if (queued) copies++;
+  }
+  return copies;
+}
+
+/** Council changes may remove the right to build another copy. Completed copies stay. */
+export function pruneExtraBuildingQueues(state: GameState, playerId: number): void {
+  const reserved = new Map<BuildingId, number>();
+  const towns = state.cities.filter(town => town.ownerId === playerId);
+  if (!towns.some(town => town.queue.some(item => item.kind === 'building' && isBuildingId(item.id) && buildingDef(item.id).oncePerEmpire))) return;
+  for (const town of towns) {
+    for (const id of town.buildings) {
+      if (buildingDef(id).oncePerEmpire) reserved.set(id, (reserved.get(id) ?? 0) + 1);
     }
   }
-  count(adding);
-  // A sum, so the order the rows were met in does not matter. A row a card
-  // lifts outright is not bound by the limit, so its copies are not extra.
-  let extra = 0;
-  for (const row of Object.keys(copies) as BuildingId[]) {
-    const lifted = cardLimitLifts(state, playerId, row).some(
-      (lift) => lift.max === undefined && lift.scope === undefined,
-    );
-    if (!lifted) extra += Math.max(0, (copies[row] ?? 0) - 1);
+  for (const town of towns) {
+    const before = frontKey(town);
+    town.queue = town.queue.filter(item => {
+      if (item.kind !== 'building' || !isBuildingId(item.id) || !buildingDef(item.id).oncePerEmpire) return true;
+      const id = item.id;
+      const copies = reserved.get(id) ?? 0;
+      if (copies > 0) {
+        const lifts = cardLimitLifts(state, playerId, id)
+          .filter(lift => !lift.scope || cityScopeAdmits(state, town, lift.scope, playerId));
+        const maximum = 1 + lifts.reduce((sum, lift) => sum + (lift.max ?? Infinity), 0);
+        if (copies >= maximum) return false;
+      }
+      reserved.set(id, copies + 1);
+      return true;
+    });
+    // Preserve the investment in a cancelled copy just as a manual queue edit does.
+    reaimProduction(town, before, true);
   }
-  return extra;
 }
 
 /**
@@ -1905,7 +1913,7 @@ export function researchError(
   // `unlocks.tech`) and of the seat's own list (`Player.charteredTechs`,
   // written on the pick), so a node placed off-lane by the data batch is shut
   // to a seat that has not drafted its way in and needs no flag of its own.
-  if (techIsChartered(techId) && !player.charteredTechs.includes(techId)) {
+  if (isCharterTech(techId) && !player.charteredTechs.includes(techId)) {
     return `${def.name} is opened by a charter ${player.name} has not drafted`;
   }
 
@@ -2043,7 +2051,7 @@ function promoteResearchQueue(state: GameState, player: Player): void {
  * offers or plans a node the reducer would refuse.
  */
 export function techsShutByCharter(player: Player): TechId[] {
-  return charteredTechIds().filter((id) => !player.charteredTechs.includes(id));
+  return CHARTER_TECH_IDS.filter((id) => !player.charteredTechs.includes(id));
 }
 
 /**
@@ -2215,18 +2223,20 @@ export function explainTechCost(state: GameState, player: Player, tech: TechId):
   if (!charter) {
     const gapCards = cardRulePercent(state, player.id, 'gapTechCost');
     if (gapCards.length > 0 && techGap(state, player.id).includes(tech)) cards = gapCards;
-    const priced = cardTechPriceLines(state, player.id, tech);
-    if (priced.length > 0) cards = [...cards, ...priced];
   }
+  const priced = cardTechPriceLines(state, player.id, tech);
+  if (priced.length > 0) cards = [...cards, ...priced];
 
   // The cards, added together and applied once to the column price.
   let percent = 0;
   for (const card of cards) {
     percent += card.percent;
     const factor = Math.max(0, 100 + percent);
-    const total = Math.max(1, Math.floor((column * factor) / 100));
+    const scaled = (column * factor) / 100;
+    const total = Math.max(1, Math.floor(scaled + Number.EPSILON * scaled));
     const sign = card.percent > 0 ? '+' : '';
-    lines.push({ source: `${card.source} ${sign}${card.percent}%`, amount: total - running });
+    const label = card.percent === -100 / 3 ? '−33⅓' : sign + String(card.percent);
+    lines.push({ source: `${card.source} ${label}%`, amount: total - running });
     running = total;
   }
   return lines;
@@ -2331,6 +2341,7 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
     // §1) and what the node pays now is the reroll's door, which is a gate a
     // verb asks about and never a payout.
     awardOccasion(state, player.id, 'ageEntered');
+    payWindfallGrants(state, player, windfallPayout(state, player.id, 'ageEntered', 0, 0));
   }
   // **The closer's own bead** (`TechDef.paysBead`), after the push so the node
   // is already in the list, and inside this routine so a technology finished by
@@ -2415,6 +2426,33 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
     settleCultureWindfall(state, player);
   }
   return { player, techId: plan.techId, name: techDef(plan.techId).name, cost: plan.cost };
+}
+
+/** Preserve research already put into the current plan when a captured city supplies another technology. */
+export function grantCapturedTechnology(state: GameState, player: Player, tech: TechId): void {
+  if (player.techsResearched.includes(tech)) return;
+  if (player.researching !== tech) {
+    if (player.researching === null) {
+      // A free technology leaves unassigned science available for the next research order.
+      const cost = foldTechCost(explainTechCost(state, player, tech));
+      bankTowardTech(state, player, tech, Math.max(0, cost - (player.techProgress?.[tech] ?? 0)));
+    }
+    const remaining = researchPlan(player).filter(id => id !== tech);
+    writeResearchPlan(player, [tech, ...remaining]);
+  }
+  completeCurrentResearch(state, player);
+}
+
+/** Cover only the remaining cost. The usual settlement advances the queue and pays its rewards. */
+export function completeCurrentResearch(state: GameState, player: Player): ResearchCompletion | null {
+  const id = player.researching;
+  if (!id || !isTechId(id)) return null;
+  const cost = foldTechCost(explainTechCost(state, player, id));
+  if (player.sciencePool < cost) {
+    player.sciencePool = cost;
+    bumpEconomy(state);
+  }
+  return settleResearchWindfall(state, player);
 }
 
 /**

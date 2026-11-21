@@ -13,7 +13,7 @@
 
 import { riteTeachingCard, riteTurnsFor } from '../sim/religion';
 import { type RiteId, riteDef } from '../sim/religionData';
-import type { GameState } from '../sim/state';
+import type { City, GameState } from '../sim/state';
 import { type CardClause, describeCard } from '../sim/statecraft';
 import { orderDef } from '../sim/statecraftData';
 import { techDef } from '../sim/techData';
@@ -86,8 +86,8 @@ export function riteClauseWords(rite: RiteId): string {
  * A rite's clauses and the turns it would be kept for, as one line: the
  * describer's words and `riteGrantWords` with this empire's figure.
  */
-export function riteSays(state: GameState, seat: number, rite: RiteId): string {
+export function riteSays(state: GameState, seat: number, rite: RiteId, city?: City): string {
   const clauses = riteClauses(rite).map((clause) => clause.text);
-  const kept = riteGrantWords(rite, riteTurnsFor(state, seat, rite));
+  const kept = riteGrantWords(rite, riteTurnsFor(state, seat, rite, city));
   return [...clauses, kept].filter((part) => part.length > 0).join(' · ');
 }

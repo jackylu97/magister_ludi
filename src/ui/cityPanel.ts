@@ -43,6 +43,7 @@
  * The readout stays live either way: looking is not commanding.
  */
 
+import { bindActionPreview } from './actionPreview';
 import {
   borderGrowth,
   buildingProductionCost,
@@ -224,7 +225,7 @@ import {
 } from './figures';
 import { prefersReducedMotion } from './motion';
 import type { RiteOption } from './controls';
-import { cityRiteTurnsLeft, cityRites, riteGate, riteTurnsFor } from '../sim/religion';
+import { cityRiteTurnsLeft, cityRites, riteGate, keptRiteSchedule } from '../sim/religion';
 import { type RiteId, riteDef } from '../sim/religionData';
 import { apostlesRaiseHolySites, chargeCostWords } from '../sim/religion';
 import { createInfoCard } from './infoCard';
@@ -1389,6 +1390,7 @@ interface CityPanelOptions {
    */
   riteOptions?: (cityId: number) => RiteOption[];
   /** Performs one rite in this town — `controls.performRite`. */
+  onPreview?: (cells: readonly import('./mapView').CellRef[]) => void;
   performRite?: (cityId: number, rite: RiteId) => void;
   /**
    * Opens the faith sheet's rites for every town, with this town's menu open
@@ -5044,6 +5046,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * (`controls.ts`), every refusal the reducer's own, so a price a player can
    * press is a command it takes.
    */
+  let showingRiteTargets = false;
   function renderFaithCard(city: City): HTMLElement | null {
     const { state } = getGame();
     const head = cityFaithHeadline(state, city, localPlayerId());
@@ -5078,7 +5081,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const left = cityRiteTurnsLeft(state, city, held);
       // The bar fills with the turns gone, against the rite's whole length as
       // the rules give it today (`riteTurnsFor`).
-      const whole = riteTurnsFor(state, city.ownerId, held) ?? left;
+      const whole = keptRiteSchedule(state, city, held)?.duration ?? left;
       const box = element('div', 'city-rite-kept');
       box.append(element('span', 'city-rite-kept-name', riteDef(held).name));
       box.append(bar(Math.max(0, whole - left), Math.max(whole, left), 'is-faith'));
@@ -5156,6 +5159,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           chip: true,
         });
         line.append(cell);
+        if (row.previewCells && options.onPreview) {
+          bindActionPreview(cell, () => {
+            showingRiteTargets = true;
+            options.onPreview?.(row.previewCells!());
+          }, () => {
+            showingRiteTargets = false;
+            options.onPreview?.([]);
+          });
+        }
         if (row.preview !== null) {
           noteOn(name, row.preview);
           noteOn(cell, row.preview);
@@ -5915,6 +5927,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // Every anchor in this panel is about to stop existing, and an open card
     // would be left pointing at a row that has gone. See `infoCard.ts`.
     info.hide();
+    if (showingRiteTargets) { showingRiteTargets = false; options.onPreview?.([]); }
     container.replaceChildren();
     // The cards over the work rail and the short-of chips' places are drawn
     // afresh below.

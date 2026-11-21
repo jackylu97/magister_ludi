@@ -51,6 +51,7 @@ const ROWS: readonly (readonly [label: string, names: readonly string[]])[] = ON
   ['Houses, first age', (NORTH_STAR_HOUSES as string[]).slice(0, 3)],
   ['Houses, middle ages', (NORTH_STAR_HOUSES as string[]).slice(3, 6)],
   ['Houses, late ages', (NORTH_STAR_HOUSES as string[]).slice(6, 9)],
+  ['Charter buildings', ['bell-tower', 'ns-great-archive', 'ns-glasshouse']],
   ['Hall and monuments', ['ns-hall', 'monument-obelisk', 'monument-ziggurat', 'monument-armillary']],
   // A town's centre in the first and second ages, and the richer houses and hall of the late ages (`NORTH_STAR_TOWN_AGES`).
   ['Town centres and late houses by age', NORTH_STAR_AGED_TOWN_ASSETS as string[]],

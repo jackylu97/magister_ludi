@@ -146,14 +146,15 @@ describe('Renew rites · when it appears', () => {
 // --- 2 · when it does not ------------------------------------------------------------
 
 describe('Renew rites · when it stays quiet', () => {
-  it('never rises for a rite that acts at once: the Votive Offering and the Restoring of the Host', () => {
+  it('offers renewal when the Votive Offering or the Restoring of the Host ends', () => {
     for (const rite of ['votiveOffering', 'restoringOfTheHost'] as const) {
       const { state, home } = board();
+      state.players[0]!.charteredRites = [rite];
       keepUntilNextTurn(state, home, rite);
       expect(cityRites(state, home), rite).toEqual([rite]);
       nextTurn(state);
-      expect(ritesEndedAt(state, home), rite).toEqual([]);
-      expect(renewItem(state, 0), rite).toBeUndefined();
+      expect(ritesEndedAt(state, home), rite).toEqual([rite]);
+      expect(renewItem(state, 0), rite).toBeDefined();
     }
   });
 

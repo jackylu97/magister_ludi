@@ -790,6 +790,10 @@ export function explainTileYield(
       const cap = line.perNeighbourMax;
       helpings *= cap === undefined ? servings : Math.min(servings, cap);
     }
+    if (line.perStandingTurns !== undefined) {
+      const age = tile.improvedOn === undefined || ctx?.turn === undefined ? 0 : Math.max(0, ctx.turn - tile.improvedOn);
+      helpings *= Math.floor(age * (ctx?.ground?.workAgeFactor ?? 1) / Math.max(1, line.perStandingTurns));
+    }
     if (helpings === 0) return;
     const clamped = {
       food: clampTakeBack('food', line.food * helpings),

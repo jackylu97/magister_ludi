@@ -61,7 +61,7 @@ const assetRequests=[
  loadVegetation(VIEW3D.visualTest.northStar?VTEST_UNIFORMS.vtestTime:{value:0},grainRequests[1],grainRequests[0],{
   indexed:true,distantCells:VIEW3D.painted.lod.distantCells,normalTreeCells:VIEW3D.painted.lod.normalTrees.cells,
  }),
- loadSettlementAssets({register(){}},grainRequests[0],{names:[...(VIEW3D.visualTest.northStar?['monument-ziggurat','monument-armillary','monument-obelisk',...NORTH_STAR_TOWN_ASSETS,...NORTH_STAR_WORK_ASSETS]:[]),'city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
+ loadSettlementAssets({register(){}},grainRequests[0],{names:[...(VIEW3D.visualTest.northStar?['monument-ziggurat','monument-armillary','monument-obelisk',...NORTH_STAR_TOWN_ASSETS,...NORTH_STAR_WORK_ASSETS]:[]),'city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower','ns-great-archive','ns-glasshouse',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
 ];
 for(const request of assetRequests)request.catch(()=>{});
 const grains=await Promise.allSettled(grainRequests);

@@ -127,6 +127,7 @@ import type { DisbandReport } from "./upkeep";
 import {
   openFaithLadder,
   pruneTimedEffects,
+  settleKeptRites,
   spreadReligion,
 } from "./religion";
 import { tileOwnerField } from "./state";
@@ -623,7 +624,10 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // It sweeps nothing (schema 30): a proclamation is a lump paid the instant
     // it is made (`pressLump`), so there is nothing standing on the board with
     // an expiry. The phase and the bomb share one converter, `bankPressure`.
-    run: spreadReligion,
+    run: (state) => {
+      spreadReligion(state);
+      settleKeptRites(state);
+    },
   },
   {
     name: "levyReturns",

@@ -348,11 +348,16 @@ export type TechId =
   // the charter may research one (`TechDef.charter`). Their places are the
   // placeholders of `docs/plans/scientific-build-triage.md` until the user's
   // chart places them.
+  | 'smelting'
+  | 'astronomy'
+  | 'recordKeeping'
+  | 'ciphers'
   | 'herbals'
   | 'casting'
   | 'surveying'
   | 'cataloguing'
   | 'optics'
+  | 'liturgy'
   | 'medicine'
   // The Schoolmen's Charter (Devotion batch DV2), shared by Devotion and
   // Scientific. A placeholder place beside Medicine until the user's chart
@@ -421,6 +426,7 @@ export type AbilityId =
   | 'riteOfTheHarvest'
   | 'omenReading'
   | 'consecrationOfTheBounds'
+  | 'nightWatch'
   | 'blessingOfArms'
   | 'riteOfPlenty'
   // Recasting the Omens and The Preaching stood here until the fewer-things

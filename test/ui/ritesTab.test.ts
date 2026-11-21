@@ -26,7 +26,7 @@ import { isPassable } from '../../src/sim/pathfind';
 import { explainPurchaseCost } from '../../src/sim/purchase';
 import { religionLinesOfCity } from '../../src/sim/ledgerFold';
 import { readCity } from '../../src/sim/readings';
-import { cityRite, explainNextRung, riteCostAhead, riteCostFor, riteGate, riteShortfall } from '../../src/sim/religion';
+import { availableRites, cityRite, explainNextRung, riteCostAhead, riteCostFor, riteGate, riteShortfall } from '../../src/sim/religion';
 import { LIVE_RITE_IDS, type RiteId, riteDef } from '../../src/sim/religionData';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import {
@@ -440,9 +440,7 @@ describe('starting a rite', () => {
     expect(model(state, view).faith.history).toBeNull();
   });
 
-  it('says a refusal other than the bank once, at the head of the free towns', () => {
-    // Votive Offering needs something at the front of the town's queue; towns
-    // building nothing are refused for that, and the refusal is said once.
+  it('offers the Votive Offering in towns with and without a queue', () => {
     const { state, towns } = world();
     const gifts = 'theVotiveGifts' as OrderId;
     const player = playerById(state, 0)!;
@@ -452,15 +450,12 @@ describe('starting a rite', () => {
     towns[0]!.queue = [{ kind: 'unit', id: 'warrior' }];
     bumpRevision(state);
     const shown = model(state, selectRite(freshRitesView(state.turn), 'votiveOffering'));
-    expect(shown.refusalHead).toEqual([{ text: 'Each of these is building nothing', mark: null }]);
-    const row = (city: City) => shown.free.find((town) => town.cityId === city.id)!;
-    expect(row(towns[0]!).look?.look).toBe('buy');
-    for (const town of towns.slice(1)) {
-      expect(row(town).look).toMatchObject({ look: 'none', refusal: `${town.name} is building nothing` });
-      expect(row(town).refusal).toEqual({ at: 'head', mark: null });
+    expect(shown.refusalHead).toEqual([]);
+    for (const town of towns) {
+      const row = shown.free.find((entry) => entry.cityId === town.id)!;
+      expect(row.look?.look).toBe('buy');
+      expect(row.adds?.once ?? []).toEqual([]);
     }
-    // The offering adds production once, the same in every town.
-    expect(row(towns[0]!).adds!.once[0]?.voice).toBe('production');
   });
 
   it('pauses every button once the seat has ended its turn', () => {
@@ -776,6 +771,7 @@ function fakeNode(tag: string): FakeNode {
     ownText: '',
   };
   const api = node as unknown as Record<string, unknown>;
+  api.ownerDocument = globalThis.document;
   const adopt = (items: FakeNode[]): FakeNode[] =>
     items.flatMap((item) => (item.tagName === '#FRAGMENT' ? item.children : [item]));
   api.append = (...items: FakeNode[]): void => {
@@ -832,6 +828,8 @@ const realDocument = (globalThis as { document?: unknown }).document;
 describe('the drawing', () => {
   beforeEach(() => {
     (globalThis as { document?: unknown }).document = {
+      addEventListener() {},
+      removeEventListener() {},
       createElement: (tag: string) => fakeNode(tag),
       createTextNode: (text: string) => {
         const node = fakeNode('#text');
@@ -852,6 +850,8 @@ describe('the drawing', () => {
     return {
       calls,
       handlers: {
+        preview: (rite, cityId) => calls.push(`preview ${cityId} ${rite}`),
+        clearPreview: () => {},
         selectRite: (rite) => calls.push(`select ${rite}`),
         toggleMenu: (cityId) => calls.push(`menu ${cityId}`),
         start: (cityId, rite) => calls.push(`start ${cityId} ${rite}`),
@@ -878,6 +878,8 @@ describe('the drawing', () => {
     expect(button.attributes['aria-label']).toBe(
       `Start Omen Reading in ${first.name} for ${riteCostFor(state, 0)} faith`,
     );
+    for (const listener of button.listeners.focus ?? []) listener({});
+    expect(calls.splice(0)).toEqual([`preview ${first.cityId} ${OMEN}`]);
     press(button);
     expect(calls).toEqual([`start ${first.cityId} ${OMEN}`]);
     // One button a free town, numbered best first.
@@ -916,10 +918,7 @@ describe('the drawing', () => {
     press(chip);
     expect(calls).toEqual([`select ${OMEN}`]);
     const locked = byClass(tab, 'is-locked').filter((node) => node.className.includes('faith-rite-chip'));
-    // The four rites a card teaches: Devotion batch DV4 added the Rite of the
-    // Sabbath beside the Rite of Fasting, the Votive Offering and the
-    // Restoring of the Host.
-    expect(locked.length).toBe(4);
+    expect(locked.length).toBe(LIVE_RITE_IDS.length - availableRites(state, 0).length);
     for (const node of locked) {
       expect(node.tagName).toBe('SPAN');
       expect(textOf(node)).toContain('needs ');

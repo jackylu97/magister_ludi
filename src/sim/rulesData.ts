@@ -1831,8 +1831,8 @@ interface GreatPeopleRules {
   citadelClaimRadius: number;
   /** Gold charged per point of the next recruitment threshold. */
   offerGoldPerRenown: number;
-  /** The same out of the faith bank — The Magisterium's. */
-  offerPriceFaith: number;
+  /** Sacred Patronage charges faith against the same renown threshold. */
+  offerFaithPerRenown: number;
   /**
    * What a **draft of great scholars** costs in faith — The Academy's, and the
    * user's ruling of 2026-09-03.

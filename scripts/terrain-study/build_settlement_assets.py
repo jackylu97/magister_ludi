@@ -197,6 +197,8 @@ if '--animals-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_northstar_animals.py')),init_globals=globals());sys.exit(0)
 if '--ns-units-only' in sys.argv:
  runpy.run_path(str(Path(__file__).with_name('build_northstar_units.py')),init_globals=globals());sys.exit(0)
+if '--charter-buildings' in sys.argv:
+ runpy.run_path(str(Path(__file__).with_name('build_charter_buildings.py')),init_globals=globals());sys.exit(0)
 if '--city-only' in sys.argv:
  city_assets();sys.exit(0)
 if '--sites-only' in sys.argv:

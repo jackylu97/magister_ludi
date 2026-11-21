@@ -1,3 +1,4 @@
+import { buildingProductionCost } from '../../../src/sim/cities';
 /**
  * **Scientific batch S8, great people and the great houses**
  * (`docs/plans/scientific-build-triage.md`, the S8 section and readings 36 to
@@ -55,6 +56,7 @@ import {
 import { type CardType, type OrderId, type OrderRarity, orderDef, orderIsDealt } from '../../../src/sim/statecraftData';
 import { buildError, gatingTech, isUnlocked } from '../../../src/sim/tech';
 import { resetVisibility } from '../../../src/sim/visibility';
+import { foldTile, yieldContextFor } from '../../../src/sim/yields/hex';
 import { foldEmpireRates } from '../../../src/sim/yields/empire';
 import { explainCity, foldCity } from '../../../src/sim/yields/town';
 import { newGame } from '../newGameHelpers';
@@ -157,63 +159,63 @@ const S8: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     rarity: 'rare',
     type: 'civic',
     // Batch DS6 removed the Library's thirty turns.
-    text: 'You may build Universities before you know Scholarship.',
+    text: "You may build Universities before you know Scholarship.",
   },
   {
     id: 'theDedications',
     band: 1,
     rarity: 'uncommon',
     type: 'civic',
-    text: "Finishing a science building or an empire building grants culture equal to ten times the town's population.",
+    text: "Finishing a science building or an empire building grants culture equal to its production cost.",
   },
   {
     id: 'theRoyalReaders',
     band: 2,
     rarity: 'rare',
     type: 'civic',
-    text: 'Great scholars raise the price of your next great person by half as much.',
+    text: "Great scholars raise the price of your next great person by half as much.",
   },
   {
     id: 'theInvitations',
     band: 2,
     rarity: 'rare',
     type: 'civic',
-    text: 'Completing an empire building grants a great scholar.',
+    text: "The first time you complete each empire building, gain a great scholar.",
   },
   {
     id: 'theSecondSeat',
     band: 3,
     rarity: 'rare',
     type: 'civic',
-    text: 'You may build one second copy of an empire building, in a city with a University.',
+    text: "You may build a second copy of all empire buildings, while this is active.",
   },
   {
     id: 'theDoctorate',
     band: 3,
     rarity: 'common',
     type: 'civic',
-    text: 'Gaining a great scholar grants culture equal to eight turns of your culture.',
+    text: "Gaining a great scholar grants culture equal to eight turns of your culture.",
   },
   {
     id: 'theRoyalAcademies',
     band: 3,
     rarity: 'uncommon',
     type: 'civic',
-    text: '+5% production and culture for each empire building you hold.',
+    text: "+5% production and culture for each empire building you hold.",
   },
   {
     id: 'theQueenOfCities',
     band: 3,
     rarity: 'rare',
     type: 'economic',
-    text: 'Towns of at least 15 citizens produce twice their food and production.',
+    text: "Towns of at least 15 citizens produce twice their food and production.",
   },
   {
     id: 'theHumanists',
     band: 3,
-    rarity: 'uncommon',
+    rarity: 'common',
     type: 'civic',
-    text: 'Cities with a University gain culture equal to half their base science.',
+    text: "Towns with a Library gain culture equal to a quarter of their science.",
   },
   {
     id: 'theWallsOfLearning',
@@ -221,15 +223,15 @@ const S8: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     rarity: 'common',
     type: 'military',
     // Batch DS6 removed the +12 for the town raising the Opus.
-    text: 'Towns with a University gain +6 defence.',
+    text: "Towns with a University gain +6 defence.",
   },
   {
     id: 'theLynxEyedAcademy',
-    band: 4,
-    rarity: 'rare',
+    band: 3,
+    rarity: 'uncommon',
     type: 'wildcard',
     // Batch DS6 reworded it; the goal and the reward did not change.
-    text: 'Goal: hold four Academies. Reward: a great scholar, and 300 production in each town with an Academy.',
+    text: "Goal: hold three Academies. Reward: a great scholar, and Academies gain +5 science and +5 culture.",
   },
 ];
 
@@ -240,7 +242,7 @@ describe('the rows', () => {
     // the tests below still read it. It has no type and is not dealt.
     for (const { id, band, rarity, type, text } of S8) {
       const def = orderDef(id);
-      const retired = id === 'theRoyalReaders';
+      const retired = ['theRoyalReaders', 'theWallsOfLearning'].includes(id);
       expect(orderIsDealt(id), id).toBe(!retired);
       expect(def.deferred, id).toBeUndefined();
       expect(def.retired, id).toBe(retired ? true : undefined);
@@ -256,31 +258,35 @@ describe('the rows', () => {
   it('prints each card in plain words through the describers', () => {
     expect(said('theForwardPlans')[0]).toMatch(/^unlocks the University — /);
     expect(said('theDedications')).toEqual([
-      "completing a building (a science building or an empire building) grants culture equal to 10 times the city's population",
+      "completing a building (a science building or an empire building) grants culture equal to the building’s production cost",
     ]);
     expect(said('theRoyalReaders')).toEqual([
-      'great scholars raise the price of your next great person by half as much',
+      "great scholars raise the price of your next great person by half as much",
     ]);
     expect(said('theInvitations')).toEqual([
-      'completing a building (an empire building) grants a great scholar to call',
+      "completing a building (an empire building, the first time you complete each kind) grants a great scholar to call",
     ]);
     expect(said('theSecondSeat')).toEqual([
-      'you may build one second copy of an empire building, in a city with a University',
+      "you may build a second copy of each empire building",
     ]);
-    expect(said('theDoctorate')).toEqual(['gaining a great scholar grants 8 extra turns of culture']);
+    expect(said('theDoctorate')).toEqual([
+      "gaining a great scholar grants 8 extra turns of culture",
+    ]);
     expect(said('theRoyalAcademies')).toEqual([
-      '+5% production and +5% culture per empire building you hold',
+      "+5% production and +5% culture per empire building you hold",
     ]);
     expect(said('theQueenOfCities')).toEqual([
-      '+100% food and +100% production in every city of 15 or more citizens',
+      "+100% food and +100% production in every city of 15 or more citizens",
     ]);
     expect(said('theHumanists')).toEqual([
-      '50% of the science in every city with a University is gained again as culture',
+      "25% of the science in every city with a Library is gained again as culture",
     ]);
-    expect(said('theWallsOfLearning')).toEqual(['every city with a University: +6 city defence']);
+    expect(said('theWallsOfLearning')).toEqual([
+      "every city with a University: +6 city defence",
+    ]);
     expect(said('theLynxEyedAcademy')).toEqual([
-      'Commission',
-      'Goal: hold 4 Academies inside your borders. Reward: a great scholar to call, and +300 production in every city with an Academy',
+      "Commission",
+      "Goal: hold 3 Academies inside your borders. Reward: a great scholar to call, and +5 science, +5 culture on every hex with an Academy",
     ]);
   });
 });
@@ -308,20 +314,22 @@ describe('great people', () => {
     expect(player.renownPool).toBe(0);
   });
 
-  it('The Invitations: with an offer already waiting, or before the rites, the renown for the next rung is paid', () => {
+  it('queues a second scholar and permits both recruits before Epic Poetry', () => {
     const state = bench();
     const city = town(state, 0, 4, 5);
     slot(state, 0, 'theInvitations');
     const player = playerById(state, 0)!;
-    // Before the ancestor rites nobody can be called, so the ladder is filled
-    // to its next rung and the scholar's family is fed.
     realiseItem(state, city, { kind: 'building', id: 'forum' });
-    expect(player.greatPersonOffer).toBeUndefined();
-    expect(player.renownPool).toBe(renownThreshold(state, player));
-    expect(player.renownByFamily.scholar).toBe(renownThreshold(state, player));
-    // Not paid again by a building that is not a great house.
+    const first = player.greatPersonOffer;
+    expect(first?.family).toBe('scholar');
     realiseItem(state, city, { kind: 'building', id: 'granary' });
-    expect(player.renownPool).toBe(renownThreshold(state, player));
+    expect(player.statecraft.waitingGreatPersonFamilies).toBeUndefined();
+    realiseItem(state, city, { kind: 'building', id: 'greatArchive' });
+    expect(player.greatPersonOffer).toBe(first);
+    expect(player.statecraft.waitingGreatPersonFamilies).toEqual(['scholar']);
+    expect(applyCommand(state, { type: 'chooseGreatPerson', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(player.greatPersonOffer?.family).toBe('scholar');
+    expect(player.statecraft.waitingGreatPersonFamilies).toBeUndefined();
   });
 
   it('The Royal Readers: each great scholar is half a step on the price ladder', () => {
@@ -375,27 +383,27 @@ describe('great people', () => {
     expect(player.culturePool - before).toBeCloseTo(8 * rate, 9);
   });
 
-  it('The Dedications: a science building or an empire building pays ten times the town, and a building in both pays once', () => {
+  it('The Dedications: a science building or an empire building pays its production cost, and a building in both pays once', () => {
     const state = bench();
     const city = town(state, 0, 4, 5, 6);
     slot(state, 0, 'theDedications');
     const culture = (id: BuildingId) =>
-      windfallPayout(state, 0, 'buildingCompletion', 0, 0, { building: id, population: city.population })
+      windfallPayout(state, 0, 'buildingCompletion', 0, 0, { building: id, buildingCost: buildingProductionCost(id, state, 0) })
         .grants.filter((grant) => grant.card === 'theDedications')
         .reduce((sum, grant) => sum + grant.amount, 0);
     expect(culture('granary')).toBe(0);
-    expect(culture('library')).toBe(60);
-    expect(culture('forum')).toBe(60);
+    expect(culture('library')).toBe(buildingProductionCost('library', state, 0));
+    expect(culture('forum')).toBe(buildingProductionCost('forum', state, 0));
     // Chart the Stars is a science building and an empire building: once
     // (the triage's reading 36).
-    expect(culture('chartTheStars')).toBe(60);
+    expect(culture('chartTheStars')).toBe(buildingProductionCost('chartTheStars', state, 0));
     // On the board, through the one completion routine. The next draft is put
     // out of reach so the pool is not spent on one.
     const player = playerById(state, 0)!;
     player.statecraft.drafts = 29;
     const before = player.culturePool;
     realiseItem(state, city, { kind: 'building', id: 'library' });
-    expect(player.culturePool - before).toBe(60);
+    expect(player.culturePool - before).toBe(buildingProductionCost('library', state, 0));
   });
 });
 
@@ -414,17 +422,11 @@ describe('the great houses', () => {
     return { state, a, b, c };
   }
 
-  it('The Second Seat: one second copy, only in a town with a University', () => {
+  it('The Second Seat: one extra copy in any other town', () => {
     const { state, a, b } = houses();
     expect(buildError(state, 0, 'building', 'forum', b)).toBe(`Forum already stands in ${a.name}`);
     slot(state, 0, 'theSecondSeat');
-    // The panel shows the row in every town now (`cardBuildsEverywhere`), and
-    // the gate says why a town without a University is refused.
     expect(cardBuildsEverywhere(state, 0, 'forum')).toBe(true);
-    expect(buildError(state, 0, 'building', 'forum', b)).toBe(
-      `Forum already stands in ${a.name}; your Order allows another copy only in a city with a University`,
-    );
-    raise(state, b, 'university');
     expect(buildError(state, 0, 'building', 'forum', b)).toBeNull();
     // A caller with no town in hand gets the stricter reading.
     expect(buildError(state, 0, 'building', 'forum')).toBe(`Forum already stands in ${a.name}`);
@@ -438,7 +440,7 @@ describe('the great houses', () => {
     expect(buildError(state, 0, 'building', 'forum', b)).toBe(`Forum already stands in ${a.name}`);
   });
 
-  it('The Second Seat: one extra copy in all, standing or being built (reading 47)', () => {
+  it('The Second Seat: one extra copy of each kind, standing or being built', () => {
     const { state, a, b, c } = houses();
     slot(state, 0, 'theSecondSeat');
     raise(state, b, 'university');
@@ -446,9 +448,9 @@ describe('the great houses', () => {
     raise(state, a, 'heroicEpic');
     b.queue = [{ kind: 'building', id: 'forum' }];
     bumpRevision(state);
-    // The second Forum is being built in B, so no other house may have a
-    // second copy, and the Forum may not have a third.
-    expect(buildError(state, 0, 'building', 'heroicEpic', c)).toMatch(/your Order's one extra copy is already standing or being built/);
+    // The second Forum is being built in B, so another house may have its second copy.
+    // The Forum may not have a third.
+    expect(buildError(state, 0, 'building', 'heroicEpic', c)).toBeNull();
     expect(buildError(state, 0, 'building', 'forum', c)).toMatch(/your Order's one extra copy is already standing or being built/);
     // B re-sending its own queue is fine: it is the row being asked about.
     expect(buildError(state, 0, 'building', 'forum', b)).toBeNull();
@@ -456,10 +458,10 @@ describe('the great houses', () => {
     b.queue = [];
     realiseItem(state, b, { kind: 'building', id: 'forum' });
     expect(b.buildings).toContain('forum');
-    expect(buildError(state, 0, 'building', 'heroicEpic', c)).toMatch(/your Order's one extra copy is already standing or being built/);
+    expect(buildError(state, 0, 'building', 'heroicEpic', c)).toBeNull();
   });
 
-  it('The Second Seat: two second copies sent in one queue are refused, one is taken', () => {
+  it('The Second Seat: accepts second copies of different buildings in the same queue', () => {
     const { state, a, b } = houses();
     slot(state, 0, 'theSecondSeat');
     raise(state, b, 'university');
@@ -471,14 +473,11 @@ describe('the great houses', () => {
         cityId: b.id,
         queue: queue.map((id) => ({ kind: 'building', id })),
       } as Command);
-    const refused = send(['forum', 'heroicEpic']);
-    expect(refused.ok).toBe(false);
-    expect(refused.ok === false && refused.error).toMatch(/your Order's one extra copy is already standing or being built/);
-    expect(b.queue).toEqual([]);
     expect(send(['forum']).ok).toBe(true);
-    expect(b.queue).toEqual([{ kind: 'building', id: 'forum' }]);
-    // And a second command adding the Heroic Epic is refused the same way.
-    expect(send(['forum', 'heroicEpic']).ok).toBe(false);
+    expect(send(['forum', 'heroicEpic']).ok).toBe(true);
+    expect(b.queue).toEqual([{ kind: 'building', id: 'forum' }, { kind: 'building', id: 'heroicEpic' }]);
+    expect(send(['forum', 'forum']).ok).toBe(false);
+    expect(b.queue).toEqual([{ kind: 'building', id: 'forum' }, { kind: 'building', id: 'heroicEpic' }]);
   });
 
   it('The Second Seat: never reaches the Magnum Opus, and Caravanserai Cities still lifts its yard outright', () => {
@@ -486,7 +485,7 @@ describe('the great houses', () => {
     town(state, 0, 4, 5);
     slot(state, 0, 'theSecondSeat');
     expect(cardLimitLifts(state, 0, 'forum')).toEqual([
-      { card: 'theSecondSeat', max: 1, scope: { test: 'hasBuilding', building: 'university' } },
+      { card: 'theSecondSeat', max: 1 },
     ]);
     expect(cardLimitLifts(state, 0, 'theMagnumOpus')).toEqual([]);
     expect(cardLimitLifts(state, 0, 'granary')).toEqual([]);
@@ -573,13 +572,13 @@ describe('great cities', () => {
     expect(percentOn(state, small, 'theQueenOfCities', 'production')).toBe(0);
   });
 
-  it('The Humanists: a University town gains culture equal to half its science, and a town without one nothing', () => {
+  it('The Humanists: a Library town gains culture equal to a quarter of its science, and a town without one nothing', () => {
     const state = bench();
     const city = town(state, 0, 4, 5, 6);
     const plain = town(state, 0, 12, 5, 6);
     raise(state, city, 'library');
     raise(state, city, 'university');
-    raise(state, plain, 'library');
+    raise(state, plain, 'monument');
     const science = foldCity(state, city).science;
     expect(science).toBeGreaterThan(0);
     slot(state, 0, 'theHumanists');
@@ -587,7 +586,7 @@ describe('great cities', () => {
       explainCity(state, where)
         .lines.filter((line) => line.source.includes('The Humanists'))
         .reduce((sum, line) => sum + line.culture, 0);
-    expect(culture(city)).toBeCloseTo(science / 2, 9);
+    expect(culture(city)).toBeCloseTo(science / 4, 9);
     expect(culture(plain)).toBe(0);
   });
 });
@@ -610,35 +609,34 @@ describe('The Lynx-Eyed Academy', () => {
     expect(city.ownerId).toBe(0);
   });
 
-  it('met at four Academies: a great scholar, and 300 production in each town with an Academy', () => {
+  it('three Academies grant a scholar and raise the yield of Academy hexes', () => {
     const state = bench();
     keepTheRites(state);
-    const a = town(state, 0, 4, 5);
-    const b = town(state, 0, 12, 5);
-    const c = town(state, 0, 8, 10);
+    town(state, 0, 4, 5);
+    town(state, 0, 12, 5);
     slot(state, 0, 'theLynxEyedAcademy');
     const sc = playerById(state, 0)!.statecraft;
-    // Three in the first town's borders and one in the second's.
+    // The third Academy can be in another town.
     for (const [col, row] of [
       [5, 5],
       [3, 5],
-      [4, 4],
     ] as const) {
       raiseImprovement(at(state, col, row), 'academy', state.turn);
     }
     bumpRevision(state);
-    expect(runCommissions(state), 'three Academies meet nothing').toEqual([]);
+    expect(runCommissions(state), 'two Academies do not complete the commission').toEqual([]);
     raiseImprovement(at(state, 13, 5), 'academy', state.turn);
     bumpRevision(state);
-    const basket = (city: City) => city.hammerBasket;
-    const before = [basket(a), basket(b), basket(c)];
+
+    const academy = at(state, 5, 5);
+    const before = foldTile(academy, yieldContextFor(state, 0));
     const reports = runCommissions(state);
     expect(reports).toHaveLength(1);
     expect(reports[0]!.card).toBe('theLynxEyedAcademy');
     expect(reports[0]!.lines.some((line) => line.includes('great scholar'))).toBe(true);
-    expect(basket(a) - before[0]!).toBe(300);
-    expect(basket(b) - before[1]!).toBe(300);
-    expect(basket(c) - before[2]!).toBe(0);
+    const after = foldTile(academy, yieldContextFor(state, 0));
+    expect(after.science - before.science).toBe(5);
+    expect(after.culture - before.culture).toBe(5);
     const offer = playerById(state, 0)!.greatPersonOffer;
     expect(offer).toBeDefined();
     for (const id of offer!.options) expect(greatPersonDef(id).family, id).toBe('scholar');

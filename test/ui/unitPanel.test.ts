@@ -460,7 +460,8 @@ describe('the rites are no longer on the unit sheet', () => {
   it('names a town where the verb names one, and asks the sim for the price', () => {
     expect(controls).toContain('function performRite(cityId: number, id: RiteId): void');
     expect(controls).toContain('function riteOptions(cityId: number): RiteOption[]');
-    expect(controls).toContain('const cost = riteCostFor(state, localPlayerId, state.cities.find((city) => city.id === cityId));');
+    expect(controls).toContain('const city = state.cities.find((town) => town.id === cityId);');
+    expect(controls).toContain('const cost = riteCostFor(state, localPlayerId, city);');
     expect(controls).not.toContain('recastChoices');
   });
 });

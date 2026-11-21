@@ -389,7 +389,7 @@ describe('The Offering Chests', () => {
     const ctx = valueContext(state, player);
     const income = foldEmpireRates(state, 0).faithPerTurn ?? 0;
     expect(scoreEffects(effectsOf(OFFERING_CHESTS), ctx)).toBeCloseTo(
-      0.3 * income * DEVOTION.faithUnitShare * voiceWeight(ctx, 'faith'),
+      0.2 * income * DEVOTION.faithUnitShare * voiceWeight(ctx, 'faith'),
       10,
     );
   });
@@ -451,11 +451,12 @@ describe('the season rule', () => {
     const [, faith] = effectsOf(ROGATIONS) as CardPaysEffect[];
     const quiet = explainCounted(faith!, valueContext(state, player), ROGATIONS);
     expect(quiet.terms[1]!.value).toBe(TALLY.riteStarted);
-    // A Votive Offering is not a season, so it counts for nothing.
+    // Votive Offering now runs for ten turns and counts like the other rites.
     keep(state, towns[0]!, 'votiveOffering');
     const offered = explainCounted(faith!, valueContext(state, player), ROGATIONS);
-    expect(offered.terms[1]!.value).toBe(TALLY.riteStarted);
-    // Two seasons kept now, each over ten turns: a fifth of a season a turn.
+    expect(offered.terms[1]!.value).toBe(Math.max(HORIZON / 10, TALLY.riteStarted));
+    towns[0]!.timed = [];
+    // Each town now keeps one rite.
     keep(state, towns[0]!, 'riteOfTheHarvest');
     keep(state, towns[1]!, 'omenReading');
     const busy = explainCounted(faith!, valueContext(state, player), ROGATIONS);
@@ -470,25 +471,23 @@ describe('the season rule', () => {
     const ctx = valueContext(state, player);
     const appraisal = explainCommission(FOUNDING_VOWS, ctx)!;
     // Two seasons over ten turns is a fifth a turn, above the cautious
-    // default, so the goal's two seasons take ten turns.
+    // default, so the goal's three starts take fifteen turns.
     const fallback = (TALLY.riteStarted * COMMISSION.priorShare) / HORIZON;
     const rate = Math.max(2 / 10, fallback);
-    expect(appraisal.terms[1]!.value).toBeCloseTo(delayDiscount(Math.ceil(2 / rate), ctx), 10);
+    expect(appraisal.terms[1]!.value).toBeCloseTo(delayDiscount(Math.ceil(3 / rate), ctx), 10);
   });
 });
 
 describe('The Psalter', () => {
-  it('pays at the seasons started in devout towns, at a devout town’s citizens', () => {
+  it('prices a start in any town using its expected population', () => {
     const { state, player, towns } = board([6, 4]);
     learn(state, 0, 'divination');
     religionAt(state, towns[0]!, [towns[0]!]);
     keep(state, towns[1]!, 'riteOfTheHarvest');
     const ctx = valueContext(state, player);
-    // One season kept, over ten turns; half the towns are devout; the devout
-    // town has six citizens. Each firing in full, times the rate (bot batch BP4).
-    const rate = Math.max(1 / 10, TALLY.riteStarted / HORIZON) * (1 / 2);
+    const rate = Math.max(1 / 10, TALLY.riteStarted / HORIZON);
     const [science] = effectsOf(PSALTER);
-    expect(scoreEffects([science!], ctx)).toBeCloseTo(rate * valueOfYields({ science: 5 * 6 }, ctx), 10);
+    expect(scoreEffects([science!], ctx)).toBeCloseTo(rate * valueOfYields({ science: 5 * 5 }, ctx), 10);
   });
 
   it('pays nothing to a seat that knows no season', () => {
@@ -612,7 +611,9 @@ describe('Commission: The State Church', () => {
     const ctx = valueContext(state, player);
     const reward = explainCommission(STATE_CHURCH, ctx)!.terms[0]!;
     const lasting = allTerms(reward.parts ?? []).find((term) => term.label.includes('for the rest of the game'))!;
-    expect(lasting.value).toBeCloseTo(6 * meterWeight(ctx, 'authority'), 10);
+    expect(lasting.value).toBeCloseTo(3 * meterWeight(ctx, 'authority'), 10);
+    const happiness = allTerms(reward.parts ?? []).filter((term) => term.label.includes('for the rest of the game'))[1]!;
+    expect(happiness.value).toBeCloseTo(3 * meterWeight(ctx, 'happiness'), 10);
   });
 });
 

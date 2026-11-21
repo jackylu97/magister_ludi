@@ -274,6 +274,17 @@ describe('board overlays draw over the board', () => {
     layer.dispose();
   });
 
+  it('draws target rings on the affected cells and clears them when the action closes', () => {
+    const state = flatState(), layer = new OverlayLayer();
+    const base = { reachable: [], path: [], committed: [], hover: null, selection: null, worked: [], locked: [] };
+    layer.build(state.map, { ...base, actionPreview: [{ col: 1, row: 2 }, { col: 4, row: 1 }] }, geometry, materials);
+    const rings = decals(layer.group).filter(entry => entry.mesh.geometry === geometry.ring);
+    expect(rings.reduce((count, ring) => count + ring.mesh.count, 0)).toBe(2 * WRAP_COPIES);
+    layer.build(state.map, base, geometry, materials);
+    expect(shapesOf(layer.group)).not.toContain(geometry.ring);
+    layer.dispose();
+  });
+
   it('rings the selected hex in the seat’s own primary, and the hovered one in the accent', () => {
     // H7 gave a seat a colour worth naming, and the user found the selection
     // ring still wearing the data file's terracotta (2026-09-11, (qqqq)). The

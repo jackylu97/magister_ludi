@@ -241,15 +241,15 @@ describe('Devotion batch DV1: the hex and town cards', () => {
     expect(words('theSettledFaith')).toEqual(['+15% science and +15% culture in every devout city']);
   });
 
-  it('The Settled Faith pays nothing in a town whose religion its owner is not paid by', () => {
+  it('A seat without a religion counts its capital’s majority as devout', () => {
     const state = bareState(16, 10);
     const mine = town(state, 0, 3, 5, 4);
     const theirs = town(state, 1, 11, 5, 4);
     const foreign = holyCity(state, theirs);
-    // Seat 0's town follows seat 1's religion: it is not devout.
+    // Seat 0's town follows seat 1's religion: the capital supplies the seat’s religion.
     convert(state, mine, foreign);
     slot(state, 0, 'theSettledFaith');
-    expect(townPercent(state, mine, 'theSettledFaith', 'science')).toBe(0);
+    expect(townPercent(state, mine, 'theSettledFaith', 'science')).toBe(15);
   });
 });
 
@@ -272,7 +272,7 @@ describe('Devotion batch DV1: the commissions', () => {
     expect(seated(state, 'theMission')).toBe(false);
   });
 
-  it('The Conversion of Kings sits at Tier III and pays a free Prophet and 500 culture', () => {
+  it('The Conversion of Kings sits at Tier III and pays a free Prophet and 1000 culture', () => {
     const def = orderDef('theConversionOfKings' as OrderId);
     expect(def.band).toBe(3);
     // The goal is unchanged: a rival's capital follows your religion.
@@ -286,7 +286,7 @@ describe('Devotion batch DV1: the commissions', () => {
       expect(reports.map((report) => report.card)).toEqual(['theConversionOfKings']);
       // The report says what was paid. The culture itself may open a draft
       // and be spent at once, so the pool is not the place to read it.
-      expect(reports[0]!.lines).toContain('+500 culture');
+      expect(reports[0]!.lines).toContain('+1000 culture');
     });
     expect(state.units.filter((unit) => unit.ownerId === 0 && unit.type === 'prophet')).toHaveLength(1);
   });
@@ -310,21 +310,10 @@ describe('Devotion batch DV1: the commissions', () => {
     expect(seated(state, 'theGreatCommission')).toBe(false);
     // No 500 faith at once (reading 6).
     expect(player.faithPool).toBe(faith);
-    // The institution pays the devout towns and not the town that follows nothing.
-    for (const city of [capital, second]) {
-      expect(townPays(state, city, 'theGreatCommission', 'faith'), city.name).toBe(3);
-      expect(townPays(state, city, 'theGreatCommission', 'culture'), city.name).toBe(3);
-    }
-    expect(townPays(state, quiet, 'theGreatCommission', 'faith')).toBe(0);
-    // It lasts: a town that turns later is paid too.
+    expect(empirePays(state, 'theGreatCommission', 'science')).toBe(6);
+    expect(empirePays(state, 'theGreatCommission', 'culture')).toBe(6);
     convert(state, quiet, religion);
-    expect(townPays(state, quiet, 'theGreatCommission', 'culture')).toBe(3);
-    // Batch DV2 gave the scope its word, "devout" (feature E).
-    // Batch DS8: the Commission keyword says that a lasting reward lasts.
-    expect(words('theGreatCommission')[1]).toBe(
-      "Goal: have at least 51% of the world's cities follow your religion. " +
-        'Reward: +3 culture, +3 faith in every devout city',
-    );
+    expect(empirePays(state, 'theGreatCommission', 'science')).toBe(9);
   });
 });
 
@@ -412,7 +401,7 @@ describe('Devotion batch DV1: tiers, retirements and moves', () => {
     // person is spent (`test/sim/decks/magisterialPatrons.test.ts`). Batch
     // DS5 removed the second clause, the 30 faith for a great person spent.
     expect(orderIsDealt('sacredPatronage' as OrderId)).toBe(true);
-    expect(patronage.text).toBe('You may buy a great-person draft for 750 faith.');
+    expect(patronage.text).toBe('You may buy a great-person draft with faith, at 5 faith for each point of renown the next great person costs.');
     expect(patronage.effects).toEqual([{ kind: 'rule', rule: 'buyGreatPersonWithFaith' }]);
   });
 });
@@ -432,7 +421,7 @@ function hexFaithAndProduction(state: GameState, tile: Tile, card: string): { fa
 }
 
 /** What one card pays the whole realm, in one voice. */
-function empirePays(state: GameState, card: string, voice: 'faith' | 'culture'): number {
+function empirePays(state: GameState, card: string, voice: 'faith' | 'culture' | 'science'): number {
   return explainCardEmpireYields(state, 0)
     .filter((line) => line.card === card)
     .reduce((sum, line) => sum + line[voice], 0);
@@ -519,20 +508,21 @@ describe('Devotion batch DV2: the new Devotion cards', () => {
     expect(empirePays(state, 'theMartyrology', 'faith')).toBe(6);
   });
 
-  it('The Consecration Feast pays twenty times the town in science and culture for a Cathedral, and for no other building', () => {
+  it('The Consecration Feast pays ten times population in food and culture on built and bought faith buildings', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5, 6);
     slot(state, 0, 'theConsecrationFeast');
     const grants = (building: string, voice: string): number =>
       windfallPayout(state, 0, 'buildingCompletion', 0, 0, {
         building: building as never,
+        hex: city,
         population: city.population,
       })
         .grants.filter((grant) => grant.card === 'theConsecrationFeast' && grant.yield === voice)
         .reduce((sum, grant) => sum + grant.amount, 0);
-    expect(grants('cathedral', 'science')).toBe(120);
-    expect(grants('cathedral', 'culture')).toBe(120);
-    expect(grants('temple', 'science')).toBe(0);
+    expect(grants('cathedral', 'food')).toBe(60);
+    expect(grants('cathedral', 'culture')).toBe(60);
+    expect(grants('temple', 'food')).toBe(60);
     expect(grants('library', 'culture')).toBe(0);
     // On the board, through the one completion routine. The next draft is put
     // out of reach so the pool is not spent on one.
@@ -540,7 +530,7 @@ describe('Devotion batch DV2: the new Devotion cards', () => {
     player.statecraft.drafts = 29;
     const culture = player.culturePool;
     realiseItem(state, city, { kind: 'building', id: 'cathedral' as never });
-    expect(player.culturePool - culture).toBe(120);
+    expect(player.culturePool - culture).toBe(60);
     // A Cathedral bought with gold is finished through the same routine, so it
     // pays too (the row's note).
     const bought = town(state, 0, 10, 2, 3);
@@ -549,7 +539,7 @@ describe('Devotion batch DV2: the new Devotion cards', () => {
     expect(purchaseError(state, 0, bought.id, cathedral, 'gold')).toBeNull();
     const before = player.culturePool;
     purchaseItemAt(state, player, bought, cathedral as never, 'gold');
-    expect(player.culturePool - before).toBe(60);
+    expect(player.culturePool - before).toBe(30);
   });
 
   it('The Pilgrim Towns pays +20% culture in a town working a holy site, and in no other town', () => {
@@ -559,14 +549,10 @@ describe('Devotion batch DV2: the new Devotion cards', () => {
     const site = ring(state, pilgrim)[0]!;
     raiseImprovement(site, 'holySite' as never, state.turn);
     slot(state, 0, 'thePilgrimTowns');
-    // A holy site nobody works admits nothing.
-    pilgrim.workedTiles = [];
-    bumpRevision(state);
-    expect(townPercent(state, pilgrim, 'thePilgrimTowns', 'culture')).toBe(0);
-    pilgrim.workedTiles = [{ col: site.col, row: site.row }];
-    bumpRevision(state);
-    expect(townPercent(state, pilgrim, 'thePilgrimTowns', 'culture')).toBe(20);
-    expect(townPercent(state, other, 'thePilgrimTowns', 'culture')).toBe(0);
+    const religion = holyCity(state, pilgrim);
+    expect(hexFaithAndProduction(state, site, 'thePilgrimTowns').production).toBe(1);
+    convert(state, other, religion);
+    expect(hexFaithAndProduction(state, site, 'thePilgrimTowns').production).toBe(2);
   });
 
   it('The Holy Summons gives every devout town the best melee unit on a declaration of war, at most once every twenty turns', () => {

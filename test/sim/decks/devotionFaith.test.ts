@@ -30,6 +30,8 @@ import {
   playerById,
 } from '../../../src/sim/state';
 import {
+  cardHappiness,
+  cardAuthority,
   cityScopeAdmits,
   commissionFulfilledTurn,
   describeCard,
@@ -106,15 +108,15 @@ function words(id: string): string[] {
 describe('the three rows', () => {
   it('deals The Parishes, The State Church and The Confessors to a Devotion seat at Tier II', () => {
     const mine = ordersForDecks(['devotion']);
-    for (const id of [PARISHES, STATE_CHURCH, CONFESSORS]) {
+    for (const id of [PARISHES, STATE_CHURCH]) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(mine, id).toContain(id);
       expect(orderDef(id).band, id).toBe(2);
-      expect(orderDef(id).rarity, id).toBe('uncommon');
+      expect(orderDef(id).rarity, id).toBe(id === PARISHES ? 'common' : 'uncommon');
     }
     expect(orderDef(PARISHES).type).toBe('civic');
     expect(orderDef(STATE_CHURCH).type).toBe('wildcard');
-    expect(orderDef(CONFESSORS).type).toBe('military');
+    expect(mine).not.toContain(CONFESSORS);
   });
 
   it('prints every row through the describers in plain words', () => {
@@ -353,22 +355,16 @@ describe('Commission: The State Church', () => {
     expect(runCommissions(state).map((report) => report.card)).toEqual([STATE_CHURCH]);
     expect(commissionFulfilledTurn(player.statecraft, STATE_CHURCH)).toBe(state.turn);
     bumpRevision(state);
-    for (const [index, city] of towns.entries()) {
-      const was = before[index]!;
-      // A discount never charges a free town, and never takes one below one.
-      const expected = was === 0 ? 0 : Math.max(Math.min(was, 1), was - 1);
-      expect(townWrit(state, city), city.name).toBe(expected);
-    }
-    expect(before.some((was) => was > 1)).toBe(true);
-    // It lasts: a town that stops following pays the full price again, and
-    // one that turns back is cheaper again.
+    const paid = () => [cardAuthority(state, 0), cardHappiness(state, 0)].map(lines =>
+      lines.filter(line => line.card === STATE_CHURCH).reduce((sum, line) => sum + line.amount, 0));
+    expect(towns.map(city => townWrit(state, city))).toEqual(before);
+    expect(paid()).toEqual([3, 3]);
     const last = towns[towns.length - 1]!;
-    const full = before[towns.length - 1]!;
     last.followers = {};
     bumpRevision(state);
-    expect(townWrit(state, last)).toBe(full);
+    expect(paid()).toEqual([2, 2]);
     last.followers = { [religion]: last.population };
     bumpRevision(state);
-    expect(townWrit(state, last)).toBe(Math.max(Math.min(full, 1), full - 1));
+    expect(paid()).toEqual([3, 3]);
   });
 });

@@ -330,42 +330,26 @@ describe('The Secret Arts', () => {
 });
 
 describe('The Translation Movement', () => {
-  it('takes 20% off a technology a met empire knows, as one line of the price', () => {
+  it('discounts earlier ordinary and charter technologies only after reaching a later age', () => {
     const state = flat();
     const seat = playerById(state, 0)!;
-    const [known, unknown] = spareTechs(state, 2) as [TechId, TechId];
-    learn(state, 1, known);
-    meet(state, 0, 1);
-    const column = techDef(known).cost;
-    expect(explainTechCost(state, seat, known)).toHaveLength(1);
     slot(state, 0, 'theTranslationMovement');
-    const lines = explainTechCost(state, seat, known);
-    expect(lines).toHaveLength(2);
-    expect(lines[1]!.source).toContain('The Translation Movement');
-    expect(foldTechCost(lines)).toBe(Math.floor((column * 80) / 100));
-    // A technology no met empire knows costs its column.
-    expect(explainTechCost(state, seat, unknown)).toHaveLength(1);
-    // An empire the seat has not met teaches it nothing.
-    meet(state, 0);
-    expect(explainTechCost(state, seat, known)).toHaveLength(1);
-  });
-
-  it('never discounts a charter technology (reading 15)', () => {
-    const state = flat();
-    const seat = playerById(state, 0)!;
-    const charter = CHARTER_TECH_IDS[0]!;
-    learn(state, 1, charter);
-    meet(state, 0, 1);
-    const before = explainTechCost(state, seat, charter);
-    slot(state, 0, 'theTranslationMovement');
-    expect(explainTechCost(state, seat, charter)).toEqual(before);
+    for (const tech of ['mining', 'smelting'] as const) expect(explainTechCost(state, seat, tech)).toHaveLength(1);
+    learn(state, 0, 'siegecraft');
+    for (const tech of ['mining', 'smelting'] as const) {
+      const lines = explainTechCost(state, seat, tech);
+      expect(lines).toHaveLength(2);
+      expect(lines[1]!.source).toContain('The Translation Movement');
+      expect(foldTechCost(lines)).toBe(Math.floor(techDef(tech).cost * 2 / 3));
+    }
+    expect(explainTechCost(state, seat, 'siegecraft')).toHaveLength(1);
   });
 
   it('is what research charges', () => {
     const state = flat();
     const seat = playerById(state, 0)!;
     const [known] = spareTechs(state, 1) as [TechId];
-    learn(state, 1, known);
+    learn(state, 0, 'siegecraft');
     meet(state, 0, 1);
     slot(state, 0, 'theTranslationMovement');
     // Prerequisites in hand, so the node may be finished.
@@ -537,7 +521,7 @@ describe('the rows', () => {
     // Great Designs, Greek Fire and the shared Books from the Ships: each reads
     // what rivals know. Their rows and effects stay for saves, so the tests
     // above still read them. They have no type and are not dealt.
-    const retiredInDs1 = ['theGreatDesigns', 'greekFire'];
+    const retiredInDs1 = ['theGreatDesigns', 'greekFire', 'theProvingGround'];
     for (const [id, band, type] of ROWS) {
       const def = orderDef(id);
       const retired = retiredInDs1.includes(id);
@@ -564,9 +548,11 @@ describe('the rows', () => {
     expect(said('theEdgeOfTheSword')).toEqual([
       '+3 combat strength against an empire that knows fewer technologies than you',
     ]);
-    expect(said('theTranslationMovement')).toEqual([
-      'technologies that an empire you have met already knows cost you 20% less research',
-    ]);
+    expect(said('theTranslationMovement')).toMatchInlineSnapshot(`
+      [
+        "technologies from earlier ages cost a third less research",
+      ]
+    `);
     expect(said('theGreatDesigns')).toEqual([
       '+30% production toward wonders, while no empire you have met knows the technology that opens it',
     ]);

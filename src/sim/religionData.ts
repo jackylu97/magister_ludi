@@ -163,6 +163,10 @@ interface BeliefDef extends CardDefBase {
  * not a purse.
  */
 export interface RiteDef extends CardDefBase {
+  /** Eligible units keep this bonus until their town’s rite ends. */
+  unitBlessing?: { range: number; strength: number };
+  /** Units in this radius heal even if they moved or attacked. */
+  healing?: { range: number; amount: number };
   /** The technology that teaches it, whose `unlocks.abilities` names it. */
   tech: TechId;
   /** Turns the `effects` last. Ten for every live row. */
@@ -443,6 +447,7 @@ interface RerollConfig {
  * does. Until this batch the price was a list by age (40 · 56 · 72 · 90).
  */
 interface RiteCostConfig {
+  keptInterval: number;
   /** What the empire's first rite costs, in faith. */
   costBase: number;
   /** What each rite the empire has started adds to the price of the next, in faith. */
@@ -795,7 +800,7 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
     if (!knownTechs.includes(def.tech)) {
       problems.push(`rite "${id}" is taught by "${def.tech}", which is not a technology`);
     }
-    if (def.duration !== undefined && def.effects.length === 0 && def.atOnce === undefined) {
+    if (def.duration !== undefined && def.effects.length === 0 && !def.healing && !def.unitBlessing && !def.atOnce) {
       problems.push(`rite "${id}" lasts ${def.duration} turns and has nothing to last`);
     }
     if (def.duration === undefined && def.effects.length > 0) {
@@ -805,7 +810,7 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
     // instant half is gone, so a live row that stamps nothing on its town is a
     // city verb that costs faith and does nothing at all. The belief guard's
     // sentence one table over, and it fails for that guard's reason.
-    if (def.duration === undefined || (def.effects.length === 0 && def.atOnce === undefined)) {
+    if (def.duration === undefined || (!def.effects.length && !def.atOnce && !def.healing && !def.unitBlessing)) {
       problems.push(`rite "${id}" hangs nothing on the town that performs it`);
     }
   }
@@ -818,6 +823,7 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
   if (!(RELIGION.rite.costPerRiteStarted >= 0)) {
     problems.push('the step a rite adds to the next rite price is missing or negative');
   }
+  if (!Number.isInteger(RELIGION.rite.keptInterval) || RELIGION.rite.keptInterval <= 0) problems.push('Invalid interval for kept rites');
   for (const id of ALL_BELIEF_IDS) {
     const def = beliefDef(id);
     // **A row with nothing to say is a bug; a row that says why is a decision.**

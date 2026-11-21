@@ -1,5 +1,296 @@
 {
   "orders": {
+    "theOldLearning": {
+      "name": "Commission: The Old Learning",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The scholar checked the shelves against the old catalogue.",
+      "text": "Goal: know every technology of the first age. Reward: choose a great scholar.",
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "firstAgeResearchComplete",
+            "count": 1
+          }
+        ],
+        "reward": [
+          {
+            "greatPerson": "scholar"
+          }
+        ]
+      }
+    },
+    "theClayMap": {
+      "name": "The Clay Map",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The surveyor pressed each hill and river into the clay.",
+      "text": "Scouts gain +1 sight and receive double bonuses from discoveries.",
+      "band": 0,
+      "rarity": "uncommon",
+      "type": "military",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1,
+          "class": {
+            "explores": true
+          }
+        },
+        {
+          "kind": "offerRider",
+          "rule": "doubleScoutDiscovery"
+        }
+      ]
+    },
+    "theLaboratories": {
+      "name": "The Laboratories",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "Each school kept a workshop for its instruments.",
+      "text": "Science buildings give +10% production.",
+      "band": 4,
+      "rarity": "common",
+      "type": "economic",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "percent": 10,
+          "stage": "city",
+          "count": "buildingsOfCategory",
+          "within": "city",
+          "category": "science"
+        }
+      ]
+    },
+    "theBarberSurgeons": {
+      "name": "The Barber-Surgeons",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The barber kept clean linen beside his tools.",
+      "text": "Your units gain +10 health after killing a unit.",
+      "band": 2,
+      "rarity": "common",
+      "type": "military",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "heal": 10
+          }
+        }
+      ]
+    },
+    "theInvisibleCollege": {
+      "name": "The Invisible College",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The members sent their papers to one another by post.",
+      "text": "On draft: choose two great scholars.",
+      "band": 4,
+      "rarity": "rare",
+      "type": "civic",
+      "effects": [],
+      "onDraft": [
+        {
+          "grant": "greatPerson",
+          "family": "scholar"
+        },
+        {
+          "grant": "greatPerson",
+          "family": "scholar"
+        }
+      ]
+    },
+    "theHouseOfLife": {
+      "name": "The House of Life",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The builders kept a school beside the workshop.",
+      "text": "Your capital gains science equal to half its production.",
+      "band": 0,
+      "rarity": "rare",
+      "type": "civic",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "to": "science",
+          "from": "production",
+          "percent": 50,
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "theCollectedWorks": {
+      "name": "The Collected Works",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The first volume carried the observations; the second explained them.",
+      "text": "Your great scholars may act twice.",
+      "band": 3,
+      "rarity": "rare",
+      "type": "civic",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "percent": 100,
+          "family": "scholar",
+          "target": "greatPersonUses"
+        }
+      ]
+    },
+    "theAlfonsineTables": {
+      "name": "The Alfonsine Tables",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The court paid its astronomers to calculate each orbit again.",
+      "text": "On draft: complete the technology you are researching. −30% gold for fifteen turns.",
+      "band": 2,
+      "rarity": "rare",
+      "type": "civic",
+      "effects": [],
+      "onDraft": [
+        {
+          "grant": "tech"
+        },
+        {
+          "grant": "effects",
+          "turns": 15,
+          "effects": [
+            {
+              "kind": "percentYields",
+              "percent": -30,
+              "yield": "gold"
+            }
+          ]
+        }
+      ]
+    },
+    "theOrdinanceCompanies": {
+      "name": "The Ordinance Companies",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The rolls list a company for each arm of the army.",
+      "text": "Entering a new age grants a melee unit, a ranged unit and a siege unit in your capital. They cost no upkeep.",
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "military",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "ageEntered",
+          "grant": {
+            "unit": "bestMelee",
+            "toCapital": true
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "ageEntered",
+          "grant": {
+            "unit": "bestRanged",
+            "toCapital": true
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "ageEntered",
+          "grant": {
+            "unit": "bestSiege",
+            "toCapital": true
+          }
+        }
+      ]
+    },
+    "theReformOfTheCalendar": {
+      "name": "The Reform of the Calendar",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The first sheet of the new calendar bears the imperial seal.",
+      "text": "Entering a new age opens an Order draft at once.",
+      "band": 1,
+      "rarity": "rare",
+      "type": "civic",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "ageEntered",
+          "grant": {
+            "orderDraft": true
+          }
+        }
+      ]
+    },
+    "theArchivistsCharter": {
+      "name": "The Archivists' Charter",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The archive keeps a copy of every royal charter.",
+      "text": "Opens Record-Keeping, which unlocks the Great Archive, one in your empire: +5 science for each charter technology you know.",
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "civic",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "tech": "recordKeeping"
+        }
+      }
+    },
+    "theSmeltersCharter": {
+      "name": "The Smelters' Charter",
+      "decks": [
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The bellows feed a charcoal fire beneath the ore.",
+      "text": "Opens Smelting: workers may build one smelter in each town: +1 production, and +1 production and +1 science more for each mine or quarry beside it.",
+      "band": 0,
+      "rarity": "uncommon",
+      "type": "economic",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "tech": "smelting"
+        }
+      }
+    },
     "scientificTheAlmanac": {
       "name": "The Almanac",
       "decks": ["scientific"],
@@ -20,24 +311,24 @@
     },
     "scientificTheScribesHall": {
       "name": "The Scribes' Hall",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "civic",
       "flavor": "Every hand that can write is a hand that can teach.",
-      "text": "Towns with a Library gain +1 science for every four citizens.",
+      "text": "Libraries give +2 science.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "basis": "count",
-          "to": "science",
-          "amount": 1,
-          "count": "population",
-          "within": "city",
-          "per": 4,
-          "scope": { "test": "hasBuilding", "building": "library" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "library"
+          },
+          "science": 2
         }
       ]
     },
@@ -190,14 +481,20 @@
     },
     "theGlassmakersCharter": {
       "name": "The Glassmakers' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Sand, fire, and a second look at everything.",
-      "text": "Opens Optics, which unlocks the Specularium: +3 food, and +1 science for every two citizens.",
-      "charter": { "unlocks": { "tech": "optics" } },
+      "text": "Opens Glassmaking, which unlocks the Glasshouse: +3 food, and +1 science for each farm its town works.",
+      "charter": {
+        "unlocks": {
+          "tech": "optics"
+        }
+      },
       "effects": []
     },
     "theOpenCollegium": {
@@ -239,10 +536,12 @@
     },
     "theOldAcademy": {
       "name": "The Old Academy",
-      "decks": ["scientific"],
-      "band": 1,
+      "decks": [
+        "scientific"
+      ],
+      "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "economic",
       "flavor": "Ivy is the proof of teaching.",
       "text": "Academies gain +3 food and +3 production.",
@@ -252,17 +551,21 @@
           "where": "hex",
           "food": 3,
           "production": 3,
-          "on": { "test": "improvement", "improvement": "academy" }
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          }
         }
       ]
     },
     "learnedCommissions": {
       "name": "Learned Foundations",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "Build the hall before you carve the statue.",
       "text": "Cities with a Library build empire buildings 25% faster.",
       "effects": [
@@ -271,9 +574,14 @@
           "category": "building",
           "empireBuilding": true,
           "percent": 25,
-          "scope": { "test": "hasBuilding", "building": "library" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "library"
+          }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Cut from the deck. Other Orders already reward building in Library towns."
     },
     "theStrategicReserves": {
       "name": "The School of Mines",
@@ -490,11 +798,12 @@
     },
     "enduringInstitutions": {
       "name": "Enduring Institutions",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
       "flavor": "What is old enough to be trusted is old enough to be useful.",
       "text": "Towns with an empire building gain +20% production.",
       "effects": [
@@ -502,9 +811,13 @@
           "kind": "percentYields",
           "yield": "production",
           "percent": 20,
-          "scope": { "test": "hasEmpireBuilding" }
+          "scope": {
+            "test": "hasEmpireBuilding"
+          }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Cut from the deck. Other Orders already reward science buildings."
     },
     "thePatentRolls": {
       "name": "The Patent Rolls",
@@ -547,11 +860,12 @@
     },
     "theQuietFaculties": {
       "name": "The Quiet Faculties",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "Quiet halls, full barns, and very few drums.",
       "text": "Towns working an Academy gain +25% food and +20% production.",
       "effects": [
@@ -559,26 +873,44 @@
           "kind": "percentYields",
           "yield": "food",
           "percent": 25,
-          "scope": { "test": "workingImprovement", "improvements": ["academy"] }
+          "scope": {
+            "test": "workingImprovement",
+            "improvements": [
+              "academy"
+            ]
+          }
         },
         {
           "kind": "percentYields",
           "yield": "production",
           "percent": 20,
-          "scope": { "test": "workingImprovement", "improvements": ["academy"] }
+          "scope": {
+            "test": "workingImprovement",
+            "improvements": [
+              "academy"
+            ]
+          }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Cut from the deck. Other Orders already reward science buildings."
     },
     "theMechanistsCharter": {
       "name": "The Mechanists' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "military",
       "flavor": "Every lever is an argument.",
       "text": "Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots.",
-      "charter": { "unlocks": { "tech": "mechanics" } },
+      "charter": {
+        "unlocks": {
+          "tech": "mechanics"
+        }
+      },
       "effects": []
     },
     "theAlchemistsCharter": {
@@ -595,20 +927,21 @@
     },
     "theSecondSeat": {
       "name": "The Second Seat",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "rare",
       "type": "civic",
       "flavor": "One of a kind is a habit, not a law.",
-      "text": "You may build one second copy of an empire building, in a city with a University.",
+      "text": "You may build a second copy of all empire buildings, while this is active.",
       "effects": [
         {
           "kind": "rule",
           "rule": "buildsEverywhere",
-          "empireBuilding": true,
           "max": 1,
-          "scope": { "test": "hasBuilding", "building": "university" }
+          "empireBuilding": true
         }
       ]
     },
@@ -741,52 +1074,58 @@
       ],
       "retired": true
     },
-    "theHerbalistsCharter": {
-      "name": "The Herbalists' Charter",
-      "decks": ["scientific"],
-      "band": 0,
-      "line": "none",
-      "rarity": "common",
-      "type": "civic",
-      "flavor": "A walled garden, and a book for every bed in it.",
-      "text": "Opens Herbals, which unlocks the Physic Garden: +2 science and +2 happiness.",
-      "charter": { "unlocks": { "tech": "herbals" } },
-      "effects": []
-    },
     "theBronzeFoundersCharter": {
       "name": "The Bronze-Founders' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "military",
       "flavor": "The guild keeps the mould, and the city keeps the guild.",
       "text": "Opens Casting: your spear and chariot lines gain +2 strength for good.",
-      "charter": { "unlocks": { "tech": "casting" } },
+      "charter": {
+        "unlocks": {
+          "tech": "casting"
+        }
+      },
       "effects": []
     },
     "theSurveyorsCharter": {
       "name": "The Surveyors' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "economic",
       "flavor": "Chain, rod and level, and the land agrees to be measured.",
-      "text": "Opens Surveying: you may build the Aqueduct early, and workers may build the Qanat, which waters the farms beside it.",
-      "charter": { "unlocks": { "tech": "surveying" } },
+      "text": "Opens Surveying: you may build the Aqueduct early, and workers may dig one qanat in each town, on flat land beside a hill or a mountain: +2 food and +1 production, and +1 food more for each hill or mountain beside it. The hexes within one hex of a qanat have fresh water.",
+      "charter": {
+        "unlocks": {
+          "tech": "surveying"
+        }
+      },
       "effects": []
     },
     "theLibrariansCharter": {
       "name": "The Librarians' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "civic",
       "flavor": "A shelf in order is a city in order.",
       "text": "Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold.",
-      "charter": { "unlocks": { "tech": "cataloguing" } },
+      "charter": {
+        "unlocks": {
+          "tech": "cataloguing"
+        }
+      },
       "effects": []
     },
     "theCommonplaceBook": {
@@ -803,75 +1142,112 @@
     },
     "thePaperMakersCharter": {
       "name": "The Paper-Makers' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "civic",
       "flavor": "The mill by the river turns rags into records.",
       "text": "Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy.",
-      "charter": { "unlocks": { "tech": "papermaking" } },
+      "charter": {
+        "unlocks": {
+          "tech": "papermaking"
+        }
+      },
       "effects": []
     },
     "thePhysiciansCharter": {
       "name": "The Physicians' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "economic",
       "flavor": "A house of healing, open to every traveller.",
       "text": "Opens Medicine, which unlocks the Bimaristan: +25% food in its town.",
-      "charter": { "unlocks": { "tech": "medicine" } },
+      "charter": {
+        "unlocks": {
+          "tech": "medicine"
+        }
+      },
       "effects": []
     },
     "thePrintersCharter": {
       "name": "The Printers' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Small books, carried in a merchant's pocket.",
-      "text": "Opens Printing, which unlocks the Aldine Press: +2 culture and +1 trade route.",
-      "charter": { "unlocks": { "tech": "printing" } },
+      "text": "Opens Printing: +1 trade route, and you may build the Aldine Press, one in your empire: +1 culture for each technology you know.",
+      "charter": {
+        "unlocks": {
+          "tech": "printing"
+        }
+      },
       "effects": []
     },
     "theGunfoundersCharter": {
       "name": "The Gunfounders' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
       "type": "military",
       "flavor": "The foundry by the arsenal never lets its fires go out.",
-      "text": "Opens Gunfounding, which unlocks the Tophane: its town builds military units 25% faster, with +4 strength.",
-      "charter": { "unlocks": { "tech": "gunfounding" } },
+      "text": "Opens Gunfounding, which unlocks the Tophane: its town builds military units 50% faster, with +4 strength.",
+      "charter": {
+        "unlocks": {
+          "tech": "gunfounding"
+        }
+      },
       "effects": []
     },
     "theMilitaryEngineersCharter": {
       "name": "The Military Engineers' Charter",
-      "decks": ["scientific"],
-      "band": 4,
+      "decks": [
+        "scientific"
+      ],
+      "band": 3,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "military",
       "flavor": "The engineers draw the walls before the masons lay them.",
       "text": "Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points.",
-      "charter": { "unlocks": { "tech": "militaryArchitecture" } },
+      "charter": {
+        "unlocks": {
+          "tech": "militaryArchitecture"
+        }
+      },
       "effects": []
     },
     "theNavalGunnersCharter": {
       "name": "The Naval Gunners' Charter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "Oars for the calm, and guns for the battle.",
       "text": "Opens Naval Gunnery: your Gun Galleys gain +3 strength and may blockade a rival's port.",
-      "charter": { "unlocks": { "tech": "navalGunnery" } },
-      "effects": []
+      "charter": {
+        "unlocks": {
+          "tech": "navalGunnery"
+        }
+      },
+      "effects": [],
+      "retired": true,
+      "note": "Cut from the deck. The naval bonus reached too few armies."
     },
     "thePatentOffice": {
       "name": "The Patent Office",
@@ -920,10 +1296,12 @@
     },
     "theSecretArts": {
       "name": "The Secret Arts",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "rare",
       "type": "economic",
       "flavor": "What the workshop knows, the workshop keeps.",
       "text": "Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5.",
@@ -941,25 +1319,45 @@
     },
     "theEdgeOfTheSword": {
       "name": "The Edge of the Sword",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "military",
       "flavor": "Better steel ends the argument sooner.",
       "text": "Your units gain +3 strength against the units of an empire that knows fewer technologies than you.",
-      "effects": [{ "kind": "combatLine", "amount": 3, "side": "both", "when": { "test": "vsFewerTechs" } }]
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "vsFewerTechs"
+          }
+        }
+      ]
     },
     "theTranslationMovement": {
       "name": "The Translation Movement",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "It is quicker to translate a book than to write it again.",
-      "text": "Technologies that an empire you have met already knows cost you 20% less research.",
-      "effects": [{ "kind": "rulePercent", "rule": "gapTechCost", "percent": -20 }]
+      "text": "Technologies of an age before your newest cost you a third less research.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "techPrice",
+          "earlierAge": true,
+          "percent": -33.333333333333336
+        }
+      ]
     },
     "theGreatDesigns": {
       "name": "The Great Designs",
@@ -1000,11 +1398,12 @@
     },
     "theProvingGround": {
       "name": "The Proving Ground",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "Every new idea is tried in the field before it is trusted.",
       "text": "Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8.",
       "effects": [
@@ -1012,10 +1411,18 @@
           "kind": "combatLine",
           "amount": 1,
           "side": "both",
-          "when": { "test": "always" },
-          "scaled": { "count": "techLead", "per": 1, "max": 8 }
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "techLead",
+            "per": 1,
+            "max": 8
+          }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Cut from the deck. Other Orders already reward technologies that rivals lack."
     },
     "theProspectorsNotes": {
       "name": "The Prospectors' Notes",
@@ -1042,45 +1449,65 @@
       ]
     },
     "theFoundingGift": {
-      "name": "The Founding Gift",
-      "decks": ["scientific"],
-      "band": 1,
+      "name": "The Lecture Halls",
+      "decks": [
+        "scientific"
+      ],
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
-      "type": "economic",
+      "type": "civic",
       "flavor": "The scholar brings the books, and the town brings the stone.",
-      "text": "A great scholar who founds an Academy also grants its town 150 production.",
+      "text": "An Academy gains +2 science for each science building in its town.",
       "effects": [
         {
-          "kind": "windfallRider",
-          "occasion": "improvementBuilt",
-          "improvement": "academy",
-          "grant": { "yield": "production", "amount": 150 }
+          "kind": "pays",
+          "where": "hex",
+          "basis": "count",
+          "count": "buildingsOfCategory",
+          "category": "science",
+          "within": "city",
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          },
+          "science": 2
         }
       ]
     },
     "theLatinQuarter": {
       "name": "The Latin Quarter",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "common",
+      "rarity": "uncommon",
       "type": "civic",
       "flavor": "The students speak one tongue, and the streets learn it.",
-      "text": "Great-person works beside an Academy gain +2 culture and +1 production.",
+      "text": "Hexes on or beside an Academy gain +2 science and +1 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "culture": 2,
-          "production": 1,
           "on": {
-            "test": "all",
+            "test": "any",
             "of": [
-              { "test": "greatWork" },
-              { "test": "beside", "of": { "test": "improvement", "improvement": "academy" } }
+              {
+                "test": "improvement",
+                "improvement": "academy"
+              },
+              {
+                "test": "beside",
+                "of": {
+                  "test": "improvement",
+                  "improvement": "academy"
+                }
+              }
             ]
-          }
+          },
+          "science": 2,
+          "culture": 1
         }
       ]
     },
@@ -1104,10 +1531,12 @@
     },
     "theNizamiyya": {
       "name": "The Nizamiyya",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "civic",
       "flavor": "Endow the chair, and the chair outlives the vizier.",
       "text": "Academies yield 50% more.",
@@ -1115,18 +1544,22 @@
         {
           "kind": "pays",
           "where": "hex",
-          "on": { "test": "improvement", "improvement": "academy" },
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          },
           "wholePercent": 50
         }
       ]
     },
     "theRepublicOfLetters": {
       "name": "The Republic of Letters",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "No borders but the margins, and every scholar a citizen.",
       "text": "Your capital gains +4 production and +4 culture for each Academy you hold.",
       "effects": [
@@ -1135,7 +1568,10 @@
           "where": "capital",
           "basis": "count",
           "count": "tilesInBorders",
-          "tile": { "test": "improvement", "improvement": "academy" },
+          "tile": {
+            "test": "improvement",
+            "improvement": "academy"
+          },
           "to": "production",
           "amount": 4
         },
@@ -1144,11 +1580,16 @@
           "where": "capital",
           "basis": "count",
           "count": "tilesInBorders",
-          "tile": { "test": "improvement", "improvement": "academy" },
+          "tile": {
+            "test": "improvement",
+            "improvement": "academy"
+          },
           "to": "culture",
           "amount": 4
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Cut from the deck. Other Orders already reward building Academies."
     },
     "theRoyalWorkshops": {
       "name": "The Royal Workshops",
@@ -1194,20 +1635,25 @@
     },
     "theSkyWatchers": {
       "name": "The Sky Watchers",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "civic",
       "flavor": "The priests kept the calendar, so the priests watched the sky.",
-      "text": "Shrines give +1 faith and +1 science.",
+      "text": "Shrines give +1 faith and +2 science.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "scope": { "test": "hasBuilding", "building": "shrine" },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shrine"
+          },
           "faith": 1,
-          "science": 1
+          "science": 2
         }
       ]
     },
@@ -1269,29 +1715,19 @@
     },
     "theCharterRolls": {
       "name": "The Charter Rolls",
-      "decks": ["scientific"],
-      "band": 2,
+      "decks": [
+        "scientific"
+      ],
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Each charter is copied into the rolls, and each copy brings a fee.",
-      "text": "Your capital gains +3 production and +3 culture for each charter you have drafted.",
+      "text": "Your drafts contain an additional charter if one is available.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "capital",
-          "basis": "count",
-          "count": "chartersDrafted",
-          "to": "production",
-          "amount": 3
-        },
-        {
-          "kind": "pays",
-          "where": "capital",
-          "basis": "count",
-          "count": "chartersDrafted",
-          "to": "culture",
-          "amount": 3
+          "kind": "offerRider",
+          "rule": "additionalCharter"
         }
       ]
     },
@@ -1312,14 +1748,23 @@
     },
     "theAgeOfReason": {
       "name": "The Age of Reason",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "rare",
-      "type": "wildcard",
       "flavor": "Each discovery is worth two, because it teaches how to make the next.",
       "text": "Your Orders count each technology you complete twice.",
-      "effects": [{ "kind": "metaRule", "rule": "techCountsTwice", "value": 2 }]
+      "effects": [
+        {
+          "kind": "metaRule",
+          "rule": "techCountsTwice",
+          "value": 2
+        }
+      ],
+      "retired": true,
+      "note": "Cut from the deck. This effect depends on having other Orders with counters."
     },
     "theJourneymen": {
       "name": "The Journeymen",
@@ -1340,38 +1785,37 @@
     },
     "theSumOfKnowledge": {
       "name": "The Sum of Knowledge",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
-      "rarity": "rare",
-      "type": "civic",
+      "rarity": "uncommon",
+      "type": "economic",
       "flavor": "Everything we know, in one place, in order.",
-      "text": "Your capital gains +1 production and +1 culture for each technology you know.",
+      "text": "The town raising your Magnum Opus gains +2 production for each technology you know.",
       "effects": [
         {
           "kind": "pays",
-          "where": "capital",
+          "where": "city",
           "basis": "count",
           "count": "techsKnown",
           "to": "production",
-          "amount": 1
-        },
-        {
-          "kind": "pays",
-          "where": "capital",
-          "basis": "count",
-          "count": "techsKnown",
-          "to": "culture",
-          "amount": 1
+          "amount": 2,
+          "scope": {
+            "test": "raisingOpus"
+          }
         }
       ]
     },
     "theGreatCatalogue": {
       "name": "The Great Catalogue",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "common",
       "type": "economic",
       "flavor": "Every chartered art has its page, and the last page is the Great Work.",
       "text": "+10% production toward the Magnum Opus for each charter technology you know, at most +40%.",
@@ -1388,8 +1832,10 @@
     },
     "theRoyalTutors": {
       "name": "The Royal Tutors",
-      "decks": ["scientific"],
-      "band": 0,
+      "decks": [
+        "scientific"
+      ],
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "civic",
@@ -1408,31 +1854,40 @@
     },
     "theWarManuals": {
       "name": "The War Manuals",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 0,
       "line": "none",
       "rarity": "common",
       "type": "military",
       "flavor": "Every recruit reads the same book, and every old captain wrote a page of it.",
-      "text": "Units gained in a town with a Library start with +2 strength.",
+      "text": "Your ranged units gain +2 strength.",
       "effects": [
         {
-          "kind": "unitStamp",
-          "strength": 2,
-          "class": { "category": "military" },
-          "scope": { "test": "hasBuilding", "building": "library" }
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "ranged": true
+          }
         }
       ]
     },
     "theRoyalEstates": {
       "name": "The Royal Estates",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
       "type": "economic",
       "flavor": "Each empire building keeps fields of its own, and its town eats from them.",
-      "text": "Each empire building gives its town +2 food and +2 production.",
+      "text": "Each empire building gives its town +3 food and +3 production. +50% production towards empire buildings.",
       "effects": [
         {
           "kind": "pays",
@@ -1441,7 +1896,7 @@
           "count": "empireBuildings",
           "within": "city",
           "to": "food",
-          "amount": 2
+          "amount": 3
         },
         {
           "kind": "pays",
@@ -1450,17 +1905,24 @@
           "count": "empireBuildings",
           "within": "city",
           "to": "production",
-          "amount": 2
+          "amount": 3
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": true,
+          "percent": 50
         }
       ]
     },
     "theCommonTables": {
       "name": "The Common Tables",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "The students eat at one long table, and the town bakes the bread.",
       "text": "Towns gain +2 food for each science building in them.",
       "effects": [
@@ -1474,7 +1936,9 @@
           "to": "food",
           "amount": 2
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Cut from the deck. The deck has other ways to increase food in towns."
     },
     "theFreeCities": {
       "name": "The Free Cities",
@@ -1498,10 +1962,12 @@
     },
     "theRollOfScholars": {
       "name": "The Roll of Scholars",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "civic",
       "flavor": "Each name on the roll brings more students to the halls.",
       "text": "+4% production and culture for each great scholar you have gained this game, at most +28%.",
@@ -1532,10 +1998,12 @@
     },
     "thePalaceSchools": {
       "name": "The Palace Schools",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "military",
       "flavor": "The palace trains its officers, and the officers train the ranks.",
       "text": "Units gained in a town with an empire building start with +4 strength.",
@@ -1543,8 +2011,12 @@
         {
           "kind": "unitStamp",
           "strength": 4,
-          "class": { "category": "military" },
-          "scope": { "test": "hasEmpireBuilding" }
+          "class": {
+            "category": "military"
+          },
+          "scope": {
+            "test": "hasEmpireBuilding"
+          }
         }
       ]
     },
@@ -1582,19 +2054,27 @@
     },
     "theCityArchitects": {
       "name": "The City Architects",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "common",
       "type": "economic",
       "flavor": "A great city needs great builders, and only a great city can keep them.",
-      "text": "Towns of at least eight citizens build wonders 25% faster.",
+      "text": "+30% production towards buildings and wonders of your current age.",
       "effects": [
         {
           "kind": "productionBonus",
+          "category": "building",
+          "buildingFilter": "newestAge",
+          "percent": 30
+        },
+        {
+          "kind": "productionBonus",
           "category": "wonder",
-          "percent": 25,
-          "scope": { "test": "populationAtLeast", "value": 8 }
+          "buildingFilter": "newestAge",
+          "percent": 30
         }
       ]
     },
@@ -1611,19 +2091,32 @@
     },
     "theDedications": {
       "name": "The Dedications",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "The whole town comes out to hear the opening speech.",
-      "text": "Finishing a science building or an empire building grants culture equal to ten times the town's population.",
+      "text": "Finishing a science building or an empire building grants culture equal to its production cost.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
-          "anyOf": [{ "buildingCategory": "science" }, { "empireBuilding": true }],
-          "grant": { "yield": "culture", "amount": 10, "fromOccasion": "population" }
+          "anyOf": [
+            {
+              "buildingCategory": "science"
+            },
+            {
+              "empireBuilding": true
+            }
+          ],
+          "grant": {
+            "yield": "culture",
+            "amount": 1,
+            "fromOccasion": "buildingCost"
+          }
         }
       ]
     },
@@ -1641,19 +2134,24 @@
     },
     "theInvitations": {
       "name": "The Invitations",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "rare",
       "type": "civic",
       "flavor": "A new house needs a famous name at its table.",
-      "text": "Completing an empire building grants a great scholar.",
+      "text": "The first time you complete each empire building, gain a great scholar.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
           "empireBuilding": true,
-          "grant": { "greatPerson": "scholar" }
+          "oncePerBuildingKind": true,
+          "grant": {
+            "greatPerson": "scholar"
+          }
         }
       ]
     },
@@ -1731,32 +2229,38 @@
     },
     "theHumanists": {
       "name": "The Humanists",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "civic",
       "flavor": "They read the old poets and write new ones.",
-      "text": "Cities with a University gain culture equal to half their base science.",
+      "text": "Towns with a Library gain culture equal to a quarter of their science.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "share",
-          "from": "science",
           "to": "culture",
-          "percent": 50,
-          "scope": { "test": "hasBuilding", "building": "university" }
+          "from": "science",
+          "percent": 25,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "library"
+          }
         }
       ]
     },
     "theWallsOfLearning": {
       "name": "The Walls of Learning",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "The students keep the books, and the gate.",
       "text": "Towns with a University gain +6 defence.",
       "effects": [
@@ -1764,28 +2268,51 @@
           "kind": "cityStat",
           "stat": "defense",
           "amount": 6,
-          "scope": { "test": "hasBuilding", "building": "university" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "university"
+          }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Cut from the deck. The deck has other ways to defend cities."
     },
     "theLynxEyedAcademy": {
       "name": "The Lynx-Eyed Academy",
-      "decks": ["scientific"],
-      "band": 4,
+      "decks": [
+        "scientific"
+      ],
+      "band": 3,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "Sharp eyes find sharp minds.",
-      "text": "Goal: hold four Academies. Reward: a great scholar, and 300 production in each town with an Academy.",
+      "text": "Goal: hold three Academies. Reward: a great scholar, and Academies gain +5 science and +5 culture.",
       "commission": {
-        "goals": [{ "kind": "reached", "figure": "academyHexes", "count": 4 }],
-        "reward": [
-          { "greatPerson": "scholar" },
+        "goals": [
           {
-            "yield": "production",
-            "amount": 300,
-            "eachTown": true,
-            "scope": { "test": "hasImprovement", "improvement": "academy" }
+            "kind": "reached",
+            "figure": "academyHexes",
+            "count": 3
+          }
+        ],
+        "reward": [
+          {
+            "greatPerson": "scholar"
+          },
+          {
+            "lasting": [
+              {
+                "kind": "pays",
+                "where": "hex",
+                "science": 5,
+                "culture": 5,
+                "on": {
+                  "test": "improvement",
+                  "improvement": "academy"
+                }
+              }
+            ]
           }
         ]
       },
@@ -1805,10 +2332,12 @@
     },
     "theStrategikon": {
       "name": "The Strategikon",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "type": "military",
       "flavor": "The general reads the old campaigns, and the scholars read the ground.",
       "text": "Your units gain +4 strength within two hexes of an Academy.",
@@ -1827,65 +2356,121 @@
     },
     "theArmouryPatterns": {
       "name": "The Armoury Patterns",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "common",
       "type": "military",
       "flavor": "The smiths keep only the newest patterns on the wall.",
-      "text": "Towns build units of the newest age you know 25% faster.",
+      "text": "Units of your current age gain +3 strength.",
       "effects": [
-        { "kind": "productionBonus", "category": "unit", "percent": 25, "class": { "newestAge": true } }
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "newestAge": true
+          }
+        }
       ]
     },
     "theModelArmy": {
       "name": "The Model Army",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 3,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "military",
       "flavor": "Drill the men in the new way, and the iron will follow.",
-      "text": "Research upgrades your units even when you lack the strategic resource the new unit needs.",
-      "effects": [{ "kind": "rule", "rule": "upgradeIgnoresResource" }]
+      "text": "Research upgrades your units even when you lack the strategic resource the new unit needs, and an upgrade heals the unit.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "upgradeIgnoresResource"
+        },
+        {
+          "kind": "rule",
+          "rule": "upgradeHeals"
+        }
+      ]
     },
     "theGreatInstrument": {
       "name": "The Great Instrument",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "wildcard",
       "flavor": "The great work needs a great instrument, and the instrument comes first.",
       "text": "Goal: complete Alchemy. Reward: a tenth of the Magnum Opus.",
       "notDealtKnowing": "alchemy",
       "commission": {
-        "goals": [{ "kind": "counted", "occasion": "techCompleted", "count": 1, "tech": "alchemy" }],
-        "reward": [{ "yield": "production", "amount": 0.1, "fromFigure": "opusCost", "toOpus": true }]
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "techCompleted",
+            "count": 1,
+            "tech": "alchemy"
+          }
+        ],
+        "reward": [
+          {
+            "yield": "production",
+            "amount": 0.1,
+            "fromFigure": "opusCost",
+            "toOpus": true
+          }
+        ]
       },
-      "effects": []
+      "effects": [],
+      "retired": true,
+      "note": "Cut from the deck. The reward arrived too late in the game."
     },
     "theFoundationStone": {
       "name": "The Foundation Stone",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The stone is laid before the last plan is drawn.",
       "text": "You may begin the Magnum Opus once Alchemy is half researched.",
-      "effects": [{ "kind": "rule", "rule": "opusEarly", "percent": 50 }]
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "opusEarly",
+          "percent": 50
+        }
+      ],
+      "retired": true,
+      "note": "Cut from the deck. An early start on the Magnum Opus offered too little."
     },
     "theClosedBook": {
       "name": "The Closed Book",
-      "decks": ["scientific"],
-      "band": 4,
+      "decks": [
+        "scientific"
+      ],
+      "band": 3,
       "line": "none",
       "rarity": "rare",
       "type": "civic",
       "flavor": "What was learnt first is shared last.",
-      "text": "If you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns.",
-      "effects": [{ "kind": "rule", "rule": "closedBook", "turns": 10 }]
+      "text": "Opens Ciphers: if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "tech": "ciphers"
+        }
+      }
     },
     "theBreachingBatteries": {
       "name": "The Breaching Batteries",
@@ -1902,14 +2487,23 @@
     },
     "thePrototypeWorks": {
       "name": "The Prototype Works",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "The first one is built by hand, before anyone knows how.",
       "text": "You may build the buildings and train the units of the technology you are researching, at double their production cost. Wonders are excepted.",
-      "effects": [{ "kind": "rule", "rule": "prototypes", "percent": 100 }]
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "prototypes",
+          "percent": 100
+        }
+      ],
+      "retired": true,
+      "note": "Cut from the deck. Research already upgrades the units you build."
     },
     "theKeptSecret": {
       "name": "The Kept Secret",
@@ -1975,25 +2569,64 @@
     },
     "theApprentices": {
       "name": "The Apprentices",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 0,
       "line": "none",
       "rarity": "common",
       "type": "economic",
       "flavor": "The boy who carries the stones learns how the arch stands.",
-      "text": "Finishing a building grants 5 science.",
+      "text": "Finishing a building grants science equal to a fifth of its production cost. Wonders do not count.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
           "exceptWonders": true,
-          "grant": { "yield": "science", "amount": 5 }
+          "grant": {
+            "yield": "science",
+            "amount": 0.2,
+            "fromOccasion": "buildingCost"
+          }
         }
       ],
       "note": "A world wonder and the Magnum Opus do not count."
     }
   },
   "doctrines": {
+    "theTraceItalienne": {
+      "name": "The Trace Italienne",
+      "decks": [
+        "scientific"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "The bastions cover one another along the wall.",
+      "text": "Your towns gain +10 defence. Your units gain +4 strength inside your borders and lose 4 strength outside them.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 10
+        },
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "ownTerritory"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": -4,
+          "side": "both",
+          "when": {
+            "test": "foreignTerritory"
+          }
+        }
+      ]
+    },
     "thePythagoreanBrotherhood": {
       "name": "The Pythagorean Brotherhood",
       "decks": ["scientific"],
@@ -2051,7 +2684,7 @@
       "decks": [
         "scientific"
       ],
-      "band": 1,
+      "band": 2,
       "line": "none",
       "flavor": "The master walked, the pupils followed, and the argument never sat down.",
       "text": "Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown.",
@@ -2078,18 +2711,23 @@
     },
     "theJixianAcademy": {
       "name": "The Jixian Academy",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 2,
       "line": "none",
       "flavor": "The scholars copy the old books, and the court reads the new ones first.",
-      "text": "Completing a technology grants culture equal to a fifth of its cost. Your towns make 25% less culture.",
+      "text": "Completing a technology grants culture equal to a fifth of its cost.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "tech",
-          "grant": {"yield": "culture", "amount": 0.2, "fromOccasion": "techCost"}
-        },
-        {"kind": "percentYields", "yield": "culture", "percent": -25}
+          "grant": {
+            "yield": "culture",
+            "amount": 0.2,
+            "fromOccasion": "techCost"
+          }
+        }
       ]
     },
     "theAcademyOfGondishapur": {
@@ -2202,7 +2840,7 @@
       ]
     },
     "theKulliye": {
-      "name": "The Külliye",
+      "name": "The Mustansiriya",
       "decks": [
         "scientific"
       ],
@@ -2233,37 +2871,70 @@
     },
     "theCourtOfRudolf": {
       "name": "The Court of Rudolf II",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
       "flavor": "The emperor's alchemists work late in the castle, and the empire waits.",
-      "text": "Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more.",
+      "text": "The town raising your Magnum Opus gains production equal to a tenth of your science.",
       "effects": [
-        {"kind": "rulePercent", "rule": "techPrice", "percent": -20, "techChain": "alchemy"},
-        {"kind": "rulePercent", "rule": "techPrice", "percent": 25, "techAge": 4, "notChain": "alchemy"}
-      ],
-      "note": "Neither price reaches a charter technology."
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "to": "production",
+          "from": "science",
+          "fromEmpire": true,
+          "percent": 10,
+          "scope": {
+            "test": "raisingOpus"
+          }
+        }
+      ]
     },
     "theNassauReforms": {
       "name": "The Nassau Reforms",
-      "decks": ["scientific"],
+      "decks": [
+        "scientific"
+      ],
       "band": 4,
       "line": "none",
       "flavor": "Drill the regiment, refit the regiment, and keep the men who have learned.",
       "text": "Each time research upgrades one of your units, it gains +2 strength for good. Your towns build military units 25% more slowly.",
       "effects": [
-        {"kind": "rule", "rule": "upgradeStrength", "value": 2},
-        {"kind": "productionBonus", "category": "unit", "class": {"category": "military"}, "percent": -25, "stage": "empire"}
-      ]
+        {
+          "kind": "rule",
+          "rule": "upgradeStrength",
+          "value": 2
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "class": {
+            "category": "military"
+          },
+          "percent": -25,
+          "stage": "empire"
+        }
+      ],
+      "retired": true
     },
     "thePlatonicAcademy": {
       "name": "The Platonic Academy",
-      "decks": ["scientific"],
-      "band": 4,
+      "decks": [
+        "scientific"
+      ],
+      "band": 3,
       "line": "none",
       "flavor": "Merchant, painter and soldier sit down together, and all of them are students.",
       "text": "Your great people of every family found an Academy as their work, in place of their own.",
-      "effects": [{"kind": "rule", "rule": "everyWorkIsAcademy"}],
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "everyWorkIsAcademy"
+        }
+      ],
       "note": "Their acts do not change. Works already laid stay, a general's Academy claims no land, and a prophet still raises a Holy Site."
     },
     "theTwoCapitals": {

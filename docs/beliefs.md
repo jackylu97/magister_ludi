@@ -128,7 +128,7 @@ world-scale counts live here.
 | Itinerant Preachers | road | Towns that follow press your religion 5 hexes further. |
 | The Pulse of Bells | sky | A proclamation reaches 4 hexes further and presses 20 faith harder. |
 | Ecclesia | stone | Each holy site gives +1 faith for each town in the world that follows your religion. |
-| Apostles | none | Your faith buys 42.86% more when buying apostles. |
+| Apostles | none | Your faith buys 40% more when you buy an apostle. |
 | Sacred Cartography | water | Your trade routes press your religion at both ends. |
 | Holy Order | war | Unlocks Knights Templar, bought with faith. They gain +6 strength in land that follows your religion. |
 | Congregation | hearth | +2 faith for every town in the world that follows your religion. |

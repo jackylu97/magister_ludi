@@ -12,7 +12,7 @@
  * DT16 adds The Platonic Academy. Batch DT17 adds The Two Capitals, the deck's last.
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { nextBotDecision, valueContext } from '../../../src/ai/bot';
 import { scoreCard } from '../../../src/ai/council';
@@ -116,6 +116,7 @@ import {
 } from '../../../src/sim/techData';
 import { unitDef, unitStampStrength } from '../../../src/sim/unitData';
 import { cityContext, explainTileYield, foldTileLines } from '../../../src/sim/yields/hex';
+import { foldEmpireRates } from '../../../src/sim/yields/empire';
 import { explainCity, explainPalaceYield, foldCity, productionModifiers } from '../../../src/sim/yields/town';
 import { at, bareState } from '../improvementHelpers';
 import { createGame } from '../newGameHelpers';
@@ -126,7 +127,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['thePythagoreanBrotherhood', 1],
   ['theRemovalToXianyang', 1],
   ['theWorkshopsOfSyracuse', 1],
-  ['thePeripateticSchool', 1],
+  ['thePeripateticSchool', 2],
   ['theJixianAcademy', 2],
   ['theAcademyOfGondishapur', 2],
   ['thePandidakterion', 2],
@@ -135,8 +136,8 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theVolleyFire', 3],
   ['theKulliye', 3],
   ['theCourtOfRudolf', 4],
-  ['theNassauReforms', 4],
-  ['thePlatonicAcademy', 4],
+  ['theTraceItalienne', 4],
+  ['thePlatonicAcademy', 3],
   ['theTwoCapitals', 4],
 ];
 
@@ -237,7 +238,7 @@ describe('batch DT3: Scientific’s rows', () => {
       expect(def.retired, id).toBeUndefined();
       expect(poolDoctrines(def.tier), id).toContain(id);
     }
-    expect([...DECK_FILE_DOCTRINES.scientific].sort()).toEqual(ROWS.map(([id]) => id).sort());
+    expect(DECK_FILE_DOCTRINES.scientific.filter((id) => !doctrineDef(id).retired).sort()).toEqual(ROWS.map(([id]) => id).sort());
   });
 
   it('offers a Scientific seat its rows when it adopts a tier-4 government', () => {
@@ -397,7 +398,7 @@ describe('The Jixian Academy', () => {
     expect(player.culturePool).toBe(before);
   });
 
-  it('takes 25% off a town’s culture', () => {
+  it('keeps the town’s culture income', () => {
     const state = bareState(24, 10);
     const city = town(state, 5, 5, 4);
     addBuilding(state, city, 'monument');
@@ -410,11 +411,9 @@ describe('The Jixian Academy', () => {
     refreshCityDerived(state, city);
     bumpRevision(state);
     const after = foldCity(state, city);
-    expect(after.culture).toBeLessThan(before.culture);
+    expect(after.culture).toBe(before.culture);
     expect(after.gold).toBe(before.gold);
-    expect(explainCardPercentYields(state, city).filter((entry) => entry.card === 'theJixianAcademy')).toEqual([
-      expect.objectContaining({ yield: 'culture', percent: -25, stage: 'city' }),
-    ]);
+    expect(explainCardPercentYields(state, city).filter((entry) => entry.card === 'theJixianAcademy')).toEqual([]);
   });
 });
 
@@ -1087,7 +1086,34 @@ describe('The Külliye (batch DT6)', () => {
   });
 });
 
-describe('The Court of Rudolf II (batch DT8)', () => {
+describe('The Court of Rudolf II', () => {
+  it('pays the Opus builder a tenth of the science from both towns', () => {
+    const state = bareState(30, 12);
+    const builder = town(state, 5, 5, 10);
+    const other = town(state, 17, 5, 10);
+    builder.queue = [{ kind: 'building', id: 'theMagnumOpus' }];
+    lend('theUniversitas', [{ kind: 'pays', where: 'city', science: 20 }]);
+    hold(state, 'theUniversitas');
+    hold(state, 'theCourtOfRudolf');
+    const share = (city: City) => explainCity(state, city).flats.production;
+    const full = share(builder);
+    const ordinary = share(other);
+    seat(state).statecraft.doctrines.pop();
+    bumpRevision(state);
+    const science = foldEmpireRates(state, 0).sciencePerTurn;
+    expect(science).toBeGreaterThanOrEqual(10);
+    expect(full - share(builder)).toBeCloseTo(science / 10);
+    expect(share(other)).toBe(ordinary);
+  });
+});
+
+describe('Technology price filters', () => {
+  beforeEach(() => {
+    lend('theCourtOfRudolf', [
+      { kind: 'rulePercent', rule: 'techPrice', percent: -20, techChain: 'alchemy' },
+      { kind: 'rulePercent', rule: 'techPrice', percent: 25, techAge: 4, notChain: 'alchemy' },
+    ]);
+  });
   const CARD = 'theCourtOfRudolf';
   const price = (state: GameState, tech: TechId): number =>
     foldTechCost(explainTechCost(state, seat(state), tech));
@@ -1181,7 +1207,6 @@ describe('The Court of Rudolf II (batch DT8)', () => {
     CHARTER_TECH_IDS.forEach((tech, index) => {
       expect(explainTechCost(state, seat(state), tech), tech).toEqual(before[index]);
     });
-    expect(doctrineDef(CARD as DoctrineId).note).toMatch(/charter technology/);
   });
 
   it('adds to another card’s percentage, and multiplies once', () => {
@@ -1192,7 +1217,8 @@ describe('The Court of Rudolf II (batch DT8)', () => {
     unlearn(state, 'banking');
     seat(state).metSeats = [1];
     seat(state, 1).techsResearched.push('banking');
-    slot(state, 'theTranslationMovement');
+    lend('theUniversitas', [{ kind: 'rulePercent', rule: 'gapTechCost', percent: -20 }]);
+    hold(state, 'theUniversitas');
     hold(state, CARD);
     const lines = explainTechCost(state, seat(state), 'banking');
     expect(lines).toHaveLength(3);
@@ -1606,23 +1632,20 @@ describe('The Two Capitals (batch DT17)', () => {
   });
 
   describe('what pays both towns', () => {
-    it('pays a `where: capital` card in both towns and no other (The Sum of Knowledge)', () => {
+    it('pays a `where: capital` card in both towns and no other (Market Day)', () => {
       const { state, capital, second, third } = board();
-      slot(state, 'theSumOfKnowledge');
-      const known = seat(state).techsResearched.length;
-      expect(known).toBeGreaterThan(0);
-      expect(pays(state, capital, 'theSumOfKnowledge', 'production')).toBe(known);
-      expect(pays(state, capital, 'theSumOfKnowledge', 'culture')).toBe(known);
-      expect(pays(state, second, 'theSumOfKnowledge', 'production')).toBe(known);
-      expect(pays(state, second, 'theSumOfKnowledge', 'culture')).toBe(known);
-      expect(pays(state, third, 'theSumOfKnowledge', 'production')).toBe(0);
+      slot(state, 'marketDay');
+      const gold = pays(state, capital, 'marketDay', 'gold');
+      expect(gold).toBeGreaterThan(0);
+      expect(pays(state, second, 'marketDay', 'gold')).toBe(second.population);
+      expect(pays(state, third, 'marketDay', 'gold')).toBe(0);
     });
 
     it('pays the capital alone without the Doctrine', () => {
       const { state, capital, second } = board(false);
-      slot(state, 'theSumOfKnowledge');
-      expect(pays(state, capital, 'theSumOfKnowledge', 'production')).toBeGreaterThan(0);
-      expect(pays(state, second, 'theSumOfKnowledge', 'production')).toBe(0);
+      slot(state, 'marketDay');
+      expect(pays(state, capital, 'marketDay', 'gold')).toBeGreaterThan(0);
+      expect(pays(state, second, 'marketDay', 'gold')).toBe(0);
     });
 
     it('pays a `capital` scope in both towns (Hearth Stores)', () => {
@@ -1912,15 +1935,15 @@ describe('The Two Capitals (batch DT17)', () => {
       };
     }
 
-    it('pays an Order in both towns (The Sum of Knowledge) and a Doctrine in both (All Roads Lead to Rome)', () => {
+    it('pays an Order in both towns (Market Day) and a Doctrine in both (All Roads Lead to Rome)', () => {
       const { state, capital, second, third } = board();
-      slot(state, 'theSumOfKnowledge');
+      slot(state, 'marketDay');
       hold(state, 'allRoadsLeadToRome');
       for (let col = capital.col; col <= third.col; col++) layRoad(at(state, col, capital.row), 0);
       bumpRevision(state);
-      expect(culture(state, capital, 'theSumOfKnowledge')).toBeGreaterThan(0);
-      expect(culture(state, second, 'theSumOfKnowledge')).toBe(culture(state, capital, 'theSumOfKnowledge'));
-      expect(culture(state, third, 'theSumOfKnowledge')).toBe(0);
+      expect(pays(state, capital, 'marketDay', 'gold')).toBeGreaterThan(0);
+      expect(pays(state, second, 'marketDay', 'gold')).toBe(second.population);
+      expect(pays(state, third, 'marketDay', 'gold')).toBe(0);
       const percent = (city: City): number =>
         explainCardPercentYields(state, city)
           .filter((entry) => entry.card === 'allRoadsLeadToRome' && entry.yield === 'production')

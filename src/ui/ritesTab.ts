@@ -57,6 +57,7 @@
  * changes the state itself.
  */
 
+import { bindActionPreview } from './actionPreview';
 import {
   type CardImpactLine,
   type CardImpactSheet,
@@ -85,7 +86,7 @@ import {
   riteGate,
   ritePlacesFor,
   ritesDisplacedBy,
-  riteTurnsFor,
+  keptRiteSchedule,
   ritesAffordable,
 } from '../sim/religion';
 import { LIVE_RITE_IDS, type RiteId, riteDef } from '../sim/religionData';
@@ -519,6 +520,8 @@ interface KeptRite {
   riteName: string;
   turnsLeft: number;
   /** The turns the bar is drawn against: what the rite would run if started now, never less than what is left. */
+  nextCount?: number | null;
+  realm?: boolean;
   turnsTotal: number;
   /** Started from this sheet on this visit. */
   startedNow: boolean;
@@ -929,12 +932,15 @@ export function ritesTabModel(
   });
   /** One rite a town keeps, as its row says it. */
   const keptRite = (city: City, rite: RiteId): KeptRite => {
+    const schedule = keptRiteSchedule(state, city, rite);
     const turnsLeft = cityRiteTurnsLeft(state, city, rite);
     return {
       rite,
       riteName: riteDef(rite).name,
       turnsLeft,
-      turnsTotal: Math.max(turnsLeft, riteTurnsFor(state, seat, rite) ?? turnsLeft, 1),
+      turnsTotal: Math.max(turnsLeft, schedule?.duration ?? turnsLeft, 1),
+      nextCount: schedule?.nextCount,
+      realm: schedule?.realm,
       startedNow: startedRites.has(`${city.id}:${rite}`),
     };
   };
@@ -1018,7 +1024,7 @@ export function ritesTabModel(
         items.push({
           rite,
           name: riteDef(rite).name,
-          says: riteSays(state, seat, rite),
+          says: riteSays(state, seat, rite, city),
           known: true,
           adds: { figures: gainFigures(preview, 2), once: onceFigures(preview), words: null },
           look: startLook(state, seat, city.id, rite, riteCostFor(state, seat, city)),
@@ -1158,6 +1164,8 @@ export function ritesTabModel(
 
 /** What the drawing calls. The sheet owns every one of them; the drawing decides nothing. */
 export interface RitesTabHandlers {
+  preview?: (rite: RiteId, cityId?: number) => void;
+  clearPreview?: () => void;
   selectRite(rite: RiteId): void;
   toggleMenu(cityId: number): void;
   /** Starts a rite in a town. Without it the Start buttons are drawn but cannot be pressed. */
@@ -1333,6 +1341,7 @@ function drawMenu(cityId: number, townLabel: string, menu: TownMenu, model: Rite
         onBuy: start === undefined ? undefined : () => start(cityId, item.rite),
         paused: model.paused,
       });
+      if (handlers.preview && handlers.clearPreview) bindActionPreview(cell, () => handlers.preview?.(item.rite, cityId), handlers.clearPreview);
       cell.dataset.key = `menu-start:${cityId}:${item.rite}`;
       row.append(cell);
       if (item.look.look === 'none') {
@@ -1381,6 +1390,7 @@ function drawFreeRow(town: FreeTown, model: RitesTabModel, handlers: RitesTabHan
       paused: model.paused,
       mark: town.refusal?.at === 'head' ? town.refusal.mark : null,
     });
+    if (handlers.preview && handlers.clearPreview) bindActionPreview(cell, () => handlers.preview?.(selected.rite, town.cityId), handlers.clearPreview);
     cell.dataset.key = `start:${town.cityId}`;
     act.append(cell);
   } else if (selected === null) {
@@ -1417,6 +1427,8 @@ function drawKeptRite(into: HTMLElement, kept: KeptRite): void {
   fill.style.width = `${Math.round((Math.min(kept.turnsLeft, kept.turnsTotal) / kept.turnsTotal) * 100)}%`;
   bar.append(fill);
   into.append(bar);
+  if (kept.realm) into.append(element('span', 'faith-town-left', 'Realm rite'));
+  if (kept.nextCount != null) into.append(element('span', 'faith-town-left', `Counts again on turn ${kept.nextCount}`));
   into.append(element('span', 'faith-town-left', turnsLeftWords(kept.turnsLeft)));
 }
 
@@ -1477,6 +1489,7 @@ function drawRealm(model: RitesTabModel, handlers: RitesTabHandlers): HTMLElemen
       onBuy: say === undefined ? undefined : () => say(offer.unitId, offer.rite),
       paused: model.paused,
     });
+    if (handlers.preview && handlers.clearPreview) bindActionPreview(cell, () => handlers.preview?.(offer.rite), handlers.clearPreview);
     cell.dataset.key = 'realm';
     box.append(cell);
   } else if (model.realm.why !== null) {

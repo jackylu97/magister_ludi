@@ -198,14 +198,14 @@ The deck has 85 private Orders, 25 shared Orders and 15 Doctrines. Inland empire
 | **The Incense Road** | common | Devotion | I | implemented | +2 faith for each different luxury you hold. | Civic |
 | **Pilgrim Markets** | uncommon | Devotion | II | implemented | Trade routes to or from a town with a Holy Site gain +3 gold and +3 faith. | Civic |
 | **The Tithe** | rare | Devotion | II | implemented | Towns with a Temple gain gold equal to 25% of their faith. | Economic |
-| **The Exchange of Discoveries** | uncommon | Scientific | I | implemented | Mines and quarries on a resource gain +2 science. | Civic |
-| **The Merchant Navigators** | common | Scientific | II | implemented | A town's fishing boats gain +2 science for its Lighthouse and +2 science for its Harbour. | Civic |
-| **The Royal Patents** | uncommon | Scientific | III | implemented | Researching a technology grants 100 gold for each age you have reached. | Economic |
 | **The Art Dealers** | common | Magisterial | I | implemented | +3 gold for each card seated in your government. | Economic |
 | **The Brokers' Redraw** | rare | Magisterial | II | modify: as built | You may reroll an Order hand with gold. | Wildcard |
 | **The Patrons' Quarter** | uncommon | Magisterial | II | implemented | Great-person works gain +2 production and +2 culture for each gold building in their town. | Civic |
 | **The League of Cities** | rare | Magisterial | II | implemented | Cards that pay your capital also pay your second-largest town. | Wildcard |
 | **The Patrons' Ledger** | uncommon | Magisterial | II | implemented | Buying a building grants renown equal to 10% of the gold paid. | Civic |
+| **The Exchange of Discoveries** | uncommon | Scientific | I | implemented | Mines and quarries on a resource gain +2 science. | Civic |
+| **The Merchant Navigators** | common | Scientific | II | implemented | A town's fishing boats gain +2 science for its Lighthouse and +2 science for its Harbour. | Civic |
+| **The Royal Patents** | uncommon | Scientific | III | implemented | Researching a technology grants 100 gold for each age you have reached. | Economic |
 
 ## Buying power
 
@@ -218,9 +218,9 @@ Gold and faith purchases use the same calculation. Add the applicable buying pow
 | The Laurion Leases | 300% | Gold purchases of hexes with a visible resource |
 | The Flying Money | 25% | Gold purchases of buildings and units in towns with a gold building |
 | The Turnpike Trusts | 100% | Caravan hire |
-| The Offering Chests | 42.86% | Military units bought with faith |
-| The Canons of the Holy Sepulchre | 42.86% | Faith purchases in towns with a Holy Site |
-| Apostles | 42.86% | Apostles bought with faith |
+| The Offering Chests | 25% | All faith purchases, including Great People |
+| The Canons of the Holy Sepulchre | 40% | Faith purchases in towns with a Holy Site |
+| Apostles | 40% | Apostles bought with faith |
 | The Alms Box | 25% | Faith purchases in a town that follows this religion |
 | Crassus | 25% | Unit and building purchases |
 | Jakob Fugger | 11.11% | Unit and building purchases |

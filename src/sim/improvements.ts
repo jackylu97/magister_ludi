@@ -497,6 +497,10 @@ export function improvementGroundError(
   if (!anywhere && def.requiresAdjacentMountain && (tile.mountainsBeside ?? 0) === 0) {
     return `${ARow(def)} ${rowNeeds(def)} an adjacent mountain`;
   }
+  if (!anywhere && def.requiresAdjacentHighGround &&
+      !tileNeighbors(state.map, tile).some(next => next.hills || next.terrain === 'mountain')) {
+    return `${ARow(def)} needs a hill or mountain beside it`;
+  }
   if (!anywhere && def.requiresResource !== undefined) {
     if (tile.resource === undefined || !def.requiresResource.includes(tile.resource)) {
       return `${ARow(def)} ${rowNeeds(def)} a resource it can work`;

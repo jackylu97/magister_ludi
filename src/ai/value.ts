@@ -225,6 +225,7 @@ import {
   cityResourceYields,
   empireResourceYields,
   importedLuxuries,
+  unitHealthBonus,
   resourceTierBoost,
 } from '../sim/resourceEffects';
 import { dealPartnerSeats, lentCopiesAwayBy, lentCopyCount, seatsMayBargain } from '../sim/deals';
@@ -245,12 +246,17 @@ import {
   plantingCost,
   religionBeliefPool,
   riteCostAhead,
+  riteTurnsFor,
+  riteUnitTargets,
+  keptRiteSchedule,
+  cityRiteCoversRealm,
   riteCostFor,
   nextRerollCost,
   ritesDisplacedBy,
 } from '../sim/religion';
 import {
   LIVE_RITE_IDS,
+  RELIGION,
   type BeliefId,
   type ReligionBeliefPool,
   type RiteId,
@@ -329,6 +335,7 @@ import {
   cardRulePercent,
   effectsOfKind,
   garrisonedUnitIds,
+  nearbyHealingTargets,
   unitIdsNearGenerals,
   cardBehaviorRule,
   groundFactsFor,
@@ -446,7 +453,7 @@ import {
   isUnlocked,
   researchExpansion,
 } from '../sim/tech';
-import { ALL_TECH_IDS, type TechAge, type TechId, highestAge, isTechId, techDef } from '../sim/techData';
+import { ALL_TECH_IDS, LAST_TECH_AGE, type TechAge, type TechId, highestAge, isTechId, techDef } from '../sim/techData';
 import { improvementCountsAs, isUniqueImprovement, IMPROVEMENT_IDS, type ImprovementId, improvementDef, isTendedWork, workForFamily } from '../sim/improvementData';
 import { readTileYield } from '../sim/terrainData';
 import {
@@ -1966,7 +1973,7 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext, town?: City): numb
       voiceWeight(ctx, effect.to as Voice) *
       ((effect.percent ?? 0) / 100) *
       from *
-      scopeShare(ctx, effect.scope)
+      (effect.fromEmpire ? Math.min(1, ctx.cities * scopeShare(ctx, effect.scope)) : scopeShare(ctx, effect.scope))
     );
   }
 
@@ -2998,6 +3005,7 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     case 'doubleOverflow':
     case 'unitJumpsQueue':
     case 'rerollOffers':
+    case 'capitalRiteOverRealm':
     case 'capitalBuysWithoutLimit':
     case 'buysWithoutResources':
     case 'goldBuysWonders':
@@ -3314,6 +3322,8 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
   switch (occasion) {
     case 'growth':
       return tempo.growths / turns;
+    case 'ageEntered':
+      return ctx.age >= LAST_TECH_AGE ? 0 : Math.max(1, ctx.age - 1) / Math.max(horizon, turns);
     case 'buildingCompletion':
       return buildingPace(ctx);
     case 'unitCompletion':
@@ -3504,6 +3514,13 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // **A levy** (batch R1, The Terraces of Moray) at the levy rate this
       // seat expects (`levyOutlook`), the rate its levy cards are priced at.
       return levyOutlook(ctx).rate;
+    case 'proclamationMade': {
+      const charges = ctx.state.units.reduce((sum, unit) => {
+        const row = unitDef(unit.type);
+        return unit.ownerId === ctx.playerId && (row.proclaims || row.prophesies) ? sum + (unit.chargesLeft ?? 0) : sum;
+      }, 0);
+      return charges / Math.max(1, ctx.ai.priorities.horizonTurns);
+    }
     case 'faithSpent':
       // **Faith spent** (batch R1, The Pilgrim Staff). Faith is spent in many
       // small lumps, so the moment is read as one a turn, and its measure as
@@ -3607,6 +3624,20 @@ function scoreWindfallRider(
   ) {
     const rate = capRate(effect, occasionRate('tilePurchase', ctx));
     return rate <= 0 ? 0 : rate * tilePurchaseFiringWorth(effect, ctx);
+  }
+  if (effect.occasion === 'purchase' && effect.anyBuilding && effect.grant?.fromOccasion === 'faith') {
+    // Estimate the share of the faith budget that can go toward buildings.
+    // Rites and units can compete for that same income.
+    let buildingDemand = 0;
+    let demand = 0;
+    for (const want of ctx.wants.faith) {
+      if (want.holding || want.price <= 0) continue;
+      demand += want.price;
+      if (want.buy?.item.kind === 'building') buildingDemand += want.price;
+    }
+    if (demand === 0 || buildingDemand === 0 || effect.grant.yield === undefined) return 0;
+    const spending = Math.max(0, ratesOf(ctx).faithPerTurn ?? 0) * buildingDemand / demand;
+    return spending * (effect.grant.amount ?? 0) * voiceWeight(ctx, effect.grant.yield as Voice);
   }
   let rate = finishedRowRate(effect, ctx) ?? riderOccasionRate(effect, ctx);
   // **A family is one of five**, and unlike the flags above it really does
@@ -3729,6 +3760,13 @@ function finishedRowRate(
   const held = memo.get(effect);
   if (held !== undefined) return held;
   const passes = (id: BuildingId): boolean => tests.some((one) => buildingPassesTest(id, one));
+  if (effect.oncePerBuildingKind) {
+    const already = new Set(ctx.state.firsts.filter(first => first.kind === 'buildingKind' && first.playerId === ctx.playerId).map(first => first.key));
+    const remaining = openRows(ctx).filter(row => passes(row.id) && !already.has(row.id));
+    const rate = remaining.length / Math.max(1, ctx.ai.priorities.horizonTurns);
+    memo.set(effect, rate);
+    return rate;
+  }
   const span = recentWindow(ctx);
   let standing = 0;
   let recent = 0;
@@ -3868,6 +3906,9 @@ export function onDraftWorth(id: CardId, ctx: ValueContext): number {
       case 'citizensInEveryTown':
         once += explainYields({ food: citiesOf(ctx.state, ctx.playerId).length * grant.amount * growthThreshold(ctx) }, ctx).total;
         break;
+      case 'tech':
+        once += currentResearchWorth(ctx);
+        break;
       case 'completeQueues': {
         const hammers = citiesOf(ctx.state, ctx.playerId)
           .reduce((sum, city) => sum + draftCompletionHammers(ctx.state, city), 0);
@@ -3913,13 +3954,14 @@ export function boonTurns(ctx: ValueContext): number {
  *     resolves it, and nothing when there is none.
  */
 function draftedUnitWorth(
-  unit: UnitTypeId | 'bestMelee' | 'bestRanged',
+  unit: UnitTypeId | 'bestMelee' | 'bestRanged' | 'bestSiege',
   count: number,
   ctx: ValueContext,
   capital = capitalCityOf(ctx.state, ctx.playerId),
 ): { once: number; rate: number } {
   if (capital === undefined) return { once: 0, rate: 0 };
-  const type = unit === 'bestRanged' ? bestOfClassFor(ctx.state, ctx.playerId, 'ranged')
+  const type = unit === 'bestSiege' ? bestOfClassFor(ctx.state, ctx.playerId, 'siege')
+    : unit === 'bestRanged' ? bestOfClassFor(ctx.state, ctx.playerId, 'ranged')
     : unit === 'bestMelee' ? bestMeleeFor(ctx.state, ctx.playerId) : unit;
   if (type === null) return { once: 0, rate: 0 };
   const placed = countDraftUnitPlacements(ctx.state, capital, type, count);
@@ -4010,7 +4052,19 @@ function windfallGrantWorth(
   const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
   let once = 0;
   let flat = 0;
-  if (grant.yield !== undefined && grant.amount !== undefined) {
+  // A capture pays its technology or its fallback. Average the visible rivals when no target is named.
+  if (grant.capturedTechnology) {
+    const rivals = metRivals(ctx.state, ctx.playerId);
+    const chances = rivals.map(rival => {
+      const gap = techGap(ctx.state, ctx.playerId, rival.id);
+      if (gap.length) return Math.min(...gap.map(tech => techCostFor(ctx, tech)));
+      const towns = citiesOf(ctx.state, rival.id);
+      const citizens = towns.reduce((total, town) => total + town.population, 0) / Math.max(1, towns.length);
+      return citizens * (grant.amount ?? 0);
+    });
+    const expected = chances.reduce((sum, amount) => sum + amount, 0) / Math.max(1, chances.length);
+    once += explainYields({ science: expected }, ctx).total;
+  } else if (grant.yield !== undefined && grant.amount !== undefined) {
     const bag: YieldBag = {};
     const measure =
       grant.fromOccasion === undefined || occasion === undefined
@@ -4073,6 +4127,21 @@ function windfallGrantWorth(
   // Dominion batch D8, The Soldiers' Share: the heal around the hex is the
   // stand-in, as `healAll` is. The rank is priced at nothing, as every rank a
   // card gives is (the D1 follow-up: the bot gives nothing for a rank).
+  if (grant.healNearby) {
+    const heal = grant.healNearby;
+    let recovered = 0;
+    for (const speaker of ctx.state.units) {
+      if (speaker.ownerId !== ctx.playerId || !speaker.chargesLeft) continue;
+      const row = unitDef(speaker.type);
+      if (!row.proclaims && !row.prophesies) continue;
+      const targets = nearbyHealingTargets(ctx.state, ctx.playerId, speaker, [heal]);
+      const total = targets.reduce((sum, { unit, hp }) =>
+        unit.id !== speaker.id || speaker.chargesLeft! > chargeCostOf(ctx.state, ctx.playerId, 'proclaim')
+          ? sum + hp - unit.hp : sum, 0);
+      recovered = Math.max(recovered, total);
+    }
+    flat += ctx.ai.weights.military * recovered / Math.max(1, RULES.healing.perTurnIfRested);
+  }
   if ((grant.healWithin ?? 0) > 0) flat += ctx.ai.score.unknownEffect;
   // Dominion batch D8, The Scourge of God: the effects hung on one unit,
   // priced as a timed grant's are and shared out over the army, because a
@@ -4087,7 +4156,7 @@ function windfallGrantWorth(
     // and a card's spear are worth the same thing. Since Dominion batch D5 a unit
     // can be raised in every town a scope admits, one unit for each.
     const units = grant.toEveryTown !== undefined ? everyTownCount(ctx, grant.toEveryTown) : 1;
-    if (grant.unit === 'bestRanged' || grant.unit === 'bestMelee') {
+    if (grant.unit === 'bestRanged' || grant.unit === 'bestMelee' || grant.unit === 'bestSiege') {
       const piece = draftedUnitWorth(grant.unit, units, ctx);
       once += piece.once;
       flat += piece.rate;
@@ -4097,12 +4166,13 @@ function windfallGrantWorth(
   }
   // Dominion batch D5: science toward a technology the empire lacks, which is
   // real and hard to price, so it is the stand-in.
+  if (grant.completeResearch) once += currentResearchWorth(ctx);
   if (grant.towardFallenTech !== undefined) flat += ctx.ai.score.unknownEffect;
   // **A free Order hand** (Dominion batch D5's The New Code; The Unveiling,
   // The Symposium and The Second Sitting of the Magisterial deck; priced in
   // batch MG17): what a hand is worth to this seat, the culture it would
   // otherwise pay for one, which `handWorth` reads as a lump. See `handWorth`.
-  if (grant.freeDraft === true) once += handWorth(ctx) * lumpTurns;
+  if (grant.freeDraft || grant.orderDraft) once += handWorth(ctx) * lumpTurns;
   if (grant.timed !== undefined) {
     const turns = Math.max(0, grant.timed.turns);
     once += scoreEffects(grant.timed.effects, ctx) * turns;
@@ -6138,6 +6208,7 @@ function flagRuleSight(effect: Extract<CardEffect, { kind: 'rule' }>): StampSigh
     case 'doubleOverflow':
     case 'unitJumpsQueue':
     case 'rerollOffers':
+    case 'capitalRiteOverRealm':
     case 'capitalBuysWithoutLimit':
     case 'buysWithoutResources':
     case 'goldBuysWonders':
@@ -8094,6 +8165,13 @@ export function techCostFor(ctx: ValueContext, tech: TechId): number {
   return cost;
 }
 
+/** A grant of current research covers the unfinished part of the selected node. */
+function currentResearchWorth(ctx: ValueContext): number {
+  const player = ctx.state.players[ctx.playerId];
+  if (!player?.researching || !isTechId(player.researching)) return 0;
+  return explainYields({ science: Math.max(0, techCostFor(ctx, player.researching) - player.sciencePool) }, ctx).total;
+}
+
 /** Beakers to research a technology and every node it still needs, at the folded price. */
 function researchBeakersTo(ctx: ValueContext, tech: TechId): number {
   let beakers = 0;
@@ -9147,7 +9225,7 @@ function techPriceWorth(
   ctx: ValueContext,
 ): number {
   const known = playerById(ctx.state, ctx.playerId)?.techsResearched ?? [];
-  const reached = ALL_TECH_IDS.filter((tech) => !known.includes(tech) && techPriceRowReaches(effect, tech));
+  const reached = ALL_TECH_IDS.filter((tech) => !known.includes(tech) && techPriceRowReaches(effect, tech, ctx.age));
   return beakerSavingWorth(share, reached, ctx);
 }
 
@@ -9737,6 +9815,13 @@ function occasionMeasureForecast(
   /** The towns a rider is narrowed to, read for the rite's town (batch DV9). */
   inTown?: true | CityScope,
 ): number | null {
+  if (occasion === 'buildingCompletion' && measure === 'buildingCost') {
+    const queued = citiesOf(ctx.state, ctx.playerId).flatMap(city => city.queue.slice(0, 1))
+      .filter(item => item.kind === 'building' && isBuildingId(item.id));
+    if (queued.length) return queued.reduce((sum, item) => sum + buildingProductionCost(item.id as BuildingId, ctx.state, ctx.playerId), 0) / queued.length;
+    const built = citiesOf(ctx.state, ctx.playerId).flatMap(city => city.buildings);
+    return built.length ? built.reduce((sum, id) => sum + buildingProductionCost(id, ctx.state, ctx.playerId), 0) / built.length : 0;
+  }
   if (occasion === 'death' && measure === 'unitCost') {
     const troops = ctx.state.units.filter((unit) => unit.ownerId === ctx.playerId && isCombatant(unitDef(unit.type)));
     if (troops.length === 0) return 0;
@@ -10373,6 +10458,11 @@ function perTownOf(effect: CardPaysEffect): number {
  */
 function guaranteedCount(effect: CardEffect, goals: readonly CommissionGoal[]): number {
   if (effect.kind !== 'pays' || effect.basis !== 'count') return 0;
+  if (effect.count === 'citiesAdmitted') {
+    const scope = JSON.stringify(effect.admits ?? {});
+    return Math.max(0, ...goals.map((goal) => goal.kind === 'reached' && goal.figure === effect.count &&
+      JSON.stringify(goal.admits ?? {}) === scope ? goal.count : 0));
+  }
   if (effect.count !== 'duplicateLuxuries' && effect.count !== 'uniqueLuxuries') return 0;
   for (const goal of goals) {
     if (goal.kind === 'reached' && goal.figure === 'luxuryCopies' && goal.count >= (effect.count === 'uniqueLuxuries' ? 1 : 2)) return 1;
@@ -10780,9 +10870,27 @@ function bestLevyInEachTown(ctx: ValueContext): number {
 export function explainRite(id: RiteId, ctx: ValueContext, city?: City): Appraisal {
   const def = riteDef(id);
   const effects = def.effects ?? [];
-  if (effects.length === 0) return appraise([]);
-  const lasting = explainEffects(effects, ctx, undefined, city);
-  const turns = def.duration ?? 1;
+  const allTowns = citiesOf(ctx.state, ctx.playerId);
+  const realm = city && cityRiteCoversRealm(ctx.state, ctx.playerId, city);
+  const towns = realm ? allTowns : [city];
+  const lasting = appraise(towns.flatMap(town => explainEffects(effects, ctx, undefined, town).terms));
+  const turns = riteTurnsFor(ctx.state, ctx.playerId, id, city ?? capitalCityOf(ctx.state, ctx.playerId) ?? undefined) ?? 0;
+  if (def.unitBlessing || def.healing) {
+    const units = riteUnitTargets(ctx.state, ctx.playerId, id, city);
+    const force = ctx.ai.weights.military * (1 + ctx.threat);
+    // Realm callers without a town multiply the result by their number of towns.
+    const divisor = city ? 1 : Math.max(1, allTowns.length);
+    if (def.unitBlessing) {
+      const soldiers = units.filter(unit => unitDef(unit.type).combatStrength > 0 || (unitDef(unit.type).rangedStrength ?? 0) > 0);
+      return appraise([{ label: `${soldiers.length} units gain strength for ${turns} turns`,
+        value: soldiers.length * def.unitBlessing.strength * force * turns / (divisor * Math.max(1, ctx.ai.score.lumpTurns)) }]);
+    }
+    const healing = def.healing!;
+    const capBonus = unitHealthBonus(ctx.state, ctx.playerId);
+    const hp = units.reduce((sum, unit) => sum + Math.min(healing.amount * turns, unitMaxHp(unit, capBonus) - unit.hp), 0);
+    return appraise([{ label: `${Math.max(0, hp)} health recovered by units in range`,
+      value: Math.max(0, hp) * force / (divisor * Math.max(1, RULES.healing.perTurnIfRested)) }]);
+  }
   const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
   return appraise([
     {
@@ -11629,10 +11737,14 @@ function faithRiderReaches(
   if (found !== undefined) return found;
   let reaches = false;
   const on = effect.on ?? 'unit';
-  if (on === 'building' || on === 'all') {
+  if (on === 'everyPurchase') {
+    reaches = cardActionRule(ctx.state, ctx.playerId, 'buyGreatPersonWithFaith') ||
+      cardActionRule(ctx.state, ctx.playerId, 'buyScholarDraftWithFaith');
+  }
+  if (!reaches && (on === 'building' || on === 'all' || on === 'everyPurchase')) {
     reaches = ctx.wants.faith.some((want) => want.buy?.item.kind === 'building');
   }
-  if (!reaches && (on === 'unit' || on === 'all')) {
+  if (!reaches && (on === 'unit' || on === 'all' || on === 'everyPurchase')) {
     // The rows the seat has opened first, so the gate is asked of few rows.
     const opened = UNIT_TYPE_IDS.filter(
       (id) => unitMatches(id, effect.class) && isUnlocked(ctx.state, ctx.playerId, 'unit', id),
@@ -11768,7 +11880,8 @@ function seasonPace(ctx: ValueContext): { rate: number; why: string } {
       const def = riteDef(id);
       if (def.atOnce !== undefined) continue;
       kept += 1;
-      rate += 1 / Math.max(1, def.duration ?? 1);
+      const duration = keptRiteSchedule(ctx.state, city, id)?.duration ?? def.duration ?? 1;
+      rate += Math.ceil(duration / RELIGION.rite.keptInterval) / Math.max(1, duration);
     }
   }
   return { rate, why: `${kept} season${kept === 1 ? '' : 's'} kept now, each over its own length` };
@@ -13104,6 +13217,20 @@ export function orderPaysOffItsChair(id: OrderId, ctx: ValueContext): number {
  * times, as the deal reads it. A rider on any other hand keeps the stand-in.
  */
 function offerRiderWorth(effect: Extract<CardEffect, { kind: 'offerRider' }>, ctx: ValueContext): number {
+  if (effect.rule === 'additionalCharter') {
+    return handRuleWorth('additionalCharter', ctx, (player, score) => {
+      const plain = expectedHandBags(ctx.state, player, undefined, false);
+      const wider = expectedHandBags(ctx.state, player, undefined, true);
+      if (wider.length === plain.length) return 0;
+      const skips = player.statecraft.orderSkips;
+      const rare = cardRareWeight(ctx.state, player.id);
+      return expectedBestOrder(wider, skips, score, rare) - expectedBestOrder(plain, skips, score, rare);
+    });
+  }
+  if (effect.rule === 'doubleScoutDiscovery') {
+    const scout = ctx.state.units.some(unit => unit.ownerId === ctx.playerId && unitMatches(unit.type, { explores: true }));
+    return scout ? occasionRate('discovery', ctx) * ctx.ai.score.unknownEffect : 0;
+  }
   if (effect.offer !== 'order' || effect.family !== undefined) {
     return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
   }

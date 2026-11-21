@@ -120,7 +120,8 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theSerapeum', 1],
   ['thePaean', 1],
   ['theSaintPetersIndulgence', 4],
-  ['theHouseOfWorship', 4],
+  ['theTemenos', 1],
+  ['theHouseOfWorship', 3],
   ['theApostolicCamera', 4],
   ['theSevenCouncils', 2],
   ['theCapitularyOfHerstal', 2],
@@ -669,6 +670,7 @@ describe('The Canons of the Holy Sepulchre', () => {
     const plain = town(state, 20, 5, 6);
     // Faith buys units here, so the rider has a unit's price to reach.
     addBuilding(state, holy, 'cathedral');
+    addBuilding(state, holy, 'shrine');
     addBuilding(state, plain, 'cathedral');
     faithful(state);
     raiseImprovement(at(state, 6, 5), 'holySite' as never, 0);
@@ -684,20 +686,21 @@ describe('The Canons of the Holy Sepulchre', () => {
     const before = faithPrice(state, holy, WARRIOR);
     hold(state, 'theCanonsOfTheHolySepulchre');
     const price = explainPurchaseCost(state, 0, holy.id, WARRIOR, 'faith')!;
-    expect(price.total).toBe(Math.ceil((before * 70) / 100));
+    expect(price.total).toBe(Math.ceil(before * 5 / 7));
     expect(price.lines.some((line) => line.source.includes('The Canons of the Holy Sepulchre'))).toBe(true);
   });
 
   it('reaches a building as well as a unit', () => {
     const { state, holy } = board();
     // The Gifts of the Faithful opens a religious building to faith.
+    holy.buildings.push('shrine');
     const sc = seat(state).statecraft;
     sc.orders.push('theGiftsOfTheFaithful' as OrderId);
     sc.slots.push({ card: 'theGiftsOfTheFaithful' as OrderId, sealedUntil: state.turn });
     bumpRevision(state);
     const before = faithPrice(state, holy, TEMPLE);
     hold(state, 'theCanonsOfTheHolySepulchre');
-    expect(faithPrice(state, holy, TEMPLE)).toBe(Math.ceil((before * 70) / 100));
+    expect(faithPrice(state, holy, TEMPLE)).toBe(Math.ceil(before * 5 / 7));
   });
 
   it('leaves a town with no holy site at the full price', () => {
@@ -1165,14 +1168,14 @@ describe('The Capitulary of Herstal (batch DT8)', () => {
     expect(riteCostFor(state, 0)).toBe(15);
   });
 
-  it('reaches a rite that acts at once, whose hammers are the faith it cost (reading 38)', () => {
+  it('keeps the Votive Offering as a lasting yield when the price changes', () => {
     const state = bareState();
     town(state, 5, 5);
     const offering = 'votiveOffering' as RiteId;
     const whole = riteOfferingHammers(state, 0, offering);
-    expect(whole).toBeGreaterThan(0);
+    expect(whole).toBe(0);
     hold(state, CARD);
-    expect(riteOfferingHammers(state, 0, offering)).toBe(Math.floor(whole / 2));
+    expect(riteOfferingHammers(state, 0, offering)).toBe(0);
   });
 
   it('asks nothing of a seat’s religion', () => {
@@ -1842,7 +1845,7 @@ describe('The House of Worship (batch DT15)', () => {
   it('is one scoped row for each house, behind the religion gate', () => {
     const def = doctrineDef(CARD as DoctrineId);
     expect(def.needsReligion).toBe(true);
-    expect(def.effects).toEqual(
+    expect(def.effects.filter(e => e.kind === 'unlocksBuilding')).toEqual(
       HOUSES.map((building) => ({
         kind: 'unlocksBuilding',
         building,
@@ -1921,11 +1924,13 @@ describe('The House of Worship (batch DT15)', () => {
     // One sentence names the towns and the bank once, then each house with
     // what it gives. It was four sentences until the card face needed shorter
     // text (`scopedHousesFold`).
-    expect(clauses).toEqual([
+    expect(clauses).toEqual(expect.arrayContaining([
       'every devout city may buy with faith the Mosque (+2 production, +3 faith; +1 authority capacity), ' +
         'the Wat (+1 faith per 2 citizens; +3 happiness), ' +
         'the Gurdwara (+3 food, +3 faith; +1 science per 3 citizens) and the Dar-e Mehr (+25% faith)',
-    ]);
+    ]));
+    expect(clauses.join(' ')).toContain('science');
+    expect(clauses.join(' ')).toContain('culture');
   });
 
   it('puts a house in the bots’ faith book in a devout town, and only there', () => {

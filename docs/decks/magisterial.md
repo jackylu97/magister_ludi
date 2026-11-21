@@ -38,7 +38,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 15 | 0 | 0 | 15 |
 | Tier IV | 10 | 0 | 0 | 10 |
 | **All** | **67** | **0** | **0** | **67** |
-| Shared | 17 | 1 | 0 | 18 |
+| Shared | 18 | 1 | 0 | 19 |
 
 **By type** (the chair a card fits):
 
@@ -50,7 +50,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 0 | 3 | 6 | 6 |
 | Tier IV | 0 | 3 | 5 | 2 |
 | **All** | **3** | **17** | **34** | **13** |
-| Shared | 1 | 2 | 12 | 3 |
+| Shared | 1 | 2 | 13 | 3 |
 
 The deck has 67 Orders. Boons pay on draft, and the Charter opens a building. Both take no chair.
 
@@ -205,7 +205,6 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
 |---|---|---|---|---|---|---|
-| **Illuminated Treatises** | common | Scientific | 0 | implemented | Libraries give +1 culture. Monuments give +1 science. | Civic |
 | **The Sword of State** | common | Dominion | I | implemented | On draft: gain a melee unit. It costs no upkeep. | Military |
 | **Garden Cities** | uncommon | Expansionist | I | implemented | Towns with a Monument gain +1 culture for every three improved tiles they work. | Civic |
 | **The Art Dealers** | common | Commerce | I | implemented | +3 gold for each card seated in your government. | Economic |
@@ -217,16 +216,18 @@ These rows live in `data/decks/common.json`. A seat holding Magisterial or the d
 | **The Festival Calendar** | uncommon | Devotion | II | implemented | Cities keeping a rite gain +30% food and +30% culture. | Civic |
 | **Sacred Commissions** | uncommon | Devotion | II | implemented | Towns with a Holy Site build wonders 30% faster. | Economic |
 | **The Sculpted Landscape** | uncommon | Expansionist | III | implemented | Farms beside a great-person work gain +2 food and +2 culture. | Civic |
-| **Sacred Patronage** | rare | Devotion | III | implemented | You may buy a great-person draft for 750 faith. | Civic |
-| **The House of Wisdom** | uncommon | Scientific | III | implemented | Towns working an Academy build wonders 30% faster. | Civic |
+| **Sacred Patronage** | rare | Devotion | III | implemented | You may buy a great-person draft with faith, at 5 faith for each point of renown the next great person costs. | Civic |
 | **The New Code** | rare | Dominion | III | implemented | Capturing a city deals you a free Order hand, at most once every ten turns. | Wildcard |
 | **The League of Cities** | rare | Commerce | II | implemented | Cards that pay your capital also pay your second-largest town. | Wildcard |
 | **The Patrons' Ledger** | uncommon | Commerce | II | implemented | Buying a building grants renown equal to 10% of the gold paid. | Civic |
 | **The Patrons' Quarter** | uncommon | Commerce | II | implemented | Great-person works gain +2 production and +2 culture for each gold building in their town. | Civic |
+| **Illuminated Treatises** | common | Scientific | 0 | implemented | Libraries give +1 culture. Monuments give +1 science. | Civic |
+| **The Lodge Books** | rare | Scientific | II | implemented | Completing a wonder completes the technology you are researching. | Civic |
+| **The House of Wisdom** | uncommon | Scientific | III | implemented | Towns working an Academy build wonders 30% faster. | Civic |
 
 - **Travelling Players** took its new text in batch MG4 (the triage's reading 46). It counts the decks among the cards in your chairs: a card that two decks share counts for both, and the cards that belong to no deck count together as one more (reading 8). Batch DS1 retired it, so neither sheet's table lists it now.
 - **The Brokers' Redraw** plays as built: the rule is live, but no button offers the gold redraw yet. The rule also lets gold reroll any hand that faith may, not only an Order hand. Commerce batch DS4 removed its surcharge on other purchases.
-- **Sacred Patronage** (batch MG8) uses the rule The Magisterium used: a great-person draft bought with faith costs a flat 750 faith each time, and the faith price does not rise. What rises is the renown each later great person needs. Batch Z2 changed its text to say the flat price. Its second clause paid 30 faith once a turn when you spent a great person by an act or a work, until Devotion batch DS5 removed it. The Devotion sheet lists the same row.
+- **Sacred Patronage** charges five faith per point of the next recruitment threshold. Faith buying power reduces the price.
 - **Sacred Commissions** took its new text in Devotion batch DS5: +30% production toward wonders in a town with a Holy Site (it was +38%). Its 60 faith for each wonder you complete is gone.
 - **Illuminated Treatises** took its new effect in Scientific batch DS6: a Library gives +1 culture and a Monument gives +1 science, each without the other. Until then a town needed both to gain +1 science and +1 culture.
 - **The House of Wisdom** took its new text in Scientific batch DS6: +30% production toward wonders in a town working an Academy. Its +3 culture on each Academy and its +1 renown in each such town are gone.

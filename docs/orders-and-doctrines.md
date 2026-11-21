@@ -259,17 +259,15 @@ governments, so Tier IV opened at 29.
 | The Pythagorean Brotherhood | Scientific | I | tier 4 | +2 science in every city, doubled in cities with a Shrine. |
 | The Removal to Xianyang | Scientific | I | tier 4 | Your towns grow 30% faster. Settlers cost twice as much. |
 | The Workshops of Syracuse | Scientific | I | tier 4 | Your military units gain +5 combat strength. They cost 50% more to build and to buy. |
-| The Peripatetic School | Scientific | I | tier 4 | Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown. |
-| The Jixian Academy | Scientific | II | tier 10 | Completing a technology grants culture equal to a fifth of its cost. Your towns make 25% less culture. |
+| The Peripatetic School | Scientific | II | tier 10 | Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown. |
+| The Jixian Academy | Scientific | II | tier 10 | Completing a technology grants culture equal to a fifth of its cost. |
 | The Academy of Gondishapur | Scientific | II | tier 10 | Towns with an empire building gain +15% science. +20% production toward empire buildings, except the Magnum Opus and its works. |
 | The Pandidakterion | Scientific | II | tier 10 | Hexes with an Academy have double yields, applied after every other change to the hex. |
 | The Directorate of Arms | Scientific | III | tier 18 | While no empire you have met knows more technologies than you, your units gain +3 combat strength. |
 | The Universitas | Scientific | III | tier 18 | Science buildings in your towns of twelve or more citizens produce twice their yields. In your smaller towns they produce half. |
 | The Volley Fire | Scientific | III | tier 18 | Your archer line may attack twice a turn. These units lose 4 strength when defending against a melee attack. |
-| The Külliye | Scientific | III | tier 18 | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings, except the Magnum Opus and its works. |
-| The Court of Rudolf II | Scientific | IV | tier 26 | Alchemy, and the fourth-age technologies that lead to it, cost you 20% less research. Your other fourth-age technologies cost you 25% more. |
-| The Nassau Reforms | Scientific | IV | tier 26 | Each time research upgrades one of your units, it gains +2 strength for good. Your towns build military units 25% more slowly. |
-| The Platonic Academy | Scientific | IV | tier 26 | Your great people of every family found an Academy as their work, in place of their own. |
+| The Court of Rudolf II | Scientific | IV | tier 26 | The town raising your Magnum Opus gains production equal to a tenth of your science. |
+| The Platonic Academy | Scientific | III | tier 18 | Your great people of every family found an Academy as their work, in place of their own. |
 | The Two Capitals | Scientific | IV | tier 26 | Your largest town besides your capital also counts as your capital for your cards. Your other towns grow 25% more slowly. |
 | The Arthashastra | Magisterial | I | tier 4 | You have one more Wildcard chair. The card seated in it counts twice. |
 | The Hospitium | Magisterial | I | tier 4 | The third card in each of your Order hands comes from a deck you do not hold. |
@@ -298,13 +296,16 @@ governments, so Tier IV opened at 29.
 | The Ribats | Devotion | II | tier 10 | Military units created in a town following your religion gain +3 strength for good. Conquering a town converts it to your religion. |
 | The Imarets | Devotion | III | tier 18 | Your devout towns grow 25% faster. |
 | Canossa | Devotion | III | tier 18 | You and an empire whose capital follows your religion cannot declare war on each other. |
-| The Canons of the Holy Sepulchre | Devotion | III | tier 18 | Your faith buys 42.86% more in towns with a holy site. |
+| The Canons of the Holy Sepulchre | Devotion | III | tier 18 | In towns with a holy site, your faith buys 40% more. |
 | The Martyr's Crown | Devotion | III | tier 18 | Each of your units that dies in battle presses your religion on every town within three hexes. |
 | The Saint Peter's Indulgence | Devotion | IV | tier 26 | +1% production toward the Magnum Opus for every 150 faith you have spent this game. |
-| The House of Worship | Devotion | IV | tier 26 | Your devout towns may buy the Mosque, the Wat, the Gurdwara and the Dar-e Mehr, whatever beliefs your religion holds. |
+| The House of Worship | Devotion | III | tier 18 | Your devout towns may buy the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Buildings that supply faith give +1 science and +1 culture. |
 | The Apostolic Camera | Devotion | IV | tier 26 | Your follower beliefs also pay you in every foreign town that follows your religion. |
 | The Two Sanctuaries | Devotion | IV | tier 26 | Hexes with a holy site have double yields, applied after every other change to the hex. |
 | The Colleganza | Commerce | III | tier 18 | Luxuries you lend in a deal still count for you. Your units lose 4 strength. A luxury you have traded away cannot be traded to a second empire. |
+| The Temenos | Devotion | I | tier 4 | The hexes beside your towns with a Shrine gain +1 food and +1 faith. |
+| The Trace Italienne | Scientific | IV | tier 26 | Your towns gain +10 defence. Your units gain +4 strength inside your borders and lose 4 strength outside them. |
+| The Mustansiriya | Scientific | III | tier 18 | Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings, except the Magnum Opus and its works. |
 
 ## Decks
 
@@ -593,140 +594,154 @@ across the seven files. Ids are internal; the names in these tables are the card
 |---|---|---|---|---|
 | First Rites | 1 | ● | P | Shrines give +2 faith. |
 | Lay Offerings | 0 | ● | S | Pastures, camps and plantations gain +1 faith and +1 food. |
-| The Founding Vows | 1 | ◆ | S | Goal: start two rites. Reward: 100 faith, and 40 food in your capital. |
+| The Founding Vows | 1 | ◆ | S | Goal: start three rites. Reward: 250 faith. |
 | The Calling | 0 | ● | S | Your capital gains +3 faith. |
-| The Wayside Shrines | 1 | ● | P | Cities with a Shrine gain +2 food and +1 happiness. |
-| Consecrated Labor | 1 | ● | S | Cities with a Shrine may buy workers with faith. |
-| The Octave | 1 | ◆ | P | Your rites last 50% longer. |
+| Consecrated Labor | 1 | ● | S | Towns with a Shrine may buy settlers and workers with faith. |
+| The Octave | 1 | ◆ | P | Your rites last twice as long. |
 | The Fast | 1 | ◆ | S | Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population. |
 | The Living Hymnal | 2 | ◆ | P | Your capital gains +3 science and +3 culture for every city following your religion, with no cap. |
 | The Mission | 2 | ◆ | S | Goal: convert two foreign cities. Reward: an Apostle and 300 culture. |
 | The Second Prophet | 2 | ◆ | S | Prophets and apostles you buy start with one extra charge. |
 | The Creed | 1 | ◆ | P | Your capital gains +3 faith and +3 culture for every god and belief you hold. |
-| The Rites Commonwealth | 1 | ○ | S | Cities keeping a rite demand 25% less population happiness. |
-| The Saints' Fields | 2 | ● | S | Holy Sites gain +5 food and +8 gold. |
+| The Rites Commonwealth | 1 | ○ | S | A rite your capital starts is kept by every town you hold. |
 | The Cathedral Works | 3 | ● | P | Cathedrals give +8 science and +2 happiness. |
-| The Old Holy Places | 2 | ● | S | Holy Sites gain +3 faith and +3 culture. |
-| Temple Estates | 2 | ● | S | Hexes beside a Holy Site gain +2 food and +2 faith. |
-| The Votive Gifts | 1 | ● | S | Towns may spend faith to add production to what they are building. Not wonders. |
+| The Old Holy Places | 2 | ◆ | S | Holy sites gain +1 faith and +1 culture for every ten turns they have stood. |
+| Temple Estates | 2 | ● | S | A holy site gains +2 food and +2 production for each improved hex beside it. |
+| The Votive Gifts | 1 | ● | S | Towns may keep the Votive Offering, a rite: for ten turns the town gains production equal to its faith. |
 | The Pilgrim Staff | 1 | ● | S | Spending faith grants culture equal to a fourth of it. |
-| The Spiritual Host | 2 | ◆ | S | Military units gain +4 strength in land that follows your religion. |
-| Mission Houses | 2 | ◆ | S | Your proclamations press 30% harder. |
-| The Lay Brothers | 2 | ○ | S | Cities with a Temple may buy ordinary buildings with faith, at the faith rate. |
-| The Settled Faith | 2 | ○ | P | Devout towns gain +15% science and culture. |
-| The Holy Inquisition | 3 | ◆ | P | +35% faith. |
+| The Spiritual Host | 2 | ● | S | Military units gain +4 strength in land that follows your religion. |
+| Mission Houses | 2 | ● | S | Your proclamations reach 50% farther and are 50% more effective in foreign cities. |
+| The Settled Faith | 2 | ◆ | P | Devout towns gain +15% science and culture. |
+| The Holy Inquisition | 3 | ◆ | S | Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included. |
 | The Learned Clergy | 3 | ◆ | P | +2 science and +2 culture for every 10 faith your empire makes each turn. |
-| The Offered Stones | 3 | ◆ | P | Buildings you bought with faith give +2 culture each. |
+| The Offered Stones | 3 | ◆ | P | +4 culture for each building you have bought with faith. |
 | The Doctors of the Church | 3 | ○ | E | Follower beliefs pay 150% more in your towns. |
-| The Last Offering | 4 | ○ | S | In your holy city, faith you pour into the Magnum Opus buys 50% more production. |
-| The Great Commission | 4 | ○ | S | Goal: more than half the world's cities follow your religion. Reward: devout towns gain +3 faith and +3 culture. |
-| The Tithe of Nations | 4 | ○ | P | Gain 1 faith each turn for every two citizens in the world who follow your religion. |
-| The Treasury of Merit | 4 | ○ | P | Each turn, gain science equal to 2% of the faith you hold and culture equal to 2% of it, no cap. |
-| The Apostolic Succession | 4 | ○ | P | Your holy city gains +3 science and +3 culture for every ten turns since your religion was founded, at most +24 of each. |
-| The Chapter Houses | 4 | ○ | P | Every city with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each. |
-| The Seven Pilgrimages | 4 | ◆ | P | A city working a Holy Site gains +1 science and +1 culture for every Holy Site you hold, at most +5 of each. |
-| The Conversion of Kings | 3 | ○ | S | Goal: convert a rival's capital. Reward: a Prophet and 500 culture. |
+| The Last Offering | 4 | ◆ | S | In your holy city, faith you pour into the Magnum Opus buys 50% more production. |
+| The Great Commission | 4 | ○ | S | Goal: more than half the world's cities follow your religion. Reward: each town that follows your religion, at home or abroad, gives you +3 science and +3 culture. |
+| The Tithe of Nations | 4 | ◆ | P | Gain 1 faith each turn for every two citizens in the world who follow your religion. |
+| The Chapter Houses | 4 | ● | P | Every city with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each. |
+| The Conversion of Kings | 3 | ○ | S | Goal: convert a rival's capital. Reward: a Prophet and 1,000 culture. |
 | The Pious Masons | 3 | ○ | S | Towns with a Cathedral may buy a half-built wonder with faith. |
-| The Host Restored | 4 | ○ | S | Towns may spend faith to heal every unit of yours in land that follows your religion. |
-| The Deaconries | 2 | ◆ | P | Devout towns gain +1 happiness for every four citizens. |
+| The Host Restored | 4 | ◆ | S | Towns may keep the Restoring of the Host, a rite: for ten turns your units within three hexes of the town heal 25 health each turn. |
+| The Deaconries | 2 | ● | P | Devout towns gain +1 happiness for every four citizens. |
 | The Martyrology | 1 | ◆ | P | Gains +2 faith and +2 culture each time one of your units dies in battle. |
-| The Consecration Feast | 3 | ◆ | S | Finishing a Cathedral grants science and culture equal to twenty times the town's population. |
-| The Pilgrim Towns | 3 | ◆ | P | Towns working a holy site gain +20% culture. |
-| The Gifts of the Faithful | 1 | ● | S | Religious buildings may be bought with faith. |
+| The Consecration Feast | 3 | ◆ | S | Finishing or buying a faith building grants its town food and culture equal to ten times its population. |
+| The Pilgrim Towns | 3 | ◆ | P | Holy sites gain +1 production and +1 culture for each town that follows your religion. |
+| The Gifts of the Faithful | 1 | ◆ | S | Towns with a Shrine may buy culture and faith buildings with faith. |
 | The Book of Life | 2 | ◆ | P | +1% science and culture for every 150 faith you have spent this game, at most +30%. |
-| The Offering Chests | 3 | ● | S | Your faith buys 42.86% more when buying military units. |
-| The Rogations | 1 | ◆ | P | Gains +1 faith and +1 culture each time a town starts a rite. |
+| The Offering Chests | 2 | ○ | S | Your faith buys 25% more. |
+| The Rogations | 1 | ◆ | P | Gains +1 faith and +1 culture each time a town starts a rite, and again for each ten turns it keeps one. |
 | The Sabbath Laws | 2 | ◆ | S | Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production. |
-| The Psalter | 3 | ◆ | S | Each rite started in a devout town grants science and culture equal to five times the town's population. |
-| The Parishes | 2 | ◆ | S | Each town you found starts out devout. |
-| Commission: The State Church | 2 | ◆ | S | Goal: hold six towns, all devout. Reward: devout towns cost 1 less authority. |
-| The Confessors | 2 | ◆ | S | Towns that follow your religion share their sight with you. |
-| Pentecost | 3 | ○ | S | When a foreign town turns to your religion, your religion presses every town within four hexes of it. |
+| The Psalter | 3 | ◆ | S | Each rite a town starts grants science and culture equal to five times the town's population, and again for each ten turns it keeps the rite. |
+| The Parishes | 2 | ● | S | Each town you found starts out devout. |
+| Commission: The State Church | 2 | ◆ | S | Goal: hold six towns, all devout. Reward: +1 authority and +1 happiness for every two devout towns. |
+| Pentecost | 2 | ○ | S | When a foreign town turns to your religion, your religion presses every town within four hexes of it. |
 | The Mass Baptisms | 3 | ◆ | S | The first time a foreign town turns to your religion, gain science and culture equal to twenty times its population. |
-| The Anchorites | 2 | ◆ | S | Your prophets raise a further holy site for one charge instead of two. |
-| The Caliphate | 3 | ○ | S | Devout towns cost no authority. |
-| The Abbeys | 3 | ○ | S | Your apostles may raise holy sites, as prophets do. |
+| The Anchorites | 2 | ● | S | Your prophets raise a further holy site for one charge instead of two. |
+| The Caliphate | 3 | ○ | S | Devout towns cost 1 authority. |
 | The Interdict | 4 | ○ | S | A rival's town that follows your religion adds no production toward a Magnum Opus. |
 | The Turning of Swords | 3 | ○ | S | An enemy unit you kill on land that follows your religion joins your side instead, at most once a turn. |
-| The Double Feast | 4 | ○ | S | Your towns may keep two rites at once. |
+| The Double Feast | 2 | ○ | S | Your towns may keep two rites at once. |
 | The Tithe Barns | 0 | ● | P | Cities with a Granary gain +1 faith and +1 production. |
 | The Royal Cult | 0 | ◆ | P | Your capital gains +1 faith for each citizen. |
 | The Temple Storehouses | 1 | ● | P | Temples give +2 food and +2 happiness. |
 | The Household Gods | 0 | ● | S | +2 faith in every town. |
-| The First Offering | 0 | ● | S | On draft: gain 25 faith. |
+| The First Offering | 0 | ● | S | On draft: gain 60 faith. |
+| Commission: The Anointing | 3 | ◆ | S | Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture. |
+| The Healer-Priests | 0 | ● | S | Your units heal twice as fast in your own territory. |
+| The Defenders of the Faith | 3 | ● | S | Your units gain +1 strength for every three towns that follow your religion. |
+| The Zealots | 1 | ● | S | Your units gain +1 strength for every 10 faith you make each turn, at most +5. |
+| The Prince-Bishops | 3 | ◆ | E | Your faith buildings yield twice as much. |
+| The Year of Release | 4 | ◆ | S | On draft: gain faith equal to ten turns of your faith. |
+| The Poor Tables | 4 | ● | P | +1 happiness for every 20 faith you make each turn. |
+| The Two Swords | 3 | ● | P | +1 happiness for every two points of spare authority. |
+| The Soldiers of God | 4 | ● | S | Military units you buy with faith gain +6 strength. |
+| The Temple Herds | 2 | ● | P | Pastures, camps and plantations gain +1 food and +1 production for each faith building in their town, at most +3 of each. |
+| The Commander of the Faithful | 4 | ◆ | P | +3 faith and +3 culture for each point of spare authority. |
+| The Fetials | 2 | ◆ | S | Military units you gain in a town keeping a rite start as Veterans. |
+| The Sacred Bequests | 3 | ● | S | Spending faith grants science equal to a fourth of it. |
+| The Call to Prayer | 3 | ◆ | S | Opens Liturgy: your holy sites press your religion twice as far. |
+| The Naming Feasts | 3 | ◆ | S | Unlocks the Rite of Naming: for ten turns the town gains +2 food for each citizen. |
+| The Vigil of Arms | 2 | ◆ | S | Unlocks the Vigil of Arms, a rite: all your units within three hexes of the town gain +4 strength, and keep it while the rite lasts. |
+| The Cliff Monasteries | 2 | ◆ | S | Workers may build one cliff monastery in each town, on a hex beside a mountain: +3 faith and +3 science, and +1 of each more for each mountain beside it. |
+| The Bell Towers | 2 | ● | S | Unlocks the Bell Tower, a faith building: +1 faith, and its town presses your religion +1 harder for each faith building it holds. |
+| The Hallowed Ground | 1 | ◆ | S | Unlocks the Rite of Hallowing: for ten turns the town's improved hexes gain +1 faith. |
+| The Chantries | 1 | ◆ | S | Unlocks the Chapel: +2 faith and +2 culture, and rites in its city last 50% longer. |
+| The Megaliths | 0 | ◆ | S | Workers may raise one stone circle in each town, on flat land: +2 faith and +1 culture, and +1 faith more for each pasture, camp or plantation beside it. |
+| The Temple Workshops | 1 | ● | P | Faith buildings give +1 food and +1 production each. |
+| The Fabric Fund | 3 | ● | S | Buying a building with faith grants its town production equal to a quarter of the faith paid. |
 
 ### Scientific
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
 | The Almanac | 1 | ● | P | Libraries give +2 production. |
-| The Bronze-Founders' Charter | 1 | ◆ | S | Opens Casting: your spear and chariot lines gain +2 strength for good. |
-| The Herbalists' Charter | 0 | ● | S | Opens Herbals, which unlocks the Physic Garden: +2 science and +2 happiness. |
+| The Bronze-Founders' Charter | 1 | ● | S | Opens Casting: your spear and chariot lines gain +2 strength for good. |
 | The Prospectors' Notes | 0 | ◆ | S | Building a mine or a quarry grants its town 25 production. |
 | The Royal Workshops | 0 | ● | S | Completing a technology grants 15 production in your capital. |
-| The Royal Tutors | 0 | ● | S | +2 scholar renown each turn for each science building. |
-| The War Manuals | 0 | ● | S | Units gained in a town with a Library start with +2 strength. |
+| The Royal Tutors | 1 | ● | S | +2 scholar renown each turn for each science building. |
+| The War Manuals | 0 | ● | S | Your ranged units gain +2 strength. |
 | The Curators of Works | 0 | ● | P | Public works give +1 science and +1 happiness. |
-| Learned Foundations | 1 | ● | S | Cities with a Library build empire buildings 25% faster. |
-| The Old Academy | 1 | ◆ | S | Academies gain +3 food and +3 production. |
-| The Secret Arts | 1 | ◆ | P | Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5. |
-| The Edge of the Sword | 1 | ◆ | S | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. |
-| The Glassmakers' Charter | 1 | ◆ | S | Opens Optics, which unlocks the Specularium: +3 food, and +1 science for every two citizens. |
-| The Surveyors' Charter | 1 | ◆ | S | Opens Surveying: you may build the Aqueduct early, and workers may build the Qanat, which waters the farms beside it. |
-| The Founding Gift | 1 | ◆ | S | A great scholar who founds an Academy also grants its town 150 production. |
-| The Librarians' Charter | 1 | ○ | S | Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold. |
+| The Old Academy | 2 | ● | S | Academies gain +3 food and +3 production. |
+| The Secret Arts | 1 | ○ | P | Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5. |
+| The Edge of the Sword | 1 | ● | S | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. |
+| The Glassmakers' Charter | 1 | ◆ | S | Opens Glassmaking, which unlocks the Glasshouse: +3 food, and +1 science for each farm its town works. |
+| The Surveyors' Charter | 1 | ● | S | Opens Surveying: you may build the Aqueduct early, and workers may dig one qanat in each town, on flat land beside a hill or a mountain: +2 food and +1 production, and +1 food more for each hill or mountain beside it. The hexes within one hex of a qanat have fresh water. |
+| The Librarians' Charter | 1 | ◆ | S | Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold. |
 | The Astronomical Diaries | 1 | ◆ | P | Gains +1 culture and +1 production each time you complete a technology. |
 | The Scholars' Fame | 1 | ● | S | Completing a technology grants scholar renown equal to a twentieth of its cost. |
-| The Royal Estates | 1 | ● | P | Each empire building gives its town +2 food and +2 production. |
-| The Common Tables | 1 | ● | P | Towns gain +2 food for each science building in them. |
+| The Royal Estates | 1 | ● | P | Each empire building gives its town +3 food and +3 production. +50% production towards empire buildings. |
 | The Free Cities | 1 | ◆ | S | While you hold at most five towns, your towns build buildings and wonders 20% faster. |
 | The Forward Plans | 1 | ○ | S | You may build Universities before you know Scholarship. |
-| The Dedications | 1 | ◆ | S | Finishing a science building or an empire building grants culture equal to ten times the town's population. |
-| The Scribes' Hall | 1 | ● | P | Towns with a Library gain +1 science for every four citizens. |
-| The Sky Watchers | 1 | ● | P | Shrines give +1 faith and +1 science. |
-| The Quiet Faculties | 2 | ○ | P | Towns working an Academy gain +25% food and +20% production. |
-| Enduring Institutions | 2 | ◆ | P | Towns with an empire building gain +20% production. |
-| The Mechanists' Charter | 2 | ○ | S | Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots. |
-| The Translation Movement | 2 | ◆ | S | Technologies that an empire you have met already knows cost you 20% less research. |
-| The Paper-Makers' Charter | 2 | ◆ | S | Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy. |
-| The Physicians' Charter | 2 | ◆ | S | Opens Medicine, which unlocks the Bimaristan: +25% food in its town. |
-| The Printers' Charter | 2 | ◆ | S | Opens Printing, which unlocks the Aldine Press: +2 culture and +1 trade route. |
-| The Latin Quarter | 2 | ● | S | Great-person works beside an Academy gain +2 culture and +1 production. |
-| The Charter Rolls | 2 | ◆ | P | Your capital gains +3 production and +3 culture for each charter you have drafted. |
+| The Dedications | 1 | ◆ | S | Finishing a science building or an empire building grants culture equal to its production cost. |
+| The Scribes' Hall | 1 | ● | P | Libraries give +2 science. |
+| The Sky Watchers | 1 | ● | P | Shrines give +1 faith and +2 science. |
+| The Mechanists' Charter | 2 | ◆ | S | Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots. |
+| The Translation Movement | 2 | ◆ | S | Technologies of an age before your newest cost you a third less research. |
+| The Paper-Makers' Charter | 2 | ● | S | Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy. |
+| The Physicians' Charter | 2 | ● | S | Opens Medicine, which unlocks the Bimaristan: +25% food in its town. |
+| The Printers' Charter | 2 | ◆ | S | Opens Printing: +1 trade route, and you may build the Aldine Press, one in your empire: +1 culture for each technology you know. |
+| The Latin Quarter | 2 | ◆ | S | Hexes on or beside an Academy gain +2 science and +1 culture. |
+| The Charter Rolls | 1 | ◆ | S | Your drafts contain an additional charter if one is available. |
 | The Royal Charter Commission | 2 | ◆ | S | Goal: complete a charter technology. Reward: a great scholar and 100 culture. |
-| The Roll of Scholars | 2 | ◆ | P | +4% production and culture for each great scholar you have gained this game, at most +28%. |
-| The Palace Schools | 2 | ◆ | S | Units gained in a town with an empire building start with +4 strength. |
+| The Roll of Scholars | 2 | ● | P | +4% production and culture for each great scholar you have gained this game, at most +28%. |
+| The Palace Schools | 2 | ● | S | Units gained in a town with an empire building start with +4 strength. |
 | The Round City | 2 | ◆ | P | +1% production and culture for each citizen in your capital, at most +30%. |
-| The City Architects | 2 | ● | S | Towns of at least eight citizens build wonders 25% faster. |
-| The Invitations | 2 | ○ | S | Completing an empire building grants a great scholar. |
-| The Strategikon | 2 | ◆ | S | Your units gain +4 strength within two hexes of an Academy. |
-| The Armoury Patterns | 2 | ● | S | Towns build units of the newest age you know 25% faster. |
-| The Proving Ground | 3 | ◆ | S | Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8. |
-| The Gunfounders' Charter | 3 | ◆ | S | Opens Gunfounding, which unlocks the Tophane: its town builds military units 25% faster, with +4 strength. |
+| The City Architects | 2 | ● | S | +30% production towards buildings and wonders of your current age. |
+| The Invitations | 2 | ○ | S | The first time you complete each empire building, gain a great scholar. |
+| The Strategikon | 2 | ● | S | Your units gain +4 strength within two hexes of an Academy. |
+| The Armoury Patterns | 2 | ● | S | Units of your current age gain +3 strength. |
+| The Gunfounders' Charter | 3 | ◆ | S | Opens Gunfounding, which unlocks the Tophane: its town builds military units 50% faster, with +4 strength. |
 | The Alchemists' Charter | 3 | ◆ | S | Opens Chemistry: your warrior line gains +1 strength for each charter technology you know. |
-| The Nizamiyya | 3 | ◆ | S | Academies yield 50% more. |
-| The Age of Reason | 3 | ○ | S | Your Orders count each technology you complete twice. |
+| The Nizamiyya | 3 | ● | S | Academies yield 50% more. |
 | The Journeymen | 3 | ● | S | Completing a technology grants each town production equal to three times its population. |
-| The Second Seat | 3 | ○ | S | You may build one second copy of an empire building, in a city with a University. |
+| The Second Seat | 3 | ○ | S | You may build a second copy of all empire buildings, while this is active. |
 | The Doctorate | 3 | ● | S | Gaining a great scholar grants culture equal to eight turns of your culture. |
 | The Royal Academies | 3 | ◆ | P | +5% production and culture for each empire building you hold. |
 | The Queen of Cities | 3 | ○ | P | Towns of at least 15 citizens produce twice their food and production. |
-| The Humanists | 3 | ◆ | P | Cities with a University gain culture equal to half their base science. |
-| The Model Army | 3 | ○ | S | Research upgrades your units even when you lack the strategic resource the new unit needs. |
-| The Naval Gunners' Charter | 4 | ◆ | S | Opens Naval Gunnery: your Gun Galleys gain +3 strength and may blockade a rival's port. |
-| The Military Engineers' Charter | 4 | ◆ | S | Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points. |
-| The Republic of Letters | 4 | ◆ | P | Your capital gains +4 production and +4 culture for each Academy you hold. |
-| The Sum of Knowledge | 4 | ○ | P | Your capital gains +1 production and +1 culture for each technology you know. |
-| The Great Catalogue | 4 | ○ | S | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. |
-| The Walls of Learning | 4 | ● | S | Towns with a University gain +6 defence. |
-| The Lynx-Eyed Academy | 4 | ○ | S | Goal: hold four Academies. Reward: a great scholar, and 300 production in each town with an Academy. |
-| The Great Instrument | 4 | ○ | S | Goal: complete Alchemy. Reward: a tenth of the Magnum Opus. |
-| The Foundation Stone | 4 | ○ | S | You may begin the Magnum Opus once Alchemy is half researched. |
-| The Closed Book | 4 | ○ | S | If you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns. |
+| The Humanists | 3 | ● | P | Towns with a Library gain culture equal to a quarter of their science. |
+| The Model Army | 3 | ◆ | S | Research upgrades your units even when you lack the strategic resource the new unit needs, and an upgrade heals the unit. |
+| The Military Engineers' Charter | 3 | ● | S | Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points. |
+| The Sum of Knowledge | 4 | ◆ | P | The town raising your Magnum Opus gains +2 production for each technology you know. |
+| The Great Catalogue | 4 | ● | S | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. |
+| The Lynx-Eyed Academy | 3 | ◆ | S | Goal: hold three Academies. Reward: a great scholar, and Academies gain +5 science and +5 culture. |
+| The Closed Book | 3 | ○ | S | Opens Ciphers: if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns. |
 | The Breaching Batteries | 4 | ◆ | S | Each hit your siege units land on a city removes 5% of its Magnum Opus progress. |
-| The Prototype Works | 4 | ○ | S | You may build the buildings and train the units of the technology you are researching, at double their production cost. Wonders are excepted. |
 | The Scribes | 0 | ● | S | +1 science in every town. |
-| The Apprentices | 0 | ● | S | Finishing a building grants 5 science. |
+| The Apprentices | 0 | ● | S | Finishing a building grants science equal to a fifth of its production cost. Wonders do not count. |
+| Commission: The Old Learning | 1 | ◆ | S | Goal: know every technology of the first age. Reward: choose a great scholar. |
+| The Clay Map | 0 | ◆ | S | Scouts gain +1 sight and receive double bonuses from discoveries. |
+| The Laboratories | 4 | ● | P | Science buildings give +10% production. |
+| The Barber-Surgeons | 2 | ● | S | Your units gain +10 health after killing a unit. |
+| The Invisible College | 4 | ○ | S | On draft: choose two great scholars. |
+| The House of Life | 0 | ○ | P | Your capital gains science equal to half its production. |
+| The Collected Works | 3 | ○ | P | Your great scholars may act twice. |
+| The Alfonsine Tables | 2 | ○ | S | On draft: complete the technology you are researching. −30% gold for fifteen turns. |
+| The Ordinance Companies | 2 | ◆ | S | Entering a new age grants a melee unit, a ranged unit and a siege unit in your capital. They cost no upkeep. |
+| The Reform of the Calendar | 1 | ○ | S | Entering a new age opens an Order draft at once. |
+| The Archivists' Charter | 2 | ◆ | S | Opens Record-Keeping, which unlocks the Great Archive, one in your empire: +5 science for each charter technology you know. |
+| The Smelters' Charter | 0 | ◆ | S | Opens Smelting: workers may build one smelter in each town: +1 production, and +1 production and +1 science more for each mine or quarry beside it. |
+| The Lecture Halls | 2 | ◆ | P | An Academy gains +2 science for each science building in its town. |
 
 ### Magisterial
 
@@ -805,7 +820,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Order | Decks | Band | Rarity | Role | Effect |
 |---|---|---|---|---|---|
 | The Frontier Militia | Dominion · Expansionist | 0 | ● | S | Each town you found starts with a melee unit. |
-| Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first kill each turn grants 25 science. |
+| Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first kill each turn grants 25 science for each age you have reached. |
 | Examinations of State | Dominion · Magisterial | 2 | ○ | P | Garrisoned towns gain +1 science and +1 culture for every three citizens. |
 | Market Gardens | Expansionist · Commerce | 2 | ● | S | Hexes with a road gain +1 gold. |
 | The Country Fair | Expansionist · Commerce | 0 | ● | S | Luxury resources gain +1 gold. |
@@ -826,14 +841,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Garden Cities | Expansionist · Magisterial | 1 | ◆ | P | Towns with a Monument gain +1 culture for every three improved tiles they work. |
 | Pilgrim Markets | Commerce · Devotion | 2 | ◆ | S | Trade routes to or from a town with a Holy Site gain +3 gold and +3 faith. |
 | Rites of Passage | Dominion · Devotion | 0 | ● | S | Gaining a military unit grants 12 faith. |
-| The Sacred Host | Dominion · Devotion | 1 | ○ | S | Kills grant 15 faith. |
+| The Sacred Host | Dominion · Devotion | 1 | ◆ | S | Kills grant faith equal to the strength of the unit you killed. |
 | The Crusader Orders | Dominion · Devotion | 2 | ◆ | S | Military units gain +3 strength in land that does not follow your religion. |
 | The Barbarian Frontier | Dominion · Expansionist | 1 | ◆ | S | Clearing a barbarian camp claims its hex and the unowned hexes around it. |
 | The Oriflamme | Dominion · Devotion | 1 | ◆ | S | Military units beside one of your religious units gain +4 strength. |
 | Professional Soldiers | Dominion · Commerce | 3 | ◆ | S | Units you purchase gain +3 combat strength. |
 | The Chartered Company | Dominion · Commerce | 3 | ◆ | S | Unlocks the Company Guard, a melee unit you buy with gold. |
 | The Muster of the Fields | Dominion · Expansionist | 1 | ◆ | S | Towns of 5 or more citizens may spend a citizen to raise a melee unit. |
-| Carried-Off Scholars | Dominion · Scientific | 2 | ● | S | Capturing a city grants science equal to ten times its population. |
+| Carried-Off Scholars | Dominion · Scientific | 3 | ◆ | S | Capturing a city grants a technology that its owner knows and you do not. If there is none, it grants science equal to thirty times its population. |
 | The Soldier-Scholars | Dominion · Scientific | 2 | ◆ | P | Each military unit in your towns gives +2 science. |
 | The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: gain a melee unit. It costs no upkeep. |
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city deals you a free Order hand, at most once every ten turns. |
@@ -853,9 +868,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Ambarvalia | Expansionist · Devotion | 0 | ● | P | Each town gains +1 faith for every two improved tiles. |
 | The Monastery Libraries | Devotion · Scientific | 1 | ● | P | Libraries give +2 faith. Temples give +2 science. |
 | The Shrine Guards | Dominion · Devotion | 1 | ● | S | Towns with a Shrine may buy melee units with faith. |
-| The Blessed Forges | Devotion · Scientific | 2 | ◆ | S | Improved strategic resources gain +1 faith and +1 production. |
+| The Blessed Forges | Devotion · Scientific | 1 | ◆ | S | Improved strategic resources gain +1 faith and +1 production. |
 | The Schoolmen's Charter | Devotion · Scientific | 1 | ◆ | S | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. |
-| Sacred Patronage | Devotion · Magisterial | 3 | ○ | S | You may buy a great-person draft for 750 faith. |
+| Sacred Patronage | Devotion · Magisterial | 3 | ○ | S | You may buy a great-person draft with faith, at 5 faith for each point of renown the next great person costs. |
 | The Sutlers | Dominion · Commerce | 2 | ◆ | P | Garrisoned towns gain +1 gold for each citizen. |
 | The Army Contractors | Dominion · Commerce | 2 | ◆ | S | Buying a military unit grants its town production equal to a quarter of the gold paid. |
 | The Founders' Stores | Expansionist · Commerce | 1 | ◆ | S | Towns you found start with a Granary. |
@@ -866,6 +881,13 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Royal Patents | Commerce · Scientific | 3 | ◆ | S | Researching a technology grants 100 gold for each age you have reached. |
 | The Patrons' Quarter | Commerce · Magisterial | 2 | ◆ | P | Great-person works gain +2 production and +2 culture for each gold building in their town. |
 | The Votive Accounts | Commerce · Devotion | 1 | ◆ | P | Starts at +2 culture and +2 faith for your empire. Gains +1 of each every time you buy something with gold or faith, or start a rite, at most +20. |
+| The Field Mass | Devotion · Dominion | 3 | ◆ | S | Your proclamations heal your units within three hexes by 25 health. |
+| The Temple Baths | Devotion · Expansionist | 2 | ● | P | Each public work gives its town +2 faith and +1 happiness. |
+| The Hearth Fire | Devotion · Expansionist | 1 | ◆ | S | Towns you found start with a Shrine. |
+| The Lodge Books | Magisterial · Scientific | 2 | ○ | S | Completing a wonder completes the technology you are researching. |
+| The Observers' Charter | Devotion · Scientific | 1 | ◆ | S | Opens Astronomy: your towns may keep the Night Watch, a rite: for ten turns the city gains +1 science for each citizen. |
+| The Founders' Schools | Expansionist · Scientific | 1 | ◆ | S | Towns you found start with a Library. |
+| The Herbalists' Charter | Expansionist · Scientific | 0 | ● | S | Opens Herbals: workers may plant one Physic Garden in each town, on flat land with fresh water: +2 science and +2 happiness, and +1 science more for each forest or jungle hex beside it. |
 
 ### Generic
 

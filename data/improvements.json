@@ -23,6 +23,113 @@
     "tech": "prospecting"
   },
   "improvements": {
+    "cliffMonastery": {
+      "name": "Cliff Monastery",
+      "emoji": "🏔️",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "onePerTown": true,
+      "clearsClutter": true,
+      "requiresAdjacentMountain": true,
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0,
+        "faith": 3,
+        "science": 3
+      },
+      "perNeighbour": {
+        "on": {
+          "test": "terrain",
+          "terrain": "mountain"
+        },
+        "yields": {
+          "faith": 1,
+          "science": 1
+        }
+      },
+      "showBuildSites": true
+    },
+    "stoneCircle": {
+      "name": "Stone Circle",
+      "emoji": "🪨",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "onePerTown": true,
+      "clearsClutter": true,
+      "requiresHills": false,
+      "validFeatures": [
+        "none"
+      ],
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0,
+        "faith": 2,
+        "culture": 1
+      },
+      "perNeighbour": {
+        "on": {
+          "test": "anyImprovement",
+          "improvements": [
+            "pasture",
+            "camp",
+            "plantation"
+          ]
+        },
+        "yields": {
+          "faith": 1
+        }
+      },
+      "showBuildSites": true
+    },
+    "smelter": {
+      "name": "Smelter",
+      "emoji": "⚒️",
+      "chargeCost": 1,
+      "requiresTech": "smelting",
+      "onePerTown": true,
+      "yields": {
+        "food": 0,
+        "production": 1,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "clearsClutter": true,
+      "perNeighbour": {
+        "on": {
+          "test": "anyImprovement",
+          "improvements": [
+            "mine",
+            "quarry"
+          ]
+        },
+        "yields": {
+          "production": 1,
+          "science": 1
+        }
+      }
+    },
     "farm": {
       "name": "Farm",
       "emoji": "🌱",
@@ -686,7 +793,19 @@
       ],
       "requiresHills": false,
       "onePerTown": true,
-      "clearsClutter": true
+      "clearsClutter": true,
+      "perNeighbour": {
+        "on": {
+          "test": "anyFeature",
+          "features": [
+            "forest",
+            "jungle"
+          ]
+        },
+        "yields": {
+          "science": 1
+        }
+      }
     },
     "qanat": {
       "name": "Qanat",
@@ -694,8 +813,8 @@
       "chargeCost": 1,
       "requiresTech": "surveying",
       "yields": {
-        "food": 0,
-        "production": 0,
+        "food": 2,
+        "production": 1,
         "gold": 0
       },
       "validTerrain": [
@@ -707,7 +826,27 @@
       ],
       "requiresHills": false,
       "watersBeside": true,
-      "clearsClutter": true
+      "clearsClutter": true,
+      "onePerTown": true,
+      "requiresAdjacentHighGround": true,
+      "watersAllNeighbours": true,
+      "perNeighbour": {
+        "on": {
+          "test": "any",
+          "of": [
+            {
+              "test": "hills"
+            },
+            {
+              "test": "terrain",
+              "terrain": "mountain"
+            }
+          ]
+        },
+        "yields": {
+          "food": 1
+        }
+      }
     },
     "paradiseGarden": {
       "name": "The Paradise Garden",

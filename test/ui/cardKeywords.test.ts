@@ -37,7 +37,13 @@ import { definitionReader } from '../../src/ui/keywordDefinitions';
 import { CARD_KEYWORD_ENTRIES, keywordsAllowedIn, setDescriptorText } from '../../src/ui/keywords';
 import { SCALER_LABEL } from '../../src/ui/scalerFigure';
 import { scalerFace, scalerStartFace } from '../../src/ui/scalerValue';
-import { game } from '../sim/statecraftHelpers';
+import { game, lendDoctrineEffects } from '../sim/statecraftHelpers';
+import { cardHappiness, explainCardEmpireYields } from '../../src/sim/statecraft/evaluator';
+import { foundCityAt } from '../../src/sim/cities';
+import { at, bareState } from '../sim/improvementHelpers';
+import { authorityOf } from '../../src/sim/meters';
+import { foldEmpireRates } from '../../src/sim/yields/empire';
+import { seatedOrderLive } from '../../src/ui/orderLive';
 import { type FakeDom, type FakeNode, installFakeDom } from './keywordCardsHelpers';
 import { braceBody, uiSource } from './sourceHelpers';
 
@@ -197,6 +203,46 @@ describe('a Scaler’s value on its face', () => {
     expect(scalerFace(g.state, 0, id)?.figure).toBe('+4🔬 +4🎭');
     // Another seat has not grown it.
     expect(scalerFace(g.state, 1, id)?.figure).toBe('+2🔬 +2🎭');
+  });
+
+  it('shows the viewing seat’s current Devotion income in the draft and in a chair', () => {
+    const state = bareState(12, 8);
+    foundCityAt(state, 0, at(state, 4, 4));
+    const player = playerById(state, 0)!;
+    player.buildingsBoughtWithFaith = 3;
+    const restore = lendDoctrineEffects('theApoikia', [
+      { kind: 'pays', where: 'city', faith: 47 },
+      { kind: 'authority', amount: 11 },
+    ]);
+    try {
+      player.statecraft.doctrines.push('theApoikia');
+      bumpRevision(state);
+      expect(scalerFace(state, 1, 'theOfferedStones')?.figure).toBe('0🎭');
+      const authority = authorityOf(state, 0);
+      expect(authority).toBeGreaterThanOrEqual(2);
+      function check(id: OrderId, expected: string): void {
+        expect(scalerFace(state, 0, id)?.figure, id).toBe(expected);
+        player.statecraft.orders.push(id);
+        player.statecraft.slots.push({ card: id, sealedUntil: state.turn });
+        bumpRevision(state);
+        expect(seatedOrderLive(state, 0, id, undefined).short, id).toBe(expected);
+      }
+      check('theOfferedStones', '+12🎭');
+      check('theTwoSwords', `+${Math.floor(authority / 2)}☺`);
+      check('theCommanderOfTheFaithful', `+${3 * authority}🕯 +${3 * authority}🎭`);
+      const faith = foldEmpireRates(state, 0).faithPerTurn;
+      expect(faith).toBeGreaterThanOrEqual(40);
+      check('thePoorTables', `+${Math.floor(faith / 20)}☺`);
+      const lines = explainCardEmpireYields(state, 0);
+      expect(lines.find(line => line.card === 'theOfferedStones')?.culture).toBe(12);
+      expect(cardHappiness(state, 0).find(line => line.card === 'thePoorTables')?.amount).toBe(Math.floor(faith / 20));
+      check('theRogations', '+2🕯 +2🎭');
+      recordScalingOccasion(state, 0, 'riteStarted');
+      expect(seatedOrderLive(state, 0, 'theRogations', undefined).short).toBe('+3🕯 +3🎭');
+      expect(scalerFace(state, 1, 'theRogations')?.figure).toBe('+2🕯 +2🎭');
+    } finally {
+      restore();
+    }
   });
 
   it('is printed on the hand, the collection and the Compendium page, in tabular mono', () => {

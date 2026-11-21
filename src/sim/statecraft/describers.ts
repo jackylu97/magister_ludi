@@ -1105,6 +1105,9 @@ export function describeCard(id: CardId): CardClause[] {
   // **What a rite does the moment it is said** (`RiteDef.atOnce`) — the
   // Devotion deck's offering and restoring, whose whole face is the instant.
   if (isRiteId(id)) {
+    const { healing, unitBlessing } = riteDef(id);
+    if (healing) clauses.push({ text: `your units within ${healing.range} hexes of this town heal ${healing.amount} health each turn` });
+    if (unitBlessing) clauses.push({ text: `your units within ${unitBlessing.range} hexes when the rite starts gain +${unitBlessing.strength} strength until it ends` });
     const now = riteDef(id).atOnce;
     if (now?.hammersFromFaith === true) {
       clauses.push({
@@ -1505,6 +1508,7 @@ function workGroundWords(row: ImprovementDef): string {
     // The Qanat (Scientific batch S5): land that refuses hills is flat land.
     parts.push('on flat land');
   }
+  if (row.requiresAdjacentHighGround) parts.push('beside a hill or mountain');
   if (row.onePerTown === true) parts.push('one per city');
   return parts.join(', ');
 }
@@ -1516,7 +1520,8 @@ function workGroundWords(row: ImprovementDef): string {
  */
 function workDoesWords(row: ImprovementDef): string {
   const parts: string[] = [];
-  if (row.watersBeside === true) parts.push('your farms beside it count as having fresh water');
+  if (row.watersAllNeighbours) parts.push('all neighbouring hexes have fresh water');
+  else if (row.watersBeside) parts.push('your farms beside it count as having fresh water');
   return parts.join('; ');
 }
 
@@ -1940,6 +1945,7 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
       text: `${signed(def.healsAdjacent)} healing for your units resting in this city or beside it`,
     });
   }
+  if (def.riteDurationPercent) out.push({ text: `rites started in this city last ${def.riteDurationPercent}% longer` });
   if (def.ritePays !== undefined && def.ritePays !== 0) {
     out.push({ text: `a rite performed in this city pays ${signed(def.ritePays)} culture` });
   }
@@ -2262,6 +2268,10 @@ function describePays(
   }
 
   if (basis === 'share') {
+    if (effect.fromEmpire) {
+      out.push({ text: `${scopeWordsFor(subject, effect.scope)} gains ${effect.to} equal to ${effect.percent}% of your empire's ${effect.from}` });
+      return;
+    }
     // "Gained again as", which is the wording the rate conversions were
     // ratified in (Cuius Regio, 2026-09-02) and the only one that does not
     // read as though the town *loses* the harvest it sells: nothing is taken
@@ -2299,6 +2309,7 @@ function describePays(
     // `per` and the ceiling in `max`, exactly as a counted line's do, so the
     // whole clause reads "on every worked mine, once for every 2 adjacent hexes
     // with a Mine".
+    const perAge = effect.perStandingTurns ? `, once for each ${effect.perStandingTurns} turns the improvement has stood` : '';
     const ring = effect.perNeighbour;
     const perRing =
       ring === undefined
@@ -2319,7 +2330,7 @@ function describePays(
         : '';
     if (words) {
       out.push({
-        text: `${words} on every ${tileConditionWords(on)}${whose}${perPeak}${perRing}${perTownCount}`,
+        text: `${words} on every ${tileConditionWords(on)}${whose}${perPeak}${perRing}${perTownCount}${perAge}`,
       });
     }
     // The percentage is its own clause, because it is a share of a *different*
@@ -2528,6 +2539,10 @@ function describeEffect(
     case 'productionBonus': {
       if (effect.buildingFilter === 'capitalHas') {
         out.push({ text: `Your other towns build buildings your capital already has ${effect.percent}% faster` });
+        return;
+      }
+      if (effect.buildingFilter === 'newestAge') {
+        out.push({ text: `+${effect.percent}% production toward ${effect.category === 'wonder' ? 'wonders' : 'buildings'} of your current age` });
         return;
       }
       if (effect.buildingFilter === 'earlierAges') {
@@ -3006,6 +3021,7 @@ function describeEffect(
       const firstSaid =
         effect.first === undefined ? undefined : FIRST_OCCASION_WORDS[effect.occasion]?.[effect.first];
       if (effect.first !== undefined && firstSaid === undefined) narrowings.push(FIRST_WORDS[effect.first]);
+      if (effect.oncePerBuildingKind) narrowings.push('the first time you complete each kind');
       if (effect.oncePerTurn === true) narrowings.push('at most once a turn');
       // Dominion batch D5: The New Code's ten turns. Copying the Enemy's "unit
       // you cannot build yet" narrows the noun, so it is said inside the
@@ -3144,6 +3160,7 @@ function describeEffect(
         effect.inTown === undefined
           ? onHex
           : `${onHex} in ${effect.inTown === true ? 'one of your cities' : inTownWords(effect.inTown)}`;
+      if (effect.buildingSupplies) narrowings.push(`buildings that supply ${effect.buildingSupplies}`);
       const occasion =
         only +
         (effect.anyBuilding === true ? placed.replace('anything', 'a building') : placed) +
@@ -3222,7 +3239,10 @@ function describeEffect(
           // Where the food and hammers land, where the row says (Spolia's Opus
           // town, and Dominion batch D3's three).
           const where = grantDeliveryWords(grant, opusOnly);
-          out.push({ text: `${occasion} grants ${figure}${age}${where}${cap}${per}` });
+          const lead = grant.capturedTechnology
+            ? `${occasion} grants the cheapest technology the former owner knows and you do not. If there is none, you gain`
+            : `${occasion} grants`;
+          out.push({ text: `${lead} ${figure}${age}${where}${cap}${per}` });
         } else if (grant.fromTownPopulation === true) {
           // The Journeymen (Scientific batch S6): each town paid by its own
           // citizens, so the town is named before the figure that reads it.
@@ -3403,6 +3423,9 @@ function describeEffect(
       }
       // Dominion batch D8, The Soldiers' Share: the heal and the rank around
       // the hex. One sentence when the two radii agree, as the card says it.
+      if (grant?.healNearby) {
+        out.push({ text: `${occasion} heals your units within ${grant.healNearby.range} hexes by ${grant.healNearby.amount} health` });
+      }
       const healWithin = grant?.healWithin ?? 0;
       const rankWithin = grant?.rankWithin ?? 0;
       if (healWithin > 0 && healWithin === rankWithin) {
@@ -3444,6 +3467,9 @@ function describeEffect(
           text: `${occasion} grants ${grantedClassWords('melee')}${unitDeliveryWords(grant)}${per}`,
         });
       }
+      if (grant?.unit === 'bestSiege') {
+        out.push({ text: `${occasion} grants ${grantedClassWords('siege')}${unitDeliveryWords(grant)}${per}` });
+      }
       if (grant?.unit === 'bestRanged') {
         out.push({ text: `${occasion} grants ${grantedClassWords('ranged')}${unitDeliveryWords(grant)}${per}` });
       }
@@ -3459,6 +3485,8 @@ function describeEffect(
             `equal to ${grant.towardFallenTech}% of its cost`,
         });
       }
+      if (grant?.completeResearch) out.push({ text: `${occasion} completes your current technology` });
+      if (grant?.orderDraft) out.push({ text: `${occasion} grants a free Order hand` });
       if (grant?.freeDraft === true) {
         out.push({ text: `${occasion} deals you a free Order hand at once` });
       }
@@ -4764,6 +4792,8 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
   // is the rule's own share with the change applied (75% less 25 is 50%).
   templeForeignPercent: (delta) =>
     `rival religions press your cities with a Temple at ${Math.max(0, RULES.religion.templeForeignPercent + delta)}% strength`,
+  bombRangePercent: (delta) => `proclamations reach ${delta}% farther`,
+  foreignBombPercent: (delta) => `proclamations press ${delta}% harder in foreign towns`,
   bombRange: (delta) => `a proclamation reaches ${signed(delta)} hexes further`,
   bombLump: (delta) =>
     delta < 0
@@ -4812,7 +4842,7 @@ export function grantWords(grant: CompletionGrant, when = 'on completion'): stri
   return `${when}, ${grantedUnitWords(grant.unit)} joins you`;
 }
 
-function grantedClassWords(unitClass: 'melee' | 'ranged', plural = false): string {
+function grantedClassWords(unitClass: 'melee' | 'ranged' | 'siege', plural = false): string {
   const noun = ref('concept', 'grantedUnit', `${unitClass} unit${plural ? 's' : ''}`);
   return plural ? noun : `a ${noun}`;
 }
@@ -4909,6 +4939,9 @@ function onDraftClauses(grants: readonly OnDraftGrant[], lead: string): string[]
         break;
       case 'citizensInEveryTown':
         out.push(`${lead}each of your towns gains ${grant.amount} citizen${grant.amount === 1 ? '' : 's'}`);
+        break;
+      case 'tech':
+        out.push(`${lead}you complete the technology you are researching`);
         break;
       case 'completeQueues':
         out.push(`${lead}each town completes its current unit or building, except wonders and the Magnum Opus`);
@@ -6198,6 +6231,7 @@ function techPriceSubject(effect: RulePercentEffect): string {
     const name = ref('tech', effect.techChain, def.name);
     return `${name}, and the ${TECH_AGE_WORDS[def.age]} technologies that lead to it,`;
   }
+  if (effect.earlierAge) return 'technologies from earlier ages';
   const age = effect.techAge === undefined ? '' : `${TECH_AGE_WORDS[effect.techAge]} `;
   return `${effect.notChain === undefined ? '' : 'your other '}${age}technologies`;
 }
@@ -6558,6 +6592,10 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       into.qualifiers.push('with your capital');
       return;
     case 'townCentre':
+      if (on.building !== undefined) {
+        into.qualifiers.push(`with one of your towns holding a ${buildingDef(on.building).name}`);
+        return;
+      }
       // Read through `beside`, which takes "with" off: "beside a city".
       into.qualifiers.push('with a city');
       return;
@@ -6801,7 +6839,7 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
   // The Court of Rudolf II (batch DT8). `techPriceSubject` says which
   // technologies, and says "technologies" for a row that narrows none.
   techPrice: (percent, effect) =>
-    percent < 0
+    effect.earlierAge && percent === -100 / 3 ? 'technologies from earlier ages cost a third less research' : percent < 0
       ? `${techPriceSubject(effect)} cost you ${-percent}% less research`
       : `${techPriceSubject(effect)} cost you ${percent}% more research`,
   // The Capitulary of Herstal (batch DT8). A price, said as the saving.
@@ -7051,6 +7089,8 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   goldIncome: { one: 'gold earned each turn', many: 'gold earned each turn' },
   bankedGold: { one: 'gold in your treasury', many: 'gold in your treasury' },
   // Dominion batch D8, Weight of Numbers.
+  faithIncome: { one: 'faith per turn', many: 'faith per turn' },
+  followingCities: { one: 'town following your religion', many: 'towns following your religion' },
   attacksOnTarget: {
     one: 'attack your units have already made on the same target this turn',
     many: 'attacks your units have already made on the same target this turn',
@@ -7132,6 +7172,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   growth: 'a city growing',
   found: 'founding a city',
   completion: 'completing anything',
+  ageEntered: 'entering a new age',
   buildingCompletion: 'completing a building',
   // "Gaining", not "completing": a conscript a card raises (The General Levy)
   // pays these riders too (the user, 2026-10-16, in
@@ -7190,6 +7231,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   greatPersonSpent: 'spending a great person',
   // Batch R1: The Terraces of Moray and The Pilgrim Staff.
   levy: 'a levy',
+  proclamationMade: 'making a proclamation',
   faithSpent: 'spending faith',
 };
 
@@ -7214,6 +7256,7 @@ const OCCASION_MEASURE_WORDS: Partial<
   Record<WindfallOccasion, Partial<Record<OccasionMeasure, string>>>
 > = {
   census: { population: 'your citizens' },
+  purchase: { faith: 'the faith paid' },
   completion: { population: "the city's population" },
   buildingCompletion: { population: "the city's population" },
   unitCompletion: { population: "the city's population" },
@@ -7471,6 +7514,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   buildingsOfCategory: { one: 'building', many: 'buildings' },
   // Provenance rather than purpose, so the noun says what was asked: "per
   // purchased building" and not "per building".
+  buildingsBoughtWithFaith: { one: 'building you bought with faith', many: 'buildings you bought with faith' },
   buildingsBoughtWithGold: { one: 'building you bought with gold', many: 'buildings you bought with gold' },
   purchasedBuildings: { one: 'purchased building', many: 'purchased buildings' },
   // The list is not in these words either, for `buildingsOfCategory`'s reason —
@@ -7868,6 +7912,7 @@ const MEASURE_WORDS: Record<OccasionMeasure, string | { each: string }> = {
   hexesPillaged: { each: "of that empire's hexes you pillaged in that war" },
   worksAndWonders: { each: 'great-person work and wonder inside its borders' },
   // Dominion batch D7, The Legions' Labour.
+  buildingCost: 'the building’s production cost',
   unitCost: 'its production cost',
   // Scientific batch S6, The Scholars' Fame: the price this empire paid.
   techCost: 'the science it cost you',
@@ -7925,6 +7970,8 @@ const RATE_WORDS: Record<RateSource, PluralWords> = {
 };
 
 const OFFER_WORDS: Record<OfferRuleId, string> = {
+  additionalCharter: 'your Order drafts include an extra charter if one is available',
+  doubleScoutDiscovery: 'scouts receive double rewards from discoveries',
   discoveryClaimAll: 'a ruin you claim pays every option instead of one',
 };
 
@@ -8181,6 +8228,7 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
     'your apostles may raise a further holy site, as your prophets do, once you have founded a religion',
   // Devotion batch DV8, The Double Feast. "Different" because the same rite is
   // never kept twice in one town.
+  capitalRiteOverRealm: 'a rite your capital starts is kept by every town you hold',
   twoRites: 'each of your cities may keep two different rites at once',
   // Magisterial batch MG9, The Envious Eye.
   wonderHammersMoveOn:
@@ -8581,6 +8629,7 @@ function limitLiftWords(effect: Extract<CardEffect, { kind: 'rule' }>): string {
         })()
       : 'an empire building';
   const copies =
+    effect.empireBuilding && effect.max === 1 ? 'a second copy of each empire building' :
     effect.max === undefined
       ? `more than one copy of ${what}`
       : effect.max === 1
@@ -8910,6 +8959,7 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'gold per turn',
     noun: 'your gold per turn',
   },
+  authoritySurplus: { goal: (count) => `hold ${count} spare authority`, counter: 'spare authority', noun: 'your spare authority' },
   followingCityShare: {
     goal: (count) => `have at least ${count}% of the world's cities follow your religion`,
     counter: "% of the world's cities following",
@@ -8931,6 +8981,11 @@ const COMMISSION_FIGURE_WORDS: Record<
     noun: 'the cost of the Magnum Opus',
   },
   // Scientific batch S8, The Lynx-Eyed Academy.
+  firstAgeResearchComplete: {
+    goal: () => 'know every ordinary technology of the first age',
+    counter: 'first-age research complete',
+    noun: 'all first-age research',
+  },
   academyHexes: {
     goal: (count) =>
       count === 1

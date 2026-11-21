@@ -172,6 +172,7 @@ interface OverlayState {
    * (the overlay tests, a gallery harness) says nothing.
    */
   siteRadius?: readonly CellRef[];
+  actionPreview?: readonly CellRef[];
   /**
    * The hexes the city under the pointer works, each drawn with an outline a
    * little inside the hex. Empty when the pointer is on no city, and while a
@@ -313,6 +314,11 @@ export class OverlayLayer {
         new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
         { onTop: true, opacity: OVERLAY.siteRadiusOpacity },
       );
+    }
+
+    for (const cell of state.actionPreview ?? []) {
+      const at = anchor(cell);
+      if (at) collector.add(geometry.ring, [OVERLAY.rangeColor], new Matrix4().compose(at, identity, unit), { onTop: true });
     }
 
     this.movementOutline(map, state).forEach((shape, i) => collector.add(shape,

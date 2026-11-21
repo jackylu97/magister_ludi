@@ -44,6 +44,7 @@
  * the realm (`empireRite`).
  */
 
+import { riteUnitTargets } from '../sim/religion';
 import { createModalShell } from './modalShell';
 import { type CardImpactSheet, cardImpactSheet } from '../sim/cardImpact';
 import { cityRites, empireRiteError, riteError } from '../sim/religion';
@@ -196,6 +197,7 @@ interface ReligionScreenOptions {
    * through `controls.performRite`. Optional, so a page without it still draws
    * the Rites tab, with its Start buttons unpressable.
    */
+  onPreview?: (cells: readonly import('./mapView').CellRef[]) => void;
   performRite?: (cityId: number, rite: RiteId) => void;
   /**
    * Has a prophet say a rite over the whole realm: one `empireRite` command.
@@ -329,6 +331,8 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     const model = ritesTabModel(state, seat, view, riteReadings.readings(state, seat, sheet ?? undefined));
     const openCity = options.openCity;
     return drawRitesTab(model, {
+      preview: (rite, cityId) => options.onPreview?.(riteUnitTargets(state, seat, rite, state.cities.find(city => city.id === cityId))),
+      clearPreview: () => options.onPreview?.([]),
       selectRite: (rite) => {
         ritesView = selectRite(ritesView, rite);
         draw();
@@ -623,6 +627,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       fresh = true;
     },
     onClose: () => {
+      options.onPreview?.([]);
       stopMotion();
       options.onClose?.();
     },

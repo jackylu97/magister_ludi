@@ -71,6 +71,11 @@ const COLUMN_COSTS = [5, 11, 24, 50, 100, 190, 360, 650, 1150, 1960, 3250, 5150,
  * gone from the table.
  */
 const PLACEMENT: readonly [TechId, number, TechId, number][] = [
+  ['smelting', 1, 'mining', 2],
+  ['astronomy', 1, 'calendar', 3],
+  ['recordKeeping', 3, 'kingship', 6],
+  ['ciphers', 4, 'horology', 9],
+  ['liturgy', 3, 'theHighTemple', 6],
   ['herbals', 1, 'earthenware', 2],
   ['casting', 1, 'bronzeWorking', 3],
   ['surveying', 2, 'theWheel', 4],
@@ -93,6 +98,11 @@ const PLACEMENT: readonly [TechId, number, TechId, number][] = [
 
 /** The charter card that names each technology, by the triage's names. */
 const CHARTER_OF: Record<string, OrderId> = {
+  smelting: 'theSmeltersCharter',
+  astronomy: 'theObserversCharter',
+  recordKeeping: 'theArchivistsCharter',
+  ciphers: 'theClosedBook',
+  liturgy: 'theCallToPrayer',
   herbals: 'theHerbalistsCharter',
   casting: 'theBronzeFoundersCharter',
   surveying: 'theSurveyorsCharter',
@@ -131,24 +141,24 @@ beforeAll(() => {
 
 describe('the register', () => {
   it('marks exactly the technologies the charter cards name', () => {
-    expect(CHARTER_TECH_IDS).toHaveLength(14);
-    expect(new Set(CHARTER_TECH_IDS)).toEqual(new Set(charteredTechIds()));
-    expect(charteredTechIds()).toHaveLength(CHARTER_TECH_IDS.length);
-    expect(CHARTER_TECH_IDS).toEqual(PLACEMENT.map(([id]) => id));
+    expect(CHARTER_TECH_IDS).toHaveLength(19);
+    expect(new Set(CHARTER_TECH_IDS.filter(id => id !== 'navalGunnery'))).toEqual(new Set(charteredTechIds()));
+    expect(charteredTechIds()).toHaveLength(CHARTER_TECH_IDS.length - 1);
+    expect(new Set(CHARTER_TECH_IDS)).toEqual(new Set(PLACEMENT.map(([id]) => id)));
   });
 
   it('keeps the sky its forty-nine rows, and every row in the full list', () => {
     // Forty-nine since batch TT2 removed Divine Right.
     expect(TECH_IDS).toHaveLength(49);
-    expect(ALL_TECH_IDS).toHaveLength(63);
+    expect(ALL_TECH_IDS).toHaveLength(68);
     for (const id of CHARTER_TECH_IDS) expect(TECH_IDS, id).not.toContain(id);
-    expect([...TECH_IDS, ...CHARTER_TECH_IDS]).toEqual(ALL_TECH_IDS);
+    expect(new Set([...TECH_IDS, ...CHARTER_TECH_IDS])).toEqual(new Set(ALL_TECH_IDS));
   });
 
   it('gives every charter technology one charter card a Scientific seat draws, deferred until its gift is built', () => {
     // The Scientific file's charters, and the shared The Schoolmen's Charter
     // (Devotion batch DV2), which lives in the shared file.
-    const deck = [...DECK_FILE_ORDERS.scientific, ...DECK_FILE_ORDERS.common];
+    const deck = [...DECK_FILE_ORDERS.scientific, ...DECK_FILE_ORDERS.devotion, ...DECK_FILE_ORDERS.common];
     // Batch S1 built the line traits, batch S4 the buildings and the Physic
     // Garden, and batch S5 the Qanat and Niter Beds, so all thirteen
     // charters' whole gifts exist and they are dealt. Batch DS6 removed Niter
@@ -158,7 +168,7 @@ describe('the register', () => {
       'theAlchemistsCharter',
       'theBronzeFoundersCharter',
       'theMechanistsCharter',
-      'theNavalGunnersCharter',
+      'theSmeltersCharter', 'theArchivistsCharter', 'theClosedBook', 'theObserversCharter', 'theCallToPrayer',
       'theHerbalistsCharter',
       'theGlassmakersCharter',
       'theLibrariansCharter',
@@ -173,9 +183,14 @@ describe('the register', () => {
       const card = CHARTER_OF[tech]!;
       expect(deck, card).toContain(card);
       const def = orderDef(card);
-      expect(def.decks, card).toContain('scientific');
+      expect(def.decks, card).toContain(tech === 'liturgy' ? 'devotion' : 'scientific');
       expect(isCharter(card), card).toBe(true);
       expect(def.charter!.unlocks.tech, card).toBe(tech);
+      if (tech === 'navalGunnery') {
+        expect(def.retired, card).toBe(true);
+        expect(orderIsDealt(card)).toBe(false);
+        continue;
+      }
       expect(def.retired, card).toBeUndefined();
       expect(def.effects, card).toEqual([]);
       // Reading 21: not dealt until the whole gift is built.
@@ -360,7 +375,7 @@ describe('who may research one (reading 20)', () => {
     const g = researchingGame();
     const player = playerById(g.state, 0)!;
     player.techsResearched.push('earthenware');
-    expect(techsShutByCharter(player)).toEqual(charteredTechIds());
+    expect(techsShutByCharter(player)).toEqual(CHARTER_TECH_IDS);
     expect(availableTechs(g.state, 0)).not.toContain('herbals');
     expect(researchError(g.state, 0, 'herbals')).toMatch(/charter/);
     player.charteredTechs.push('herbals');

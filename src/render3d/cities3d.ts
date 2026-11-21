@@ -184,7 +184,11 @@ export function cityTier(state: GameState, city: City): number {
  * The trap in `CLAUDE.md` about the unit fingerprint is this one for cities:
  * **any new visual-affecting city property joins `CityLook` and nothing else.**
  */
+export const CITY_CHARTER_BUILDINGS = ['bellTower', 'greatArchive', 'specularium'] as const;
+export type CityCharterBuilding = typeof CITY_CHARTER_BUILDINGS[number];
+
 export interface CityLook {
+  charterBuildings?: CityCharterBuilding[];
   /** The owner’s architectural tier. See `cityTier`. */
   tier: number;
   /** A palisade stands: stakes from `palisade.fromTier`, stone from `wall.fromTier`. */
@@ -273,7 +277,9 @@ export function cityLook(
   city: City,
   capitals: ReadonlySet<number>,
 ): CityLook {
+  const charterBuildings = CITY_CHARTER_BUILDINGS.filter(id => city.buildings.includes(id));
   return {
+    ...(charterBuildings.length ? { charterBuildings } : {}),
     tier: cityTier(state, city),
     walls: holds(city, 'palisade'),
     shrine: holds(city, 'shrine'),
@@ -1363,6 +1369,7 @@ export function signCities(state: GameState): number {
       (look.puppet ? 1 << 30 : 0) |
       (look.hasWonder ? 1 << 8 : 0);
     h = Math.imul(h ^ bits, 16777619);
+    for (const building of look.charterBuildings ?? []) h = Math.imul(h ^ (CITY_CHARTER_BUILDINGS.indexOf(building) + 1), 16777619);
     // The faith on the fly. Folded as its own word rather than packed with the
     // sculpt bits above, because it is not a fact about the *sculpt* at all —
     // no roof moves for it — and because a religion id is an index into a list

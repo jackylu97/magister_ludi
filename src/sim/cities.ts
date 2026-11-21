@@ -145,7 +145,7 @@ import { anyBeadDef } from './beadData';
 // cycle (`cities` → `beads` → `greatPeople` → `cities`), so the direct edge
 // adds no new one; both calls are inside function bodies, which is what keeps
 // a cycle harmless.
-import { drawGreatPersonOffer, grantGreatPersonOffer } from './greatPeople';
+import { drawGreatPersonOffer, grantGreatPersonOffer, grantOrQueueGreatPersonOffer } from './greatPeople';
 import { awardBeadGrant, claimEndeavour, closeTheGreatWork } from './beads';
 import { settleRenownWindfall } from './renown';
 import {
@@ -287,11 +287,10 @@ import {
 import {
   buildError,
   completionHeldFor,
-  explainTechCost,
-  foldTechCost,
   isUnlocked,
   prototypePriced,
   settleResearchWindfall,
+  completeCurrentResearch,
 } from './tech';
 import {
   UNIT_TYPE_IDS,
@@ -5676,7 +5675,7 @@ export function realiseItem(
     // pays for a roof somebody bought — so the till now says which bank it was
     // and the town writes it down beside the date. Absent on every other way
     // stones arrive, which is what a completion, a grant and a relic all are.
-    const wonderCost = isWonder(item.id) ? buildingProductionCost(item.id, state, city.ownerId) : undefined;
+    const buildingCost = buildingProductionCost(item.id, state, city.ownerId);
     const added = addBuilding(state, city, item.id, options.bought);
     // A purchase finishes the building as well. Free grants enter through this
     // routine too, so use the source to distinguish them from work in the queue.
@@ -5751,7 +5750,8 @@ export function realiseItem(
     if (markFirst(state, city.ownerId, 'buildingInCity', firstKey(city.id, item.id)) && built) {
       firsts.push('buildingInCity');
     }
-    if (markFirst(state, city.ownerId, 'buildingKind', item.id) && built) {
+    const firstBuildingKind = markFirst(state, city.ownerId, 'buildingKind', item.id);
+    if (firstBuildingKind && built) {
       firsts.push('buildingKind');
     }
     // **A public work finished** (Expansionist batch E11, The Aediles; the
@@ -5761,7 +5761,9 @@ export function realiseItem(
     if (isPublicWork(item.id)) recordScalingOccasion(state, city.ownerId, 'publicWorkCompleted');
     payCompletionRiders(state, city, 'building', {
       wonder: wonder !== undefined,
-      production: wonderCost,
+      production: wonder !== undefined ? buildingCost : undefined,
+      buildingCost,
+      firstBuildingKind,
       building: item.id,
       firsts,
     });
@@ -6025,27 +6027,6 @@ export function settleRanksEarned(
  * says so.
  */
 /**
- * How many beakers this empire is still short of the node it is researching, or
- * `null` when it is aiming at nothing at all.
- *
- * The pure half of the Great Library's grant. It reads the aim and the price
- * and nothing else, so the *completion* is still `settleResearch`'s — the grant
- * covers the shortfall and the one research-completion routine spends it, which
- * is how a wonder's technology earns the era check, the upgrade sweep and the
- * Lyceum's culture exactly as a turn's beakers would.
- *
- * The price is the fold `settleResearch` charges (`foldTechCost`, Scientific
- * batch S0), so every card line on the price is covered too and the grant
- * still completes the node.
- */
-function pendingResearchCost(state: GameState, player: Player): { missing: number } | null {
-  const id = player.researching;
-  if (id === null || !isTechId(id)) return null;
-  const cost = foldTechCost(explainTechCost(state, player, id));
-  return { missing: Math.max(0, cost - player.sciencePool) };
-}
-
-/**
  * The strongest melee row this empire could build right now, or `null`.
  *
  * `CompletionGrant`'s `'bestMelee'` and `CardPeriodicMusterEffect`'s are the
@@ -6262,20 +6243,7 @@ export function payGrants(
       continue;
     }
     if (grant.grant === 'tech') {
-      const plan = pendingResearchCost(state, player);
-      if (plan === null) {
-        reports.push({ grant: 'tech', name: 'a technology', done: false });
-        continue;
-      }
-      // The pool is topped up to exactly what the node costs and the ordinary
-      // completion routine spends it, so the overflow, the era check, the
-      // upgrade sweep and the Lyceum's rider all happen once and in one place.
-      if (plan.missing > 0) {
-    player.sciencePool += plan.missing;
-    // The banks are a line of the meters too — see `collectYields` (batch M3).
-    bumpEconomy(state);
-  }
-      const done = settleResearchWindfall(state, player);
+      const done = completeCurrentResearch(state, player);
       reports.push({
         grant: 'tech',
         name: done?.name ?? 'a technology',
@@ -6646,6 +6614,9 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
   const multiplePersonOffers = grants.filter(grant => grant.grant === 'greatPerson').length > 1;
   for (const grant of grants) {
     switch (grant.grant) {
+      case 'tech':
+        completeCurrentResearch(state, player);
+        break;
       case 'doctrineOffer':
         if (!openDoctrineOffer(state, player)) {
           const sc = player.statecraft;
@@ -6653,12 +6624,8 @@ export function raiseOnDraft(state: GameState, player: Player, id: OrderId): voi
         }
         break;
       case 'greatPerson':
-        if (multiplePersonOffers && player.greatPersonOffer !== undefined && grant.family === undefined) {
-          const sc = player.statecraft;
-          sc.waitingGreatPersonOffers = (sc.waitingGreatPersonOffers ?? 0) + 1;
-        } else {
-          grantGreatPersonOffer(state, player, grant.family ?? 'any');
-        }
+        if (multiplePersonOffers) grantOrQueueGreatPersonOffer(state, player, grant.family ?? 'any');
+        else grantGreatPersonOffer(state, player, grant.family ?? 'any');
         break;
       case 'experience':
         // Rank rewards can raise more units. Only units held at draft time gain experience.
@@ -6845,7 +6812,7 @@ function payCompletionRiders(
   // **The town's size travels with the occasion** (Expansionist batch E2, The
   // Topping Out): this routine holds the town, and a rider scaled by its
   // population reads it here. A caller that names a population keeps it.
-  const told: WindfallOccasionFacts = { population: city.population, ...facts };
+  const told: WindfallOccasionFacts = { population: city.population, hex: at, ...facts };
   for (const occasion of ['completion', kind === 'unit' ? 'unitCompletion' : 'buildingCompletion'] as const) {
     const payout = windfallPayout(state, player.id, occasion, 0, 0, told);
     // **Anything at all on the payout is paid**, not the yields alone: a rider

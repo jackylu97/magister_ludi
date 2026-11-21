@@ -12,7 +12,7 @@ The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons
 | Tier III | 20 | 0 | 0 | 20 | 6 built |
 | Tier IV | 11 | 0 | 0 | 11 | 6 built |
 | All | 82 | 0 | 0 | 82 | 21 built |
-| Shared | 18 | 0 | 0 | 18 |  |
+| Shared | 22 | 0 | 0 | 22 |  |
 
 | Tier | Military | Economic | Civic | Wildcard |
 |---|---|---|---|---|
@@ -22,7 +22,7 @@ The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons
 | Tier III | 1 | 11 | 7 | 1 |
 | Tier IV | 1 | 5 | 4 | 1 |
 | All | 5 | 46 | 26 | 5 |
-| Shared | 3 | 7 | 8 | 0 |
+| Shared | 3 | 8 | 11 | 0 |
 
 ## Tier 0
 
@@ -189,11 +189,9 @@ The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons
 | **The Frontier Militia** | common | Dominion | 0 | implemented | Each town you found starts with a melee unit. | Military |
 | **The Ambarvalia** | common | Devotion | 0 | implemented | Each town gains +1 faith for every two improved tiles. | Civic |
 | **The Holy Spring** | common | Devotion | 0 | implemented | Towns beside a mountain or a lake gain +2 faith and +1 culture. | Civic |
-| **The Mountain Observatories** | common | Scientific | 0 | implemented | Cities with a mountain in their borders gain +3 science. | Civic |
 | **The Muster of the Fields** | uncommon | Dominion | I | implemented | Towns of 5 or more citizens may spend a citizen to raise a melee unit. | Military |
 | **The Barbarian Frontier** | uncommon | Dominion | I | implemented | Clearing a barbarian camp claims its hex and the unowned hexes around it. | Economic |
 | **The Farming Garrisons** | common | Dominion | I | implemented | Hexes with a fortified unit gain +1 food and +1 production. | Economic |
-| **The Assay** | common | Scientific | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **Garden Cities** | uncommon | Magisterial | I | implemented | Towns with a Monument gain +1 culture for every three improved tiles they work. | Civic |
 | **The Founders' Stores** | uncommon | Commerce | I | implemented | Towns you found start with a Granary. | Economic |
 | **Market Gardens** | common | Commerce | II | implemented | Hexes with a road gain +1 gold. | Economic |
@@ -202,6 +200,12 @@ The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons
 | **The Hillforts** | uncommon | Dominion | II | implemented | Workers may build one hillfort in each town, on a hill: +2 production, and +1 production more for each farm, pasture or camp beside it. A unit on it gains +5 strength when it defends. | Military |
 | **The Sculpted Landscape** | uncommon | Magisterial | III | implemented | Farms beside a great-person work gain +2 food and +2 culture. | Civic |
 | **The Grain Merchants** | uncommon | Commerce | II | implemented | Towns gain gold equal to 20% of their food. | Economic |
+| **The Herbalists' Charter** | common | Scientific | 0 | implemented | Opens Herbals: workers may plant one Physic Garden in each town, on flat land with fresh water: +2 science and +2 happiness, and +1 science more for each forest or jungle hex beside it. | Civic |
+| **The Mountain Observatories** | common | Scientific | 0 | implemented | Cities with a mountain in their borders gain +3 science. | Civic |
+| **The Assay** | common | Scientific | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
+| **The Founders' Schools** | uncommon | Scientific | I | implemented | Towns you found start with a Library. | Civic |
+| **The Temple Baths** | common | Devotion | II | implemented | Each public work gives its town +2 faith and +1 happiness. | Civic |
+| **The Hearth Fire** | uncommon | Devotion | I | implemented | Towns you found start with a Shrine. | Economic |
 
 ## Retired rows
 

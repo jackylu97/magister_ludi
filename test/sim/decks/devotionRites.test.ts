@@ -22,12 +22,18 @@ import { applyCommand } from '../../../src/sim/commands';
 import { getTileAt } from '../../../src/sim/map';
 import {
   availableRites,
+  keptRiteSchedule,
+  settleKeptRites,
   cityRite,
   empireRiteAt,
   performRiteAt,
   riteError,
+  riteUnitTargets,
+  proclamationHealingTargets,
   riteTeachingCard,
 } from '../../../src/sim/religion';
+import { explainUnitHeal } from '../../../src/sim/healing';
+import { liveUnitEffects } from '../../../src/sim/statecraft/evaluator';
 import { type RiteId, riteDef } from '../../../src/sim/religionData';
 import {
   type City,
@@ -156,7 +162,7 @@ describe('the three rows', () => {
     expect(sabbath).toEqual(['this city builds nothing and gains its production as culture instead']);
     // The Psalter's clause names the devout town and the town's size.
     const psalter = describeCard(PSALTER).map((clause) => stripRefs(clause.text)).join(' ');
-    expect(psalter).toContain('devout');
+    expect(psalter).not.toContain('devout');
     expect(psalter).toContain('population');
   });
 });
@@ -164,7 +170,7 @@ describe('the three rows', () => {
 // --- the season rule ------------------------------------------------------------
 
 describe('a rite started is a season', () => {
-  it('counts a rite that lasts, and not the Votive Offering, which acts at once', () => {
+  it('counts both the Votive Offering and the next rite', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5);
     const player = faithful(state);
@@ -174,24 +180,24 @@ describe('a rite started is a season', () => {
     bumpRevision(state);
     expect(riteError(state, 0, city.id, 'votiveOffering')).toBeNull();
     performRiteAt(state, player, city, 'votiveOffering');
-    expect(tallyOf(player.statecraft, ROGATIONS)).toBe(0);
+    expect(tallyOf(player.statecraft, ROGATIONS)).toBe(1);
     city.timed = [];
     bumpRevision(state);
     performRiteAt(state, player, city, FASTING);
-    expect(tallyOf(player.statecraft, ROGATIONS)).toBe(1);
+    expect(tallyOf(player.statecraft, ROGATIONS)).toBe(2);
   });
 
-  it('does not count the Restoring of the Host, which acts at once either', () => {
+  it('counts Restoring of the Host when it starts', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5);
     const player = faithful(state);
     slot(state, 0, ROGATIONS);
     slot(state, 0, 'theHostRestored' as OrderId);
-    expect(riteDef('restoringOfTheHost').atOnce).toBeDefined();
+    expect(riteDef('restoringOfTheHost').atOnce).toBeUndefined();
     expect(riteError(state, 0, city.id, 'restoringOfTheHost')).toBeNull();
     performRiteAt(state, player, city, 'restoringOfTheHost');
     expect(cityRite(state, city)).toBe('restoringOfTheHost');
-    expect(tallyOf(player.statecraft, ROGATIONS)).toBe(0);
+    expect(tallyOf(player.statecraft, ROGATIONS)).toBe(1);
   });
 
   it('counts a prophet’s rite over the realm once in each town it reaches', () => {
@@ -228,7 +234,7 @@ describe('the rite moment carries its town', () => {
     expect(science.reduce((sum, grant) => sum + grant.amount, 0)).toBe(30);
     expect(culture.reduce((sum, grant) => sum + grant.amount, 0)).toBe(30);
     // A moment that names no town never satisfies the rider's town test.
-    expect(windfallPayout(state, 0, 'rite', 0, 0, { population: 6 }).grants).toEqual([]);
+    expect(windfallPayout(state, 0, 'rite', 0, 0, {}).grants).toEqual([]);
   });
 
   it('pays The Psalter in a devout town when a season starts there', () => {
@@ -242,7 +248,7 @@ describe('the rite moment carries its town', () => {
     expect(player.sciencePool - science).toBe(30);
   });
 
-  it('pays The Psalter nothing in a town that is not devout, or for an offering', () => {
+  it('pays The Psalter in a town with no religion and for a Votive Offering', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5, 6);
     const player = faithful(state);
@@ -251,15 +257,15 @@ describe('the rite moment carries its town', () => {
     // No religion yet: the town is not devout.
     let science = player.sciencePool;
     performRiteAt(state, player, city, FASTING);
-    expect(player.sciencePool - science).toBe(0);
-    // Devout now, but the offering is not a season.
+    expect(player.sciencePool - science).toBe(30);
+    // Devout now, and the offering starts a new rite.
     religionAt(state, city, [city]);
     city.timed = [];
     city.queue = [{ kind: 'building', id: 'granary' as never }];
     bumpRevision(state);
     science = player.sciencePool;
     performRiteAt(state, player, city, 'votiveOffering');
-    expect(player.sciencePool - science).toBe(0);
+    expect(player.sciencePool - science).toBe(30);
   });
 
   it('pays The Psalter in each devout town a prophet’s rite reaches, by that town’s size', () => {
@@ -275,7 +281,7 @@ describe('the rite moment carries its town', () => {
     bumpRevision(state);
     const science = player.sciencePool;
     empireRiteAt(state, player, prophet, FASTING);
-    expect(player.sciencePool - science).toBe(5 * 6 + 5 * 2);
+    expect(player.sciencePool - science).toBe(5 * 6 + 5 * 2 + 5 * 9);
     expect(third.population).toBe(9);
   });
 
@@ -441,5 +447,87 @@ describe('The Sabbath Laws and the Rite of the Sabbath', () => {
     expect(into).toBeDefined();
     expect(into!.amount).toBe(-out!.amount);
     expect(into!.label).toBe(out!.label);
+  });
+});
+
+describe('the current rite rules', () => {
+  it('uses the capital’s duration in all its towns and keeps the faith price fixed between starts', () => {
+    const state = bareState(24, 10);
+    const capital = town(state, 0, 4, 5);
+    const second = town(state, 0, 12, 5);
+    const rival = town(state, 1, 18, 5);
+    const player = faithful(state);
+    capital.buildings.push('chapel');
+    for (const id of ['theRitesCommonwealth', 'devotionTheQuietHours', ROGATIONS] as OrderId[]) slot(state, 0, id);
+    const start = state.turn;
+    expect(applyCommand(state, { type: 'performRite', playerId: 0, cityId: capital.id, rite: FASTING }).ok).toBe(true);
+    expect(tallyOf(player.statecraft, ROGATIONS)).toBe(2);
+    const priceSteps = player.ritesStarted;
+    expect(cityRite(state, rival)).toBeNull();
+    for (const c of [capital, second]) {
+      expect(keptRiteSchedule(state, c, FASTING)).toEqual({ duration: 25, nextCount: start + 10, realm: true });
+    }
+    for (let elapsed = 1; elapsed <= 25; elapsed++) {
+      state.turn = start + elapsed;
+      settleKeptRites(state);
+      expect(tallyOf(player.statecraft, ROGATIONS)).toBe(2 + 2 * Math.floor(Math.min(elapsed, 24) / 10));
+      expect(player.ritesStarted).toBe(priceSteps);
+    }
+    expect(cityRite(state, second)).toBeNull();
+  });
+
+  it('previews the same wounded units the Field Mass heals on a final charge', () => {
+    const state = bareState(24, 10);
+    const home = town(state, 0, 3, 4);
+    religionAt(state, home, [home]);
+    const speaker = createUnit(state, 0, 'apostle', 3, 4);
+    speaker.chargesLeft = 1;
+    const wounded = createUnit(state, 0, 'warrior', 6, 4);
+    const far = createUnit(state, 0, 'warrior', 7, 4);
+    const enemy = createUnit(state, 1, 'warrior', 3, 5);
+    const healthy = createUnit(state, 0, 'warrior', 4, 4);
+    for (const unit of [wounded, far, enemy, speaker]) unit.hp = 40;
+    expect(proclamationHealingTargets(state, 0, speaker, speaker)).toEqual([]);
+    slot(state, 0, 'theFieldMass');
+    expect(proclamationHealingTargets(state, 0, speaker, speaker)).toEqual([wounded]);
+    const full = healthy.hp;
+    expect(applyCommand(state, { type: 'proclaim', playerId: 0, unitId: speaker.id }).ok).toBe(true);
+    expect([wounded.hp, far.hp, enemy.hp, healthy.hp]).toEqual([65, 40, 40, full]);
+    expect(state.units).not.toContain(speaker);
+  });
+
+  it('keeps the Vigil on the original soldiers while the Host heals whoever is in range now', () => {
+    const state = bareState(24, 10);
+    const c = town(state, 0, 4, 5);
+    const player = faithful(state);
+    const first = createUnit(state, 0, 'warrior', 5, 5);
+    const late = createUnit(state, 0, 'warrior', 12, 5);
+    const enemy = createUnit(state, 1, 'warrior', 4, 6);
+    for (const u of [first, late, enemy]) { u.hp = 20; u.hasAttacked = true; }
+    player.charteredRites.push('vigilOfArms');
+    slot(state, 0, 'theHostRestored' as OrderId);
+    expect(riteUnitTargets(state, 0, 'vigilOfArms', c)).toEqual([first]);
+    performRiteAt(state, player, c, 'vigilOfArms');
+    const gains = (u: typeof first) => liveUnitEffects(state, u).filter(one => one.card === 'vigilOfArms');
+    expect(gains(first)).toHaveLength(1);
+    expect(gains(enemy)).toHaveLength(0);
+    first.col = 13;
+    late.col = 5;
+    bumpRevision(state);
+    expect(gains(first)).toHaveLength(1);
+    expect(gains(late)).toHaveLength(0);
+    const prophet = createUnit(state, 0, 'prophet', c.col, c.row);
+    empireRiteAt(state, player, prophet, 'restoringOfTheHost');
+    expect(gains(first)).toHaveLength(0);
+    expect(explainUnitHeal(state, late)).toEqual([{ label: riteDef('restoringOfTheHost').name, amount: 25 }]);
+    expect(explainUnitHeal(state, first)).toEqual([]);
+    expect(explainUnitHeal(state, enemy)).toEqual([]);
+  });
+
+  it('keeps the border bonus when the Bounds applies to all resource types', () => {
+    expect(riteDef('consecrationOfTheBounds').effects).toEqual([
+      { kind: 'pays', where: 'hex', on: { test: 'hasResource' }, culture: 1 },
+      { kind: 'rulePercent', rule: 'borderCulture', percent: 30 },
+    ]);
   });
 });

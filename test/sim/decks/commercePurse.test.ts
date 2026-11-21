@@ -149,6 +149,62 @@ describe('Merchant Princes recruitment', () => {
   });
 });
 
+describe('Faith purchases', () => {
+  it('prices Sacred Patronage by the next threshold and applies faith buying power to the charge', () => {
+    const { state } = town();
+    const player = state.players[0]!;
+    seat(state, 0, 'sacredPatronage');
+    const first = greatPersonOfferPrice(state, 0, 'faith');
+    player.greatPeopleRecruited = 2;
+    bumpRevision(state);
+    const full = 5 * renownThreshold(state, player);
+    expect(full).toBeGreaterThan(first);
+    expect(greatPersonOfferPrice(state, 0, 'faith')).toBe(full);
+    seat(state, 0, 'theOfferingChests');
+    const price = Math.ceil(full / 1.25);
+    expect(greatPersonOfferPrice(state, 0, 'faith')).toBe(price);
+    player.faithPool = price;
+    bumpRevision(state);
+    expect(applyCommand(state, { type: 'purchaseGreatPersonOffer', playerId: 0, buys: 'faith' }).ok).toBe(true);
+    expect(player.faithPool).toBe(0);
+    expect(player.greatPersonOffer).toBeDefined();
+  });
+
+  it('pays production to the buying town and counts its faith purchases for the original payer', () => {
+    const { state, city: capital } = town();
+    const other = foundCityAt(state, 0, at(state, 10, 4));
+    const player = state.players[0]!;
+    player.faithPool = 1000;
+    player.gold = 1000;
+    other.buildings.push('shrine');
+    other.queue = [];
+    capital.queue = [];
+    seat(state, 0, 'theGiftsOfTheFaithful');
+    seat(state, 0, 'theOfferingChests');
+    seat(state, 0, 'fabricFund');
+    const monument = { kind: 'building', id: 'monument' } as const;
+    const price = explainPurchaseCost(state, 0, other.id, monument, 'faith')!.total;
+    const previous = other.hammerBasket;
+    const capitalBasket = capital.hammerBasket;
+    const result = applyCommand(state, buy(other, monument, 'faith'));
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
+    expect(player.faithPool).toBe(1000 - price);
+    expect(other.hammerBasket - previous).toBe(price / 4);
+    expect(capital.hammerBasket).toBe(capitalBasket);
+    expect(player.buildingsBoughtWithFaith).toBe(1);
+    expect(applyCommand(state, buy(capital, monument, 'gold')).ok).toBe(true);
+    expect(capital.hammerBasket).toBe(capitalBasket);
+    expect(player.buildingsBoughtWithFaith).toBe(1);
+
+    other.ownerId = 1;
+    seat(state, 0, 'theOfferedStones');
+    const culture = explainCardEmpireYields(state, 0)
+      .filter(line => line.card === 'theOfferedStones')
+      .reduce((total, line) => total + line.culture, 0);
+    expect(culture).toBe(4);
+  });
+});
+
 describe('The Open Market', () => {
   it('discounts each gold purchase and charges the displayed great-person price', () => {
     const { state, city } = town();
@@ -168,7 +224,7 @@ describe('The Open Market', () => {
     expect(base[4]).toBe(10 * renownThreshold(state, player));
     seat(state, 0, 'commerceOpenMarket');
     expect(prices()).toEqual(base.map(price => Math.ceil(price / 1.25)));
-    expect(greatPersonOfferPrice(state, 0, 'faith')).toBe(RULES.greatPeople.offerPriceFaith);
+    expect(greatPersonOfferPrice(state, 0, 'faith')).toBe(renownThreshold(state, player) * RULES.greatPeople.offerFaithPerRenown);
     setGold(state, greatPersonOfferPrice(state, 0, 'gold'));
     expect(applyCommand(state, { type: 'purchaseGreatPersonOffer', playerId: 0, buys: 'gold' }).ok).toBe(true);
     expect(player.gold).toBe(0);

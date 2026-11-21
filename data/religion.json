@@ -28,7 +28,8 @@
   },
   "rite": {
     "costBase": 20,
-    "costPerRiteStarted": 5
+    "costPerRiteStarted": 5,
+    "keptInterval": 10
   },
   "relicFaith": 3,
   "apostle": {
@@ -1039,14 +1040,14 @@
       "name": "Apostles",
       "axis": "none",
       "flavor": "Twelve of them, and none with a fixed address.",
-      "text": "Your faith buys 42.86% more when buying apostles.",
+      "text": "Your faith buys 40% more when you buy an apostle.",
       "effects": [
         {
           "kind": "purchaseRider",
           "class": {
             "type": "apostle"
           },
-          "percent": -30,
+          "percent": -28.571428571428573,
           "currency": "faith"
         }
       ]
@@ -1239,6 +1240,74 @@
     }
   },
   "rites": {
+    "vigilOfArms": {
+      "name": "Vigil of Arms",
+      "text": "Your units within three hexes of this town at the start gain +4 strength until the rite ends.",
+      "flavor": "The soldiers laid their arms across the steps and waited for morning.",
+      "effects": [],
+      "duration": 10,
+      "tech": "divination",
+      "byCard": true,
+      "unitBlessing": {
+        "range": 3,
+        "strength": 4
+      }
+    },
+    "nightWatch": {
+      "name": "The Night Watch",
+      "text": "This city gains +1 science for each citizen.",
+      "flavor": "By dawn every watcher has recorded a different star.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "population",
+          "within": "city"
+        }
+      ],
+      "duration": 10,
+      "tech": "astronomy"
+    },
+    "riteOfNaming": {
+      "name": "Rite of Naming",
+      "text": "This town gains +2 food for each citizen.",
+      "flavor": "At the reading of the names, every household brings a loaf.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "food",
+          "amount": 2,
+          "count": "population",
+          "within": "city"
+        }
+      ],
+      "duration": 10,
+      "tech": "divination",
+      "byCard": true
+    },
+    "riteOfHallowing": {
+      "name": "Rite of Hallowing",
+      "text": "This town’s improved hexes gain +1 faith.",
+      "flavor": "A small stone at the gate marks a field that has been blessed.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "faith": 1,
+          "on": {
+            "test": "improved"
+          }
+        }
+      ],
+      "duration": 10,
+      "tech": "divination",
+      "byCard": true
+    },
     "riteOfTheHarvest": {
       "name": "Rite of the Harvest",
       "tech": "divination",
@@ -1278,17 +1347,16 @@
       "name": "Consecration of the Bounds",
       "tech": "stonecraft",
       "flavor": "Walk the line once a year and the line walks itself the rest of it.",
-      "text": "Luxury hexes gain +1 culture, and this town's borders grow 30% faster.",
+      "text": "Resource hexes gain +1 culture, and this town's borders grow 30% faster.",
       "duration": 10,
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "culture": 1,
           "on": {
-            "test": "resourceKind",
-            "kind": "luxury"
-          }
+            "test": "hasResource"
+          },
+          "culture": 1
         },
         {
           "kind": "rulePercent",
@@ -1316,16 +1384,17 @@
       "name": "Rite of Plenty",
       "tech": "currency",
       "flavor": "A feast is an argument that the year was good, made loudly enough to win.",
-      "text": "Hexes with a resource give +1 gold.",
+      "text": "This town gains +1 gold for each citizen.",
       "duration": 10,
       "effects": [
         {
           "kind": "pays",
-          "where": "hex",
-          "gold": 1,
-          "on": {
-            "test": "hasResource"
-          }
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "population",
+          "within": "city"
         }
       ]
     },
@@ -1380,22 +1449,31 @@
       "tech": "theHighTemple",
       "byCard": true,
       "flavor": "A candle, a coin and a name, left at the foot of the scaffold.",
-      "text": "Spend faith to add that much production to what this town is building. Not wonders.",
-      "note": "Opened while the Order The Votive Gifts is seated. The town keeps it until the next turn, so each city may offer it once a turn.",
-      "duration": 1,
-      "atOnce": { "hammersFromFaith": true },
-      "effects": []
+      "text": "This town gains production equal to its faith.",
+      "duration": 10,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "to": "production",
+          "from": "faith",
+          "percent": 100
+        }
+      ]
     },
     "restoringOfTheHost": {
       "name": "Restoring of the Host",
       "tech": "theHolyOffice",
       "byCard": true,
       "flavor": "They came in carried and went out marching.",
-      "text": "Heals every unit of yours in land that follows your religion.",
-      "note": "Opened while the Order The Host Restored is seated. The town keeps it for a while before it may say it again.",
-      "duration": 5,
-      "atOnce": { "healFollowing": true },
-      "effects": []
+      "text": "Your units within three hexes of this town heal 25 health each turn.",
+      "duration": 10,
+      "effects": [],
+      "healing": {
+        "range": 3,
+        "amount": 25
+      }
     },
     "riteOfTheSabbath": {
       "name": "Rite of the Sabbath",

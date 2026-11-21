@@ -63,7 +63,6 @@ import {
   stripRefs,
   unitMatches,
 } from '../../../src/sim/statecraft';
-import { cardProduction } from '../../../src/sim/statecraft/evaluator';
 import { type CardType, type OrderId, type OrderRarity, orderDef, orderIsDealt } from '../../../src/sim/statecraftData';
 import {
   buildError,
@@ -215,12 +214,12 @@ const OPUS: BuildingId = 'theMagnumOpus';
 
 const S9: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardType; decks: string[] }[] = [
   { id: 'theFieldRefits', band: 1, rarity: 'uncommon', type: 'military', decks: ['scientific'] },
-  { id: 'theStrategikon', band: 2, rarity: 'uncommon', type: 'military', decks: ['scientific'] },
+  { id: 'theStrategikon', band: 2, rarity: 'common', type: 'military', decks: ['scientific'] },
   { id: 'theArmouryPatterns', band: 2, rarity: 'common', type: 'military', decks: ['scientific'] },
-  { id: 'theModelArmy', band: 3, rarity: 'rare', type: 'military', decks: ['scientific'] },
+  { id: 'theModelArmy', band: 3, rarity: 'uncommon', type: 'military', decks: ['scientific'] },
   { id: 'theGreatInstrument', band: 4, rarity: 'rare', type: 'wildcard', decks: ['scientific'] },
   { id: 'theFoundationStone', band: 4, rarity: 'rare', type: 'economic', decks: ['scientific'] },
-  { id: 'theClosedBook', band: 4, rarity: 'rare', type: 'civic', decks: ['scientific'] },
+  { id: 'theClosedBook', band: 3, rarity: 'rare', type: 'civic', decks: ['scientific'] },
   { id: 'theBreachingBatteries', band: 4, rarity: 'uncommon', type: 'military', decks: ['scientific'] },
   { id: 'thePrototypeWorks', band: 4, rarity: 'rare', type: 'economic', decks: ['scientific'] },
   {
@@ -239,7 +238,7 @@ describe('the rows', () => {
     // the tests below still read it. It has no type and is not dealt.
     for (const row of S9) {
       const def = orderDef(row.id);
-      const retired = row.id === 'theFieldRefits';
+      const retired = ['theFieldRefits', 'thePrototypeWorks', 'theFoundationStone', 'theGreatInstrument'].includes(row.id);
       expect(def.retired === true, row.id).toBe(retired);
       expect(orderIsDealt(row.id), row.id).toBe(!retired);
       expect(def.band, row.id).toBe(row.band);
@@ -261,17 +260,28 @@ describe('the rows', () => {
     expect(said('theFieldRefits')).toEqual(['each time research upgrades one of your units, it heals fully']);
     // Batch DS6 left The Strategikon with the Academy alone.
     expect(said('theStrategikon')).toEqual(['+4 combat strength while within 2 hexes of your Academy']);
-    expect(said('theArmouryPatterns')).toEqual(['+25% production toward units of the newest age you know']);
-    expect(said('theModelArmy')).toEqual([
-      'research upgrades your units even when you lack the strategic resource the new unit needs',
-    ]);
+    expect(said('theArmouryPatterns')).toMatchInlineSnapshot(`
+      [
+        "+3 combat strength for units of the newest age you know",
+      ]
+    `);
+    expect(said('theModelArmy')).toMatchInlineSnapshot(`
+      [
+        "research upgrades your units even when you lack the strategic resource the new unit needs",
+        "each time research upgrades one of your units, it heals fully",
+      ]
+    `);
     expect(said('theGreatInstrument')).toContain('not dealt to an empire that knows Alchemy');
     expect(said('theGreatInstrument')).toContain(
       'Goal: complete Alchemy. Reward: production toward the Magnum Opus equal to 10% of its cost at that moment',
     );
-    expect(said('theClosedBook')).toEqual([
-      'if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns',
-    ]);
+    expect(said('theClosedBook')).toMatchInlineSnapshot(`
+      [
+        "Charter",
+        "opens Ciphers for you to research",
+        "with Ciphers, if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns",
+      ]
+    `);
     // Batch DS6 cut the +5 strength against cities.
     expect(said('theBreachingBatteries')).toEqual([
       'each blow your siege units land on a city building the Magnum Opus removes 5% of the production banked toward it',
@@ -333,26 +343,27 @@ describe('The Model Army (reading 42)', () => {
 });
 
 describe('The Armoury Patterns (reading 43)', () => {
-  it('speeds units of the seat’s newest age, which charter technologies do not move', () => {
+  it('adds strength to units of the current age and changes when the empire enters an age', () => {
     const state = bench();
-    const city = town(state, 0, 4, 4);
+    town(state, 0, 4, 4);
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    const bow = createUnit(state, 0, 'bowman', 5, 6);
+    createUnit(state, 1, 'warrior', 6, 5);
     slot(state, 0, 'theArmouryPatterns');
-    const pays = (type: 'warrior' | 'bowman'): number =>
-      cardProduction(state, city, 'unit', type)
-        .filter((line) => line.card === 'theArmouryPatterns')
-        .reduce((sum, line) => sum + line.percent, 0);
+    const pays = (type: 'warrior' | 'bowman') =>
+      lines(state, type === 'warrior' ? warrior : bow, 6, 5, 'attacker', 'The Armoury Patterns');
     expect(ownerAgeOf(state, 0)).toBe(1);
-    expect(pays('warrior')).toBe(25);
+    expect(pays('warrior')).toBe(3);
     expect(pays('bowman')).toBe(0);
     // A charter technology of a later age moves nothing.
     learn(state, 0, 'surveying');
     expect(ownerAgeOf(state, 0)).toBe(1);
-    expect(pays('warrior')).toBe(25);
+    expect(pays('warrior')).toBe(3);
     // A second-age technology moves the seat into the second age.
     learn(state, 0, 'siegecraft');
     expect(ownerAgeOf(state, 0)).toBe(2);
     expect(pays('warrior')).toBe(0);
-    expect(pays('bowman')).toBe(25);
+    expect(pays('bowman')).toBe(3);
   });
 
   it('admits nothing when no owner’s age is handed in', () => {
@@ -523,7 +534,7 @@ describe('The Closed Book (reading 50)', () => {
     town(state, 0, 4, 4);
     const rivalTown = town(state, 1, 12, 4);
     fillRod(state, 1);
-    slot(state, 0, 'theClosedBook');
+    learn(state, 0, 'ciphers');
     state.turn = 40;
     complete(state, 0, 'alchemy');
     expect(state.closedBook).toEqual({ playerId: 0, turn: 40, until: 50 });
@@ -589,7 +600,7 @@ describe('The Great Instrument (reading 51)', () => {
     town(state, 0, 4, 4);
     const player = playerById(state, 0)!;
     const late = 40;
-    expect(eligibleFor(state, player, late)).toContain('theGreatInstrument');
+    expect(eligibleFor(state, player, late)).not.toContain('theGreatInstrument');
     learn(state, 0, 'alchemy');
     expect(eligibleFor(state, player, late)).not.toContain('theGreatInstrument');
   });

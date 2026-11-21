@@ -229,10 +229,12 @@ import {
   type OrderSlotGrant,
   LEVY_USES,
   doctrineDef,
+  orderDef,
 } from './statecraftData';
 import {
   type ResearchQueueMode,
   buildError,
+  pruneExtraBuildingQueues,
   chooseResearchFor,
   dequeueResearchError,
   dequeueResearchFor,
@@ -3638,6 +3640,9 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
   // asks the cards since B1. A slate warmed before this command by any reader
   // (the bot's appraisal, a hover) would answer for the deck as it was.
   forgetTheLaw(state);
+  if (previous && previous !== command.cardId && orderDef(previous).effects.some(
+    effect => effect.kind === 'rule' && effect.rule === 'buildsEverywhere' && effect.empireBuilding,
+  )) pruneExtraBuildingQueues(state, actor.id);
   if (orderOpensChairs(previous) || orderOpensChairs(command.cardId)) refitSlots(state, actor, 'reseat');
   payMomentGrants(state, actor, outcome.granted);
   return ok();

@@ -174,6 +174,7 @@ import { type WarDispatch, createWarDispatch } from './ui/warDispatch';
 import { createDiplomacyOffers } from './ui/diplomacyOffers';
 import { type ReligionScreen, createReligionScreen } from './ui/religionScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
+import type { ActionPreviewCell } from './ui/actionPreview';
 import { type MapPlates, type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
 import { faithPlates } from './ui/faithPlates';
 import { type CivYieldStrip, createCivYieldStrip, shownAge } from './ui/topBar';
@@ -5174,6 +5175,7 @@ async function boot(initial: Game | null): Promise<void> {
     },
     // The Rites tab's Start buttons: one `performRite` each, announced and
     // repainted by `controls` exactly as a start from the city screen is.
+    onPreview: cells => renderer.setActionPreview?.(cells),
     performRite: (cityId, rite) => controls.performRite(cityId, rite),
     sayRiteOverRealm: (unitId, rite) => {
       send({ type: 'empireRite', playerId: controls.localPlayerId(), unitId, rite });
@@ -5895,6 +5897,16 @@ async function boot(initial: Game | null): Promise<void> {
     onPick: () => {},
   });
   gameDisposers.push(() => faithMarks.dispose());
+  let previewCells: readonly ActionPreviewCell[] = [];
+  const previewLabels = createMapPlates({
+    container: bannersEl, renderer,
+    getPlates: () => previewCells.filter(cell => cell.count !== undefined).map(cell => ({
+      col: cell.col, row: cell.row, text: cell.count ? cell.detail ?? String(cell.count) : '0',
+      spoken: cell.detail ?? '', disabled: false, inert: true,
+    })),
+    onPick: () => {},
+  });
+  gameDisposers.push(() => previewLabels.dispose());
 
   /**
    * **When a tutorial note waits** (2026-11-18, `docs/flags.md`, "Age turn-over:
@@ -5971,6 +5983,7 @@ async function boot(initial: Game | null): Promise<void> {
     damageNumbers.reposition();
     priceTags.reposition();
     faithMarks.reposition();
+    previewLabels.reposition();
     // The faith card rides the same beat, for the same reason: its anchor is a
     // hex, and a camera that moved has moved it. `false` is the whole of the
     // difference from the hover path — the card is replaced where it stands, not
@@ -6047,6 +6060,7 @@ async function boot(initial: Game | null): Promise<void> {
     // owns the rows and the board's funnel owns the dispatch, exactly as the
     // Buy Tiles button owns the mode and `controls.ts` owns the click.
     riteOptions: (cityId) => controls.riteOptions(cityId),
+    onPreview: cells => renderer.setActionPreview?.(cells),
     performRite: (cityId, rite) => controls.performRite(cityId, rite),
     onOpenRites: (cityId) => religion?.openRitesFor(cityId),
     onChanged: () => {
@@ -6103,6 +6117,11 @@ async function boot(initial: Game | null): Promise<void> {
     },
     isUnitSkipped: () => controls.isUnitSkipped(),
     improvementOptions: () => controls.improvementOptions(),
+    onPreview: cells => {
+      previewCells = cells;
+      previewLabels.refresh();
+      renderer.setActionPreview?.(cells);
+    },
     onBuildImprovement: (id) => {
       controls.buildImprovement(id);
       updatePanel(null, renderer.getHover());

@@ -34,6 +34,8 @@ const bounds: Record<string, [number[], number[]]> = {
   'city-dome': [[-.187, -.026, -.187], [.187, .558, .187]],
   house: [[-.245, -.17, -.225], [.245, .538, .225]],
   temple: [[-.31, -.18, -.32], [.31, .71, .347]],
+  'ns-glasshouse': [[-.35, -.12, -.22], [.35, .36, .22]],
+  'ns-great-archive': [[-.33, -.11, -.24], [.33, .48, .34]],
   'bell-tower': [[-.15, -.16, -.145], [.15, .91, .145]],
 };
 
@@ -180,6 +182,21 @@ describe('painted cities in the live game', () => {
     expect(signCities(f.state)).toBe(once);
     expect(count('house')).toBe(3);
     expect(count('shrine')).toBe(1); expect(count('temple')).toBe(1); expect(count('wonder')).toBe(1);
+  });
+
+  it('puts charter buildings in house plots while the town keeps one wonder plot', () => {
+    const f = fixture();
+    f.city.population = 7;
+    f.city.buildings.push('pyramids', 'stonehenge');
+    f.build();
+    const before = signCities(f.state);
+    f.city.buildings.push('bellTower', 'greatArchive', 'specularium');
+    expect(signCities(f.state)).not.toBe(before);
+    f.build();
+    expect(f.layer.placements.filter(p => p.kind === 'charterBuilding').map(p => p.asset)).toEqual([
+      'bell-tower', 'ns-great-archive', 'ns-glasshouse',
+    ]);
+    expect(f.layer.placements.filter(p => p.kind === 'wonder')).toHaveLength(1);
   });
 
   it('keeps every town mesh and flag out of remembered and hidden cells', () => {

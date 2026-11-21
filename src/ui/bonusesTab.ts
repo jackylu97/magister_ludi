@@ -77,7 +77,7 @@ import {
   pantheonPlaces,
   poolHeld,
   poolSlotsFor,
-  riteTurnsFor,
+  keptRiteSchedule,
 } from '../sim/religion';
 import {
   type BeliefAxis,
@@ -425,7 +425,6 @@ export function bonusesTabModel(state: GameState, seat: number): BonusesModel {
     const key = `card:${rite}`;
     if (keeping.length === 0 && !byKey.has(key)) continue;
     const entry = take(key);
-    const fresh = riteTurnsFor(state, seat, rite) ?? 1;
     holy.push({
       key,
       kind: 'rite',
@@ -436,7 +435,7 @@ export function bonusesTabModel(state: GameState, seat: number): BonusesModel {
       notes: [],
       chips: keeping.map((city) => {
         const left = cityRiteTurnsLeft(state, city, rite);
-        return { label: cityDisplayName(state, city), turnsLeft: left, turnsTotal: Math.max(left, fresh, 1) };
+        return { label: cityDisplayName(state, city), turnsLeft: left, turnsTotal: Math.max(left, keptRiteSchedule(state, city, rite)?.duration ?? 1) };
       }),
       where: null,
       quiet: null,

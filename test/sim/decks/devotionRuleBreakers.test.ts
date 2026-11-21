@@ -146,7 +146,7 @@ describe('the two rows', () => {
     const mine = ordersForDecks(['devotion']);
     const expected: [OrderId, number, string][] = [
       [SWORDS, 3, 'military'],
-      [FEAST, 4, 'civic'],
+      [FEAST, 2, 'civic'],
     ];
     for (const [id, band, type] of expected) {
       expect(orderIsDealt(id), id).toBe(true);

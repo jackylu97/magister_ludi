@@ -123,7 +123,7 @@ import { type ChargeVerbName, cityRite } from '../religion';
 import { explainRenown, renownPerTurn, settleRenownWindfall } from '../renown';
 // Scientific batch S8: a rider's great person is dealt by the routine a
 // commission's uses. A function-level edge, as `renown.ts`' is.
-import { grantGreatPersonOffer } from '../greatPeople';
+import { grantOrQueueGreatPersonOffer } from '../greatPeople';
 import {
   type CityYieldKey,
   type ResourceId,
@@ -261,9 +261,9 @@ import {
 import { beadCapEffects } from '../beads';
 // Copying the Enemy reads a technology's cost. Research also reads card effects.
 // Both modules defer these calls until a game is running.
-import { explainTechCost, foldTechCost, techChainOf } from '../tech';
+import { completeCurrentResearch, grantCapturedTechnology, explainTechCost, foldTechCost, techChainOf } from '../tech';
 // Feature B's readings (Scientific batch S3). A leaf, so no cycle.
-import { aheadOfMet, knowsFewerTechs, techGap, techLead, unitAheadOfMet } from '../rivals';
+import { aheadOfMet, knowsFewerTechs, ordinaryTechGap, techGap, techLead, unitAheadOfMet } from '../rivals';
 // The Sum of Knowledge's count (Scientific batch S6): the same reading.
 import { techsKnownCount } from '../rivals';
 // The Upstarts' mirror of `knowsFewerTechs` (Dominion batch D15), and The
@@ -316,6 +316,7 @@ import {
 import {
   type PlayerStatecraft,
   freeDraftCanOpen,
+  grantOrderDrafts,
   openFreeDraft,
   isSlotted,
   settleCultureWindfall,
@@ -1705,7 +1706,11 @@ function askCondition(state: GameState, playerId: number, when: EmpireCondition)
  * list and an unswept one are the same game.
  */
 export function timedEffectIsLive(state: GameState, timed: TimedEffect): boolean {
-  return state.turn < timed.expiresTurn;
+  if (state.turn >= timed.expiresTurn) return false;
+  if (!timed.riteSources) return true;
+  return timed.riteSources.some(({ cityId, started }) => cityById(state, cityId)?.timed?.some(entry =>
+    entry.card === timed.card && entry.startedTurn === started && entry.expiresTurn > state.turn));
+
 }
 
 /** How many turns a rite has left, for the label. Never negative. */
@@ -3123,12 +3128,11 @@ export function cityScopeAdmits(
     case 'holyCity':
       return isHolyCityOf(state, city, viewerId ?? city.ownerId);
     case 'ownersFaith': {
-      // Always the town's owner, never the reader: see the scope. A town that
-      // keeps no faith does not follow, and neither does one whose owner holds
-      // no religion.
+      // A seat without a holy city uses the majority religion of its capital.
       const kept = cityReligion(city);
-      const follows =
-        kept !== null && heldReligions(state, city.ownerId).some((religion) => religion.id === kept);
+      const held = heldReligions(state, city.ownerId);
+      const capital = held.length === 0 ? capitalCityOf(state, city.ownerId) : undefined;
+      const follows = kept !== null && (capital ? cityReligion(capital) === kept : held.some((religion) => religion.id === kept));
       return follows === scope.keeps;
     }
     default: {
@@ -3878,6 +3882,8 @@ export function countOf(
       }
       return total;
     }
+    case 'buildingsBoughtWithFaith':
+      return playerById(state, playerId)?.buildingsBoughtWithFaith ?? 0;
     case 'buildingsBoughtWithGold':
       return playerById(state, playerId)?.buildingsBoughtWithGold ?? 0;
     case 'purchasedBuildings': {
@@ -5730,7 +5736,18 @@ export function cardYieldConversions(
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     // A share has no cap. The Learned Patron's cap per town was the only one,
     // and batch DS7 removed it (see `CardPaysEffect.max`).
-    const paid = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;
+    let base = flats[effect.from];
+    if (effect.fromEmpire) {
+      if (rateDepth > 0) continue;
+      rateDepth += 1;
+      try {
+        const rates = restDepth > 0 ? restingCutRates(state, city.ownerId) : foldEmpireRates(state, city.ownerId);
+        base = rates[RATE_OF_VOICE[effect.from]] ?? 0;
+      } finally {
+        rateDepth -= 1;
+      }
+    }
+    const paid = (Math.max(0, base) * (effect.percent ?? 0)) / 100;
     if (paid === 0) continue;
     const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
     line[effect.to as CityYieldKey] = paid;
@@ -6243,6 +6260,7 @@ export interface TileLine {
    */
   perNeighbour?: TileCondition;
   /** The most neighbours that ever pay — The Woodland Edge's two. */
+  perStandingTurns?: number;
   perNeighbourMax?: number;
   /**
    * **How many answering neighbours buy one helping** — Mining Districts' two
@@ -6371,7 +6389,7 @@ export function tileConditionHolds(
       return ground?.capital?.col === tile.col && ground.capital.row === tile.row;
     case 'townCentre':
       // The Highland Clans (batch DT6): the board's answer, or no.
-      return ground?.townCentre?.(tile) === true;
+      return ground?.townCentre?.(tile, on.building) === true;
     case 'surfaced':
       // The Prospectors (Expansionist batch E3): this empire's survey struck the
       // seam here. A caller that names no empire reads no.
@@ -6552,7 +6570,7 @@ export interface GroundFacts {
   player?: number;
   watered?: (tile: Tile) => boolean;
   wonderCentre?: (tile: Tile) => boolean;
-  townCentre?: (tile: Tile) => boolean;
+  townCentre?: (tile: Tile, building?: BuildingId) => boolean;
   capital?: { col: number; row: number };
   /**
    * **The hexes a work that copies its neighbours pays for** (Expansionist
@@ -6745,7 +6763,10 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
     },
     // Asked only by The Highland Clans, through `beside`, for hill hexes. Any
     // seat's town counts, because the card says "a town".
-    townCentre: (tile) => cityAt(state, tile.col, tile.row) !== undefined,
+    townCentre: (tile, building) => {
+      const town = cityAt(state, tile.col, tile.row);
+      return !!town && (building === undefined || (town.ownerId === playerId && townHoldsBuilding(state, town, building)));
+    },
     capital: capitalCityOf(state, playerId),
     // Asked only of a hex whose work copies its neighbours (The Keeps), and a
     // town holds one Keep at most, so a ring walk per call is cheap.
@@ -7409,6 +7430,7 @@ function hexMultipliers(line: CardTileLine, effect: CardPaysEffect): CardTileLin
   // The ring's own multiplier, carried the same way and written only when the
   // row says so, so every line the game has ever held still serialises and
   // compares exactly as it did.
+  if (effect.perStandingTurns !== undefined) line.perStandingTurns = effect.perStandingTurns;
   if (effect.perNeighbour !== undefined) {
     line.perNeighbour = effect.perNeighbour;
     if (effect.max !== undefined) line.perNeighbourMax = effect.max;
@@ -7693,9 +7715,10 @@ export function buildingProductionBonusMatches(
     return false;
   }
   if (effect.publicWork === true && !isPublicWork(building)) return false;
-  if (effect.buildingFilter === 'earlierAges') {
+  if (effect.buildingFilter === 'earlierAges' || effect.buildingFilter === 'newestAge') {
     const age = buildingTechAge(building);
-    return age !== undefined && age < ownerAgeOf(state, city.ownerId);
+    const ownerAge = ownerAgeOf(state, city.ownerId);
+    return age !== undefined && (effect.buildingFilter === 'newestAge' ? age === ownerAge : age < ownerAge);
   }
   if (effect.buildingFilter === 'capitalHas') {
     const capital = capitalCityOf(state, city.ownerId);
@@ -8196,7 +8219,9 @@ export function cardUnitCostLines(
 export function techPriceRowReaches(
   effect: Extract<CardEffect, { kind: 'rulePercent' }>,
   tech: TechId,
+  ownerAge?: number,
 ): boolean {
+  if (effect.earlierAge) return ownerAge !== undefined && techDef(tech).age < ownerAge;
   if (isCharterTech(tech)) return false;
   if (effect.techAge !== undefined && techDef(tech).age !== effect.techAge) return false;
   if (effect.techChain !== undefined && !techChainOf(effect.techChain).includes(tech)) return false;
@@ -8217,7 +8242,7 @@ export function cardTechPriceLines(
   const list: CardRuleLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'rulePercent')) {
     if (effect.rule !== 'techPrice' || effect.percent === 0) continue;
-    if (!techPriceRowReaches(effect, tech)) continue;
+    if (!techPriceRowReaches(effect, tech, effect.earlierAge ? ownerAgeOf(state, playerId) : undefined)) continue;
     list.push({ card, source, percent: effect.percent });
   }
   return list;
@@ -9284,7 +9309,8 @@ export function combatLineAmount(
   // Which units the line reaches, asked of the same predicate `unitStat` asks
   // — the Alhambra's mounted +2. Of *this* piece, whichever side it is on, so
   // a line that pays both postures pays a knight in either.
-  if (!unitMatches(situation.unit.type, effect.class)) return null;
+  const ownerAge = effect.class?.newestAge ? ownerAgeOf(state, situation.unit.ownerId) : undefined;
+  if (!unitMatches(situation.unit.type, effect.class, ownerAge)) return null;
   // Only a piece a levy raised, where the row says so (Expansionist batch E10,
   // Watch and Ward). The mark is on the piece, and the situation carries the
   // piece, so a comparison's imagined copy keeps it too.
@@ -9358,6 +9384,10 @@ function combatScaleCount(
       // The ledger count's own reading, asked of a fight (Numidian Cavalry),
       // The Commenda's lent kinds included (Commerce batch T5).
       return countedLuxuries(state, playerId).length;
+    case 'faithIncome':
+      return Math.max(0, Math.floor(foldEmpireRates(state, playerId).faithPerTurn ?? 0));
+    case 'followingCities':
+      return followingCount(state, playerId, 'followingCities', { kind: 'pays', where: 'empire', count: 'followingCities' });
     case 'goldIncome': {
       // A bot can price several fights before the economy changes.
       const income = () => Math.max(0, Math.floor(foldEmpireRates(state, playerId).goldPerTurn));
@@ -10129,6 +10159,9 @@ export interface WindfallPayout {
    * Code). Optional for `healFull`'s reason above.
    */
   freeDraft?: boolean;
+  orderDrafts?: number;
+  completeResearch?: boolean;
+  capturedTechnology?: TechId;
   /**
    * True when a rider heals **the whole army** — The Empire's. A flag and not a
    * figure, because the ratified text is *heals all*: a number here would have
@@ -10232,6 +10265,7 @@ export interface WindfallPayout {
    * `rankWithin`, Dominion batch D8, The Soldiers' Share). The widest asked
    * wins. Delivered by `payWindfallGrants`, with the hex in hand.
    */
+  nearbyHealing?: { range: number; amount: number }[];
   healWithin?: number;
   rankWithin?: number;
   /**
@@ -10483,6 +10517,9 @@ export interface WindfallOccasionFacts {
    * for free (`Unit.freeUpkeep`). Read by the `unitCost` measure.
    */
   unitCost?: number;
+  buildingCost?: number;
+  firstBuildingKind?: boolean;
+  previousOwner?: number;
   /**
    * The science the technology just completed cost this empire, on the
    * `tech` occasion (Scientific batch S6, The Scholars' Fame): the folded
@@ -10542,7 +10579,9 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     payout.claimBeside !== true &&
     (payout.citizens ?? []).length === 0 &&
     (payout.techGrants ?? []).length === 0 &&
+    !payout.orderDrafts && !payout.completeResearch && payout.capturedTechnology === undefined &&
     payout.freeDraft !== true &&
+    !payout.nearbyHealing?.length &&
     (payout.healWithin ?? 0) <= 0 &&
     (payout.rankWithin ?? 0) <= 0 &&
     (payout.actorTimed ?? []).length === 0 &&
@@ -10593,6 +10632,7 @@ export function windfallPayout(
   base = 0,
   baseHeal = 0,
   facts: WindfallOccasionFacts = {},
+  rng = state.rng,
 ): WindfallPayout {
   const payout: WindfallPayout = {
     amount: base,
@@ -10716,6 +10756,7 @@ export function windfallPayout(
     // Receipts pays for a roof and not for a soldier. It is a real narrowing
     // rather than a no-op because the purchase occasion covers both, and it
     // carries no `building` on the unit half.
+    if (effect.oncePerBuildingKind && !facts.firstBuildingKind) return false;
     if (effect.anyBuilding === true && facts.building === undefined) return false;
     // The Flood Festival pays for burned country and not for a farm. Only the
     // `improvementBuilt` occasion carries the fact, so the filter is silent
@@ -10764,6 +10805,10 @@ export function windfallPayout(
     if (effect.rank !== undefined && facts.rank !== effect.rank) return false;
     // The Coming of the Water pays for an Aqueduct and not for a granary
     // (Expansionist batch E3). Only a completion carries the row it finished.
+    if (effect.buildingSupplies !== undefined) {
+      const town = facts.hex && cityAt(state, facts.hex.col, facts.hex.row);
+      if (!town || !facts.building || !buildingSupplies(state, town, facts.building, effect.buildingSupplies)) return false;
+    }
     if (effect.building !== undefined && facts.building !== effect.building) return false;
     // Land Speculation pays for a hex with a resource on it (Commerce batch
     // T5). The tile test is asked of the hex the moment names, with this
@@ -10911,6 +10956,26 @@ export function windfallPayout(
     }
     const grant = effect.grant;
     if (!grant) continue;
+    if (grant.orderDraft) {
+      payout.orderDrafts = (payout.orderDrafts ?? 0) + 1;
+      payout.lines.push({ card, source, note: 'grants an Order hand' });
+    }
+    if (grant.completeResearch && playerById(state, playerId)?.researching) {
+      payout.completeResearch = true;
+      payout.lines.push({ card, source, note: 'completes current research' });
+    }
+    if (grant.capturedTechnology && facts.previousOwner !== undefined) {
+      const player = playerById(state, playerId)!;
+      const owner = playerById(state, facts.previousOwner);
+      const gap = owner ? ordinaryTechGap(player, [owner]) : [];
+      const price = (id: TechId) => foldTechCost(explainTechCost(state, player, id));
+      const tech = gap.sort((left, right) => price(left) - price(right))[0];
+      if (tech !== undefined) {
+        payout.capturedTechnology = tech;
+        payout.lines.push({ card, source, note: `learns ${techDef(tech).name}` });
+        continue;
+      }
+    }
     if (grant.heal !== undefined) {
       const heal = grant.heal;
       if (heal !== 0) {
@@ -11004,6 +11069,10 @@ export function windfallPayout(
     // Dominion batch D8: the heal and the rank around the hex (The Soldiers'
     // Share), and the timed effects hung on the piece that acted (The Scourge
     // of God). No figure, so the era and the council multiply nothing here.
+    if (grant.healNearby) {
+      (payout.nearbyHealing ??= []).push(grant.healNearby);
+      payout.lines.push({ card, source, note: `heals your units within ${grant.healNearby.range} hexes by ${grant.healNearby.amount} health` });
+    }
     if (grant.healWithin !== undefined && grant.healWithin > 0) {
       payout.healWithin = Math.max(payout.healWithin ?? 0, grant.healWithin);
       payout.lines.push({ card, source, note: `heals your units within ${grant.healWithin} hexes` });
@@ -11141,7 +11210,7 @@ export function windfallPayout(
       // says so by leaving the list empty.
       const roster = buildableMilitary(state, playerId);
       if (roster.length > 0) {
-        const type = roster[Math.min(roster.length - 1, Math.floor(nextFloat(state.rng) * roster.length))]!;
+        const type = roster[Math.min(roster.length - 1, Math.floor(nextFloat(rng) * roster.length))]!;
         payout.units.push({ card, source, type, ...deliveryOf(grant) });
         payout.lines.push({ card, source, note: `a ${unitDef(type).name} joins you` });
       }
@@ -11446,6 +11515,8 @@ function occasionMeasure(
     case 'opusProgress':
       return facts.opusProgress;
     // Dominion batch D7: what a disbanded unit costs to build.
+    case 'buildingCost':
+      return facts.buildingCost;
     case 'unitCost':
       return facts.unitCost;
     // Scientific batch S6: what the technology cost this empire.
@@ -12222,11 +12293,11 @@ function unbuiltTechFor(state: GameState, playerId: number, type: UnitTypeId): T
 function grantedUnitTypes(
   state: GameState,
   playerId: number,
-  kind: 'bestMelee' | 'bestRanged' | 'unlockedByTech',
+  kind: 'bestMelee' | 'bestRanged' | 'bestSiege' | 'unlockedByTech',
   facts: WindfallOccasionFacts,
 ): UnitTypeId[] {
   if (kind !== 'unlockedByTech') {
-    const best = bestOfClassFor(state, playerId, kind === 'bestMelee' ? 'melee' : 'ranged');
+    const best = bestOfClassFor(state, playerId, kind === 'bestMelee' ? 'melee' : kind === 'bestSiege' ? 'siege' : 'ranged');
     return best === null ? [] : [best];
   }
   const tech = facts.tech;
@@ -12420,6 +12491,26 @@ function grantTowns(
   return city ? [city] : [];
 }
 
+/** The preview and the payment use the same distance, health cap and set of injured units. */
+export function nearbyHealingTargets(
+  state: GameState, playerId: number, at: { col: number; row: number }, heals: NonNullable<WindfallPayout['nearbyHealing']>,
+): { unit: Unit; hp: number }[] {
+  const origin = getTileAt(state.map, at.col, at.row);
+  if (!origin || !heals.length) return [];
+  const targets: { unit: Unit; hp: number }[] = [];
+  const capBonus = unitHealthBonus(state, playerId);
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    const tile = getTileAt(state.map, unit.col, unit.row);
+    if (!tile) continue;
+    const distance = wrappedDistance(state.map, tileHex(origin), tileHex(tile));
+    const amount = heals.reduce((sum, heal) => sum + (distance <= heal.range ? heal.amount : 0), 0);
+    const hp = Math.min(unitMaxHp(unit, capBonus), unit.hp + amount);
+    if (hp > unit.hp) targets.push({ unit, hp });
+  }
+  return targets;
+}
+
 /**
  * Pays a windfall's *grants* — the voices a rider adds outright — into the
  * empire's banks and the nearest city's baskets.
@@ -12507,6 +12598,9 @@ export function payWindfallGrants(
   // **An Order draft opens at once** (Dominion batch D5, The New Code), free of
   // culture. `openFreeDraft` asks again whether one can open, because an
   // earlier rider on this payout may have opened one.
+  if (payout.orderDrafts) grantOrderDrafts(state, player, payout.orderDrafts);
+  if (payout.capturedTechnology) grantCapturedTechnology(state, player, payout.capturedTechnology);
+  if (payout.completeResearch) completeCurrentResearch(state, player);
   if (payout.freeDraft === true) openFreeDraft(state, player);
   for (const grant of payout.grants) {
     if (grant.yield === 'gold') player.gold += grant.amount;
@@ -12581,6 +12675,9 @@ export function payWindfallGrants(
   }
   // **The heal and the rank around the hex** (Dominion batch D8, The Soldiers'
   // Share). An occasion with no hex heals and raises nobody.
+  if (at && payout.nearbyHealing) {
+    for (const { unit, hp } of nearbyHealingTargets(state, player.id, at, payout.nearbyHealing)) unit.hp = hp;
+  }
   if (at && ((payout.healWithin ?? 0) > 0 || (payout.rankWithin ?? 0) > 0)) {
     rallyAround(state, player, at, payout.healWithin ?? 0, payout.rankWithin ?? 0);
   }
@@ -12636,7 +12733,7 @@ export function payWindfallGrants(
   // renown and for its reason: dealing an offer is the loudest thing a
   // windfall does. Through the routine a commission's great person uses, so a
   // seat with an offer already waiting gets the renown for the next one.
-  for (const person of payout.people ?? []) grantGreatPersonOffer(state, player, person.family);
+  for (const person of payout.people ?? []) grantOrQueueGreatPersonOffer(state, player, person.family);
   return touched;
 }
 
@@ -14126,6 +14223,7 @@ export function cardPressureSources(state: GameState, playerId: number): CardPre
                     where: 'city',
                     basis: 'count',
                     count: pressure.count,
+                    voice: pressure.voice,
                     within: 'city',
                   },
                   city,
@@ -14860,9 +14958,10 @@ export function cardAmplifier(
    */
   family?: Family,
   mode?: RouteMode,
+  sources?: { source: string; percent: number }[],
 ): number {
   let percent = 0;
-  for (const { effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
+  for (const { source, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
     if (effect.target !== target) continue;
     if (effect.mode !== undefined && effect.mode !== mode) continue;
     if (effect.family !== undefined && effect.family !== family) continue;
@@ -14874,6 +14973,7 @@ export function cardAmplifier(
     if (effect.yieldsOnly === true) continue;
     if (effect.percent === undefined) continue;
     percent += effect.percent;
+    if (sources) sources.push({ source, percent: effect.percent });
   }
   return percent;
 }

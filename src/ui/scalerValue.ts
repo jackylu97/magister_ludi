@@ -36,12 +36,22 @@ function faceAt(id: OrderId, count: number): ScalerFigure | null {
 }
 
 /**
- * **What this Scaler gives this seat now**: its starting value plus what it has
- * gained. A card the seat does not hold shows its starting value, and so does
- * a held card that has not gained yet. `null` for a card that is not a Scaler.
+ * A Scaler reads its own tally. Cards that show an empire count read the viewing
+ * seat’s current position, including when the card is still in its draft hand.
  */
 export function scalerFace(state: GameState, playerId: number, id: OrderId): ScalerFigure | null {
-  for (const effect of orderDef(id).effects) {
+  const def = orderDef(id);
+  if (def.showCountValue) {
+    const parts: string[] = [];
+    for (const effect of def.effects) {
+      if (effect.kind !== 'pays' || effect.where !== 'empire' || effect.basis !== 'count' || !effect.to) continue;
+      const count = countOf(state, playerId, id, effect);
+      const value = (effect.amount ?? 0) * helpings(count, effect.per, effect.max);
+      parts.push(`${signedFigure(value)}${glyphOf(effect.to)}`);
+    }
+    return parts.length ? { label: SCALER_LABEL, figure: parts.join(' ') } : null;
+  }
+  for (const effect of def.effects) {
     if (effect.kind !== 'pays' || !effect.showCountPercent || effect.percent === undefined) continue;
     const count = countOf(state, playerId, id, effect);
     const percent = effect.percent * helpings(count, effect.per, effect.max);

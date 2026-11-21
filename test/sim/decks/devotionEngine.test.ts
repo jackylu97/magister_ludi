@@ -208,11 +208,12 @@ describe('Devotion batch DV3: the record of faith spent', () => {
     const player = playerById(state, 0)!;
     player.faithPool = 100_000;
     slot(state, 0, 'theGiftsOfTheFaithful');
-    const shrine = { kind: 'building', id: 'shrine' } as const;
-    const price = explainPurchaseCost(state, 0, city.id, shrine, 'faith')!.total;
+    raise(state, city, 'shrine');
+    const temple = { kind: 'building', id: 'temple' } as const;
+    const price = explainPurchaseCost(state, 0, city.id, temple, 'faith')!.total;
     expect(price).toBeGreaterThan(0);
     let before = player.faithSpent;
-    purchaseItemAt(state, player, city, shrine as never, 'faith');
+    purchaseItemAt(state, player, city, temple as never, 'faith');
     expect(spentSince(player, before)).toBe(price);
     // Faith poured into the Magnum Opus.
     city.queue = [{ kind: 'building', id: 'theMagnumOpus' as never }];
@@ -328,7 +329,7 @@ describe('Devotion batch DV3: The Book of Life', () => {
 });
 
 describe('Devotion batch DV3: The Gifts of the Faithful', () => {
-  it('opens the religious buildings to faith in every town, and nothing else', () => {
+  it('opens culture and faith buildings to faith in towns with a Shrine', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5);
     const player = playerById(state, 0)!;
@@ -338,9 +339,10 @@ describe('Devotion batch DV3: The Gifts of the Faithful', () => {
     const granary = { kind: 'building', id: 'granary' } as const;
     expect(purchaseError(state, 0, city.id, shrine, 'faith')).not.toBeNull();
     slot(state, 0, 'theGiftsOfTheFaithful');
-    expect(purchaseError(state, 0, city.id, shrine, 'faith')).toBeNull();
+    expect(purchaseError(state, 0, city.id, shrine, 'faith')).not.toBeNull();
     raise(state, city, 'shrine');
     expect(purchaseError(state, 0, city.id, temple, 'faith')).toBeNull();
+    expect(purchaseError(state, 0, city.id, { kind: 'building', id: 'monument' }, 'faith')).toBeNull();
     // A building of another category stays a gold purchase.
     expect(purchaseError(state, 0, city.id, granary, 'faith')).not.toBeNull();
     // A wonder of the faith keeps its own rules (reading 14).
@@ -350,12 +352,12 @@ describe('Devotion batch DV3: The Gifts of the Faithful', () => {
     // At the faith rate, with no discount of its own.
     const price = explainPurchaseCost(state, 0, city.id, temple, 'faith')!;
     expect(price.lines.some((line) => /Gifts/.test(line.source))).toBe(false);
-    expect(words('theGiftsOfTheFaithful')).toEqual(['religious buildings other than wonders may be bought with faith']);
+    expect(words('theGiftsOfTheFaithful').join(' ')).toMatch(/Shrine/);
   });
 });
 
 describe('Devotion batch DV3: The Offering Chests', () => {
-  it('takes 30% off the faith price of a military unit, and nothing off its gold price', () => {
+  it('applies faith buying power to a military unit while its gold price stays the same', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5);
     const player = playerById(state, 0)!;
@@ -370,13 +372,13 @@ describe('Devotion batch DV3: The Offering Chests', () => {
     const gold = explainPurchaseCost(state, 0, city.id, warrior, 'gold')!.total;
     slot(state, 0, 'theOfferingChests');
     const eased = explainPurchaseCost(state, 0, city.id, warrior, 'faith')!;
-    expect(eased.total).toBe(Math.ceil((faith * 70) / 100));
+    expect(eased.total).toBe(Math.ceil(faith / 1.25));
     expect(eased.lines.some((line) => line.source.includes('The Offering Chests'))).toBe(true);
     // A unit bought with gold pays the full price (reading 15).
     expect(explainPurchaseCost(state, 0, city.id, warrior, 'gold')!.total).toBe(gold);
   });
 
-  it('leaves a civilian bought with faith at its full price', () => {
+  it('applies faith buying power to a civilian', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5);
     const player = playerById(state, 0)!;
@@ -386,8 +388,8 @@ describe('Devotion batch DV3: The Offering Chests', () => {
     const worker = { kind: 'unit', id: 'worker' } as const;
     const plain = explainPurchaseCost(state, 0, city.id, worker, 'faith')!.total;
     slot(state, 0, 'theOfferingChests');
-    expect(explainPurchaseCost(state, 0, city.id, worker, 'faith')!.total).toBe(plain);
-    expect(words('theOfferingChests')).toEqual(['Your faith buys 42.86% more when buying military units']);
+    expect(explainPurchaseCost(state, 0, city.id, worker, 'faith')!.total).toBe(Math.ceil(plain / 1.25));
+    expect(words('theOfferingChests')).toEqual(['Your faith buys 25% more']);
   });
 });
 
@@ -552,9 +554,9 @@ describe('Devotion batch DV3: the new rows', () => {
     // Batch R2c moved The Gifts of the Faithful from Tier 0 to Tier I (the
     // user, 2026-10-28: "move to tier 1").
     const rows: [string, number, string, string][] = [
-      ['theGiftsOfTheFaithful', 1, 'common', 'economic'],
+      ['theGiftsOfTheFaithful', 1, 'uncommon', 'economic'],
       ['theBookOfLife', 2, 'uncommon', 'civic'],
-      ['theOfferingChests', 3, 'common', 'military'],
+      ['theOfferingChests', 2, 'rare', 'economic'],
     ];
     for (const [id, band, rarity, type] of rows) {
       const def = orderDef(id as OrderId);

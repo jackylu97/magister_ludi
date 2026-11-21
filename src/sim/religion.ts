@@ -93,6 +93,7 @@ import {
   cityAt,
   foldUnitCost,
   refreshCityDerived,
+  payOccasionRiders,
   refreshRingDerived,
   refreshTileDerived,
   settleGrowthWindfall,
@@ -100,7 +101,7 @@ import {
   tileOwnerCityId,
   tileOwnerField,
 } from './cities';
-import { isBuildingId, isWonder } from './buildingData';
+import { buildingDef, isBuildingId, isWonder } from './buildingData';
 import {
   type Tile,
   getTileAt,
@@ -133,7 +134,6 @@ import {
 import {
   type WindfallOccasionFacts,
   cardActionRule,
-  cardAmplifier,
   cardPantheonSlots,
   cardPressureRule,
   cardPressureSources,
@@ -141,6 +141,7 @@ import {
   cardRivalPressurePercent,
   heldReligions,
   payWindfallGrants,
+  nearbyHealingTargets,
   religionFounder,
   timedEffectIsLive,
   windfallPayout,
@@ -167,7 +168,7 @@ import { townHoldsBuilding, townShelf } from './statecraft/evaluator';
 import { cardChargePrice } from './statecraft/evaluator';
 // Tidy batch Z1: the row that holds the free redraw's rule, which the price
 // line names (`freeRedrawSource`). Straight from the evaluator, as above.
-import { effectsOfKind } from './statecraft/evaluator';
+import { cardAmplifier, effectsOfKind } from './statecraft/evaluator';
 import { hasAbility, hasTech, settleResearchWindfall } from './tech';
 import { type TechId, eraNumeral, highestAge, techDef } from './techData';
 import type { BuildingId } from './buildingData';
@@ -1538,14 +1539,8 @@ export function ritesAffordable(state: GameState, playerId: number, bank: number
 }
 
 /**
- * **A rite has started in one town** (batch R2a). The one writer of
- * `Player.ritesStarted`, and the one seam that pays the `riteStarted` tally.
- *
- * Both callers start a season: `performRiteAt` for a town's rite with no
- * `atOnce`, and `sayRiteOverRealm` once for each town a realm's rite reaches,
- * whether a prophet or a levy said it. The count and the tally are raised
- * together, so the price counts the same rites the cards count (the review's
- * reading 2). Nothing lowers the count.
+ * A real start raises the faith price and credits the town's start. Later
+ * ten-turn credits leave the price unchanged.
  */
 function countRiteStarted(state: GameState, player: Player): void {
   player.ritesStarted = (player.ritesStarted ?? 0) + 1;
@@ -1672,6 +1667,15 @@ export function ritesDisplacedBy(state: GameState, city: City, rite: RiteId | nu
  * Without one, the most left of any rite the town keeps, which is the same
  * figure for a town keeping one.
  */
+export function keptRiteSchedule(state: GameState, city: City, rite: RiteId): { duration: number; nextCount: number | null; realm: boolean } | null {
+  const entry = city.timed?.find(one => one.card === rite && timedEffectIsLive(state, one));
+  if (!entry) return null;
+  const started = entry.startedTurn ?? (entry.expiresTurn - (riteTurnsFor(state, city.ownerId, rite, city) ?? 0));
+  const every = RELIGION.rite.keptInterval;
+  const next = started + (Math.floor((state.turn - started) / every) + 1) * every;
+  return { duration: entry.expiresTurn - started, nextCount: next < entry.expiresTurn ? next : null, realm: !!entry.realmRite };
+}
+
 export function cityRiteTurnsLeft(state: GameState, city: City, rite?: RiteId): number {
   let left = 0;
   for (const entry of city.timed ?? []) {
@@ -1934,6 +1938,10 @@ export function performRiteAt(
   // announces the bank for the meters too (batch M3, `slate.ts`).
   spendFaith(state, player, cost, true);
 
+  if (cityRiteCoversRealm(state, player.id, city)) {
+    const { expiresTurn, chapelCulture, wonders } = sayRiteOverRealm(state, player, rite);
+    return { rite, name: def.name, city, cost, expiresTurn, turns: expiresTurn - state.turn, chapelCulture, wonders };
+  }
   const expiresTurn = stampRite(state, player.id, rite, city) ?? state.turn;
   // **A rite started is a season** (Devotion batch DV4, the triage's reading
   // 9). The tally that The Founding Vows and The Rogations count, and the
@@ -2068,12 +2076,23 @@ const RITE_MARK: CardEffect = { kind: 'pays', where: 'city' };
  * `null` for a row with no duration, which is a withdrawn rite: nothing is
  * stamped for it.
  */
-export function riteTurnsFor(state: GameState, playerId: number, rite: RiteId): number | null {
-  const def = riteDef(rite);
-  if (def.duration === undefined) return null;
-  const percent = cardAmplifier(state, playerId, 'riteDuration');
-  const turns = Math.floor((Math.max(1, Math.floor(def.duration)) * (100 + percent)) / 100);
-  return Math.max(1, turns);
+export function riteDurationLines(state: GameState, playerId: number, city?: City): { source: string; percent: number }[] {
+  const lines: { source: string; percent: number }[] = [];
+  cardAmplifier(state, playerId, 'riteDuration', undefined, undefined, lines);
+  if (city) {
+    for (const id of townShelf(state, city).buildings) {
+      const row = buildingDef(id);
+      if (row.riteDurationPercent) lines.push({ source: row.name, percent: row.riteDurationPercent });
+    }
+  }
+  return lines;
+}
+
+export function riteTurnsFor(state: GameState, playerId: number, rite: RiteId, city?: City): number | null {
+  const base = riteDef(rite).duration;
+  if (base === undefined) return null;
+  const percent = riteDurationLines(state, playerId, city).reduce((sum, line) => sum + line.percent, 0);
+  return Math.max(1, Math.floor(Math.max(1, base) * (100 + percent) / 100));
 }
 
 /**
@@ -2095,6 +2114,7 @@ export function riteTimedEntries(
   state: GameState,
   playerId: number,
   rite: RiteId,
+  city?: City,
 ): TimedEffect[] | null {
   const def = riteDef(rite);
   if (def.duration === undefined) return null;
@@ -2103,13 +2123,13 @@ export function riteTimedEntries(
   // a `pays` line that pays nothing, so every reader of the town's timed list
   // reads it and adds nothing; `cityRite` sees the rite's id on it.
   const effects: readonly CardEffect[] =
-    def.effects.length > 0 ? def.effects : def.atOnce !== undefined ? [RITE_MARK] : [];
+    def.effects.length > 0 ? def.effects : [RITE_MARK];
   if (effects.length === 0) return null;
   // The duration was checked above, so this is never `null` here.
-  const turns = riteTurnsFor(state, playerId, rite);
+  const turns = riteTurnsFor(state, playerId, rite, city);
   if (turns === null) return null;
   const expiresTurn = state.turn + turns;
-  return effects.map((effect) => ({ card: rite, effect, expiresTurn }));
+  return effects.map((effect) => ({ card: rite, effect, startedTurn: state.turn, expiresTurn }));
 }
 
 /**
@@ -2123,12 +2143,30 @@ export function riteTimedEntries(
  * never been blessed serialises exactly as it did before this system existed
  * (`City.timed`'s convention).
  */
-function stampRite(state: GameState, playerId: number, rite: RiteId, city: City): number | null {
-  const entries = riteTimedEntries(state, playerId, rite);
+function stampRite(state: GameState, playerId: number, rite: RiteId, city: City, origin?: City): number | null {
+  const entries = riteTimedEntries(state, playerId, rite, origin ?? city);
   if (entries === null) return null;
   const list = city.timed ?? [];
-  for (const entry of entries) list.push(entry);
+  for (const entry of entries) {
+    if (origin) entry.realmRite = true;
+    list.push(entry);
+  }
   city.timed = list;
+  const blessing = riteDef(rite).unitBlessing;
+  if (blessing) {
+    for (const unit of riteBlessingTargets(state, playerId, rite, city)) {
+      // A realm rite can reach the same soldier from several towns.
+      const timed = (unit.timed ??= []);
+      const existing = timed.find(entry => entry.card === rite && timedEffectIsLive(state, entry));
+      const source = { cityId: city.id, started: state.turn };
+      if (existing) {
+        existing.expiresTurn = Math.max(existing.expiresTurn, entries[0]!.expiresTurn);
+        (existing.riteSources ??= []).push(source);
+      } else timed.push({ card: rite, expiresTurn: entries[0]!.expiresTurn, riteSources: [source], effect: {
+        kind: 'combatLine', amount: blessing.strength, side: 'both', when: { test: 'always' },
+      } });
+    }
+  }
   // A rite reaches `cityLocalEffects`, which `cardBuildingHappiness` folds into
   // the empire's contentment — announced at the stamp (batch M3, `slate.ts`).
   bumpEconomy(state);
@@ -2170,7 +2208,7 @@ export function cityTimedWithRite(
   city: City,
   rite: RiteId,
 ): TimedEffect[] | null {
-  const entries = riteTimedEntries(state, playerId, rite);
+  const entries = riteTimedEntries(state, playerId, rite, city);
   if (entries === null) return null;
   const displaced = ritesDisplacedBy(state, city, rite);
   const kept = (city.timed ?? []).filter((entry) => !isDisplacedRiteEntry(state, entry, displaced));
@@ -2196,6 +2234,15 @@ function clearCityRite(state: GameState, city: City, rites: readonly RiteId[]): 
   if (!timed || rites.length === 0) return;
   const kept = timed.filter((entry) => !isDisplacedRiteEntry(state, entry, rites));
   if (kept.length === timed.length) return;
+  if (rites.some(id => riteDef(id).unitBlessing)) {
+    for (const unit of state.units) {
+      if (!unit.timed) continue;
+      for (const entry of unit.timed) {
+        if (!entry.riteSources || !rites.includes(entry.card as RiteId)) continue;
+        entry.riteSources = entry.riteSources.filter(source => source.cityId !== city.id);
+      }
+    }
+  }
   if (kept.length === 0) delete city.timed;
   else city.timed = kept;
   // `stampRite`'s announcement, said the other way round (batch M3, `slate.ts`).
@@ -2349,9 +2396,11 @@ export function realmRiteError(state: GameState, playerId: number, rite: unknown
   // A rite that acts at once is said by one town for its own reason, never over
   // the whole realm for one price.
   if (def.atOnce !== undefined) return `${def.name} is said by one city, not over the realm`;
-  if (!state.cities.some((city) => city.ownerId === playerId)) {
-    return `${player.name} has no city to bless`;
-  }
+  const capital = capitalCityOf(state, playerId);
+  if (!capital) return `${player.name} has no city to bless`;
+  const protectedRite = ritesDisplacedBy(state, capital, rite).find(id =>
+    capital.timed?.some(entry => entry.card === id && entry.realmRite && timedEffectIsLive(state, entry)));
+  if (protectedRite) return `${capital.name} is still keeping ${riteDef(protectedRite).name} across the realm`;
   return null;
 }
 
@@ -2450,6 +2499,7 @@ interface RealmRiteSweep {
  */
 export function sayRiteOverRealm(state: GameState, player: Player, rite: RiteId): RealmRiteSweep {
   const cities: City[] = [];
+  const origin = capitalCityOf(state, player.id);
   const wonders: WonderCompletion[] = [];
   let expiresTurn = state.turn;
   let chapelCulture = 0;
@@ -2459,7 +2509,7 @@ export function sayRiteOverRealm(state: GameState, player: Player, rite: RiteId)
     // every rite the town keeps when it has one place, and under The Double
     // Feast the same rite, or the older rite when both places are taken.
     clearCityRite(state, city, ritesDisplacedBy(state, city, rite));
-    const until = stampRite(state, player.id, rite, city);
+    const until = stampRite(state, player.id, rite, city, origin ?? city);
     if (until !== null) expiresTurn = until;
     refreshCityDerived(state, city);
     // **A season in each town** (Devotion batch DV4): counted and paid once
@@ -2477,6 +2527,22 @@ export function sayRiteOverRealm(state: GameState, player: Player, rite: RiteId)
     cities.push(city);
   }
   return { cities, expiresTurn, chapelCulture, wonders };
+}
+
+/** Credit a kept rite at turns ten, twenty and onward while it remains active. */
+export function settleKeptRites(state: GameState): void {
+  for (const city of state.cities) {
+    if (!city.timed?.length) continue;
+    const credited = new Set<string>();
+    for (const entry of city.timed) {
+      if (entry.startedTurn === undefined || !isKeptRiteEntry(state, entry) || credited.has(entry.card)) continue;
+      const age = state.turn - entry.startedTurn;
+      if (age <= 0 || age % RELIGION.rite.keptInterval !== 0) continue;
+      credited.add(entry.card);
+      recordScalingOccasion(state, city.ownerId, 'riteStarted');
+      payRiteRiders(state, state.players[city.ownerId]!, city);
+    }
+  }
 }
 
 // --- timed effects ----------------------------------------------------------
@@ -3382,8 +3448,9 @@ interface BombFigures {
  */
 function bombFigures(state: GameState, playerId: number, unit?: Unit): BombFigures {
   const rules = RULES.religion;
+  const rangeScale = 1 + cardPressureRule(state, playerId, 'bombRangePercent') / 100;
   const full: BombFigures = {
-    range: Math.max(0, rules.bombRange + cardPressureRule(state, playerId, 'bombRange')),
+    range: Math.max(0, Math.floor((rules.bombRange + cardPressureRule(state, playerId, 'bombRange')) * rangeScale)),
     lump: Math.max(0, rules.bombLump + cardPressureRule(state, playerId, 'bombLump')),
   };
   if (unit === undefined || !isApostle(unit)) return full;
@@ -3394,9 +3461,38 @@ function bombFigures(state: GameState, playerId: number, unit?: Unit): BombFigur
   // its own figure, because six hexes is not half of ten.
   const apostle = RELIGION.apostle;
   return {
-    range: Math.max(0, Math.floor(apostle.proclaimRange)),
+    range: Math.max(0, Math.floor(apostle.proclaimRange * rangeScale)),
     lump: Math.max(0, Math.floor((full.lump * Math.max(0, apostle.proclaimPercent)) / 100)),
   };
+}
+
+export function cityRiteCoversRealm(state: GameState, playerId: number, city: City): boolean {
+  return city.id === capitalCityOf(state, playerId)?.id && cardActionRule(state, playerId, 'capitalRiteOverRealm');
+}
+
+/** A capital's rite can reach the same units as a prophet's realm rite. */
+export function riteUnitTargets(state: GameState, playerId: number, rite: RiteId, city?: City): Unit[] {
+  return riteBlessingTargets(state, playerId, rite, city && !cityRiteCoversRealm(state, playerId, city) ? city : undefined);
+}
+
+/** A realm rite checks every owned town. Overlapping towns bless a unit once. */
+function riteBlessingTargets(state: GameState, playerId: number, rite: RiteId, city?: City): Unit[] {
+  const def = riteDef(rite);
+  const range = def.unitBlessing?.range ?? def.healing?.range;
+  if (range === undefined) return [];
+  const origins = (city ? [city] : state.cities).filter(town => town.ownerId === playerId)
+    .map(town => tileHex(getTileAt(state.map, town.col, town.row)!));
+  return state.units.filter(unit => unit.ownerId === playerId && origins.some(origin =>
+    wrappedDistance(state.map, origin, tileHex(getTileAt(state.map, unit.col, unit.row)!)) <= range));
+}
+
+/** The last charge removes the speaker before the proclamation pays its riders. */
+export function proclamationHealingTargets(state: GameState, playerId: number, at: { col: number; row: number }, speaker?: Unit): Unit[] {
+  // Another rider on this occasion can draw a random unit. A hover must leave the next draw untouched.
+  const heals = windfallPayout(state, playerId, 'proclamationMade', 0, 0, {}, { ...state.rng }).nearbyHealing;
+  if (!heals) return [];
+  const spentId = speaker && (speaker.chargesLeft ?? 0) <= chargeCostOf(state, playerId, 'proclaim') ? speaker.id : undefined;
+  return nearbyHealingTargets(state, playerId, at, heals).map(target => target.unit).filter(unit => unit.id !== spentId);
 }
 
 /**
@@ -3417,11 +3513,12 @@ function bombFigures(state: GameState, playerId: number, unit?: Unit): BombFigur
 export function proclaimAt(state: GameState, player: Player, unit: Unit): ProclamationReport {
   const religion = foundedReligion(state, player.id)!;
   const { range, lump } = bombFigures(state, player.id, unit);
-  const report = pressLump(state, religion, { col: unit.col, row: unit.row }, range, lump);
+  const report = pressLump(state, religion, { col: unit.col, row: unit.row }, range, lump, undefined, undefined, player.id);
   spendCharge(state, unit, 'proclaim');
   // **The Final Proclamation's bead** — announced at the act rather than at the
   // command, the ten Triumph seams' rule: this is the one place a proclamation
   // happens, and a prophet is a prophet whoever is driving it.
+  payOccasionRiders(state, player, 'proclamationMade', unit);
   awardOrderBeads(state, player.id, 'proclamationMade');
   return report;
 }
@@ -3471,7 +3568,7 @@ export function proclaimPreview(state: GameState, unitId: number): ProclaimPrevi
   const { range, lump } = bombFigures(state, unit.ownerId, unit);
   const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
   const cities: ProclaimPreviewCity[] = [];
-  for (const { city, pressed } of lumpTargets(state, religion, unit, range, lump)) {
+  for (const { city, pressed } of lumpTargets(state, religion, unit, range, lump, unit.ownerId)) {
     const banked = (city.pressureBank?.[religion.id] ?? 0) + pressed;
     // What the converter would actually manage: the division, capped by the
     // citizens there are left to turn onto this faith. A town wholly converted
@@ -4543,17 +4640,20 @@ function lumpTargets(
   at: { col: number; row: number },
   range: number,
   lump: number,
+  speaker?: number,
 ): LumpTarget[] {
   const out: LumpTarget[] = [];
   const here = getTileAt(state.map, at.col, at.row);
   if (!here) return out;
   const eye = tileHex(here);
+  const foreignPercent = speaker === undefined ? 0 : cardPressureRule(state, speaker, 'foreignBombPercent');
   const founder = religionFounder(state, religion);
   for (const city of state.cities) {
     const tile = getTileAt(state.map, city.col, city.row);
     if (!tile) continue;
     if (wrappedDistance(state.map, eye, tileHex(tile)) > range) continue;
-    out.push({ city, pressed: templeShare(state, city, religion, lump, founder) });
+    const amount = city.ownerId === speaker ? lump : Math.floor(lump * (1 + foreignPercent / 100));
+    out.push({ city, pressed: templeShare(state, city, religion, amount, founder) });
   }
   return out;
 }
@@ -4651,6 +4751,7 @@ export function pressLump(
   lump: number,
   queue?: PendingConversion[],
   majority?: true,
+  speaker?: number,
 ): ProclamationReport {
   const order = state.religions.map((one) => one.id);
   const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
@@ -4659,7 +4760,7 @@ export function pressLump(
   const targets =
     majority === true
       ? majorityTarget(state, religion, at, perConvert)
-      : lumpTargets(state, religion, at, range, lump);
+      : lumpTargets(state, religion, at, range, lump, speaker);
   for (const { city, pressed } of targets) {
     const before = cityReligion(city);
     const converted = bankPressure(city, religion.id, order, pressed, perConvert);

@@ -2792,6 +2792,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         outcome.capturedCityId = target.city.id;
         defenderDied = true;
         captured = {
+          previousOwner: defenderOwnerBefore ?? undefined,
           capturedWonder: heldWonder,
           opusProgress,
           worksAndWonders,
@@ -3096,6 +3097,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         captureCity(state, town, attacker.ownerId);
         outcome.capturedCityId = town.id;
         captured = {
+          previousOwner: townOwnerBefore ?? undefined,
           capturedWonder: heldWonder,
           opusProgress,
           worksAndWonders,

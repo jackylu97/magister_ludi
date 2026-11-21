@@ -292,10 +292,8 @@ const ANNOUNCING = new Set([
   'discoveries.ts#payDiscovery',
   'diplomacy.ts#payLump',
   'cities.ts#refundBeatenWonders',
-  // L2a: `payCompletionGrants` is a two-line wrapper now — the arms that mint,
-  // teach and raise moved whole into `payGrants`, which a leader's boon calls
-  // too. The name on the register follows the body.
-  'cities.ts#payGrants',
+  // All grants that finish current research cover its remaining cost here.
+  'tech.ts#completeCurrentResearch',
   'cities.ts#payProject',
   'camps.ts#removeCampAt',
   'visibility.ts#recomputeVisibility',
@@ -674,6 +672,7 @@ const POSITION_READERS = new Map<string, string>([
   ['evaluator.ts#cardUnitStat', 'not under a reading: a piece’s own stat, not a yield'],
   ['evaluator.ts#escortAt', 'not under a reading: a founding rider’s condition'],
   ['evaluator.ts#harvestEnemyHexes', 'not under a reading: a grant being paid, which announces'],
+  ['evaluator.ts#nearbyHealingTargets', 'The healing grant and its preview read the positions of injured units. Yield calculations do not call it.'],
   ['evaluator.ts#rallyAround', 'not under a reading: a grant being paid, which announces'],
   ['evaluator.ts#unitIdsNearGenerals', 'not under a reading: a grant being paid, which announces'],
 ]);

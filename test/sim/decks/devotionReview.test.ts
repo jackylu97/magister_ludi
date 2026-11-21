@@ -112,7 +112,7 @@ describe('the moves and the retirements', () => {
     const moved: [string, string, string][] = [
       ['theFoundingVows', 'uncommon', 'wildcard'],
       ['theRogations', 'uncommon', 'civic'],
-      ['theGiftsOfTheFaithful', 'common', 'economic'],
+      ['theGiftsOfTheFaithful', 'uncommon', 'economic'],
       ['theShrineGuards', 'common', 'military'],
     ];
     for (const [id, rarity, type] of moved) {

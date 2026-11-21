@@ -160,7 +160,7 @@ export function levyMenuModel(
       line.rites = option.rites.map((choice) => ({
         rite: choice.rite,
         name: choice.name,
-        words: choice.blocked ?? riteOfferText(state, playerId, choice.rite) ?? choice.name,
+        words: choice.blocked ?? riteOfferText(state, playerId, choice.rite, city) ?? choice.name,
         blocked: choice.blocked,
       }));
     }

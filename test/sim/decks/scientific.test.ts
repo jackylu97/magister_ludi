@@ -142,19 +142,20 @@ const CHARTERS = CURRENT.filter((id) => isCharter(id));
  * opens and what the technology row gives.
  */
 const DEALT_CHARTERS: readonly OrderId[] = [
-  'theBronzeFoundersCharter',
-  'theMechanistsCharter',
-  'theNavalGunnersCharter',
-  'theHerbalistsCharter',
+  'theArchivistsCharter',
+  'theSmeltersCharter',
   'theGlassmakersCharter',
+  'theMechanistsCharter',
+  'theAlchemistsCharter',
+  'theBronzeFoundersCharter',
+  'theSurveyorsCharter',
   'theLibrariansCharter',
   'thePaperMakersCharter',
   'thePhysiciansCharter',
   'thePrintersCharter',
   'theGunfoundersCharter',
   'theMilitaryEngineersCharter',
-  'theSurveyorsCharter',
-  'theAlchemistsCharter',
+  'theClosedBook',
 ];
 
 /**
@@ -164,7 +165,7 @@ const DEALT_CHARTERS: readonly OrderId[] = [
  */
 const LIVE = CURRENT.filter(
   (id) =>
-    orderDef(id).effects.length > 0 ||
+    orderDef(id).effects.length > 0 || (orderDef(id).onDraft?.length ?? 0) > 0 ||
     DEALT_CHARTERS.includes(id) ||
     orderDef(id).commission !== undefined,
 );
@@ -186,8 +187,8 @@ describe('the rows', () => {
     // R3 added two (The Kept Secret and The Curators of Works) and retired
     // The Prize Essay, which stays in the file for saves. DS6 added The
     // Scribes and The Apprentices.
-    expect(DECK).toHaveLength(107);
-    expect(new Set(DECK).size).toBe(107);
+    expect(DECK).toHaveLength(118);
+    expect(new Set(DECK).size).toBe(118);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -204,7 +205,7 @@ describe('the rows', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tiers with eight, nineteen, seventeen, twelve and twelve current rows', () => {
+  it('places the current Scientific Orders in their approved tiers', () => {
     // S0 added ten charters and two cards. S1b retired twenty-four rows and
     // left twenty-six; the sheet's `add` rows join as later batches build them.
     // S2 added one card (Tier II) and S3 six (two each in Tiers I, II and III).
@@ -225,7 +226,7 @@ describe('the rows', () => {
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([8, 19, 17, 12, 12]);
+    expect(perBand).toEqual([9, 19, 20, 14, 5]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
@@ -240,7 +241,7 @@ describe('the rows', () => {
     // a commission: 68 became 77. R3 retired The Prize Essay and added two
     // live rows: 77 became 78. DS1 retired twelve: 78 became 66. DS6 added
     // two: 66 became 68.
-    expect(LIVE).toHaveLength(68);
+    expect(LIVE).toHaveLength(67);
     expect(DEFERRED).toEqual([]);
     for (const id of LIVE) {
       const def = orderDef(id);
@@ -281,13 +282,14 @@ describe('the retired rows', () => {
       'fieldNotebooks',
       'naturalPhilosophy',
       'apprenticeEngineers',
-      'theLongStudy', // DS1
+      'theLongStudy',
       'theResearchAnnals',
       'practicalAstronomy',
       'patientResearch',
       'theOpenCollegium',
       'workingEstates',
-      'theStrategicReserves', // DS1: The School of Mines
+      'learnedCommissions',
+      'theStrategicReserves',
       'thePracticalArts',
       'researchThroughConstruction',
       'theEndowedProvinces',
@@ -299,24 +301,34 @@ describe('the retired rows', () => {
       'theInheritedSchool',
       'discoveriesThroughGreatPeople',
       'husbandryStudies',
+      'enduringInstitutions',
       'thePatentRolls',
       'commissionsOfService',
-      'theLongInheritance', // DS1
+      'theQuietFaculties',
+      'theLongInheritance',
       'masterArtificers',
       'theDistantColleges',
       'theSocietyOfArtificers',
       'theLearnedRealm',
-      'theCommonplaceBook', // DS1
-      'thePatentOffice', // DS1
-      'theScholarsGuild', // DS1
-      'theGreatDesigns', // DS1
-      'greekFire', // DS1
-      'theStudiumGenerale', // DS1
-      // Batch R3: the user, 2026-10-28, "remove, too similar to royal workshops".
+      'theCommonplaceBook',
+      'theNavalGunnersCharter',
+      'thePatentOffice',
+      'theScholarsGuild',
+      'theGreatDesigns',
+      'greekFire',
+      'theProvingGround',
+      'theStudiumGenerale',
+      'theRepublicOfLetters',
       'thePrizeEssay',
-      'theRoyalReaders', // DS1
-      'theFieldRefits', // DS1
-      'theKeptSecret', // DS1
+      'theAgeOfReason',
+      'theCommonTables',
+      'theRoyalReaders',
+      'theWallsOfLearning',
+      'theFieldRefits',
+      'theGreatInstrument',
+      'theFoundationStone',
+      'thePrototypeWorks',
+      'theKeptSecret',
     ]);
     // The one shared row both its sheets cut (batch S1b).
     expect(orderDef('theHydraulicCommonwealth').retired).toBe(true);
@@ -554,7 +566,7 @@ describe('the Scientific deck: the sheet', () => {
     expect(sheetDoctrines('scientific').length).toBe(15);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('scientific').filter((row) => row.band === band).length),
-    ).toEqual([4, 3, 4, 4]);
+    ).toEqual([3, 4, 5, 3]);
     expectSheetDoctrinesMatchData('scientific');
   });
 
@@ -688,8 +700,8 @@ describe('the Scientific deck: the sheet', () => {
     expect(types.get('All'), 'the type totals').toEqual(byType(sheet));
     expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
     expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
-    // The thirteen charters are all on the tier tables.
-    expect(sheet.filter(isCharterRow)).toHaveLength(13);
+    // The shared charters have their own table.
+    expect(sheet.filter(isCharterRow)).toHaveLength(14);
   });
 });
 
@@ -748,11 +760,11 @@ describe('the live rows’ effects', () => {
       }
     }
     expect([...pairs].sort()).toEqual([
-      'capital:count',
       'city:count',
       'city:flat',
       'city:share',
       'empire:count',
+      'hex:count',
       'hex:flat',
     ]);
   });
@@ -761,13 +773,13 @@ describe('the live rows’ effects', () => {
 // --- the charters ------------------------------------------------------------
 
 describe('the research charters', () => {
-  it('names the thirteen charter technologies, one row each, deferred until their gift is built', () => {
-    expect(CHARTERS).toHaveLength(13);
+  it('names the fourteen Scientific charter technologies, one row each, deferred until their gift is built', () => {
+    expect(CHARTERS).toHaveLength(14);
     const techs = CHARTERS.map((id) => orderDef(id).charter!.unlocks.tech);
     // The fourteenth charter technology, Scholasticism, belongs to the shared
     // The Schoolmen's Charter in the shared file (Devotion batch DV2).
-    const own = CHARTER_TECH_IDS.filter((tech) => tech !== 'scholasticism');
-    expect(CHARTER_TECH_IDS).toHaveLength(14);
+    const own = CHARTER_TECH_IDS.filter((tech) => !['scholasticism', 'herbals', 'astronomy', 'navalGunnery', 'liturgy'].includes(tech));
+    expect(CHARTER_TECH_IDS).toHaveLength(19);
     expect(new Set(techs)).toEqual(new Set(own));
     expect(techs).toHaveLength(own.length);
     for (const id of CHARTERS) {
@@ -792,7 +804,7 @@ describe('the research charters', () => {
     }
     for (const id of RETIRED) {
       const tech = orderDef(id).charter?.unlocks.tech;
-      if (tech !== undefined) expect(isTechId(tech), id).toBe(false);
+      if (tech !== undefined) expect(isTechId(tech), id).toBe(tech === 'navalGunnery');
     }
   });
 
@@ -864,7 +876,7 @@ describe('a Scientific seat’s draw', () => {
       // something, is a charter whose gift is built, or is a commission.
       if (DECK.includes(id)) {
         expect(
-          orderDef(id).effects.length > 0 || isCharter(id) || orderDef(id).commission !== undefined,
+          orderDef(id).effects.length > 0 || (orderDef(id).onDraft?.length ?? 0) > 0 || isCharter(id) || orderDef(id).commission !== undefined,
           id,
         ).toBe(true);
       }
@@ -975,7 +987,7 @@ describe('what the live rows do on a board', () => {
     expect(named()).toEqual([]);
   });
 
-  it('The Scribes’ Hall: a Library town pays science by its own citizens, and no culture (DS6)', () => {
+  it('The Scribes’ Hall: a Library gives its town two more science', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('library');
@@ -984,7 +996,7 @@ describe('what the live rows do on a board', () => {
     const before = foldCity(g.state, city);
     slot(g.state, 0, 'scientificTheScribesHall');
     const after = foldCity(g.state, city);
-    expect(after.science).toBe(before.science + 3);
+    expect(after.science).toBe(before.science + 2);
     // Batch DS6 cut the +1 culture for every three citizens.
     expect(after.culture).toBe(before.culture);
   });
@@ -1151,7 +1163,7 @@ describe('batch DS6: the new and changed cards', () => {
     expect(foldCity(g.state, city).science).toBeGreaterThanOrEqual(before + 1);
   });
 
-  it('The Apprentices pays 5 science for each building finished, built or bought, and nothing for a unit', () => {
+  it('The Apprentices pays a fifth of a building’s production cost on completion or purchase', () => {
     const def = orderDef('theApprentices' as OrderId);
     expect([def.band, def.rarity, def.type]).toEqual([0, 'common', 'economic']);
     expect(orderIsDealt('theApprentices' as OrderId)).toBe(true);
@@ -1159,18 +1171,17 @@ describe('batch DS6: the new and changed cards', () => {
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
     slot(g.state, 0, 'theApprentices' as OrderId);
-    // The `buildingCompletion` occasion fires in `realiseItem` for every
-    // building, so the payout is the same whatever the building is.
-    expect(windfallPayout(g.state, 0, 'buildingCompletion', 0, 0, { building: 'monument' }).grants).toEqual([
-      expect.objectContaining({ yield: 'science', amount: 5 }),
+    const price = (id: 'monument' | 'shrine') => buildingProductionCost(id, g.state, 0);
+    expect(windfallPayout(g.state, 0, 'buildingCompletion', 0, 0, { building: 'monument', buildingCost: price('monument') }).grants).toEqual([
+      expect.objectContaining({ yield: 'science', amount: price('monument') * 0.2 }),
     ]);
     expect(windfallPayout(g.state, 0, 'unitCompletion', 0, 0, {}).grants).toEqual([]);
     const before = player.sciencePool;
     realiseItem(g.state, city, { kind: 'building', id: 'monument' });
-    expect(player.sciencePool).toBe(before + 5);
+    expect(player.sciencePool).toBeCloseTo(before + price('monument') / 5);
     // A bought building is realised through the same routine, so it pays too.
     realiseItem(g.state, city, { kind: 'building', id: 'shrine' }, { bought: 'gold' });
-    expect(player.sciencePool).toBe(before + 10);
+    expect(player.sciencePool).toBeCloseTo(before + (price('monument') + price('shrine')) / 5);
   });
 
   it('Illuminated Treatises: a Library pays culture and a Monument pays science, each without the other', () => {

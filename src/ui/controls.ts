@@ -299,6 +299,8 @@ import {
   type ProclamationReport,
   type PurgeReport,
   proclaimPreview,
+  proclamationHealingTargets,
+  riteUnitTargets,
   purgePreview,
 } from '../sim/religion';
 import {
@@ -479,7 +481,7 @@ export function riteSentence(state: GameState, city: City, id: RiteId): string {
   const def = riteDef(id);
   const where = ` at ${cityDisplayName(state, city)}`;
   const payoff =
-    riteOfferText(state, city.ownerId, id) ??
+    riteOfferText(state, city.ownerId, id, city) ??
     describeCard(id)
       .filter((clause) => clause.deferred !== true)
       // **Stripped**: this sentence is announced — the chronicle line and a
@@ -698,6 +700,7 @@ export function improvementOptionsFor(state: GameState, unit: Unit): Improvement
  * a player can press is a command the reducer takes.
  */
 export interface RiteOption {
+  previewCells?: () => readonly CellRef[];
   id: RiteId;
   name: string;
   /** Why it cannot be performed, or `null`. The reducer's own sentence. */
@@ -755,6 +758,7 @@ export type ProphetVerb =
  * every other verb, which names nothing but the piece.
  */
 export interface ProphetRow {
+  previewCells?: () => readonly CellRef[];
   verb: ProphetVerb;
   /**
    * The row's name — "Plant holy site", or "Found religion" for the one row
@@ -781,6 +785,7 @@ export interface ProphetRow {
 
 /** One rite a prophet could say over the realm, with its own refusal. */
 interface ProphetRiteRow {
+  previewCells?: () => readonly CellRef[];
   rite: RiteId;
   name: string;
   blocked: string | null;
@@ -6153,7 +6158,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function riteOptions(cityId: number): RiteOption[] {
     const { state } = getGame();
     const ended = !canOrder();
-    const cost = riteCostFor(state, localPlayerId, state.cities.find((city) => city.id === cityId));
+    const city = state.cities.find((town) => town.id === cityId);
+    const cost = riteCostFor(state, localPlayerId, city);
     return LIVE_RITE_IDS.map((id) => {
       const blocked = ended
         ? `You have ended turn ${state.turn}`
@@ -6161,7 +6167,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return {
         id,
         name: riteDef(id).name,
-        preview: riteOfferText(state, localPlayerId, id),
+        preview: riteOfferText(state, localPlayerId, id, city),
+        previewCells: () => city ? riteUnitTargets(state, localPlayerId, id, city) : [],
         blocked,
         // The faith screen's own reading of the teacher, so the two screens
         // agree: a card-taught rite names its Order, not the technology its
@@ -6256,6 +6263,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
           name: 'Proclaim',
           blocked: ended ?? proclaimError(state, localPlayerId, unit.id),
           says: proclaimSays(state, unit.id),
+          previewCells: () => proclamationHealingTargets(state, localPlayerId, unit, unit),
           cost: chargeCostWords(state, localPlayerId, 'proclaim'),
         },
         {
@@ -6333,6 +6341,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // the price it costs is said on the hover card beside it, exactly as a
         // rite's is. See `proclaimSays`.
         says: proclaimSays(state, unit.id),
+        previewCells: () => proclamationHealingTargets(state, localPlayerId, unit, unit),
         cost: chargeCostWords(state, localPlayerId, 'proclaim'),
       },
       {
@@ -6349,6 +6358,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
           rite: id,
           name: riteDef(id).name,
           blocked: ended ?? empireRiteError(state, localPlayerId, unit.id, id),
+          previewCells: () => riteUnitTargets(state, localPlayerId, id),
         })),
       },
     ];

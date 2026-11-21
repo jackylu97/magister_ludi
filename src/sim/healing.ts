@@ -32,7 +32,9 @@ import { buildingAdjacentHeal } from './buildingEffects';
 import { tileOwnerPlayerId } from './cities';
 import { getTileAt, tileHex, wrappedDistance } from './map';
 import { unitHealthBonus } from './resourceEffects';
+import { slateMemo } from './slate';
 import { RULES } from './rulesData';
+import { isRiteId, riteDef } from './religionData';
 import type { GameState, Unit } from './state';
 import { cardBehaviorRule, explainCardUnitStat } from './statecraft';
 // What a town holds, a card's grants included (Expansionist batch E12).
@@ -72,16 +74,38 @@ export function unitHealRefusal(state: GameState, unit: Unit): string | null {
  * when `unitHealRefusal` gives a reason. See the module docblock for the rule.
  */
 export function explainUnitHeal(state: GameState, unit: Unit): UnitHealLine[] {
-  if (unitHealRefusal(state, unit) !== null) return [];
-  const lines: UnitHealLine[] = [{ label: 'Resting', amount: RULES.healing.perTurnIfRested }];
-  // The cards that add to the heal, each under its own name. The one reader of
-  // a card's `heal` stat is `cardUnitStat`; this is its list.
-  for (const line of explainCardUnitStat(state, unit, 'heal')) lines.push(line);
-  for (const line of keepHealLines(state, unit)) lines.push(line);
+  const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
+  if (unit.hp >= maxHp) return [];
+  const sources = slateMemo(state, 'economy', 'unitHealingRites', `${unit.ownerId}:${state.turn}`, () => {
+    const found: { tile: ReturnType<typeof tileHex>; label: string; range: number; amount: number }[] = [];
+    for (const city of state.cities) {
+      if (city.ownerId !== unit.ownerId || !city.timed?.length) continue;
+      const seen = new Set<string>();
+      for (const entry of city.timed) {
+        if (entry.expiresTurn <= state.turn || seen.has(entry.card) || !isRiteId(entry.card)) continue;
+        const rite = riteDef(entry.card);
+        if (!rite.healing) continue;
+        seen.add(entry.card);
+        found.push({ tile: tileHex(getTileAt(state.map, city.col, city.row)!), label: rite.name, ...rite.healing });
+      }
+    }
+    return found;
+  });
+  const lines: UnitHealLine[] = [];
+  if (unitHealRefusal(state, unit) === null) {
+    lines.push({ label: 'Resting', amount: RULES.healing.perTurnIfRested });
+    lines.push(...explainCardUnitStat(state, unit, 'heal'), ...keepHealLines(state, unit));
+  }
+  if (sources.length) {
+    const here = tileHex(getTileAt(state.map, unit.col, unit.row)!);
+    for (const source of sources) {
+      if (wrappedDistance(state.map, source.tile, here) <= source.range) lines.push({ label: source.label, amount: source.amount });
+    }
+  }
   // The cap, as a line, so the fold is the health the unit actually gains. The
   // piece's own maximum, with its empire's share (`unitMaxHp`), which is the
   // bar every heal in the game fills.
-  const room = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId)) - unit.hp;
+  const room = maxHp - unit.hp;
   const sum = foldUnitHeal(lines);
   if (sum > room) lines.push({ label: 'Capped at full health', amount: room - sum });
   return lines;

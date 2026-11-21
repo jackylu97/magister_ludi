@@ -116,12 +116,12 @@ function words(id: OrderId): string[] {
 // --- the rows -----------------------------------------------------------------
 
 describe('the two rows', () => {
-  it('deals Pentecost and The Mass Baptisms to a Devotion seat at Tier III', () => {
+  it('deals Pentecost and The Mass Baptisms to a Devotion seat at their approved tiers', () => {
     const mine = ordersForDecks(['devotion']);
     for (const id of [PENTECOST, BAPTISMS]) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(mine, id).toContain(id);
-      expect(orderDef(id).band, id).toBe(3);
+      expect(orderDef(id).band, id).toBe(id === PENTECOST ? 2 : 3);
       expect(orderDef(id).type, id).toBe('civic');
     }
     expect(orderDef(PENTECOST).rarity).toBe('rare');

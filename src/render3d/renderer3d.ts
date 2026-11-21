@@ -578,6 +578,7 @@ export class Renderer3D implements MapView {
   private lockedTiles: readonly CellRef[] = [];
   /** The settler lens's hover preview. See `setSiteRadius`. */
   private siteRadius: readonly CellRef[] = [];
+  private actionPreview: readonly CellRef[] = [];
   /** Which lens the UI has up. See `setLens` and `lens3d.ts`. */
   private lensView: LensView = NO_LENS;
   private lensDirty = false;
@@ -2334,6 +2335,7 @@ export class Renderer3D implements MapView {
     this.badgeTargets = null;
     const force = state !== this.state || state?.map !== this.map;
     if (force || !state) {
+      this.actionPreview = [];
       this.tileYields?.reset();
       this.yieldLightSample = undefined;
     }
@@ -2581,6 +2583,7 @@ export class Renderer3D implements MapView {
    */
   setFogSeat(playerId: number | null): void {
     if (this.fogSeat === playerId) return;
+    this.actionPreview = [];
     this.setHoveredUnitId(null);
     this.fogSeat = playerId;
     this.applyFog();
@@ -3027,6 +3030,7 @@ export class Renderer3D implements MapView {
         worked: this.workedTiles,
         locked: this.lockedTiles,
         siteRadius: this.siteRadius,
+        actionPreview: this.actionPreview,
         selectionColor: seatColor,
         moveMode: this.moveMode,
       },
@@ -3166,6 +3170,12 @@ export class Renderer3D implements MapView {
     const next = cells ?? [];
     if (sameCells(this.routePreview, next)) return;
     this.routePreview = next;
+    this.markOverlaysDirty();
+  }
+
+  setActionPreview(cells: readonly CellRef[]): void {
+    if (sameCells(this.actionPreview, cells)) return;
+    this.actionPreview = cells.map(({ col, row }) => ({ col, row }));
     this.markOverlaysDirty();
   }
 

@@ -74,6 +74,7 @@ import { awardOccasion } from '../triumphs';
 import { type TechAge, highestAge } from '../techData';
 import {
   cardActionRule,
+  cardOfferRule,
   cardRareWeight,
   cardRulePercent,
   cityScopeAdmits,
@@ -513,6 +514,7 @@ export interface PlayerStatecraft {
   extraTypedChairs?: ChairType[];
   waitingDoctrineOffers?: number;
   waitingGreatPersonOffers?: number;
+  waitingGreatPersonFamilies?: (import('../greatPeopleData').Family | 'any')[];
   /**
    * Doctrines held, in the order they were taken. Permanent and slotless: a
    * Doctrine is held for the whole game, takes no chair, and is the second
@@ -579,6 +581,8 @@ export interface PlayerStatecraft {
   freeRerolls?: number;
   /** Free Order drafts waiting for the player to finish a hand or unlock more cards. */
   waitingOrderOffers?: number;
+  /** Age rewards follow the regular draft ladder when the current hand closes. */
+  waitingLadderDrafts?: number;
   /**
    * **What each growing card has watched happen** — the counters the scaling
    * family reads (`docs/history/doctrine-ideas.md`, ruled 2026-09-04).
@@ -1577,7 +1581,12 @@ export function drawOrderOptions(
  * Hospitium, whatever the seat holds and whatever hand is on the table. That is how
  * the bots price the card.
  */
-export function expectedHandBags(state: GameState, player: Player, foreignThird?: boolean): OrderId[][] {
+export function expectedHandBags(
+  state: GameState,
+  player: Player,
+  foreignThird?: boolean,
+  additionalCharter = cardOfferRule(state, player.id, 'additionalCharter'),
+): OrderId[][] {
   const sc = player.statecraft;
   const standing = foreignThird === undefined ? sc.pendingOrder?.positions : undefined;
   const drafts = standing ? sc.drafts : sc.drafts + 1;
@@ -1605,6 +1614,10 @@ export function expectedHandBags(state: GameState, player: Player, foreignThird?
     bags.push(bag.length > 0 ? bag : eligible);
   }
   for (let extra = bags.length; extra < size; extra++) bags.push(eligible);
+  if (bags.length < RULES.offers.max && additionalCharter) {
+    const charters = eligible.filter(id => orderDef(id).charter !== undefined);
+    if (charters.length > 0) bags.push(charters);
+  }
   return bags;
 }
 
@@ -1643,9 +1656,10 @@ export function expectedHandBags(state: GameState, player: Player, foreignThird?
 export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
   const sc = player.statecraft;
   const positions = sc.pendingOrder?.positions ?? drawHandPositions(state, player, sc.drafts);
+  const eligible = eligibleFor(state, player);
   const options = drawOrderOptions(
     state,
-    eligibleFor(state, player),
+    eligible,
     positions,
     offerSize(state, player.id, 'order'),
     sc.orderSkips,
@@ -1653,6 +1667,11 @@ export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
     positions.some((position) => position.kind === 'foreign') ? foreignCardBag(state, player) : [],
     cardRareWeight(state, player.id),
   );
+  if (options.length < RULES.offers.max && cardOfferRule(state, player.id, 'additionalCharter')) {
+    const charters = eligible.filter(id => orderDef(id).charter !== undefined && !options.includes(id));
+    const extra = drawRarityFirst(state, charters, sc.orderSkips, cardRareWeight(state, player.id));
+    if (extra !== undefined) options.push(extra);
+  }
   return { options, positions };
 }
 
@@ -1829,10 +1848,10 @@ export interface DraftCompletion {
  * Entry XV makes adoption bankable on purpose, so an empire may climb two tiers
  * holding an unclaimed triple and take it when its slots are worth swapping.
  */
-export function settleDraft(state: GameState, player: Player): DraftCompletion | null {
+export function settleDraft(state: GameState, player: Player, waiveCost = false): DraftCompletion | null {
   const sc = player.statecraft;
   if (sc.pendingOrder !== undefined || sc.pendingDoctrine !== undefined) return null;
-  const plan = planDraft(state, player);
+  const plan = planDraft(state, player, waiveCost ? nextDraftCost(state, player) : player.culturePool);
   if (!plan) return null;
   // **An exhausted pool charges nothing** (the decks rework, D1a; the design
   // doc's rule 7). Asked before a byte moves: the culture stays banked, the
@@ -1844,7 +1863,7 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   // `draftExhausted` for why the old count would be the wrong question.
   if (eligibleFor(state, player, plan.tier).length === 0) return null;
 
-  player.culturePool = plan.overflow;
+  if (!waiveCost) player.culturePool = plan.overflow;
   // The banks are a line of the meters too — see `collectYields` (batch M3).
   bumpEconomy(state);
   sc.drafts = plan.tier;
@@ -1852,7 +1871,7 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   // **The hand keeps its price** (Magisterial batch MG5; the triage's reading
   // 11): the culture just taken from the pool, for the cards that pay from it
   // when the hand is picked from or passed.
-  offer.price = plan.cost;
+  if (!waiveCost) offer.price = plan.cost;
   sc.pendingOrder = offer;
 
   let government: GovernmentOffer | null = null;
@@ -2143,9 +2162,20 @@ export function openFreeDraft(state: GameState, player: Player): boolean {
   return true;
 }
 
+/** Earned hands wait behind the current decision. */
+export function grantOrderDrafts(state: GameState, player: Player, count: number): void {
+  const sc = player.statecraft;
+  sc.waitingLadderDrafts = (sc.waitingLadderDrafts ?? 0) + count;
+  openWaitingOrderOffer(state, player);
+}
+
 /** Deal one earned draft as soon as a hand can open. A pick or pass can release the next. */
 export function openWaitingOrderOffer(state: GameState, player: Player): void {
   const sc = player.statecraft;
+  if (sc.waitingLadderDrafts && settleDraft(state, player, true)) {
+    if (--sc.waitingLadderDrafts === 0) delete sc.waitingLadderDrafts;
+    return;
+  }
   if (!sc.waitingOrderOffers || !openFreeDraft(state, player)) return;
   if (--sc.waitingOrderOffers === 0) delete sc.waitingOrderOffers;
 }

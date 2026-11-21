@@ -203,7 +203,7 @@ import {
   windfallPayout,
 } from "../../src/sim/statecraft";
 import { RULES } from "../../src/sim/rulesData";
-import { TECH_IDS, techDef } from "../../src/sim/techData";
+import { ALL_TECH_IDS, techDef } from "../../src/sim/techData";
 import { hasAbility } from "../../src/sim/tech";
 import {
   UNIT_TYPE_IDS,
@@ -316,7 +316,7 @@ function keep(state: GameState, playerId: number, id: BeliefId): void {
 
 describe("the religion table", () => {
   it("has no problems to report", () => {
-    expect(religionDataProblems(TECH_IDS)).toEqual([]);
+    expect(religionDataProblems(ALL_TECH_IDS)).toEqual([]);
   });
 
   it("keeps the chosen names in the order approved for each axis", () => {
@@ -904,7 +904,7 @@ describe("rites", () => {
     const g = game();
     learn(g.state, 0, "divination", ...techs);
     const city = found(g.state, 0);
-    city.buildings.push("chapel");
+    city.buildings.push("shrine");
     bumpRevision(g.state);
     const player = playerById(g.state, 0)!;
     player.faithPool = 1000;
@@ -941,10 +941,7 @@ describe("rites", () => {
     // door is gone the same day. A bare town that knows the rite may say it.
     expect(city.buildings).not.toContain("chapel");
     expect(riteError(g.state, 0, city.id, "omenReading")).toBeNull();
-    // The Chapel is the rite's *bonus*, never its gate: a rite performed where
-    // one stands pays culture too (`ritePays`), and that is the whole of the
-    // row's business with rites.
-    expect(buildingDef("chapel").ritePays).toBeGreaterThan(0);
+    expect(buildingDef("chapel").riteDurationPercent).toBe(50);
     expect(
       (buildingDef("chapel") as { ritesDoor?: boolean }).ritesDoor,
     ).toBeUndefined();
@@ -1044,9 +1041,7 @@ describe("rites", () => {
     expect(riteCostFor(g.state, 1)).toBe(20);
   });
 
-  it("are not counted when the rite acts at once, which pays the price of its turn", () => {
-    // The review's reading 2: the count rises at the moment that pays the
-    // `riteStarted` tally, and the Votive Offering acts at once and pays none.
+  it("count the Votive Offering at its start and charge the current price", () => {
     const { g, city, player } = town();
     const gifts = "theVotiveGifts" as OrderId;
     player.statecraft.orders = [gifts];
@@ -1062,7 +1057,7 @@ describe("rites", () => {
     const done = performRiteAt(g.state, player, city, "votiveOffering");
     expect(done.cost).toBe(25);
     expect(player.faithPool).toBe(before - 25);
-    expect(player.ritesStarted).toBe(1);
+    expect(player.ritesStarted).toBe(2);
   });
 
   it("charge through the command at the price the gate quoted", () => {
@@ -1091,7 +1086,7 @@ describe("rites", () => {
     // the price counts the same rites the cards count.
     const code = simSource("religion.ts").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
     expect((code.match(/\.ritesStarted\s*(=[^=]|\+=)/g) ?? []).length).toBe(1);
-    expect((code.match(/'riteStarted'/g) ?? []).length).toBe(1);
+    expect((code.match(/'riteStarted'/g) ?? []).length).toBe(2);
     expect(code).toMatch(
       /function countRiteStarted\([^)]*\): void \{\s*player\.ritesStarted = \(player\.ritesStarted \?\? 0\) \+ 1;\s*recordScalingOccasion\(state, player\.id, 'riteStarted'\);/,
     );
@@ -1191,9 +1186,7 @@ describe("rites", () => {
     }
   });
 
-  it("say nothing is short when the offering has nothing to be given to", () => {
-    // Votive Offering's own clause is asked before the bank: a town building
-    // nothing is refused for that, however much faith there is.
+  it("allow a Votive Offering with an empty queue when the town can pay", () => {
     const { g, city, player } = town();
     // The Votive Gifts teaches the offering while it is seated.
     const gifts = "theVotiveGifts" as OrderId;
@@ -1204,12 +1197,7 @@ describe("rites", () => {
     city.queue = [];
     player.faithPool = 0;
     bumpRevision(g.state);
-    expect(riteError(g.state, 0, city.id, "votiveOffering")).toBe(
-      `${city.name} is building nothing`,
-    );
-    expect(riteShortfall(g.state, 0, city.id, "votiveOffering")).toBeNull();
-    expect(agreesWithTheGate(g.state, city.id, "votiveOffering")).toBe("refused");
-    // With something to give to, the bank is the only thing left to ask.
+    expect(agreesWithTheGate(g.state, city.id, "votiveOffering")).toBe("short");
     city.queue = [{ kind: "unit", id: "warrior" }];
     bumpRevision(g.state);
     expect(agreesWithTheGate(g.state, city.id, "votiveOffering")).toBe("short");
@@ -1361,23 +1349,11 @@ describe("rites", () => {
     );
   });
 
-  it("gold — a worked hex with a seam in it pays a coin more", () => {
-    const { g, city, player } = town("currency", "theWheel", "mining");
-    const tile = g.state.map.tiles.find(
-      (t) =>
-        t.resource !== undefined && tileIndex(g.state.map, t.col, t.row) >= 0,
-    );
+  it("adds one gold per citizen to the town that keeps the Rite of Plenty", () => {
+    const { g, city, player } = town("currency");
+    const before = explainCity(g.state, city).flats.gold;
     performRiteAt(g.state, player, city, "riteOfPlenty");
-    expect(cityRite(g.state, city)).toBe("riteOfPlenty");
-    if (tile) {
-      const ctx = cityContext(g.state, city);
-      const withRite = foldTileLines(explainTileYield(tile, ctx)).gold;
-      delete city.timed;
-      const without = foldTileLines(
-        explainTileYield(tile, cityContext(g.state, city)),
-      ).gold;
-      expect(withRite).toBe(without + 1);
-    }
+    expect(explainCity(g.state, city).flats.gold - before).toBe(city.population);
   });
 
   it("science — every building standing in the town adds a beaker", () => {
@@ -1389,13 +1365,13 @@ describe("rites", () => {
     // fold rather than about the staged figure.
     const before = explainCity(g.state, city).flats.science;
     performRiteAt(g.state, player, city, "omenReading");
-    // The Chapel and the Library are two shelves, so two beakers.
+    // Each building contributes to the science line.
     expect(explainCity(g.state, city).flats.science).toBe(
       before + city.buildings.length,
     );
   });
 
-  it("culture — luxuries sing, and the bounds walk outward faster", () => {
+  it("speeds up border growth during Consecration of the Bounds", () => {
     const { g, city, player } = town("earthenware");
     performRiteAt(g.state, player, city, "consecrationOfTheBounds");
     const lines = cardRulePercent(g.state, 0, "borderCulture", city).filter(
@@ -1417,12 +1393,14 @@ describe("rites", () => {
     expect(foldCityStat(cardCityStat(g.state, city, "defense"))).toBe(before);
   });
 
-  it("pays the Chapel’s culture for the saying of it", () => {
+  it("lengthens a rite started in a town with a Chapel", () => {
     const { g, city, player } = town();
+    city.buildings.push("chapel");
+    bumpRevision(g.state);
     player.culturePool = 0;
     const done = performRiteAt(g.state, player, city, "omenReading");
-    expect(done.chapelCulture).toBe(5);
-    expect(player.culturePool).toBe(5);
+    expect(done.turns).toBe(15);
+    expect(player.culturePool).toBe(0);
   });
 
   it("stamps an absolute expiry, and the report carries the turns it runs", () => {
@@ -1488,8 +1466,8 @@ describe("a rite's turns and its teacher", () => {
       seatOctave(g.state);
       const base = riteDef(id).duration!;
       const turns = riteTurnsFor(g.state, 0, id)!;
-      // Fifty percent longer, floored once, and never under one turn.
-      expect(turns, id).toBe(Math.max(1, Math.floor((base * 150) / 100)));
+      // The Octave doubles the printed duration.
+      expect(turns, id).toBe(Math.max(1, Math.floor((base * 200) / 100)));
       const done = performRiteAt(g.state, player, city, id);
       expect(done.turns, id).toBe(turns);
       expect(done.expiresTurn, id).toBe(g.state.turn + turns);
@@ -1506,8 +1484,8 @@ describe("a rite's turns and its teacher", () => {
     city.buildings.push("chichenItza");
     bumpRevision(g.state);
     const turns = riteTurnsFor(g.state, 0, "omenReading")!;
-    // The two fifty percents add up before they multiply: twice the row's turns.
-    expect(turns).toBe(riteDef("omenReading").duration! * 2);
+    // The Octave and Chichen Itza add 150% to the base duration.
+    expect(turns).toBe(riteDef("omenReading").duration! * 2.5);
     const prophet = createUnit(g.state, 0, "prophet", city.col, city.row);
     const done = empireRiteAt(g.state, player, prophet, "omenReading");
     expect(done.turns).toBe(turns);
@@ -1615,26 +1593,20 @@ describe("a prophet says a rite over every town", () => {
   });
 
   /**
-   * **Every chapel pays for the saying of it** (the user, 2026-09-15: *"are
-   * chapels correctly getting the +5 culture from an empire-wide rite by the
-   * prophet?"* — they were not: the loop stamped every town and paid none).
-   * An empire rite is the rite performed in every town, so a chapel in each
-   * pays what a city rite's chapel pays, through the same settlement.
+   * A realm rite uses the capital's duration in each town it reaches.
    */
-  it("pays every chapel in the realm, one town at a time, through the one seam", () => {
+  it("uses only the capital's Chapel to extend the realm rite", () => {
     const { g, first, second, player, prophet } = ready();
     first.buildings.push("chapel");
     second.buildings.push("chapel");
     player.culturePool = 0;
     const done = empireRiteAt(g.state, player, prophet, "omenReading");
-    expect(done.chapelCulture).toBe(10);
-    expect(player.culturePool).toBe(10);
-    // A town with no chapel pays nothing, and the report says so.
-    const { g: g2, second: bare, player: p2, prophet: pr2 } = ready();
-    bare.buildings.push("chapel");
-    p2.culturePool = 0;
-    expect(empireRiteAt(g2.state, p2, pr2, "omenReading").chapelCulture).toBe(5);
-    expect(p2.culturePool).toBe(5);
+    expect(done.turns).toBe(15);
+    expect(player.culturePool).toBe(0);
+    const { g: g2, second: other, player: p2, prophet: pr2 } = ready();
+    other.buildings.push("chapel");
+    bumpRevision(g2.state);
+    expect(empireRiteAt(g2.state, p2, pr2, "omenReading").turns).toBe(10);
   });
 
   it("takes over from whatever a town was keeping, so it is still one at a time", () => {
@@ -1877,7 +1849,7 @@ describe("timed effects", () => {
 
     performRiteAt(g.state, playerById(g.state, 0)!, city, "omenReading");
     const expires = city.timed![0]!.expiresTurn;
-    expect(expires).toBe(g.state.turn + 10);
+    expect(expires).toBe(g.state.turn + 15);
 
     // Live on the last turn before the expiry… (the flats, for batch X's reason
     // above: the stage multiplies both sides.)
@@ -3409,7 +3381,7 @@ describe("what a religion pays whom", () => {
     expect(faithOf()).toBe(1);
   });
 
-  it("makes an apostle 30% cheaper in faith, and nothing else (Apostles)", () => {
+  it("gives 40% faith buying power for apostles", () => {
     const g = game();
     const seat = town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
@@ -3424,7 +3396,7 @@ describe("what a religion pays whom", () => {
     expect(riders("apostle")).toEqual([]);
     religion.enhancer = ["apostles"];
     bumpRevision(g.state);
-    expect(riders("apostle").map((line) => line.percent)).toEqual([-30]);
+    expect(riders("apostle").map((line) => line.percent)).toEqual([-200 / 7]);
     expect(riders("prophet")).toEqual([]);
     // A rider on the faith bank alone: an apostle priced in gold is untouched.
     expect(

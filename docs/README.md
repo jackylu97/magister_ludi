@@ -1109,35 +1109,18 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   apostle may raise a further holy site at the same price, for an empire that
   has founded a religion, and the unit sheet shows it the row while the rule
   holds.
-- **Rites** are a city's verb, bought with faith, one at a time per town, or
-  two different rites at once under The Double Feast (below). Nine
-  live rows: five taught by the tree, four by Devotion Orders (`RiteDef.byCard`;
-  `riteTeachingCard` names the Order). Ten turns for most, five for Restoring of
-  the Host, one for Votive Offering, made longer by The Octave and Chichen Itza;
-  `riteTurnsFor` is the figure the town is stamped with and the faith screen
-  prints. No rite renews by itself: when one ends, End Turn shows "Renew rites"
-  for one turn (batch RT1; see the HUD bullet). The Rite of the Sabbath (The Sabbath Laws' charter) moves the town's
-  production into culture at step 14 of its yields (`explainProductionMoved`),
-  so the town builds nothing while it runs. The faith ladder consecrates
-  **automatically** when the bank covers the next rung. Its hand is drawn
-  from `beliefPool`, every live pantheon god the empire does not hold, so two
-  empires may hold the same god (batch R2a).
+- **Rites** are town actions paid for with faith. Each town has one place, or two with The Double Feast. Every live rite lasts ten base turns. The Octave adds 100%, the Chapel in the starting town adds 50%, and Chichen Itza adds 50%. These bonuses add before the game calculates the duration. A prophet can start a rite over the realm. The Rites Commonwealth also lets the capital start a realm rite. All towns use the capital’s duration. Each town credits the start and each subsequent tenth turn while the rite remains active. Only actual starts raise the faith price.
+- The Votive Offering adds production equal to the town’s faith each turn. The Restoring of the Host heals friendly units within three hexes of its town each turn. The Vigil of Arms gives strength to friendly units in range when it starts. Consecration of the Bounds adds culture on resource hexes and speeds up border growth. The Rite of Plenty gives gold per citizen. The Night Watch gives science per citizen, the Rite of Naming gives food per citizen, and Hallowing adds faith on improved hexes.
+
 - **The rite price** (batch R2a). A rite costs `rite.costBase` plus
   `rite.costPerRiteStarted` for each rite the empire has started
   (`Player.ritesStarted`, absent until the first). The research age does not
-  set it. `countRiteStarted` is the count's one writer and pays the
-  `riteStarted` tally beside it, so the price counts the seasons the cards
-  count. `riteCostFor` is the one reading; `riteCostAhead` and
-  `ritesAffordable` read the rising price for the faith sheet. A `riteCost`
-  card (The Capitulary of Herstal) changes the rung inside `riteCostAhead`,
-  floored once.
-- **A rite started is a season** (Devotion batch DV4). The `riteStarted` tally
-  and the `rite` occasion are for a rite with no `atOnce`: the Votive Offering
-  and the Restoring of the Host raise neither. A prophet's rite over the realm
-  raises both once in each town it reaches, in `state.cities` order. The
-  occasion carries the town (`townId`) and its citizens (`population`), so a
-  rider can ask whether the town is devout and scale by its size (The
-  Psalter).
+  set it. Only the initial start in each town raises the price. A realm rite
+  charges the current price once and records one start in each town it reaches.
+  `riteCostAhead` and `ritesAffordable` quote the rising price in the faith
+  sheet. Every active rite credits its town and population again on each
+  tenth turn it remains active. These later credits pay card riders and
+  advance tallies without changing the price.
 - **The faith's reach** (Devotion batch DV5).
   - The `found` occasion carries the citizens the new town is founded with,
     and a grant's `pressure` can be a share of the moment (`fromOccasion`).

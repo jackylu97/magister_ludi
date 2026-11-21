@@ -127,8 +127,8 @@ describe('the rite line (Human Sacrifice, batch DT19)', () => {
     expect(fasting.blocked).toBeNull();
     expect(fasting.words).toBe(riteOfferText(g.state, 0, FASTING));
     const votive = line.rites!.find((entry) => entry.rite === VOTIVE)!;
-    expect(votive.blocked).toMatch(/said by one city/);
-    expect(votive.words).toBe(votive.blocked);
+    expect(votive.blocked).toBeNull();
+    expect(votive.words).toBe(riteOfferText(g.state, 0, VOTIVE));
   });
 
   it('says what the rite costs: the citizen, and the rise in the next rite’s price', () => {
@@ -166,7 +166,7 @@ describe('the rite line (Human Sacrifice, batch DT19)', () => {
 
   it('greys the rite line with one sentence when no rite can reach every town', () => {
     const { g, city } = sacrificing();
-    playerById(g.state, 0)!.charteredRites = [VOTIVE];
+    playerById(g.state, 0)!.charteredRites = [];
     bumpRevision(g.state);
     const model = levyMenuModel(g.state, 0, city)!;
     expect(model.disabled).toBe(true);

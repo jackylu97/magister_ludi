@@ -465,6 +465,8 @@ export interface MapView {
    * preview.
    */
   setSiteRadius?(cells: readonly CellRef[]): void;
+  /** Marks cells affected by the action under the pointer or keyboard focus. */
+  setActionPreview?(cells: readonly CellRef[]): void;
 
   /**
    * Optional: draws the board through one player's eyes — fog of war.

@@ -28,7 +28,6 @@ import { type City, type GameState, bumpRevision, playerById } from '../../src/s
 import {
   cityTimedWithRite,
   performRiteAt,
-  riteCostFor,
   riteOfferingHammers,
   riteTimedEntries,
 } from '../../src/sim/religion';
@@ -41,7 +40,6 @@ import {
 } from '../../src/sim/cardImpact';
 import { readEmpire } from '../../src/sim/readings';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
-import { RULES } from '../../src/sim/rulesData';
 import type { OrderId } from '../../src/sim/statecraftData';
 import { createGame } from './newGameHelpers';
 
@@ -119,23 +117,19 @@ describe('a rite, previewed', () => {
     }
   });
 
-  it("puts the offering's production in a one-time line, the figure the rite pays", () => {
+  it("shows the Votive Offering's production each turn", () => {
     const { state, second } = world();
-    second.queue = [{ kind: 'building', id: 'temple' }];
+    second.buildings.push('shrine');
     bumpRevision(state);
     const lines = explainRitePreview(state, 0, second.id, 'votiveOffering');
-    const hammers = riteOfferingHammers(state, 0, 'votiveOffering');
-    expect(hammers).toBe(
-      Math.floor(riteCostFor(state, 0) / RULES.production.faithPerHammer),
-    );
-    expect(foldCardOccasions(lines).production).toBe(hammers);
-    // Nothing a turn: the offering's mark pays nothing standing.
-    for (const key of CITY_YIELD_KEYS) expect(foldCardImpact(lines)[key], key).toBe(0);
-    // And it is what saying the rite actually puts into the build.
+    const before = readEmpire(state, 0).totals.production;
     const basket = second.hammerBasket;
+    expect(foldCardOccasions(lines).production).toBe(0);
+    expect(foldCardImpact(lines).production).toBeGreaterThan(0);
     performRiteAt(state, playerById(state, 0)!, second, 'votiveOffering');
-    expect(second.hammerBasket - basket).toBe(hammers);
-    expect(riteOfferingHammers(state, 0, 'omenReading')).toBe(0);
+    expect(readEmpire(state, 0).totals.production - before).toBeCloseTo(foldCardImpact(lines).production, 9);
+    expect(second.hammerBasket).toBe(basket);
+    expect(riteOfferingHammers(state, 0, 'votiveOffering')).toBe(0);
   });
 
   it('reads a town keeping a rite with that rite taken off', () => {

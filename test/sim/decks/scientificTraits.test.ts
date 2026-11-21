@@ -429,14 +429,15 @@ function unitFull(type: 'archer' | 'crossbowman'): number {
 // --- the cards -----------------------------------------------------------------
 
 describe('the charters', () => {
-  const DEALT: readonly OrderId[] = ['theBronzeFoundersCharter', 'theMechanistsCharter', 'theNavalGunnersCharter'];
+  const DEALT: readonly OrderId[] = ['theBronzeFoundersCharter', 'theMechanistsCharter'];
 
-  it('deals the three whose gift is whole, and the Alchemists’ too', () => {
+  it('keeps Naval Gunnery for saves and deals the three current military charters', () => {
     for (const id of DEALT) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
       expect(orderDef(id).text, id).toBeTruthy();
     }
+    expect(orderIsDealt('theNavalGunnersCharter')).toBe(false);
     // Batch S5 built Niter Beds, so the Alchemists' Charter was dealt too.
     // Batch DS6 removed Niter Beds, and the Grenadier is now its whole gift.
     expect(orderIsDealt('theAlchemistsCharter')).toBe(true);

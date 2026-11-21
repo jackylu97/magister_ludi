@@ -75,7 +75,7 @@ import { type CityScope, type OrderId, orderDef, orderIsDealt } from '../../../s
 import { gatingTech, isUnlocked } from '../../../src/sim/tech';
 import { type TechId, techDef } from '../../../src/sim/techData';
 import { resetVisibility } from '../../../src/sim/visibility';
-import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
+import { cityContext, explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
 import { explainCity } from '../../../src/sim/yields/town';
 import { newGame } from '../newGameHelpers';
 
@@ -191,7 +191,7 @@ describe('the register', () => {
     // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired The
     // Studium Generale, The School of Mines and The Long Inheritance. Their
     // rows and effects stay for saves, so the tests below still read them.
-    const retiredInDs1 = ['theStudiumGenerale', 'theStrategicReserves', 'theLongInheritance'];
+    const retiredInDs1 = ['theStudiumGenerale', 'theStrategicReserves', 'theLongInheritance', 'theRepublicOfLetters'];
     for (const id of [
       'theProspectorsNotes',
       'theFoundingGift',
@@ -259,6 +259,8 @@ describe('the Qanat (reading 30)', () => {
     expect(improvementTechError(state, 0, 'qanat')).toMatch(/Surveying/);
     learn(state, 0, 'surveying');
     expect(improvementTechError(state, 0, 'qanat')).toBeNull();
+    expect(improvementGroundError(state, 0, ground, 'qanat')).toMatch(/hill or mountain/);
+    at(state, 5, 6).hills = true;
     expect(improvementGroundError(state, 0, ground, 'qanat')).toBeNull();
     ground.hills = true;
     expect(improvementGroundError(state, 0, ground, 'qanat')).toMatch(/flat/);
@@ -300,7 +302,7 @@ describe('the Qanat (reading 30)', () => {
     expect(improvementGroundError(state, 0, desert, 'farm')).toBeNull();
   });
 
-  it('waters only its own empire’s farms', () => {
+  it('waters every neighbouring farm, including foreign farms', () => {
     const { state, qanat } = irrigated();
     const rival = town(state, 1, 10, 5);
     const theirs = at(state, 7, 6);
@@ -312,7 +314,7 @@ describe('the Qanat (reading 30)', () => {
     const paid = explainTileYield(theirs, yieldContextFor(state, 1))
       .filter((line) => line.source === irrigation)
       .reduce((sum, line) => sum + line.food, 0);
-    expect(paid).toBe(0);
+    expect(paid).toBe(1);
   });
 
   it('re-seats every town beside it when it is built', () => {
@@ -520,23 +522,19 @@ describe('the moments a work is laid (reading 35)', () => {
     expect(windfallPayout(state, 0, 'improvementBuilt', 0, 0, { improvement: 'farm' }).grants).toEqual([]);
   });
 
-  it('The Founding Gift: a great scholar’s Academy pays the town nearest it', () => {
+  it('The Lecture Halls pay on an Academy for the science buildings in its town', () => {
     const state = bench();
     const city = town(state, 0, 4, 5);
+    const academy = at(state, 5, 5);
+    claimTile(state, city, academy);
+    lay(state, academy, 'academy');
     slot(state, 0, 'theFoundingGift');
-    state.recruited.push('ahmes');
-    const scholar = createUnit(state, 0, 'greatPerson', 5, 5, 'ahmes');
-    const before = city.hammerBasket;
-    expect(applyCommand(state, { type: 'greatPersonWork', playerId: 0, unitId: scholar.id }).ok).toBe(true);
-    expect(at(state, 5, 5).improvement).toBe('academy');
-    expect(city.hammerBasket - before).toBe(150);
-    const raider = createUnit(state, 1, 'warrior', 5, 5);
-    expect(applyCommand(state, { type: 'declareWar', playerId: 1, targetId: 0 }).ok).toBe(true);
-    expect(applyCommand(state, { type: 'pillage', playerId: 1, unitId: raider.id }).ok).toBe(true);
-    const worker = createUnit(state, 0, 'worker', 5, 5);
-    expect(applyCommand(state, { type: 'repairImprovement', playerId: 0, unitId: worker.id }).ok).toBe(true);
-    expect(at(state, 5, 5).improvement).toBe('academy');
-    expect(city.hammerBasket - before).toBe(150);
+    expect(hexLines(state, academy, 'The Lecture Halls', 'science')).toBe(0);
+    city.buildings.push('library');
+    bumpRevision(state);
+    const line = explainTileYield(academy, cityContext(state, city)).find(row => row.source.includes('The Lecture Halls'));
+    expect(line?.science).toBe(2);
+    expect(hexLines(state, at(state, 4, 5), 'The Lecture Halls', 'science')).toBe(0);
   });
 });
 
@@ -551,8 +549,8 @@ describe('the other cards on a board', () => {
     slot(state, 0, 'theLatinQuarter');
     expect(hexLines(state, landmark, 'The Latin Quarter', 'culture')).toBe(0);
     lay(state, at(state, 5, 5), 'academy');
-    expect(hexLines(state, landmark, 'The Latin Quarter', 'culture')).toBe(2);
-    expect(hexLines(state, landmark, 'The Latin Quarter', 'production')).toBe(1);
+    expect(hexLines(state, landmark, 'The Latin Quarter', 'culture')).toBe(1);
+    expect(hexLines(state, landmark, 'The Latin Quarter', 'science')).toBe(2);
   });
 
   it('The Nizamiyya pays half again of the Academy hex', () => {
@@ -603,14 +601,14 @@ describe('the other cards on a board', () => {
 
 describe('the words', () => {
   it('says each charter’s gifts as things the technology gives', () => {
-    expect(said('theSurveyorsCharter')).toEqual([
-      'Charter',
-      'opens Surveying for you to research',
-      // An ordinary building opened early is named and not described: its
-      // keyword link and its Compendium page say what it does.
-      'Surveying lets you build the Aqueduct before Engineering',
-      'Surveying lets your workers build the Qanat: on flat land; your farms beside it count as having fresh water',
-    ]);
+    expect(said('theSurveyorsCharter')).toMatchInlineSnapshot(`
+      [
+        "Charter",
+        "opens Surveying for you to research",
+        "Surveying lets you build the Aqueduct before Engineering",
+        "Surveying lets your workers build the Qanat: +2 food, +1 production; on flat land, beside a hill or mountain, one per city; all neighbouring hexes have fresh water",
+      ]
+    `);
     // Batch DS6: the Niter Beds clause went, and the Grenadier is one scaled line.
     const alchemists = said('theAlchemistsCharter');
     expect(alchemists.some((text) => text.includes('Niter'))).toBe(false);
@@ -626,7 +624,11 @@ describe('the words', () => {
     expect(said('theStudiumGenerale')).toEqual([
       "a great person's work beside an Academy of yours counts as an Academy for your cards",
     ]);
-    expect(said('theFoundingGift')).toEqual(['a great scholar founding an Academy grants +150 production']);
+    expect(said('theFoundingGift')).toMatchInlineSnapshot(`
+      [
+        "+2 science on every hex with an Academy, for each science building in its town",
+      ]
+    `);
     for (const id of [
       'theProspectorsNotes',
       'theFoundingGift',

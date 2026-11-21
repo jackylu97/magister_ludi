@@ -134,6 +134,11 @@ export function techGap(state: GameState, playerId: number, fromId?: number): Te
   if (!seat) return [];
   const rivals = metRivals(state, playerId).filter((rival) => fromId === undefined || rival.id === fromId);
   if (rivals.length === 0) return [];
+  return ordinaryTechGap(seat, rivals);
+}
+
+/** A capture can take the last city of the empire that supplied the technology. */
+export function ordinaryTechGap(seat: Player, rivals: readonly Player[]): TechId[] {
   const mine = knownTechs(seat);
   const theirs = new Set<TechId>();
   for (const rival of rivals) addKnown(theirs, rival);

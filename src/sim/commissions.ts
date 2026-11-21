@@ -38,6 +38,7 @@
  * (`claimUnownedBeside`, `cities.ts`; the work is `commissionGoalHex`).
  */
 
+import { TECH_IDS, techDef } from './techData';
 import {
   bestMeleeFor,
   buildingProductionCost,
@@ -51,9 +52,10 @@ import {
   settlePopulationWindfall,
   settleProductionWindfall,
 } from './cities';
+import { authorityOf } from './meters';
 import { dealPartnerSeats } from './deals';
 import type { Family } from './greatPeopleData';
-import { grantGreatPersonOffer } from './greatPeople';
+import { grantGreatPersonOffer, grantOrQueueGreatPersonOffer } from './greatPeople';
 import { type WorkFamily, improvementDef, isGreatPersonWork, isTendedWork } from './improvementData';
 import { type Tile, getTileAt, neighborTiles, tileHex } from './map';
 import { resourcesOfKind } from './resourceData';
@@ -140,6 +142,8 @@ export function commissionFigure(
   const player = state.players[playerId];
   if (!player) return 0;
   switch (figure) {
+    case 'authoritySurplus':
+      return Math.max(0, authorityOf(state, playerId));
     case 'publicWorks':
       return citiesOf(state, playerId).reduce((sum, city) => sum + publicWorksInTown(state, city), 0);
     case 'treasury':
@@ -275,6 +279,8 @@ export function commissionFigure(
       }
       return capitals;
     }
+    case 'firstAgeResearchComplete':
+      return TECH_IDS.every(id => techDef(id).age !== 1 || player.techsResearched.includes(id)) ? 1 : 0;
     case 'academyHexes':
       // The Lynx-Eyed Academy (Scientific batch S8, the triage's reading 53):
       // the count The Republic of Letters pays by, asked through the same walk
@@ -798,7 +804,10 @@ function payCommission(
   for (const city of touched) settleGrowthWindfall(state, city);
   settleCultureWindfall(state, player);
   for (const piece of realized) lines.push(`a free ${unitDef(piece.type).name} in ${piece.cityName}`);
-  for (const family of people) lines.push(grantGreatPersonOffer(state, player, family));
+  for (const family of people) {
+    const grant = family === 'scholar' ? grantOrQueueGreatPersonOffer : grantGreatPersonOffer;
+    lines.push(grant(state, player, family));
+  }
   // **Citizens** (Dominion batch D6, Commission: Clear the Frontier) through
   // the population windfall, which pays the growth riders for each one and
   // re-seats the town (`refreshCityDerived`'s register, entry 13).

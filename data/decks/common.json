@@ -1,5 +1,163 @@
 {
   "orders": {
+    "theFieldMass": {
+      "decks": [
+        "devotion",
+        "dominion"
+      ],
+      "line": "none",
+      "flavor": "They gathered around the speaker before the march resumed.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "proclamationMade",
+          "grant": {
+            "healNearby": {
+              "range": 3,
+              "amount": 25
+            }
+          }
+        }
+      ],
+      "name": "The Field Mass",
+      "text": "Your proclamations heal your units within three hexes by 25 health.",
+      "rarity": "uncommon",
+      "type": "military",
+      "band": 3
+    },
+    "theTempleBaths": {
+      "decks": [
+        "devotion",
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "The spring filled the stone pools each morning.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "publicWorks",
+          "within": "city",
+          "to": "faith",
+          "amount": 2
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "publicWorks",
+          "per": 1,
+          "within": "city"
+        }
+      ],
+      "name": "The Temple Baths",
+      "text": "Each public work gives its town +2 faith and +1 happiness.",
+      "rarity": "common",
+      "type": "civic",
+      "band": 2
+    },
+    "theHearthFire": {
+      "decks": [
+        "devotion",
+        "expansionist"
+      ],
+      "line": "none",
+      "flavor": "A coal from the old altar lit the new one.",
+      "effects": [
+        {
+          "kind": "foundingRider",
+          "building": "shrine"
+        }
+      ],
+      "name": "The Hearth Fire",
+      "text": "Towns you found start with a Shrine.",
+      "rarity": "uncommon",
+      "type": "economic",
+      "band": 1
+    },
+    "theLodgeBooks": {
+      "name": "The Lodge Books",
+      "decks": [
+        "magisterial",
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "Accounts for the building included the plans and calculations.",
+      "text": "Completing a wonder completes the technology you are researching.",
+      "band": 2,
+      "rarity": "rare",
+      "type": "civic",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "completion",
+          "wonder": true,
+          "grant": {
+            "completeResearch": true
+          }
+        }
+      ]
+    },
+    "theObserversCharter": {
+      "name": "The Observers' Charter",
+      "decks": [
+        "devotion",
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "Two observers signed the record of each night.",
+      "text": "Opens Astronomy: your towns may keep the Night Watch, a rite: for ten turns the city gains +1 science for each citizen.",
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "civic",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "tech": "astronomy"
+        }
+      }
+    },
+    "theFoundersSchools": {
+      "name": "The Founders' Schools",
+      "decks": [
+        "expansionist",
+        "scientific"
+      ],
+      "line": "none",
+      "flavor": "The schoolmaster travelled with the surveyors.",
+      "text": "Towns you found start with a Library.",
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "civic",
+      "effects": [
+        {
+          "kind": "foundingRider",
+          "building": "library"
+        }
+      ]
+    },
+    "theHerbalistsCharter": {
+      "name": "The Herbalists' Charter",
+      "decks": [
+        "expansionist",
+        "scientific"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "A walled garden, and a book for every bed in it.",
+      "text": "Opens Herbals: workers may plant one Physic Garden in each town, on flat land with fresh water: +2 science and +2 happiness, and +1 science more for each forest or jungle hex beside it.",
+      "charter": {
+        "unlocks": {
+          "tech": "herbals"
+        }
+      },
+      "effects": []
+    },
     "theHillforts": {
       "name": "The Hillforts",
       "decks": [
@@ -151,36 +309,46 @@
       ],
       "band": 1,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "military",
       "flavor": "An army that prays is an army twice fed.",
-      "text": "Kills grant 15 faith.",
+      "text": "Kills grant faith equal to the strength of the unit you killed.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "kill",
           "grant": {
             "yield": "faith",
-            "amount": 15
+            "amount": 1,
+            "fromOccasion": "strength"
           }
         }
       ]
     },
     "fieldAcademies": {
       "name": "Field Academies",
-      "decks": ["dominion", "scientific"],
+      "decks": [
+        "dominion",
+        "scientific"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every campaign is a lecture somebody survived.",
-      "text": "Your first kill each turn grants 25 science.",
+      "text": "Your first kill each turn grants 25 science for each age you have reached.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "kill",
           "oncePerTurn": true,
-          "grant": { "yield": "science", "amount": 25 }
+          "grant": {
+            "yield": "science",
+            "amount": 25,
+            "perCount": {
+              "count": "agesReached"
+            }
+          }
         }
       ]
     },
@@ -724,17 +892,22 @@
     },
     "sacredPatronage": {
       "name": "Sacred Patronage",
-      "decks": ["devotion", "magisterial"],
+      "decks": [
+        "devotion",
+        "magisterial"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "rare",
       "type": "civic",
       "flavor": "Genius is cheap where the faithful are many.",
-      "text": "You may buy a great-person draft for 750 faith.",
+      "text": "You may buy a great-person draft with faith, at 5 faith for each point of renown the next great person costs.",
       "effects": [
-        { "kind": "rule", "rule": "buyGreatPersonWithFaith" }
-      ],
-      "note": "A great person bought with faith costs the same faith each time. What rises is the renown each later great person needs."
+        {
+          "kind": "rule",
+          "rule": "buyGreatPersonWithFaith"
+        }
+      ]
     },
     "illuminatedTreatises": {
       "name": "Illuminated Treatises",
@@ -2138,18 +2311,26 @@
     },
     "carriedOffScholars": {
       "name": "Carried-Off Scholars",
-      "decks": ["dominion", "scientific"],
-      "band": 2,
+      "decks": [
+        "dominion",
+        "scientific"
+      ],
+      "band": 3,
       "line": "none",
-      "rarity": "common",
+      "rarity": "uncommon",
       "type": "civic",
       "flavor": "The conqueror carried the scholars home with the treasure.",
-      "text": "Capturing a city grants science equal to ten times its population.",
+      "text": "Capturing a city grants a technology that its owner knows and you do not. If there is none, it grants science equal to thirty times its population.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "capture",
-          "grant": { "yield": "science", "amount": 10, "fromOccasion": "population" }
+          "grant": {
+            "capturedTechnology": true,
+            "yield": "science",
+            "amount": 30,
+            "fromOccasion": "population"
+          }
         }
       ]
     },
@@ -2680,8 +2861,11 @@
     },
     "theBlessedForges": {
       "name": "The Blessed Forges",
-      "decks": ["devotion", "scientific"],
-      "band": 2,
+      "decks": [
+        "devotion",
+        "scientific"
+      ],
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
@@ -2693,7 +2877,15 @@
           "where": "hex",
           "on": {
             "test": "all",
-            "of": [{ "test": "improved" }, { "test": "resourceKind", "kind": "strategic" }]
+            "of": [
+              {
+                "test": "improved"
+              },
+              {
+                "test": "resourceKind",
+                "kind": "strategic"
+              }
+            ]
           },
           "faith": 1,
           "production": 1

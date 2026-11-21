@@ -206,7 +206,7 @@ describe('Magisterial batch MG8: the rows', () => {
       },
     ]);
     // Devotion batch DS5 removed Sacred Patronage's second clause.
-    expect(orderDef(PATRONAGE).text).toBe('You may buy a great-person draft for 750 faith.');
+    expect(orderDef(PATRONAGE).text).toBe('You may buy a great-person draft with faith, at 5 faith for each point of renown the next great person costs.');
     expect(orderDef(PATRONAGE).effects).toEqual([{ kind: 'rule', rule: 'buyGreatPersonWithFaith' }]);
     expect(orderDef(IMMORTALS).text).toBe('The legacies of your great people count twice.');
     expect(orderDef(IMMORTALS).effects).toEqual([{ kind: 'metaRule', rule: 'legaciesCountTwice', value: 2 }]);
@@ -342,7 +342,7 @@ describe('Sacred Patronage', () => {
     });
   });
 
-  it('lets faith buy a great person waiting to be called, at the rule’s flat price', () => {
+  it('charges the displayed faith price for a Great Person', () => {
     const { state, player } = board();
     know(state, RITES, true);
     expect(greatPersonPurchaseOpen(state, 0, 'faith')).toBe(false);
@@ -351,11 +351,10 @@ describe('Sacred Patronage', () => {
     player.faithPool = 10_000;
     bumpRevision(state);
     expect(greatPersonPurchaseError(state, 0, 'faith')).toBeNull();
-    // The price is the rule's own, the same each time, as the card's text
-    // says. What rises is the renown each later great person needs.
+    const price = greatPersonOfferPrice(state, 0, 'faith');
     const result = applyCommand(state, { type: 'purchaseGreatPersonOffer', playerId: 0, buys: 'faith' });
     expect(result.ok, result.ok ? '' : result.error).toBe(true);
-    expect(player.faithPool).toBe(10_000 - greatPersonOfferPrice(state, 0, 'faith'));
+    expect(player.faithPool).toBe(10_000 - price);
     expect(player.greatPersonOffer).toBeDefined();
   });
 });

@@ -20,7 +20,9 @@ import { terrainMesh } from '../terrainStudy/terrainMesh.js';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
 import { surfacePatch } from '../terrainStudy/surfacePatch.js';
 
-type CityAssetName = 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spire' | 'city-dome' | 'house' | 'temple' | 'bell-tower'
+const charterAssets = { bellTower: 'bell-tower', greatArchive: 'ns-great-archive', specularium: 'ns-glasshouse' } as const;
+type CharterAsset = typeof charterAssets[keyof typeof charterAssets];
+type CityAssetName = CharterAsset | 'city-house' | 'city-loggia' | 'civic-sanctum' | 'city-spire' | 'city-dome' | 'house' | 'temple' | 'bell-tower'
   | 'monument-ziggurat' | 'monument-armillary' | 'monument-obelisk' | NorthStarHouse | NorthStarCentre;
 type NorthStarHouse = `ns-house-${1 | 2 | 3}${'a' | 'b' | 'c'}` | `ns-house-3${'d' | 'e' | 'f'}` | 'ns-house-4a';
 type NorthStarCentre = 'ns-hall' | 'ns-great-hut' | 'ns-great-house' | 'ns-hall-3' | 'ns-hall-4';
@@ -45,13 +47,13 @@ const WONDER_MONUMENTS = ['monument-obelisk', 'monument-ziggurat', 'monument-arm
  */
 const TOWN = VIEW3D.visualTest.northStar ? VIEW3D.visualTest.town : null;
 const NORTH_STAR_HOUSE_NAMES = [1, 2, 3].flatMap(tier => ['a', 'b', 'c'].map(variant => `ns-house-${tier}${variant}` as NorthStarHouse));
-type PrimaryCityAsset = Exclude<CityAssetName, 'house' | 'temple' | 'bell-tower' | NorthStarHouse | NorthStarCentre>;
+type PrimaryCityAsset = Exclude<CityAssetName, CharterAsset | 'house' | 'temple' | 'bell-tower' | NorthStarHouse | NorthStarCentre>;
 export type PaintedCityAssets = { material: MeshStandardMaterial } & Record<PrimaryCityAsset, BufferGeometry> & Partial<Record<CityAssetName, BufferGeometry>>;
 interface PaintedCityAnchor { x: number; y: number; z: number }
 interface PaintedCityOptions { previewWalls?: boolean }
 interface PaintedCityPlacement {
   cityId: number;
-  kind: 'house' | 'civic' | 'capital' | 'shrine' | 'temple' | 'wonder' | 'wall' | 'gate';
+  kind: 'charterBuilding' | 'house' | 'civic' | 'capital' | 'shrine' | 'temple' | 'wonder' | 'wall' | 'gate';
   asset: string;
   x: number; y: number; z: number;
   scale: number; yaw: number;
@@ -524,6 +526,13 @@ export class PaintedCityLayer {
         if (look.temple && look.tier >= CITY.temple.fromTier) raise('temple', 'monument-ziggurat');
         if (look.shrine && look.tier >= CITY.shrine.fromTier) raise('shrine', 'monument-obelisk');
       }
+      for (const id of look.charterBuildings ?? []) {
+        // Fit each building in a house plot after the town reserves its landmark.
+        for (const plots of [lots, big, pockets]) {
+          const index = plots.findIndex(plot => stand('charterBuilding', charterAssets[id], plot, .90) !== undefined);
+          if (index >= 0) { plots.splice(index, 1); break; }
+        }
+      }
       const large = big.length, addresses = [...big, ...lots, ...pockets];
       // The count is of houses that stand. An address that the hex refuses (a river edge, a beach) passes to
       // the next one, so a town on a river still has its count. The refusal is the hex's own, so the houses
@@ -613,7 +622,15 @@ export class PaintedCityLayer {
       const civic = look.capital ? 'civic-sanctum' : 'city-loggia';
       building('civic', civic, 0, -.58, look.capital ? [.59, .64, .70][studyTier]! : [.59, .65, .70][studyTier]!);
       const houses = Math.max(1, Math.min(city.population, CITY.houseCap, houseSlots.length));
+      const charterPlots = new Set<number>();
+      for (const id of look.charterBuildings ?? []) {
+        for (const [i, [x, z, scale, yaw]] of houseSlots.entries()) {
+          if (charterPlots.has(i)) continue;
+          if (building('charterBuilding', charterAssets[id], x, z, scale, yaw)) { charterPlots.add(i); break; }
+        }
+      }
       for (let i = 0; i < houses; i++) {
+        if (charterPlots.has(i)) continue;
         const [x, z, scale, yaw] = houseSlots[i]!;
         const name = look.tier === 1 && this.assets.house ? 'house' : look.tier >= 3 && i % 3 === 1 ? 'city-dome' : i % 3 === 2 ? 'city-loggia' : 'city-house';
         building('house', name, x, z, scale * [1, 1.08, 1.14][studyTier]!, yaw);

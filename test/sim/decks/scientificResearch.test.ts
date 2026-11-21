@@ -19,6 +19,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { drawOrderOffer } from '../../../src/sim/statecraft/draft';
 
 import { explainUnitCost, foldUnitCost, foundCityAt } from '../../../src/sim/cities';
 import { runCommissions } from '../../../src/sim/commissions';
@@ -183,7 +184,7 @@ describe('the register', () => {
       // Batch R3 retired The Prize Essay (the user, 2026-10-28: "remove, too
       // similar to royal workshops"). Its row stays for saves, untyped and
       // dealt to nobody, and a seat that holds it is still paid (below).
-      if (id === 'thePrizeEssay') {
+      if (id === 'thePrizeEssay' || id === 'theAgeOfReason') {
         expect(def.retired, id).toBe(true);
         expect(orderIsDealt(id), id).toBe(false);
         expect(def.type, id).toBeUndefined();
@@ -202,7 +203,11 @@ describe('the register', () => {
       'completing a technology (before any other empire) grants +15 culture',
       'completing a technology (before any other empire) grants +15 production to your capital',
     ]);
-    expect(said('theSkyWatchers')).toEqual(['+1 science, +1 faith in every city with a Shrine']);
+    expect(said('theSkyWatchers')).toMatchInlineSnapshot(`
+      [
+        "+2 science, +1 faith in every city with a Shrine",
+      ]
+    `);
     // Batch DS8: a Scaler. Its starting value (+2 production, +2 culture in
     // the capital) is the figure on its face.
     expect(said('theAstronomicalDiaries')).toEqual([
@@ -212,9 +217,11 @@ describe('the register', () => {
     expect(said('theScholarsFame')).toEqual([
       'completing a technology grants renown equal to 5% of the science it cost you, favouring a great scholar',
     ]);
-    expect(said('theCharterRolls')).toEqual([
-      '+3 production and +3 culture in your capital per charter you have drafted',
-    ]);
+    expect(said('theCharterRolls')).toMatchInlineSnapshot(`
+      [
+        "your Order drafts include an extra charter if one is available",
+      ]
+    `);
     expect(said('theRoyalCharterCommission')).toEqual([
       'Commission',
       'Goal: complete 1 charter technology. Reward: a great scholar to call, and +100 culture',
@@ -223,9 +230,11 @@ describe('the register', () => {
     expect(said('theJourneymen')).toEqual([
       'completing a technology grants each of your cities production equal to 3 times its population',
     ]);
-    expect(said('theSumOfKnowledge')).toEqual([
-      '+1 production and +1 culture in your capital per technology you know',
-    ]);
+    expect(said('theSumOfKnowledge')).toMatchInlineSnapshot(`
+      [
+        "+2 production in every city raising the Magnum Opus per technology you know",
+      ]
+    `);
     expect(said('theGreatCatalogue')).toEqual([
       '+10% production toward The Magnum Opus per charter technology you know (at most +40%)',
     ]);
@@ -378,7 +387,7 @@ describe('the cards on a board', () => {
     expect(windfallPayout(state, 0, 'tech', 0, 0, { firsts: [], tech: 'mining' }).grants).toEqual([]);
   });
 
-  it('The Sky Watchers: a town with a Shrine gains +1 faith and +1 science', () => {
+  it('The Sky Watchers: a town with a Shrine gains +1 faith and +2 science', () => {
     const state = bench();
     const city = town(state, 0, 4, 4);
     slot(state, 0, 'theSkyWatchers');
@@ -386,7 +395,7 @@ describe('the cards on a board', () => {
     addBuilding(state, city, 'shrine');
     bumpRevision(state);
     expect(cityLines(state, city, 'The Sky Watchers', 'faith')).toBe(1);
-    expect(cityLines(state, city, 'The Sky Watchers', 'science')).toBe(1);
+    expect(cityLines(state, city, 'The Sky Watchers', 'science')).toBe(2);
   });
 
   it('The Astronomical Diaries: +2 of each in the capital, and +1 more for each technology completed while seated', () => {
@@ -433,16 +442,16 @@ describe('the cards on a board', () => {
     expect(large.hammerBasket - b).toBe(15);
   });
 
-  it('The Charter Rolls: +3 production and +3 culture in the capital for each charter drafted', () => {
+  it('The Charter Rolls deal an extra available charter after the ordinary hand', () => {
     const state = bench();
-    const capital = town(state, 0, 4, 4);
+    const player = playerById(state, 0)!;
+    const plain = drawOrderOffer(structuredClone(state), structuredClone(player));
     slot(state, 0, 'theCharterRolls');
-    expect(cityLines(state, capital, 'The Charter Rolls', 'production')).toBe(0);
-    const sc = playerById(state, 0)!.statecraft;
-    sc.orders.push('theHerbalistsCharter', 'theSurveyorsCharter');
-    bumpRevision(state);
-    expect(cityLines(state, capital, 'The Charter Rolls', 'production')).toBe(6);
-    expect(cityLines(state, capital, 'The Charter Rolls', 'culture')).toBe(6);
+    const offered = drawOrderOffer(state, player);
+    expect(offered.options.slice(0, plain.options.length)).toEqual(plain.options);
+    expect(offered.options).toHaveLength(plain.options.length + 1);
+    expect(orderDef(offered.options[offered.options.length - 1]!).charter).toBeDefined();
+    expect(new Set(offered.options).size).toBe(offered.options.length);
   });
 
   it('The Royal Charter Commission: met by a charter technology, it pays a great scholar and 100 culture', () => {
@@ -462,16 +471,19 @@ describe('the cards on a board', () => {
     expect(sc.slots.some((held) => held?.card === 'theRoyalCharterCommission')).toBe(false);
   });
 
-  it('The Sum of Knowledge: +1 production and +1 culture in the capital for each technology known', () => {
+  it('The Sum of Knowledge pays the town raising the Magnum Opus for each known technology', () => {
     const state = bench();
     const capital = town(state, 0, 4, 4);
     const player = playerById(state, 0)!;
     slot(state, 0, 'theSumOfKnowledge');
     const known = techsKnownCount(player);
     expect(known).toBeGreaterThan(0);
-    expect(cityLines(state, capital, 'The Sum of Knowledge', 'production')).toBe(known);
+    expect(cityLines(state, capital, 'The Sum of Knowledge', 'production')).toBe(0);
+    capital.queue = [{ kind: 'building', id: 'theMagnumOpus' }];
+    bumpRevision(state);
+    expect(cityLines(state, capital, 'The Sum of Knowledge', 'production')).toBe(known * 2);
     complete(state, 0, 'herbals');
-    expect(cityLines(state, capital, 'The Sum of Knowledge', 'culture')).toBe(known + 1);
+    expect(cityLines(state, capital, 'The Sum of Knowledge', 'production')).toBe((known + 1) * 2);
   });
 
   it('The Great Catalogue: +10% toward the Opus for each charter technology known, at most +40%', () => {

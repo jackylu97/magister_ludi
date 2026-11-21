@@ -634,7 +634,8 @@ import {
  */
 // Version 254 changes the draft pools, purchase prices, ship placement and combat outcomes.
 // Version 255 wakes a plain fortified unit for an enemy in sight; see above.
-export const SCHEMA_VERSION = 255;
+// The Scientific and Devotion decks change seeded offers, research and rites.
+export const SCHEMA_VERSION = 256;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -661,6 +662,11 @@ export const SCHEMA_VERSION = 255;
  * rather than a sentence.
  */
 export interface TimedEffect {
+  /** A rite counts again at fixed intervals measured from this turn. */
+  /** Each town that gave a unit this rite and the turn it started. */
+  riteSources?: { cityId: number; started: number }[];
+  realmRite?: true;
+  startedTurn?: number;
   /** The rite (a `CardId`, see `statecraftData.ts`) that stamped this. */
   card: CardId;
   effect: CardEffect;
@@ -1096,6 +1102,7 @@ export interface Player {
   goldSpent: number;
   /** Purchases still count after their town changes hands. */
   buildingsBoughtWithGold?: number;
+  buildingsBoughtWithFaith?: number;
   /**
    * **Every point of faith this empire has spent** (Devotion batch DV3, The
    * Book of Life; `CountKind`'s `faithSpent`). The twin of `goldSpent` for the
@@ -2044,6 +2051,8 @@ export interface GreatPersonOffer {
  * or died, before the player chose.
  */
 export interface DiscoveryOffer {
+  /** The claimant's reward stays fixed while the offer is open. */
+  doubleReward?: true;
   /** Which kind of site this was. Flavour on the card; the draw's weights read it. */
   kind: DiscoveryKind;
   /** Where it stood. See the docblock for why this is on the offer. */

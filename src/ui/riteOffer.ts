@@ -3,9 +3,11 @@
  * importing `controls.ts`, which imports the city panel back (batch DT19).
  */
 
-import { riteTurnsFor } from '../sim/religion';
+import { riteDurationLines, riteTurnsFor } from '../sim/religion';
 import { type RiteId, riteDef } from '../sim/religionData';
-import type { GameState } from '../sim/state';
+import { cardActionRule } from '../sim/statecraft';
+import { capitalCityOf, citiesOf } from '../sim/state';
+import type { City, GameState } from '../sim/state';
 
 /**
  * What a rite does and how long it would run if this empire started it now:
@@ -22,10 +24,13 @@ import type { GameState } from '../sim/state';
  *
  * `null` for a row with neither text nor a duration.
  */
-export function riteOfferText(state: GameState, playerId: number, id: RiteId): string | null {
+export function riteOfferText(state: GameState, playerId: number, id: RiteId, city?: City): string | null {
   const text = riteDef(id).text;
-  const turns = riteTurnsFor(state, playerId, id);
-  const lasts = turns === null ? null : `lasts ${turns} ${turns === 1 ? 'turn' : 'turns'}`;
+  const turns = riteTurnsFor(state, playerId, id, city);
+  const changes = turns === null ? [] : riteDurationLines(state, playerId, city);
+  const length = changes.length ? `${riteDef(id).duration} turns, ${changes.map(line => `${line.percent > 0 ? '+' : ''}${line.percent}% ${line.source}`).join(', ')} = ${turns} turns` : `lasts ${turns} turns`;
+  const realm = city && capitalCityOf(state, playerId)?.id === city.id && cardActionRule(state, playerId, 'capitalRiteOverRealm');
+  const lasts = turns === null ? null : realm ? `${length} in all ${citiesOf(state, playerId).length} towns` : length;
   if (text !== undefined && text !== '' && lasts !== null) return `${text} · ${lasts}`;
   if (text !== undefined && text !== '') return text;
   return lasts;

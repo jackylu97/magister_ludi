@@ -148,46 +148,46 @@ function said(id: OrderId): string[] {
 const S7: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardType; text: string }[] = [
   {
     id: 'theRoyalTutors',
-    band: 0,
+    band: 1,
     rarity: 'common',
     type: 'civic',
     // Batch DS6 changed the card from +1 to +2.
-    text: '+2 scholar renown each turn for each science building.',
+    text: "+2 scholar renown each turn for each science building.",
   },
   {
     id: 'theWarManuals',
     band: 0,
     rarity: 'common',
     type: 'military',
-    text: 'Units gained in a town with a Library start with +2 strength.',
+    text: "Your ranged units gain +2 strength.",
   },
   {
     id: 'learnedCommissions',
     band: 1,
     rarity: 'common',
     type: 'economic',
-    text: 'Cities with a Library build empire buildings 25% faster.',
+    text: "Cities with a Library build empire buildings 25% faster.",
   },
   {
     id: 'theRoyalEstates',
     band: 1,
     rarity: 'common',
     type: 'economic',
-    text: 'Each empire building gives its town +2 food and +2 production.',
+    text: "Each empire building gives its town +3 food and +3 production. +50% production towards empire buildings.",
   },
   {
     id: 'theCommonTables',
     band: 1,
     rarity: 'common',
     type: 'economic',
-    text: 'Towns gain +2 food for each science building in them.',
+    text: "Towns gain +2 food for each science building in them.",
   },
   {
     id: 'theFreeCities',
     band: 1,
     rarity: 'uncommon',
     type: 'economic',
-    text: 'While you hold at most five towns, your towns build buildings and wonders 20% faster.',
+    text: "While you hold at most five towns, your towns build buildings and wonders 20% faster.",
   },
   {
     id: 'enduringInstitutions',
@@ -195,7 +195,7 @@ const S7: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     rarity: 'uncommon',
     type: 'economic',
     // Batch DS6 removed the age and lowered the share.
-    text: 'Towns with an empire building gain +20% production.',
+    text: "Towns with an empire building gain +20% production.",
   },
   {
     id: 'theQuietFaculties',
@@ -203,35 +203,35 @@ const S7: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     rarity: 'rare',
     type: 'economic',
     // Batch DS6 removed the slower military units.
-    text: 'Towns working an Academy gain +25% food and +20% production.',
+    text: "Towns working an Academy gain +25% food and +20% production.",
   },
   {
     id: 'theRollOfScholars',
     band: 2,
-    rarity: 'uncommon',
+    rarity: 'common',
     type: 'civic',
-    text: '+4% production and culture for each great scholar you have gained this game, at most +28%.',
+    text: "+4% production and culture for each great scholar you have gained this game, at most +28%.",
   },
   {
     id: 'thePalaceSchools',
     band: 2,
-    rarity: 'uncommon',
+    rarity: 'common',
     type: 'military',
-    text: 'Units gained in a town with an empire building start with +4 strength.',
+    text: "Units gained in a town with an empire building start with +4 strength.",
   },
   {
     id: 'theRoundCity',
     band: 2,
     rarity: 'uncommon',
     type: 'civic',
-    text: '+1% production and culture for each citizen in your capital, at most +30%.',
+    text: "+1% production and culture for each citizen in your capital, at most +30%.",
   },
   {
     id: 'theCityArchitects',
     band: 2,
     rarity: 'common',
     type: 'economic',
-    text: 'Towns of at least eight citizens build wonders 25% faster.',
+    text: "+30% production towards buildings and wonders of your current age.",
   },
 ];
 
@@ -241,13 +241,14 @@ describe('the register', () => {
   it('deals the twelve rows with the sheet’s tier, rarity, type and text', () => {
     for (const { id, band, rarity, type, text } of S7) {
       const def = orderDef(id);
-      expect(orderIsDealt(id), id).toBe(true);
+      const retired = ['learnedCommissions', 'theCommonTables', 'enduringInstitutions', 'theQuietFaculties'].includes(id);
+      expect(orderIsDealt(id), id).toBe(!retired);
       expect(def.deferred, id).toBeUndefined();
-      expect(def.retired, id).toBeUndefined();
+      expect(def.retired, id).toBe(retired ? true : undefined);
       expect(def.decks, id).toEqual(['scientific']);
       expect(def.band, id).toBe(band);
       expect(def.rarity, id).toBe(rarity);
-      expect(def.type, id).toBe(type);
+      expect(def.type, id).toBe(retired ? undefined : type);
       expect(def.text, id).toBe(text);
       expect(def.effects.length, id).toBeGreaterThan(0);
     }
@@ -269,36 +270,42 @@ describe('the register', () => {
 
   it('prints each card in plain words through the describers', () => {
     expect(said('theRoyalTutors')).toEqual([
-      '+2 renown per turn in every city, per building there that supplies science, favouring scholars',
+      "+2 renown per turn in every city, per building there that supplies science, favouring scholars",
     ]);
     expect(said('theWarManuals')).toEqual([
-      'newly created military units in every city with a Library gain +2 combat strength',
+      "+2 combat strength for ranged units",
     ]);
     expect(said('learnedCommissions')).toEqual([
-      '+25% production toward empire buildings, in every city with a Library',
+      "+25% production toward empire buildings, in every city with a Library",
     ]);
     expect(said('theRoyalEstates')).toEqual([
-      '+2 food and +2 production in every city per empire building you hold there',
+      "+3 food and +3 production in every city per empire building you hold there",
+      "+50% production toward empire buildings",
     ]);
-    expect(said('theCommonTables')).toEqual(['+2 food in every city per building there that supplies science']);
+    expect(said('theCommonTables')).toEqual([
+      "+2 food in every city per building there that supplies science",
+    ]);
     expect(said('theFreeCities')).toEqual([
-      'while you hold at most 5 cities: +20% production toward buildings; +20% production toward wonders',
+      "while you hold at most 5 cities: +20% production toward buildings; +20% production toward wonders",
     ]);
-    expect(said('enduringInstitutions')).toEqual(['+20% production in every city holding an empire building']);
+    expect(said('enduringInstitutions')).toEqual([
+      "+20% production in every city holding an empire building",
+    ]);
     expect(said('theQuietFaculties')).toEqual([
-      '+25% food and +20% production in every city working an Academy',
+      "+25% food and +20% production in every city working an Academy",
     ]);
     expect(said('theRollOfScholars')).toEqual([
-      '+4% production and +4% culture per great scholar you have gained this game (at most +28% each)',
+      "+4% production and +4% culture per great scholar you have gained this game (at most +28% each)",
     ]);
     expect(said('thePalaceSchools')).toEqual([
-      'newly created military units in every city holding an empire building gain +4 combat strength',
+      "newly created military units in every city holding an empire building gain +4 combat strength",
     ]);
     expect(said('theRoundCity')).toEqual([
-      '+1% production and +1% culture per citizen in your capital (at most +30% each)',
+      "+1% production and +1% culture per citizen in your capital (at most +30% each)",
     ]);
     expect(said('theCityArchitects')).toEqual([
-      '+25% production toward wonders, in every city of 8 or more citizens',
+      "+30% production toward buildings of your current age",
+      "+30% production toward wonders of your current age",
     ]);
   });
 });
@@ -334,16 +341,15 @@ describe('Tier 0', () => {
     expect(tutors().reduce((sum, line) => sum + line.amount, 0)).toBe(6);
   });
 
-  it('The War Manuals: a military unit gained in a Library town starts two stronger, and nothing else does', () => {
+  it('The War Manuals adds strength to ranged units and gives no training stamp', () => {
     const state = bench();
     const city = town(state, 0, 4, 5);
-    const other = town(state, 0, 12, 5);
     slot(state, 0, 'theWarManuals');
-    expect(trainedStrength(state, city, 'warrior'), 'no Library yet').toBe(0);
+    expect(orderDef('theWarManuals').effects).toEqual([
+      { kind: 'combatLine', class: { ranged: true }, amount: 2, side: 'both', when: { test: 'always' } },
+    ]);
     raise(state, city, 'library');
-    expect(trainedStrength(state, city, 'warrior')).toBe(2);
-    expect(cardUnitStamp(state, 0, { col: city.col, row: city.row }, 'worker').strength ?? 0).toBe(0);
-    expect(trainedStrength(state, other, 'warrior'), 'a town without a Library').toBe(0);
+    expect(trainedStrength(state, city, 'warrior')).toBe(0);
   });
 });
 
@@ -368,7 +374,7 @@ describe('Tier I', () => {
     expect(playerById(state, 0)!.culturePool).toBe(before);
   });
 
-  it('The Royal Estates: each empire building gives its own town two food and two production', () => {
+  it('The Royal Estates: each empire building gives its own town three food and three production', () => {
     const state = bench();
     const city = town(state, 0, 4, 5);
     const other = town(state, 0, 12, 5);
@@ -378,15 +384,16 @@ describe('Tier I', () => {
     raise(state, city, 'granary');
     expect(townLines(state, city, 'theRoyalEstates', 'food')).toBe(0);
     raise(state, city, 'forum');
-    expect(townLines(state, city, 'theRoyalEstates', 'food')).toBe(2);
-    expect(townLines(state, city, 'theRoyalEstates', 'production')).toBe(2);
+    expect(townLines(state, city, 'theRoyalEstates', 'food')).toBe(3);
+    expect(townLines(state, city, 'theRoyalEstates', 'production')).toBe(3);
     // A second house in the same town pays again (section 14's ruling: per
     // empire building, not per town).
     raise(state, city, 'caravanserai');
-    expect(townLines(state, city, 'theRoyalEstates', 'food')).toBe(4);
-    expect(townLines(state, city, 'theRoyalEstates', 'production')).toBe(4);
+    expect(townLines(state, city, 'theRoyalEstates', 'food')).toBe(6);
+    expect(townLines(state, city, 'theRoyalEstates', 'production')).toBe(6);
     // The other town holds none, and the houses in the first pay it nothing.
     expect(townLines(state, other, 'theRoyalEstates', 'food')).toBe(0);
+    expect(toward(state, city, 'theRoyalEstates', 'building', 'forum')).toBe(50);
   });
 
   it('The Common Tables: two food for each science building in the town', () => {
@@ -534,15 +541,15 @@ describe('Tier II', () => {
     expect(percentOn(state, other, 'theRoundCity', 'culture')).toBe(30);
   });
 
-  it('The City Architects: a town of eight citizens builds wonders a quarter faster, and a town of seven does not', () => {
+  it('The City Architects pays for buildings and wonders of the current age', () => {
     const state = bench();
-    const city = town(state, 0, 4, 5, 7);
+    const city = town(state, 0, 4, 5);
     slot(state, 0, 'theCityArchitects');
-    expect(toward(state, city, 'theCityArchitects', 'wonder', 'pyramids')).toBe(0);
-    city.population = 8;
+    expect(toward(state, city, 'theCityArchitects', 'wonder', 'pyramids')).toBe(30);
+    expect(toward(state, city, 'theCityArchitects', 'building', 'granary')).toBe(30);
+    state.players[0]!.techsResearched.push('alchemy');
     bumpRevision(state);
-    expect(toward(state, city, 'theCityArchitects', 'wonder', 'pyramids')).toBe(25);
-    expect(toward(state, city, 'theCityArchitects', 'building', 'forum')).toBe(0);
+    expect(toward(state, city, 'theCityArchitects', 'wonder', 'pyramids')).toBe(0);
     expect(toward(state, city, 'theCityArchitects', 'building', 'granary')).toBe(0);
   });
 });

@@ -31,11 +31,11 @@ detail of each item.
 | 9 | **Values for worker advice** | section 0.3 below | Selecting a worker requests advice in a background worker. The board marks up to three hexes. The hover panel shows the recommended build or repair and its yield changes. |
 | 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The prior version 252 replay pins were already refreshed at `8886505e`. Both six-player maps reached turn 121 with no warnings or stalls on version 254. The replay tests record their expected results. |
 | 11 | **The unit kit** | 3.16 | The [spearman and archer comparison](../../art/unit-kit-trial/astra-review/renders/comparison.png) is ready for review. The game keeps its current pieces. |
-| 12 | **Wonders on the board** | 3.13 | The user confirmed the three shared models on the city tile. |
+| 12 | **Wonders on the board** | 3.13 | Each city with a wonder gets one landmark on its city tile. Compare the [three proposed models](../../art/terrain-study/wonder-options/city-wonder-options.jpg). |
 
 **Integration with the playtest branch.** The first 21 November playtest already had Claude’s Fortify until healed command at save version 253. Save version 254 includes that command, the settler and explorer lenses, the worker advice panel, and both deck passes.
 
-**Performance.** See [the turn 73 camera trace](benchmarks/turn73-drag-and-city-shade-2026-11-21.md) and [worker advice timings and integration](benchmarks/turn73-worker-advice-2026-11-21.md). The camera trace measured submission to the graphics driver. The worker reader keeps a cold recommendation off the input thread. Claude owns the remaining UI work for composing strategic resource offers, displaying the original and discounted price together, and offering a gold payment for The Brokers’ Redraw. Scientific and Devotion still need a closed design pass, except for Volley Fire and the shared purchase rule.
+**Performance.** See [the turn 73 camera trace](benchmarks/turn73-drag-and-city-shade-2026-11-21.md) and [worker advice timings and integration](benchmarks/turn73-worker-advice-2026-11-21.md). The camera trace measured submission to the graphics driver. The worker reader keeps a cold recommendation off the input thread. Claude owns the remaining UI work for composing strategic resource offers, displaying the original and discounted price together, and offering a gold payment for The Brokers’ Redraw. The approved Scientific and Devotion specs are in sections 0.1a and 0.1b.
 
 ### 0.1a The Scientific deck is ready for the build (2026-11-21)
 
@@ -146,12 +146,6 @@ The settler lens now draws corner marks and pips on the ranked sites. The hover 
 three hexes to improve, as a quiet ground mark and one line in the hex's
 tooltip ("Advice: Build a Camp here", with the gains and losses in yields).
 The board and the hover panel read the same answer from `createWorkerAdviceReader`. It runs the bot’s improvement planner in a background worker. A change of seat, selection, game or revision prevents an old reply from drawing marks.
-
-**Deck passes still in design, not ready for you:** Devotion (round two with
-the user) and Scientific (round two with the user):
-`docs/plans/devotion-design-pass-2026-11-20.md`,
-`docs/plans/scientific-design-pass-2026-11-20.md`. Do not build from them
-until each has "Ready for the build".
 
 ### 0.4 What the Claude session changed in your areas, so that you know
 

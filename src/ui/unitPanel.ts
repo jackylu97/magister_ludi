@@ -36,7 +36,10 @@
  */
 
 import { fortifyBonus, isCivilian, isCombatant, isFortified, isRanged } from '../sim/combat';
-import { type ImprovementId, improvementDef } from '../sim/improvementData';
+import { type ActionPreviewCell, bindActionPreview } from './actionPreview';
+import { improvementSites } from './improvementSites';
+import { improvementOpenTo } from '../sim/improvements';
+import { IMPROVEMENT_IDS, type ImprovementId, improvementDef } from '../sim/improvementData';
 import { buildsImprovements, chargesLeft, isBuilder } from '../sim/improvements';
 import { isApostle, isAugur, isInquisitor, isProphet } from '../sim/religion';
 import type { RiteId } from '../sim/religionData';
@@ -187,6 +190,7 @@ interface UnitPanelOptions {
    * `improvementOptionsFor` in `controls.ts` for which rows are listed.
    */
   improvementOptions: () => ImprovementOption[];
+  onPreview?: (cells: readonly ActionPreviewCell[]) => void;
   onBuildImprovement: (id: ImprovementId) => void;
   /**
    * Why the selected worker cannot clear the feature it is standing in — the
@@ -356,6 +360,7 @@ export interface UnitPanel {
 
 /** One row of the actions list. Everything a future verb will need. */
 interface UnitAction {
+  preview?: () => readonly ActionPreviewCell[];
   /**
    * The row's name. A `DocumentFragment` for the two rows that quote a yield —
    * the improvement deltas and the chop's payout — because a yield's mark is a
@@ -406,7 +411,7 @@ interface UnitAction {
    * the row's card.
    */
   figure?: HealFigure;
-  run: () => void;
+  run?: () => void;
 }
 
 /**
@@ -694,6 +699,13 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    * the body once at construction; `render` puts it away before it rebuilds.
    */
   const info = createInfoCard({ signal: options.signal, className: 'info-card' });
+  let showingPreview = false;
+  function clearPreview(): void {
+    if (!showingPreview) return;
+    showingPreview = false;
+    options.onPreview?.([]);
+  }
+  options.signal?.addEventListener('abort', clearPreview, { once: true });
 
   /**
    * How many more turns the unit's standing order will take, as an estimate the
@@ -1083,8 +1095,21 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
           label,
           blocked: option.blocked,
           hint: improvementHint(option),
+          preview: improvementDef(option.id).showBuildSites
+            ? () => improvementSites(getGame().state, unit.ownerId, option.id) : undefined,
           card: () => improvementCard(unit, option),
           run: () => onBuildImprovement(option.id),
+        });
+      }
+      for (const id of IMPROVEMENT_IDS) {
+        const def = improvementDef(id);
+        if (!def.showBuildSites || builds.some(option => option.id === id) ||
+            !improvementOpenTo(getGame().state, unit.ownerId, id)) continue;
+        const showSites = () => improvementSites(getGame().state, unit.ownerId, id);
+        actions.push({
+          label: `Find ${def.name} sites`, blocked: null,
+          hint: 'Show legal sites and the number of neighbouring tiles that add a bonus.',
+          preview: showSites,
         });
       }
       // The axe sits beside the improvements because it is the same worker
@@ -1201,6 +1226,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
               label: `${row.name} · ${rite.name}`,
               blocked: rite.blocked,
               hint: row.says,
+              preview: rite.previewCells,
               run: () => onProphetAct(row.verb, rite.rite),
             });
           }
@@ -1219,6 +1245,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
             row.verb === 'proclaim' || row.verb === 'purge'
               ? () => prophetCard(row)
               : undefined,
+          preview: row.previewCells,
           run: () => onProphetAct(row.verb),
         });
       }
@@ -1553,13 +1580,21 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       } else {
         button.title = action.title ?? action.hint;
       }
-      button.addEventListener('click', action.run);
+      if (action.preview && options.onPreview) {
+        const read = action.preview;
+        bindActionPreview(button, () => {
+          showingPreview = true;
+          options.onPreview!(read());
+        }, clearPreview, !action.run);
+      }
+      if (action.run) button.addEventListener('click', action.run);
       box.append(button);
     }
     return box;
   }
 
   function render(): void {
+    clearPreview();
     const unit = getUnit();
     // The panel tears its DOM down and builds it again, which takes the anchor
     // out from under an open card with no `pointerleave` to follow — the city

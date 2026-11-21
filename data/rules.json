@@ -411,7 +411,7 @@
     "generalAuraStrength": 3,
     "citadelClaimRadius": 1,
     "offerGoldPerRenown": 10,
-    "offerPriceFaith": 750,
+    "offerFaithPerRenown": 5,
     "scholarDraftFaith": 1000
   },
   "production": {

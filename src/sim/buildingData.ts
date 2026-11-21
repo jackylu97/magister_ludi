@@ -386,6 +386,7 @@ export type BuildingId =
   // into the Mint and the Observatory (the user's amendment, same day): a
   // charter's building is the charter's, so the tree's two Æra IV rows are
   // exactly what they were before the charters shipped.
+  | 'bellTower'
   | 'chapel'
   | 'keep'
   | 'scriptorium'
@@ -427,6 +428,7 @@ export type BuildingId =
   // the charter may research that technology, so only the charter's holder
   // can build these. The Scriptorium and the Bastion above are opened the
   // same way now, by Papermaking and Military Architecture.
+  | 'greatArchive'
   | 'specularium'
   | 'mouseion'
   | 'aldinePress'
@@ -1306,6 +1308,8 @@ export interface BuildingDef {
    * "In its town" is the town the rite is performed in, which since the rites
    * became city verbs (2026-09-06) is the only town there is.
    */
+  /** A rite started here uses this share of its base duration. */
+  riteDurationPercent?: number;
   ritePays?: number;
   /**
    * **This row is placed, never built and never bought** — the relic an apostle

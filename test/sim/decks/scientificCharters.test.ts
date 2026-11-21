@@ -190,18 +190,18 @@ describe('the register', () => {
   });
 
   it('gives each new row a size and never a figure, and the Mouseion its premium', () => {
-    for (const id of ['specularium', 'mouseion', 'aldinePress', 'bimaristan', 'tophane'] as BuildingId[]) {
+    for (const id of ['specularium', 'mouseion', 'greatArchive', 'aldinePress', 'bimaristan', 'tophane'] as BuildingId[]) {
       const def = buildingDef(id) as unknown as Record<string, unknown>;
       expect(def['size'], id).toBeDefined();
       expect(def['cost'], id).toBeUndefined();
       expect(def['column'], id).toBeUndefined();
     }
     // The three great houses, and the two city buildings.
-    for (const id of ['mouseion', 'bimaristan', 'tophane'] as BuildingId[]) {
+    for (const id of ['mouseion', 'greatArchive', 'aldinePress', 'bimaristan', 'tophane'] as BuildingId[]) {
       expect(buildingDef(id).oncePerEmpire, id).toBe(true);
       expect(buildingDef(id).empireBuilding, id).toBe(true);
     }
-    for (const id of ['specularium', 'aldinePress'] as BuildingId[]) {
+    for (const id of ['specularium'] as BuildingId[]) {
       expect(buildingDef(id).oncePerEmpire, id).toBeUndefined();
       expect(buildingDef(id).empireBuilding, id).toBeUndefined();
     }
@@ -314,18 +314,18 @@ describe('the Physic Garden', () => {
 // --- the five buildings, and the two rewired ------------------------------------
 
 describe('what each building does', () => {
-  it('Specularium: three food, and a beaker for every two citizens of its town', () => {
+  it('The Glasshouse pays three food and a science for each farm the town works', () => {
     const state = bench();
     const city = town(state, 0, 4, 5);
-    city.population = 7;
     learn(state, 0, 'optics');
     raise(state, city, 'specularium');
-    expect(townLines(state, city, 'Specularium', 'food')).toBe(3);
-    expect(townLines(state, city, 'Specularium', 'science')).toBe(3);
-    city.population = 8;
+    expect(townLines(state, city, 'Glasshouse', 'food')).toBe(3);
+    expect(townLines(state, city, 'Glasshouse', 'science')).toBe(0);
+    const farm = at(state, 5, 5);
+    raiseImprovement(farm, 'farm', state.turn);
+    city.workedTiles = [{ col: farm.col, row: farm.row }];
     bumpRevision(state);
-    refreshCityDerived(state, city);
-    expect(townLines(state, city, 'Specularium', 'science')).toBe(4);
+    expect(townLines(state, city, 'Glasshouse', 'science')).toBe(1);
   });
 
   it('Mouseion: four renown for scholars, and two culture in its town for each empire building', () => {
@@ -370,16 +370,13 @@ describe('what each building does', () => {
     expect(explainBuildingCost('forum').some((line) => line.source.includes('%'))).toBe(false);
   });
 
-  it('Aldine Press: two culture, and nothing on the routes since batch DS6', () => {
-    // Batch DS6 cut the +2 science and +2 culture on each route that left its
-    // town. The building row carries no effects now.
-    expect(buildingDef('aldinePress').effects ?? []).toEqual([]);
+  it('The Aldine Press pays culture for technologies known and leaves routes unchanged', () => {
     const state = bench();
     const press = town(state, 0, 4, 5);
     const far = town(state, 0, 12, 5);
     learn(state, 0, 'printing');
     raise(state, press, 'aldinePress');
-    expect(townLines(state, press, 'Aldine Press', 'culture')).toBe(2);
+    expect(townLines(state, press, 'Aldine Press', 'culture')).toBe(state.players[0]!.techsResearched.length);
     const from = (origin: City, to: City) =>
       cardRouteYieldLines(state, origin, to).filter((line) => line.source.includes('Aldine Press'));
     expect(from(press, far)).toEqual([]);
@@ -415,7 +412,7 @@ describe('what each building does', () => {
     expect(buildingDef('bimaristan').effects!.map((effect) => effect.kind)).toEqual(['percentYields']);
   });
 
-  it('Tophane: soldiers raised in its town start four stronger, and it raises them a quarter faster', () => {
+  it('Tophane: soldiers raised in its town start four stronger, and it raises them fifty percent faster', () => {
     const state = bench();
     const city = town(state, 0, 4, 5);
     const other = town(state, 0, 12, 5);
@@ -427,7 +424,7 @@ describe('what each building does', () => {
     expect(cardUnitStamp(state, 0, { col: other.col, row: other.row }, 'swordsman').strength ?? 0).toBe(0);
     const faster = (target: City, type: 'swordsman' | 'worker') =>
       cardProduction(state, target, 'unit', type).filter((line) => line.card === 'tophane');
-    expect(faster(city, 'swordsman').map((line) => line.percent)).toEqual([25]);
+    expect(faster(city, 'swordsman').map((line) => line.percent)).toEqual([50]);
     expect(faster(city, 'worker')).toEqual([]);
     expect(faster(other, 'swordsman')).toEqual([]);
   });

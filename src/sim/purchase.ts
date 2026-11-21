@@ -1486,6 +1486,9 @@ export function purchaseItemAt(
     // counts as faith spent (`Player.faithSpent`). It announces the bank for
     // the meters too.
     buyWithFaith(state, player, price.total);
+    if (item.kind === 'building') {
+      player.buildingsBoughtWithFaith = (player.buildingsBoughtWithFaith ?? 0) + 1;
+    }
   } else if (price.currency === 'culture') {
     // **Magnificence** (Magisterial batch MG11; the triage's reading 36): the
     // culture comes out of the draft pool, through the one subtraction that
@@ -1611,6 +1614,7 @@ export function purchaseItemAt(
     // not gold spent. So the moment still fires, as for any purchase, with no
     // gold on it.
     gold: price.currency === 'culture' ? 0 : price.total,
+    ...(price.currency === 'faith' ? { faith: price.total } : {}),
     ...(item.kind === 'building' ? { building: item.id } : {}),
     firsts,
   });

@@ -263,7 +263,7 @@ describe('the opening', () => {
     const sheet = source('religionScreen.ts');
     // Since batch RT1 the close also tells the page, for End Turn's "Renew
     // rites" prompt; stopping the motion comes first.
-    expect(sheet).toContain('onClose: () => {\n      stopMotion();\n      options.onClose?.();\n    },');
+    expect(sheet).toContain('stopMotion();\n      options.onClose?.();\n    },');
     expect(sheet).toContain('onDispose: () => stopMotion(),');
   });
 });
@@ -472,14 +472,14 @@ describe('the rites, in words', () => {
 
   it('says the duration once, from the figure the town would be stamped with', () => {
     const says = source('riteWords.ts');
-    expect(says).toContain('riteGrantWords(rite, riteTurnsFor(state, seat, rite))');
+    expect(says).toContain('riteGrantWords(rite, riteTurnsFor(state, seat, rite, city))');
     // No second "for N turns" composed from the row's base figure.
     expect(says).not.toContain('def.duration}');
     expect(source('ritesTab.ts')).not.toContain('def.duration');
   });
 
   it('says one turn, not one turns', () => {
-    expect(riteGrantWords('votiveOffering')).toBe('Kept for 1 turn');
+    expect(riteGrantWords('votiveOffering')).toBe('Kept for 10 turns');
     expect(riteGrantWords('restoringOfTheHost', 1)).toBe('Kept for 1 turn');
     expect(riteGrantWords('omenReading', 15)).toBe('Kept for 15 turns');
     // Without a figure for an empire, the row's own duration.

@@ -17,6 +17,7 @@
  * `../statecraft.ts` re-exports its names.
  */
 
+import { pruneExtraBuildingQueues } from '../tech';
 import { type BuildingId, buildingDef } from '../buildingData';
 import { type MaliceId, MALICE_IDS, MALICE_RULES, isMaliceId, maliceDef } from '../maliceData';
 import { type GameState, type HeldMalice, type Player, playerById } from '../state';
@@ -257,10 +258,12 @@ export function councilRefit(
  */
 export function settleCouncilFit(state: GameState, player: Player): OrderId[] {
   const seating = councilRefit(state, player.id);
-  if (seating === null) return [];
-  player.statecraft.slots = seating.slots;
-  bumpEconomy(state);
-  return seating.returned;
+  if (seating !== null) {
+    player.statecraft.slots = seating.slots;
+    bumpEconomy(state);
+  }
+  pruneExtraBuildingQueues(state, player.id);
+  return seating?.returned ?? [];
 }
 
 // --- the slots: a card into a chair, and out again --------------------------

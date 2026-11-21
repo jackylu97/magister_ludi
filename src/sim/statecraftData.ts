@@ -1752,6 +1752,8 @@ export type CombatCondition =
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
+  | 'faithIncome'
+  | 'followingCities'
   | 'goldIncome'
   | 'tileYield'
   | 'greatPeopleGained'
@@ -2286,7 +2288,7 @@ export type TileCondition =
    * board's answer (`GroundFacts.townCentre`). A caller with no such answer reads
    * no.
    */
-  | { test: 'townCentre' }
+  | { test: 'townCentre'; building?: BuildingId }
   | { test: 'ownCapital' }
   /**
    * **The empire reading this hex surfaced a seam here**: its survey struck the
@@ -2585,6 +2587,7 @@ export type CountKind =
    * a conqueror who takes a town of bought roofs is paid for them, which is what
    * pay-follows-the-stones already means everywhere else.
    */
+  | 'buildingsBoughtWithFaith'
   | 'buildingsBoughtWithGold'
   | 'purchasedBuildings'
   /**
@@ -4626,6 +4629,7 @@ export type ActionRuleId =
    * (`ritesDisplacedBy`). The Votive Offering and the Restoring of the Host
    * take a place while their mark runs.
    */
+  | 'capitalRiteOverRealm'
   | 'twoRites'
   /**
    * **A wonder race this empire loses to a rival keeps its hammers**
@@ -5519,7 +5523,7 @@ export type AmplifierTarget =
  * question. What is left is the shape this list was always for — a rule about
  * what happens when the offer is *answered*.
  */
-export type OfferRuleId = 'discoveryClaimAll';
+export type OfferRuleId = 'discoveryClaimAll' | 'doubleScoutDiscovery' | 'additionalCharter';
 
 /**
  * Which draft an `offerRider` widens.
@@ -5553,6 +5557,8 @@ export type OfferRiderScope =
  * one function ever sees the base again.
  */
 export type WindfallOccasion =
+  | 'proclamationMade'
+  | 'ageEntered'
   /** A forest felled (`chopFeature`). */
   | 'chop'
   /** A barbarian camp cleared (`arriveOnTile`). */
@@ -5993,6 +5999,7 @@ export type WindfallOccasion =
  * `atPopulation`'s silence, said about a figure instead of about a filter.
  */
 export type OccasionMeasure =
+  | 'buildingCost'
   /**
    * The **combat strength** of the piece the occasion is about — The Art of
    * War's sword, Songs of the Fallen's dead. Read off
@@ -6101,6 +6108,9 @@ export type OccasionMeasure =
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
+  orderDraft?: true;
+  completeResearch?: true;
+  capturedTechnology?: true;
   /** A voice and an amount — culture on a kill, food on a camp. */
   yield?: CityYieldKey;
   amount?: number;
@@ -6276,7 +6286,7 @@ export interface WindfallGrantSpec {
    * the town nearest the occasion. Every unit a grant raises is free: it costs
    * no upkeep (the triage's reading 2).
    */
-  unit?: 'randomMilitary' | 'bestRanged' | 'bestMelee' | 'unlockedByTech';
+  unit?: 'randomMilitary' | 'bestSiege' | 'bestRanged' | 'bestMelee' | 'unlockedByTech';
   /**
    * **Every one of this empire's pieces is healed whole** — The Empire's "taking
    * a city with a wonder in it heals all your units".
@@ -6537,6 +6547,7 @@ export interface WindfallGrantSpec {
    * narrowed to a radius. Acted on by `payWindfallGrants`; an occasion with no
    * hex heals nobody.
    */
+  healNearby?: { range: number; amount: number };
   healWithin?: number;
   /**
    * **Every fighting unit of this empire within this many hexes of the
@@ -6822,6 +6833,7 @@ export interface CardPaysEffect extends CardYieldBag {
    * that field's reason — a share of what the land already pays, multiplied by
    * the ring, would be paying interest on the ground twice.
    */
+  perStandingTurns?: number;
   perNeighbour?: TileCondition;
   /** Which of Entry XVII's stages a counted percentage joins. Its discriminant. */
   stage?: ModifierStage;
@@ -6830,6 +6842,8 @@ export interface CardPaysEffect extends CardYieldBag {
 
   /** The voice read — `basis: 'mirror'` (off the shelf) and `'share'` (the fold). */
   from?: CityYieldKey;
+  /** A town can receive a share of the whole empire's output. */
+  fromEmpire?: true;
   /** The rate or meter standing read — `basis: 'rate'`. See `RateSource`. */
   fromRate?: RateSource;
   /** What `basis: 'count'` counts. See `CountKind`. */
@@ -7219,7 +7233,7 @@ interface CardProductionBonusEffect {
   kind: 'productionBonus';
   category: ProductionCategory;
   /** Limits the bonus to older buildings or buildings already in the true capital. */
-  buildingFilter?: 'earlierAges' | 'capitalHas';
+  buildingFilter?: 'earlierAges' | 'newestAge' | 'capitalHas';
   percent: number;
   /**
    * **The empire stage** (Dominion batch D7, The Marian Reforms' "your towns
@@ -7444,6 +7458,7 @@ interface CardRulePercentEffect {
   notChain?: TechId;
   /** **`techPrice` reaches only technologies of this age** (batch DT8). */
   techAge?: TechAge;
+  earlierAge?: true;
 }
 
 /** Flat happiness, once for the empire or once per city a scope admits. */
@@ -7906,8 +7921,10 @@ export type CityRuleId =
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
 export interface CardWindfallRiderEffect {
+  oncePerBuildingKind?: true;
   /** Pay this declaration rider to the defending empire as well. */
   eitherSide?: true;
+  buildingSupplies?: CityYieldKey;
   kind: 'windfallRider';
   occasion: WindfallOccasion;
   /** Scales the occasion's own payout, in whole percent. */
@@ -9851,6 +9868,8 @@ export type PressureRuleId =
   | 'templeOwnPercent'
   | 'templeForeignPercent'
   | 'bombRange'
+  | 'bombRangePercent'
+  | 'foreignBombPercent'
   | 'bombLump'
   | 'routeBothWays'
   /**
@@ -9889,6 +9908,7 @@ interface CardPressureRuleEffect {
  */
 export interface CardPressureEffect {
   kind: 'pressure';
+  voice?: CityYieldKey;
   amount: number;
   range: number;
   /**
@@ -10876,6 +10896,7 @@ export interface OrderSlotGrant {
  *     Curiosities).
  */
 export type OnDraftGrant =
+  | Extract<CompletionGrant, { grant: 'tech' }>
   | { grant: 'citizensInEveryTown'; amount: number }
   | (Extract<CompletionGrant, { grant: 'unit' }> & { count?: number; toEveryTown?: CityScope })
   | { grant: 'experience'; amount: number }
@@ -10944,6 +10965,7 @@ interface OnDraftForeignCard {
  * measured.
  */
 export type CommissionFigure =
+  | 'authoritySurplus'
   | 'dealPartners'
   | 'publicWorks'
   /** Gold in the treasury. The Strongroom. */
@@ -11021,6 +11043,7 @@ export type CommissionFigure =
    * that counts as an Academy under The Studium Generale counts here too
    * (reading 33).
    */
+  | 'firstAgeResearchComplete'
   | 'academyHexes'
   /**
    * **This empire's towns that the goal's town scope admits** (Commerce batch
@@ -11114,8 +11137,10 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'garrisonedTowns',
   'tendedTiles',
   'goldIncome',
+  'authoritySurplus',
   'followingCityShare',
   'rivalCapitalsFollowing',
+  'firstAgeResearchComplete',
   'academyHexes',
   'opusCost',
   'citiesAdmitted',
@@ -11433,6 +11458,8 @@ export interface CommissionSpec {
 }
 
 interface OrderDef extends CardDefBase {
+  /** Show the current values of this Order’s empire counts on the card. */
+  showCountValue?: true;
   /**
    * The government pool this row was dealt from **before the decks rework**,
    * and the office it fitted. Both **left in place and read by no draw** (D1a):

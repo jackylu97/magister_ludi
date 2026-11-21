@@ -556,24 +556,23 @@ interface OfferPurchaseDef {
   ladder: boolean;
 }
 
-/** What each purchase is gated by, what it costs and what it deals. One table. */
+function recruitmentPrice(state: GameState, player: Player, currency: OfferCurrency, rate: number) {
+  const renown = renownThreshold(state, player);
+  return { source: `${renown} renown × ${rate} ${currency}`, amount: renown * rate };
+}
+
+/** Each offer uses its own currency, price and recruitment rule. */
 const OFFER_PURCHASES: Record<OfferPurchaseId, OfferPurchaseDef> = {
   gold: {
     currency: 'gold',
     rule: 'buyGreatPersonWithGold',
-    price: (state, player) => {
-      const renown = renownThreshold(state, player);
-      return {
-        source: `${renown} renown × ${PEOPLE.offerGoldPerRenown} gold`,
-        amount: PEOPLE.offerGoldPerRenown * renown,
-      };
-    },
+    price: (state, player) => recruitmentPrice(state, player, 'gold', PEOPLE.offerGoldPerRenown),
     ladder: true,
   },
   faith: {
     currency: 'faith',
     rule: 'buyGreatPersonWithFaith',
-    price: () => ({ source: 'Recruitment price', amount: PEOPLE.offerPriceFaith }),
+    price: (state, player) => recruitmentPrice(state, player, 'faith', PEOPLE.offerFaithPerRenown),
     ladder: true,
   },
   scholarDraft: {
@@ -595,12 +594,8 @@ export function explainGreatPersonOfferPrice(state: GameState, playerId: number,
   const player = state.players[playerId]!;
   const def = OFFER_PURCHASES[purchase];
   const base = def.price(state, player);
-  const lines = [base];
-  if (def.currency === 'gold') {
-    const riders = cardPurchaseRiders(state, playerId, 'greatPerson', undefined, undefined, undefined, 'gold');
-    lines.push(...purchaseDiscountLines(base.amount, riders));
-  }
-  return lines;
+  const riders = cardPurchaseRiders(state, playerId, 'greatPerson', undefined, undefined, undefined, def.currency);
+  return [base, ...purchaseDiscountLines(base.amount, riders)];
 }
 
 export function greatPersonOfferPrice(state: GameState, playerId: number, purchase: OfferPurchaseId): number {
@@ -763,10 +758,10 @@ export function purchaseGreatPersonOfferAt(
  * is chosen or the rites are known. Moved here from `commissions.ts` in batch
  * S8, so the two callers share one routine.
  */
-export function grantGreatPersonOffer(state: GameState, player: Player, family: Family | 'any'): string {
+export function grantGreatPersonOffer(state: GameState, player: Player, family: Family | 'any', allowEarly = false): string {
   const narrowed = family === 'any' ? undefined : family;
   const word = narrowed === undefined ? 'a great person' : `a great ${narrowed}`;
-  if (player.greatPersonOffer === undefined && hasAbility(state, player.id, 'ancestorRites')) {
+  if (player.greatPersonOffer === undefined && (allowEarly || hasAbility(state, player.id, 'ancestorRites'))) {
     const offer = drawGreatPersonOffer(state, player, narrowed);
     if (offer.options.length > 0) {
       player.greatPersonOffer = offer;
@@ -778,6 +773,16 @@ export function grantGreatPersonOffer(state: GameState, player: Player, family: 
   const owed = plan === null ? renownThreshold(state, player) - player.renownPool : 0;
   settleRenownWindfall(state, player, [{ family: narrowed ?? null, amount: Math.max(0, owed) }]);
   return `renown for ${word}`;
+}
+
+/** A named reward can come before the recruitment gate or behind another offer. */
+export function grantOrQueueGreatPersonOffer(state: GameState, player: Player, family: Family | 'any'): string {
+  const name = family === 'any' ? 'a great person' : `a great ${family}`;
+  if (player.greatPersonOffer) {
+    (player.statecraft.waitingGreatPersonFamilies ??= []).push(family);
+    return `${name} to call after the current offer`;
+  }
+  return grantGreatPersonOffer(state, player, family, true);
 }
 
 /** Takes the price out of one of the two banks. The only subtraction here. */
@@ -934,7 +939,11 @@ export function settleGreatPersonChoice(
     { family: def.family },
   );
   const sc = player.statecraft;
-  if (sc.waitingGreatPersonOffers && !player.greatPersonOffer) {
+  if (sc.waitingGreatPersonFamilies?.length && !player.greatPersonOffer && !sc.waitingGreatPersonOffers) {
+    const family = sc.waitingGreatPersonFamilies.shift()!;
+    if (sc.waitingGreatPersonFamilies.length === 0) delete sc.waitingGreatPersonFamilies;
+    grantOrQueueGreatPersonOffer(state, player, family);
+  } else if (sc.waitingGreatPersonOffers && !player.greatPersonOffer) {
     if (--sc.waitingGreatPersonOffers === 0) delete sc.waitingGreatPersonOffers;
     grantGreatPersonOffer(state, player, 'any');
   }

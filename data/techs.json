@@ -1,5 +1,92 @@
 {
   "techs": {
+    "liturgy": {
+      "name": "Liturgy",
+      "glyph": "✛",
+      "age": 3,
+      "row": 3,
+      "cost": 360,
+      "prereqs": [
+        "theHighTemple"
+      ],
+      "charter": true,
+      "unlocks": {},
+      "effects": [
+        {
+          "kind": "pressureRule",
+          "rule": "siteRange",
+          "delta": 6
+        }
+      ],
+      "flavor": "The order of prayers reached farther than the sound of any one bell."
+    },
+    "ciphers": {
+      "name": "Ciphers",
+      "glyph": "🔑",
+      "age": 4,
+      "row": 0,
+      "cost": 1960,
+      "prereqs": [
+        "horology"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "The key stays in a separate book.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "closedBook",
+          "turns": 10
+        }
+      ]
+    },
+    "recordKeeping": {
+      "name": "Record-Keeping",
+      "glyph": "📚",
+      "age": 3,
+      "row": 2,
+      "cost": 360,
+      "prereqs": [
+        "kingship"
+      ],
+      "unlocks": {
+        "buildings": [
+          "greatArchive"
+        ]
+      },
+      "charter": true,
+      "flavor": "Each ledger has a place on the shelf."
+    },
+    "astronomy": {
+      "name": "Astronomy",
+      "glyph": "✶",
+      "age": 1,
+      "row": 1,
+      "cost": 50,
+      "prereqs": [
+        "calendar"
+      ],
+      "unlocks": {
+        "abilities": [
+          "nightWatch"
+        ]
+      },
+      "charter": true,
+      "flavor": "Each night the observers mark where the stars rise."
+    },
+    "smelting": {
+      "name": "Smelting",
+      "glyph": "⚒️",
+      "age": 1,
+      "row": 1,
+      "cost": 24,
+      "prereqs": [
+        "mining"
+      ],
+      "unlocks": {},
+      "charter": true,
+      "flavor": "The ore goes into the furnace with the charcoal."
+    },
     "agriculture": {
       "name": "Agriculture",
       "glyph": "🌾",
@@ -1116,7 +1203,7 @@
       "flavor": "A book nobody can find is a book nobody has."
     },
     "optics": {
-      "name": "Optics",
+      "name": "Glassmaking",
       "glyph": "🔭",
       "age": 2,
       "row": 0,
@@ -1359,6 +1446,12 @@
     }
   },
   "abilities": {
+    "nightWatch": {
+      "name": "The Night Watch",
+      "glyph": "✦",
+      "bearer": "city",
+      "summary": "Rite: gain science for each citizen"
+    },
     "embark": {
       "name": "Embark",
       "glyph": "⛵",

@@ -169,6 +169,7 @@ import { type TechId, isTechId, isCharterTech } from './techData';
 
 export type ImprovementId =
   | 'nazcaLines' | 'inuksuk' | 'totemPole' | 'stepwell' | 'baray' | 'hillfort'
+  | 'stoneCircle' | 'cliffMonastery'
   | 'paradiseGarden'
   | 'farm'
   // **The Terraces** (batch L8, `docs/flags.md` (bbbbb)): a farm of the high
@@ -226,6 +227,7 @@ export type ImprovementId =
   // charter's holder can build it. Its happiness is a card effect on Herbals,
   // which counts the gardens inside the seat's borders (the triage's reading
   // 28).
+  | 'smelter'
   | 'physicGarden'
   // **The Qanat** (Scientific batch S5): an ordinary worker row whose
   // technology is a charter technology, Surveying, so only the holder of the
@@ -393,6 +395,7 @@ export interface ImprovementDef {
   hillsIf?: HillsWaiver[];
   /** A worker needs a mountain beside the site to build this improvement. */
   requiresAdjacentMountain?: boolean;
+  requiresAdjacentHighGround?: boolean;
   requiresRiver?: boolean;
   requiresDryGround?: boolean;
   /** Each qualifying neighbour contributes this amount to the work's yield. */
@@ -525,6 +528,8 @@ export interface ImprovementDef {
    * (the triage's reading 31).
    */
   onePerTown?: boolean;
+  /** The worker's map shows legal sites and their neighbouring bonuses. */
+  showBuildSites?: true;
   /**
    * True when this work **pays what the hexes around it pay** (The Keeps): the
    * six hexes beside it, each read as the hex the work stands on is read,
