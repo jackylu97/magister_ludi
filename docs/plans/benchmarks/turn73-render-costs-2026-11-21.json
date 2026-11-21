@@ -1449,6 +1449,175 @@
         2205,
         1189
       ]
+    },
+    "normalPan": [
+      {
+        "simplerCrowns": false,
+        "fps": 29.53,
+        "p95GapMs": 37.6,
+        "frames": 58,
+        "medianTriangles": 1748487
+      },
+      {
+        "simplerCrowns": true,
+        "fps": 29.91,
+        "p95GapMs": 37.1,
+        "frames": 58,
+        "medianTriangles": 1016842
+      },
+      {
+        "simplerCrowns": true,
+        "fps": 29.95,
+        "p95GapMs": 36.1,
+        "frames": 58,
+        "medianTriangles": 1016816
+      },
+      {
+        "simplerCrowns": false,
+        "fps": 29.92,
+        "p95GapMs": 38.2,
+        "frames": 58,
+        "medianTriangles": 1749430
+      },
+      {
+        "simplerCrowns": false,
+        "fps": 29.92,
+        "p95GapMs": 37.4,
+        "frames": 58,
+        "medianTriangles": 1749430
+      },
+      {
+        "simplerCrowns": true,
+        "fps": 29.92,
+        "p95GapMs": 37.7,
+        "frames": 58,
+        "medianTriangles": 1016816
+      }
+    ],
+    "headlessFramePacing": {
+      "method": "Private headless Chrome. A no-draw control keeps the camera and game loop running and replaces the final board draw with an empty function. Its reported counts measure callbacks. An uncapped board count measures completed CPU submissions; it cannot establish how many images reach a display.",
+      "standard": {
+        "emptyPageFps": 30,
+        "runs": [
+          {
+            "mode": "full board",
+            "boardFrames": 44,
+            "fps": 28.72,
+            "p95GapMs": 53.7,
+            "p95RafGapMs": 54.1,
+            "longestGapMs": 57,
+            "medianTriangles": 1749642
+          },
+          {
+            "mode": "no board draw",
+            "boardFrames": 46,
+            "fps": 29.83,
+            "p95GapMs": 33.6,
+            "p95RafGapMs": 33.7,
+            "longestGapMs": 35,
+            "medianTriangles": 0
+          },
+          {
+            "mode": "no board draw",
+            "boardFrames": 46,
+            "fps": 29.96,
+            "p95GapMs": 35.1,
+            "p95RafGapMs": 35.1,
+            "longestGapMs": 35.5,
+            "medianTriangles": 0
+          },
+          {
+            "mode": "full board",
+            "boardFrames": 46,
+            "fps": 29.96,
+            "p95GapMs": 36.2,
+            "p95RafGapMs": 36.4,
+            "longestGapMs": 37.8,
+            "medianTriangles": 1751704
+          }
+        ]
+      },
+      "uncapped": {
+        "additionalChromeFlags": [
+          "--disable-frame-rate-limit",
+          "--disable-gpu-vsync"
+        ],
+        "emptyPageFps": 56.19,
+        "runs": [
+          {
+            "mode": "no board draw",
+            "boardFrames": 3003,
+            "fps": 1580.28,
+            "p95GapMs": 0.8,
+            "p95RafGapMs": 0.8,
+            "longestGapMs": 44.9,
+            "medianTriangles": 0
+          },
+          {
+            "mode": "full board",
+            "boardFrames": 103,
+            "fps": 53.24,
+            "p95GapMs": 35.7,
+            "p95RafGapMs": 35.6,
+            "longestGapMs": 39.1,
+            "medianTriangles": 1739943
+          },
+          {
+            "mode": "simpler crowns",
+            "boardFrames": 117,
+            "fps": 60.34,
+            "p95GapMs": 43.1,
+            "p95RafGapMs": 43.1,
+            "longestGapMs": 46.9,
+            "medianTriangles": 1015658
+          },
+          {
+            "mode": "simpler crowns",
+            "boardFrames": 118,
+            "fps": 60.85,
+            "p95GapMs": 42.8,
+            "p95RafGapMs": 42.7,
+            "longestGapMs": 49.6,
+            "medianTriangles": 1015749
+          },
+          {
+            "mode": "full board",
+            "boardFrames": 110,
+            "fps": 56.04,
+            "p95GapMs": 32.9,
+            "p95RafGapMs": 30.9,
+            "longestGapMs": 50.5,
+            "medianTriangles": 1733105
+          },
+          {
+            "mode": "full board",
+            "boardFrames": 110,
+            "fps": 56.14,
+            "p95GapMs": 31,
+            "p95RafGapMs": 29.9,
+            "longestGapMs": 47.3,
+            "medianTriangles": 1736894
+          },
+          {
+            "mode": "simpler crowns",
+            "boardFrames": 114,
+            "fps": 58.91,
+            "p95GapMs": 47.9,
+            "p95RafGapMs": 48,
+            "longestGapMs": 53.4,
+            "medianTriangles": 1015749
+          },
+          {
+            "mode": "no board draw",
+            "boardFrames": 6563,
+            "fps": 3453.67,
+            "p95GapMs": 0.5,
+            "p95RafGapMs": 0.5,
+            "longestGapMs": 2.8,
+            "medianTriangles": 0
+          }
+        ]
+      }
     }
   }
 }
