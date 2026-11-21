@@ -52,9 +52,9 @@ Owners: **A** is Astra (bots, rendering, models, rules and card builds).
   The Offered Stones (the user's first cut if cards must go).
 - Data fields the Compendium pass asked for: flavour on units and buildings,
   what a leader's unit replaces, markers for the Temple and the Relic.
-- Eighteen great-person rows whose id is another person's name
+- Thirteen great-person rows whose id is another person's name
   (`heroOfAlexandria` is Amanitore, `ibnBattuta` is Ibn Jubayr,
-  `cosimoDeMedici` is Jacques Cœur, and the fifteen other rows of
+  `cosimoDeMedici` is Jacques Cœur, and the ten other rows of
   `docs/plans/great-people-cultures-2026-11-21.md`): rename with a save
   version change.
 - Remote multiplayer.

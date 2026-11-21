@@ -273,19 +273,19 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Fu Hao | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength inside your territory · +2 faith in every city with a unit standing in it |  |
 | Sun Tzu | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | military units: +1 sight · +4 combat strength against a wounded unit |  |
 | Hippocrates | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | +15% food surplus stored toward growth |  |
-| Varāhamihira | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +1 science per foreign city you have sighted |  |
+| Anaximander | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +1 science per foreign city you have sighted |  |
 | Baudhāyana | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +2 science in every city with a Shrine |  |
 | Peseshet | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +2 happiness · +1 food in every city |  |
 | Solon | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | +3 authority capacity · +2 science in your capital |  |
-| Yamanoue no Okura | Artist | ◆ strong | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +1 food and +1 culture in every city per public work standing there |  |
+| Hesiod | Artist | ◆ strong | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +1 food and +1 culture in every city per public work standing there |  |
 | Aesop | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | when spent, gain 3 free rerolls · when spent, open 1 free Order draft |  |
-| Aj Maxam | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +2 culture on every trade route you send |  |
-| Macuilxochitzin | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | every city: +5 city defence · +2 culture in every city with a unit standing in it |  |
+| Exekias | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +2 culture on every trade route you send |  |
+| Telesilla | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | every city: +5 city defence · +2 culture in every city with a unit standing in it |  |
 | Thutmose the Sculptor | Artist | ◆ strong | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +2 culture on every hex with a Quarry |  |
 | Artachaees | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | all units: +1 movement while embarked · +1 production in every coastal city |  |
 | Ineni | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +1 production on every hex with a Quarry |  |
 | Sunshu Ao | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +3 food in every city on fresh water |  |
-| Sulayman al-Tajir | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 gold per foreign city you have sighted |  |
+| Colaeus of Samos | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 gold per foreign city you have sighted |  |
 | Wenamun | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 production, +1 gold on every hex with a Lumbermill |  |
 | Iddin-Marduk | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 gold on every hex with a Farm, in your capital |  |
 | Leonidas | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +4 combat strength when defending while fortified |  |
