@@ -246,7 +246,7 @@ function ruleFactor(
   // reading Entry XVII settles for a stage and the only one under which a
   // luxury's −5% and a card's −15% read as −20% rather than as ×0.95×0.85.
   //
-  // **The town is handed on where the caller holds one** (batch GP2, Epicurus'
+  // **The town is handed on where the caller holds one** (batch GP2, Omar Khayyam's
   // *"−15% happiness cost in cities with 10 or more citizens"*). A scope is a
   // question about a *city*, so `cardRulePercent` skips a scoped row for every
   // caller that passes none — which is what keeps the realm-wide reading
@@ -403,7 +403,7 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // citizens ask for" are now the same sentence.
   /**
    * **The realm's factor, and the towns' own where the law names some of them**
-   * (batch GP2, Epicurus).
+   * (batch GP2, Omar Khayyam).
    *
    * A `rulePercent` on `happinessDemand` may carry a `CityScope` — *"−15% in
    * cities with ten or more citizens"* — and a scoped rate is a different number

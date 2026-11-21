@@ -3019,7 +3019,7 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     // it is worth nothing to a seat that never raids. Named, and not guessed at
     // from a card's face.
     case 'freePillage':
-    // Insurance on a cart nobody has attacked yet (Pytheas, GP2). What it is worth
+    // Insurance on a cart nobody has attacked yet (Jang Bogo, GP2). What it is worth
     // is the chance a caravan is plundered times what a caravan carries, and this
     // bot keeps no estimate of the first. The Muda's `foreignTradersUnplunderable`
     // (batch DT6) is the same insurance on the carts abroad.

@@ -18,7 +18,7 @@ Owners: **A** is Astra (bots, rendering, models, rules and card builds).
 | 5 | The full test suite green (`npm run test:all`), with replay pins recorded | A | The UI and render tests pass (277 files, `docs/plans/test-repair-2026-11-22.md`). The gate to `main`. |
 | 6 | One whole game played by a person, to a win and to a loss | U | Not done on this build. The Claude session fixes what it finds. |
 | 7 | Bots with all six new decks: they pick the cards, build the improvements and finish a game; late turns stay fast | A | Two six-seat maps reached turn 121 on version 254 with no stall. Repeat after the last two decks. |
-| 8 | Plain Fortify wakes for an enemy in sight | C | Ruled 2026-11-21. In work. |
+| 8 | Plain Fortify wakes for an enemy in sight | C | **Done** (save version 255). Astra to run a bot game, because the change touched `src/ai/bot.ts`. |
 
 ## B. Should be done
 
@@ -52,7 +52,9 @@ Owners: **A** is Astra (bots, rendering, models, rules and card builds).
   The Offered Stones (the user's first cut if cards must go).
 - Data fields the Compendium pass asked for: flavour on units and buildings,
   what a leader's unit replaces, markers for the Temple and the Relic.
-- Three great-person rows whose id is another person's name
-  (`heroOfAlexandria` is Dinocrates, `ibnBattuta` is Ibn Jubayr,
-  `cosimoDeMedici` is Jacques Cœur): rename with a save version change.
+- Thirteen great-person rows whose id is another person's name
+  (`heroOfAlexandria` is Amanitore, `ibnBattuta` is Ibn Jubayr,
+  `cosimoDeMedici` is Jacques Cœur, and the ten other rows of
+  `docs/plans/great-people-cultures-2026-11-21.md`): rename with a save
+  version change.
 - Remote multiplayer.

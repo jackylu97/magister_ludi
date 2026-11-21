@@ -56,10 +56,10 @@ import { cardCityStat, cardUnitStat, foldCityStat } from './statecraft/evaluator
 // asks. The same function-level edge as the line above.
 import { cardBehaviorRule, cityScopeAdmits, townShelf } from './statecraft/evaluator';
 import { hasLineOfSight } from './los';
-import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex } from './map';
+import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
 import { RULES } from './rulesData';
 import type { City, GameState, Unit } from './state';
-import { UNIT_TYPE_IDS, unitDef } from './unitData';
+import { UNIT_TYPE_IDS, isCombatant, unitDef } from './unitData';
 import { bumpEconomy } from './slate';
 
 const VIS = RULES.visibility;
@@ -224,6 +224,43 @@ export function sightOf(map: GameMap, unit: Unit, state?: GameState): number {
   // Floored at 1: a blind unit is not a card, it is a bug.
   if (!state) return ground;
   return Math.max(1, ground + cardUnitStat(state, unit, 'sight'));
+}
+
+/**
+ * Is a foreign soldier inside this unit's own sight?
+ *
+ * The one test for "an enemy is near" that wakes a piece: a sleeping civilian
+ * and a dug-in soldier (`wakeSleepers`, `turn.ts`), and the mark the `fortify`
+ * command writes (`Unit.enemyInSight`). "Its own sight" is the unit's, not its
+ * empire's: `sightOf` and the same `hasLineOfSight` the fog and the archers ask,
+ * so a piece behind a ridge does not see a column on the other side of it.
+ * Soldiers only (`isCombatant`); any owner but the unit's own counts, the wild
+ * included.
+ *
+ * `soldiers` lets a sweep pass the combatants once rather than have each
+ * watcher filter `state.units` again; it must be in `state.units` order and
+ * hold only combatants. Without it, `state.units` is read. Either way the
+ * answer is a yes or no, so the order cannot change an outcome.
+ */
+export function foreignSoldierInSight(
+  state: GameState,
+  unit: Unit,
+  soldiers?: readonly Unit[],
+): boolean {
+  const from = getTileAt(state.map, unit.col, unit.row);
+  if (!from) return false;
+  const radius = sightOf(state.map, unit, state);
+  const eye = tileHex(from);
+  for (const other of soldiers ?? state.units) {
+    if (other.ownerId === unit.ownerId) continue;
+    if (soldiers === undefined && !isCombatant(unitDef(other.type))) continue;
+    const to = getTileAt(state.map, other.col, other.row);
+    if (!to) continue;
+    if (wrappedDistance(state.map, eye, tileHex(to)) > radius) continue;
+    if (!hasLineOfSight(state.map, from, to)) continue;
+    return true;
+  }
+  return false;
 }
 
 /** One eye: where it stands and how far it reaches. */

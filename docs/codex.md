@@ -108,7 +108,7 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 
 ### merchant — 17 cards
 - **renown · person (Æra 2)** (4): Aššur-idī · Ea-nāṣir · Kushim · Lamassī
-- **renown · person (Æra 3)** (5): Crassus · Hippalus · Nanaivandak · Pytheas · Zhang Qian
+- **renown · person (Æra 3)** (5): Crassus · Jang Bogo · Nanaivandak · Zhang Qian · Zoskales
 - **renown · person (Æra 4)** (4): Benjamin of Tudela · Francesco Datini · Ibn Baṭṭūṭa · Marco Polo
 - **renown · person (Æra 5)** (4): Cosimo de' Medici · Gracia Mendes Nasi · Jakob Fugger · Zheng He
 
@@ -132,7 +132,7 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 
 ### engineer — 15 cards
 - **renown · person (Æra 2)** (4): Amenhotep son of Hapu · Bezalel · Hemiunu · Senenmut
-- **renown · person (Æra 3)** (4): Dinocrates · Eupalinos · Li Bing · Vitruvius
+- **renown · person (Æra 3)** (4): Amanitore · Li Bing · Pushyagupta · Vitruvius
 - **renown · person (Æra 4)** (3): Su Song · Villard de Honnecourt · al-Jazarī
 - **renown · person (Æra 5)** (4): Leonardo · Mimar Sinan · Taqī al-Dīn · Vaucanson
 

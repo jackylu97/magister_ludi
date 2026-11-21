@@ -2009,7 +2009,7 @@ function phasedDecision(state: GameState, player: Player, sitting: BotSitting): 
     }
   }
   sitting.print = print;
-  const blocker = firstBlocker(state, player.id);
+  const blocker = firstBlocker(state, player.id, awakeTrenches(state, player.id));
   const phases = (list: readonly SittingPhase[]): BotDecision | null => {
     for (const phase of list) {
       if (sitting.closed.has(phase)) continue;
@@ -2027,6 +2027,32 @@ function phasedDecision(state: GameState, player: Player, sitting: BotSitting): 
   if (last !== null) return last;
   if (sittingEndCheck()) checkTheEnd(state, player, sitting);
   return null;
+}
+
+/**
+ * **The dug-in pieces that woke, set aside from the bot's blockers** (the
+ * rulings of 2026-11-21, `Unit.dugIn`).
+ *
+ * A dug-in unit now asks for orders again when a foreign soldier comes into its
+ * sight or attacks it. That is a prompt for a person at the seat. This bot
+ * already has its own ways back to a dug-in piece (`wakeTheCampaign`,
+ * `wakeTheHunt`, `reaskTheMarch`), each of which takes only a march or a blow,
+ * and before the ruling it never heard of a dug-in piece through
+ * `firstBlocker`. Passing the awake ones as skipped keeps that true, so the
+ * ruling changes no decision this bot makes. Without it, an awake piece that
+ * `restAndHeal` answers with `'resting'` would stand first in the blockers with
+ * no answer, and hide every idle piece and empty queue behind it.
+ *
+ * `undefined` when the seat has no awake piece, which is nearly always, so the
+ * usual call is unchanged.
+ */
+function awakeTrenches(state: GameState, playerId: number): { skippedUnitIds: Set<number> } | undefined {
+  let ids: Set<number> | undefined;
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId || unit.dugIn !== 'awake') continue;
+    (ids ??= new Set<number>()).add(unit.id);
+  }
+  return ids === undefined ? undefined : { skippedUnitIds: ids };
 }
 
 /**
@@ -2216,7 +2242,7 @@ function copyOfSitting(sitting: BotSitting): BotSitting {
  */
 function theOldPass(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
   const playerId = player.id;
-  const blocker = firstBlocker(state, playerId);
+  const blocker = firstBlocker(state, playerId, awakeTrenches(state, playerId));
   // **An offer outranks a purse.** The four drafts are decisions the reducer is
   // holding open — the reducer refuses them from a seat that has ended its turn
   // — so they are answered before anything else is considered.

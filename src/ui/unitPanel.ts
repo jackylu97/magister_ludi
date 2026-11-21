@@ -927,27 +927,31 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       const state = getGame().state;
       const blocker = fortifyBlocker();
       const blocked = blocker === undefined ? 'No unit selected' : blocker;
-      // A unit woken from "fortify until healed" is still dug in but has no
-      // orders (`Unit.untilHealed`), so its button is live and reads as the
-      // verb again. Pressing it keeps the trench and stops the asking.
-      const woken = unit.untilHealed === 'woken';
-      const dug = isFortified(unit) && !woken;
+      // A dug-in unit that woke (an enemy came into sight, it was attacked, or
+      // it healed) is still dug in but has no orders (`Unit.dugIn`), so its
+      // button is live and reads as the verb again. Pressing it keeps the
+      // trench and stops the asking.
+      const awake = unit.dugIn === 'awake';
+      const dug = isFortified(unit) && !awake;
       // **"+X HP" under the label** (the user, 2026-11-21): what a hurt unit
       // in its trench heals at the end of this turn, from the list the turn
       // phase adds (`healFigure`). Only while it is dug in, and only while it
       // is hurt; "+0 HP" is faint, and the card says why.
       const heal = isFortified(unit) ? healFigure(state, unit) : null;
+      // What ends the quiet, said on the card (the rulings of 2026-11-21).
       const waits =
-        unit.untilHealed === 'waiting'
+        unit.dugIn === 'untilHealed'
           ? 'It waits here until it is at full health, an enemy comes into sight or it is attacked.'
-          : undefined;
+          : dug
+            ? 'It asks for orders again if an enemy comes into sight or attacks it.'
+            : undefined;
       actions.push({
         label: dug ? `${signedFigure(fortifyBonus(unit))} fortified` : 'Fortify',
         key: 'F',
         blocked,
-        hint: woken
-          ? 'Stay dug in, keep the defence bonus and stop asking for orders'
-          : 'Dig in: defence grows each turn the unit stays put',
+        hint: awake
+          ? 'Stay dug in, keep the defence bonus and stop asking for orders. An enemy already in sight does not wake it again.'
+          : 'Dig in: defence grows each turn the unit stays put. It asks for orders again if an enemy comes into sight or attacks it.',
         ...(heal === null
           ? {}
           : { figure: heal, card: () => healCard(dug ? 'Fortified' : 'Fortify', heal, blocker ?? null, waits) }),
@@ -958,7 +962,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       // "Sleeping". Greyed with `fortifyUntilHealedError`'s own sentence when
       // the order cannot be given now, Fortify's reading.
       const hurt = healFigure(state, unit);
-      const waiting = unit.untilHealed === 'waiting';
+      const waiting = unit.dugIn === 'untilHealed';
       if (hurt !== null || waiting) {
         const untilBlocker = fortifyUntilHealedBlocker();
         // The second sentence is the brief's: a unit that heals nothing this
@@ -1707,12 +1711,12 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // of this list is states the piece is passing through.
     notes.push(upkeepNote(unit));
     if (isFortified(unit)) {
-      // The order's end, said beside the trench (`Unit.untilHealed`): waiting
-      // to heal, or woken and asking for orders with the bonus kept.
+      // What the dug-in unit does about orders, said beside the trench
+      // (`Unit.dugIn`): waiting to heal, or awake and asking with the bonus kept.
       const order =
-        unit.untilHealed === 'waiting'
+        unit.dugIn === 'untilHealed'
           ? ' until healed'
-          : unit.untilHealed === 'woken'
+          : unit.dugIn === 'awake'
             ? ' · awaiting orders'
             : '';
       notes.push(`${signedFigure(fortifyBonus(unit))} fortified${order}`);

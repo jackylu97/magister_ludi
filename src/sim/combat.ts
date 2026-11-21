@@ -380,7 +380,7 @@ import {
   realPlayers,
   removeUnit,
   unitById,
-  wakeFromHealing,
+  wakeInTrench,
 } from './state';
 import { seatPeople } from './leaderData';
 import { atWar, recordWarCapture, warBetween, warSpoils } from './wars';
@@ -496,14 +496,16 @@ export { breakFortify };
  * accepts, so a live button and a rejected command cannot disagree. It asks
  * nothing about the turn or the actor — those belong to the command.
  *
- * A unit woken from "fortify until healed" (`Unit.untilHealed` is `'woken'`)
- * is dug in but has no orders, so it may fortify again. The command keeps its
- * trench and its bonus, and the unit stops asking for orders.
+ * A dug-in unit that woke (`Unit.dugIn` is `'awake'`: an enemy came into
+ * sight, it was attacked, or it healed) has no orders, so it may fortify
+ * again. The command keeps its trench and its bonus, and the unit stops asking
+ * for orders. That digs no new trench, so the `noFortify` law does not bar it:
+ * a unit that dug in before the law came must still be able to stop asking.
  */
 export function fortifyError(unit: Unit, state?: GameState): string | null {
   const def = unitDef(unit.type);
   if (isCivilian(def)) return `A ${def.name} cannot fortify`;
-  if (isFortified(unit) && unit.untilHealed !== 'woken') return `${def.name} is already fortified`;
+  if (isFortified(unit)) return unit.dugIn === 'awake' ? null : `${def.name} is already fortified`;
   // **Blitz's price**, asked here so the sheet's button and the reducer refuse
   // in one sentence. `state` is optional for the same reason `fullMovement`'s
   // is: a caller with no board in hand is asking about the *piece*, and a law
@@ -526,16 +528,17 @@ export function fortifyError(unit: Unit, state?: GameState): string | null {
  *   · Not a unit that is already waiting to heal.
  *
  * A unit that is already dug in may take the order. It keeps its trench and its
- * bonus, and from then on it waits to heal. The order does not ask whether the
- * unit heals this turn: a unit that moved this turn, or stands where its law
- * stops healing, still waits (`unitHealRefusal`, `healing.ts`, says why it
- * heals nothing).
+ * bonus, and from then on it waits to heal; the `noFortify` law does not bar it,
+ * for `fortifyError`'s reason. The order does not ask whether the unit heals
+ * this turn: a unit that moved this turn, or stands where its law stops
+ * healing, still waits (`unitHealRefusal`, `healing.ts`, says why it heals
+ * nothing).
  */
 export function fortifyUntilHealedError(unit: Unit, state: GameState): string | null {
   const def = unitDef(unit.type);
   if (isCivilian(def)) return `A ${def.name} cannot fortify`;
-  if (unit.untilHealed === 'waiting') return `${def.name} is already fortified until healed`;
-  if (cardBehaviorRule(state, unit.ownerId, 'noFortify')) {
+  if (unit.dugIn === 'untilHealed') return `${def.name} is already fortified until healed`;
+  if (!isFortified(unit) && cardBehaviorRule(state, unit.ownerId, 'noFortify')) {
     return `${def.name} cannot fortify under your law`;
   }
   const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
@@ -890,7 +893,7 @@ function boardsAtSea(attacker: UnitDef, target: AttackTarget, tile: Tile): boole
 
 /**
  * **Is this piece a laden caravan of an empire whose law protects it?** —
- * Pytheas' clause, and The Muda's narrower one (`cardTraderShielded`).
+ * Jang Bogo's clause, and The Muda's narrower one (`cardTraderShielded`).
  *
  * Asked of the piece's own `trade` as well as of its type, exactly as the
  * plunder clause in `planCombat` is: an **unladen** trader is an ordinary
@@ -2809,10 +2812,12 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       // the turn the mine was pillaged. That is the clamp, and it is the same
       // figure `planCombat` forecast a moment ago.
       defender.hp = unitHp(defender, unitHealthBonus(state, defender.ownerId)) - dealt;
-      // An attack ends a wait to heal: the unit stays dug in and asks for
-      // orders again (`Unit.untilHealed`). A unit that dies or changes hands
-      // below loses the order with the piece or the trench.
-      wakeFromHealing(defender);
+      // An attack wakes a dug-in unit, plain or waiting to heal: it stays dug
+      // in with its bonus and asks for orders again (`Unit.dugIn`). Every attack
+      // wakes it, since each blow is news. A unit that dies or changes hands
+      // below loses the mark with the piece or the trench. The wild is never
+      // asked for orders, so its pieces are left alone.
+      if (!isBarbarian(state, defender.ownerId)) wakeInTrench(defender);
       if (defender.hp <= 0) {
         const fallenOwner = defender.ownerId;
         const fromWild = playerById(state, fallenOwner)?.barbarian === true;

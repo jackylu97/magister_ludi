@@ -1,6 +1,7 @@
 /**
- * "Fortify until healed": the `fortify` command with `untilHealed: true` (the
- * user's ruling of 2026-11-21, `docs/flags.md`, the last section).
+ * A dug-in unit and when it asks for orders again: "fortify until healed" (the
+ * `fortify` command with `untilHealed: true`) and the wake of a plain fortified
+ * unit (the user's rulings of 2026-11-21, `docs/flags.md`).
  *
  * The properties, and they are the whole feature:
  *
@@ -10,17 +11,18 @@
  *      (hard rule 1).
  *   2. **The unit waits in silence.** It digs in as usual and does not ask for
  *      orders while it heals, even on a turn it heals nothing.
- *   3. **It wakes, dug in.** At full health, with an enemy in its sight, or
- *      when it is attacked, `Unit.untilHealed` becomes `'woken'`: the trench
- *      and its bonus stay, and the unit asks for orders again.
- *   4. **Any other order clears it**, as an order clears sleep. A plain
- *      fortify on a woken unit keeps the trench and stops the asking.
- *   5. **The heal is one list.** `explainUnitHeal` is what the `healUnits`
+ *   3. **It wakes, dug in.** At full health (until healed only), with a new
+ *      enemy in its sight, or when it is attacked, `Unit.dugIn` becomes
+ *      `'awake'`: the trench and its bonus stay, and the unit asks for orders
+ *      again. A plain fortified unit wakes for an enemy and an attack too.
+ *   4. **One alert per threat.** A unit told to fortify while an enemy is in
+ *      sight stays quiet until its sight is clear and an enemy next enters it
+ *      (`Unit.enemyInSight`).
+ *   5. **Any other order clears it**, as an order clears sleep. A plain
+ *      fortify on an awake unit keeps the trench and stops the asking.
+ *   6. **The heal is one list.** `explainUnitHeal` is what the `healUnits`
  *      phase adds, cap included. The unit sheet's figure is held against the
  *      phase in `test/ui/unitPanel.test.ts`.
- *
- * Tests written on 2026-11-21 while the user had paused test runs; they were
- * not run when they were written.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -38,6 +40,13 @@ import { resetVisibility } from '../../src/sim/visibility';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { openEveryWar } from './warHelpers';
 import { newGame } from './newGameHelpers';
+
+/** The bot's source, read for the one register below. */
+const BOT_SOURCE = import.meta.glob('../../src/ai/bot.ts', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
 
 /** A blank two-seat state on flat grassland, at war, with no wild to wander in. */
 function flatState(): GameState {
@@ -97,7 +106,7 @@ describe('the fortify-until-healed command', () => {
     const warrior = hurtWarrior(state, 40);
     expect(applyCommand(state, untilHealed(warrior.id))).toEqual({ ok: true });
     expect(warrior.fortifiedTurns).toBe(0);
-    expect(warrior.untilHealed).toBe('waiting');
+    expect(warrior.dugIn).toBe('untilHealed');
   });
 
   it('refuses a unit at full health, and leaves the state byte-identical', () => {
@@ -164,7 +173,7 @@ describe('the fortify-until-healed command', () => {
     warrior.fortifiedTurns = 2;
     expect(applyCommand(state, untilHealed(warrior.id))).toEqual({ ok: true });
     expect(warrior.fortifiedTurns).toBe(2);
-    expect(warrior.untilHealed).toBe('waiting');
+    expect(warrior.dugIn).toBe('untilHealed');
   });
 
   it('does not require movement, like fortify', () => {
@@ -191,7 +200,7 @@ describe('a unit waiting to heal', () => {
     applyCommand(state, untilHealed(warrior.id));
     endRound(state);
     expect(warrior.hp).toBe(40 + RULES.healing.perTurnIfRested);
-    expect(warrior.untilHealed).toBe('waiting');
+    expect(warrior.dugIn).toBe('untilHealed');
     expect(unitAwaitsOrders(warrior)).toBe(false);
   });
 
@@ -204,7 +213,7 @@ describe('a unit waiting to heal', () => {
     expect(unitHealRefusal(state, warrior)).toBe('It moved or acted this turn.');
     endRound(state);
     expect(warrior.hp).toBe(40);
-    expect(warrior.untilHealed).toBe('waiting');
+    expect(warrior.dugIn).toBe('untilHealed');
   });
 });
 
@@ -216,7 +225,7 @@ describe('waking from the wait', () => {
     applyCommand(state, untilHealed(warrior.id));
     endRound(state);
     expect(warrior.hp).toBe(maxHpOf(state, warrior));
-    expect(warrior.untilHealed).toBe('woken');
+    expect(warrior.dugIn).toBe('awake');
     // The trench and its bonus stay: `advanceFortify` raised it this turn.
     expect(warrior.fortifiedTurns).toBe(1);
     expect(unitAwaitsOrders(warrior)).toBe(true);
@@ -230,7 +239,7 @@ describe('waking from the wait', () => {
     // A warrior sees 2 (`data/units.json`); two hexes east is inside it.
     createUnit(state, 1, 'warrior', 7, 5);
     runEndOfTurn(state);
-    expect(warrior.untilHealed).toBe('woken');
+    expect(warrior.dugIn).toBe('awake');
     expect(warrior.fortifiedTurns).toBeDefined();
   });
 
@@ -240,7 +249,7 @@ describe('waking from the wait', () => {
     applyCommand(state, untilHealed(warrior.id));
     createUnit(state, 1, 'warrior', 12, 5);
     runEndOfTurn(state);
-    expect(warrior.untilHealed).toBe('waiting');
+    expect(warrior.dugIn).toBe('untilHealed');
   });
 
   it('wakes when it is attacked, and keeps its trench', () => {
@@ -253,7 +262,7 @@ describe('waking from the wait', () => {
     ).toBe(true);
     // A blow of about thirty leaves a seventy-point warrior standing.
     expect(state.units.includes(warrior)).toBe(true);
-    expect(warrior.untilHealed).toBe('woken');
+    expect(warrior.dugIn).toBe('awake');
     expect(warrior.fortifiedTurns).toBeDefined();
   });
 });
@@ -264,7 +273,7 @@ describe('an order clears the wait', () => {
     const warrior = hurtWarrior(state, 40);
     applyCommand(state, untilHealed(warrior.id));
     expect(applyCommand(state, { type: 'moveUnit', playerId: 0, unitId: warrior.id, target: { col: 6, row: 5 } }).ok).toBe(true);
-    expect('untilHealed' in warrior).toBe(false);
+    expect('dugIn' in warrior).toBe(false);
     expect('fortifiedTurns' in warrior).toBe(false);
   });
 
@@ -273,7 +282,7 @@ describe('an order clears the wait', () => {
     const warrior = hurtWarrior(state, 40);
     applyCommand(state, untilHealed(warrior.id));
     expect(applyCommand(state, { type: 'setAutoExplore', playerId: 0, unitId: warrior.id, on: true }).ok).toBe(true);
-    expect('untilHealed' in warrior).toBe(false);
+    expect('dugIn' in warrior).toBe(false);
   });
 
   it('does not clear on a refused order', () => {
@@ -283,7 +292,7 @@ describe('an order clears the wait', () => {
     const before = clone(state);
     expect(applyCommand(state, { type: 'moveUnit', playerId: 0, unitId: warrior.id, target: { col: 5, row: -4 } }).ok).toBe(false);
     expect(state).toEqual(before);
-    expect(warrior.untilHealed).toBe('waiting');
+    expect(warrior.dugIn).toBe('untilHealed');
   });
 
   it('lets a woken unit fortify again, keeping its bonus and going quiet', () => {
@@ -292,10 +301,10 @@ describe('an order clears the wait', () => {
     warrior.hp = maxHpOf(state, warrior) - 5;
     applyCommand(state, untilHealed(warrior.id));
     endRound(state);
-    expect(warrior.untilHealed).toBe('woken');
+    expect(warrior.dugIn).toBe('awake');
     const depth = warrior.fortifiedTurns;
     expect(applyCommand(state, fortify(warrior.id))).toEqual({ ok: true });
-    expect('untilHealed' in warrior).toBe(false);
+    expect('dugIn' in warrior).toBe(false);
     expect(warrior.fortifiedTurns).toBe(depth);
     expect(unitAwaitsOrders(warrior)).toBe(false);
   });
@@ -310,6 +319,137 @@ describe('an order clears the wait', () => {
     applyCommand(state, { type: 'moveUnit', playerId: 0, unitId: never.id, target: { col: 16, row: 5 } });
     const shape = (unit: Unit): string => JSON.stringify(Object.keys(unit).sort());
     expect(shape(ordered)).toBe(shape(never));
+  });
+});
+
+/**
+ * "plain fortify should wake if an enemy is in sight" (the user, 2026-11-21,
+ * `docs/flags.md`, "Rulings before the beta").
+ */
+describe('a plain fortified unit', () => {
+  /** A warrior of seat 0 at (5, 5), dug in with one turn of bonus. */
+  function dugIn(state: GameState): Unit {
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    expect(applyCommand(state, fortify(warrior.id))).toEqual({ ok: true });
+    warrior.fortifiedTurns = 1;
+    return warrior;
+  }
+
+  it('stays quiet with no enemy in sight', () => {
+    const state = flatState();
+    const warrior = dugIn(state);
+    runEndOfTurn(state);
+    expect('dugIn' in warrior).toBe(false);
+    expect('enemyInSight' in warrior).toBe(false);
+    expect(unitAwaitsOrders(warrior)).toBe(false);
+  });
+
+  it('wakes when an enemy soldier comes into its own sight, and keeps its trench', () => {
+    const state = flatState();
+    const warrior = dugIn(state);
+    // A warrior sees 2 (`data/units.json`); two hexes east is inside it.
+    createUnit(state, 1, 'warrior', 7, 5);
+    runEndOfTurn(state);
+    expect(warrior.dugIn).toBe('awake');
+    expect(warrior.enemyInSight).toBe(true);
+    // `advanceFortify` raised the depth this turn; the trench is not broken.
+    expect(warrior.fortifiedTurns).toBe(2);
+    expect(unitAwaitsOrders(warrior)).toBe(true);
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleUnit', unitId: warrior.id });
+  });
+
+  it('does not wake for an enemy civilian or one outside its sight', () => {
+    const state = flatState();
+    const warrior = dugIn(state);
+    createUnit(state, 1, 'worker', 6, 5);
+    createUnit(state, 1, 'warrior', 12, 5);
+    runEndOfTurn(state);
+    expect('dugIn' in warrior).toBe(false);
+  });
+
+  it('wakes when it is attacked', () => {
+    const state = flatState();
+    const warrior = dugIn(state);
+    const raider = createUnit(state, 1, 'warrior', 6, 5);
+    expect(
+      applyCommand(state, { type: 'attack', playerId: 1, unitId: raider.id, target: { col: 5, row: 5 } }).ok,
+    ).toBe(true);
+    expect(state.units.includes(warrior)).toBe(true);
+    expect(warrior.dugIn).toBe('awake');
+    expect(warrior.fortifiedTurns).toBe(1);
+  });
+
+  it('alerts once a threat: fortified again, it stays quiet while the same enemy stays', () => {
+    const state = flatState();
+    const warrior = dugIn(state);
+    const enemy = createUnit(state, 1, 'warrior', 7, 5);
+    runEndOfTurn(state);
+    expect(warrior.dugIn).toBe('awake');
+
+    // The player answers the alert: fortify again. The trench and its bonus stay.
+    const depth = warrior.fortifiedTurns;
+    expect(applyCommand(state, fortify(warrior.id))).toEqual({ ok: true });
+    expect('dugIn' in warrior).toBe(false);
+    expect(warrior.fortifiedTurns).toBe(depth);
+    expect(warrior.enemyInSight).toBe(true);
+
+    // The enemy stays in view: no second alert.
+    runEndOfTurn(state);
+    runEndOfTurn(state);
+    expect('dugIn' in warrior).toBe(false);
+    expect(unitAwaitsOrders(warrior)).toBe(false);
+
+    // The enemy leaves its sight: the mark clears, and the unit stays quiet.
+    enemy.col = 14;
+    runEndOfTurn(state);
+    expect('enemyInSight' in warrior).toBe(false);
+    expect('dugIn' in warrior).toBe(false);
+
+    // An enemy enters its sight again: a new alert.
+    enemy.col = 7;
+    runEndOfTurn(state);
+    expect(warrior.dugIn).toBe('awake');
+  });
+
+  it('takes an order given in front of an enemy as the answer to that threat', () => {
+    const state = flatState();
+    createUnit(state, 1, 'warrior', 7, 5);
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    expect(applyCommand(state, fortify(warrior.id))).toEqual({ ok: true });
+    expect(warrior.enemyInSight).toBe(true);
+    runEndOfTurn(state);
+    expect('dugIn' in warrior).toBe(false);
+  });
+
+  it('does not change how a sleeper wakes: every turn an enemy is in sight', () => {
+    const state = flatState();
+    const worker = createUnit(state, 0, 'worker', 5, 5);
+    createUnit(state, 1, 'warrior', 7, 5);
+    expect(applyCommand(state, { type: 'sleepUnit', playerId: 0, unitId: worker.id })).toEqual({ ok: true });
+    runEndOfTurn(state);
+    expect(worker.sleeping).toBeUndefined();
+    expect(applyCommand(state, { type: 'sleepUnit', playerId: 0, unitId: worker.id })).toEqual({ ok: true });
+    runEndOfTurn(state);
+    expect(worker.sleeping).toBeUndefined();
+  });
+
+  it('clears both marks with the trench', () => {
+    const state = flatState();
+    const warrior = dugIn(state);
+    createUnit(state, 1, 'warrior', 7, 5);
+    runEndOfTurn(state);
+    expect(applyCommand(state, { type: 'moveUnit', playerId: 0, unitId: warrior.id, target: { col: 4, row: 5 } }).ok).toBe(true);
+    expect('fortifiedTurns' in warrior).toBe(false);
+    expect('dugIn' in warrior).toBe(false);
+    expect('enemyInSight' in warrior).toBe(false);
+  });
+
+  it('is set aside by the bots, which never heard of a dug-in piece through the blockers', () => {
+    const bot = BOT_SOURCE['../../src/ai/bot.ts'] ?? '';
+    expect(bot).toContain('const blocker = firstBlocker(state, player.id, awakeTrenches(state, player.id));');
+    expect(bot).toContain('const blocker = firstBlocker(state, playerId, awakeTrenches(state, playerId));');
+    // And no call reaches the blockers without the set: none with two arguments.
+    expect(bot.match(/firstBlocker\(state, [\w.]+\)/g) ?? []).toEqual([]);
   });
 });
 

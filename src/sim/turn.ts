@@ -124,14 +124,13 @@ import {
 } from "./combat";
 import { type PillageReport, raidFromTheSea } from "./improvements";
 import type { DisbandReport } from "./upkeep";
-import { hasLineOfSight } from "./los";
 import {
   openFaithLadder,
   pruneTimedEffects,
   spreadReligion,
 } from "./religion";
 import { tileOwnerField } from "./state";
-import { getTileAt, tileHex, tileIndex, wrappedDistance } from "./map";
+import { tileIndex } from "./map";
 import { type RerouteReport, advanceAlongPath, rerouteReport } from "./movement";
 import {
   musterPeriodicUnits,
@@ -176,7 +175,8 @@ import {
   type GameState,
   type Unit,
   bumpRevision,
-  wakeFromHealing,
+  isBarbarian,
+  wakeInTrench,
   wakeUnit,
 } from "./state";
 import { bumpEconomy, setSlatePhase } from "./slate";
@@ -189,7 +189,7 @@ import { fullMovement } from "./units";
 // The heal a unit gets this turn, as a labelled list and its fold. The unit
 // sheet prints the same fold, so the two cannot disagree.
 import { explainUnitHeal, foldUnitHeal } from "./healing";
-import { recomputeAllVisibility, sightOf } from "./visibility";
+import { foreignSoldierInSight, recomputeAllVisibility } from "./visibility";
 
 /**
  * What a resolution *did* that stops being visible the instant it is over.
@@ -1095,39 +1095,52 @@ function healUnits(state: GameState): void {
  * Iterates `state.units` twice in `state.units` order and touches only a flag,
  * so it is deterministic in the state alone and rolls no dice.
  *
- * **A soldier fortified until healed is woken here too** (`Unit.untilHealed`,
- * the ruling of 2026-11-21). Two of its three reasons are this phase's: its
- * health is full, or a foreign combatant is inside its own sight, by the same
- * rule as a sleeper. The third, an attack on it, is `applyCombat`'s. Waking it
- * keeps it dug in with its bonus; it only starts to ask for orders again. Late
- * for the same reasons as the sleepers: `healUnits` has already added this
- * turn's heal, and the board has stopped moving.
+ * **A dug-in soldier is woken here too** (`Unit.dugIn`, the rulings of
+ * 2026-11-21: "fortify until healed", and "plain fortify should wake if an
+ * enemy is in sight"). Two of its three reasons are this phase's; the third,
+ * an attack on it, is `applyCombat`'s.
+ *
+ *   · **Full health**, for a unit told to fortify until healed.
+ *   · **A foreign soldier in its own sight**, for any dug-in unit, by the same
+ *     test as a sleeper (`foreignSoldierInSight`). Unlike a sleeper, it wakes
+ *     once a threat: only when its sight held no foreign soldier the last time
+ *     it looked (`Unit.enemyInSight`). The mark is written here when the wake
+ *     fires and deleted at the end of a turn on which its sight is clear, so a
+ *     unit told to fortify again in front of the same enemy is not asked again
+ *     each turn. A sleeper keeps the old rule and wakes every turn an enemy is
+ *     in sight, as before.
+ *
+ * Waking keeps the unit dug in with its bonus; it only starts to ask for orders
+ * again. Late for the sleepers' reasons: `healUnits` has already added this
+ * turn's heal, and the board has stopped moving. The wild's own pieces are
+ * skipped, because the barbarian seat is never asked for orders.
  */
 function wakeSleepers(state: GameState): void {
-  for (const sleeper of state.units) {
-    const waiting = sleeper.untilHealed === "waiting";
-    if (sleeper.sleeping !== true && !waiting) continue;
-    // Full health ends the wait. The piece's own maximum, with its empire's
-    // share, which is the bar `explainUnitHeal` caps the heal at.
-    if (waiting && sleeper.hp >= unitMaxHp(sleeper, unitHealthBonus(state, sleeper.ownerId))) {
-      wakeFromHealing(sleeper);
+  // The soldiers, once, in `state.units` order: every watcher asks the same list.
+  const soldiers = state.units.filter((unit) => isCombatant(unitDef(unit.type)));
+  for (const unit of state.units) {
+    if (unit.sleeping === true) {
+      if (foreignSoldierInSight(state, unit, soldiers)) wakeUnit(unit);
       continue;
     }
-    const from = getTileAt(state.map, sleeper.col, sleeper.row);
-    if (!from) continue;
-    const radius = sightOf(state.map, sleeper, state);
-    const eye = tileHex(from);
-    for (const other of state.units) {
-      if (other.ownerId === sleeper.ownerId) continue;
-      if (!isCombatant(unitDef(other.type))) continue;
-      const to = getTileAt(state.map, other.col, other.row);
-      if (!to) continue;
-      if (wrappedDistance(state.map, eye, tileHex(to)) > radius) continue;
-      if (!hasLineOfSight(state.map, from, to)) continue;
-      wakeUnit(sleeper);
-      wakeFromHealing(sleeper);
-      break;
+    if (unit.fortifiedTurns === undefined) continue;
+    if (isBarbarian(state, unit.ownerId)) continue;
+    // Full health ends a wait to heal. The piece's own maximum, with its
+    // empire's share, which is the bar `explainUnitHeal` caps the heal at.
+    if (
+      unit.dugIn === "untilHealed" &&
+      unit.hp >= unitMaxHp(unit, unitHealthBonus(state, unit.ownerId))
+    ) {
+      wakeInTrench(unit);
     }
+    if (!foreignSoldierInSight(state, unit, soldiers)) {
+      delete unit.enemyInSight;
+      continue;
+    }
+    // Already alerted to this threat: no second alert until the sight clears.
+    if (unit.enemyInSight === true) continue;
+    unit.enemyInSight = true;
+    wakeInTrench(unit);
   }
 }
 
