@@ -536,10 +536,10 @@ export class PartsShelf {
    * One sandwich, two ways in — the alternative was a second copy of the mesh
    * plus shell, which is the one thing on this page that must match the board.
    */
-  private inked(geometry: BufferGeometry, color: number): Group {
+  private inked(geometry: BufferGeometry, color: number, vertexColors = false): Group {
     const group = new Group();
     computeHullNormals(geometry);
-    const mesh = new Mesh(geometry, this.materials.get(color));
+    const mesh = new Mesh(geometry, this.materials.get(color, { vertexColors }));
     const shell = new Mesh(geometry, this.materials.outline);
     mesh.add(shell);
     group.add(mesh);
@@ -569,8 +569,8 @@ export class PartsShelf {
       case 'cityTemple':
         return this.solid(parts.temple, CITY.temple.color);
       case 'cityWonder': {
-        const group = this.solid(parts.wonder, CITY.wonder.color);
-        group.add(this.solid(parts.wonderTip, CITY.wonder.tipColor));
+        const group = this.inked(parts.wonderLandmarks['sun-gate'], 0xffffff, true);
+        group.scale.setScalar(CITY.wonder.width);
         return group;
       }
       case 'cityPalace': {

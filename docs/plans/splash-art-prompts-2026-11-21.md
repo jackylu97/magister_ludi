@@ -4,6 +4,7 @@ The user, 2026-11-21: *"can you give me prompts for all remaining splash art, i'
 
 - This page has one Midjourney prompt for each painting that has a picture window and no painting.
 - It changes no game data and no code.
+- Eleven people changed on 2026-11-21 (`docs/plans/great-people-cultures-2026-11-21.md`). Their prompts here are for the new people. The row ids did not change.
 - A web page with a Copy button for each prompt was made from the same text, for the user to work from.
 - The style is not new. Section 1 says where each style block came from.
 
@@ -77,7 +78,7 @@ flat gouache painting on grained paper, simplified hard-edged planes of colour, 
 
 - `scripts/splashArt.py` already knows every name on this page: 137 in `PEOPLE`, 33 in `BELIEFS`, and a `title` kind (16:9, at most 1600 wide, `title.jpg`), added 2026-11-21. It maps the name to the row id and writes `public/art/splash/<kind>/<row id>.jpg`.
 - Run `python3 scripts/splashArt.py people` (or `beliefs`, or `title`). Then add the row id of each new picture to `src/ui/greatPersonPaintings.ts`, `src/ui/beliefPictures.ts` or `TITLE_PAINTINGS` in `src/ui/titlePainting.ts`. A test fails if a list and its folder disagree.
-- Three rows kept the id of an earlier person: `dinocrates` maps to `heroOfAlexandria`, `ibn_jubayr` to `ibnBattuta`, `jacques_coeur` to `cosimoDeMedici`. `hero_of_alexandria` maps to `heronOfAlexandria`.
+- Thirteen rows kept the id of an earlier person: `ibn_jubayr` maps to `ibnBattuta`, `jacques_coeur` to `cosimoDeMedici`, and the eleven rows of `docs/plans/great-people-cultures-2026-11-21.md` (for example `amanitore` maps to `heroOfAlexandria` and `piye` to `artemisia`). `hero_of_alexandria` maps to `heronOfAlexandria`. The table is `PEOPLE` in `scripts/splashArt.py`.
 - The ids on this page's anchors are `gp-<row id>`, `fb-<row id>`, `eb-<row id>`, `title-1` to `title-3`.
 
 </details>
@@ -273,12 +274,12 @@ Engineer, age II. The craftsman of the Book of Exodus. A figure of scripture; no
 Bezalel, a master goldsmith of the Bronze Age Levant, a man of about forty with a dark beard, a simple knee-length wool tunic in blue, a small hammer in his hand over a sheet of beaten gold on a wooden block, low behind him a goat-hair tent and a desert camp below a bare mountain, gold and deep blue lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Eupalinos
+#### Pushyagupta
 
-Engineer, age II. Greek engineer who cut a water tunnel through a hill on Samos, sixth century BC. No likeness. Save as: `art-masters/people/eupalinos.png`.
+Engineer, age II. Governor under Chandragupta Maurya who dammed Lake Sudarshana below Mount Girnar, about 320 BC. One rock text names him. No likeness. Save as: `art-masters/people/pushyagupta.png`.
 
 ```text
-Eupalinos, a Greek engineer of the sixth century BC, a man of about forty-five with a dark beard, a short work tunic, a lit clay oil lamp in one hand and a plumb line in the other, low behind him the dark mouth of a tunnel in a pale rocky hillside and a clay water pipe, pale stone and lamp orange lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Pushyagupta, a provincial governor of Maurya India about 320 BC, a man of about fifty with brown skin, a moustache and a large white turban, a bare chest, a long white lower cloth and a blue sash, a wooden measuring rod held low, low behind him an earth dam that holds a still lake at the foot of a steep rocky mountain, with green fields below, white and lake blue lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Lu Ban
@@ -289,20 +290,20 @@ Engineer, age II. Master carpenter of the state of Lu, about 480 BC. The patron 
 Lu Ban, a master carpenter of ancient China about 480 BC, a man of about fifty with hair in a topknot under a cloth, a short belted indigo work robe with the sleeves tied back, a wooden frame saw in one hand and a carpenter's square in the other, low behind him the timber frame of a hall going up, indigo and fresh wood colours lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Theodorus of Samos
+#### Anacharsis
 
-Engineer, age II. Greek architect and bronze caster of Samos, about 550 BC. The Greeks credited him with the level and the key. Save as: `art-masters/people/theodorus_of_samos.png`.
+Engineer, age II. Scythian prince and sage who came to Athens, about 590 BC. The Greeks credited him with the bellows and the anchor. No likeness. Save as: `art-masters/people/anacharsis.png`.
 
 ```text
-Theodorus of Samos, a Greek architect and bronze caster about 550 BC, a man of about forty-five with a dark beard, a leather apron over a short tunic, a large bronze key held up in one hand, a wooden mason's level leaning at his side, low behind him a row of temple columns under construction on a flat shore, bronze and cream lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Anacharsis, a Scythian prince and sage of the sixth century BC, a man of about forty-five with a long fair-brown beard, a soft pointed felt cap with ear flaps, a belted red wool jacket with a patterned edge and trousers, working a leather bellows with both hands over a small clay forge fire, low behind him open grassland with a felt-covered wagon and two horses, red and felt grey lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Mandrocles of Samos
+#### Artachaees
 
-Engineer, age II. Greek engineer of Samos who bridged the Bosporus with boats, about 513 BC. No likeness. Save as: `art-masters/people/mandrocles_of_samos.png`.
+Engineer, age II. Persian noble who directed the canal of Xerxes through the Athos peninsula, about 480 BC. Herodotus calls him the tallest man in Persia. Save as: `art-masters/people/artachaees.png`.
 
 ```text
-Mandrocles, a Greek engineer of Samos about 513 BC, a man of about forty with a short beard, a cloak pinned at one shoulder, a thick coil of rope over his arm, his other arm pointing across the water, low behind him a bridge of boats lashed side by side across a blue strait, a tiny column of soldiers on it, blue and rope tan lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Artachaees, a Persian noble and engineer of 480 BC, a very tall man of about fifty with a long curled dark beard, a saffron yellow tunic with a purple border and trousers, a surveyor's rod held low, his other arm pointing along the water, low behind him a straight canal through a low neck of land with a tiny warship in it and a far mountain, saffron and purple lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Ineni
@@ -457,12 +458,12 @@ General, age II. General of Thutmose III, about 1450 BC. The tale says he took J
 Djehuty, an Egyptian general about 1450 BC, a man of about forty-five with brown skin, a short wig, a white kilt and a gold collar, a mace of command held low, one hand on the lid of a great woven basket in a row of them, low behind him the walls of a hill town on the coast, white, gold and basket tan lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Artemisia of Caria
+#### Piye
 
-General, age II. Queen of Caria who commanded ships at Salamis, 480 BC. No likeness. Save as: `art-masters/people/artemisia_of_caria.png`.
+General, age II. King of Kush who conquered Egypt, ruled about 747 to 716 BC. The reliefs of him are damaged. Save as: `art-masters/people/piye.png`.
 
 ```text
-Artemisia, a queen of Caria and a naval commander in 480 BC, a woman of about forty with dark hair under a gold band, a bronze scale corslet over a long purple dress, a helmet in her hand, standing at the stern of a warship, low behind her the oars and bronze rams of war galleys in a narrow blue strait, purple and bronze lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Piye, a king of Kush of the eighth century BC, a strong man of about forty-five with dark brown skin, a close-fitting cap crown with two cobras at the brow, a broad gold collar, a ram-head pendant and a white kilt, a mace held low, standing at the prow of a river warship, low behind him the Nile with tiny ships and a walled city on the bank, gold and white lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Tomyris
@@ -475,12 +476,12 @@ Tomyris, a queen of the nomads of the Central Asian steppe about 530 BC, a woman
 
 ## 5. Great people, age III (43, 5:6)
 
-#### Epicurus
+#### Omar Khayyam
 
-Scholar, age III. Greek philosopher, 341 to 270 BC. Busts exist. Save as: `art-masters/people/epicurus.png`.
+Scholar, age III. Persian mathematician, astronomer and poet of Nishapur, 1048 to 1131. No portrait from life. Save as: `art-masters/people/omar_khayyam.png`.
 
 ```text
-Epicurus, a Greek philosopher about 290 BC, a man of about sixty with a long face and a full beard, a plain wool cloak in undyed grey, a ripe fig held in one open hand, seated on a bench, low behind him a walled garden with a fig tree outside Athens, grey wool and fig green lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Omar Khayyam, a Persian mathematician and astronomer of Nishapur about the year 1100, a man of about fifty-five with a grey beard, a white turban and a long turquoise robe with a sash, a brass astrolabe in one hand and a small clay wine cup in the other, seated, low behind him a walled garden with a blossoming tree and a far line of snow mountains, turquoise and blossom pink lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Ptahhotep
@@ -635,12 +636,12 @@ Engineer, age III. Governor of Shu who built the Dujiangyan river works, about 2
 Li Bing, a governor of the state of Qin in the third century BC, a man of about fifty with a short beard, a dark robe and a flat cap, a measuring rod in his hand, low behind him a wide river divided by a long barrier of stone and bamboo baskets below green mountains, dark blue and river green lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Dinocrates
+#### Amanitore
 
-Engineer, age III. Greek architect who planned Alexandria for Alexander, 331 BC. No likeness. Save as: `art-masters/people/dinocrates.png`.
+Engineer, age III. Ruling queen of Kush, first century. Temple reliefs at Naqa show her as a broad, strong woman. Save as: `art-masters/people/amanitore.png`.
 
 ```text
-Dinocrates, a Greek architect of the fourth century BC, a tall man of about forty with a short beard, a tunic and a cloak in deep red, pouring a line of pale barley flour from a sack to mark a street on the ground, low behind him a flat sandy coast with a low island offshore, deep red and sand lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Amanitore, a ruling queen of Kush in the first century, a powerful broad woman of about forty-five with dark brown skin, a close cap crown with a cobra at the brow, a wide bead collar and a long fringed robe, a coiled measuring cord in one hand, low behind her a small sandstone temple with a tall sloping gateway on a dry plain with acacia trees, gold and sandstone orange lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Cai Lun
@@ -659,20 +660,20 @@ Engineer, age III. Hero of Alexandria, Greek engineer of the first century, make
 Hero of Alexandria, a Greek engineer of the first century, a man of about forty-five with a dark curly beard, a tunic and an ochre cloak, his hand beside a small bronze sphere with two bent nozzles that spins on a stand above a steaming cauldron, low behind him a temple front with tall doors, bronze and ochre lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Apollodorus of Damascus
+#### Gyōki
 
-Engineer, age III. Architect from Damascus, engineer to the emperor Trajan, about 105. A bust may show him. Save as: `art-masters/people/apollodorus_of_damascus.png`.
+Engineer, age III. Japanese Buddhist monk who built bridges, roads and ponds, 668 to 749. A later wooden statue exists. Save as: `art-masters/people/gyoki.png`.
 
 ```text
-Apollodorus of Damascus, an architect and military engineer of the Roman empire about the year 105, a man of about fifty with a short curly beard, a tunic and a deep red cloak, an unrolled blank plan and a bronze foot rule in his hands, low behind him a long bridge of timber arches on stone piers across a wide river, deep red and timber brown lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Gyoki, a Japanese Buddhist monk of the eighth century, a lean old man of about seventy with a shaved head, a plain grey-brown robe with a dark patched stole, a walking staff held low and a string of wooden beads, low behind him a new wooden bridge across a river with tiny workers who carry baskets of earth, grey-brown and fresh wood colours lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Sostratus of Cnidus
+#### al-Hasan ibn Sulayman
 
-Engineer, age III. Greek architect of Cnidus who built the lighthouse of Alexandria, about 280 BC. No likeness. Save as: `art-masters/people/sostratus_of_cnidus.png`.
+Engineer, age III. Sultan of Kilwa on the Swahili coast, ruled about 1310 to 1333. No likeness. Save as: `art-masters/people/al_hasan_ibn_sulayman.png`.
 
 ```text
-Sostratus of Cnidus, a Greek architect about 280 BC, a man of about fifty with a grey beard, a cloak over a work tunic, a mason's chisel and mallet in his hands, low behind him and far away a lighthouse of three stages on a small island at a harbour mouth, no higher than his shoulder, pale stone and sea blue lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Al-Hasan ibn Sulayman, a sultan of the Swahili island port of Kilwa in the fourteenth century, a man of about forty-five with dark brown skin and a short beard, a large white turban, a white robe under an open coat of green silk, a few plain gold coins in one open hand, low behind him a white coral-stone palace with domes above a harbour with a dhow, white and green lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Zheng Guo
@@ -691,12 +692,12 @@ Merchant, age III. Sogdian merchant whose letter home from China was never deliv
 Nanaivandak, a Sogdian merchant of the fourth century, a man of about forty with a beard, a belted knee-length caftan with a patterned border and a soft pointed cap, a folded letter in his hand, low behind him a mud-brick watchtower on a desert road and two tiny camels, caftan red and sand lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Hippalus
+#### Zoskales
 
-Merchant, age III. Greek captain who is said to have found the monsoon route to India, first century BC. No likeness. Save as: `art-masters/people/hippalus.png`.
+Merchant, age III. Ruler of the Red Sea coast at Adulis, about the year 100. One Greek sailing guide names him. No likeness. Save as: `art-masters/people/zoskales.png`.
 
 ```text
-Hippalus, a Greek sea captain of the first century BC, a sun-browned man of about forty-five with a short beard, a plain tunic, one hand on a steering oar and his face turned to the wind, low behind him the deck and full square sail of a merchant ship on open blue sea, sail cream and sea blue lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Zoskales, a ruler of the Red Sea coast of ancient Eritrea about the year 100, a man of about fifty with dark brown skin and a short beard, a white robe with a red border and a gold headband, one hand on a great elephant tusk beside him, a tortoise shell at his feet, low behind him a bay and a ship with a square sail, white and red lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Crassus
@@ -707,12 +708,12 @@ Merchant, age III. The richest man of Rome, about 115 to 53 BC. A bust is though
 Crassus, a Roman senator of the first century BC, a lean man of about fifty-five with short grey hair, clean-shaven, a white toga with a wide purple stripe, one hand on the lid of an iron-bound chest, low behind him the columns of the Roman forum, white and purple lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Pytheas
+#### Jang Bogo
 
-Merchant, age III. Greek explorer of Marseille who sailed to the far north, about 325 BC. No likeness. Save as: `art-masters/people/pytheas.png`.
+Merchant, age III. Korean sea commander and merchant of Silla, died between 841 and 846. The usual picture is modern. Save as: `art-masters/people/jang_bogo.png`.
 
 ```text
-Pytheas, a Greek explorer of the fourth century BC, a man of about forty with a beard, a heavy wool cloak with a hood pushed back, holding the rail at the prow of a ship, low behind him pale ice floes on a grey-blue northern sea, grey-blue and ice white lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Jang Bogo, a Korean sea commander and merchant of the ninth century, a strong man of about forty-five with a short black beard and a black cloth cap over a topknot, a coat of small iron plates over a dark blue robe, one hand on his sword hilt, low behind him a wooden fort on a small green island and two merchant ships with ribbed sails, dark blue and iron grey lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Lü Buwei
@@ -723,12 +724,12 @@ Merchant, age III. Merchant who put a hostage prince on the throne of Qin and be
 Lu Buwei, a merchant and chancellor of the state of Qin about 250 BC, a shrewd man of about fifty with a thin moustache and beard, a rich dark silk robe with a patterned border, holding up a pale green jade disc between his fingers to look at it, low behind him the gate tower of a walled city and tiny wagons, jade green and dark silk lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
-#### Pasion
+#### Anāthapiṇḍika
 
-Merchant, age III. A slave at a banker's table who became the richest banker in Athens, died 370 BC. No likeness. Save as: `art-masters/people/pasion.png`.
+Merchant, age III. Banker of Shravasti in the time of the Buddha, about the fifth century BC. Known from Buddhist scripture. No likeness. Save as: `art-masters/people/anathapindika.png`.
 
 ```text
-Pasion, a banker of Athens in the fourth century BC, a man of about fifty with a short beard, a plain good cloak, seated at a small wooden money table with stacks of plain silver coins and a small hand balance, low behind him the colonnade of a port market and the masts of ships, silver and cloak blue lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
+Anathapindika, a banker of the north Indian city of Shravasti about the fifth century BC, a stout man of about fifty-five with brown skin, a large white turban and gold earrings, a bare chest with a fine white lower cloth and an orange shawl, pouring square gold coins from a cloth bag onto the ground, low behind him a grove of mango trees with an ox cart, orange and white lead, half-length portrait, three-quarter view, calm and dignified, head in the middle of the frame with open plain sky above it and in the upper corners, flat gouache painting on grained paper, simplified hard-edged planes of colour, no outlines, face built from a few clear planes of light and shadow, low warm late-afternoon sun from the left, blue-violet shadows, plain deep ultramarine sky behind the head, apricot-lit cumulus clouds low in the frame, matte, very little fine detail --ar 5:6 --no text, lettering, writing, border, frame, black bars, letterbox, signature, watermark
 ```
 
 #### Widow Qing of Ba
@@ -1631,6 +1632,6 @@ one steady flame in a deep round-topped niche in a cream stone wall, black soot 
 
 - **The style reference and the values.** They are not in the repo or in the transcript. Only the user has them.
 - **Likenesses.** Most of these people have no portrait from life. The age and the face in each prompt are my choice for a dignified figure.
-- **Dress of the less recorded people.** Tapputi, Peseshet, Kushim, Piyamaradu, Ilimilku, Lamassī, Widow Qing, Yarhai, Auvaiyar, Amina and Tlacaelel are described from their place and period.
+- **Dress of the less recorded people.** Tapputi, Peseshet, Kushim, Piyamaradu, Ilimilku, Lamassī, Widow Qing, Yarhai, Auvaiyar, Amina, Tlacaelel, Anacharsis, Artachaees, Pushyagupta, Zoskales and Anāthapiṇḍika are described from their place and period.
 - **Dates.** They are the usual ones, from memory. Many are approximate.
 - **Names in a prompt.** If Midjourney refuses a name or gives a modern face, delete the name. The rest of the subject part still describes the person.

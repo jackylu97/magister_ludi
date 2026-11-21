@@ -508,7 +508,8 @@
            under it     #hud-meters       the happiness and authority
                                           breakdowns, from the meters chip
            under it     #menu-popover     the game menu, from ☰: saving and
-                                          loading, the Compendium, the tutorial
+                                          loading, the Compendium, the tutorial,
+                                          Report a problem and the build stamp
            under it     #help-overlay     the controls card, from ?
            top-centre   #toasts           news, for five seconds each
            top-left     #empire-corner    the corner panel (batch SS2b): the
@@ -707,12 +708,18 @@
           </button>
         </div>
 
-        <!-- Read-only: the config the running game was created from. -->
+        <!-- Read-only: the config the running game was created from, and the
+             build stamp (src/ui/buildStamp.ts): the commit this page was built
+             from and the save version it reads. A playtester quotes it. -->
         <dl class="info-list">
           <dt>Map</dt>
           <dd id="info-map">—</dd>
           <dt>Seed</dt>
           <dd id="info-seed">—</dd>
+          <dt>Build</dt>
+          <dd id="info-build">—</dd>
+          <dt>Saves</dt>
+          <dd id="info-save-version">—</dd>
         </dl>
 
         <!-- The "Display" settings (shadows, the time of day, stopping the
@@ -742,6 +749,20 @@
         <div class="row">
           <button id="menu-tutorial" class="btn btn-quiet" type="button">
             Show the tutorial again
+          </button>
+        </div>
+
+        <!-- A report for the playtest: a note and a save of this game in one
+             file, built by src/ui/problemReport.ts. Nothing is sent. -->
+        <div class="row">
+          <button
+            id="menu-report"
+            class="btn btn-quiet"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="report-overlay"
+          >
+            Report a problem…
           </button>
         </div>
 
@@ -1579,6 +1600,34 @@
           </button>
         </header>
         <div id="capture-body" class="statecraft-body capture-body"></div>
+      </div>
+    </div>
+
+    <!-- ================= the problem report ====================
+         Report a problem, from the game menu: a note, and one file with the
+         note, a save of this game and what was on screen. A sheet on
+         modalShell.ts, built by src/ui/problemReport.ts. Nothing is sent:
+         the browser saves the file and the player sends it.
+         ============================================================ -->
+    <div
+      id="report-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Report a problem"
+      hidden
+    >
+      <div class="statecraft-sheet report-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <h2 class="statecraft-title">Report a <em>problem</em></h2>
+          </div>
+          <p class="statecraft-hint"><kbd>Esc</kbd> closes. Your note stays.</p>
+          <button id="report-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="report-body" class="statecraft-body report-body"></div>
       </div>
     </div>
 

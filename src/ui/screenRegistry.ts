@@ -91,7 +91,17 @@ interface ScreenRegistry {
   blocksInput(): boolean;
   /** Every registered surface, in the order it was first registered. */
   surfaces(): readonly Surface[];
+  /**
+   * The names last announced through `opening`, oldest first, at most
+   * `RECENT_OPENINGS` of them. A problem report carries them: the screen a
+   * player saw a fault on has usually closed by the time they open the report
+   * from the game menu. A record for the report only; no rule here reads it.
+   */
+  recent(): readonly string[];
 }
+
+/** How many openings `recent` remembers. */
+export const RECENT_OPENINGS = 8;
 
 /** Which kinds each kind of opener closes (rules 1 and 2). */
 const CLOSES: Record<SurfaceKind, readonly SurfaceKind[]> = {
@@ -108,6 +118,7 @@ export function createScreenRegistry(): ScreenRegistry {
   // An array rather than a map, so the order things are closed in is the order
   // they were registered in, and a replacement keeps its place.
   const entries: Surface[] = [];
+  const opened: string[] = [];
 
   return {
     register(surface: Surface): void {
@@ -124,6 +135,8 @@ export function createScreenRegistry(): ScreenRegistry {
         if (entry.name === name || !closes.includes(entry.kind)) continue;
         entry.close();
       }
+      opened.push(name);
+      if (opened.length > RECENT_OPENINGS) opened.shift();
     },
 
     closeAll(): boolean {
@@ -141,6 +154,10 @@ export function createScreenRegistry(): ScreenRegistry {
 
     surfaces(): readonly Surface[] {
       return entries;
+    },
+
+    recent(): readonly string[] {
+      return [...opened];
     },
   };
 }

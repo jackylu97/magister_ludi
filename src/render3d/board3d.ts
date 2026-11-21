@@ -27,6 +27,7 @@
  * on the floor plane instead of floating.
  */
 
+import { createWonderGeometries } from './wonderLandmarks';
 import { APPROVED_WORKS, isApprovedWork } from './approvedWorkCatalog';
 import {
   BoxGeometry,
@@ -116,8 +117,6 @@ import {
   cityShrineFinial,
   cityTemple,
   cityWallSegment,
-  cityWonder,
-  cityWonderTip,
   crystalCluster,
   customsVane,
   customsWarehouse,
@@ -1119,6 +1118,7 @@ function buildRankMarkers(): Record<RankId, BufferGeometry> {
  * docblock). There are five classes, so this costs five geometries.
  */
 export class BoardGeometry {
+  readonly wonderLandmarks = createWonderGeometries();
   readonly prisms: Record<HeightClass, BufferGeometry>;
   readonly peak: BufferGeometry;
   /** The snow on a peak, drawn with the peak's own instance matrix. */
@@ -1185,9 +1185,6 @@ export class BoardGeometry {
   readonly palaceBody: BufferGeometry;
   readonly palaceRoof: BufferGeometry;
   readonly palaceFinial: BufferGeometry;
-  /** The wonder's plinth and its gilt tip. One generic sculpt — see `cityWonder`. */
-  readonly wonder: BufferGeometry;
-  readonly wonderTip: BufferGeometry;
   readonly pole: BufferGeometry;
   /** Overlay shapes: attack and city-site tint, highlight ring, path chip, HP bar. */
   readonly decal: BufferGeometry;
@@ -1436,8 +1433,6 @@ export class BoardGeometry {
     this.palaceBody = cityPalaceBody(CITY.palace);
     this.palaceRoof = cityPalaceRoof(CITY.palace);
     this.palaceFinial = cityPalaceFinial({ ...CITY.palace, size: CITY.palace.finial });
-    this.wonder = cityWonder(CITY.wonder);
-    this.wonderTip = cityWonderTip(CITY.wonder);
     this.pole = bannerPole(CITY.poleRadius, CITY.poleHeight);
     this.decal = hexDecal(BOARD.hexRadius * OVERLAY.reachableScale);
     this.territory = hexDecal(BOARD.hexRadius * VIEW3D.territory.tintScale);
@@ -1533,8 +1528,7 @@ export class BoardGeometry {
     this.palaceBody.dispose();
     this.palaceRoof.dispose();
     this.palaceFinial.dispose();
-    this.wonder.dispose();
-    this.wonderTip.dispose();
+    for (const landmark of Object.values(this.wonderLandmarks)) landmark.dispose();
     this.pole.dispose();
     this.decal.dispose();
     this.ring.dispose();

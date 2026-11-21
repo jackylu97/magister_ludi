@@ -1883,7 +1883,7 @@ describe('the one-row shapes, built generically', () => {
     expect(foldCity(g.state, city).production).toBeCloseTo(bare + 5 * writ, 10);
   });
 
-  it('Dinocrates pays ten turns of hammers for a wonder raised, and for nothing else', () => {
+  it('Amanitore pays ten turns of hammers for a wonder raised, and for nothing else', () => {
     // The worksheet asked for "after completing a wonder" — an occasion the
     // table did not have, and the row waited rather than being bent into
     // `completion`, which would have paid for a granary. Batch E4a gave the
@@ -1908,7 +1908,7 @@ describe('the one-row shapes, built generically', () => {
     expect(hung).toHaveLength(1);
     expect(hung[0]!.expiresTurn).toBe(g.state.turn + 10);
     const paid = explainCardCityYields(g.state, city)
-      .filter((line) => line.source.includes('Dinocrates'))
+      .filter((line) => line.source.includes('Amanitore'))
       .reduce((sum, line) => sum + line.production, 0);
     expect(paid).toBe(3);
   });

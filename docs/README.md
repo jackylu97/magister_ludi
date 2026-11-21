@@ -1567,6 +1567,28 @@ Eight root pages, all named in `vite.config.ts` inputs:
   "+N more". The dock, the research card and the always-visible resources card
   are gone. `topBar.ts` fills the bar; the comment at the head of the HUD in
   `index.html` lists every surface.
+- **The build stamp and Report a problem** (beta checklist row 10). The game
+  menu (☰) prints the build under the map and the seed: Build is the short git
+  commit, which `vite.config.ts` reads once per build into `__APP_COMMIT__`
+  ("dev" when git cannot be asked), and Saves is `SCHEMA_VERSION`
+  (`src/ui/buildStamp.ts`). The menu's "Report a problem…" opens a sheet on
+  the modal shell (`src/ui/problemReport.ts`) with one note field and two
+  buttons. Nothing is sent anywhere.
+  - **Save report file** gives one file,
+    `magister-ludi-report-<date>-turn<N>.json`: the note, the stamp, the time,
+    the user agent and window size, the turn, seat, leader and decks, what was
+    on screen (the open surfaces, the last surfaces opened from the screen
+    registry's `recent`, the open city, the selected unit, the lens), the last
+    uncaught errors (`src/ui/errorLog.ts`: the window's `error` and
+    `unhandledrejection` events, never a `console` wrapper) and the save in
+    Export's own form. The moment is taken when the sheet opens; the save is
+    turned into text in an idle callback, and the button then shows the size.
+  - **Copy summary** puts a few plain lines on the clipboard, and selects them
+    in a text box where the browser refuses.
+  - **A report opens like a save**: `readSaveEnvelope` (`saves.ts`) reads a
+    file whose `kind` is `magister-ludi-report` as the save inside it, so Load,
+    then Import a file, replays it. No keyboard shortcut: the board's letter
+    keys are blocked while a sheet is up, and no free key was obvious.
 - **The landing is three screens and one element** (batch L7, `docs/flags.md`
   (yyyy); the mockup is `mockups/new-game-flow.html`): `data-step` on `#landing`
   is the whole of the screen state: **title**, **world** (the mode switch, the
@@ -2010,7 +2032,9 @@ Eight root pages, all named in `vite.config.ts` inputs:
     court's last words under them (the envoy's answer, a counter, or "Here
     is what I propose." while their offer is open);
   - **the desk**: the act tabs (Exchange, Peace terms), one tray a side with
-    the gold in hand and the chips, "On the table" (the deal, one column a
+    the gold in hand and the chips (gold, open borders, the luxuries, then the
+    strategic resources in their own group, then towns in a peace; see the
+    strategic bullet below), "On the table" (the deal, one column a
     side, each clause with a ×, and "Clear the table"), the two questions,
     and the foot: Declare war (the kit's solid war red, not at war), then
     "Standing and deals" with the count of deals in force and a dot when an
@@ -2023,6 +2047,18 @@ Eight root pages, all named in `vite.config.ts` inputs:
     your answer (Read opens one on the table) and your own offers (Withdraw).
     Its × and Escape close it back to the trays. Every command the screen
     sends is the same as before.
+  - **Strategic resources in an offer** (`strategicChoices`, beta checklist
+    row 14; the ruling in `docs/flags.md`, "Three rulings from the Compendium
+    review"). Each tray lists the strategic resources its side holds, in a
+    group after the luxuries with no heading, and the other side's list shows
+    only the resources this seat can name. A chip's figure is the free copies
+    (`lendableCopies`, the reading `dealSideError` asks). A chip with no free
+    copy is struck through, with the sim's refusal on hover. A chip the
+    receiver cannot use yet (no reveal technology) can still be offered, and
+    its hover says so. "last free" marks the last copy free to build with, and
+    the paper warns when it is offered. Unlike a luxury, no strategic row is
+    hidden when both sides hold it. The paper, the drawer, the peace terms and
+    the offers list name a strategic loan as they name a luxury (`termItems`).
 - **The simpler city screen** (`docs/plans/ui-critique-2026-10-16.md`,
   "City screen: simpler"; the fourth-pass frame is `city4` in
   `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/build.py`). The

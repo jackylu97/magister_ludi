@@ -31,7 +31,7 @@ detail of each item.
 | 9 | **Values for worker advice** | section 0.3 below | Selecting a worker requests advice in a background worker. The board marks up to three hexes. The hover panel shows the recommended build or repair and its yield changes. |
 | 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The prior version 252 replay pins were already refreshed at `8886505e`. Both six-player maps reached turn 121 with no warnings or stalls on version 254. The replay tests record their expected results. |
 | 11 | **The unit kit** | 3.16 | The [spearman and archer comparison](../../art/unit-kit-trial/astra-review/renders/comparison.png) is ready for review. The game keeps its current pieces. |
-| 12 | **Wonders on the board** | 3.13 | Each city with a wonder gets one landmark on its city tile. Compare the [three proposed models](../../art/terrain-study/wonder-options/city-wonder-options.jpg). |
+| 12 | **Wonders on the board** | 3.13 | One landmark per city. Ages I and II use the Sun Gate, Age III the Lantern Tower, and Age IV the Meridian Dial. [See the three models on the board](../../art/terrain-study/wonder-options/city-wonder-options.jpg). |
 
 **Integration with the playtest branch.** The first 21 November playtest already had Claude’s Fortify until healed command at save version 253. Save version 254 includes that command, the settler and explorer lenses, the worker advice panel, and both deck passes.
 
@@ -79,6 +79,8 @@ of the file.
   every card that reads "starting a rite" (such a card pays at the start and
   again for each ten turns the rite is kept; the rite's price rises only at a
   real start). All thirteen rites are restated under these rules in the plan.
+- Consecration of the Bounds: resource hexes gain +1 culture, AND the town's
+  borders grow 30% faster. The user confirmed that the border clause stays.
 - Rite lengths add into one sum (The Octave +100%, the Chapel +50% in its
   town, Chichen Itza +50%).
 - New rites: Hallowing, the Vigil of Arms, Naming. The Night Watch is shared

@@ -6787,7 +6787,7 @@ function deliverWindfall(
  * the general occasion is not silently outranked by one that named the specific.
  *
  * `wonder` is the one fact about *what was finished* that travels with the
- * occasion — Dinocrates' ten turns of hammers for raising a marvel. It is passed
+ * occasion — Amanitore's ten turns of hammers for raising a marvel. It is passed
  * rather than derived for `capturedWonder`'s stated reason one occasion over:
  * this routine is the only thing still holding the row that was realised, and a
  * moment later a wonder is one more entry in a town's `buildings` list.
@@ -6816,7 +6816,7 @@ function payCompletionRiders(
   for (const occasion of ['completion', kind === 'unit' ? 'unitCompletion' : 'buildingCompletion'] as const) {
     const payout = windfallPayout(state, player.id, occasion, 0, 0, told);
     // **Anything at all on the payout is paid**, not the yields alone: a rider
-    // may hang a timed blessing on the realm (Dinocrates), bank renown, gift a
+    // may hang a timed blessing on the realm (Amanitore), bank renown, gift a
     // piece or heal the army, and a guard that read only `grants` dropped every
     // one of them silently. The empty case is the overwhelmingly common one —
     // most completions carry no rider — so the cheap refusal stays. It asks the

@@ -125,12 +125,14 @@ import {
 } from '../sim/deals';
 import {
   lendableCopies,
+  availableCopies,
   capitalCityOf,
   controlledHoldings,
   resourceCopies,
 } from '../sim/cities';
-import { lentCopiesToPlayer } from '../sim/deals';
-import { type ResourceId, resourceDef } from '../sim/resourceData';
+import { lentCopiesToPlayer, loanedResources } from '../sim/deals';
+import { type ResourceId, resourceDef, resourceIsVisibleTo } from '../sim/resourceData';
+import { techDef } from '../sim/techData';
 import { wearinessBetween } from '../sim/weariness';
 import { RULES } from '../sim/rulesData';
 import { figure, signedMeterFigure } from './figures';
@@ -356,7 +358,7 @@ export function peaceButtonLabel(row: DiplomacyRow): string {
  * exist until both empires can write will never find out that they do.
  */
 interface DealChoice {
-  /** The luxury's own id, for a luxury row; absent on the others. */
+  /** The resource's own id, for a luxury or strategic row; absent on the others. */
   id?: ResourceId;
   /** The town's own id, for a city row; absent on the others. */
   cityId?: number;
@@ -401,6 +403,20 @@ interface DealChoice {
   borrowed?: LoanNote;
   /** The turns left on the giver's soonest borrowed copy, beside `borrowed`. */
   borrowedTurns?: number;
+  /**
+   * A strategic row the receiver cannot use yet, because it has not researched
+   * the resource's reveal technology: "They cannot use iron until they learn
+   * Bronze Panoply". The reducer takes the loan (the ruling: "The borrower can
+   * use it after researching its reveal technology"), so this is a note in the
+   * chip's hover and never a refusal. Absent on every other row.
+   */
+  unusable?: string;
+  /**
+   * A strategic row whose giver has exactly one copy free to build with
+   * (`availableCopies`), so lending it stops the next unit that needs it.
+   * Units already built keep fighting. Absent on every other row.
+   */
+  lastFree?: true;
 }
 
 /** What one column of the panel offers — one empire's side of the bargain. */
@@ -427,6 +443,12 @@ interface DealSideModel {
    * them). The column's head and the list's foot print it.
    */
   stock: { kinds: number; copies: number };
+  /**
+   * Every strategic resource this empire holds that the seat whose screen this
+   * is can name, in the resource table's order (`strategicChoices`). A row with
+   * no free copy carries the reducer's sentence in `error`.
+   */
+  strategics: DealChoice[];
   /** The right of way, with the technology named when it is refused. */
   openBorders: DealChoice;
   /** Towns that may be ceded. Empty unless a peace is being written. */
@@ -591,40 +613,44 @@ export function sideOfPeace(
 }
 
 /**
- * One loan of one luxury to one empire: who lent it, and the turns its deal has
- * left (`dealTurnsLeft`, an absolute expiry read against the turn).
+ * One loan of one resource to one empire: who lent it, and the turns its deal
+ * has left (`dealTurnsLeft`, an absolute expiry read against the turn).
  */
-export interface LuxuryLoan {
+export interface ResourceLoan {
   lenderId: number;
   turnsLeft: number;
 }
 
 /**
- * One empire's hold on one luxury, split the way the luxury rule needs it: the
- * copies that are its **own**, and the loans that make up the rest.
+ * One empire's hold on one luxury or strategic resource, split the way the
+ * lending rules need it: the copies that are its **own**, and the loans that
+ * make up the rest.
  *
  * Read off the simulation's two figures and nothing else. `resourceCopies` is
  * the net count (own ground, less what was lent away, plus what was lent in,
  * the reveal gate applied); `lentCopiesToPlayer` is the lent-in half of it. So
  * an empire's own copies are the one less the other. An empire that cannot
- * name the luxury holds none of it, own or lent, which is the reveal gate's
+ * name the resource holds none of it, own or lent, which is the reveal gate's
  * answer, so its loans are not listed either.
+ *
+ * A loan is found on a deal by `loanedResources`, the sim's one reading of
+ * both lists, so the same walk answers for a luxury and a strategic resource.
  */
-export interface LuxuryHold {
+export interface ResourceHold {
   own: number;
-  loans: LuxuryLoan[];
+  loans: ResourceLoan[];
 }
 
-export function luxuryHold(state: GameState, playerId: number, id: ResourceId): LuxuryHold {
+export function resourceHold(state: GameState, playerId: number, id: ResourceId): ResourceHold {
   const total = resourceCopies(state, playerId, id);
   if (total <= 0) return { own: 0, loans: [] };
   const lentIn = lentCopiesToPlayer(state, playerId)[id] ?? 0;
-  const loans: LuxuryLoan[] = [];
+  const loans: ResourceLoan[] = [];
   // The register in its own order: an outcome is never read off a keyed walk.
   for (const deal of state.deals) {
     const turnsLeft = dealTurnsLeft(state, deal);
     if (turnsLeft <= 0) continue;
-    if (!(sideTakenBy(deal, playerId).luxuries ?? []).includes(id)) continue;
+    if (!loanedResources(sideTakenBy(deal, playerId)).includes(id)) continue;
     const lenderId = otherSeatOf(deal, playerId);
     if (lenderId === null) continue;
     loans.push({ lenderId, turnsLeft });
@@ -646,7 +672,7 @@ export function luxuryHold(state: GameState, playerId: number, id: ResourceId): 
  */
 export type LuxuryRowShow = 'hidden' | 'onLoan' | 'open';
 
-export function luxuryRowShow(receiver: LuxuryHold): LuxuryRowShow {
+export function luxuryRowShow(receiver: ResourceHold): LuxuryRowShow {
   if (receiver.own > 0) return 'hidden';
   if (receiver.loans.length > 0) return 'onLoan';
   return 'open';
@@ -677,7 +703,7 @@ export function loanNote(
   seat: number,
   otherId: number,
   holderId: number,
-  loans: readonly LuxuryLoan[],
+  loans: readonly ResourceLoan[],
   kind: 'receiver' | 'giver',
 ): LoanNote {
   const mine = holderId === seat;
@@ -723,27 +749,24 @@ function dealSide(
   for (const holding of holdings) {
     // The luxury rule (batch SS4): the receiver's hold decides whether the row
     // is drawn at all, and whether it is drawn greyed.
-    const theirs = luxuryHold(state, receiverId, holding.id);
+    const theirs = resourceHold(state, receiverId, holding.id);
     const show = luxuryRowShow(theirs);
     if (show === 'hidden') {
       hidden.push(resourceDef(holding.id).name);
       continue;
     }
-    const mine = luxuryHold(state, giverId, holding.id);
+    const mine = resourceHold(state, giverId, holding.id);
     const copies = resourceCopies(state, giverId, holding.id);
     // **What may actually be promised** (batch R1, ruling 4 — "only trade away
     // available copies"). A copy a unit of this empire is standing on is spoken
     // for, and `dealSideError` refuses it, so the row has to say so rather than
     // offer a bargain the reducer will throw out.
     //
-    // **No shipped luxury is spent by a unit today.** Ivory was the one that
-    // would have been, and batch R3 made it strategic instead (ruling 1), which
-    // takes it out of `controlledHoldings(…, 'luxury')` and therefore off this
-    // list entirely — a real change a player will notice, and the reason the
-    // deal vocabulary lends luxuries only (`isLendableResource` in `deals.ts`).
-    // So this subtraction is nought on every row the game currently ships. It
-    // stays because the rule is the reducer's, not this list's: the day a
-    // luxury gates a unit the panel already agrees with the refusal.
+    // No shipped luxury is spent by a unit today (ivory became strategic in
+    // batch R3), so for a luxury this subtraction is nought. It stays because
+    // the rule is the reducer's, not this list's. Strategic resources, which
+    // units do spend, have their own group (`strategicChoices`) on the same
+    // gate.
     // The reducer's own sentence for this one term, asked through a probe side
     // (`dealSideError`): the Forbidden Silks' ban (batch DT7), a copy that is
     // already spoken for and a copy that is only borrowed are all its words, so
@@ -811,6 +834,7 @@ function dealSide(
     luxuries,
     hidden,
     stock,
+    strategics: strategicChoices(state, giverId, receiverId, war, seat),
     openBorders: {
       label: 'Open borders',
       note: null,
@@ -818,6 +842,112 @@ function dealSide(
     },
     cities,
   };
+}
+
+/**
+ * The strategic resources one side may lend, as chips (the ruling: "A deal can
+ * lend a free copy of a strategic resource. The borrower can use it after
+ * researching its reveal technology. Units already in play keep fighting when
+ * the loan ends.", `docs/flags.md`).
+ *
+ * - **Which rows.** Every strategic resource the giver holds
+ *   (`controlledHoldings`), and of those only the ones the seat whose screen
+ *   this is can name. The giver can always name its own, so the filter acts on
+ *   the other side's tray: a resource this seat has not revealed is not shown
+ *   to it, as the board does not show it.
+ * - **The figure** is the free copies, `lendableCopies`: copies the giver owns,
+ *   has not lent and no unit or queue has spoken for. That is the reading
+ *   `dealSideError` asks, so a chip never offers a copy the reducer refuses.
+ * - **A row with no free copy** carries the reducer's own sentence in `error`
+ *   ("every copy is already spoken for", "only on loan"), and the chip is drawn
+ *   struck through with that sentence on hover, as Open borders is.
+ * - **Unlike a luxury, no row is hidden** when the receiver holds its own
+ *   copies: each unit spends a copy, so one more can always be of use.
+ * - **A receiver that cannot use it yet** (no reveal technology) may still be
+ *   lent it, because the reducer takes the loan. The chip says so on hover
+ *   (`unusable`).
+ * - **The last copy free to build with** is marked (`lastFree`), and the paper
+ *   warns when it is offered: units already built keep fighting, but the next
+ *   one cannot be raised while the loan runs.
+ */
+function strategicChoices(
+  state: GameState,
+  giverId: number,
+  receiverId: number,
+  war: boolean,
+  seat: number,
+): DealChoice[] {
+  const viewer = playerById(state, seat);
+  const receiver = playerById(state, receiverId);
+  const other = giverId === seat ? receiverId : giverId;
+  const rows: DealChoice[] = [];
+  for (const holding of controlledHoldings(state, giverId, 'strategic')) {
+    const id = holding.id;
+    if (!viewer || !resourceIsVisibleTo(id, viewer.techsResearched)) continue;
+    const copies = resourceCopies(state, giverId, id);
+    const error = dealSideError(state, giverId, receiverId, { strategics: [id] }, war);
+    const spare = error !== null ? 0 : lendableCopies(state, giverId, id);
+    // A borrowed copy can be built with but not lent, so the last copy to lend
+    // is not always the last one to build with: ask the build gate's reading.
+    const lastFree = spare >= 1 && availableCopies(state, giverId, id) === 1;
+    const mine = resourceHold(state, giverId, id);
+    const gate = resourceDef(id).requiresTech;
+    const blind = receiver !== undefined && !resourceIsVisibleTo(id, receiver.techsResearched);
+    rows.push({
+      id,
+      label: resourceDef(id).name,
+      copies,
+      spare,
+      note: null,
+      error,
+      ...(blind && gate !== undefined ? { unusable: unusableNote(state, receiverId, seat, id, gate) } : {}),
+      ...(lastFree ? { lastFree: true as const } : {}),
+      ...(mine.own === 0 && mine.loans.length > 0
+        ? {
+            borrowed: loanNote(state, seat, other, giverId, mine.loans, 'giver'),
+            borrowedTurns: soonestLoan(mine.loans),
+          }
+        : {}),
+    });
+  }
+  return rows;
+}
+
+/** The strategic group's own sentences. */
+export const STRATEGIC_WORDS = {
+  /** The group's line when a side has no strategic resource to show. */
+  none: 'No strategic resources to lend.',
+} as const;
+
+/**
+ * The warning under the paper when this seat offers its last free copy of a
+ * strategic resource. Units already built keep fighting; what the seat loses
+ * is the copy a new unit would need.
+ */
+export function lastFreeCopyLine(names: readonly string[]): string {
+  return (
+    `You are offering your last free copy of ${names.join(', ')}. ` +
+    'You cannot build more units that need it while the exchange runs.'
+  );
+}
+
+/**
+ * "The Bors cannot use iron until they learn Bronze Panoply." The hover note
+ * on a strategic chip whose receiver lacks the reveal technology. The receiver
+ * is the other empire on this screen, because this seat cannot see a resource
+ * it has not revealed (`strategicChoices`).
+ */
+export function unusableNote(
+  state: GameState,
+  receiverId: number,
+  seat: number,
+  id: ResourceId,
+  gate: Parameters<typeof techDef>[0],
+): string {
+  const name = resourceDef(id).name.toLowerCase();
+  const tech = techDef(gate).name;
+  if (receiverId === seat) return `You cannot use ${name} until you learn ${tech}`;
+  return `The ${seatPeople(state, receiverId)} cannot use ${name} until they learn ${tech}`;
 }
 
 /**
@@ -895,7 +1025,7 @@ export function removeTerm(terms: DealTerms, key: string): void {
 }
 
 /** The turns left on the loan that ends first. Called only with loans. */
-function soonestLoan(loans: readonly LuxuryLoan[]): number {
+function soonestLoan(loans: readonly ResourceLoan[]): number {
   return loans.reduce((least, loan) => Math.min(least, loan.turnsLeft), loans[0]?.turnsLeft ?? 0);
 }
 
@@ -1056,7 +1186,7 @@ export function audienceCopy(answer: EnvoyAnswer): { quote: string; detail: stri
     ? {quote:'Let the fighting end. We have an agreement.',detail:'Peace agreed. The war has ended and the agreed terms have taken effect.'}
     : {quote:'A fair exchange. My merchants will see it done.',detail:'Agreement signed. Its terms are listed under In force.'};
   if(answer.peace) return {quote:'Not yet. I am not ready to end this war.',detail:'Peace declined. You remain at war; revise the terms below or return later.'};
-  if(answer.lastCopy) return {quote:`I will not part with our last ${answer.lastCopy.toLowerCase()}. Ask for something we can spare.`,detail:`They have only one copy of ${answer.lastCopy}. Choose another luxury or ask for revised terms.`};
+  if(answer.lastCopy) return {quote:`I will not part with our last ${answer.lastCopy.toLowerCase()}. Ask for something we can spare.`,detail:`They have only one copy of ${answer.lastCopy} to spare. Choose another resource or ask for revised terms.`};
   return {quote:'These terms do not suit us. What else can you offer?',detail:'Offer declined. Add something they need, reduce your request, or ask what would make this work.'};
 }
 
@@ -1723,7 +1853,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     let quote = model.peace ? 'You have my attention. Speak.' : 'Let us put something useful on the table.';
     let detail = model.peace
       ? 'You may include towns in the terms. Nothing changes hands until peace is agreed.'
-      : 'Choose a luxury on either side to add one copy to the offer.';
+      : 'Choose a luxury or a strategic resource on either side to add one copy to the offer.';
     let declined = false;
     if (offerOpen) {
       label = DRAWER_WORDS.waiting;
@@ -1892,9 +2022,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     tray.append(rights.block);
 
     const seams = group(null, null, 'is-luxuries');
-    seams.block.title =
-      `One copy, lent ${figure(RULES.war.dealTurns)} turns. ` +
-      'Only luxuries cross a table: a strategic resource cannot be traded.';
+    seams.block.title = `One copy, lent ${figure(RULES.war.dealTurns)} turns.`;
     seams.chips.dataset.scroll = `luxuries:${half}`;
     if (side.luxuries.length === 0) seams.chips.append(element('p', 'dp-hid', 'No luxuries held.'));
     for (const choice of side.luxuries) {
@@ -1912,6 +2040,29 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const hidden = hiddenLuxuriesLine(side.hidden);
     if (hidden !== null) seams.chips.append(element('p', 'dp-hid', hidden));
     tray.append(seams.block);
+
+    // The strategic resources: their own short group after the luxuries, with
+    // no heading because the luxuries have none. The chips carry the free
+    // copies, and a chip with none is struck through (`strategicChoices`).
+    const ores = group(null, null, 'is-strategics');
+    ores.block.title =
+      `One copy, lent ${figure(RULES.war.dealTurns)} turns. ` +
+      'Units built with it keep fighting when the loan ends.';
+    ores.chips.dataset.scroll = `strategics:${half}`;
+    if (side.strategics.length === 0) ores.chips.append(element('p', 'dp-hid', STRATEGIC_WORDS.none));
+    for (const choice of side.strategics) {
+      const id = choice.id;
+      if (id === undefined) continue;
+      ores.chips.append(
+        choiceChip(row, half, choice, `strategic:${id}`, (terms.strategics ?? []).includes(id), null, (on) => {
+          const held = (terms.strategics ?? []).filter((kept) => kept !== id);
+          if (on) held.push(id);
+          if (held.length > 0) terms.strategics = held;
+          else delete terms.strategics;
+        }),
+      );
+    }
+    tray.append(ores.block);
 
     // Towns change hands in a peace and nowhere else (ruling 9b), so the group
     // is drawn only on the peace terms.
@@ -1945,8 +2096,12 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
   }
 
   /**
-   * One chip for a term a side may put on the table: a luxury, the right of
-   * way, or a town.
+   * One chip for a term a side may put on the table: a luxury, a strategic
+   * resource, the right of way, or a town.
+   *
+   * A strategic chip is a luxury chip with two differences: its figure is the
+   * free copies and its short note is "last free" on the last one, and its
+   * hover says when the receiver cannot use it yet (`DealChoice.unusable`).
    *
    * A luxury chip carries its mark, its name and the copies it can offer, and
    * a short note: "last" on a last copy, and the turns left on a copy the
@@ -1992,7 +2147,13 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         : spare < choice.copies ? `${figure(choice.copies)} held`
         : null;
       if (note !== null) titles.push(note);
-      if (choice.copies === 1 && choice.error === null) short = 'last';
+      // A strategic chip marks the last *free* copy: units already built hold
+      // the others, and lending this one stops the next unit, not the army.
+      if (key.startsWith('strategic:')) {
+        if (choice.lastFree === true && choice.error === null) short = 'last free';
+      } else if (choice.copies === 1 && choice.error === null) short = 'last';
+      // A receiver that has not revealed it can take it and use it later.
+      if (choice.unusable !== undefined) titles.push(choice.unusable);
       // The luxury rule's two notes (batch SS4): the other side holds it only
       // on loan (the chip is greyed), or the giver's own copy is borrowed.
       if (choice.borrowed && choice.borrowedTurns !== undefined) {
@@ -2015,7 +2176,11 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     if (choice.error !== null) {
       chip.setAttribute('aria-disabled', 'true');
       chip.addEventListener('click', () => {
-        const group = key.startsWith('luxury:') ? 'is-luxuries' : key.startsWith('city:') ? 'is-towns' : 'is-rights';
+        const group = key.startsWith('luxury:')
+          ? 'is-luxuries'
+          : key.startsWith('strategic:')
+            ? 'is-strategics'
+            : key.startsWith('city:') ? 'is-towns' : 'is-rights';
         refusal = { seatId: row.playerId, half, group, text: choice.error ?? '' };
         draw();
       });
@@ -2261,6 +2426,10 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         ),
       );
     }
+    const lastFree = model.yours.strategics.filter(
+      (c) => c.lastFree === true && c.id !== undefined && (draft.give.strategics ?? []).includes(c.id),
+    );
+    if (lastFree.length) table.append(element('p', 'dp-warn', lastFreeCopyLine(lastFree.map((c) => c.label))));
 
     const ask = element('div', 'dp-ask');
     ask.append(...drawCounterVerbs(model, draft, row));
@@ -2540,7 +2709,12 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       .dealProposals.filter((paper) => paper.by === seat && paper.to === targetId);
     const paper = papers[papers.length - 1];
     if (!paper) return;
-    const lastCopy=(paper.take.luxuries??[]).find(id=>resourceCopies(options.getState(),targetId,id)===1);
+    // A luxury they hold one copy of, or a strategic resource they have one
+    // free copy of: the copy the envoy's refusal is most likely about.
+    const state = options.getState();
+    const lastCopy =
+      (paper.take.luxuries ?? []).find((id) => resourceCopies(state, targetId, id) === 1) ??
+      (paper.take.strategics ?? []).find((id) => lendableCopies(state, targetId, id) === 1);
     hear(
       targetId,
       ask(targetId, paper.id),

@@ -87,6 +87,7 @@ import { type BuildingId, isWonder } from '../sim/buildingData';
 import { capitalCityOf } from '../sim/cities';
 import { type Tile, getTileAt, tileIndex } from '../sim/map';
 import { type City, type GameState, type ReligionId, cityReligion } from '../sim/state';
+import { wonderLandmarkForAge } from './wonderLandmarks';
 import { highestAge } from '../sim/techData';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
 import { DIRECTION_COUNT, neighborInDirection } from '../sim/water';
@@ -465,7 +466,7 @@ export class CityLayer {
       );
 
       if (work) {
-        this.addWork(work, at, yaw, geometry, collector);
+        this.addWork(work, look.tier, at, yaw, geometry, collector);
         continue;
       }
       // A work is never jittered in size — a palace half a size small is a big
@@ -523,6 +524,7 @@ export class CityLayer {
    */
   private addWork(
     work: CityWork,
+    age: number,
     at: Vector3,
     yaw: number,
     geometry: BoardGeometry,
@@ -541,12 +543,9 @@ export class CityLayer {
       return;
     }
     if (work === 'wonder') {
-      collector.add(geometry.wonder, [ink], matrix);
-      collector.add(
-        geometry.wonderTip,
-        [VIEW3D.palette[CITY.wonder.tipColor] ?? 0xffffff],
-        matrix,
-      );
+      const landmark = geometry.wonderLandmarks[wonderLandmarkForAge(age)];
+      matrix.scale(new Vector3().setScalar(CITY.wonder.width));
+      collector.add(landmark, [0xffffff], matrix, { vertexColors: true });
       return;
     }
     if (work === 'shrine') {

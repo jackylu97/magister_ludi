@@ -4855,8 +4855,8 @@ export type BehaviorRuleId =
    */
   | 'freeLanding'
   /**
-   * **This empire's laden caravans cannot be taken** — Pytheas of Massalia, who
-   * sailed past everybody and came home (the great-person pass, batch GP2).
+   * **This empire's laden caravans cannot be taken** — Jang Bogo, who
+   * drove the raiders from the Yellow Sea (the great-person pass, batch GP2).
    *
    * A *fact about the world* and therefore a `BehaviorRuleId`: what changes is
    * not a verb this empire uses but what everybody else's soldiers may do to its
@@ -8054,7 +8054,7 @@ export interface CardWindfallRiderEffect {
    */
   atPopulation?: number;
   /**
-   * The rider fires only when the thing finished was a **wonder** — Dinocrates'
+   * The rider fires only when the thing finished was a **wonder** — Amanitore's
    * ten turns of hammers for raising one.
    *
    * `vsBarbarians`', `capturedWonder`'s and `atPopulation`'s fourth sibling, and

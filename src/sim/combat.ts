@@ -893,7 +893,7 @@ function boardsAtSea(attacker: UnitDef, target: AttackTarget, tile: Tile): boole
 
 /**
  * **Is this piece a laden caravan of an empire whose law protects it?** —
- * Pytheas' clause, and The Muda's narrower one (`cardTraderShielded`).
+ * Jang Bogo's clause, and The Muda's narrower one (`cardTraderShielded`).
  *
  * Asked of the piece's own `trade` as well as of its type, exactly as the
  * plunder clause in `planCombat` is: an **unladen** trader is an ordinary

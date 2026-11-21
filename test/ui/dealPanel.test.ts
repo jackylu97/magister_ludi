@@ -34,7 +34,7 @@ import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { improvementForResource } from '../../src/sim/improvementData';
 import { RULES } from '../../src/sim/rulesData';
 import { resourceDef } from '../../src/sim/resourceData';
-import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
+import { type City, type GameState, createUnit, playerById, bumpRevision } from '../../src/sim/state';
 import { openWar } from '../../src/sim/wars';
 import { resetVisibility } from '../../src/sim/visibility';
 import {
@@ -44,16 +44,19 @@ import {
   dealPanel,
   diplomacyRows,
   draftError,
+  STRATEGIC_WORDS,
   hiddenLuxuriesLine,
+  lastFreeCopyLine,
   loanNote,
   loanSentence,
   loanTurnsMark,
-  luxuryHold,
+  resourceHold,
   luxuryRowShow,
   paperRunsLine,
   removeTerm,
   termItems,
   termLines,
+  unusableNote,
 } from '../../src/ui/diplomacyScreen';
 import { newGame } from '../sim/newGameHelpers';
 
@@ -128,11 +131,11 @@ describe('the two columns', () => {
     expect(model.yours.luxuries[0]!.spare).toBe(model.yours.luxuries[0]!.copies);
   });
 
-  it('offers no strategic resource at all, whatever an empire holds of it', () => {
-    // Ivory is strategic since batch R3 (ruling 1), and the deal vocabulary
-    // lends luxuries only (`isLendableResource`). A player will notice it gone,
-    // so the column has to be the thing that never shows it rather than a
-    // refusal after the fact.
+  it('keeps a strategic resource out of the luxuries and offers it in its own group', () => {
+    // Ivory is strategic since batch R3 (ruling 1). A deal can lend a free copy
+    // of a strategic resource (`docs/flags.md`, "Three rulings from the
+    // Compendium review"), so it is offered, in the strategic group and never
+    // among the luxuries.
     const state = bench();
     const mine = town(state, 0, 3, 4);
     town(state, 1, 10, 4);
@@ -142,7 +145,10 @@ describe('the two columns', () => {
     state.tileOwner[tileIndex(state.map, 2, 3)] = mine.id;
     bumpRevision(state);
     expect(resourceDef('ivory').kind).toBe('strategic');
-    expect(dealPanel(state, 0, 1).yours.luxuries).toEqual([]);
+    const model = dealPanel(state, 0, 1);
+    expect(model.yours.luxuries).toEqual([]);
+    expect(model.yours.strategics.map((row) => row.id)).toEqual(['ivory']);
+    expect(model.yours.strategics[0]!.error).toBeNull();
   });
 
   it('drops a lent seam out of the giver’s column and into the receiver’s', () => {
@@ -618,8 +624,8 @@ describe('the luxury rule', () => {
     giveSilk(state, ada, 1, 2);
     giveSilk(state, cyd, 12, 5);
     lend(state, 2, 0, 3);
-    expect(luxuryHold(state, 0, 'silk')).toEqual({ own: 1, loans: [{ lenderId: 2, turnsLeft: 3 }] });
-    expect(luxuryHold(state, 1, 'silk')).toEqual({ own: 0, loans: [] });
+    expect(resourceHold(state, 0, 'silk')).toEqual({ own: 1, loans: [{ lenderId: 2, turnsLeft: 3 }] });
+    expect(resourceHold(state, 1, 'silk')).toEqual({ own: 0, loans: [] });
     expect(luxuryRowShow({ own: 1, loans: [] })).toBe('hidden');
     expect(luxuryRowShow({ own: 0, loans: [{ lenderId: 2, turnsLeft: 3 }] })).toBe('onLoan');
     expect(luxuryRowShow({ own: 0, loans: [] })).toBe('open');
@@ -752,5 +758,166 @@ describe('the treaty desk (batch SS6)', () => {
     expect(screen).toContain('waiting.push({ paper: proposal.id, head, text });');
     // The gold field reads its figure the way the old fields did.
     expect(screen).toContain('const amount = readAmount(input.value);');
+  });
+});
+
+// --- strategic loans (beta checklist row 14) -----------------------------------
+
+/**
+ * The strategic group in each tray (the ruling: "A deal can lend a free copy of
+ * a strategic resource. The borrower can use it after researching its reveal
+ * technology. Units already in play keep fighting when the loan ends.",
+ * `docs/flags.md`). Every decision is the sim's: the rows are the giver's
+ * holdings, the figure is `lendableCopies`, a row with no free copy carries
+ * `dealSideError`'s sentence, and the words on the table are `termLines`'.
+ */
+describe('strategic loans', () => {
+  /** A worked iron seam of `copies` copies for this city. */
+  function giveIron(state: GameState, city: City, col: number, row: number, copies = 1): void {
+    const tile = getTileAt(state.map, col, row)!;
+    tile.resource = 'iron';
+    tile.resourceCopies = copies;
+    tile.improvement = improvementForResource('iron')!;
+    state.tileOwner[tileIndex(state.map, col, row)] = city.id;
+    bumpRevision(state);
+  }
+
+  function learnIron(state: GameState, seat: number): void {
+    playerById(state, seat)!.techsResearched.push('bronzePanoply');
+    bumpRevision(state);
+  }
+
+  function pair(): { state: GameState; ada: City; bors: City } {
+    const state = bench();
+    const ada = town(state, 0, 3, 4);
+    const bors = town(state, 1, 10, 4);
+    return { state, ada, bors };
+  }
+
+  it('offers the free copies of each side’s strategic resources, counted as the gate counts them', () => {
+    const { state, ada, bors } = pair();
+    learnIron(state, 0);
+    learnIron(state, 1);
+    giveIron(state, ada, 2, 3, 3);
+    giveIron(state, bors, 11, 3, 2);
+    const model = dealPanel(state, 0, 1);
+    const mine = model.yours.strategics[0]!;
+    expect(mine.label).toBe('Iron');
+    expect(mine.copies).toBe(3);
+    expect(mine.spare).toBe(lendableCopies(state, 0, 'iron'));
+    expect(mine.spare).toBe(3);
+    expect(mine.error).toBeNull();
+    expect(mine.unusable).toBeUndefined();
+    expect(model.theirs.strategics.map((row) => [row.id, row.spare])).toEqual([['iron', 2]]);
+    // Unlike a luxury, a strategic row is not hidden when both sides hold it.
+    expect(model.yours.hidden).toEqual([]);
+  });
+
+  it('strikes a row with no free copy, in the reducer’s own words', () => {
+    const { state, ada } = pair();
+    learnIron(state, 0);
+    giveIron(state, ada, 2, 3, 1);
+    // A legionary needs iron: the one copy is spoken for.
+    createUnit(state, 0, 'legionary', 3, 4);
+    bumpRevision(state);
+    const refusal = dealSideError(state, 0, 1, { strategics: ['iron'] }, false);
+    expect(refusal).toContain('spoken for');
+    const row = dealPanel(state, 0, 1).yours.strategics[0]!;
+    expect(row.error).toBe(refusal);
+    expect(row.spare).toBe(0);
+  });
+
+  it('shows the other side’s strategic resources only when this seat can name them', () => {
+    const { state, bors } = pair();
+    learnIron(state, 1);
+    giveIron(state, bors, 11, 3, 2);
+    // Ada has not revealed iron, so the Bors' iron is not on her screen.
+    expect(dealPanel(state, 0, 1).theirs.strategics).toEqual([]);
+    learnIron(state, 0);
+    expect(dealPanel(state, 0, 1).theirs.strategics.map((row) => row.id)).toEqual(['iron']);
+  });
+
+  it('lets a seat lend to an empire that cannot use it yet, and says so in the hover', () => {
+    const { state, ada } = pair();
+    learnIron(state, 0);
+    giveIron(state, ada, 2, 3, 2);
+    // The reducer takes the loan before the receiver has the reveal technology.
+    expect(dealSideError(state, 0, 1, { strategics: ['iron'] }, false)).toBeNull();
+    const row = dealPanel(state, 0, 1).yours.strategics[0]!;
+    expect(row.error).toBeNull();
+    expect(row.unusable).toBe(unusableNote(state, 1, 0, 'iron', 'bronzePanoply'));
+    expect(row.unusable).toBe('The Bors cannot use iron until they learn Bronze Panoply');
+    learnIron(state, 1);
+    expect(dealPanel(state, 0, 1).yours.strategics[0]!.unusable).toBeUndefined();
+  });
+
+  it('names a strategic loan on the paper, on their offer, in the deals in force and in a peace', () => {
+    const { state, ada } = pair();
+    learnIron(state, 0);
+    learnIron(state, 1);
+    giveIron(state, ada, 2, 3, 2);
+    const offer: Command = { type: 'proposeDeal', playerId: 0, targetId: 1, give: { strategics: ['iron'] }, take: {} };
+    expect(applyCommand(state, offer).ok).toBe(true);
+    expect(dealPanel(state, 0, 1).proposals[0]!.give).toEqual(['Iron']);
+    expect(dealPanel(state, 1, 0).proposals[0]!.give).toEqual(['Iron']);
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: state.dealProposals[0]!.id }).ok).toBe(true);
+    const mine = dealPanel(state, 0, 1).active[0]!;
+    expect(mine.give).toEqual(['Iron']);
+    expect(mine.take).toEqual(['Nothing']);
+    expect(dealPanel(state, 1, 0).active[0]!.take).toEqual(['Iron']);
+    // The lent copy leaves the giver's free copies and joins the receiver's
+    // holdings, where the receiver may not lend it on.
+    expect(dealPanel(state, 0, 1).yours.strategics[0]!.spare).toBe(1);
+    const borrowed = dealPanel(state, 1, 0).yours.strategics[0]!;
+    expect(borrowed.error).toBe(dealSideError(state, 1, 0, { strategics: ['iron'] }, false));
+    expect(borrowed.borrowed?.head).toBe('Your copy is on loan');
+
+    // A peace paper names it the same way.
+    const war = pair();
+    learnIron(war.state, 0);
+    giveIron(war.state, war.ada, 2, 3, 2);
+    openWar(war.state, 0, 1);
+    const peace: Command = { type: 'proposePeace', playerId: 0, targetId: 1, give: { strategics: ['iron'] }, take: {} };
+    expect(applyCommand(war.state, peace).ok).toBe(true);
+    expect(dealPanel(war.state, 0, 1).peacePaper!.give).toEqual(['Iron']);
+    expect(dealPanel(war.state, 1, 0).peacePaper!.take).toEqual(['Iron']);
+  });
+
+  it('marks the last copy free to build with, which a borrowed copy can still be', () => {
+    const { state, ada, bors } = pair();
+    learnIron(state, 0);
+    learnIron(state, 1);
+    giveIron(state, ada, 2, 3, 1);
+    expect(dealPanel(state, 0, 1).yours.strategics[0]!.lastFree).toBe(true);
+    // The Bors lend Ada a copy: she may still lend only her own, but lending it
+    // leaves the borrowed one to build with.
+    giveIron(state, bors, 11, 3, 2);
+    const offer: Command = { type: 'proposeDeal', playerId: 1, targetId: 0, give: { strategics: ['iron'] }, take: {} };
+    expect(applyCommand(state, offer).ok).toBe(true);
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 0, dealId: state.dealProposals[0]!.id }).ok).toBe(true);
+    const row = dealPanel(state, 0, 1).yours.strategics[0]!;
+    expect(row.spare).toBe(1);
+    expect(row.lastFree).toBeUndefined();
+  });
+
+  it('says the last free copy plainly, with no figure in the sentence', () => {
+    const line = lastFreeCopyLine(['Iron']);
+    expect(line).toContain('last free copy of Iron');
+    expect(/\d/.test(line)).toBe(false);
+    expect(/\d/.test(STRATEGIC_WORDS.none)).toBe(false);
+  });
+
+  it('draws the group after the luxuries and writes the strategic term', () => {
+    const screen = uiSource('diplomacyScreen.ts');
+    const tray = screen.slice(screen.indexOf('  function drawTray('), screen.indexOf('  function choiceChip('));
+    expect(tray.indexOf("group(null, null, 'is-strategics')")).toBeGreaterThan(
+      tray.indexOf("group(null, null, 'is-luxuries')"),
+    );
+    expect(tray).toContain('choiceChip(row, half, choice, `strategic:${id}`');
+    expect(tray).toContain('terms.strategics = held;');
+    // A press on a struck chip says why under its own group.
+    expect(screen).toContain("? 'is-strategics'");
+    // The old sentence that said strategic resources cannot be traded is gone.
+    expect(screen).not.toContain('a strategic resource cannot be traded');
   });
 });

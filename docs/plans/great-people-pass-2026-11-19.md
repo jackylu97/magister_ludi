@@ -880,13 +880,15 @@ Every person also has the family’s act and work, printed above.
 
 ### The new people (74; ★ marks the 15 strongest of round 1, ☆ the best new person of each cell in round 2)
 
+Note, 2026-11-21: six names in this table changed when eleven rows got a new person (`docs/plans/great-people-cultures-2026-11-21.md`). The table shows the new names, because a sync test reads it. The sections below still describe the people of 2026-11-19.
+
 | No. | Name | Family | Age | Rating | Effect | Shape |
 |---|---|---|---|---|---|---|
 | A01 | Thales of Miletus | Scholar | Æra II | ◆ strong | +2 science in every coastal city · +1 gold on every hex with a Plantation | existing (pays, city, coastal; pays, hex) |
 | A02 | Tapputi | Scholar | Æra II | ○ situational | +2 science and +1 gold on every hex with a luxury resource | existing (pays, hex, resourceKind) |
 | A03 | Pāṇini | Scholar | Æra II | ◆ strong | +2 science in your capital · completing a technology grants +30 culture | existing (pays, city, trueCapital; windfallRider, tech) |
 | A04 | Lu Ban | Engineer | Æra II | ◆ strong | +15% production toward buildings · Workers +1 charge | existing (productionBonus; unitStat, charges) |
-| A05 | Theodorus of Samos | Engineer | Æra II | ○ situational | +2 production in every city with a Smithy | existing (pays, city, hasBuilding) |
+| A05 | Anacharsis | Engineer | Æra II | ○ situational | +2 production in every city with a Smithy | existing (pays, city, hasBuilding) |
 | A06 | ★ Hanno the Navigator | Merchant | Æra II | ◆ strong | +2 gold in every coastal city · founding a city grants +60 gold | existing (pays, city, coastal; windfallRider, found) |
 | A07 | Fan Li | Merchant | Æra II | ○ situational | buildings cost 15% less to buy | existing (purchaseRider on buildings) |
 | A08 | Harkhuf | Merchant | Æra II | ○ situational | +2 gold per unique luxury you hold | existing (pays, empire, count uniqueLuxuries) |
@@ -927,7 +929,7 @@ Every person also has the family’s act and work, printed above.
 | A43 | Exekias | Artist | Æra II | ○ situational | +2 culture on every trade route you send | existing (pays, route) |
 | A44 | Telesilla | Artist | Æra II | ○ situational | +5 to the defence of your cities · +1 culture in every city with a garrison | existing (cityStat, defense; pays, city, garrisoned) |
 | A45 | Thutmose the Sculptor | Artist | Æra II | ◆ strong | +2 culture on every hex with a Quarry | existing (pays, hex) |
-| A46 | Mandrocles of Samos | Engineer | Æra II | ○ situational | all units: +1 movement while embarked · +1 production in every coastal city | existing (unitStat, embarked; pays, city, coastal) |
+| A46 | Artachaees | Engineer | Æra II | ○ situational | all units: +1 movement while embarked · +1 production in every coastal city | existing (unitStat, embarked; pays, city, coastal) |
 | A47 | Ineni | Engineer | Æra II | ○ situational | +1 production on every hex with a Quarry | existing (pays, hex) |
 | A48 | ☆ Sunshu Ao | Engineer | Æra II | ◆ strong | +2 food in every city on fresh water | existing (pays, city, freshwater) |
 | A49 | ☆ Colaeus of Samos | Merchant | Æra II | ○ situational | +1 gold for each foreign city you have seen | existing (pays, empire, count sightedCities) |
@@ -935,7 +937,7 @@ Every person also has the family’s act and work, printed above.
 | A51 | Iddin-Marduk | Merchant | Æra II | ○ situational | +1 gold on every hex with a Farm, in your capital | existing (pays, hex, with the trueCapital scope) |
 | A52 | ☆ Leonidas | General | Æra II | ◆ strong | +4 combat strength when defending while fortified | existing (combatLine, fortified) |
 | A53 | Djehuty | General | Æra II | ○ situational | +4 combat strength when attacking cities | existing (combatLine, vsCity) |
-| A54 | Artemisia of Caria | General | Æra II | ○ situational | +4 combat strength for ships · ships: +1 movement | existing (combatLine and unitStat with a class) |
+| A54 | Piye | General | Æra II | ○ situational | +4 combat strength for ships · ships: +1 movement | existing (combatLine and unitStat with a class) |
 | A55 | Tomyris | General | Æra II | ◆ strong | +3 combat strength for mounted units · +1 food on every hex with a Pasture | existing (combatLine with a class; pays, hex) |
 | A56 | ☆ Euclid | Scholar | Æra III | ◆ strong | +30% production toward Libraries, Universities and Observatories | existing (productionBonus, one row a building) |
 | A57 | Ban Zhao | Scholar | Æra III | ○ situational | +3 science in your capital · +1 authority capacity | existing (pays, city, trueCapital; authority) |
@@ -943,10 +945,10 @@ Every person also has the family’s act and work, printed above.
 | A59 | Tiruvalluvar | Artist | Æra III | ○ situational | +2 culture on every hex with a Plantation | existing (pays, hex) |
 | A60 | Auvaiyar | Artist | Æra III | ○ situational | +3 culture in every city while you are at peace | existing (conditionRule, atPeace; pays, city) |
 | A61 | ☆ Hero of Alexandria | Engineer | Æra III | ◆ strong | +1 science per building in your cities that supplies production | existing (pays, empire, count buildingsSupplying) |
-| A62 | Apollodorus of Damascus | Engineer | Æra III | ○ situational | +2 production in every city connected to your capital | small extension (a town scope: connected to the capital) |
-| A63 | Sostratus of Cnidus | Engineer | Æra III | ○ situational | +2 gold and +2 production in every city with a Harbour | existing (pays, city, hasBuilding) |
+| A62 | Gyōki | Engineer | Æra III | ○ situational | +2 production in every city connected to your capital | small extension (a town scope: connected to the capital) |
+| A63 | al-Hasan ibn Sulayman | Engineer | Æra III | ○ situational | +2 gold and +2 production in every city with a Harbour | existing (pays, city, hasBuilding) |
 | A64 | Zheng Guo | Engineer | Æra III | ◆ strong | +1 food on every hex with a Farm, in every city not on fresh water | existing (pays, hex, with the notFreshwater town scope) |
-| A65 | Pasion | Merchant | Æra III | ◆ strong | +1 gold per 50 gold in your treasury (at most +20) | existing (pays, empire, count bankedGold, with a cap) |
+| A65 | Anāthapiṇḍika | Merchant | Æra III | ◆ strong | +1 gold per 50 gold in your treasury (at most +20) | existing (pays, empire, count bankedGold, with a cap) |
 | A66 | ☆ Widow Qing of Ba | Merchant | Æra III | ◆ strong | +4 gold per improved strategic resource | existing (pays, empire, count improvedStrategicResources) |
 | A67 | Marcus Ulpius Yarhai | Merchant | Æra III | ○ situational | you may send 1 more trade route | existing (routeRider) |
 | A68 | Sang Hongyang | Merchant | Æra III | ○ situational | +10% gold in every city with a Market | existing (percentYields with a hasBuilding scope) |

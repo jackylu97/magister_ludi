@@ -619,6 +619,27 @@ type EnvelopeResult =
   | { ok: false; error: string };
 
 /**
+ * The `kind` a problem report's file carries (`problemReport.ts`). A file with
+ * any other `kind`, or none, is read as a save.
+ */
+export const REPORT_KIND = 'magister-ludi-report';
+
+/**
+ * The save to check: the one inside a problem report, or the file itself.
+ *
+ * A report is a save with a note and a description of the screen around it,
+ * and its `save` field is the plain payload this gate already reads. So a
+ * report opens wherever a save does (the load list's Import, the landing's
+ * Load), and the save inside it goes through every check below with no
+ * shortcut. The rest of the report is display for whoever reads the file and
+ * is never read here.
+ */
+function saveInside(parsed: object): unknown {
+  const report = parsed as { kind?: unknown; save?: unknown };
+  return report.kind === REPORT_KIND ? report.save : parsed;
+}
+
+/**
  * What a log walk came back as, whichever thread walked it.
  *
  * Three outcomes rather than `ReplayResult`'s two, because `newGame` *throws* on
@@ -634,7 +655,9 @@ export type LoadWalk =
  * Checks 1–2 of the gate, and the normalising the walk needs. Everything here
  * is microseconds on any save; the seconds are all in the walk that follows.
  *
- *   1. **It parses.** A file picker hands over whatever the player picked.
+ *   1. **It parses.** A file picker hands over whatever the player picked. A
+ *      problem report is opened to the save inside it (`saveInside`), and the
+ *      checks after this one are asked of that save.
  *   2. **The versions match**, both of them. Refused with the numbers in the
  *      sentence, because "from an older version" is answerable ("keep the tab
  *      open until you have finished the game") and "corrupt" is not.
@@ -649,7 +672,11 @@ export function readSaveEnvelope(json: string): EnvelopeResult {
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     return { ok: false, error: 'That file is not a save.' };
   }
-  const payload = parsed as Partial<SavePayload>;
+  const inside = saveInside(parsed);
+  if (typeof inside !== 'object' || inside === null || Array.isArray(inside)) {
+    return { ok: false, error: 'That report has no save in it.' };
+  }
+  const payload = inside as Partial<SavePayload>;
 
   if (payload.formatVersion !== SAVE_FORMAT_VERSION) {
     return {

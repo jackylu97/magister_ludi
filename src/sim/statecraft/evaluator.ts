@@ -10349,7 +10349,7 @@ export interface WindfallOccasionFacts {
    */
   capturedWonder?: boolean;
   /**
-   * True when the thing just finished was a **wonder** — Dinocrates' clause.
+   * True when the thing just finished was a **wonder** — Amanitore's clause.
    *
    * `capturedWonder`'s sibling and passed for its reason exactly: the caller is
    * the one thing holding the row it has realised, and a moment later a wonder
@@ -10707,7 +10707,7 @@ export function windfallPayout(
     // never satisfies it, which is what keeps a row written onto the wrong
     // occasion silent rather than universal.
     if (effect.atPopulation !== undefined && facts.population !== effect.atPopulation) return false;
-    // And the fourth: Dinocrates pays for a wonder raised, not for a granary.
+    // And the fourth: Amanitore pays for a wonder raised, not for a granary.
     // An occasion that carries no such fact never satisfies it.
     if (effect.wonder === true && facts.wonder !== true) return false;
     // And its opposite (batch R1, The Apprentices): a building that is neither
