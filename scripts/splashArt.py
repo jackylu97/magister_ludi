@@ -68,6 +68,14 @@ LEADERS = {
     'musa_alt': 'mansaMusa', 'nezahualcoyotl': 'nezahualcoyotl', 'pachacuti': 'pachacuti',
     'qin': 'qinShiHuang', 'rashid_alt': 'harunAlRashid', 'sejong': 'sejongTheGreat',
 }
+# One wide painting a government, shown in its banner (3:1).
+GOVERNMENTS = {
+    'aristocracy': 'aristocracy', 'chiefdom': 'chiefdom', 'curia': 'theCuria',
+    'divinemandate': 'divineMandate', 'elders': 'councilOfElders', 'estates': 'theEstates',
+    'imperium': 'imperium', 'merchantleague': 'merchantLeague', 'priestking': 'priestKing',
+    'republic': 'republic', 'sultanate': 'theSultanate', 'tyranny': 'tyranny',
+    'warchief': 'warChief',
+}
 # One square picture a belief, shown in a round window.
 BELIEFS = {
     'harvest': 'goddessOfTheHarvest', 'hearth': 'keeperOfTheHearth', 'star_readers': 'starReaders',
@@ -86,6 +94,7 @@ KINDS = {
     'wonders': {'names': WONDERS, 'ratio': (16, 9), 'width': 1600},
     'people': {'names': PEOPLE, 'ratio': (5, 6), 'width': 720},
     'leaders': {'names': LEADERS, 'ratio': (3, 4), 'width': 720},
+    'governments': {'names': GOVERNMENTS, 'ratio': (3, 1), 'width': 990},
 }
 # Borders the automatic trim cannot see (a pale strip on two sides only):
 # pixels to cut from the left, top, right and bottom of the master.
