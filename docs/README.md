@@ -1993,14 +1993,15 @@ Eight root pages, all named in `vite.config.ts` inputs:
     is one fixed 46 px: its name on one line and its figures on one line at
     12 px;
   - **the window** (`governmentPicture`): the government's painting from
-    `governmentPaintings.ts` (none yet; `public/art/splash/governments/`),
+    `governmentPaintings.ts` (`public/art/splash/governments/`),
     with the name and the tier on a dark fade at its foot, or the drawn mark:
     the engraved seal with the crown, the name and the tier. Both keep the
     window's size;
   - **the chairs**: one small card shape a chair in its type's ink with the
     type's own mark, grouped by type, and the mix in words.
-  The In play screen still draws the held government on the Order face, and
-  the Compendium has no government entry.
+  The In play screen draws the held government on the same banner, in the
+  seat form, and lifts it on hover as the Council does. The Compendium has no
+  government entry.
 - **The diplomacy screen: layout B with the strip of courts**
   (`docs/plans/ui-critique-2026-10-16.md`, fourth pass; frames
   `frame-2-strip` and `frame-2-drawer` in
@@ -2008,8 +2009,8 @@ Eight root pages, all named in `vite.config.ts` inputs:
   `src/ui/diplomacyScreen.ts` and `.css`). One sheet on the modal shell, with
   the kit's head ("Foreign courts", the turn and how many courts are met) and
   three parts, left to right:
-  - **the strip of courts** (`courtStrip`): one small square mark for every
-    other real player at the table (`diplomaticSeats`: never the barbarians,
+  - **the strip of courts** (`courtStrip`): one 48 px square, framed on the
+    head of the leader's portrait, for every other real player at the table (`diplomaticSeats`: never the barbarians,
     never the fallen), in seat order. A met court shows its picture, a war
     red dot at war, a deep gilt dot in a truce, and a cinnabar dot while an
     offer of theirs waits; the chosen court is ringed in ink. A court not yet

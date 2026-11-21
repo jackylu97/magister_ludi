@@ -19,7 +19,9 @@
  *     pays each turn: the books with all of it, less the books with none of it.
  *   - **The left column**: the leader's crest with the two abilities and what
  *     each pays, then the government with its Doctrines tucked under it, as on
- *     the Council screen.
+ *     the Council screen. The government is its painted banner, in the form
+ *     the Council's seat wears (`governmentBanner.ts`), and it lifts larger on
+ *     hover.
  *   - **Five stacks**: The council, Wonders, Beliefs, Legacies and Temporary.
  *     Each has its name, its count and its total. The top piece is drawn in
  *     its own form (a wonder's plate, a belief's tablet, a legacy's medal, a
@@ -56,10 +58,12 @@ import { seatInks } from '../art/seatInks';
 import type { GreatPersonId } from '../sim/greatPeopleData';
 import type { CityYieldKey } from '../sim/resourceData';
 import { type GameState, playerById } from '../sim/state';
-import { type GovernmentId, type OrderId, isOrderId } from '../sim/statecraftData';
+import { slotTypesOf } from '../sim/statecraft';
+import { type ChairType, type GovernmentId, type OrderId, isOrderId } from '../sim/statecraftData';
 import { roundYield } from '../sim/yieldFormat';
 import { COUNCIL_VOICES, type CouncilVoice } from './councilTotals';
 import { element } from './dom';
+import { dressGovernmentBanner, fitGovernmentBanner, governmentBannerNode } from './governmentBanner';
 import { edgeNode, maliceCardNode, moreEdgeNode, topFormNode } from './inPlayForms';
 import {
   BREAKDOWN_WORDS,
@@ -128,8 +132,12 @@ const EDGES_SHOWN = 8;
 /** How long one turn of reading pieces may take, in milliseconds. */
 const READ_SLICE_MS = 24;
 
-/** The pieces whose full text shows on hover or focus: the stacks, the tucked Doctrines and the abilities. */
-const PREVIEWED = '.ip-pile [data-key], .council-tucks [data-key], .ip-ability[data-key]';
+/**
+ * The pieces whose full text shows on hover or focus: the stacks, the tucked
+ * Doctrines and the abilities. The government's banner is here too: it lifts
+ * larger, as on the Council, so its painting can be seen at a larger size.
+ */
+const PREVIEWED = '.ip-pile [data-key], .council-tucks [data-key], .ip-ability[data-key], .ip-gov .council-gov-card[data-key]';
 
 export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
   const { overlay, body, closeButton } = options;
@@ -265,6 +273,7 @@ export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
       body.append(drawBreakdown(breakdown));
     }
     for (const face of body.querySelectorAll<HTMLElement>('.order-face')) fitOrderFace(face);
+    for (const banner of body.querySelectorAll<HTMLElement>('.gov-banner')) fitGovernmentBanner(banner);
     if (focusKey !== null) {
       body.querySelector<HTMLElement>(`[data-key="${CSS.escape(focusKey)}"], [data-stack="${CSS.escape(focusKey)}"]`)?.focus({ preventScroll: true });
     }
@@ -288,7 +297,9 @@ export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
       const face = element('div');
       const figures = reading.plates.get(law.key);
       const plate: OrderFacePlate | undefined = figures === undefined || figures.length === 0 ? undefined : { kind: 'pays', figures };
-      dressOrderFace(face, law.card as GovernmentId, plate === undefined ? { where: 'played' } : { where: 'played', plate });
+      // The painted banner, in the form the Council's seat wears
+      // (`governmentBanner.ts`): the column here is the Council's wide one.
+      dressGovernmentBanner(face, law.card as GovernmentId, { form: 'seat', layout: governmentChairs(), plate: plate ?? null, inControl: true });
       card.append(face);
       card.setAttribute('aria-label', `${law.name}, ${IN_PLAY_WORDS.government}`);
       card.addEventListener('click', () => options.openCouncil(null));
@@ -309,6 +320,12 @@ export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
     gov.append(tucks);
     column.append(gov);
     return column;
+  }
+
+  /** The chairs the seat's government lays out now, for its banner. Left out when the seat has no council. */
+  function governmentChairs(): readonly ChairType[] | undefined {
+    const sc = playerById(options.getState(), options.getPlayerId())?.statecraft;
+    return sc === undefined ? undefined : slotTypesOf(sc);
   }
 
   /** The leader's crest: the pennant with the seat's charge, the name, and each ability with its figure. */
@@ -573,7 +590,17 @@ export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
     if (entry === null || entry.form === 'chair') return;
     hidePreview();
     let face: HTMLElement;
-    if ((entry.form === 'order' || entry.form === 'doctrine' || entry.form === 'government') && entry.card !== null) {
+    if (entry.form === 'government' && entry.card !== null) {
+      // The government lifts its banner, larger than the column holds it, as on the Council.
+      const figures = plateOf(entry);
+      face = governmentBannerNode(entry.card as GovernmentId, {
+        form: 'seat',
+        layout: governmentChairs(),
+        plate: figures === undefined || figures.length === 0 ? null : { kind: 'pays', figures },
+        inControl: true,
+      }).banner;
+      face.classList.add('is-lifted');
+    } else if ((entry.form === 'order' || entry.form === 'doctrine' || entry.form === 'government') && entry.card !== null) {
       face = trayPiece(entry);
     } else {
       face = topFormNode(entry, plateOf(entry), { text: true });
@@ -582,6 +609,7 @@ export function createInPlayScreen(options: InPlayScreenOptions): InPlayScreen {
     preview = showPreview(sheetNode, target.getBoundingClientRect(), face, 'beside');
     preview.classList.add('ip-preview');
     for (const card of preview.querySelectorAll<HTMLElement>('.order-face')) fitOrderFace(card);
+    for (const banner of preview.querySelectorAll<HTMLElement>('.gov-banner')) fitGovernmentBanner(banner);
   }
 
   function onPreviewLeave(event: Event): void {

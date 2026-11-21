@@ -221,13 +221,30 @@ describe('the Council’s seat and the gallery', () => {
     expect(uiSource('statecraftScreen.css')).toContain('.council-gov-card .gov-banner {\n  --gov-width: var(--council-gov-w, 200px);');
   });
 
+  it('draws the held government on the same banner on the In play screen, and lifts it there too', () => {
+    const inPlay = uiSource('inPlayScreen.ts');
+    const left = braceBody(inPlay, 'function drawLeft(');
+    expect(left).toContain("dressGovernmentBanner(face, law.card as GovernmentId, { form: 'seat', layout: governmentChairs(), plate: plate ?? null, inControl: true });");
+    expect(left).not.toContain('dressOrderFace(');
+    const lift = braceBody(inPlay, 'function onPreviewEnter(');
+    expect(lift).toContain('face = governmentBannerNode(entry.card as GovernmentId, {');
+    expect(lift).toContain("face.classList.add('is-lifted');");
+    expect(uiSource('inPlayScreen.css')).toContain('#inplay-overlay .ip-preview .gov-banner.is-lifted {\n  --gov-width: 280px;');
+    // The column keeps its width.
+    expect(uiSource('inPlayScreen.css')).toMatch(/\.ip-gov \{[^}]*--council-gov-w: 200px;[^}]*width: 200px;/);
+  });
+
   it('shows the banner in the flair gallery, in both forms', () => {
     const gallery = Object.values(
       import.meta.glob('../../src/flairGallery/cardFaces.ts', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
     )[0] as string;
     expect(gallery).toContain('drawGovernmentBanners(into);');
     expect(gallery).toContain("form: 'row',");
-    expect(gallery).toContain("const { banner } = governmentBannerNode(id, { form: 'seat' });");
+    expect(gallery).toContain("governmentBannerNode(id, { form: 'seat' }).banner");
+    // Every row wears its own painting, and one row and one card show the drawn mark.
+    expect(gallery).not.toContain('wonderPaintingUrl');
+    expect(gallery).toContain("governmentBannerNode(unpainted, { form: 'row', picture: { kind: 'mark' } }).banner");
+    expect(gallery).toContain("governmentBannerNode(first, { form: 'seat', picture: { kind: 'mark' } }).banner");
     expect(gallery).toContain('fitGovernmentHand(hand);');
   });
 });
