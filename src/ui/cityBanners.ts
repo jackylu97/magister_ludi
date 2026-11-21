@@ -286,7 +286,7 @@ import {
 import { type SiegeField, cityBeatenDown, cityMaxHp, siegeField, underSiege } from '../sim/combat';
 import type { Game } from '../sim/game';
 import { tileIndex } from '../sim/map';
-import { foldOnRevision, readCity } from '../sim/readings';
+import { foldOnRevision, readCurrentTown } from '../sim/readings';
 import { type CityReading, foldCity } from '../sim/yields/town';
 import { type City, type GameState, type Unit, isBarbarian } from '../sim/state';
 import { unitDef, unitHp, unitMaxHp } from '../sim/unitData';
@@ -607,12 +607,13 @@ export function cityGrowthRing(
   // has it. Without it `growthSurplus` folds the whole town again, which on
   // every banner refresh was most of what the banners cost.
   quote?: CityReading,
+  total = foldCity(state, city, [], undefined, quote),
 ): GrowthRing {
   return growthRing(
     growthSurplus(
       state,
       city,
-      foldCity(state, city, [], undefined, quote),
+      total,
       // Any other town a route touches comes through the memo too (batch DT18).
       explainFoodCarried(state, city, foldOnRevision(state)),
     ),
@@ -889,17 +890,17 @@ function watchedFacts(
   // whole town again on every banner refresh (about 5 to 9 ms a refresh for six
   // towns on a turn-100 Standard map), and `updatePanel` refreshes the banners
   // after every selection and command. Same fold, same figures.
-  const quote = readCity(state, city);
+  const { reading: quote, total } = readCurrentTown(state, city);
   // Yours only, on the far side of the `mine` gate it shares with production —
   // see "The growth ring".
-  facts.growth = cityGrowthRing(state, city, quote);
+  facts.growth = cityGrowthRing(state, city, quote, total);
   const item = city.queue[0];
   if (item) {
     // `turnsToBuild` at the front of the queue rather than the subtraction
     // spelled out here: it is the same arithmetic every other estimate in the
     // interface reads, and since the Age I rework it also knows that a
     // barracks fills the basket faster while a unit is at the front.
-    const turns = turnsToBuild(state, city, item, 0, quote);
+    const turns = turnsToBuild(state, city, item, 0, quote, total.production);
     const suffix = turns === null ? '' : ` · ${turns}t`;
     facts.production = `${queueItemName(item)}${suffix}`;
   } else {

@@ -1238,8 +1238,8 @@ export function explainImprovementPreview(
   playerId: number,
   tile: Tile,
   improvementId: ImprovementId,
+  before = explainTileYield(tile, tileContextAt(state, playerId, tile)),
 ): ImprovementPreview {
-  const before = explainTileYield(tile, tileContextAt(state, playerId, tile));
   const work = tileWithWork(tile, improvementId, state.turn);
   const ghost = boardWithWork(state, playerId, work, markInsteadOf(tile, improvementId) === undefined);
   const lines = explainTileYield(work, tileContextAt(ghost, playerId, work));

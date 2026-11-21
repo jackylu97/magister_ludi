@@ -270,8 +270,9 @@ describe('controls.ts', () => {
   it('lists what End Turn would stop on past the same skipped units, and goes to any of it', () => {
     // Both readings pass the same two view facts: the skip set and, since
     // batch RT1, the turn the faith screen was last closed on.
-    const exclusions = '{\n      skippedUnitIds,\n      faithClosedOnTurn: faithClosedTurns.get(localPlayerId),\n    });';
-    expect(controls).toContain(`return allBlockers(getGame().state, localPlayerId, ${exclusions}`);
+    const exclusions = '{\n      skippedUnitIds,\n      faithClosedOnTurn: faithClosedTurns.get(localPlayerId),\n    }';
+    expect(controls).toContain(`const exclusions = ${exclusions};`);
+    expect(controls).toContain('() => allBlockers(state, localPlayerId, exclusions)');
     expect(controls).toContain('goToBlocker: focusBlocker,');
     // The label's reading takes the same exclusions.
     expect(controls).toContain(`return firstBlocker(getGame().state, localPlayerId, ${exclusions}`);

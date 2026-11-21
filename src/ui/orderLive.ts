@@ -41,13 +41,13 @@
  * the plate is the stamp, rounded.
  */
 
-import { type CardImpactLine, type CardImpactSheet, explainCardImpact } from '../sim/cardImpact';
+import { type CardImpactLine, type CardImpactSheet } from '../sim/cardImpact';
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
 import { cardIdleReason, cardCanPay, idleReasonWords } from '../sim/statecraft';
 import { type DoctrineId, type GovernmentId, type OrderId, orderDef } from '../sim/statecraftData';
-import { type CouncilFigures, councilPlate } from './councilTotals';
+import { type CouncilFigures, councilImpact, councilPlate } from './councilTotals';
 import {
   type StampFigure,
   type StampReading,
@@ -336,7 +336,7 @@ export function seatedOrderLive(
 
 /** An Order's impact list: the card stamp's reading for the order. */
 function orderLines(state: GameState, seat: number, id: OrderId, sheet: CardImpactSheet | undefined): CardImpactLine[] {
-  return explainCardImpact(state, seat, { kind: 'order', id }, sheet);
+  return councilImpact(state, seat, { kind: 'order', id }, sheet);
 }
 
 /** **A Doctrine**, always in force: its stamp, or the idle and rule lines. */
@@ -347,7 +347,7 @@ export function doctrineLive(
   sheet: CardImpactSheet | undefined,
   council?: Readonly<CouncilFigures>,
 ): CardLive {
-  return liveOfStamp(state, seat, id, explainCardImpact(state, seat, { kind: 'doctrine', id }, sheet), council);
+  return liveOfStamp(state, seat, id, councilImpact(state, seat, { kind: 'doctrine', id }, sheet), council);
 }
 
 /**
@@ -362,5 +362,5 @@ export function governmentLive(
   sheet: CardImpactSheet | undefined,
   council?: Readonly<CouncilFigures>,
 ): CardLive {
-  return liveOfStamp(state, seat, id, explainCardImpact(state, seat, { kind: 'government', id }, sheet), council);
+  return liveOfStamp(state, seat, id, councilImpact(state, seat, { kind: 'government', id }, sheet), council);
 }

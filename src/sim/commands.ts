@@ -4909,7 +4909,7 @@ function orderedUnitId(command: Command): number | undefined {
  *     The revision moves; the economy clock stands still, and the empire's
  *     happiness walk taken before it is still the answer after it.
  */
-type CommandClock = 'economy' | 'movement';
+type CommandClock = 'economy' | 'movement' | 'receipt';
 
 /**
  * **The register of record: every command kind, on one clock or the other.**
@@ -4920,15 +4920,9 @@ type CommandClock = 'economy' | 'movement';
  * this table out of the source beside the switch's own cases, so a kind that
  * dispatches and is not registered fails there too.
  *
- * **Five rows are `movement` and every other row is `economy`**, and the
- * asymmetry is the design rather than an audit that ran out of time. The five
- * are the orders a seat gives dozens of times a turn — a step, a cancelled
- * order, a fortification, a piece put to sleep, a scout told to wander — and
- * they are the whole reason for the second clock: M1 measured the empire's
- * holdings and meters recomputed once per command per seat, and it is these five
- * that make "per command" mean "per step". Everything else is rare enough that
- * the conservative answer costs nothing, and being wrong in that direction is a
- * miss where the other direction is a stale reading.
+ * Movement commands report economic changes where they happen. A receipt only
+ * records that a player read a report. Both advance the general revision.
+ * Other commands expire economic readings by default.
  *
  * What makes the five safe is that each write they make which a tenant of the
  * economy clock can see announces itself where it happens. Those tenants include a
@@ -4967,7 +4961,7 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   chooseDiscovery: 'economy',
   chooseOrder: 'economy',
   chooseWager: 'economy',
-  dismissCensus: 'economy',
+  dismissCensus: 'receipt',
   skipOrderOffer: 'economy',
   rerollOffer: 'economy',
   slotOrder: 'economy',
@@ -5048,7 +5042,7 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
  * move nothing a reading folds, and those are what the narrow door is for.
  */
 function economyMoved(command: Command, result: CommandResult): boolean {
-  if (COMMAND_CLOCKS[command.type] !== 'movement') return true;
+  if (COMMAND_CLOCKS[command.type] === 'economy') return true;
   return Object.keys(result).some((key) => key !== 'ok' && key !== 'reroutes');
 }
 

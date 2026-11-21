@@ -63,9 +63,9 @@ describe('the city banners read each town once per revision', () => {
 
   it('hands the one reading to both the ring and the countdown', () => {
     const body = braceBody(uiSource('cityBanners.ts'), 'function watchedFacts(');
-    expect(body).toContain('const quote = readCity(state, city);');
-    expect(body).toContain('cityGrowthRing(state, city, quote)');
-    expect(body).toContain('turnsToBuild(state, city, item, 0, quote)');
+    expect(body).toContain('const { reading: quote, total } = readCurrentTown(state, city);');
+    expect(body).toContain('cityGrowthRing(state, city, quote, total)');
+    expect(body).toContain('turnsToBuild(state, city, item, 0, quote, total.production)');
   });
 });
 

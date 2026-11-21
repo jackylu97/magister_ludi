@@ -24,6 +24,7 @@ import {
 import { OCCASIONS } from "../../src/sim/occasions";
 import { END_OF_TURN_PHASES } from "../../src/sim/turn";
 import { RULES } from "../../src/sim/rulesData";
+import { readEmpire } from "../../src/sim/readings";
 import { applyCommand } from "../../src/sim/commands";
 import { explainRenown } from "../../src/sim/renown";
 import { triumphDef } from "../../src/sim/triumphData";
@@ -361,7 +362,11 @@ describe("the blocker", () => {
     expect(censusBlocker(state, 0)).toBe(record);
     expect(censusBlocker(state, 1)).toBe(record);
 
+    const income = readEmpire(state, 0);
+    const revision = state.revision;
     const result = applyCommand(state, { type: "dismissCensus", playerId: 0 });
+    expect(state.revision).toBe(revision + 1);
+    expect(readEmpire(state, 0)).toBe(income);
     expect(result.ok).toBe(true);
     expect(state.players[0]!.censusSeen).toBe(record.turn);
     expect(censusBlocker(state, 0)).toBeNull();

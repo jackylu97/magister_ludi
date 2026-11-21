@@ -26,12 +26,11 @@ import {
 
 import type { GameMap } from '../sim/map';
 import type { GameState } from '../sim/state';
-import { VISIBLE } from '../sim/visibility';
 // @ts-expect-error The surface module is plain JavaScript with no declaration file.
 import { centre, onTileTop, surfaceHeight } from '../terrainStudy/surface.js';
-import { type FogLevels, levelAt } from './fog3d';
+import type { FogLevels } from './fog3d';
 import { hashUnit } from './hash';
-import { seenTileYields } from './lens3d';
+import { type TileYieldSample, seenTileYields, yieldLightTiles } from './boardTileYields';
 import { VIEW3D } from './lookData';
 import { declareUniforms, shareUniforms } from './visualTestLook';
 import { cullWrapCopies } from './wrapCulling';
@@ -41,7 +40,6 @@ const MOTE_UNIFORMS = ['vtestTime', 'vtestIdle'] as const;
 const KINDS = ['food', 'production', 'gold'] as const;
 type Kind = typeof KINDS[number];
 const MODEL: Record<Kind, string> = { food: 'ns-sheaf', production: 'ns-logs', gold: 'ns-stall' };
-const WATER = new Set(['ocean', 'coast', 'lake']);
 
 type Assets = { material: MeshStandardMaterial } & Record<string, BufferGeometry | MeshStandardMaterial | undefined>;
 
@@ -93,14 +91,12 @@ transformed.x += .05 * sin(vtestTime * .9 + moteSeed.y * 30.0);`);
   }
 
   /** `prepared` is the board's own map, whose tiles carry the ground's heights. `period` is the wrap width in world units. */
-  build(state: GameState, prepared: GameMap, levels: FogLevels, seat: number, period: number, shadows: boolean): void {
+  build(state: GameState, prepared: GameMap, levels: FogLevels, seat: number, period: number, shadows: boolean, sample?: TileYieldSample): void {
     this.clear();
     // The scenery is one of the ways to show a rich hex. `visualTest.yieldLight.show` picks the way (`paintedYieldLight.ts`).
     if (!RICH.on || VIEW3D.visualTest.yieldLight.show !== 'structures') return;
-    const cities = new Set(state.cities.map((city) => city.row * state.map.width + city.col));
-    const watched = state.map.tiles.filter((tile, cell) => !WATER.has(tile.terrain) && tile.terrain !== 'mountain' && !cities.has(cell)
-      && (this.showcase?.has(cell) || levelAt(levels, state.map, tile.col, tile.row) === VISIBLE));
-    const yields = seenTileYields(state, seat, watched);
+    const watched = sample?.tiles ?? yieldLightTiles(state, levels, this.showcase);
+    const yields = sample?.values ?? seenTileYields(state, seat, watched);
     const places: Record<Kind, Matrix4[]> = { food: [], production: [], gold: [] };
     const motes: { x: number; y: number; z: number; kind: Kind; seed: [number, number] }[] = [];
     const up = new Vector3(0, 1, 0), turn = new Quaternion();

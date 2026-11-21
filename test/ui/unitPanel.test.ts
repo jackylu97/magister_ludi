@@ -333,7 +333,7 @@ describe('the worker offers every improvement the table names', () => {
   it('quotes the figures of the sim’s own preview on every listed row', () => {
     // Every listed row is one the ground takes and the empire has unlocked, so
     // the figure is one the empire can collect, greyed row or not.
-    expect(body).toContain('const preview = explainImprovementPreview(state, unit.ownerId, tile, id);');
+    expect(body).toContain('const preview = explainImprovementPreview(state, unit.ownerId, tile, id, before);');
     expect(body).toContain('delta: preview.delta,');
     expect(body).toContain('lines: preview.lines,');
     const panel = source('unitPanel.ts');

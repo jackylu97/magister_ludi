@@ -72,7 +72,7 @@ import {
 } from './ritesTab';
 import { bonusFigures, bonusesTabModel, drawBonusesTab, figureChanged } from './bonusesTab';
 import { drawFollowersTab, followersTabModel } from './followersTab';
-import { religionReading } from './faithReading';
+import { type ReligionReading, religionReading } from './faithReading';
 
 /**
  * The words and readings other modules have always imported from this sheet,
@@ -126,8 +126,7 @@ export const FAITH_HEAD_WORDS = {
 } as const;
 
 /** The head's title and fine line for a seat, read off the board. */
-export function faithHeadWords(state: GameState, seat: number): { title: string; facts: string } {
-  const reading = religionReading(state, seat);
+export function faithHeadWords(state: GameState, seat: number, reading = religionReading(state, seat)): { title: string; facts: string } {
   const mine = reading.religion;
   if (mine === null) return { title: FAITH_HEAD_WORDS.title, facts: FAITH_HEAD_WORDS.none };
   const site = mine.holySite;
@@ -417,8 +416,8 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   let aimedCityId: number | null = null;
 
   /** The Religion & followers tab: its model and its drawing, with the page's verbs. */
-  function drawReligion(state: GameState, seat: number): HTMLElement {
-    const model = followersTabModel(state, seat, religionReading(state, seat), aimedCityId);
+  function drawReligion(state: GameState, seat: number, reading: ReligionReading): HTMLElement {
+    const model = followersTabModel(state, seat, reading, aimedCityId);
     aimedCityId = model.clergy.cityId;
     const rename = options.rename;
     return drawFollowersTab(state, seat, model, {
@@ -562,8 +561,8 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   }
 
   /** The sheet's head: the religion's name, and its holy city and towns on one fine line. */
-  function paintTitle(state: GameState, seat: number): void {
-    const words = faithHeadWords(state, seat);
+  function paintTitle(state: GameState, seat: number, reading: ReligionReading): void {
+    const words = faithHeadWords(state, seat, reading);
     const titles = overlay.querySelector<HTMLElement>('.statecraft-head-titles');
     const title = titles?.querySelector<HTMLElement>('.statecraft-title');
     if (titles === null || titles === undefined || title === null || title === undefined) return;
@@ -585,13 +584,14 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     body.replaceChildren();
     if (!playerById(state, seat)) return;
     const tab = faithTabFor(seat);
-    paintTitle(state, seat);
+    const reading = religionReading(state, seat);
+    paintTitle(state, seat, reading);
     body.append(drawHead(state, seat, tab));
     const panel = element('div', `faith-panel is-${tab}`);
     panel.dataset.tab = tab;
     if (tab === 'rites') panel.append(drawRites(state, seat));
     else if (tab === 'bonuses') panel.append(drawBonuses(state, seat));
-    else panel.append(drawReligion(state, seat));
+    else panel.append(drawReligion(state, seat, reading));
     body.append(panel);
     settle(panel, tab, before);
   }

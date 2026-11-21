@@ -117,13 +117,8 @@ import { Color, Group, Matrix4, MeshBasicMaterial, Quaternion, Vector3 } from 't
 import {
   cityAt,
   foundingErrorAt,
-  tileContextAt,
   tileOwnerCityId,
 } from '../sim/cities';
-import {
-  foldTile,
-  type TileYieldContext,
-} from '../sim/yields/hex';
 import { type GameMap, type Tile, getTileAt, tileIndex } from '../sim/map';
 import { holySites, pressureTotals } from '../sim/religion';
 import { resourceDef } from '../sim/resourceData';
@@ -134,6 +129,8 @@ import { hasFreshWater, isCoastal } from '../sim/water';
 import type { CellRef, LensView } from '../ui/mapView';
 
 import { type TileIcons, YIELD_KEYS } from './badges3d';
+import { type BoardTileYields, type TileYieldSample, sameTileYieldSamples, seenTileYields } from './boardTileYields';
+export { seenTileYields } from './boardTileYields';
 import { playerColor } from './cities3d';
 import { citizenCells, CitizenMarks } from './citizenMarks';
 import type { BoardGeometry } from './board3d';
@@ -235,6 +232,17 @@ export function sameLens(a: LensView, b: LensView): boolean {
 }
 
 export class LensLayer {
+  private lastGlyphs?: TileYieldSample;
+  private glyphSeat = -1;
+
+  constructor(private readonly yieldPrices?: BoardTileYields) {}
+
+  /** An Order can change glyphs without changing the set of tiles under the lens. */
+  glyphValuesChanged(state: GameState): boolean {
+    const shown = this.lastGlyphs;
+    return !!shown && !!this.yieldPrices &&
+      !sameTileYieldSamples(shown, this.yieldPrices.sample(state, this.glyphSeat, shown.tiles));
+  }
   readonly group = new Group();
   private citizenMarks: CitizenMarks | null = null;
   private faintSource: MeshBasicMaterial | null = null;
@@ -264,6 +272,7 @@ export class LensLayer {
     faceCamera: Quaternion,
     levels: FogLevels = null,
   ): void {
+    this.lastGlyphs = undefined;
     disposeInstancedGroup(this.group);
     this.drawCallCount = 0;
     const city = lens.citizens && state?.cities.find(town => town.id === lens.citizens!.cityId && town.ownerId === lens.playerId);
@@ -398,7 +407,10 @@ export class LensLayer {
     const glyph = new Vector3(LENS.glyphSize, 1, LENS.glyphSize);
     const numeral = new Vector3(LENS.numeralSize, 1, LENS.numeralSize);
 
-    const values = seenTileYields(state, playerId, tiles);
+    const sample = this.yieldPrices?.sample(state, playerId, tiles);
+    this.lastGlyphs = sample;
+    this.glyphSeat = playerId;
+    const values = sample?.values ?? seenTileYields(state, playerId, tiles);
     if (kinds && this.faintSource !== icons.material) {
       this.faintGlyphs?.dispose();
       this.faintSource = icons.material;
@@ -1018,22 +1030,6 @@ interface YieldRowLayout {
   glyphs: number[];
   /** The digits of the count, most significant first. Empty for a stack. */
   numerals: { digit: number; x: number }[];
-}
-
-/** The printed diameter of one voice disc, in world units. See `yieldRowLayout`. */
-/**
- * The yield of each of `tiles` as `playerId`'s empire sees it: the same
- * reading the yields lens prints, with one context a city built lazily. The
- * richness layer (`paintedRichness.ts`) asks here, so the board's scenery and
- * the lens can never disagree, and no second module passes a yield context.
- */
-export function seenTileYields(state: GameState, playerId: number, tiles: readonly Tile[]): ReturnType<typeof foldTile>[] {
-  const contexts = new Map<number | 'wild', TileYieldContext | undefined>();
-  return tiles.map((tile) => {
-    const cityId = tileOwnerCityId(state, tile.col, tile.row) ?? 'wild';
-    if (!contexts.has(cityId)) contexts.set(cityId, tileContextAt(state, playerId, tile));
-    return foldTile(tile, contexts.get(cityId));
-  });
 }
 
 export function yieldDiscWidth(): number {

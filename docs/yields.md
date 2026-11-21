@@ -90,6 +90,7 @@ a reading *of*, and the slate keeps a half per clock:
 | `controlledHoldings` | economy | walks the ground |
 | `readEmpirePercents` | economy | those, plus the treasury |
 | `readCity` | economy | a town's list. It can see a piece, and every step it can see announces |
+| `readCurrentTown` | economy | the city's list and its total with the current production item. The top bar, city banners and city panel share it. |
 | `readEmpire` | economy | that reading summed, with the empire's own lines |
 | `readEmpireRates` | economy | the same lists, folded for a question about a rate. For readers at rest; `foldEmpireRates` itself has no memo |
 | `readRoutes`, `readSites` | revision | what a seat can reach on the board, which any step can change |
@@ -141,8 +142,7 @@ reads remembered answers while it runs and not all its writes announce.
   `Command['type']`, typed as a `Record` so a new kind fails the typecheck, and
   read out of the source beside the reducer's own switch by
   `test/sim/readings.test.ts`. Five rows are `movement` (`moveUnit`,
-  `cancelOrder`, `fortify`, `sleepUnit`, `setAutoExplore`); every other row is
-  `economy`, and every end-of-turn phase moves both clocks.
+  `cancelOrder`, `fortify`, `sleepUnit`, `setAutoExplore`). The `dismissCensus` receipt advances the revision and keeps income readings. All remaining rows use the economy clock. Every end-of-turn phase moves both clocks.
 - **`moveUnit` is decided from its result, not from its kind.** A march ends in
   `arriveOnTile` on every step, and arriving is how a ruin is claimed, a camp
   burnt out, a civilian taken and a caravan plundered — each reported in

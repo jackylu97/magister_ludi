@@ -101,7 +101,7 @@ describe('what a card says it pays', () => {
     expect(commission).toBeGreaterThan(-1);
     expect(scaler).toBeGreaterThan(commission);
     expect(stamp).toBeGreaterThan(scaler);
-    expect(braceBody(LIVE, 'function orderLines(')).toContain("explainCardImpact(state, seat, { kind: 'order', id }, sheet)");
+    expect(braceBody(LIVE, 'function orderLines(')).toContain("councilImpact(state, seat, { kind: 'order', id }, sheet)");
     // A card that pays on an occasion says what it has paid so far, from the
     // lifetime tally.
     expect(LIVE).toContain('statecraft.yieldTallies?.find((entry) => entry.card === card)');
@@ -150,7 +150,7 @@ describe('the sheet', () => {
     expect(head).not.toContain('seatedOrderLive');
     expect(head).not.toContain('doctrineLive');
     expect(braceBody(uiSource('councilTotals.ts'), 'export function explainCouncil(')).toContain(
-      "return explainCardImpact(state, seat, { kind: 'council' }, sheet);",
+      "return councilImpact(state, seat, { kind: 'council' }, sheet);",
     );
   });
 

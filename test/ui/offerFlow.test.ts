@@ -68,8 +68,8 @@ describe('the statecraft offer chain checks its results', () => {
  */
 describe('every statecraft offer carries a stamp', () => {
   it('weighs each class of card through the one evaluator', () => {
+    expect(MAIN).toContain("cardStamp(seat, { kind: 'order', id }, sheet)");
     for (const subject of [
-      "{ kind: 'order', id }",
       "{ kind: 'government', id }",
       "{ kind: 'doctrine', id }",
       "{ kind: 'belief', id }",
@@ -118,7 +118,7 @@ describe('every statecraft offer carries a stamp', () => {
       MAIN.indexOf('function cardStamp(seat: number'),
       MAIN.indexOf('function slotWords('),
     );
-    expect(helper).toContain('stampReading(explainCardImpact(game.state, seat, subject))');
+    expect(helper).toContain('stampReading(explainCardImpact(game.state, seat, subject, sheet))');
     // Nothing to say is nothing shown: the flourish stands rather than a nought.
     expect(helper).toContain('stampIsEmpty(reading) ? {} : { stamp: reading }');
   });

@@ -169,8 +169,8 @@ import {
 import { cityGuildInflow, dismissSpecialistError, guildIdleLine } from '../sim/guilds';
 import type { SpecialistFamily } from '../sim/greatPeopleData';
 // The town's one reading — see `renderCity`, and `readings.ts` for the model.
-import { foldOnRevision, readCity } from '../sim/readings';
-import { cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
+import { foldOnRevision, readCity, readCurrentTown } from '../sim/readings';
+import { cityRouteCount, cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
 import { requirementNodes } from './resourceCopies';
 import { setYieldText, yieldMarkNode } from './yieldMark';
 import { roundYield } from '../sim/yieldFormat';
@@ -1772,9 +1772,9 @@ export function chipLedgerRows(
   city: City,
   quote: CityReading,
   key: CityYieldKey,
+  folded = foldCity(state, city, [], city.queue[0], quote),
 ): ChipLedger {
   const front = city.queue[0];
-  const folded = foldCity(state, city, [], front, quote);
   const total = folded[key];
   const rows: ChipLedgerRow[] = [];
   const flat = (label: string, amount: number): void => {
@@ -1855,7 +1855,7 @@ export function chipLedgerRows(
     }
   }
   if (key === 'culture' && productionMoverFor(state, city) !== null) {
-    for (const row of chipLedgerRows(state, city, quote, 'production').rows) {
+    for (const row of chipLedgerRows(state, city, quote, 'production', folded).rows) {
       if (row.kind !== 'moved' || row.amount >= 0) continue;
       rows.push({ label: row.label, amount: -row.amount, percent: null, kind: 'moved' });
     }
@@ -2337,7 +2337,7 @@ export function cityFoldRows(
   const faith = faithFold(state, city, seat, rites);
   if (faith !== null) summaries.set('faith', faith);
   if (city.ownerId === seat) {
-    const runs = cityRouteRows(state, city).length;
+    const runs = cityRouteCount(state, city);
     if (runs > 0) summaries.set('routes', { summary: figure(runs), ink: null });
     else if (city.tradingPost === true) summaries.set('routes', { summary: 'trading post', ink: null });
   }
@@ -3257,8 +3257,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     chipLedgers = new Map();
     chipButtons = new Map();
     /** One chip's list, kept for its handlers, and its total for the chip. */
+    const { total } = readCurrentTown(state, city);
     const ledgerOf = (key: YieldKey): number => {
-      const ledger = chipLedgerRows(state, city, quote, key);
+      const ledger = chipLedgerRows(state, city, quote, key, total);
       chipLedgers.set(key, ledger);
       return ledger.total;
     };

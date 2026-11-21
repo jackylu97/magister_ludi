@@ -176,6 +176,7 @@ describe('the three verbs', () => {
       .filter((name) => /^read[A-Z]/.test(name));
     expect(memos.sort()).toEqual([
       'readCity',
+      'readCurrentTown',
       'readEmpire',
       'readEmpirePercents',
       // The empire's books for a reader at rest (batch P1): `foldEmpireRates`, taken

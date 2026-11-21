@@ -988,7 +988,7 @@ describe('nobody rebuilds the town’s list', () => {
     const registered = new Map<string, string>();
     for (const line of table![1]!.split('\n')) {
       if (line.trim() === '') continue;
-      const row = /^\s*([A-Za-z]+): '(economy|movement)',$/.exec(line);
+      const row = /^\s*([A-Za-z]+): '(economy|movement|receipt)',$/.exec(line);
       expect(row, `registered row: ${line}`).not.toBeNull();
       expect(registered.has(row![1]!), `${row![1]!} listed once`).toBe(false);
       registered.set(row![1]!, row![2]!);
@@ -1000,7 +1000,8 @@ describe('nobody rebuilds the town’s list', () => {
     const dispatched = [...switchBody![1]!.matchAll(/case '([A-Za-z]+)':/g)].map((hit) => hit[1]!);
     expect(dispatched.length).toBeGreaterThan(50);
     expect([...registered.keys()].sort()).toEqual([...dispatched].sort());
-    // And the five that are not economy are the orders that only move a piece.
+    expect([...registered].filter(([, clock]) => clock === 'receipt').map(([kind]) => kind)).toEqual(['dismissCensus']);
+    // Movement can still change the economy when a piece arrives.
     const movement = [...registered.entries()]
       .filter(([, clock]) => clock === 'movement')
       .map(([kind]) => kind)

@@ -176,7 +176,7 @@ import { type TechTree, createTechTree } from './ui/techTree';
 import { type MapPlates, type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
 import { faithPlates } from './ui/faithPlates';
 import { type CivYieldStrip, createCivYieldStrip, shownAge } from './ui/topBar';
-import { type CardImpactSubject, explainCardImpact } from './sim/cardImpact';
+import { type CardImpactSubject, type CardImpactSheet, cardImpactSheet, explainCardImpact } from './sim/cardImpact';
 import { stampIsEmpty, stampReading } from './ui/cardStamp';
 import { type OfferCard, type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
@@ -3607,25 +3607,20 @@ async function boot(initial: Game | null): Promise<void> {
 
     if (sc.pendingOrder !== undefined) {
       const offer = sc.pendingOrder;
-      const options: OfferOption[] = offer.options.map((id) => ({
-        title: orderDef(id).name,
-        payoff: orderPayoff(id),
-        // **The Council's engraved face** (Quiet Table, build stage 2; the
-        // user: "basically the same as the great people draft screen, just with
-        // order cards"). The face draws the name, the rules and the tier; the
-        // stamp's seat is at its foot (`orderOfferFace`). No text under it.
-        dress: () => orderOfferFace(id),
-        flavor: orderDef(id).flavor,
-        // A commission's counter, so the hand shows where its goal starts.
-        progress: commissionCounters(game.state, seat, id),
-        // A Scaler's value (batch DS8): its starting value, or what this seat's
-        // copy has grown to.
-        ...(scalerFace(game.state, seat, id) === null ? {} : { scaler: scalerFace(game.state, seat, id)! }),
-        ...cardStamp(seat, { kind: 'order', id }),
-        // A technology charter's slip of the star chart and its "Opened" stamp
-        // (Scientific batch S10). After the impact stamp, so it wins over it.
-        ...charterOfferParts(game.state, seat, id),
-      }));
+      const sheet = cardImpactSheet(game.state, seat);
+      const options: OfferOption[] = offer.options.map((id) => {
+        const charter = charterOfferParts(game.state, seat, id);
+        const scaler = scalerFace(game.state, seat, id);
+        return {
+          title: orderDef(id).name,
+          payoff: orderPayoff(id),
+          dress: () => orderOfferFace(id),
+          flavor: orderDef(id).flavor,
+          progress: commissionCounters(game.state, seat, id),
+          ...(scaler === null ? {} : { scaler }),
+          ...(charter.stamp ? charter : cardStamp(seat, { kind: 'order', id }, sheet)),
+        };
+      });
       offerCard.show(
         {
           // The board's head: the title and what the offer is, on one line.
@@ -4230,8 +4225,8 @@ async function boot(initial: Game | null): Promise<void> {
    * whose number moved while the player was reading it would be a different card
    * from the one they were dealt.
    */
-  function cardStamp(seat: number, subject: CardImpactSubject): Partial<OfferOption> {
-    const reading = stampReading(explainCardImpact(game.state, seat, subject));
+  function cardStamp(seat: number, subject: CardImpactSubject, sheet?: CardImpactSheet): Partial<OfferOption> {
+    const reading = stampReading(explainCardImpact(game.state, seat, subject, sheet));
     return stampIsEmpty(reading) ? {} : { stamp: reading };
   }
 

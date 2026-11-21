@@ -116,15 +116,18 @@ import {
   type TileYieldContribution,
 } from './yields/hex';
 import {
+  cityYieldPercents,
   empirePercents,
   explainCity,
   foldCity,
+  type CityReading,
   type CityYieldLine,
   type EmpirePercents,
 } from './yields/town';
 import {
   explainEmpireLines,
   foldEmpireLines,
+  foldEmpireRates,
 } from './yields/empire';
 import { type GameState, type Player, type ReligionId, type TimedEffect, foundedReligion, playerById } from './state';
 import type { MaliceId } from './maliceData';
@@ -142,7 +145,7 @@ import {
 import { type BuildingId, buildingDef } from './buildingData';
 // Straight from its layer, as `ghostSeatUnderDoctrine` below is: the switch a
 // ghost board uses to read a seat without its government law.
-import { anyCardDef, heldReligions, setEffectsAside, setLawAside } from './statecraft/evaluator';
+import { type EmpireRates, anyCardDef, heldReligions, setEffectsAside, setLawAside } from './statecraft/evaluator';
 import { type BeliefId, type RiteId, beliefDef, beliefPoolOf, riteDef } from './religionData';
 // The rite preview's two readings of a rite not yet said: the town's timed list
 // wearing it, and the offering's production. `religion.ts` does not import this
@@ -174,7 +177,7 @@ import { renownPerTurn } from './renown';
 // The town's own published list, remembered on the revision — the real board's
 // half of every ghost-diff on a screen (batch E2, `docs/audit/evaluations.md`
 // §3b). See `CardImpactSheet`.
-import { readCity } from './readings';
+import { readCity, readEmpirePercents, readEmpireRates } from './readings';
 
 /**
  * **The steps of `docs/yields.md` at which a card pays a town a flat**, and the
@@ -951,39 +954,16 @@ function cardSumsOf(
   return map;
 }
 
-/**
- * The ghost's side: a town of a board nothing else is reading.
- *
- * It builds the whole list rather than asking the card evaluator for step 3
- * alone, because the two sides of a diff must be selected the same way or the
- * difference is the *selector's* and not the card's — and since batch E3b the
- * selection is `cardFlats`, which spans three steps.
- */
-function cityCardSums(state: GameState, city: City): Map<string, CityYields> {
-  return cardSumsOf(cardFlats(explainCity(state, city).lines));
-}
-
-/**
- * What every town this empire holds makes, under a stated meter reading.
- *
- * The empire's half of the percentages is handed **in** rather than taken, which
- * is the whole of how the direct lines and the knock-on lines are held apart:
- * ask twice with the same `empire` and the difference is the card's own
- * arithmetic; ask again with the card's own meter reading and the further
- * difference is what the card *unlocked*. `explainCity`'s parameter, used for the
- * purpose its docblock names.
- */
-function townsTotal(state: GameState, playerId: number, empire: EmpirePercents): CityYields {
+/** Each side keeps its own flat contributions. Only the supplied meter percentages change between steps. */
+function townsTotal(state: GameState, towns: ReadonlyMap<City, CityReading>, empire: EmpirePercents): CityYields {
   const total = emptyCityYields();
   for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    const yields = foldCity(
-      state,
-      city,
-      [],
-      city.queue[0],
-      explainCity(state, city, [], empire),
-    );
+    const reading = towns.get(city);
+    if (!reading) continue;
+    const quote = reading.empire === empire || metersUnmoved(reading.empire, empire)
+      ? reading
+      : { ...reading, empire, percents: cityYieldPercents(state, city, empire) };
+    const yields = foldCity(state, city, [], city.queue[0], quote);
     for (const key of CITY_YIELD_KEYS) total[key] += yields[key];
   }
   return total;
@@ -1011,6 +991,7 @@ function empireLinesOf(
   state: GameState,
   playerId: number,
   empire: EmpirePercents,
+  rates: () => EmpireRates,
 ): Map<string, CityYields> {
   const map = new Map<string, CityYields>();
   const record = (source: string, values: Partial<CityYields>): void => {
@@ -1021,7 +1002,7 @@ function empireLinesOf(
     }
     for (const key of CITY_YIELD_KEYS) sum[key] += values[key] ?? 0;
   };
-  for (const line of explainEmpireLines(state, playerId, empire)) {
+  for (const line of explainEmpireLines(state, playerId, empire, rates)) {
     // A treasury line is keyed on the **head** of its label — everything before
     // the ` · count` tail — which is the handle every reader of one uses, and
     // which keeps "Unit maintenance · 7 units" and "· 8 units" the same row of
@@ -1034,18 +1015,6 @@ function empireLinesOf(
     record(key, line);
   }
   return map;
-}
-
-/**
- * The empire's own lines as one figure per voice, under a stated meter reading —
- * `townsTotal`'s twin, and the half of the ladder that moved in batch H19.
- *
- * A tier the card flipped multiplies the empire's lines exactly as it multiplies
- * every town's basket, so the knock-on rungs have to price both or the last rung
- * would not be the true reading and the list would no longer fold to the diff.
- */
-function empireTotal(state: GameState, playerId: number, empire: EmpirePercents): CityYields {
-  return foldEmpireLines(explainEmpireLines(state, playerId, empire));
 }
 
 /**
@@ -1229,10 +1198,10 @@ export function cardImpactSheet(state: GameState, playerId: number): CardImpactS
     state,
     revision,
     playerId,
-    percents: () => (percents ??= empirePercents(state, playerId)),
+    percents: () => (percents ??= readEmpirePercents(state, playerId)),
     empireLines: () => {
-      percents ??= empirePercents(state, playerId);
-      return (empireLines ??= empireLinesOf(state, playerId, percents));
+      percents ??= readEmpirePercents(state, playerId);
+      return (empireLines ??= empireLinesOf(state, playerId, percents, () => readEmpireRates(state, playerId)));
     },
     meter: (meter) => {
       let held = meters.get(meter);
@@ -1347,6 +1316,8 @@ function ghostDiffLines(
   //    becomes a yield.
   const towns = new Bucket();
   const ground = new Bucket();
+  const beforeTowns = new Map<City, CityReading>();
+  const afterTowns = new Map<City, CityReading>();
   for (let at = 0; at < without.cities.length; at += 1) {
     const city = without.cities[at]!;
     if (city.ownerId !== playerId) continue;
@@ -1354,8 +1325,12 @@ function ghostDiffLines(
     // card's ghost, a copy wearing the rite for a rite's (see the docblock).
     const other = held.cities[at];
     const heldCity = other !== undefined && other.id === city.id ? other : city;
-    const was = isReal(without) ? shared!.cardSums(city) : cityCardSums(without, city);
-    const now = isReal(held) ? shared!.cardSums(heldCity) : cityCardSums(held, heldCity);
+    const before = isReal(without) ? readCity(without, city) : explainCity(without, city, [], base);
+    const after = isReal(held) ? readCity(held, heldCity) : explainCity(held, heldCity, [], ahead);
+    beforeTowns.set(city, before);
+    afterTowns.set(heldCity, after);
+    const was = isReal(without) ? shared!.cardSums(city) : cardSumsOf(cardFlats(before.lines));
+    const now = isReal(held) ? shared!.cardSums(heldCity) : cardSumsOf(cardFlats(after.lines));
     for (const [source, sum] of now) {
       const before = was.get(source);
       for (const key of CITY_YIELD_KEYS) {
@@ -1403,11 +1378,8 @@ function ghostDiffLines(
   //    share of a fold, a percentage the card itself put on a voice, and every
   //    floor on the way. Named for the card, because by construction the card
   //    is the only thing that changed.
-  const townsNow = townsTotal(without, playerId, base);
-  const townsThen = townsTotal(held, playerId, base);
-  // The empire's own lines under the same held reading — the other half of what
-  // a tier moves, and the figure the knock-on ladder walks from (batch H19).
-  const realmThen = empireTotal(held, playerId, base);
+  const townsNow = townsTotal(without, beforeTowns, base);
+  const townsThen = townsTotal(held, afterTowns, base);
   const rest = emptyLine(name, 'city');
   const named = foldCardImpact(lines);
   for (const key of CITY_YIELD_KEYS) {
@@ -1429,13 +1401,23 @@ function ghostDiffLines(
   //    meters, which is `base` when the ghost is the held side, and is `base`
   //    on the other side only when the card moved neither meter (batch H18's
   //    memo, batch H19's parameter — the guard is a proof, not a shortcut).
+  // A rate card reads actual income on its own board, even when a comparison borrows another meter tier.
+  const ratesOn = (board: GameState, towns: ReadonlyMap<City, CityReading>, percents: EmpirePercents) => {
+    if (isReal(board)) return () => readEmpireRates(board, playerId);
+    let rates: EmpireRates | undefined;
+    return () => rates ??= foldEmpireRates(board, playerId, {
+      percents, listOf: (city) => towns.get(city)!,
+    });
+  };
+  const beforeRates = ratesOn(without, beforeTowns, base);
+  const afterRates = ratesOn(held, afterTowns, ahead);
   const empireWas = isReal(without)
     ? shared!.empireLines()
-    : empireLinesOf(without, playerId, base);
+    : empireLinesOf(without, playerId, base, beforeRates);
   const empireNow =
     isReal(held) && metersUnmoved(base, ahead)
       ? shared!.empireLines()
-      : empireLinesOf(held, playerId, base);
+      : empireLinesOf(held, playerId, base, afterRates);
   for (const [source, now] of empireNow) {
     const before = empireWas.get(source);
     for (const key of CITY_YIELD_KEYS) {
@@ -1498,11 +1480,16 @@ function ghostDiffLines(
   //    basket, so a rung that priced only the towns would leave that gain
   //    unnamed and the list would stop folding to the true difference.
   if (!metersUnmoved(base, ahead)) {
+    const realmAt = (percents: EmpirePercents) => foldEmpireLines(explainEmpireLines(held, playerId, percents, afterRates));
+    const realmThen = realmAt(base);
+    let previous = base;
     let running = emptyCityYields();
     for (const key of CITY_YIELD_KEYS) running[key] = townsThen[key] + realmThen[key];
     for (const step of knockOnLadder(base, ahead)) {
-      const towns = townsTotal(held, playerId, step.percents);
-      const realmNext = empireTotal(held, playerId, step.percents);
+      if (metersUnmoved(previous, step.percents)) continue;
+      previous = step.percents;
+      const towns = townsTotal(held, afterTowns, step.percents);
+      const realmNext = realmAt(step.percents);
       const next = emptyCityYields();
       for (const key of CITY_YIELD_KEYS) next[key] = towns[key] + realmNext[key];
       const line = emptyLine(step.source, 'knockOn');

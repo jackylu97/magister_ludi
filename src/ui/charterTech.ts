@@ -34,6 +34,7 @@
 
 import { type GameState, type Player, playerById } from '../sim/state';
 import { metRivals, techLead } from '../sim/rivals';
+import { readEmpire } from '../sim/readings';
 import { turnsToTech } from '../sim/tech';
 import {
   CHARTER_TECH_IDS,
@@ -343,7 +344,7 @@ export function charterOfferParts(
   if (tech === null || player === undefined) return {};
   const def = techDef(tech);
   const price = techPriceList(state, player, tech);
-  const turns = turnsToTech(state, playerId, tech);
+  const turns = turnsToTech(state, playerId, tech, readEmpire(state, playerId).cityScience);
   return {
     slip: {
       glyph: def.glyph,

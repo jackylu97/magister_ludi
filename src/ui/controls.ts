@@ -255,6 +255,7 @@ import {
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { authorityOf, happinessOf } from '../sim/meters';
+import { slateMemo } from '../sim/slate';
 import { canStopOn, findPath, pathTurnMarks, planSwap, reachableTiles, takesByWalking } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import {
@@ -669,12 +670,14 @@ export function improvementOptionsFor(state: GameState, unit: Unit): Improvement
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return [];
   const options: ImprovementOption[] = [];
+  let before: TileYieldContribution[] | undefined;
   for (const id of IMPROVEMENT_IDS) {
     const def = improvementDef(id);
     if (def.greatPerson !== undefined) continue;
     if (improvementGroundError(state, unit.ownerId, tile, id) !== null) continue;
     if (!improvementOpenTo(state, unit.ownerId, id)) continue;
-    const preview = explainImprovementPreview(state, unit.ownerId, tile, id);
+    const preview = explainImprovementPreview(state, unit.ownerId, tile, id, before);
+    before = preview.before;
     options.push({
       id,
       name: def.name,
@@ -4741,13 +4744,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.setSelectedUnitId(unit ? unit.id : null);
     // A seat that has ended its turn gets no reachable highlight: every one of
     // those tiles would refuse the order.
-    renderer.setReachable(
-      unit && canOrder() ? reachableTiles(getGame().state, unit).map((r) => r.tile) : [],
-    );
+    const { state } = getGame();
+    const active = unit !== null && canOrder();
+    const unitKey = active ? String(unit.id) : '';
+    renderer.setReachable(active ? slateMemo(state, 'revision', 'uiReachable', unitKey, () =>
+      reachableTiles(state, unit).map((r) => r.tile),
+    ) : []);
     // What this piece could *fight*, which is a different set from what it could
     // walk to — an archer reaches past its movement, a swordsman cannot step
     // onto the tile it is attacking.
-    renderer.setAttackable?.(attackableCells());
+    renderer.setAttackable?.(active ? slateMemo(state, 'revision', 'uiAttackable', unitKey, () =>
+      attackableCells(state, unit),
+    ) : []);
     refreshSpotlight();
     refreshCityFocus();
     refreshLens();
@@ -5006,6 +5014,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.setSiteRadius?.(siteRadiusCells());
   }
 
+  /** The renderer and the move animation use the same path on this board revision. */
+  function previewPath(state: GameState, unit: Unit, tile: Tile) {
+    return slateMemo(state, 'revision', 'uiPreviewPath', `${unit.id}/${tile.col}/${tile.row}`, () =>
+      findPath(state, unit, tile) ?? [],
+    );
+  }
+
   function refreshPathPreview(): void {
     const unit = selectedUnit();
     const hover = renderer.getHover();
@@ -5017,7 +5032,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       renderer.setPathPreview([]);
       return;
     }
-    const path = findPath(getGame().state, unit, hover.tile) ?? [];
+    const path = previewPath(getGame().state, unit, hover.tile);
     // The route *and* its schedule, in one call: where the march stops at the
     // end of each turn, which is what the board prints its turn medallions on
     // (`docs/flags.md` (bbb)). Asked of the simulation here rather than worked
@@ -5249,13 +5264,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * It is at most nineteen previews and it runs when the selection changes,
    * not per frame.
    */
-  function attackableCells(): CellRef[] {
-    const unit = selectedUnit();
-    if (!unit || !canOrder()) return [];
+  function attackableCells(state: GameState, unit: Unit): CellRef[] {
     const def = unitDef(unit.type);
     if (!isCombatant(def)) return [];
 
-    const { state } = getGame();
     const origin = getTileAt(state.map, unit.col, unit.row);
     if (!origin) return [];
 
@@ -7164,7 +7176,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // the two pieces are animated along the two routes that were actually
     // walked.
     const swap = planSwap(getGame().state, unit, hover.tile);
-    const route = (swap === null ? findPath(getGame().state, unit, hover.tile) : swap.path) ?? [];
+    const route = swap === null ? previewPath(getGame().state, unit, hover.tile) : swap.path;
 
     const command: Command = {
       type: 'moveUnit',
@@ -7696,10 +7708,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   /** The whole list End Turn would walk, for the button's waiting list. */
   function endTurnBlockers(): TurnBlocker[] {
-    return allBlockers(getGame().state, localPlayerId, {
+    const { state } = getGame();
+    const exclusions = {
       skippedUnitIds,
       faithClosedOnTurn: faithClosedTurns.get(localPlayerId),
-    });
+    };
+    // Both choices can change without a command. Include them when reusing the waiting list.
+    const key = [localPlayerId, exclusions.faithClosedOnTurn ?? '', ...skippedUnitIds].join('/');
+    return slateMemo(state, 'revision', 'uiTurnBlockers', key, () => allBlockers(state, localPlayerId, exclusions));
   }
 
   /**

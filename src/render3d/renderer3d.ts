@@ -109,6 +109,8 @@ import {
 import { RoadLayer, signRoadCells } from './roads3d';
 import { type SuppressScope, RENDER_ORDER, SUPPRESS } from './instances';
 import { LensLayer, NO_LENS, sameLens, signReligion } from './lens3d';
+import { BoardTileYields, type TileYieldSample, sameTileYieldSamples, yieldLightTiles } from './boardTileYields';
+import { standingYieldRevision } from '../sim/slate';
 import { VIEW3D, playerPieceColor } from './lookData';
 import { seatInks } from '../art/seatInks';
 import { cellCenter, tileTopY, wrapWidth, worldToCell } from './layout';
@@ -163,7 +165,7 @@ import { PaintedPillageLayer } from './paintedPillage';
 import { PaintedSailsLayer } from './paintedSails';
 import { PaintedBirdsLayer } from './paintedBirds';
 import { PaintedRichnessLayer } from './paintedRichness';
-import { PaintedYieldLightLayer, type YieldLightHex, type YieldLightPick } from './paintedYieldLight';
+import { PaintedYieldLightLayer, type YieldLightHex, type YieldLightPick, sameVisibleLights } from './paintedYieldLight';
 import { VISIBLE as SEEN_NOW } from '../sim/visibility';
 import { PaintedFlowLayer } from './paintedFlow';
 import { SeaMirror } from './seaMirror';
@@ -384,7 +386,9 @@ export class Renderer3D implements MapView {
    * it is screen space and why it cannot touch anything else in this file.
    */
   private readonly vignette = new CityFocusVignette();
-  private readonly lens = new LensLayer();
+  private readonly tileYields = new BoardTileYields();
+  private readonly lens = new LensLayer(this.tileYields);
+  private glyphEconomy?: object;
   private readonly animations = new MoveAnimations3D();
   /**
    * Pieces currently falling over. Separate from `animations` because a walker
@@ -444,6 +448,9 @@ export class Renderer3D implements MapView {
   private paintedRichness: PaintedRichnessLayer | null = null;
   private paintedYieldLight: PaintedYieldLightLayer | null = null;
   private yieldLightSignature: number | null = null;
+  private yieldLightEconomy?: object;
+  private yieldLightWorks?: number;
+  private yieldLightSample?: TileYieldSample;
   /** Glints that travel down the rivers (the visual test version). */
   private paintedFlow: PaintedFlowLayer | null = null;
   /** The sea's distances for the board in place, as a texture (`seaDistances.js`); null without a free coast. */
@@ -1286,15 +1293,37 @@ export class Renderer3D implements MapView {
    * set of hexes the seat sees now changes: the layer draws only on those, and a rich hex may hold no work and no
    * resource, so the works' own fog signature does not cover it.
    */
-  private rebuildYieldLight(worksSignature: number): void {
+  private rebuildYieldLight(worksSignature: number, groundChanged = false): void {
     if (!this.state || !this.paintedYieldLight || !this.paintedBoard) return;
     const levels = this.fogLevels();
-    // The seat's count of technologies stands in for "a yield may have changed": a technology is what raises a work's yield.
+    const stamp = standingYieldRevision(this.state);
     let signature = worksSignature ^ Math.imul(this.fogSeat ?? -1, 40503) ^ Math.imul(this.state.players[this.fogSeat ?? 0]?.techsResearched.length ?? 0, 2654435761);
     if (levels) for (let cell = 0; cell < levels.length; cell++) if (levels[cell] === SEEN_NOW) signature = Math.imul(signature ^ cell, 16777619);
-    if (signature === this.yieldLightSignature) return;
+    if (!groundChanged && signature === this.yieldLightSignature && stamp === this.yieldLightEconomy) return;
+    const worksChanged = this.yieldLightWorks !== worksSignature;
+    if (worksChanged && stamp === this.yieldLightEconomy) this.tileYields.reset();
+    const forceDraw = groundChanged || worksChanged || this.yieldLightSignature === null;
     this.yieldLightSignature = signature;
-    this.paintedYieldLight.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat ?? 0, Math.sqrt(3) * this.state.map.width);
+    this.yieldLightWorks = worksSignature;
+    this.yieldLightEconomy = stamp;
+    const show = VIEW3D.visualTest.yieldLight.show;
+    const seat = this.fogSeat ?? 0;
+    const watched = show === 'off' ? [] : yieldLightTiles(this.state, levels, this.richnessShowcase);
+    const sample = this.tileYields.sample(this.state, seat, watched);
+    const last = this.yieldLightSample;
+    const same = last && (show === 'structures'
+      ? sameTileYieldSamples(last, sample)
+      : sameVisibleLights(last, sample, this.paintedYieldLight.shown, this.state.map.width));
+    this.yieldLightSample = sample;
+    if (!forceDraw && same) return;
+    const prepared = this.paintedBoard.renderMap;
+    const period = Math.sqrt(3) * this.state.map.width;
+    this.paintedYieldLight.group.visible = true;
+    this.paintedYieldLight.build(this.state, prepared, levels, seat, period, sample);
+    if (this.paintedRichness) {
+      this.paintedRichness.group.visible = true;
+      this.paintedRichness.build(this.state, prepared, levels, seat, period, this.shadows, sample);
+    }
   }
 
   /** The smoke over the towns the seat watches now (switch 8). */
@@ -2273,12 +2302,18 @@ export class Renderer3D implements MapView {
   setGameState(state: GameState | null): void {
     this.badgeTargets = null;
     const force = state !== this.state || state?.map !== this.map;
+    if (force || !state) {
+      this.tileYields?.reset();
+      this.yieldLightSample = undefined;
+    }
     this.state = state;
     if (!state) {
       this.setHoveredUnitId(null);
       if (this.paintedCities) this.paintedCities.group.visible = false;
       if (this.paintedWorks) this.paintedWorks.group.visible = false;
       if (this.paintedPillage) this.paintedPillage.group.visible = false;
+      if (this.paintedYieldLight) this.paintedYieldLight.group.visible = false;
+      if (this.paintedRichness) this.paintedRichness.group.visible = false;
       for (const layer of [this.paintedSites, this.paintedRoads, this.paintedTerritory, this.paintedTerritoryTint]) if (layer) layer.group.visible = false;
       this.paintedSmoke?.build(null, null, new Map(), false);
       this.paintedWorksSignature = null; this.yieldLightSignature = null;
@@ -2300,7 +2335,8 @@ export class Renderer3D implements MapView {
     if (force) { this.visibilitySignatures = null; this.paintedWorksSignature = null; this.yieldLightSignature = null; this.reveal?.reset(); }
     this.syncStateLayers(force);
     this.rebuildOverlays();
-    this.rebuildLens();
+    const glyphsOnly = this.lensView.yields && !this.lensView.resources && !this.lensView.citizens && this.lensView.mode === 'none';
+    if (force || this.lensDirty || !glyphsOnly) this.rebuildLens();
     this.redraw();
   }
 
@@ -2768,7 +2804,6 @@ export class Renderer3D implements MapView {
     if (!this.state || !this.paintedWorks || !this.paintedBoard) return false;
     this.paintedPillage?.expire(this.state.turn);
     const signature = signPaintedWorks(this.state, this.fogSeat);
-    this.rebuildYieldLight(signature);
     const levels = this.fogLevels();
     let fogSignature = 0;
     if (levels) for (let cell = 0; cell < levels.length; cell++) {
@@ -2782,7 +2817,10 @@ export class Renderer3D implements MapView {
     for (const [cell, scope] of this.cleared) {
       fogSignature = (Math.imul(fogSignature, 31) + cell * 3 + scope) | 0;
     }
-    if (signature === this.paintedWorksSignature && fogSignature === this.paintedWorksFogSignature) return false;
+    if (signature === this.paintedWorksSignature && fogSignature === this.paintedWorksFogSignature) {
+      this.rebuildYieldLight(signature);
+      return false;
+    }
     const cities = new Set(this.state.cities.map(city => city.row * this.state!.map.width + city.col));
     const terraces = new Set<number>();
     this.state.map.tiles.forEach((tile, cell) => {
@@ -2796,7 +2834,7 @@ export class Renderer3D implements MapView {
     this.paintedPillage?.update(this.state, this.paintedBoard.renderMap, this.paintedWorks.entries);
     this.paintedBirds?.build(this.state.map.width, this.state.map.height);
     this.paintedFlow?.build(this.paintedBoard.renderMap, levels, this.state.map, visualOn('organicRivers'));
-    this.paintedRichness?.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat ?? 0, Math.sqrt(3) * this.state.map.width, this.shadows);
+    this.rebuildYieldLight(signature, terrainChanged);
     this.paintedSails?.build(this.paintedWorks.placements, (cell) => (levels ? levels[cell] ?? 0 : -1), Math.sqrt(3) * this.state.map.width, this.shadows);
     // The smoke of a manufactory's chimney follows the works.
     this.rebuildSmoke();
@@ -4266,6 +4304,13 @@ export class Renderer3D implements MapView {
     // catch all visual changes at that boundary; animation-only frames reuse
     // the resulting buffers. Fog is applied before content visibility checks.
     const fogged = this.applyFog(true);
+    if (this.state) {
+      const stamp = standingYieldRevision(this.state);
+      if (stamp !== this.glyphEconomy) {
+        this.glyphEconomy = stamp;
+        if (this.lensView.yields && this.lens.glyphValuesChanged(this.state)) this.markLensDirty();
+      }
+    }
     if (fogged) this.lastFogStats = fogged;
     // And the seat's *knowledge*, on the same frame and for the same reason: a
     // technology finished this turn reveals ore that was drawn on the board all

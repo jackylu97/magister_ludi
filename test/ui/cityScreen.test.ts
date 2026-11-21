@@ -449,7 +449,7 @@ describe('the city mode', () => {
     // checks the lists add up for every town of a developed empire.
     const text = panel();
     const chips = fn('cityPanel.ts', 'renderYieldChips');
-    expect(chips).toContain('const ledger = chipLedgerRows(state, city, quote, key);');
+    expect(chips).toContain('const ledger = chipLedgerRows(state, city, quote, key, total);');
     expect(chips).toContain("chip.append(element('span', 'city-yield-value', netFigure(value)));");
     for (const gesture of [
       "chip.addEventListener('pointerenter'",
