@@ -100,10 +100,20 @@ blow read the same plan.
   never anything for a hull.
 - **Hit and run** — a `hitAndRun` row pays `rules.naval.hitAndRunCost` out of its
   allowance instead of ending its turn. It still strikes only once a turn.
-- **Two percentages survive**, both attacker-side and both facts about that army
-  rather than about the ground: `rules.combat.riverAttackPenalty` on a melee blow
-  across a river, and a card's own `cardCombatPercent`. Both multiply the unit's
-  base before a single flat line joins.
+- **Across a river** — a melee attack across a river edge costs the attacker
+  `rules.combat.riverAttackPenaltyPoints` strength points, as one flat line
+  on its side (ruled 2026-11-21, `docs/flags.md`). A ranged attack pays nothing.
+- **Against a hull** — a land bow or horse-bow that shoots a ship gains
+  `rules.naval.landRangedVsShipPoints` (a negative figure), and a land siege
+  engine gains `rules.naval.landSiegeVsShipPoints`, as one flat line on the
+  attacker's side (`landVsShipPoints`; ruled 2026-11-21, `docs/flags.md`, "The
+  naval rulings").
+- **No counter from an embarked unit** — a ship that attacks an embarked unit
+  takes no damage back (`boardsAtSea`, a clause of the counter in `planCombat`;
+  the same ruling).
+- **One percentage of strength remains**: a card's own `cardCombatPercent`. It
+  multiplies the unit's base before any flat line joins. Only The Volley Fire
+  uses it, and another build will change that Doctrine to flat points.
 - **A town defends with the strongest unit its owner could train right now**
   (`cityBaseStrength`, floored at `rules.combat.cityMinStrength`) plus its walls,
   cards and buildings; its health is `cityMaxHp`, never `cityBaseHp`.
@@ -265,7 +275,7 @@ trench). This is the whole of the naval triangle in the simulation.
 | `rollBand` | 0.2 |
 | `fortifyBonusPerTurn` | 3 |
 | `fortifyMax` | 6 |
-| `riverAttackPenalty` | 0.2 |
+| `riverAttackPenaltyPoints` | 3 |
 | `flankingBonus` | 0 |
 | `cityBaseHp` | 100 |
 | `cityMinStrength` | 20 |
@@ -290,6 +300,5 @@ trench). This is the whole of the naval triangle in the simulation.
 | `lineBonusPerHull` | 4 |
 | `lineBonusMax` | 8 |
 | `atSeaPenalty` | 20 |
-| `landRangedVsShipPercent` | -50 |
-| `landSiegeVsShipPercent` | 50 |
-| `embarkedCounterPercent` | 50 |
+| `landRangedVsShipPoints` | -6 |
+| `landSiegeVsShipPoints` | 6 |

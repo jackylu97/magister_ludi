@@ -31,7 +31,7 @@
     "rollBand": 0.2,
     "fortifyBonusPerTurn": 3,
     "fortifyMax": 6,
-    "riverAttackPenalty": 0.2,
+    "riverAttackPenaltyPoints": 3,
     "flankingBonus": 0,
     "cityBaseHp": 100,
     "cityMinStrength": 20,
@@ -55,9 +55,8 @@
     "lineBonusPerHull": 4,
     "lineBonusMax": 8,
     "atSeaPenalty": 20,
-    "landRangedVsShipPercent": -50,
-    "landSiegeVsShipPercent": 50,
-    "embarkedCounterPercent": 50
+    "landRangedVsShipPoints": -6,
+    "landSiegeVsShipPoints": 6
   },
   "improvements": {
     "pillageGold": 25,

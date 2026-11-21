@@ -611,8 +611,15 @@ import {
  *
  * v251 changes citizen and building yields and the production prices of units.
  * Gold purchases of Great People now require the recruitment ability.
+ *
+ * v252 changes combat strength across a river and at sea (`docs/flags.md`, the
+ * rulings of 2026-11-21). A melee attack across a river costs a flat 3 points,
+ * not 20% of the attacker's strength. A land bow that shoots a ship has a flat
+ * −6 and a land siege engine a flat +6, not −50% and +50%. A ship that attacks
+ * an embarked unit takes no counter-blow, and no die is thrown for it. No field
+ * joins or leaves the state. A v251 log replays to different fights.
  */
-export const SCHEMA_VERSION = 251;
+export const SCHEMA_VERSION = 252;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

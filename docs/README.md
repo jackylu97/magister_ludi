@@ -426,8 +426,9 @@ Reference: **`docs/units.md`** (the roster; generated) and
   Road. Any new way to move a unit calls it — the swap walks both its pieces
   through `advanceAlongPath`, so both arrivals land there.
 - **Combat is flat points on one ledger** (`planCombat`). Terrain, fortification,
-  the general's aura and a wall are labelled strength lines, never multipliers;
-  only two attacker-side percentages survive (a river crossing, and a card's own).
+  the general's aura, a wall, a melee attack across a river and a land piece's
+  shot at a ship are labelled strength lines, never multipliers. The only
+  percentage of strength left is a card's own (`cardCombatPercent`).
   Damage is an exponential in the *difference* of two effective strengths, so an
   edge is worth the same multiplier at any rung.
 - **A town is attacked in three beats** — walls → garrison → capture, off the
@@ -507,8 +508,9 @@ Reference: **`docs/units.md`** (the roster; generated) and
   garrison row a chip, the unit panel the rank and an Experience figure, the
   forecast the line, and the Compendium a concept entry.
 - **The waterline**: a land piece that closes may not strike a water hex; an
-  embarked piece may not strike a ship; land bows and land siege fight a hull at
-  their own percentages; a hull boarding a column takes a share of the counter.
+  embarked piece may not strike a ship; a land bow shooting a ship takes a flat
+  loss of strength and land siege a flat gain (`rules.naval`); a ship that
+  attacks an embarked unit takes no counter-blow.
 - Auto-upgrade (`upgradesTo`) is gated on the strategic resource. A unit whose
   successor the empire could field today is refused by `buildError` and hidden
   from the build list, but a row already queued builds out.

@@ -1088,6 +1088,9 @@ describe('never hand-written prose about a number', () => {
     expect(prose).not.toContain('%');
     expect(prose).toContain('Hills and forests add to a defender');
     expect(prose).toContain('fortifying adds more each turn it stays');
+    // The river crossing is a fixed amount since 2026-11-21, and the words say
+    // so without a number (hard rule 7).
+    expect(prose).toContain('attacks across a river loses a fixed amount of strength');
     expect(prose).toContain('the best unit its owner could build');
     expect(prose).toContain('under siege');
     expect(prose).toContain('only an attack can capture it');

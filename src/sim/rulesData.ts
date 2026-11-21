@@ -191,8 +191,14 @@ interface CombatRules {
   fortifyBonusPerTurn: number;
   /** Cap on the fortify bonus in points, however long a unit sits still. */
   fortifyMax: number;
-  /** Fraction of strength a melee attacker loses attacking across a river. */
-  riverAttackPenalty: number;
+  /**
+   * **Strength points** a melee attacker loses when it attacks across a river,
+   * as one flat line on its side of the ledger (`planCombat`). A positive
+   * number that is taken away. The user's ruling of 2026-11-21 (`docs/flags.md`,
+   * "Attacking across a river is a flat −3") made it points. Before, the key was
+   * `riverAttackPenalty`, a fraction of the attacker's own strength.
+   */
+  riverAttackPenaltyPoints: number;
   /** Reserved for the flanking rule; 0 in v1, and nothing reads it yet. */
   flankingBonus: number;
   /**
@@ -296,8 +302,10 @@ interface RankRung {
 }
 
 /**
- * The seven numbers the naval line spends, and there are deliberately only
- * seven.
+ * The six numbers the naval line spends. There were seven until the user's
+ * ruling of 2026-11-21 removed the ship's share of the counter-blow from an
+ * embarked unit (`embarkedCounterPercent`): an embarked unit does not hit back
+ * at a ship now, so there is no figure to tune.
  *
  * Every *other* fact about a ship is on its roster row — the strengths, the
  * movement, the range, the labelled lines the triangle is made of — because they
@@ -327,32 +335,22 @@ interface NavalRules {
    */
   atSeaPenalty: number;
   /**
-   * What a **land bow** loses shooting at a hull — an attacker-side percentage,
-   * whole percent, negative for the malus it is (the user, 2026-09-09: "boats
-   * should take reduced damage from ranged attacks from land").
+   * **Strength points** a **land bow** gains when it shoots at a ship. Signed,
+   * and negative for the loss it is: one flat line, "Against a hull", on the
+   * attacker's side (`landVsShipPoints` in `combat.ts`).
    *
    * Read for a land piece of `modelClass` `ranged` or `mountedRanged` against a
-   * target of `category: 'naval'`, in `planCombat` and nowhere else: an arrow
-   * loosed at a hull is an arrow loosed at armoured timber a bowshot out to sea.
+   * target of `category: 'naval'`, and nowhere else. Points since the user's
+   * ruling of 2026-11-21 (`docs/flags.md`, "The naval rulings"); before, the key
+   * was `landRangedVsShipPercent`, a share of the shooter's own strength.
    */
-  landRangedVsShipPercent: number;
+  landRangedVsShipPoints: number;
   /**
-   * What a **land siege engine** gains shooting at a hull — the same shape, the
-   * other sign (the user, same ruling: "should take increased damage from siege").
-   * Read for `modelClass: 'siege'` against `category: 'naval'`.
+   * **Strength points** a **land siege engine** gains when it shoots at a ship.
+   * The same line with the other sign. Read for `modelClass: 'siege'` against
+   * `category: 'naval'`. It replaced `landSiegeVsShipPercent` in the same ruling.
    */
-  landSiegeVsShipPercent: number;
-  /**
-   * What share of its ordinary counter-blow a **hull boarding a column at sea**
-   * takes, in whole percent — 50 is half (the user, same ruling: "boats should
-   * also take reduced damage when attacking embarked units").
-   *
-   * The one percentage in this file that scales *damage* rather than strength,
-   * because the ruling is about what comes back rather than about who is
-   * stronger; `atSeaPenalty` is already the strength half of the same picture
-   * and the two are deliberately not folded (see `planCombat`'s counter clause).
-   */
-  embarkedCounterPercent: number;
+  landSiegeVsShipPoints: number;
 }
 
 /**

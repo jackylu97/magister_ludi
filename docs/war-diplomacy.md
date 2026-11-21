@@ -77,8 +77,10 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
 
 Ruled 2026-09-09 (`docs/flags.md` (ppp)). Every rule below is a clause of
 `planCombat` in `src/sim/combat.ts` — one evaluator, so the attackable tint, the
-forecast card and the reducer refuse and price as one. The three new numbers are
-in `data/rules.json` under `rules.naval`.
+forecast card and the reducer refuse and price as one. The two numbers for a
+shot at a ship are in `data/rules.json` under `rules.naval`. The naval rulings
+of 2026-11-21 (`docs/flags.md`, "The naval rulings") made the shot flat points
+and removed the counter from an embarked unit.
 
 **Across the waterline**
 
@@ -89,21 +91,18 @@ in `data/rules.json` under `rules.naval`.
 - An **embarked piece** — a land unit standing on water — may not attack a ship,
   whether it would close or shoot: "Spearman is afloat and cannot fight a ship".
   It may still attack a **land** target, exactly as before.
-- A **land bow or horse-bow** fights a naval target at
-  `rules.naval.landRangedVsShipPercent` (−50); a **land siege engine** at
-  `rules.naval.landSiegeVsShipPercent` (+50). Attacker-side percentages — the
-  ledger's one allowed kind — printed as one named line, "Against a hull −50%",
-  in the forecast's `attackerLines`. Read off `modelClass` / `category`, never a
-  unit name.
-- A **ship attacking an embarked piece** takes `rules.naval.embarkedCounterPercent`
-  (50) of the counter-blow, named on the forecast's `counterPercents` as
-  "Boarding at sea".
-- That last one **composes with** `rules.naval.atSeaPenalty` and does not replace
-  it: the at-sea penalty is a *strength* line on the defender (making the
-  passenger both easier to kill and weaker in return, and cancelled by a light
-  hull escort); the boarding share then halves what counter is left. Two labelled
-  prices, either dialable to nothing without touching the other.
-- ▢ The three figures are first cuts for the user's balance pass.
+- A **land bow or horse-bow** that shoots a naval target gains
+  `rules.naval.landRangedVsShipPoints` strength points (a negative figure); a
+  **land siege engine** gains `rules.naval.landSiegeVsShipPoints`. Each is one
+  flat line on the attacker's side, "Against a hull", in the forecast's
+  `attackerLines` (`landVsShipPoints`). Read off `modelClass` / `category`,
+  never a unit name.
+- A **ship attacking an embarked piece** takes no counter-blow
+  (`boardsAtSea`, a clause of `counters` in `planCombat`). The forecast shows
+  no damage to the ship, as it does for a ranged shot.
+- The at-sea penalty is separate: `rules.naval.atSeaPenalty` is a *strength*
+  line on the defender, so the passenger is easier to kill, and a light hull
+  escort cancels it.
 - **The scale everything here is measured on is the strength ladder** (batch U9,
   `docs/flags.md` (ttt); re-cut at the user's own figures by U9b, (yyy), which
   also raised every hull): every `combatStrength` and `rangedStrength` is Civ 6's

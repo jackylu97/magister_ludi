@@ -48,8 +48,8 @@
  *
  * Strength is *effective* strength on both sides:
  *
- *     defender = base + terrain defence + fortify bonus + every flat line
- *     attacker = base · (1 − riverAttackPenalty, when melee across a river)
+ *     defender = base · (cards' percentage) + terrain defence + fortify bonus + every flat line
+ *     attacker = base · (cards' percentage) + every flat line
  *
  * **Everything on the defender's side is flat strength points** (user,
  * 2026-08-28: "terrain bonuses should be additive, not percentage"), which is
@@ -68,10 +68,17 @@
  * (`generalAuraLines`). Since batch WC3 a unit's **rank** is one more
  * (`rankStrengthLines`, `ranks.ts`).
  *
- * The two percentages that survive are on the *attacker's* side and are both
- * facts about that army rather than about the ground: the river penalty, and
- * `cardCombatPercent`'s "−10% combat strength". Both multiply a unit's own base
- * before a single flat line joins.
+ * The attacker's side is flat lines too. A melee attack across a river costs
+ * the attacker `rules.combat.riverAttackPenaltyPoints` strength points, and a
+ * land piece that shoots a ship gains or loses a fixed number of points
+ * (`landVsShipPoints`). Both are the user's rulings of 2026-11-21 in
+ * `docs/flags.md` ("Attacking across a river is a flat −3" and "The naval
+ * rulings").
+ *
+ * The only percentage of strength left is the cards' share,
+ * `cardCombatPercent`. It multiplies a unit's own base before any flat line
+ * joins. One Doctrine uses it today, The Volley Fire, and another build will
+ * change that Doctrine to flat points.
  *
  * A city's strength
  * -----------------
@@ -226,26 +233,22 @@
  *     shoot. It may still attack a **land** target exactly as it could before
  *     this ruling; a bow in a boat still looses at the shore, and nothing here
  *     changes that.
- *   · **A ship struck from land** pays or is paid as an *attacker-side
- *     percentage* — the ledger's one allowed kind — and prints as a labelled
- *     line like everything else: `rules.naval.landRangedVsShipPercent` for a
- *     bow or a horse-bow, `rules.naval.landSiegeVsShipPercent` for a siege
- *     engine. Read off `modelClass` and `category`, never off a name.
- *   · **A hull boarding a column at sea takes half the blow back**:
- *     `rules.naval.embarkedCounterPercent` of the counter, and it is the one
- *     percentage in this file that scales *damage* rather than strength.
+ *   · **A ship shot at from land** gives the shooter one flat line on its
+ *     side, "Against a hull": `rules.naval.landRangedVsShipPoints` (a loss)
+ *     for a bow or a horse-bow, `rules.naval.landSiegeVsShipPoints` (a gain)
+ *     for a siege engine. Read off `modelClass` and `category`, never off a
+ *     name. Points since the user's ruling of 2026-11-21 (`docs/flags.md`,
+ *     "The naval rulings"); they were percentages of the shooter's strength.
+ *   · **A ship that attacks an embarked unit takes no counter-blow** (the same
+ *     ruling; before it, the ship took half). `boardsAtSea` is the question,
+ *     and it is one clause of `counters` in `planCombat`, so the fight is
+ *     one-way like a ranged shot and the forecast shows no damage to the ship.
  *
- * That last one **composes** with the at-sea penalty rather than replacing it,
- * and the two are kept apart deliberately. `atSeaPenalty` is a **strength** line
- * on the defender's side (`seaDefenceLines`), so one number does two jobs: the
- * passenger is easier to kill, and — through the same difference of strengths —
- * its return blow is already smaller. That is a fact about a column that cannot
- * form up, and an escort cancels it. `embarkedCounterPercent` then takes half of
- * whatever counter is left, and it is a fact about the *hull*: a galley standing
- * off a raft is not somewhere a spear reaches. Both are labelled — "At sea" in
- * the defender's fold, "Boarding at sea" among `counterPercents` — so a player
- * can see the two prices separately, and dialling either to nothing leaves the
- * other exactly as it was.
+ * The at-sea penalty is separate from that last rule. `atSeaPenalty` is a
+ * **strength** line on the defender's side (`seaDefenceLines`), so the
+ * passenger is easier to kill, and an escort cancels it. The missing counter is
+ * a fact about the attacking ship, and the forecast shows it as no damage to
+ * the attacker.
  *
  * Siege
  * -----
@@ -781,7 +784,7 @@ function isEmbarked(def: UnitDef, tile: Tile): boolean {
  *     the ruling's own other half: they still shoot at the water in range.
  *
  * Asked of `category` and of the terrain table, never of a name or a model
- * class: the second is what the *percentages* read (`landVsShipPercent`), and
+ * class: the second is what the shot at a hull reads (`landVsShipPoints`), and
  * a rule about where a piece may be is `category`'s question by the roster's own
  * docblock.
  */
@@ -810,16 +813,16 @@ function waterlineError(
 }
 
 /**
- * **What a land piece's blow at a hull is worth**, as a whole-percent
- * attacker-side share — a malus for a bow, a bonus for a siege engine, and zero
- * for everything else and every fight that is not one.
+ * **What a land piece's shot at a hull is worth**, in strength points on the
+ * attacker's side: a loss for a bow (`rules.naval.landRangedVsShipPoints`), a
+ * gain for a siege engine (`rules.naval.landSiegeVsShipPoints`), and zero for
+ * every other piece and every fight that is not one.
  *
- * The ledger takes flat points and one exception (module docblock): a percentage
- * is allowed on the *attacker's* side, where it is a fact about that army rather
- * than about the ground somebody else is standing on. An arrow that skips off
- * armoured timber and a stone that goes through it are exactly that kind of
- * fact, so they are shares of the shooter's own strength and they print as one
- * named line each in `attackerLines`.
+ * Flat points since the user's ruling of 2026-11-21 (`docs/flags.md`, "The
+ * naval rulings"). Damage reads the difference of two strengths, so a fixed
+ * number of points changes damage by the same factor at every strength; a
+ * percentage grew with the shooter's strength through the ages. `planCombat`
+ * prints it as one flat line, "Against a hull", on the attacker's side.
  *
  * Read off `modelClass` — the **second** deliberate exception to "the model
  * class is art" (`unitData.ts` names `UnitCombatLine.vsModelClass` as the
@@ -830,25 +833,23 @@ function waterlineError(
  * attacker is excused if it is naval — a fight between two hulls is the
  * triangle's business (`rowCombatLines`) and not this.
  */
-function landVsShipPercent(def: UnitDef, target: AttackTarget): number {
+function landVsShipPoints(def: UnitDef, target: AttackTarget): number {
   if (isNaval(def)) return 0;
   if (target.unit === null || !isNaval(unitDef(target.unit.type))) return 0;
   const { modelClass } = def;
   if (modelClass === 'ranged' || modelClass === 'mountedRanged') {
-    return RULES.naval.landRangedVsShipPercent;
+    return RULES.naval.landRangedVsShipPoints;
   }
-  if (modelClass === 'siege') return RULES.naval.landSiegeVsShipPercent;
+  if (modelClass === 'siege') return RULES.naval.landSiegeVsShipPoints;
   return 0;
 }
 
 /**
- * **Is this blow a hull boarding a column at sea?** — the counter-blow's own
- * halving, and the one question it turns on.
- *
- * A ship attacking a piece that does not belong on the water takes
- * `rules.naval.embarkedCounterPercent` of what would otherwise come back. See
- * the module docblock for how it composes with the at-sea penalty and why the
- * two stay two numbers.
+ * **Is this blow a ship attacking an embarked unit?** If it is, the unit does
+ * not hit back: the ship takes no counter-blow (the user's ruling of
+ * 2026-11-21, `docs/flags.md`, "The naval rulings"). `planCombat` asks it as
+ * one clause of `counters`. See the module docblock for how it sits beside the
+ * at-sea penalty.
  */
 function boardsAtSea(attacker: UnitDef, target: AttackTarget, tile: Tile): boolean {
   if (!isNaval(attacker) || target.unit === null) return false;
@@ -1237,7 +1238,7 @@ interface CombatBonusLine {
   /** Display label — "vs barbarians". */
   source: string;
   side: 'attacker' | 'defender';
-  /** Strength points added. Always positive today; the shape allows a malus. */
+  /** Strength points added. Signed: a river crossing or the water takes points away. */
   amount: number;
 }
 
@@ -1266,28 +1267,6 @@ interface CombatStrengthLine {
   source: string;
   /** Strength points this line contributes. Signed: a river takes points away. */
   amount: number;
-}
-
-/**
- * One named percentage of a **damage** figure, with the reason.
- *
- * The third and last line shape in this file, and it exists because the
- * waterline pass needed one thing the other two cannot say: a share of the
- * counter-blow (`rules.naval.embarkedCounterPercent`). A `CombatStrengthLine`
- * folds into a strength and a `CombatBonusLine` is a flat point total on one
- * side; neither is true of "half of whatever comes back", and writing it as one
- * of them would have put a number into a sum it does not belong in.
- *
- * It carries the **percentage** rather than the hit points, unlike a strength
- * line's "paid in points" rule, and for that rule's own reason: what a strength
- * line prints is worth a fixed number of points *here*, where damage is a band
- * the die has not been thrown for yet. Half of it is the honest thing to print.
- */
-interface CombatPercentLine {
-  /** Display label — "Boarding at sea". */
-  source: string;
-  /** Whole percent of the figure that remains. 50 is half. */
-  percent: number;
 }
 
 /**
@@ -1633,18 +1612,6 @@ export interface CombatForecast {
    */
   capturesCityOnKill: boolean;
   /**
-   * Percentages applied to the **counter-blow itself**, named — empty in every
-   * fight but a hull boarding a column at sea.
-   *
-   * The one list in this file that is not strength points, and it is a separate
-   * list for exactly that reason: `attackerLines` and `defenderLines` fold to
-   * the two strengths (rule 5), and a share of the *damage coming back* is not a
-   * term in either sum. Kept as the percentage rather than as the hit points it
-   * removes, because the hit points are a band and the rule is a flat share of
-   * whatever the die produces.
-   */
-  counterPercents: CombatPercentLine[];
-  /**
    * Which beat of the siege this attack is — present **only** when the attacked
    * hex holds a foreign city, absent for every fight on open ground.
    *
@@ -1945,6 +1912,31 @@ function planCombat(
   let terrainBonus = 0;
   for (const line of terrainLines) terrainBonus += line.amount;
   const acrossRiver = kind === 'melee' && crossesRiver(state.map, from, tile);
+  const bonuses: CombatBonusLine[] = [];
+
+  /**
+   * **A melee attack across a river** costs the attacker a flat number of
+   * strength points, `rules.combat.riverAttackPenaltyPoints` (the user's ruling
+   * of 2026-11-21 in `docs/flags.md`). It is one more flat line on the
+   * attacker's side, so it does not grow with the unit's own strength. It is
+   * pushed first so that the forecast prints it straight after the unit's
+   * strength and the cards' percentage, which is where the river line printed
+   * before.
+   */
+  const riverPoints = COMBAT.riverAttackPenaltyPoints;
+  if (acrossRiver && riverPoints !== 0) {
+    bonuses.push({ source: 'Across a river', side: 'attacker', amount: -riverPoints });
+  }
+  /**
+   * **A land piece's shot at a hull**, one flat line on the attacker's side in
+   * the same place (`landVsShipPoints`). A shot is never a melee attack, so it
+   * never meets the river line. The label is the one the forecast printed when
+   * the rule was a percentage, without the percentage.
+   */
+  const hullPoints = landVsShipPoints(def, target);
+  if (hullPoints !== 0) {
+    bonuses.push({ source: 'Against a hull', side: 'attacker', amount: hullPoints });
+  }
 
   /**
    * The wild's tax, from whichever side is paying it.
@@ -1955,7 +1947,6 @@ function planCombat(
    * empire's raider there is nothing to be steadier than.
    */
   const defenderOwnerId = defenderId;
-  const bonuses: CombatBonusLine[] = [];
   const wildBonus = RULES.barbarians.combatBonus;
   if (wildBonus !== 0) {
     if (!isBarbarian(state, attacker.ownerId) && isBarbarian(state, defenderOwnerId)) {
@@ -2194,58 +2185,33 @@ function planCombat(
     return total;
   };
 
-  // Master of Maps' drawback, applied to the unit's **own base** before the
-  // river and before any flat line joins: "−10% combat strength" is a fact about
-  // this army, not a discount on the terrain somebody else is standing on. See
-  // `cardCombatPercent`.
+  // Master of Maps' drawback, applied to the unit's **own base** before any
+  // flat line joins (the river crossing is one of them): "−10% combat strength"
+  // is a fact about this army, not a discount on the terrain somebody else is
+  // standing on. See `cardCombatPercent`.
   // The situation travels with it since the Statue of Zeus: a share may name one
   // kind of fight ("+15% attacking cities"), and it is asked of the same triple
   // the flat lines are asked of, through the same one evaluator.
   const attackerPercent = cardCombatPercent(state, attacker, situationFor(attacker, 'attacker'));
   const attackerStat = kind === 'ranged' ? def.rangedStrength! : def.combatStrength;
   const attackerBase = Math.floor((attackerStat * (100 + attackerPercent)) / 100);
-  /**
-   * **The shot at a hull**, and it is an attacker-side percentage for the same
-   * reason the two above it are: an arrow skipping off armoured timber and a
-   * stone going through it are facts about *this army*, not discounts on the
-   * water somebody else is floating on. Applied to the base the cards left,
-   * floored once like every other share in this file, and printed as its own
-   * named line so the two percentages never fold into an unexplained number.
-   * See `landVsShipPercent`, which is the whole rule.
-   */
-  const shipPercent = landVsShipPercent(def, target);
-  const attackerAfloat = Math.floor((attackerBase * (100 + shipPercent)) / 100);
-  // Flat, and **after** the river multiplier — see `CombatBonusLine` for why a
-  // fact about the opponent must not scale with the ground.
-  const riverFactor = acrossRiver ? 1 - COMBAT.riverAttackPenalty : 1;
-  const attackerStrength = attackerAfloat * riverFactor + bonusFor('attacker');
+  // Every flat line joins after the cards' percentage: the river crossing and
+  // the shot at a hull among them. See `CombatBonusLine` for why a flat line
+  // must not scale with the unit.
+  const attackerStrength = attackerBase + bonusFor('attacker');
 
   /**
-   * The attacker's arithmetic, written down in the order it happened — hard rule
-   * 5's breakdown for `attackerStrength`, which is its fold and nothing else.
-   * The roster's printed strength, then the empire's law, then the ford, then
-   * every flat line; each percentage names itself in the label and pays in
-   * points (see `CombatStrengthLine`).
+   * The attacker's arithmetic, in the order it happened. This is hard rule 5's
+   * breakdown for `attackerStrength`, which is its fold and nothing else: the
+   * roster's printed strength, then the cards' percentage, then every flat line
+   * (the river crossing or the shot at a hull first). The percentage names
+   * itself in the label and pays in points (see `CombatStrengthLine`).
    */
   const attackerLines: CombatStrengthLine[] = [{ source: def.name, amount: attackerStat }];
   if (attackerBase !== attackerStat) {
     attackerLines.push({
       source: `Cards ${signedPercent(attackerPercent)}`,
       amount: attackerBase - attackerStat,
-    });
-  }
-  if (attackerAfloat !== attackerBase) {
-    // Named for what it *is* rather than for the knob it came from: a player
-    // reads "Against a hull −50%" and knows both the rule and what it cost.
-    attackerLines.push({
-      source: `Against a hull ${signedPercent(shipPercent)}`,
-      amount: attackerAfloat - attackerBase,
-    });
-  }
-  if (acrossRiver) {
-    attackerLines.push({
-      source: `Across a river ${signedPercent(-COMBAT.riverAttackPenalty * 100)}`,
-      amount: attackerAfloat * riverFactor - attackerAfloat,
     });
   }
   for (const line of bonuses) {
@@ -2463,35 +2429,21 @@ function planCombat(
    * town's strength at a raider walking into an *empty* gate, which is not a
    * fight either. `cityPhase === 'walls'` says the one thing that was always
    * meant: the walls counter while they still stand, full stop.
+   *
+   * **An embarked unit does not hit back at a ship** (the user's ruling of
+   * 2026-11-21, `docs/flags.md`, "The naval rulings"; before it, the ship took
+   * half the counter-blow). `boardsAtSea` is the last clause. The ship's own
+   * blow and both strengths are unchanged. With no counter the fight is one-way
+   * like a ranged shot: no die is thrown for the counter, and the forecast shows
+   * no damage to the ship in the same way it does for a shot.
    */
   const counters =
     kind === 'melee' &&
     !capturesUnit &&
     !plundersUnit &&
-    (cityPhase === 'walls' || (target.city === null && isCombatant(unitDef(target.unit!.type))));
-  /**
-   * **A hull boarding a column at sea takes half the blow back** (user,
-   * 2026-09-09), and this is the one place in the file a percentage touches
-   * *damage* rather than strength.
-   *
-   * It is priced here, on the counter and only on the counter, because that is
-   * exactly what the ruling says: the ship's own blow is unchanged, and so is
-   * everything the two sides are worth. `atSeaPenalty` is the other half of the
-   * picture and is deliberately still a strength line on the defender — see the
-   * module docblock for how the two compose and why they are not one number.
-   *
-   * Named rather than folded: the share travels to the card as a
-   * `CombatPercentLine`, so a player who sees a counter smaller than the
-   * strengths would predict can read why.
-   */
-  const counterPercents: CombatPercentLine[] = [];
-  let counterFactor = 1;
-  if (counters && boardsAtSea(def, target, tile)) {
-    const percent = RULES.naval.embarkedCounterPercent;
-    counterPercents.push({ source: 'Boarding at sea', percent });
-    counterFactor = percent / 100;
-  }
-  const baseToAttacker = counters ? curve(defenderStrength - attackerStrength) * counterFactor : 0;
+    (cityPhase === 'walls' || (target.city === null && isCombatant(unitDef(target.unit!.type)))) &&
+    !boardsAtSea(def, target, tile);
+  const baseToAttacker = counters ? curve(defenderStrength - attackerStrength) : 0;
 
   /**
    * **The walls fall in one blow** — The Great Bombards (Dominion batch D2):
@@ -2566,7 +2518,6 @@ function planCombat(
     plundersUnit,
     capturesCity,
     capturesCityOnKill,
-    counterPercents,
     cityPhase,
   };
 

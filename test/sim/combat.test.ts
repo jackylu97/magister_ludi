@@ -687,7 +687,7 @@ describe('terrain and fortification', () => {
     expect(explainTerrainDefense('grassland', 'none', false)).toEqual([]);
   });
 
-  it('pays the river penalty only for a melee attack across the edge', () => {
+  it('charges a flat river penalty only for a melee attack across the edge', () => {
     const state = flatState();
     // A river along the edge (3,3) shares with its eastern neighbour (4,3).
     setRiverEdge(state.map, at(state.map, 3, 3), 0);
@@ -696,9 +696,35 @@ describe('terrain and fortification', () => {
 
     const view = forecast(state, a.id, 4, 3);
     expect(view.acrossRiver).toBe(true);
-    // Strength 20 × 0.8 = 16 against 20: 30 · e^(0.04 · −4) = 25.6 → 26.
-    expect(view.attackerStrength).toBeCloseTo(16, 10);
-    expect(view.damageToDefender).toBe(26);
+    // A flat −3 since the user's ruling of 2026-11-21 (`docs/flags.md`,
+    // "Attacking across a river is a flat −3"), not a share of the strength.
+    expect(COMBAT.riverAttackPenaltyPoints).toBe(3);
+    // Strength 20 − 3 = 17 against 20: 30 · e^(0.04 · −3) = 26.6 → 27.
+    expect(view.attackerStrength).toBe(17);
+    expect(view.damageToDefender).toBe(27);
+    // The penalty is one line on the attacker's side of the ledger.
+    expect(view.bonuses).toContainEqual({
+      source: 'Across a river',
+      side: 'attacker',
+      amount: -COMBAT.riverAttackPenaltyPoints,
+    });
+  });
+
+  it('charges the same river points to a strong unit as to a weak one', () => {
+    // A flat line does not grow with the unit: the old 20% took more from a
+    // stronger attacker. Each attacker loses exactly the figure in the data.
+    for (const type of ['warrior', 'swordsman'] as const) {
+      const state = flatState();
+      setRiverEdge(state.map, at(state.map, 3, 3), 0);
+      const a = createUnit(state, 0, type, 3, 3);
+      createUnit(state, 1, 'warrior', 4, 3);
+
+      const view = forecast(state, a.id, 4, 3);
+      expect(view.acrossRiver).toBe(true);
+      expect(view.attackerStrength).toBe(
+        unitDef(type).combatStrength - COMBAT.riverAttackPenaltyPoints,
+      );
+    }
   });
 
   it('charges no river penalty to an archer shooting over it', () => {
@@ -1611,9 +1637,11 @@ describe('cities in combat', () => {
 /**
  * The four rules of fighting across the waterline (batch N1, the user's ruling
  * of 2026-09-09; `docs/war-diplomacy.md` §5b). They live here rather than in
- * `naval.test.ts` because every one of them is a clause of `planCombat` — a
- * refusal, two attacker-side percentages and a share of the counter — and this
- * is the file that holds the evaluator still.
+ * `naval.test.ts` because every one of them is a clause of `planCombat` (a
+ * refusal, two flat lines for a shot at a ship, and no counter from an embarked
+ * unit), and this is the file that holds the evaluator. The shot and the
+ * counter changed with the user's naval rulings of 2026-11-21 (`docs/flags.md`,
+ * "The naval rulings").
  *
  * The bench is `flatState` with a strip of coast down column 4, so a hull and a
  * landsman can stand a hex apart with the waterline between them.
@@ -1662,35 +1690,37 @@ describe('fighting across the waterline', () => {
     expect(view.error).toBe('Horseman cannot strike at the water');
   });
 
-  it('lets a bow shoot at a hull, at half strength, on a named line', () => {
+  it('lets a bow shoot at a hull at a flat loss, on a named line', () => {
     const state = shoreState();
     const archer = createUnit(state, 0, 'archer', 3, 3);
     createUnit(state, 1, 'trireme', 4, 3);
 
     const view = forecast(state, archer.id, 4, 3);
     const stat = unitDef('archer').rangedStrength!;
-    const share = RULES.naval.landRangedVsShipPercent;
-    const line = view.attackerLines.find((one) => one.source.startsWith('Against a hull'));
-    expect(line, 'the shot at a hull').toBeDefined();
-    expect(line!.source).toBe('Against a hull -50%');
-    expect(line!.amount).toBe(Math.floor((stat * (100 + share)) / 100) - stat);
+    // A flat −6 since 2026-11-21, not a share of the bow's strength.
+    expect(RULES.naval.landRangedVsShipPoints).toBe(-6);
+    const line = view.attackerLines.find((one) => one.source === 'Against a hull');
+    expect(line, 'the shot at a hull').toEqual({
+      source: 'Against a hull',
+      amount: RULES.naval.landRangedVsShipPoints,
+    });
+    expect(view.attackerStrength).toBe(stat + RULES.naval.landRangedVsShipPoints);
     // Rule 5: the headline is the fold of the list and never a second sum.
-    expect(foldCombatStrength(view.attackerLines)).toBeCloseTo(view.attackerStrength, 9);
+    expect(foldCombatStrength(view.attackerLines)).toBe(view.attackerStrength);
   });
 
-  it('lets a siege engine shoot at a hull, at half again', () => {
+  it('lets a siege engine shoot at a hull at a flat gain', () => {
     const state = shoreState();
     const catapult = createUnit(state, 0, 'catapult', 3, 3);
     createUnit(state, 1, 'trireme', 4, 3);
 
     const view = forecast(state, catapult.id, 4, 3);
     const stat = unitDef('catapult').rangedStrength!;
-    const share = RULES.naval.landSiegeVsShipPercent;
-    const line = view.attackerLines.find((one) => one.source.startsWith('Against a hull'));
-    expect(line!.source).toBe('Against a hull +50%');
-    expect(line!.amount).toBe(Math.floor((stat * (100 + share)) / 100) - stat);
-    expect(line!.amount).toBeGreaterThan(0);
-    expect(foldCombatStrength(view.attackerLines)).toBeCloseTo(view.attackerStrength, 9);
+    expect(RULES.naval.landSiegeVsShipPoints).toBe(6);
+    const line = view.attackerLines.find((one) => one.source === 'Against a hull');
+    expect(line).toEqual({ source: 'Against a hull', amount: RULES.naval.landSiegeVsShipPoints });
+    expect(view.attackerStrength).toBe(stat + RULES.naval.landSiegeVsShipPoints);
+    expect(foldCombatStrength(view.attackerLines)).toBe(view.attackerStrength);
   });
 
   it('pays neither share against anything that is not a hull', () => {
@@ -1700,37 +1730,57 @@ describe('fighting across the waterline', () => {
     const archer = createUnit(state, 0, 'archer', 3, 3);
     createUnit(state, 1, 'spearman', 2, 3);
     const view = forecast(state, archer.id, 2, 3);
-    expect(view.attackerLines.some((one) => one.source.startsWith('Against a hull'))).toBe(false);
+    expect(view.attackerLines.some((one) => one.source === 'Against a hull')).toBe(false);
   });
 
-  it('halves the counter a hull takes from a column at sea, and names it', () => {
+  it('gives a hull no counter-blow from a unit at sea', () => {
     const state = shoreState();
     const hull = createUnit(state, 0, 'trireme', 4, 4);
-    createUnit(state, 1, 'spearman', 4, 3);
+    const prey = createUnit(state, 1, 'spearman', 4, 3);
 
     const view = forecast(state, hull.id, 4, 3);
-    const share = RULES.naval.embarkedCounterPercent;
-    expect(view.counterPercents).toEqual([{ source: 'Boarding at sea', percent: share }]);
-    // The at-sea penalty is the *other* half of the picture and is still a
-    // strength line on the defender — the two compose, neither replaces the other.
+    // The at-sea penalty is a separate rule and is still a strength line on the
+    // defender.
     expect(view.defenderLines.some((one) => one.source === 'At sea')).toBe(true);
+    // No damage comes back, at any roll, as for a ranged shot.
+    expect(view.damageToAttacker).toBe(0);
+    expect(view.damageToAttackerMin).toBe(0);
+    expect(view.damageToAttackerMax).toBe(0);
+    // The ship's own blow still lands.
+    expect(view.damageToDefender).toBeGreaterThan(0);
 
-    // Half of the blow the same strengths would otherwise have sent back.
-    const whole = expectedDamage(view.defenderStrength, view.attackerStrength, 1);
-    expect(view.damageToAttacker).toBe(
-      expectedDamage(view.defenderStrength, view.attackerStrength, share / 100),
-    );
-    expect(view.damageToAttacker).toBeLessThan(whole);
+    // And the reducer agrees: the ship keeps every hit point.
+    const hullHp = hull.hp;
+    expect(applyCommand(state, attack(hull.id, 4, 3)).ok).toBe(true);
+    expect(hull.hp).toBe(hullHp);
+    expect(prey.hp).toBeLessThan(unitDef('spearman').maxHp);
+  });
+
+  it('still lets a hull kill a unit at sea when it has no counter-blow', () => {
+    // The kill does not depend on the counter: a spearman on its last hit
+    // point dies, and the ship is untouched.
+    const state = shoreState();
+    const hull = createUnit(state, 0, 'trireme', 4, 4);
+    const prey = createUnit(state, 1, 'spearman', 4, 3);
+    prey.hp = 1;
+    const hullHp = hull.hp;
+
+    const won = applyCombat(state, hull.id, { col: 4, row: 3 });
+    expect(won.ok).toBe(true);
+    if (!won.ok) return;
+    expect(won.outcome.damageToAttacker).toBe(0);
+    expect(state.units.some((unit) => unit.id === prey.id)).toBe(false);
+    expect(hull.hp).toBe(hullHp);
   });
 
   it('leaves the counter whole when the piece it boards is ashore', () => {
     // Same two pieces, dry ground: nothing is boarding anything, so the counter
-    // is the ordinary one and the list is empty.
+    // is the ordinary one.
     const state = shoreState();
     const hull = createUnit(state, 0, 'trireme', 4, 4);
     createUnit(state, 1, 'spearman', 5, 4);
     const view = forecast(state, hull.id, 5, 4);
-    expect(view.counterPercents).toEqual([]);
+    expect(view.damageToAttacker).toBeGreaterThan(0);
     expect(view.damageToAttacker).toBe(
       expectedDamage(view.defenderStrength, view.attackerStrength, 1),
     );
@@ -1774,14 +1824,15 @@ describe('fighting across the waterline', () => {
   });
 
   it('leaves a fight between two hulls to the triangle', () => {
-    // The percentages are a *land* piece's, and a fight at sea is the roster's
-    // own lines — nothing here should have joined it.
+    // The shot at a hull is a *land* piece's line, and a fight at sea is the
+    // roster's own lines: nothing here should have joined it, and the other
+    // hull hits back as usual.
     const state = shoreState();
     const mine = createUnit(state, 0, 'trireme', 4, 3);
     createUnit(state, 1, 'galley', 4, 4);
     const view = forecast(state, mine.id, 4, 4);
-    expect(view.attackerLines.some((one) => one.source.startsWith('Against a hull'))).toBe(false);
-    expect(view.counterPercents).toEqual([]);
+    expect(view.attackerLines.some((one) => one.source === 'Against a hull')).toBe(false);
+    expect(view.damageToAttacker).toBeGreaterThan(0);
   });
 });
 
@@ -2602,19 +2653,39 @@ describe('the strength breakdown', () => {
 
     const view = forecast(state, a.id, 4, 3);
     expect(view.acrossRiver).toBe(true);
-    expect(foldCombatStrength(view.attackerLines)).toBeCloseTo(view.attackerStrength, 10);
-    expect(foldCombatStrength(view.defenderLines)).toBeCloseTo(view.defenderStrength, 10);
+    // Every line is whole points now that the river is flat, so the folds are exact.
+    expect(foldCombatStrength(view.attackerLines)).toBe(view.attackerStrength);
+    expect(foldCombatStrength(view.defenderLines)).toBe(view.defenderStrength);
 
-    // The attacker's ford is a line of its own, and it takes points away.
-    const ford = view.attackerLines.find((line) => line.source.startsWith('Across a river'));
-    expect(ford).toBeDefined();
-    expect(ford!.amount).toBeLessThan(0);
+    // The attacker's ford is a line of its own, and it takes the flat points away.
+    const ford = view.attackerLines.find((line) => line.source === 'Across a river');
+    expect(ford).toEqual({ source: 'Across a river', amount: -COMBAT.riverAttackPenaltyPoints });
     // The defender's two reasons are apart, because they are two decisions: the
     // hex it stands on, and the turns it spent standing there.
     const sources = view.defenderLines.map((line) => line.source);
     expect(sources).toContain('Forest');
     expect(sources).toContain('Hills');
     expect(sources).toContain('Fortified');
+  });
+
+  it('folds the attacker’s lines to the planned strength across a river', () => {
+    const state = flatState();
+    setRiverEdge(state.map, at(state.map, 3, 3), 0);
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    createUnit(state, 1, 'warrior', 4, 3);
+
+    const view = forecast(state, a.id, 4, 3);
+    expect(view.acrossRiver).toBe(true);
+    // The unit's own strength, then the river as one flat line, and nothing
+    // else on bare ground. The headline is their sum, with no second sum.
+    expect(view.attackerLines).toEqual([
+      { source: 'Warrior', amount: unitDef('warrior').combatStrength },
+      { source: 'Across a river', amount: -COMBAT.riverAttackPenaltyPoints },
+    ]);
+    expect(foldCombatStrength(view.attackerLines)).toBe(view.attackerStrength);
+    expect(view.attackerStrength).toBe(
+      unitDef('warrior').combatStrength - COMBAT.riverAttackPenaltyPoints,
+    );
   });
 
   it('itemises a city as walls, citizens and whatever the cards added', () => {
