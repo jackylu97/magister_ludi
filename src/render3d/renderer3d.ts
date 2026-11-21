@@ -1713,7 +1713,7 @@ export class Renderer3D implements MapView {
     for (const city of state.cities) {
       const look = cityLook(state, city, capitals);
       if (look.walls) walls++;
-      wonders += look.wonders;
+      if (look.hasWonder) wonders++;
       buildings += city.buildings.length;
     }
     const improvements: Record<string, number> = {};

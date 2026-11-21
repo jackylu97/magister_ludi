@@ -30,7 +30,7 @@ type TownAge = { houses: NorthStarHouse[]; centre: NorthStarCentre; centreSize: 
 /**
  * The north-star look (the visual test, 2026-11-12; docs/art-pass.md): a town
  * raises monuments where it raised a small spire or dome. A shrine is an
- * obelisk, a temple a ziggurat, a wonder one of the three in turn, and the
+ * obelisk, a temple a ziggurat, a wonder one of three shared landmarks, and the
  * capital keeps the magistrates' armillary sphere. Larger than the pieces they
  * replace, so a landmark reads as one at play zoom. Off, or with the models
  * not loaded, the study's pieces stand as before.
@@ -51,7 +51,7 @@ interface PaintedCityAnchor { x: number; y: number; z: number }
 interface PaintedCityOptions { previewWalls?: boolean }
 interface PaintedCityPlacement {
   cityId: number;
-  kind: 'house' | 'civic' | 'shrine' | 'temple' | 'wonder' | 'wall' | 'gate';
+  kind: 'house' | 'civic' | 'capital' | 'shrine' | 'temple' | 'wonder' | 'wall' | 'gate';
   asset: string;
   x: number; y: number; z: number;
   scale: number; yaw: number;
@@ -513,10 +513,16 @@ export class PaintedCityLayer {
           const address = wide ?? pockets.shift() ?? big.shift();
           if (address) stand(kind, wide ? name : 'monument-obelisk', address, town.monumentSize);
         };
-        if (look.capital) raise('wonder', 'monument-armillary');
+        if (look.hasWonder) {
+          // Give the landmark a full building plot. Try the next one on a river or coast.
+          const asset = WONDER_MONUMENTS[city.id % WONDER_MONUMENTS.length]!;
+          for (const plots of [big, pockets, lots]) {
+            const at = plots.findIndex(plot => stand('wonder', asset, plot, town.monumentSize) !== undefined);
+            if (at >= 0) { plots.splice(at, 1); break; }
+          }
+        } else if (look.capital) raise('capital', 'monument-armillary');
         if (look.temple && look.tier >= CITY.temple.fromTier) raise('temple', 'monument-ziggurat');
         if (look.shrine && look.tier >= CITY.shrine.fromTier) raise('shrine', 'monument-obelisk');
-        for (let i = 0; i < look.wonders; i++) raise('wonder', WONDER_MONUMENTS[i % WONDER_MONUMENTS.length]!);
       }
       const large = big.length, addresses = [...big, ...lots, ...pockets];
       // The count is of houses that stand. An address that the hex refuses (a river edge, a beach) passes to
@@ -614,12 +620,13 @@ export class PaintedCityLayer {
       }
       if (look.shrine && look.tier >= CITY.shrine.fromTier) building('shrine', grand ? 'monument-obelisk' : 'city-spire', -.33, -.52, grand ? grand.shrine : .38);
       if (look.temple && look.tier >= CITY.temple.fromTier) building('temple', grand ? 'monument-ziggurat' : 'city-dome', .34, -.50, grand ? grand.temple : .48);
-      if (grand && look.capital) building('wonder', 'monument-armillary', grand.capitalAt[0]!, grand.capitalAt[1]!, grand.capital);
-      for (let i = 0; i < look.wonders; i++) {
-        const [x, z] = wonderSlots[i % wonderSlots.length]!;
-        const storey = Math.floor(i / wonderSlots.length);
-        if (grand && !storey) building('wonder', WONDER_MONUMENTS[i % WONDER_MONUMENTS.length]!, x, z, grand.wonder);
-        else building('wonder', 'city-spire', x, z, .25, 0, storey ? height(x, z) + .010 + storey * .285 : undefined);
+      if (look.hasWonder) {
+        const asset = grand ? WONDER_MONUMENTS[city.id % WONDER_MONUMENTS.length]! : 'city-spire';
+        for (const [x, z] of wonderSlots) {
+          if (building('wonder', asset, x, z, grand ? grand.wonder : .25)) break;
+        }
+      } else if (grand && look.capital) {
+        building('capital', 'monument-armillary', grand.capitalAt[0]!, grand.capitalAt[1]!, grand.capital);
       }
       if ((look.walls && look.tier >= CITY.palisade.fromTier) || options.previewWalls) {
         const shape = tileShape(tile) as { normals: [number, number][]; upper: number[] };
