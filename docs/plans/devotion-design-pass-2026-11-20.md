@@ -1314,3 +1314,78 @@ In three sentences:
 - **The history behind the names** is from my own knowledge, not from a source in the repo. I checked each new name against `data/`, `src/` and `docs/` for a clash.
 
 Review page: one self-contained HTML file, `/private/tmp/claude-501/-Users-jacky-code-webciv/c4da3ce5-796a-4aa7-8603-c5fc07da6b1d/scratchpad/deckpass-devotion/devotion-design-pass.html`, built by `build.py` in the same folder. Its anchors are `change-01` to `change-61` and `question-1` to `question-5`.
+
+## The user's rulings on round one (2026-11-21, comments on the page)
+
+The user: "ok i've added comments to the devotion doc". A row with no comment
+is approved (the user's standing rule).
+
+| # | Card | The user's words | Result |
+|---|---|---|---|
+| 01 | The Calling | "Way too strong, keep as is." | Not adopted. The card stays as it is today. |
+| 02 | The First Offering | "sure" | Approved. |
+| 03 | The Megaliths (the stone circle) | "cool, should this be shared with expansionist?" | Approved. **A question to answer.** |
+| 04 | The Healer-Priests | "sure" | Approved. |
+| 05 | Consecrated Labor | "great" | Approved. |
+| 06 | The Gifts of the Faithful | "this seems too strong. Lets make it culture and faith buildings instead of all buildings." | Towns with a Shrine may buy culture and faith buildings with faith. |
+| 07 | The Offering Chests | "age 1 seems too strong, how about age 2." | Approved, moved to the tier of the second age. It takes the "faith buys more" form (`docs/flags.md`). |
+| 08 | The Rites Commonwealth | "this is extremely powerful but i like it." | Approved. |
+| 09 | The Chantries (the Chapel) | "that's too strong. How about chapel: +2 faith +2 culture, rites in this city last 50% longer" | The Chapel: +2 faith, +2 culture, and rites in its city last 50% longer. |
+| 10 | The Octave | "Sure, lets make sure rite duration modifiers properly stack." | Approved. The build must say how the duration modifiers stack (The Octave with the Chapel). |
+| 11 | The Founding Vows | "sure" | Approved. |
+| 12 | The Temple Workshops | "sure" | Approved. |
+| 13 | The Zealots | "sure" | Approved. |
+| 14 | Temple Estates | "oh thats great, i like it" | Approved. |
+| 15 | The Saints' Fields | "Ok sure" | Cut, as proposed. |
+| 16 | The Old Holy Places | "i like this, lets remove the cap" | Approved, with no cap. |
+| 17 | The Anchorites | "sure" | Approved. |
+| 18 | The Abbeys | "lets cut this, i'm realizing the ability to purchase prophets with faith already give the deck reliable great works." | Cut. |
+| 19 | The Lay Brothers | "great" | Cut, as proposed. |
+| 20 | Mission Houses | "i think the deck needs modifiers for spreading religion. how about your proclomations reach 50% farther and are 50% more effective in foreign cities." | Kept and reworked: your proclamations reach 50% farther and are 50% more effective in foreign cities. **The deck needs cards that help a religion spread.** |
+| 21 | The Confessors | "sure" | Cut, as proposed. |
+| 22 | The Fetials | "sure" | Approved. |
+| 23 | Commission: The State Church | "sure" | Approved. |
+| 24 | The Settled Faith | "sure" | Approved. |
+| 25 | Tier II rarities | "sure" | Approved. |
+| 26 | The Cliff Monasteries | "great" | Approved. |
+| 27 | The Saturnalia | "Hmm, the drawback is too high for this, and it doesn't fit the play patterns i like. lets cut. I like the idea of additional rites though." | Cut. **More new rites are wanted.** |
+| 28 | The Temple Herds | "great" | Approved. |
+| 29 | Pentecost | "great" | Approved. |
+| 30 | The Double Feast | "great" | Approved. |
+| 31 | The Pilgrim Towns | "wow thats strong, great" | Approved. |
+| 32 | The Psalter | "great" | Approved. |
+| 33 | The Consecration Feast | "Production feels too strong, lets have it give food and culture?" | Finishing a faith building grants food and culture, not production. |
+| 34 | The Offered Stones | "this needs to be stronger probably, there's not too many ways to buy buildings iwth faith currently." | Make it stronger. |
+| 35 | The Holy Inquisition | "lets rework: +1 authority in devout towns. -80% to foreign religion's pressure on your cities (this includes proclamations)." | The user's line. |
+| 36 | The Sacred Bequests | "sure" | Approved. |
+| 37 | The Fabric Fund | "Sure" | Approved. |
+| 38 | The Prince-Bishops | "great" | Approved. |
+| 39 | The Defenders of the Faith | "how about +1 strength for every 3 towns, no cap." | +1 strength for every 3 towns that follow your religion, with no cap. |
+| 40 | The Naming Feasts | "let's buff this to two citizens." | The Rite of Naming gives two citizens. |
+| 41 | The Conversion of Kings | "great" | Approved. |
+| 42 | The Seven Pilgrimages | "sure" | Cut, as proposed. |
+| 43 | The Apostolic Succession | "sure" | Approved. |
+| 44 | The Treasury of Merit | "sure" | Cut, as proposed. |
+| 45 | Tier IV rarities | "sure" | Approved. |
+| 46 | The Great Commission | "sure" | Approved. |
+| 47 | The Year of Release | "sure" | Approved. |
+| 48 | The Poor Tables | "probably don't need food this late in the game, let's modify" | Rework: it must pay something other than food. |
+| 49 | The Soldiers of God | "great" | Approved. |
+| 50 | The City of God | "this feels not very impactful, you tend to build cities around your holy city. cut" | Cut. |
+| 51 | The Sacred Host | "great" | Approved. |
+| 52 | The Oriflamme (the pass proposed a cut) | "lets keep this, i like the idea of a player marching apostles with their army, and i think +4 is significant." | Kept as it is. |
+| 53 | The Garrison Chapels | "Not very strong, lets cut. Lets add a card in it's place: proclamations heal all units within 3 hexes, 25 health." | Cut. In its place, a card shared with Dominion: proclamations heal all units within 3 hexes by 25 health. |
+| 54 | The Hearth Fire | "sure" | Approved. |
+| 55 | The Temple Baths | "sure" | Approved. |
+| 56 | Sacred Commissions | "i think as it was is better. holy sites are easily purchaseable with faith" | Not adopted. The card stays as it is today. |
+| 57 | Sacred Patronage | "Yeah lets do it" | Approved. |
+| 58 | The Blessed Forges (the pass proposed a cut) | "great" | **In conflict with the Scientific pass,** where the user wrote "let's move this to tier 1" on the same card the day before. To settle with the user. |
+| 59 | The Temenos | "great" | Approved. |
+| 60 | The House of Worship (Doctrine) | "does this unlock these buildings or just allow you to buy them with gold. If the latter, this is too weak." | **A question to answer,** and a rework if it only allows the purchase. |
+| 61 | A seat with no religion of its own | "yeah sounds good, great change." | Approved. |
+
+Questions: Q1 "yes". Q2, The Caliphate: "Sure. maybe that could be a good
+theme, religious builds can break the authority rules, and maybe there could
+be some interaction with spare authority?" Q3 "great" (Devotion may open
+unique improvements). Q4 "see above" (05 approved, 06 narrowed). Q5 "great"
+(the pass may change shared cards on other decks' sheets).
