@@ -1,6 +1,9 @@
 import type { GameMap } from '../sim/map';
 
 export const APPROVED_WORKS = {
+  smelter: { file: 'smelter', scale: .93, yaw: -.12, radius: .64, fallback: 'manufactory' },
+  stoneCircle: { file: 'stone-circle', scale: 1, yaw: .05, radius: .68, fallback: 'landmark' },
+  cliffMonastery: { file: 'cliff-monastery', scale: .98, yaw: -.20, radius: .68, fallback: 'holySite' },
   nazcaLines: { file: 'nazca-lines', scale: .99, yaw: -.21, radius: .90, fallback: 'farm' },
   inuksuk: { file: 'inuksuk', scale: .90, yaw: .20, radius: .64, fallback: 'landmark' },
   totemPole: { file: 'totem-pole', scale: .93, yaw: .30, radius: .67, fallback: 'landmark' },

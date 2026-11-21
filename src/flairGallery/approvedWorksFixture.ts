@@ -6,6 +6,9 @@ import { computeFreshwater, setRiverEdge } from '../sim/water';
 import { resetVisibility, VISIBLE } from '../sim/visibility';
 
 export const APPROVED_WORK_VIEWS = {
+  smelter: { col: 3, row: 12, label: 'Smelter', note: 'Two clay furnaces stand beside the ore and fuel.' },
+  stoneCircle: { col: 6, row: 12, label: 'Stone Circle', note: 'An entrance in the ring leads to a low offering stone.' },
+  cliffMonastery: { col: 9, row: 12, label: 'Cliff Monastery', note: 'Stone steps lead up to two buildings on a rock ledge.' },
   nazcaLines: { col: 3, row: 3, label: 'Nazca Lines', note: 'White lines bordered by dark gravel trace the hummingbird across the sand.' },
   stepwell: { col: 6, row: 3, label: 'Stepwell', note: 'Sandstone stairs descend to a pool below the colonnade.' },
   inuksuk: { col: 9, row: 3, label: 'Inuksuk', note: 'Two stone stacks support the broad upper slab.' },
@@ -21,7 +24,7 @@ export function createApprovedWorksFixture() {
   const state = newGame({ seed: 19, sizeName: 'duel', players: [
     { name: 'Model review', leader: 'cyrusTheGreat', color: '#984d36', isHuman: true },
   ] });
-  state.map = createMap({ width: 14, height: 13, terrain: 'grassland' });
+  state.map = createMap({ width: 14, height: 16, terrain: 'grassland' });
   state.units = []; state.cities = []; state.camps = []; state.nextEntityId = 1;
   state.tileOwner = Array(state.map.tiles.length).fill(null);
   state.citySightings = state.players.map(() => []);
@@ -29,7 +32,8 @@ export function createApprovedWorksFixture() {
   state.visibility[0]!.fill(VISIBLE);
   for (const t of state.map.tiles) {
     t.moisture = .55;
-    if (t.row <= 4) t.terrain = t.col < 8 ? 'desert' : 'snow';
+    if (t.row >= 11) { if (t.row === 13 && t.col === 9) t.terrain = 'mountain'; }
+    else if (t.row <= 4) t.terrain = t.col < 8 ? 'desert' : 'snow';
     else if (t.row >= 8 && t.col >= 8) t.terrain = t.col > 10 ? 'ocean' : 'coast';
     else if (t.col <= 4) t.feature = 'forest';
     else if (t.row === 6 && t.col <= 7) t.hills = true;

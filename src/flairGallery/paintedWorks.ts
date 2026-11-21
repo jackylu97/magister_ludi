@@ -41,7 +41,7 @@ export async function drawPaintedWorks(into: HTMLElement): Promise<() => void> {
     if (!ready) return;
     if (focus === 'approved') {
       renderer.focusOpening({ col: 6, row: 6 });
-      renderer.frameCells([{ col: 2, row: 2 }, { col: 10, row: 10 }], false);
+      renderer.frameCells([{ col: 2, row: 2 }, { col: 10, row: 13 }], false);
       note.textContent = 'Choose a work to inspect it at game zoom or in detail.';
     } else if (focus === 'special') {
       renderer.focusOpening({ col: 7, row: 15 });
@@ -58,8 +58,8 @@ export async function drawPaintedWorks(into: HTMLElement): Promise<() => void> {
     }
     updateURL();
   };
-  const groups: [string, string][] = approved ? [['approved', 'All nine works']] : [['special', 'Special improvements'], ['all', 'Everyday improvements']];
-  const other = element('a', undefined, approved ? 'Other painted improvements' : 'Nine approved improvements');
+  const groups: [string, string][] = approved ? [['approved', 'All works']] : [['special', 'Special improvements'], ['all', 'Everyday improvements']];
+  const other = element('a', undefined, approved ? 'Other painted improvements' : 'Approved improvements');
   other.href = approved ? '?review=works' : '?review=works&work=approved';
   knobs.append(other);
   select(knobs, 'Work', [...groups, ...Object.entries(views).map(([id, view]) => [id, view.label] as const)], focus, value => { focus = value as typeof focus; frame(); });

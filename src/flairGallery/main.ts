@@ -36,6 +36,7 @@
  * player's saved game.
  */
 
+import { charterWorkIcons } from '../art/charterWorkIcons';
 import '../style.css';
 import './style.css';
 
@@ -392,9 +393,20 @@ drawPaletteAndRamp(
   const terraces = element('a', undefined, 'Review Pachacuti’s terrace farm');
   terraces.href = '/flair.html?review=works&work=terraces&light=golden&detail=close';
   root.append(element('br'), terraces);
-  const approved = element('a', undefined, 'Review the nine approved improvements');
+  const approved = element('a', undefined, 'Review the painted improvements');
   approved.href = '/flair.html?review=works&work=approved';
   root.append(element('br'), approved);
+  const marks = element('div', 'charter-work-marks');
+  for (const [id, name] of Object.entries(charterWorkIcons)) {
+    const item = document.createElement('figure');
+    const icon = document.createElement('img');
+    icon.src = `/sprites/icons/${id}.svg`;
+    icon.alt = '';
+    icon.width = icon.height = 40;
+    item.append(icon, element('figcaption', undefined, name));
+    marks.append(item);
+  }
+  root.append(marks);
 }
 
 {

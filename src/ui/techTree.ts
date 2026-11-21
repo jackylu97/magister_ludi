@@ -157,6 +157,7 @@
  * after its name, on the chart, in the plan strip and in the drawer.
  */
 
+import { charterWorkIcons } from '../art/charterWorkIcons';
 import { buildingDef, isEmpireBuilding, isWonder } from '../sim/buildingData';
 import { signedYield } from '../sim/yieldFormat';
 import { readEmpire } from '../sim/readings';
@@ -1026,7 +1027,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       // sure the tech tree notes this"). The face has no room for the label
       // beside a long name and its price, so the label is on the hover card.
       const empire = isEmpireBuilding(building);
-      row.append(element('span', empire ? 'tech-mark is-building is-empire' : 'tech-mark is-building', '▣'));
+      const mark = element('span', empire ? 'tech-mark is-building is-empire' : 'tech-mark is-building', '▣');
+      if (charterWorkIcons[building]) {
+        const icon = document.createElement('img');
+        icon.src = `/sprites/icons/${building}.svg`;
+        icon.alt = '';
+        icon.width = icon.height = 16;
+        mark.replaceChildren(icon);
+      }
+      row.append(mark);
       row.append(element('span', 'tech-unlock-name', def.name));
       // Its price, for *this* player — the column the unlocking tech stands in
       // has already climbed by the time a late node is read (`docs/production-costs.md`).

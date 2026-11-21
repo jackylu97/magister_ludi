@@ -399,7 +399,53 @@ def paradise_garden():
     pavilion()
 
 
+def stone_circle():
+    # The entrance faces the camera. The taller pair frames the low altar.
+    for i in range(8):
+        angle = tau * i / 9
+        x, y = .48 * cos(angle), .43 * sin(angle)
+        height = [.37, .43, .48, .46, .39, .34, .29, .32][i]
+        rock_slab('Standing stone', x, y, -.04, .094, .078, height, GRANITE[i % 4], 63+i, angle)
+    rock_slab('Offering table', -.04, .02, -.01, .20, .12, .12, GRANITE[1], 93)
+    for x, y in [(-.18, -.25), (.12, -.29), (.34, -.34)]:
+        rock_slab('Processional stone', x, y, -.01, .072, .052, .032, GRANITE[3], 37)
+
+
+def smelter():
+    for x, y, scale in [(-.18, .11, 1), (.26, .20, .73)]:
+        profile = [(-.025,.23), (.14,.235), (.31,.175), (.49,.115), (.60,.115)]
+        tube([(x,y,z*scale) for z,r in profile], [r*scale for z,r in profile], RUST, 10)
+        # A dark throat and clay lip remain visible from the board camera.
+        cylinder((x,y,.606*scale), .12*scale, .023*scale, SAND)
+        cylinder((x,y,.619*scale), .087*scale, .004*scale, BARK)
+        block((x,y-.192*scale,.10*scale), (.16*scale,.075*scale,.16*scale), BARK)
+        block((x,y-.234*scale,.066*scale), (.116*scale,.014*scale,.071*scale), PEAR, .007)
+    for i in range(7):
+        rock_slab('Ore pile', .28+.09*cos(i), -.24+.08*sin(i), -.01, .08,.063,
+                  .08+(i%3)*.02, GRANITE[i%3], 80+i)
+    for i in range(4):
+        tube([(-.44,-.32+i*.057,.031),(-.18,-.34+i*.057,.036)], [.029,.025], BARK, 6)
+
+
+def cliff_monastery():
+    for i,(x,y,rx,ry,h) in enumerate([(-.10,.14,.46,.31,.42),(.25,.20,.29,.24,.30),
+                                      (-.26,-.05,.24,.19,.22)]):
+        rock_slab('Rock ledge',x,y,-.06,rx,ry,h+.06,GRANITE[i],42+i)
+    for x,y,z,w,d,h in [(-.12,.14,.41,.36,.28,.22),(.23,.20,.29,.24,.24,.17)]:
+        block((x,y,z+h/2),(w,d,h),LIME)
+        roof(x,y,z+h,w+.06,d+.055,.14,OXIDE)
+        for offset in [-.25,.25]:
+            block((x+w*offset,y-d/2-.004,z+h*.54),(.038,.012,.076), BARK,.004)
+    for i in range(9):
+        h = .025+i*.024
+        block((-.30+i*.042,-.25,h/2),(.05,.116,h),GRANITE[3],.004)
+    block((-.29,.17,.63),(.117,.13,.28),LIME)
+    roof(-.29,.17,.77,.157,.17,.088,OXIDE)
+
+
 MODELS = [
+    ('stone-circle',stone_circle,'hill'), ('cliff-monastery',cliff_monastery,'hill'),
+    ('smelter',smelter,'dry'),
     ('nazca-lines',nazca,'desert'),('inuksuk',inuksuk,'tundra'),('totem-pole',totem,'forest'),
     ('stepwell',stepwell,'dry'),('hillfort',hillfort,'hill'),('baray',baray,'river'),
     ('fish-traps',fish_traps,'water'),('wild-orchard',orchard,'grove'),('paradise-garden',paradise_garden,'garden')

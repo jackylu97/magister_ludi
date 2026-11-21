@@ -9499,6 +9499,10 @@ p.city-trade-link {
   color: var(--ink);
 }
 
+.tech-mark.is-building:not(.is-empire) img {
+  filter: brightness(0) saturate(100%) invert(83%) sepia(48%) saturate(750%);
+}
+
 .tech-unlock-name {
   flex: 1;
   font-size: 11.5px;

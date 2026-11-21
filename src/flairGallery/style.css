@@ -1178,3 +1178,6 @@ body {
   height: 184px;
   border-radius: 6px;
 }
+
+.charter-work-marks { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+.charter-work-marks figure { margin: 0; text-align: center; }

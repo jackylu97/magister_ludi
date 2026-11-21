@@ -18,9 +18,11 @@ These are the first intact models for six Expansionist improvements and three wo
 | [Wild Orchard](wild-orchard.glb) | Three fruit trees of different ages surround a picking ladder and two baskets. The front tree leaves a gap so that the ladder stays visible. |
 | [Paradise Garden](paradise-garden.glb) | Crossed water channels divide four planted beds around a fountain. Cypress trees and a shaded pavilion enclose the far end. |
 
+The [charter works review](charter-works.jpg) shows the two clay furnaces of the Smelter, the Stone Circle and the Cliff Monastery. All three use the same scale, materials and export process as the first nine works.
+
 ## Painted board
 
-Open [the nine improvements in the gallery](/flair.html?review=works&work=approved). Select a work to inspect it at game zoom or in detail. The game and gallery use the same exports, terrain fitting and paint.
+Open [the improvements in the gallery](/flair.html?review=works&work=approved). Select a work to inspect it at game zoom or in detail. The game and gallery use the same exports, terrain fitting and paint.
 
 Fish Traps, Wild Orchard and Paradise Garden have gameplay rows. The gallery shows the other six through a visual overlay until their rows exist. The approved models show intact works. A pillaged work uses the board’s existing land or water damage effect.
 

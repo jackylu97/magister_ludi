@@ -70,6 +70,7 @@
  * file growing a second address space.
  */
 
+import { charterWorkIcons } from '../art/charterWorkIcons';
 import {
   BUILDING_IDS,
   type BuildingDef,
@@ -1526,7 +1527,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
     name: def.name,
     group: buildingGroup(id),
     eyebrow: `${def.category} ${wonder ? 'wonder' : 'building'}`,
-    mark: { kind: 'glyph', glyph: wonder ? '✶' : '▣' },
+    mark: charterWorkIcons[id] ? { kind: 'badge', badge: id } : { kind: 'glyph', glyph: wonder ? '✶' : '▣' },
     rows,
     clauses,
     flavor: null,
@@ -1595,6 +1596,7 @@ function improvementMarkers(id: ImprovementId): CompendiumClause[] {
     out.push({ text: `Each neighbouring ${tileConditionWords(on)} gains ${tileYieldFigures({ food: 0, production: 0, gold: 0, ...yields })}.` });
   }
   if (def.requiresAdjacentMountain === true) out.push({ text: 'Needs a mountain next to it.' });
+  if (def.requiresAdjacentHighGround) out.push({ text: 'Needs a hill or mountain next to it.' });
   if (def.landBeside !== undefined) {
     out.push({ text: `Needs ${figure(def.landBeside)} or more of your land hexes next to it.` });
   }
@@ -1722,7 +1724,7 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
           : whoseRow !== null
           ? `improvement, ${whoseRow}'s alone`
           : 'improvement',
-    mark: { kind: 'glyph', glyph: def.emoji },
+    mark: charterWorkIcons[id] ? { kind: 'badge', badge: id } : { kind: 'glyph', glyph: def.emoji },
     rows,
     clauses,
     flavor: null,

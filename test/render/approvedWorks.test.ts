@@ -34,7 +34,7 @@ it('resolves gameplay rows on the board and keeps only the pending works in the 
   }
 });
 
-it('loads the nine approved exports on sight, fits them to the painted hex and removes the intact model on pillage', async () => {
+it('loads the approved exports on sight, fits them to the painted hex and removes the intact model on pillage', async () => {
   const state = createApprovedWorksFixture(), map = prepareTerrainMap(state.map, { wrap: true }) as GameMap;
   const loader = new GLTFLoader();
   const request = vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(async url => {
@@ -62,7 +62,7 @@ it('loads the nine approved exports on sight, fits them to the painted hex and r
     levels.fill(HIDDEN); build();
     expect(request).not.toHaveBeenCalled();
     levels.fill(VISIBLE); build(); build(); await pending; build();
-    expect(request).toHaveBeenCalledTimes(9);
+    expect(request).toHaveBeenCalledTimes(APPROVED_WORK_IDS.length);
     const matrix = new Matrix4();
     for (const id of APPROVED_WORK_IDS) {
       const mesh = meshes(id)[0]!;
@@ -113,6 +113,6 @@ it('loads the nine approved exports on sight, fits them to the painted hex and r
     garden.damagedImprovement = undefined; garden.improvement = 'paradiseGarden';
     build();
     expect(meshes('paradiseGarden')[0]?.geometry.name).toBe('paradiseGarden');
-    expect(request).toHaveBeenCalledTimes(9);
+    expect(request).toHaveBeenCalledTimes(APPROVED_WORK_IDS.length);
   } finally { layer.dispose(); box.dispose(); material.dispose(); }
 });
