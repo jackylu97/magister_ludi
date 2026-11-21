@@ -261,36 +261,36 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Sinuhe | General | ○ situational | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | all units: +10 healing per turn |  |
 | Deborah | General | ○ situational | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +4 combat strength within 2 hexes of one of your cities |  |
 | Sappho | Artist | ◆ strong | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +3 culture in your capital · +3 happiness |  |
-| Eupalinos | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +1 food on every improved hex beside a mountain |  |
+| Pushyagupta | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +1 food on every improved hex beside a mountain |  |
 | Thales of Miletus | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | +2 science in every coastal city · +1 gold on every hex with a Plantation |  |
 | Tapputi | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +1 gold, +2 science on every hex carrying a luxury resource |  |
 | Pāṇini | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | +2 science in your capital · completing a technology grants +30 culture |  |
 | Lu Ban | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +15% production toward buildings · newly created workers gain +1 charge |  |
-| Theodorus of Samos | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +3 production in every city with a Smithy |  |
+| Anacharsis | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +3 production in every city with a Smithy |  |
 | Hanno the Navigator | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +2 gold in every coastal city · founding a city grants +60 gold |  |
 | Fan Li | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | You gain 17.65% buying power on buildings |  |
 | Harkhuf | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +2 gold per unique luxury |  |
 | Fu Hao | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength inside your territory · +2 faith in every city with a unit standing in it |  |
 | Sun Tzu | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | military units: +1 sight · +4 combat strength against a wounded unit |  |
 | Hippocrates | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | +15% food surplus stored toward growth |  |
-| Anaximander | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +1 science per foreign city you have sighted |  |
+| Varāhamihira | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +1 science per foreign city you have sighted |  |
 | Baudhāyana | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +2 science in every city with a Shrine |  |
 | Peseshet | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +2 happiness · +1 food in every city |  |
 | Solon | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | +3 authority capacity · +2 science in your capital |  |
-| Hesiod | Artist | ◆ strong | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +1 food and +1 culture in every city per public work standing there |  |
+| Yamanoue no Okura | Artist | ◆ strong | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +1 food and +1 culture in every city per public work standing there |  |
 | Aesop | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | when spent, gain 3 free rerolls · when spent, open 1 free Order draft |  |
-| Exekias | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +2 culture on every trade route you send |  |
-| Telesilla | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | every city: +5 city defence · +2 culture in every city with a unit standing in it |  |
+| Aj Maxam | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +2 culture on every trade route you send |  |
+| Macuilxochitzin | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | every city: +5 city defence · +2 culture in every city with a unit standing in it |  |
 | Thutmose the Sculptor | Artist | ◆ strong | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +2 culture on every hex with a Quarry |  |
-| Mandrocles of Samos | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | all units: +1 movement while embarked · +1 production in every coastal city |  |
+| Artachaees | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | all units: +1 movement while embarked · +1 production in every coastal city |  |
 | Ineni | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +1 production on every hex with a Quarry |  |
 | Sunshu Ao | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +3 food in every city on fresh water |  |
-| Colaeus of Samos | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 gold per foreign city you have sighted |  |
+| Sulayman al-Tajir | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 gold per foreign city you have sighted |  |
 | Wenamun | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 production, +1 gold on every hex with a Lumbermill |  |
 | Iddin-Marduk | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 gold on every hex with a Farm, in your capital |  |
 | Leonidas | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +4 combat strength when defending while fortified |  |
 | Djehuty | General | ○ situational | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +4 combat strength when attacking cities |  |
-| Artemisia of Caria | General | ○ situational | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +1 combat strength for ships · +1 production on every hex with a Fishing Boat |  |
+| Piye | General | ○ situational | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +1 combat strength for ships · +1 production on every hex with a Fishing Boat |  |
 | Tomyris | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength for mounted units · +1 faith on every hex with a Pasture |  |
 
 ### Æra III — The Age of Empire
@@ -299,7 +299,7 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 
 | Person | Family | Tier | Act | Work | Legacy | Notes |
 |---|---|---|---|---|---|---|
-| Epicurus | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | -15% happiness demanded per citizen, in every city of 8 or more citizens | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
+| Omar Khayyam | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | -15% happiness demanded per citizen, in every city of 8 or more citizens | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
 | Aristotle | Scholar | ● defining | 8 turns of science | Academy (+4 science) | your buildings that supply science pay +25% | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
 | Hemiunu | Engineer | ● defining | 60 production × age | Manufactory (+4 production) | +25% production toward wonders · -2 happiness in every city while it is building a wonder |  |
 | Ptahhotep | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | +1 authority capacity per 2 Libraries |  |
@@ -311,13 +311,13 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Sima Qian | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | gaining a great person grants +80 culture |  |
 | Phidias | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +5 culture per wonder you hold |  |
 | Li Bing | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +1 production on every hex with a Farm beside fresh water |  |
-| Dinocrates | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | completing a wonder grants +3 production in every city for 10 turns |  |
+| Amanitore | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | completing a wonder grants +3 production in every city for 10 turns |  |
 | Vitruvius | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | Aqueducts supply +1 happiness · Public Baths supply +1 happiness |  |
 | Zhang Qian | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +2 gold per 80 hexes you have revealed |  |
 | Nanaivandak | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | each connected city pays +2 gold |  |
-| Hippalus | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +2 gold on every hex with a Fishing Boat |  |
+| Zoskales | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +2 gold on every hex with a Fishing Boat |  |
 | Crassus | Merchant | ● defining | 8 turns of gold | Customs House (+4 gold) | You gain 25% buying power on all units and buildings · buying anything costs your empire -1 happiness for 10 turns |  |
-| Pytheas | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | your trade units cannot be attacked or plundered · +3 gold on every trade route that ends in another empire’s city |  |
+| Jang Bogo | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | your trade units cannot be attacked or plundered · +3 gold on every trade route that ends in another empire’s city |  |
 | Hannibal | General | ● defining | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +5 combat strength when attacking outside your territory · -4 combat strength when defending inside your territory |  |
 | Han Xin | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +4 combat strength beside fresh water |  |
 | Gaius Marius | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | all units: +1 movement inside your territory | proposed name (fold-in 2026-09-09) — yours to change |
@@ -340,10 +340,10 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Tiruvalluvar | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +2 culture on every hex with a Plantation |  |
 | Auvaiyar | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | while you are at peace: +3 culture in every city |  |
 | Hero of Alexandria | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +1 science per building in your cities that supplies production |  |
-| Apollodorus of Damascus | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +2 production in every city joined to your capital by road |  |
-| Sostratus of Cnidus | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +2 production, +2 gold in every city with a Harbour |  |
+| Gyōki | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +2 production in every city joined to your capital by road |  |
+| al-Hasan ibn Sulayman | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +2 production, +2 gold in every city with a Harbour |  |
 | Zheng Guo | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +1 food on every hex with a Farm, in every city without fresh water |  |
-| Pasion | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +1 gold per 50 gold in the treasury (at most +20 gold) |  |
+| Anāthapiṇḍika | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +1 gold per 50 gold in the treasury (at most +20 gold) |  |
 | Widow Qing of Ba | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +4 gold per improved strategic resource |  |
 | Marcus Ulpius Yarhai | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +2 trade routes |  |
 | Sang Hongyang | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +10% gold in every city with a Market |  |

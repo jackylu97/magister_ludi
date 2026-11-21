@@ -306,7 +306,7 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
      */
     if (trades(otherDef) && other.trade !== undefined) {
       /**
-       * **Unless its own law protects it** — Pytheas' caravans, which cannot be
+       * **Unless its own law protects it** — Jang Bogo's caravans, which cannot be
        * taken (`tradersUnplunderable`), and The Muda's on a route that ends abroad
        * (`cardTraderShielded`).
        *

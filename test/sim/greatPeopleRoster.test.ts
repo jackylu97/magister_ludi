@@ -35,7 +35,7 @@ describe('great person roster rulings', () => {
   it('keeps old save IDs and gives each person a distinct card ID', () => {
     expect(greatPersonDef('ibnBattuta').name).toBe('Ibn Jubayr');
     expect(greatPersonDef('cosimoDeMedici').name).toBe('Jacques Cœur');
-    expect(greatPersonDef('heroOfAlexandria').name).toBe('Dinocrates');
+    expect(greatPersonDef('heroOfAlexandria').name).toBe('Amanitore');
     expect(greatPersonDef('heronOfAlexandria').name).toBe('Hero of Alexandria');
     expect(greatPersonDef('hildegardOfBingen').name).toBe('Hildegard of Bingen');
     for (const id of GREAT_PERSON_IDS) {

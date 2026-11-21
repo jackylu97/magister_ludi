@@ -14,11 +14,11 @@
  *   (a) `buildingYieldPercent`'s two new selectors — one named row, and the
  *       marvels (Rūmī, Dürer);
  *   (b) the `vsWiderEmpire` combat condition (Spartacus);
- *   (c) `tradersUnplunderable` (Pytheas), at both seams;
+ *   (c) `tradersUnplunderable` (Jang Bogo), at both seams;
  *   (d) `faithBuysScienceBuildings` (al-Khwārizmī);
  *   (e) the four counts — trade partners, spare authority, the almoner's
  *       ledger, a road's own length (Ibn Jubayr, Gracia, Jacques Cœur, Marco Polo);
- *   (f) a scoped `happinessDemand` (Epicurus);
+ *   (f) a scoped `happinessDemand` (Omar Khayyam);
  *   (g) the science houses' happiness, counted empire-wide (Maimonides) — a
  *       shape that turned out to be **already sayable**, pinned here so it stays
  *       that way.
@@ -319,7 +319,7 @@ describe('trade units that cannot be plundered', () => {
   });
 
   it('lets a stat row name the trader class, off the filter that already could', () => {
-    // Pytheas' other half is a sight bonus on the carts, and `UnitFilter`
+    // Jang Bogo's other half is a sight bonus on the carts, and `UnitFilter`
     // needed nothing: a trader is its own `UnitCategory`, so `unitMatches`
     // answers the question already. Pinned rather than added, so nobody adds a
     // second way to name the class.
@@ -712,7 +712,7 @@ describe('the twelve legacies GP3 wired', () => {
     expect(lines[0]!.culture).toBeCloseTo(buildingDef('theOracle').culture / 2, 6);
   });
 
-  it('Pytheas protects traders and pays gold on international routes', () => {
+  it('Jang Bogo protects traders and pays gold on international routes', () => {
     const g = game();
     const from = found(g.state, 0);
     const to = found(g.state, 1);
@@ -723,7 +723,7 @@ describe('the twelve legacies GP3 wired', () => {
     expect(attackTargetAt(g.state, cart.col, cart.row, 1)?.unit?.id).toBe(cart.id);
     bear(g.state, 0, 'pytheas');
     expect(attackTargetAt(g.state, cart.col, cart.row, 1)?.unit ?? null).toBeNull();
-    const line = explainRouteSenderYieldBetween(g.state, from, to).find(row => row.source.includes('Pytheas'));
+    const line = explainRouteSenderYieldBetween(g.state, from, to).find(row => row.source.includes('Jang Bogo'));
     expect(line?.gold).toBe(3);
   });
 
@@ -790,7 +790,7 @@ describe('the twelve legacies GP3 wired', () => {
     expect(song()).toBe(2);
   });
 
-  it('Epicurus reduces the happiness cost of cities with eight or more people', () => {
+  it('Omar Khayyam reduces the happiness cost of cities with eight or more people', () => {
     const g = game();
     const big = found(g.state, 0);
     big.population = 8;

@@ -489,12 +489,12 @@
       ]
     },
     "epicurus": {
-      "name": "Epicurus",
+      "name": "Omar Khayyam",
       "family": "scholar",
       "age": 3,
       "tier": "strong",
-      "epigram": "The garden asks little and gives back the day.",
-      "kernel": "Athenian of the Garden; pleasure read as the absence of pain.",
+      "epigram": "Bread, a jug of wine, and the day is enough.",
+      "kernel": "A mathematician and astronomer of Nishapur in Persia. He solved cubic equations with geometry and helped to reform the calendar. He is best known for short poems about wine and the passing day; scholars dispute how many of them are his.",
       "legacy": [
         {
           "kind": "rulePercent",
@@ -745,12 +745,12 @@
       ]
     },
     "heroOfAlexandria": {
-      "name": "Dinocrates",
+      "name": "Amanitore",
       "family": "engineer",
       "age": 3,
       "tier": "strong",
-      "epigram": "He offered Alexander a mountain carved into a man.",
-      "kernel": "The planner of impossible wonders; Alexandria laid out in a cloak-sweep.",
+      "epigram": "What the raiders broke, she built again, and larger.",
+      "kernel": "A ruling queen of Kush. With her co-ruler Natakamani she built the temples of Naqa, restored the temple of Amun that a Roman army had wrecked, and dug reservoirs at Meroë.",
       "legacy": [
         {
           "kind": "windfallRider",
@@ -802,12 +802,12 @@
       ]
     },
     "eupalinos": {
-      "name": "Eupalinos",
+      "name": "Pushyagupta",
       "family": "engineer",
       "age": 2,
       "tier": "situational",
-      "epigram": "They met in the middle of the hill.",
-      "kernel": "Samos.",
+      "epigram": "He stopped the streams under the mountain.",
+      "kernel": "A governor under Chandragupta Maurya. He dammed the streams below Mount Girnar to make Lake Sudarshana, which watered the fields for centuries. One rock inscription names him, and that is all we have.",
       "legacy": [
         {
           "kind": "pays",
@@ -862,12 +862,12 @@
       ]
     },
     "hippalus": {
-      "name": "Hippalus",
+      "name": "Zoskales",
       "family": "merchant",
       "age": 3,
       "tier": "situational",
-      "epigram": "He learned when the wind turned.",
-      "kernel": "The monsoon.",
+      "epigram": "Careful with his coin, and well read.",
+      "kernel": "The ruler of the Red Sea coast around the port of Adulis, where ivory and tortoise shell were sold to ships from Egypt. A Greek sailing guide calls him tight with money, honest and well read. That one passage is all we have.",
       "legacy": [
         {
           "kind": "pays",
@@ -912,12 +912,12 @@
       ]
     },
     "pytheas": {
-      "name": "Pytheas",
+      "name": "Jang Bogo",
       "family": "merchant",
       "age": 3,
       "tier": "situational",
-      "epigram": "Where the sea congeals.",
-      "kernel": "Massalia to Thule.",
+      "epigram": "No ship was taken while he kept the sea.",
+      "kernel": "A Korean who served as an officer in China, then came home to Silla and built a sea fortress on the island of Wando. He drove the slave raiders from the Yellow Sea and controlled the trade between Korea, China and Japan.",
       "legacy": [
         {
           "kind": "rule",
@@ -2055,12 +2055,12 @@
       ]
     },
     "theodorusOfSamos": {
-      "name": "Theodorus of Samos",
+      "name": "Anacharsis",
       "family": "engineer",
       "age": 2,
       "tier": "situational",
-      "epigram": "He made the lock, and then the key.",
-      "kernel": "An architect and bronze caster. The Greeks credited him with the level, the lathe and the key.",
+      "epigram": "First the bellows, then the fire.",
+      "kernel": "A Scythian prince who travelled to Athens and was counted among its wise men. The Greeks credited him with the bellows, the anchor with two flukes and the potter’s wheel. The inventions may be legend.",
       "legacy": [
         {
           "kind": "pays",
@@ -2774,12 +2774,12 @@
       ]
     },
     "anaximander": {
-      "name": "Anaximander",
+      "name": "Varāhamihira",
       "family": "scholar",
       "age": 2,
       "tier": "situational",
-      "epigram": "The earth hangs on nothing.",
-      "kernel": "He drew the first Greek map of the whole world and said the earth floats free in space.",
+      "epigram": "A foreigner who knows the stars is to be honoured.",
+      "kernel": "An astronomer of Ujjain. He set five older systems of astronomy side by side, two of them from the Greek and Roman world, and wrote that foreign scholars deserve honour for their science.",
       "legacy": [
         {
           "kind": "pays",
@@ -2852,12 +2852,12 @@
       ]
     },
     "hesiod": {
-      "name": "Hesiod",
+      "name": "Yamanoue no Okura",
       "family": "artist",
       "age": 2,
       "tier": "strong",
-      "epigram": "Work, foolish Perses.",
-      "kernel": "A farmer poet. Works and Days tells his brother when to plough, when to sail and why to work.",
+      "epigram": "What are silver and gold beside a child?",
+      "kernel": "A court official and provincial governor in Japan. His poems speak of what other court poets left out: hungry farmers, the tax collector at the door, old age and love for his children.",
       "legacy": [
         {
           "kind": "pays",
@@ -2893,12 +2893,12 @@
       }
     },
     "exekias": {
-      "name": "Exekias",
+      "name": "Aj Maxam",
       "family": "artist",
       "age": 2,
       "tier": "situational",
-      "epigram": "Exekias made me.",
-      "kernel": "The best of the black-figure vase painters. His pots were sold from Etruria to the Black Sea, and he signed them.",
+      "epigram": "This is the painting of Aj Maxam.",
+      "kernel": "A Maya vase painter of the royal house of Naranjo. He signed his cups and named his parents on them. Painted cups like his were given as gifts from one court to another.",
       "legacy": [
         {
           "kind": "pays",
@@ -2908,12 +2908,12 @@
       ]
     },
     "telesilla": {
-      "name": "Telesilla",
+      "name": "Macuilxochitzin",
       "family": "artist",
       "age": 2,
       "tier": "situational",
-      "epigram": "The women took the spears down from the temple.",
-      "kernel": "A poet. When Sparta killed the army of Argos, the story says she armed the women and held the walls. The story is from later writers.",
+      "epigram": "The women spoke, and the wounded man lived.",
+      "kernel": "A Mexica poet, daughter of the counsellor Tlacaelel. Her one surviving song tells of a war in which an enemy warrior wounded the ruler, and of the women who pleaded for that warrior’s life. The song was written down after the conquest, and some doubt that it is hers.",
       "legacy": [
         {
           "kind": "cityStat",
@@ -2954,12 +2954,12 @@
       ]
     },
     "mandrocles": {
-      "name": "Mandrocles of Samos",
+      "name": "Artachaees",
       "family": "engineer",
       "age": 2,
       "tier": "situational",
-      "epigram": "He roped the two shores together.",
-      "kernel": "He bridged the Bosporus with boats so that the army of Persia could walk into Europe, and paid for a painting of it.",
+      "epigram": "He cut the land so that the ships could cross it.",
+      "kernel": "A Persian noble, said to be the tallest man in Persia. He directed the digging of a canal through the neck of Mount Athos so that the fleet of Xerxes could pass. The town where he died honoured him as a hero.",
       "legacy": [
         {
           "kind": "unitStat",
@@ -3015,12 +3015,12 @@
       ]
     },
     "colaeus": {
-      "name": "Colaeus of Samos",
+      "name": "Sulayman al-Tajir",
       "family": "merchant",
       "age": 2,
       "tier": "situational",
-      "epigram": "The wind was wrong, and made him rich.",
-      "kernel": "A ship’s master blown past the Pillars of Hercules to Tartessos. He came home with the richest cargo of silver the Greeks had seen.",
+      "epigram": "In that country they drink a leaf in hot water.",
+      "kernel": "A merchant of the Gulf port of Siraf who sailed to India and China. The first Arabic account of China, of its tea and its fine clay cups, names him as its witness. Nothing else about him is known.",
       "legacy": [
         {
           "kind": "pays",
@@ -3111,12 +3111,12 @@
       ]
     },
     "artemisia": {
-      "name": "Artemisia of Caria",
+      "name": "Piye",
       "family": "general",
       "age": 2,
       "tier": "situational",
-      "epigram": "My men have become women, and my women men.",
-      "kernel": "A queen who led her own ships for Persia at Salamis. She told the king not to fight there, and was right.",
+      "epigram": "He took the city from the water.",
+      "kernel": "A king of Kush who sailed down the Nile and conquered Egypt. His fleet took the enemy’s ships on the river, and he stormed Memphis from its harbour side. The great stone that tells the campaign also records his anger at a king who starved his horses.",
       "legacy": [
         {
           "kind": "combatLine",
@@ -3311,12 +3311,12 @@
       ]
     },
     "apollodorus": {
-      "name": "Apollodorus of Damascus",
+      "name": "Gyōki",
       "family": "engineer",
       "age": 3,
       "tier": "situational",
-      "epigram": "Twenty piers, and the river crossed.",
-      "kernel": "Trajan’s engineer. He bridged the Danube in two years and built the forum and the column that tell the story.",
+      "epigram": "Where the road stopped at a river, he built.",
+      "kernel": "A Buddhist monk who walked the provinces of Japan with a following of ordinary people. They built bridges, roads, ponds and boat landings. The court first banned his preaching, then asked him to raise the funds for the Great Buddha of Nara.",
       "legacy": [
         {
           "kind": "pays",
@@ -3329,12 +3329,12 @@
       ]
     },
     "sostratus": {
-      "name": "Sostratus of Cnidus",
+      "name": "al-Hasan ibn Sulayman",
       "family": "engineer",
       "age": 3,
       "tier": "situational",
-      "epigram": "For those who sail the sea.",
-      "kernel": "The builder of the Pharos, the lighthouse of Alexandria. The story says he cut his own name under the plaster that named the king.",
+      "epigram": "They called him the father of gifts.",
+      "kernel": "Sultan of Kilwa, the island port that held the gold trade of the Swahili coast. He built the palace of Husuni Kubwa on the cliff above the harbour and enlarged the Great Mosque. A traveller who met him wrote of his generosity.",
       "legacy": [
         {
           "kind": "pays",
@@ -3371,12 +3371,12 @@
       ]
     },
     "pasion": {
-      "name": "Pasion",
+      "name": "Anāthapiṇḍika",
       "family": "merchant",
       "age": 3,
       "tier": "strong",
-      "epigram": "He began by carrying the coin.",
-      "kernel": "A slave at a banker’s table who became the banker, the richest man in Athens, and at last a citizen.",
+      "epigram": "He paid for the grove by covering it in coin.",
+      "kernel": "A banker of Shravasti in the time of the Buddha. The story says he bought a park for the monks at the price its owner named: enough gold coin to cover the ground. The story is from Buddhist scripture.",
       "legacy": [
         {
           "kind": "pays",
