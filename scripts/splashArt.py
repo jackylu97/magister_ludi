@@ -65,8 +65,8 @@ LEADERS = {
     'alexander': 'alexanderTheGreat', 'battuta': 'ibnBattutaOfTangier', 'cleopatra': 'cleopatra',
     'cyrus': 'cyrusTheGreat', 'genghis': 'genghisKhan', 'jayavarman': 'jayavarmanVII',
     'justinian': 'justinian', 'medici': 'lorenzoDeMedici', 'mehmed': 'mehmedTheConqueror',
-    'musa': 'mansaMusa', 'nezahualcoyotl': 'nezahualcoyotl', 'pachacuti': 'pachacuti',
-    'qin': 'qinShiHuang', 'rashid': 'harunAlRashid', 'sejong': 'sejongTheGreat',
+    'musa_alt': 'mansaMusa', 'nezahualcoyotl': 'nezahualcoyotl', 'pachacuti': 'pachacuti',
+    'qin': 'qinShiHuang', 'rashid_alt': 'harunAlRashid', 'sejong': 'sejongTheGreat',
 }
 # One square picture a belief, shown in a round window.
 BELIEFS = {
@@ -93,8 +93,7 @@ INSETS = {
     'ages/age4form_alt': (38, 0, 36, 0),
     # Leader masters with a second frame inside the paper mount, or a coloured edge.
     'leaders/alexander': (54, 54, 54, 54),
-    'leaders/musa': (42, 42, 42, 42),
-    'leaders/mehmed': (52, 60, 52, 52),
+        'leaders/mehmed': (52, 60, 52, 52),
     'leaders/pachacuti': (22, 14, 22, 14),
 }
 DARK = 26        # a black bar is a line whose brightest tenth is darker than this (0 to 255)
