@@ -106,6 +106,35 @@ INSETS = {
         'leaders/mehmed': (52, 60, 52, 52),
     'leaders/pachacuti': (22, 14, 22, 14),
 }
+# Where each leader's head is, so that every portrait shows the leader at one
+# size, from the middle of the body up. Fractions of the trimmed picture:
+# (centre of the face across, top of the hair or headgear to keep, top of the
+# skull, chin). `frame` cuts a 3:4 box that makes skull-to-chin HEAD_SHARE of
+# the height. A master that is already closer than that keeps its whole frame.
+HEAD_SHARE = 0.28
+HEAD_ROOM = 0.05
+LEADER_FRAMES = {
+    'alexander': (.42, .08, .08, .43), 'battuta': (.50, .07, .08, .36),
+    'cleopatra': (.65, .03, .10, .40), 'cyrus': (.55, .02, .13, .39),
+    'genghis': (.49, .15, .17, .30), 'jayavarman': (.53, .03, .20, .46),
+    'joan': (.50, .10, .13, .35), 'justinian': (.50, .00, .16, .49),
+    'medici': (.55, .05, .07, .34), 'mehmed': (.58, .08, .19, .43),
+    'musa_alt': (.46, .07, .12, .30), 'nezahualcoyotl': (.60, .04, .19, .42),
+    'pachacuti': (.50, .00, .16, .36), 'qin': (.52, .01, .07, .20),
+    'rashid_alt': (.48, .08, .20, .39), 'sejong': (.56, .12, .20, .39),
+}
+
+
+def frame(im, spec):
+    """Cut the 3:4 box that shows a leader from the middle of the body up."""
+    cx, keep, skull, chin = spec
+    w, h = im.size
+    size = min(1.0, (chin - skull) / HEAD_SHARE)   # the box's share of each side
+    y0 = min(max(0.0, keep - HEAD_ROOM * size), 1.0 - size)
+    x0 = min(max(0.0, cx - size / 2), 1.0 - size)
+    return im.crop((round(x0 * w), round(y0 * h), round((x0 + size) * w), round((y0 + size) * h)))
+
+
 DARK = 26        # a black bar is a line whose brightest tenth is darker than this (0 to 255)
 MOUNT = 46       # a mount line is one whose pixels sit this close to the mount's colour
 MAX_TRIM = 0.2   # never cut more than a fifth from one side
@@ -195,6 +224,15 @@ def run(kind):
         l, t, r, b = INSETS.get(f'{kind}/{stem}', (0, 0, 0, 0))
         box = (max(box[0], l), max(box[1], t), min(box[2], src.width - r), min(box[3], src.height - b))
         im = src.crop(box)
+        if kind == 'leaders' and stem in LEADER_FRAMES:
+            # Bring the trimmed master to 3:4 first, so the fractions mean the same on every one.
+            w, h = im.size
+            if w * 4 > h * 3:
+                nw = h * 3 // 4
+                im = im.crop(((w - nw) // 2, 0, (w - nw) // 2 + nw, h))
+            else:
+                im = im.crop((0, 0, w, w * 4 // 3))
+            im = frame(im, LEADER_FRAMES[stem])
         w, h = im.size
         if w * rh > h * rw:
             nw = h * rw // rh
@@ -204,7 +242,7 @@ def run(kind):
             # Portraits keep their top: the head is there. Wide pictures keep their middle.
             off = 0 if rh > rw else (h - nh) // 2
             im = im.crop((0, off, w, off + nh))
-        if im.width > spec['width']:
+        if im.width != spec['width'] and (im.width > spec['width'] or kind == 'leaders'):
             im = im.resize((spec['width'], spec['width'] * rh // rw), Image.LANCZOS)
         out = os.path.join(out_dir, spec['names'][stem] + '.jpg')
         im.save(out, quality=85, optimize=True, progressive=True)
