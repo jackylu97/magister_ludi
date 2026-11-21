@@ -1770,6 +1770,55 @@ export function describeBuildingRow(id: BuildingId): CardClause[] {
   }
 }
 
+/**
+ * **What a unit row does beyond its printed strength**, as clauses: its own
+ * combat lines (`UnitDef.combatLines`) and its own card effects
+ * (`UnitDef.effects`).
+ *
+ * The Compendium's unit page reads this (the user, 2026-11-21: no unique unit
+ * showed its special ability). The page printed the row's figures and markers
+ * only, so a pillage rider, a purchase rider or a strength line on the row
+ * reached no reader. The effects are worded by `describeEffects`, the same
+ * function that words a card, so the page and the ledger say the same thing.
+ *
+ * A combat line is worded from its fields and not from its `label`. The label
+ * is the forecast card's short heading ("Against cities") and does not say the
+ * side of the fight or the kind of attack.
+ */
+export function describeUnitRow(type: UnitTypeId): CardClause[] {
+  const def = unitDef(type);
+  const out: CardClause[] = [];
+  for (const line of def.combatLines ?? []) {
+    // The target: a city, a kind of unit, or any unit. A line with a model
+    // class never pays against a city (`rowCombatLines`, `combat.ts`).
+    const target =
+      line.vsCity === true
+        ? 'cities'
+        : line.vsModelClass !== undefined
+          ? filterWords({ modelClass: line.vsModelClass })
+          : line.vsCity === false
+            ? 'units'
+            : '';
+    const reach = line.vsKind === undefined ? '' : line.vsKind === 'ranged' ? ' at range' : ' in melee';
+    const when =
+      line.side === 'attack'
+        ? target === ''
+          ? 'when attacking'
+          : `when attacking ${target}`
+        : line.side === 'defend'
+          ? target === ''
+            ? 'when defending'
+            : `when defending against ${target}`
+          : target === ''
+            ? ''
+            : `against ${target}`;
+    const tail = `${when}${reach}`.trim();
+    out.push({ text: `${signed(line.amount)} combat strength${tail === '' ? '' : ` ${tail}`}` });
+  }
+  out.push(...describeEffects(def.effects ?? []));
+  return out;
+}
+
 /** See `describeBuildingRow`. Never read outside it. */
 const DESCRIBING_BUILDINGS = new Set<BuildingId>();
 
@@ -6175,13 +6224,29 @@ export function filterWords(filter: UnitFilter): string {
   return `${noun === 'all units' ? 'units' : noun} of the newest age you know`;
 }
 
+/**
+ * A unit's name as a lower-case plural: "workers", "janissaries", "swordsmen",
+ * "numidian cavalry". A leading "The" is dropped, so "The Khopesh" reads
+ * "khopeshes". The rules are the ones `pluralUnitName` (`tech.ts`) uses, with
+ * two more that the leaders' units need: a name that ends in a hissing sound
+ * takes "es", and "cavalry" is already a plural.
+ */
+function unitPluralWords(name: string): string {
+  const word = name.toLowerCase().replace(/^the /, '');
+  if (word.endsWith('cavalry')) return word;
+  if (word.endsWith('man')) return `${word.slice(0, -'man'.length)}men`;
+  if (/[^aeiou]y$/.test(word)) return `${word.slice(0, -1)}ies`;
+  if (/(s|sh|ch|x)$/.test(word)) return `${word}es`;
+  return `${word}s`;
+}
+
 /** `filterWords` without the age: the noun phrase for the kind of unit. */
 function unitNounWords(filter: UnitFilter): string {
   // The named row first, because it is the *narrowest* clause and a phrase that
   // said "workers" when the filter means one row would be a promise the price
   // does not keep. Pluralised off the roster's own name (hard rule 7: the
   // player is told "workers", never `worker`).
-  if (filter.type !== undefined) return `${unitDef(filter.type).name.toLowerCase()}s`;
+  if (filter.type !== undefined) return unitPluralWords(unitDef(filter.type).name);
   // **One unit line** (Scientific batch S1, the line traits). Named by its
   // first unit, as the trait's own clause names it ("the Spearman line"), so a
   // reader can tell which units the trait reaches. Asked after the named row

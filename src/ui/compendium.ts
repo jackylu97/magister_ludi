@@ -91,6 +91,7 @@ import {
   type ImprovementId,
   improvementDef,
   improvementForResource,
+  isGreatPersonWork,
 } from '../sim/improvementData';
 import {
   ALL_BELIEF_IDS,
@@ -122,7 +123,9 @@ import {
   describeCard,
   describeFamilyVerb,
   describeTraitLines,
+  describeUnitRow,
   EMPIRE_BUILDING_WORDS,
+  filterWords,
   ref,
   stripRefs,
   tileConditionWords,
@@ -189,9 +192,6 @@ import {
   UNIT_TYPE_IDS,
   type UnitDef,
   type UnitTypeId,
-  isCombatant,
-  isExplorer,
-  isNaval,
   requiredResourcesOf,
   unitDef,
 } from '../sim/unitData';
@@ -334,8 +334,9 @@ export interface CompendiumEntry {
   name: string;
   /**
    * **The sub-shelf this entry is filed under**, or absent for a shelf that
-   * has none (every shelf but Orders, and every Technologies entry but the
-   * charter technologies, Scientific batch S12).
+   * has none (most shelves; an ordinary unit, building or improvement; and
+   * every Technologies entry but the charter technologies, Scientific batch
+   * S12).
    *
    * A shelf, not a section: the Orders shelf is six decks, the cards two decks
    * share, the cards any leader may draw and the withdrawn rows behind them —
@@ -456,11 +457,6 @@ function tileYieldFigures(spec: TileYieldSpec): string {
  * still one implementation of the numerals.
  */
 const ageWord = eraWord;
-
-/** `Bronze Working`, or empty for a thing the tree gates on nothing. */
-function techName(id: TechId | null | undefined): string {
-  return id === null || id === undefined ? '' : techDef(id).name;
-}
 
 /**
  * "charge" or "charges", off the figure that precedes it.
@@ -708,7 +704,20 @@ function secondDoorWords(id: string): string {
 function cardThatOpens(
   kind: 'unit' | 'building',
   id: string,
-): { ref: string; noun: string; kind: RefKind; anchor: string } | null {
+): { ref: string; noun: string; kind: RefKind; anchor: string; charter?: boolean } | null {
+  // **A charter's own grant** (`OrderDef.charter.unlocks`). A charter opens its
+  // row through this field and not through an `unlocksUnit` or
+  // `unlocksBuilding` effect, so the walk below did not find it and thirteen
+  // pages said "a card" where the charter has a name (the pass of 2026-11-21).
+  // Asked first: a charter is held for the whole game, which is the stronger
+  // of two ways in.
+  for (const card of ORDER_IDS) {
+    const def = orderDef(card);
+    if (def.retired === true || def.charter === undefined) continue;
+    const named = kind === 'unit' ? def.charter.unlocks.unit : def.charter.unlocks.building;
+    if (named !== id) continue;
+    return { ref: ref('order', card, def.name), noun: 'the Order', kind: 'order', anchor: card, charter: true };
+  }
   for (const cardClass of OPENING_CARD_CLASSES) {
     for (const card of cardClass.ids) {
       const def = anyCardDef(card as Parameters<typeof anyCardDef>[0]);
@@ -757,18 +766,9 @@ function openedByTech(tech: TechId): CompendiumClause {
 function openedByLeader(kind: LeaderRowKind, id: string): CompendiumClause {
   const leader = leaderThatOpens(kind, id);
   if (leader === null) {
-    return {
-      text: 'Unlocked for no leader’s realm yet: it waits for a figure to claim it, and until then nobody can build it.',
-    };
+    return { text: 'Unlocked for no leader yet: nobody can build this.' };
   }
-  // "Raise" for a soldier or a hall, "lay" for a work of the ground — the
-  // worker's verb, as the improvements' shelf says it everywhere else.
-  const verb = kind === 'improvement' ? 'lay' : 'raise';
-  return {
-    text:
-      `Unlocked for ${leaderRef(leader)}’s realm alone, ${leaderOpeningWords(kind, id)}. ` +
-      `Only one leader may ever ${verb} this; no other realm can build it at all.`,
-  };
+  return { text: `Unlocked for ${leaderRef(leader)} alone, ${leaderOpeningWords(kind, id)}.` };
 }
 
 /**
@@ -790,7 +790,12 @@ function openedByCard(kind: 'unit' | 'building', id: string, gate: TechId | null
           : `Unlocked by researching ${techRef(gate)}, or earlier by researching ${earlyWords}.`,
     };
   }
-  const by = card === null ? 'a card' : `${card.noun} ${card.ref}`;
+  // No live card names the row: the card that opened it is withdrawn, so
+  // nobody can get it now.
+  if (card === null) {
+    return { text: 'Unlocked by a card that is withdrawn: nobody can get this now.' };
+  }
+  const by = `${card.noun} ${card.ref}`;
   return {
     text:
       gate === null
@@ -800,9 +805,7 @@ function openedByCard(kind: 'unit' | 'building', id: string, gate: TechId | null
 }
 
 /** "Unlocked from the start" — what the tree's silence means for an ordinary row. */
-const OPENED_FROM_THE_START: CompendiumClause = {
-  text: 'Unlocked from the start: no technology is needed.',
-};
+const OPENED_FROM_THE_START: CompendiumClause = { text: 'Unlocked from the start.' };
 
 /**
  * What opens a queue row — a unit, a building or a wonder — as one clause.
@@ -817,7 +820,13 @@ function queueOpening(kind: 'unit' | 'building', id: UnitTypeId | BuildingId): C
   const building = kind === 'building' ? buildingDef(id as BuildingId) : null;
   const gate = gatingTech(kind, id) ?? building?.worldUnlockTech ?? null;
   if ((unit ?? building)?.retired === true) {
-    return { text: 'Withdrawn: nothing opens this any more, and it cannot be built or bought.' };
+    return { text: 'Withdrawn: nobody can build or buy this.' };
+  }
+  // A row the tree does not reach (`awaitsTech`) is refused by the queue and
+  // by the bank. It is asked before the other doors, because a building with
+  // this marker and no technology read "from the start" (the Hall of Deeds).
+  if ((unit ?? building)?.awaitsTech === true) {
+    return { text: 'Unlocked by nothing yet: no technology reaches this, and nobody can build it.' };
   }
   if ((unit ?? building)?.unlockedByCard === true) return openedByCard(kind, id, gate);
   if ((unit ?? building)?.unlockedByLeader === true) return openedByLeader(kind, id);
@@ -826,19 +835,12 @@ function queueOpening(kind: 'unit' | 'building', id: UnitTypeId | BuildingId): C
   // own list says so — with how it arrives said in the same breath.
   const arrives = (how: string): CompendiumClause =>
     gate === null
-      ? { text: `Unlocked by no technology: this is ${how}.` }
-      : { text: `Unlocked by researching ${techRef(gate)}, and then ${how}.` };
-  if (building?.placed === true) return arrives('never built or bought, only placed');
-  if (building?.grantedOnly === true) return arrives('granted, never built or bought');
+      ? { text: `Unlocked by no technology: it is ${how}.` }
+      : { text: `Unlocked by researching ${techRef(gate)}. It is ${how}.` };
+  if (building?.placed === true) return arrives('placed, and it cannot be built or bought');
+  if (building?.grantedOnly === true) return arrives('granted, and it cannot be built or bought');
   if (unit?.greatWork === true) {
-    return {
-      text: 'Unlocked by renown, not by any technology: a great person is recruited, never built.',
-    };
-  }
-  if (unit?.awaitsTech === true) {
-    return {
-      text: 'Unlocked by nothing yet: no technology reaches this, and it cannot be built or bought.',
-    };
+    return { text: 'Unlocked by renown, not by any technology.' };
   }
   if (gate !== null) {
     // The world's door rather than the empire's (`worldUnlockTech`, Entry
@@ -858,9 +860,7 @@ function improvementOpening(id: ImprovementId): CompendiumClause {
     // A tended work opens with the card that names it, and counts as wild land.
     const card = charterThatOpensImprovement(id);
     const by = card === null ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
-    return {
-      text: `Unlocked by drafting ${by}, not by any technology. A tended work: it counts as wild land for every card, cannot be pillaged, and opens no resource.`,
-    };
+    return { text: `Unlocked by drafting ${by}, not by any technology.` };
   }
   if (def.unlockedByCard === true) {
     // A row a seated card opens (Expansionist batch E4): open while the card
@@ -868,7 +868,7 @@ function improvementOpening(id: ImprovementId): CompendiumClause {
     const card = cardThatOpensImprovement(id);
     const by = card === null ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
     return {
-      text: `Unlocked while ${by} is in a chair, not by any technology. A work already built stays when the card leaves.`,
+      text: `Unlocked while ${by} is in a chair, not by any technology. One you have built stays.`,
     };
   }
   if (def.greatPerson !== undefined) {
@@ -877,8 +877,8 @@ function improvementOpening(id: ImprovementId): CompendiumClause {
     return {
       text:
         def.greatPerson === 'prophet'
-          ? 'Unlocked by no technology: it comes with the prophet who plants it.'
-          : 'Unlocked by no technology: it comes with the great person who builds it.',
+          ? 'Unlocked by no technology: only a prophet builds it.'
+          : 'Unlocked by no technology: only a great person builds it.',
     };
   }
   if (def.requiresTech !== undefined) return openedByTech(def.requiresTech);
@@ -893,7 +893,7 @@ function improvementOpening(id: ImprovementId): CompendiumClause {
 function riteOpening(id: RiteId): CompendiumClause {
   const def = riteDef(id);
   if (def.retired === true) {
-    return { text: 'Withdrawn: nothing opens this any more, and no city performs it.' };
+    return { text: 'Withdrawn: no city can say this rite.' };
   }
   // **A card-taught rite** (`RiteDef.byCard`, the Devotion deck): the Order
   // whose charter or seated grant teaches it, never a node. Which Order is the
@@ -911,240 +911,252 @@ function riteOpening(id: RiteId): CompendiumClause {
 // --- units ------------------------------------------------------------------
 
 /**
- * What a unit's markers *mean*, spelled out.
+ * **The standard every generated entry follows** (the Compendium pass of
+ * 2026-11-21, `docs/plans/compendium-pass-2026-11-21.md`). The user: *"The
+ * descriptions are also way too wordy. Could you take a pass at the compendium
+ * entries, make them less wordy, and remove information that isn't useful, and
+ * add in things players need to know?"*
  *
- * Every one of them is a presence-is-the-marker field (`CLAUDE.md`: nothing in
- * `src/sim/` compares a unit type against `"settler"`), so this is the one place
- * in the interface where those fields are read back as sentences rather than as
- * behaviour. They are listed in the order a player meets them: what it is for,
- * then what it costs to keep, then what the ground does to it.
+ * An entry answers four questions, in this order:
+ *
+ *   1. what it is: the name and the eyebrow;
+ *   2. what it does: the figures as rows, then every effect of the row as a
+ *      clause, worded by the simulation's describers;
+ *   3. how you get it: the cost rows, then one opening line that names the
+ *      technology, leader or card;
+ *   4. what it leads to: the upgrade rows and the links.
+ *
+ * Three rules keep an entry short:
+ *
+ *   - A sentence that is true of every entry of a kind is not on the entry. It
+ *     is on the kind's lead page (`compendiumShelves.ts`), one time.
+ *   - A marker on a row prints one short sentence, and a figure in it comes
+ *     from the data.
+ *   - A row that is not in the game says so in its first clause, and its page
+ *     is filed under the last heading of its shelf.
+ */
+
+/** `[[unit:swordsman|Swordsman]]`. */
+function unitRef(id: UnitTypeId): string {
+  return ref('unit', id, unitDef(id).name);
+}
+
+/** `[[building:barracks|Barracks]]`, on the shelf the row is filed on. */
+function buildingRef(id: BuildingId): string {
+  return ref(isWonder(id) ? 'wonder' : 'building', id, buildingDef(id).name);
+}
+
+/** `[[improvement:farm|Farm]]`. */
+function improvementRef(id: ImprovementId): string {
+  return ref('improvement', id, improvementDef(id).name);
+}
+
+/**
+ * The headings a shelf of rows is filed under, after its ordinary rows. A
+ * reader who wants a leader's unit finds every such unit in one place, and a
+ * row nobody can get is behind the rows a player can use.
+ */
+const LEADER_GROUP = 'Unique to one leader';
+const CARD_GROUP = 'Opened by a card';
+const WORKS_GROUP = 'Works of great people';
+const ABSENT_GROUP = 'Not in the game';
+
+/** The order the headings above stand in on a shelf. Ordinary rows come first. */
+const ROW_GROUPS: readonly (string | undefined)[] = [
+  undefined,
+  LEADER_GROUP,
+  CARD_GROUP,
+  WORKS_GROUP,
+  ABSENT_GROUP,
+];
+
+/**
+ * Is this unit out of the game? Four markers answer: a withdrawn row
+ * (`retired`), a row the technology tree does not reach (`awaitsTech`), a
+ * leader's row that no leader holds, and a row whose card is withdrawn. Each
+ * was printed before as an ordinary page with one line near the end, so a
+ * reader took the unit for a thing they could build.
+ */
+function unitIsAbsent(type: UnitTypeId): boolean {
+  const def = unitDef(type);
+  if (def.retired === true || def.awaitsTech === true) return true;
+  if (def.unlockedByLeader === true && leaderThatOpens('unit', type) === null) return true;
+  return def.unlockedByCard === true && cardThatOpens('unit', type) === null;
+}
+
+/** The heading a unit's page is filed under. See `ROW_GROUPS`. */
+function unitGroup(type: UnitTypeId): string | undefined {
+  const def = unitDef(type);
+  if (unitIsAbsent(type)) return ABSENT_GROUP;
+  if (def.unlockedByLeader === true) return LEADER_GROUP;
+  if (def.unlockedByCard === true) return CARD_GROUP;
+  return undefined;
+}
+
+/**
+ * The units that upgrade to each unit: `UnitDef.upgradesTo` read backwards,
+ * built on first use. A unit nobody can get is left out, so a page never names
+ * a way in that the game does not have.
+ */
+let upgradeSources: Partial<Record<UnitTypeId, UnitTypeId[]>> | null = null;
+
+function upgradesFrom(type: UnitTypeId): readonly UnitTypeId[] {
+  if (upgradeSources === null) {
+    const index: Partial<Record<UnitTypeId, UnitTypeId[]>> = {};
+    for (const from of UNIT_TYPE_IDS) {
+      const to = unitDef(from).upgradesTo;
+      if (to === undefined || unitIsAbsent(from)) continue;
+      (index[to] ??= []).push(from);
+    }
+    upgradeSources = index;
+  }
+  return upgradeSources[type] ?? [];
+}
+
+/**
+ * The acts a prophet's charges pay for, in the order its sheet lists them.
+ * The cost of each is `rules.religion.prophetCosts`, read by the caller.
+ */
+const PROPHET_ACT_WORDS: readonly (readonly [keyof typeof RULES.religion.prophetCosts, string])[] = [
+  ['foundReligion', 'found a religion'],
+  ['plantHolySite', 'plant a further holy site'],
+  ['gainBelief', 'draw a belief'],
+  ['proclaim', 'proclaim the faith'],
+  ['empireRite', 'say a rite over every city'],
+];
+
+/**
+ * What a unit's markers mean, one short sentence a marker.
+ *
+ * Every marker is a field whose presence is the rule (`CLAUDE.md`: nothing in
+ * `src/sim/` compares a unit type against a name), and this is the one place
+ * those fields are read back as words. A sentence says only what this unit
+ * does that other units do not. The rules every unit of a kind shares (how a
+ * ship moves, how a charge is spent, how a resource copy is held, exploring on
+ * its own) are on the lead page of the shelf. Every figure is read from
+ * `RULES`.
  */
 function unitMarkers(def: UnitDef): CompendiumClause[] {
   const out: CompendiumClause[] = [];
-  if (def.foundsCity) out.push({ text: 'Founds a city. The unit is used up doing it.' });
-  // Auto-explore (2026-08-30): said off the same kind-not-name test the
-  // reducer refuses with (`autoExploreError` in `explore.ts`), so the book and
-  // the button cannot drift about who may range ahead.
-  if (isCombatant(def) || isExplorer(def)) {
-    out.push({
-      text: 'Can be set to explore on its own: it seeks out unexplored land until there is none it can reach, and any other order calls it back.',
-    });
-  }
+  if (def.foundsCity) out.push({ text: 'Founds a city. This uses up the unit.' });
   if (def.haltsGrowth) {
     out.push({
-      text: 'A city stores no food toward its next citizen while one of these is at the front of its build queue.',
+      text: 'A city stores no food toward its next citizen while this is first in its build queue.',
     });
   }
-  if (
-    def.charges !== undefined &&
-    def.consecrates !== true &&
-    def.greatWork !== true &&
-    def.prophesies !== true &&
-    def.purges !== true
-  ) {
-    out.push({
-      text: `Carries ${def.charges} work ${plural(def.charges, 'charge')}. Building an improvement spends one or more of them, and the unit is used up when they run out.`,
-    });
-  }
-  if (def.consecrates === true) {
-    out.push({
-      text: 'One deed, and it uses up the whole unit: perform a rite on a city, or add a belief to your pantheon. Whichever it is, it spends the augur’s whole turn as well.',
-    });
-  }
-  // The **prophet**, and it is `consecrates`' sibling in every respect: a marker
-  // on the row rather than a name anything compares against, and a charge count
-  // that has to be said in its own vocabulary or it reads as spadework — the
-  // clause above it would otherwise claim a prophet digs mines.
   if (def.prophesies === true) {
+    const costs = RULES.religion.prophetCosts;
+    const acts = PROPHET_ACT_WORDS.map(([verb, words]) => `${words} ${figure(costs[verb])}`);
     out.push({
-      text: 'Its charges are ministries rather than spadework, and its deeds are not all worth the same. Founding your religion where it stands, raising a further holy site for a faith that already stands, or drawing another belief for a religion you already have, takes every charge it carries and uses up the unit. Proclaiming your faith over the land around it, or saying a rite over every city you own at once, costs less — so a prophet kept for its voice may speak, and then speak again, before it is spent. A card can change what an act costs, so a further holy site may cost less and leave the prophet on the board.',
+      text: `Each act costs charges: ${acts.join(', ')}. The unit is used up when its charges run out.`,
     });
     out.push({
-      text: 'Founding raises the holy site that anchors the faith, out of the gods you already keep, and opens two belief drafts — the second offered the moment the first is answered. Once the faith stands, a later prophet may raise another site on any land of yours that will take it: the faith spreads from it exactly as it does from the first, though the seat of the faith never moves and no belief is drafted for it. Later prophets fill the follower beliefs first and the enhancer beliefs after them, and the enhancers wait on a technology.',
+      text: `A card can change what an act costs. ${ref('concept', 'religion', 'Faith and religion')} explains each act.`,
     });
   }
-  // The **inquisitor**, `prophesies`' third sibling: a marker on the row, and a
-  // charge that is neither spadework nor a rite.
-  if (def.purges === true) {
+  if (def.proclaims === true) {
     out.push({
-      text: 'One deed, and it uses up the whole unit: the purge. Every rival faith loses the pressure it has banked on every town nearby, and where that is not enough, believers of those faiths are turned back to following nothing at all. The faith your own realm keeps is spared.',
+      text: 'Each act costs one charge: proclaim the faith over a small area, heal your units beside it, or leave a relic in a city that has a cathedral.',
+    });
+  }
+  if (def.purges === true) {
+    const faith = RULES.religion;
+    out.push({
+      text: `The purge uses up the unit. Every rival religion loses ${figure(faith.purgeLump)} pressure in each city within ${figure(faith.purgeRange)} hexes, and followers it can no longer hold follow nothing. Your own religion is spared.`,
     });
     out.push({
-      text: 'While it stands, friendly units on the hexes beside it fight harder. A second inquisitor beside the same soldiers adds nothing.',
+      text: `${signedFigure(faith.inquisitorAuraStrength)} combat strength for your units within ${figure(faith.inquisitorAuraRange)} ${plural(faith.inquisitorAuraRange, 'hex', 'hexes')} of it. A second inquisitor adds nothing.`,
     });
   }
   if (def.greatWork === true) {
     out.push({
-      text: 'Great people are not built and not bought. They are recruited with renown.',
-    });
-    out.push({
-      text: 'Use it once for its family’s immediate effect, or have it build its family’s special improvement. Either way the unit is used up.',
+      text: 'Use it for the act of its family, or have it build the work of its family. Each uses up the unit.',
     });
   }
   if (def.routeOnly === true) {
     out.push({
-      text: 'This is not built and not bought in a city. You hire a route on the Trade screen and pay for it with gold; the caravan appears in the origin city already carrying it.',
+      text: 'This is not built and not bought in a city. It comes with a route you hire on the Trade screen.',
     });
   }
   if (def.trades === true) {
     out.push({
-      text: 'It walks between the two cities of the route it carries, and builds road on every hex it walks over. A route sent by sea lays no road, and pays more for the crossing.',
+      text: 'It walks between the two cities of its route and lays road on every land hex it crosses.',
     });
     out.push({
-      text: 'When its route ends, it stands idle where it stopped and keeps no slot. The next route you send uses an idle caravan before you pay for a new one.',
+      text: 'An enemy melee unit that attacks it plunders it: the caravan is destroyed, its route ends, and the attacker takes the cargo.',
     });
   }
   if (def.ignoresTerrainCost === true) {
-    out.push({ text: 'Rough ground does not slow it: every hex it can enter costs it the same.' });
+    out.push({ text: 'Rough ground does not slow it: every hex it can enter costs the same.' });
   }
   if (def.ignoresHillCost === true) {
-    // Its own clause beside the scout's rather than a softer wording of it: one
-    // says the ground never slows this piece and the other says the *climb*
-    // does not, and a player reading the two rows should be able to see the
-    // difference. Marker, never a name (the roster's own discipline).
-    out.push({
-      text: 'It was raised on the heights: a hill costs it no more to enter than the flat land under it. What grows there still slows it like anybody else.',
-    });
+    out.push({ text: 'A hill costs it no more movement than flat land. Forest and jungle still slow it.' });
   }
-  /**
-   * The ship's clauses, in the order a player meets them: where it may be, then
-   * what its own line does that the others do not.
-   *
-   * Every one is asked of a **marker on the row** rather than of a class name —
-   * `isNaval`, `hitAndRun`, `blockades`, `bombard` — so a thirteenth hull is a
-   * JSON row here as everywhere else, and the words are the plain ones (hard
-   * rule 7): a *ship*, the *coast*, a *harbour*, never "naval", "hull class" or
-   * "blockade radius". Numbers stay out of the prose and are on the rows above.
-   */
-  if (isNaval(def)) {
-    out.push({
-      text: 'A ship. It sails on the coast and on lakes, and can come ashore only in one of your own cities that stands on the coast, where it can be built and where it can rest.',
-    });
-    out.push({
-      text: 'It shares a hex with one land unit at sea — the unit it is escorting — and never with another ship.',
-    });
-  }
+  // The ship's own clauses. Each is asked of a marker on the row (`hitAndRun`,
+  // `blockades`), never of a class name. `bombard` prints nothing here: its
+  // bonus is a combat line, which `describeUnitRow` words.
   if (def.hitAndRun === true) {
+    const naval = RULES.naval;
     out.push({
-      text: 'Attacking does not end its turn: it pays a little movement for the blow and can sail away with the rest. It still attacks only once a turn.',
+      text: `An attack costs it ${figure(naval.hitAndRunCost)} movement and does not end its turn. It attacks one time a turn.`,
     });
     out.push({
-      text: 'A land unit sharing its hex out at sea defends with this ship’s strength instead of its own.',
+      text: `A land unit that shares its hex at sea defends with this ship’s strength if that is higher, and does not lose the ${figure(naval.atSeaPenalty)} strength a unit at sea loses.`,
     });
   }
   if (def.blockades === true) {
+    const naval = RULES.naval;
     out.push({
-      text: 'Standing beside a friendly ship of its own kind makes both of them stronger, up to a limit.',
+      text: `${signedFigure(naval.lineBonusPerHull)} combat strength for each friendly ship of its kind beside it, to at most ${signedFigure(naval.lineBonusMax)}.`,
     });
     out.push({
-      text: 'Sitting in the mouth of an enemy harbour closes it: the city is cut off as though an army stood around it, and its trade routes pay nothing while the ship is there.',
-    });
-  }
-  if (def.bombard === true) {
-    out.push({
-      text: 'Built to batter walls. It is worth more attacking a city than anything else, and it can knock the walls down from a distance without being struck back.',
+      text: 'Beside an enemy harbour it blockades the city: the water around the ship is closed for a siege, and the trade routes of the city pay nothing.',
     });
   }
-  // A hull the tree has not reached (`awaitsTech`), a row a card hands over
-  // (`unlockedByCard`) and a figure's own soldier (`unlockedByLeader`) each
-  // used to say so here. All three are the *opening* line's business now
-  // (`queueOpening`), where the card and the figure are named as keyword refs
-  // rather than as "something your empire has adopted".
-  // Since batch R1 a row may accept either of two resources, and the sentence
-  // says both halves of the rule: which resources will do, and that a copy is
-  // *spent* rather than merely owned. "One of them" without a number, because
-  // numbers do not go in written prose (rule 7) and the count a player needs is
-  // on the city panel where they are deciding.
-  const wants = requiredResourcesOf(def);
-  if (wants.length > 0) {
+  if (def.mirrors !== undefined) {
     out.push({
-      // Either name will do, and the sentence says so with the same "or" the
-      // refusal uses — a reader must not come away thinking the row wants both.
-      // The names are keyword refs here (`resourceRefWords`) because the book is
-      // where a reader asking "what is obsidian" should be one click from an
-      // answer; the reducer's own refusal keeps the plain phrase.
-      text:
-        `Your empire must have a spare copy of improved ${resourceRefWords(wants)} ` +
-        'to build one, and this unit holds that copy for as long as it lives. ' +
-        'It is handed back when the unit dies or is disbanded.',
-    });
-    // **A queued row holds its copy too** (ruling 5, "reserve on queueing"). The
-    // rule a player meets by queueing more than they can supply and being
-    // refused at the button rather than ten turns later, so it is worth its own
-    // line rather than a clause on the one above.
-    out.push({
-      text:
-        'A row waiting in a build queue holds its copy from the moment you add it, ' +
-        'so a queue can never promise more units than your empire can supply.',
-      note: true,
+      text: `It is as strong as the best ${filterWords({ modelClass: def.mirrors.modelClass }).replace(/s$/, '')} your empire can build on the day you buy it, and it costs ${figure(def.mirrors.costPercent)}% of the production cost of that unit.`,
     });
   }
   if (def.minCityPop > 0) {
     out.push({
-      text: `Only a city of ${def.minCityPop} or more citizens can build one.`,
-    });
-  }
-  if (def.upgradesTo !== undefined) {
-    out.push({
-      text: `Upgrades to a ${unitDef(def.upgradesTo).name} once you research the technology that unlocks one.`,
-    });
-    // The other half of the same rule, and the half a player planning a queue
-    // needs: the older piece is not merely surpassed, it leaves the build list
-    // the moment the better one can actually be fielded. Said in the successor's
-    // own terms rather than as a rule about lists, and the strategic-resource
-    // exception is said here too because it is the one thing that keeps the old
-    // row on offer (`buildError`, `upgradeTargetForType`).
-    const climbs = requiredResourcesOf(unitDef(def.upgradesTo));
-    out.push({
-      text:
-        climbs.length === 0
-          ? `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered.`
-          : `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered — until then, with no spare improved ${resourceRefWords(climbs)} to hand, it stays on the list.`,
-    });
-  }
-  if (def.purchase !== undefined) {
-    // `exclusive` is the clause `buildError` actually enforces ("not built —
-    // bought"), so the sentence that says a queue will refuse one is written
-    // only where the sim refuses one. A row that merely names a second bank
-    // still gets the first half, which is all that is true of it.
-    out.push({
-      text:
-        def.purchase.exclusive === true
-          ? `Bought in a city with ${def.purchase.currency}. It cannot be put in a build queue and cannot be bought with gold.`
-          : `Can be bought in a city with ${def.purchase.currency}.`,
-    });
-  }
-  if (def.mirrors !== undefined) {
-    // **The whole of what the row is**, and a shelf that printed a strength and
-    // a price without it would be printing the floor: what one is worth and what
-    // one costs are both taken from the best of another line, on the day it is
-    // called. Said with no figures in it (hard rule 7) — the share and the
-    // strength are facts about an empire's own roster, not about this row.
-    out.push({
-      text: 'One of these is as strong as the best of its line that your empire could raise the day you call it, and is priced against the same one.',
+      text: `Only a city of ${figure(def.minCityPop)} or more citizens can build one.`,
     });
   }
   return out;
 }
 
+/**
+ * How a unit with its own bank is bought, as one sentence, or `null` for a
+ * unit that is built. The currency, the building the city needs and the rise
+ * in price are the row's own (`UnitPurchaseSpec`).
+ */
+function unitPurchaseWords(def: UnitDef): string | null {
+  const spec = def.purchase;
+  if (spec === undefined) return null;
+  const needs = spec.building === undefined ? '' : ` that has ${withArticle(buildingRef(spec.building))}`;
+  const rise =
+    spec.increment === undefined || spec.increment === 0
+      ? ''
+      : ` Each one you buy raises the price of the next by ${figure(spec.increment)}.`;
+  return spec.exclusive === true
+    ? `Bought with ${spec.currency} in a city${needs}. It cannot be built.${rise}`
+    : `Can also be bought with ${spec.currency} in a city${needs}.${rise}`;
+}
+
 function unitEntry(type: UnitTypeId): CompendiumEntry {
   const def = unitDef(type);
-  // Two rows have no production price to print, and for the same reason in both
-  // cases: `buildError` refuses the queue. A great person is recruited with
-  // renown, and a unit whose roster row names its own bank exclusively (the
-  // augur's faith) is bought or not at all — a hammer figure beside either would
-  // be the card promising a queue row the reducer will not take.
-  // A third since batch R1: a caravan is hired with the route it carries
-  // (`UnitDef.routeOnly`), so a hammer figure beside it would be a price no
-  // city can ever pay. What the hire costs is on the Trade screen, where the
-  // route is.
+  // Three kinds of row have no production price: a great person is recruited
+  // with renown, a row that names its own bank exclusively is bought, and a
+  // caravan comes with the route it carries (`buildError` refuses all three).
   const unbuildable =
     def.greatWork === true || def.purchase?.exclusive === true || def.routeOnly === true;
-  // `unitRosterCost` is the simulation's own answer to "what does the roster
-  // charge, before anything an empire does to the price" — the size line and the
-  // column line of `explainUnitCost`, with the ladder and the empire's law left
-  // off. A page with no board may ask it, which is why the entry does.
+  // `unitRosterCost` is the size line and the column line of `explainUnitCost`,
+  // which take no game. What a city pays more than that is said on the lead
+  // page of the shelf.
   const priced = unbuildable ? '' : `${figure(unitRosterCost(type))}${YIELD_GLYPH.production}`;
+  const wants = requiredResourcesOf(def);
+  const absent = unitIsAbsent(type);
   const rows: CompendiumRow[] = [
     ...row('Combat strength', def.combatStrength > 0 ? figure(def.combatStrength) : ''),
     ...row(
@@ -1156,49 +1168,50 @@ function unitEntry(type: UnitTypeId): CompendiumEntry {
     ...row('Movement points', figure(def.movement)),
     ...row('Sight in hexes', figure(def.sight)),
     ...row('Health', figure(def.maxHp)),
+    ...row('Charges', def.charges === undefined ? '' : figure(def.charges)),
     ...row('Production cost', priced),
     ...row(
       'Purchase cost',
-      // **A mirroring row has no figure to print** (batch B2): the Templars cost
-      // a share of whatever horse the empire can raise today, so the shelf says
-      // the rule instead of a number that would be wrong in every age but one.
-      // `unitMarkers` prints the share; this row simply has nothing to add.
+      // A row that mirrors another has no figure of its own to print: its
+      // price is a share of another unit's, and `unitMarkers` says the share.
       def.purchase === undefined || def.purchase.cost === undefined
         ? ''
         : `${figure(def.purchase.cost)} ${def.purchase.currency}`,
     ),
-    // Always a row, and `None` rather than an omission (Entry XLI). The other
-    // rows in this table are dropped when they are empty because an absent
-    // figure means "this is not that kind of unit"; an absent upkeep would mean
-    // the book forgot, and "a scout costs nothing to keep" is one of the more
-    // useful sentences on the shelf.
+    // Always a row, and `None` when it costs nothing: an absent upkeep would
+    // read as a figure the page forgot (Entry XLI).
     ...row('Upkeep each turn', upkeepRow(unitUpkeep(type))),
+    // One copy of either resource will do, so the names are joined by "or"
+    // (`resourceRefWords`). The rule that the unit holds the copy is on the
+    // lead page of the shelf and on each strategic resource.
+    ...row('Needs a copy of', resourceRefWords(wants)),
+    ...row('Upgrades from', upgradesFrom(type).map(unitRef).join(', ')),
+    ...row('Upgrades to', def.upgradesTo === undefined ? '' : unitRef(def.upgradesTo)),
   ];
-  const clauses = unitMarkers(def);
-  // **What opens it**, after what it is and before the notes — the "Unlocked
-  // by" row this table used to end on, as a clause with the node linked (C1).
-  clauses.push(queueOpening('unit', type));
-  // **The row's own words, and the halves of them that are not built yet**
-  // (batch L6a, `UnitDef.note` / `UnitDef.deferred`). The buildings' shelf has
-  // printed both for as long as it has existed; the roster's could not, because
-  // the fields did not exist on a unit row. A deferred line is the promise a row
-  // is *not* keeping, and a book that printed the rule without it would be the
-  // one surface telling a player something untrue.
-  if (def.note !== undefined) clauses.push({ text: def.note, note: true });
+  const clauses: CompendiumClause[] = [];
+  // What it does: the markers, then the row's own combat lines and effects in
+  // the simulation's words (`describeUnitRow`). This is where a leader's unit
+  // says its special ability.
+  clauses.push(...unitMarkers(def));
+  clauses.push(
+    ...describeUnitRow(type).map((entry) => ({ text: entry.text, deferred: entry.deferred })),
+  );
+  // How you get it: the bank, then the one opening line.
+  // A unit that is not in the game says so in the opening line, and the line
+  // is drawn as a band.
+  const bought = absent ? null : unitPurchaseWords(def);
+  if (bought !== null) clauses.push({ text: bought });
+  clauses.push({ ...queueOpening('unit', type), ...(absent ? { standing: true } : {}) });
+  // The row's `note` is not printed. Every unit note in the data says a line
+  // of the row again in looser words, or is history or flavour, and the lines
+  // above are the exact ones. `docs/plans/compendium-pass-2026-11-21.md` lists
+  // the notes: when the data has plain ones, print them here again.
   for (const waiting of def.deferred ?? []) clauses.push({ text: waiting, deferred: true });
-  if (!unbuildable) {
-    clauses.push({
-      text:
-        'This is the price on the roster, and a city may pay more than it. Each settler costs ' +
-        'more than the last one you built, units of a later age cost more, and some cards ' +
-        'change the price. The city screen shows the figure your city will actually pay.',
-      note: true,
-    });
-  }
   return {
     id: compendiumId('unit', type),
     section: 'unit',
     name: def.name,
+    group: unitGroup(type),
     eyebrow: `${def.category} unit`,
     mark: { kind: 'badge', badge: badgeClassOf(def) },
     rows,
@@ -1208,18 +1221,6 @@ function unitEntry(type: UnitTypeId): CompendiumEntry {
 }
 
 // --- buildings and wonders --------------------------------------------------
-
-/** The six flat voices a building pays, as one figure. */
-function buildingYieldFigures(def: BuildingDef): string {
-  return tileYieldFigures({
-    food: def.food,
-    production: def.production,
-    gold: def.gold,
-    science: def.science,
-    culture: def.culture,
-    faith: def.faith,
-  });
-}
 
 /**
  * A site requirement in words a reader has met before.
@@ -1365,207 +1366,186 @@ function costPremiumFigures(id: BuildingId): string {
   return `${signedFigure(premium.amount)}${YIELD_GLYPH.production} (${percentFigure(percent)})`;
 }
 
-function buildingEntry(id: BuildingId): CompendiumEntry {
+/**
+ * Is this building row out of the game? A leader's building that no leader
+ * holds, a row the technology tree does not reach (`awaitsTech`), and a row
+ * whose card is withdrawn. A withdrawn row (`retired`) has no page at all.
+ */
+function buildingIsAbsent(id: BuildingId): boolean {
   const def = buildingDef(id);
-  const wonder = isWonder(id);
-  const rows: CompendiumRow[] = [
-    ...row(
-      'Production cost',
-      `${figure(buildingProductionCost(id))}${YIELD_GLYPH.production}`,
-    ),
-    ...row('Cost premium', costPremiumFigures(id)),
-    ...row('Yields each turn', buildingYieldFigures(def)),
-    ...row(
-      'Science per citizen',
-      def.sciencePerPop === 0 ? '' : `${figure(def.sciencePerPop)}${YIELD_GLYPH.science}`,
-    ),
-    ...row('Trade route slots', def.routeSlots === undefined ? '' : signedFigure(def.routeSlots)),
-    ...row(
-      'Production bonus',
-      def.productionBonus === undefined
-        ? ''
-        : `${percentFigure(def.productionBonus.percent)} toward ${def.productionBonus.category}s`,
-    ),
-    ...row(
-      'Renown',
-      def.renown === undefined
-        ? ''
-        : words([
-            `${signedFigure(def.renown.perTurn)} per turn`,
-            ...(def.renown.onComplete === undefined
-              ? []
-              : [`${signedFigure(def.renown.onComplete)} when it is finished`]),
-          ]),
-    ),
-    ...row('Renown counts toward', def.renown?.family ?? ''),
-    // The unit shelf's row, one grade over. A wonder reads `None` here on
-    // purpose: a marvel is not a payroll, and that is a design decision worth
-    // printing rather than a gap.
-    ...row('Upkeep each turn', upkeepRow(buildingUpkeep(id))),
-    ...row('Can only be built in', siteRequirement(def)),
-    // **The chain** (`BuildingDef.requiresBuilding`): the parent that must
-    // already stand in the same town. A row rather than a clause, beside the
-    // site it reads like — both answer "where may I put one", one about the
-    // ground and one about what is on it — so a reader comparing two entries
-    // finds the answer in the same place on both.
-    ...row(
-      'Needs standing here',
-      def.requiresBuilding === undefined ? '' : buildingDef(def.requiresBuilding).name,
-    ),
-  ];
-  // **What this row is worth, in the simulation's own words** — and since the
-  // charters' playthrough note (2026-09-05) that is `describeBuildingRow` rather
-  // than `describeCard`: an Order that unlocks a building prints the building's
-  // description on its own face, and the one way the card and this shelf can
-  // never disagree about the same row is for both to read one describer.
-  //
-  // It carries what this page used to add for itself — the wall a town builds
-  // (`cityStat`), and the ground an ungated tile line pays — along with the eight
-  // row fields (a Keep's mending, a Chapel's rite, an Assize Court's relief)
-  // that reached a reader only as prose in the row's own `note`.
-  const clauses: CompendiumClause[] = describeBuildingRow(id).map((entry) => ({
-    text: entry.text,
-    deferred: entry.deferred,
-  }));
-  // **What opens it** (C1), directly under the row's own reading and ahead of
-  // everything this page adds — the place the "Unlocked by" row used to end
-  // the figures on, as a clause with the node linked. After the describer
-  // rather than before it, because the shelf *leads* with the simulation's
-  // reading of the row (pinned), and a wonder's world-gate note below is a
-  // second sentence about the same door, kept beside this one on purpose.
-  clauses.push(queueOpening('building', id));
-  // **What technologies later do for this building**, which is the half of a
-  // building the tech card stopped telling (the playtest notes, 2026-09-03: the
-  // star chart's "Buildings pay new ground" heading was a fact about a harbour
-  // filed under a technology). The one kind of later gift left — the line that
-  // pays the building's *ground* more — is read out of `techGifts` and worded by
-  // `giftWords`, the star chart's own describer, so this shelf cannot come to
-  // disagree with that card about the same row.
-  clauses.push(...laterGifts(id));
-  if (def.note !== undefined) clauses.push({ text: def.note, note: true });
-  if (wonder) {
-    clauses.push({
-      text: 'Only one player in the game can build this, and it cannot be bought with gold.',
-      note: true,
-    });
-  }
-  // The two endgame markers, in a first-time player's words. Read off the row
-  // rather than written into each note, so a fifth capstone says the same thing
-  // without anybody remembering to type it again.
-  // **Two facts, two sentences** (batch C7). Being one of the realm's great
-  // houses and being buildable only once were one marker until Caravanserai
-  // Cities needed them apart, and the page says each where its own marker is
-  // set. The class comes first because a player meeting one of these needs the
-  // noun before the rule — every card that asks for "an empire building" is
-  // asking for this shelf, and nothing else on the page would say which rows
-  // those are. The limit follows as its own sentence, and it says "normally",
-  // because a card can lift it.
-  // The class's sentence links to the Concepts page that says what one is
-  // (the user, 2026-11-19: "make sure the tech tree and compendium note this").
-  if (def.empireBuilding === true) {
-    clauses.push({ text: EMPIRE_BUILDING_WORDS.entry, note: true });
-  }
+  if (def.awaitsTech === true) return true;
+  if (def.unlockedByLeader === true && leaderThatOpens('building', id) === null) return true;
+  return def.unlockedByCard === true && cardThatOpens('building', id) === null;
+}
+
+/** The heading a building's page is filed under. See `ROW_GROUPS`. */
+function buildingGroup(id: BuildingId): string | undefined {
+  const def = buildingDef(id);
+  if (buildingIsAbsent(id)) return ABSENT_GROUP;
+  if (def.unlockedByLeader === true) return LEADER_GROUP;
+  // A row the tree also names (the Aqueduct, which a charter technology opens
+  // early) is an ordinary row with a second way in.
+  if (def.unlockedByCard === true && gatingTech('building', id) === null) return CARD_GROUP;
+  return undefined;
+}
+
+/**
+ * What a building's markers mean, one short sentence a marker.
+ *
+ * These are the facts about getting or keeping the building that
+ * `describeBuildingRow` leaves out on purpose (its docblock: the gates are the
+ * Compendium's to state). A fact every wonder shares is on the lead page of
+ * the Wonders shelf, not here.
+ */
+function buildingMarkers(id: BuildingId): CompendiumClause[] {
+  const def = buildingDef(id);
+  const out: CompendiumClause[] = [];
+  // The class first, then its limit: a card that asks for "an empire building"
+  // means this class, and the limit is the rule a player plans around. The
+  // class's sentence is the describers' own and links to the Concepts page
+  // (the user, 2026-11-19).
+  if (def.empireBuilding === true) out.push({ text: EMPIRE_BUILDING_WORDS.entry, note: true });
   if (def.oncePerEmpire === true) {
-    clauses.push({
-      text: 'You may normally have only one of these, in one of your cities.',
+    out.push({
+      text: 'Your empire can have only one of these, unless a card lets it have more.',
       note: true,
     });
   }
-  // **A row nothing builds and nothing sells** — the Town Charter, which a city
-  // founded under the right law is founded holding. Read off the marker for the
-  // watering clause's reason: the day a second such row exists it says this
-  // without anybody remembering to type it again, and the row's own note is
-  // where a reader is told who does the granting.
-  if (def.grantedOnly === true) {
-    clauses.push({
-      text: 'This cannot be built or bought. It is granted, and a city that is granted one keeps it.',
-      note: true,
-    });
+  if (def.publicWork === true) {
+    out.push({ text: 'A public work: a card that counts public works counts this.', note: true });
   }
-  if (def.worldUnlockTech !== undefined) {
-    clauses.push({
-      text: `Nobody can begin one until some empire in the world has researched ${techDef(def.worldUnlockTech).name}. After that, everybody can.`,
-      note: true,
-    });
-  }
-  // The dry-settle ruling's other half, read off the row rather than written
-  // into the aqueduct's note: a town away from fresh water grows slowly until
-  // something waters it, and the day a second row waters one it says this
-  // without anybody remembering to type it again.
   if (def.waters === true) {
-    clauses.push({
-      text: 'A city that is not beside fresh water grows more slowly until this is built in it.',
+    out.push({
+      text: 'A city not beside fresh water grows more slowly until this is built.',
       note: true,
     });
   }
-  // The unrest marker (batch WC1), read off the row for the watering clause's
-  // reason: a second such row says this without anybody typing it again.
   if (def.easesUnrest === true) {
-    clauses.push({
-      text: 'A city in unrest that holds this settles faster.',
+    out.push({ text: 'A city in unrest that holds this settles faster.', note: true });
+  }
+  if (def.consecrated === true) {
+    out.push({
+      text: 'When it is finished, the city gets one consecration, picked at random. The consecrations are at the end of the Beliefs shelf.',
       note: true,
     });
   }
-  // **A row an Order opens** — the Gilded Hall, and the charters' eleven
-  // (2026-09-04). Read off the row for the reason the watering clause above is:
-  // eleven charters is eleven rows that would otherwise each have to remember to
-  // type the same sentence, and the sentence a player actually needs is the one
-  // about what happens when the card comes back out of the slot. The second arm
-  // is `isUnlocked`'s dormant one: no row is named by a node and a card both
-  // today, and the sentence is here so that one would read truthfully.
+  if (def.faithBuysWonders === true) {
+    out.push({ text: 'This city can buy a wonder with faith.', note: true });
+  }
+  if (def.restoresMovementOn !== undefined) {
+    out.push({
+      text: `Your military units get all their movement back each time they stop on ${withArticle(improvementRef(def.restoresMovementOn))} inside the borders of this city.`,
+      note: true,
+    });
+  }
+  if (def.queueFloor !== undefined) {
+    out.push({
+      text: `The build queue of this city must always hold ${figure(def.queueFloor)} or more things.`,
+      note: true,
+    });
+  }
+  // A row a card opens: what happens when the card leaves. A charter is never
+  // seated and is held for the whole game, so it has nothing to say here. A
+  // belief's rule is the town's, and the describer says it (`followingOnly`).
   if (def.unlockedByCard === true) {
-    // **Which kind of card, and so which sentence** (C1): the opening line
-    // above names the card; this one says what its coming and going means for
-    // the stones. An Order lives in a slot and leaves it; a Doctrine is held
-    // for the whole game once taken (batch C3); a belief's rule is
-    // the town's, and the row's own describer already says it
-    // (`followingOnly`, "only in a city that keeps the faith that opened it"),
-    // so a second sentence here would be the drift this module exists to
-    // avoid. The unnamed arm is for a card class this table has not met.
     const card = cardThatOpens('building', id);
-    const lasting = ' Anything you have already built stays.';
-    if (card?.kind === 'order') {
-      clauses.push({
-        text: `You can build this only while that Order is in one of your slots.${lasting}`,
+    if (card?.kind === 'order' && card.charter !== true) {
+      out.push({
+        text: 'You can build this only while that Order is in a chair. One you have built stays.',
         note: true,
       });
     } else if (card?.kind === 'doctrine') {
-      clauses.push({
-        text: `You can build this once you hold that Doctrine, which you keep for the whole game.${lasting}`,
-        note: true,
-      });
-    } else if (card === null) {
-      clauses.push({
-        text: `You can build this only while the card that opens it is yours.${lasting}`,
+      out.push({
+        text: 'You can build this once you hold that Doctrine, which you keep for the whole game.',
         note: true,
       });
     }
   }
-  // A row a *figure* opens (batch L2a) used to carry its own note here; the
-  // opening line above says it now, with the figure named.
   if (def.acceptsContributions === true) {
-    clauses.push({
-      text: 'While this is at the front of a city’s build list, you may pour gold or faith into it to hurry it along.',
+    out.push({
+      text: 'While this is first in the build queue of a city, you can pay gold or faith toward it.',
       note: true,
     });
   }
   if (def.endsTheGame === true) {
-    // The bead gate is read off `BEAD_RULES` rather than written into the row's
-    // note, exactly as the world's technology clause above is read off the row:
-    // a retuned threshold rewrites this sentence and no prose anywhere.
-    clauses.push({
-      text: `You may begin it only while you hold ${figure(BEAD_RULES.threshold)} beads.`,
+    // The bead gate is read from `BEAD_RULES`, so a new threshold changes this
+    // sentence and no prose.
+    out.push({
+      text: `You can begin it only while you hold ${figure(BEAD_RULES.threshold)} beads. The empire that finishes it wins the game.`,
       note: true,
     });
-    clauses.push({
-      text: 'Finishing it wins the game outright, for whoever raised it: the last measures of the age are taken for the record, and no rod of beads can take the game back.',
-      note: true,
-    });
+  }
+  return out;
+}
+
+/**
+ * How many lines `describeBuildingRow` prints for a renown that also pays on
+ * completion: the line for each turn and the line for the turn it is finished.
+ */
+const RENOWN_LINES_WITH_GRANT = ['each turn', 'on completion'].length;
+
+function buildingEntry(id: BuildingId): CompendiumEntry {
+  const def = buildingDef(id);
+  const wonder = isWonder(id);
+  // A row nobody builds has no price to print: a granted row and a placed row
+  // are refused by the queue and by the bank (`buildError`, `purchaseError`).
+  const unbuildable = def.grantedOnly === true || def.placed === true;
+  const rows: CompendiumRow[] = [
+    ...row(
+      'Production cost',
+      unbuildable ? '' : `${figure(buildingProductionCost(id))}${YIELD_GLYPH.production}`,
+    ),
+    ...row('Cost premium', costPremiumFigures(id)),
+    // `None` rather than an omission, as on the unit shelf. A wonder reads
+    // `None` on purpose: a wonder has no upkeep.
+    ...row('Upkeep each turn', upkeepRow(buildingUpkeep(id))),
+    ...row('Can only be built in', siteRequirement(def)),
+    // The chain (`BuildingDef.requiresBuilding`): the building that must
+    // already stand in the same city, as a link to its page.
+    ...row(
+      'Needs standing here',
+      def.requiresBuilding === undefined ? '' : buildingRef(def.requiresBuilding),
+    ),
+  ];
+  // What it does, in the simulation's own words. `describeBuildingRow` carries
+  // the yields, the renown, the trade routes, the production bonus and every
+  // effect and field of the row, so the page prints none of them a second time
+  // as a row (the pass of 2026-11-21: each was printed two times before). The
+  // clauses lead the page because an Order that unlocks a building prints the
+  // same list on its own face, and the two must not differ.
+  const described = describeBuildingRow(id);
+  const clauses: CompendiumClause[] = described.map((entry) => ({
+    text: entry.text,
+    deferred: entry.deferred,
+  }));
+  // How you get it: the one opening line. A row that is not in the game says
+  // so in this line, and the line is drawn as a band.
+  clauses.push({ ...queueOpening('building', id), ...(buildingIsAbsent(id) ? { standing: true } : {}) });
+  // What technologies later do for this building: the lines that pay the
+  // building's ground more, read out of `techGifts`.
+  clauses.push(...laterGifts(id));
+  const markers = buildingMarkers(id);
+  clauses.push(...markers);
+  // The row's own note is printed only where it is the one place a fact is
+  // said: on a row whose generated lines are its flat yields and its renown
+  // and nothing more (the Temple's guard against other religions, the Relic's
+  // limit). On every other row the note says the generated lines again in
+  // looser words. `docs/plans/compendium-pass-2026-11-21.md` lists the notes.
+  const flatLines = [def.food, def.production, def.gold, def.science, def.culture, def.faith ?? 0]
+    .some((amount) => amount !== 0)
+    ? 1
+    : 0;
+  const renownLines =
+    def.renown === undefined ? 0 : (def.renown.onComplete ?? 0) !== 0 ? RENOWN_LINES_WITH_GRANT : 1;
+  const saysMore = described.length > flatLines + renownLines || markers.length > 0;
+  if (def.note !== undefined && !saysMore && def.grantedOnly !== true && !buildingIsAbsent(id)) {
+    clauses.push({ text: def.note, note: true });
   }
   return {
     id: compendiumId(wonder ? 'wonder' : 'building', id),
     section: wonder ? 'wonder' : 'building',
     name: def.name,
+    group: buildingGroup(id),
     eyebrow: `${def.category} ${wonder ? 'wonder' : 'building'}`,
     mark: { kind: 'glyph', glyph: wonder ? '✶' : '▣' },
     rows,
@@ -1576,11 +1556,143 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
 
 // --- improvements -----------------------------------------------------------
 
+/** Is this improvement out of the game? A leader's row that no leader holds. */
+function improvementIsAbsent(id: ImprovementId): boolean {
+  const def = improvementDef(id);
+  return def.unlockedByLeader === true && leaderThatOpens('improvement', id) === null;
+}
+
+/** The heading an improvement's page is filed under. See `ROW_GROUPS`. */
+function improvementGroup(id: ImprovementId): string | undefined {
+  const def = improvementDef(id);
+  if (improvementIsAbsent(id)) return ABSENT_GROUP;
+  if (def.unlockedByLeader === true) return LEADER_GROUP;
+  if (def.tended === true || def.unlockedByCard === true) return CARD_GROUP;
+  if (def.greatPerson !== undefined) return WORKS_GROUP;
+  return undefined;
+}
+
+/**
+ * What an improvement's markers mean, one short sentence a marker, in the
+ * order a player asks: where it may stand, what it does there, what it counts
+ * as.
+ */
+function improvementMarkers(id: ImprovementId): CompendiumClause[] {
+  const def = improvementDef(id);
+  const out: CompendiumClause[] = [];
+  // A great person's work stands on any land hex but a mountain. The holy site
+  // has its own rules for where a prophet may build it, which the prophet's
+  // sheet states, so the sentence is not said for it.
+  if (def.greatPerson !== undefined && def.greatPerson !== 'prophet') {
+    out.push({ text: 'Can be built on any land hex that is not a mountain.' });
+  }
+  if (def.hillsIf !== undefined && def.hillsIf.length > 0) {
+    // The waiver forgives the ground the row refuses, so the opening is read
+    // off `requiresHills`: the farm wants flat ground and the waiver gives it a
+    // hill; the mine wants hills and the waiver gives it flat ground.
+    const allowed = def.requiresHills === true ? 'Flat ground is' : 'Hills are';
+    out.push({
+      text: `${allowed} allowed where the hex ${eitherWords(
+        def.hillsIf.map((why) => HILLS_WAIVER_WORDS[why]),
+      )}.`,
+    });
+  }
+  if (def.adjacentImprovement !== undefined) {
+    const near = def.adjacentImprovement;
+    out.push({
+      text: `Can also be built on ${eitherWords(near.terrain.map((terrain) => terrain))} when a hex next to it has ${withArticle(improvementRef(near.improvement))}.`,
+    });
+  }
+  if (def.requiresAdjacentMountain === true) out.push({ text: 'Needs a mountain next to it.' });
+  if (def.landBeside !== undefined) {
+    out.push({ text: `Needs ${figure(def.landBeside)} or more of your land hexes next to it.` });
+  }
+  if (def.beyondBorders !== undefined) {
+    out.push({
+      text: `Built only on unowned ground with no improvement, at most ${figure(def.beyondBorders)} ${plural(def.beyondBorders, 'hex', 'hexes')} outside your borders.`,
+    });
+  }
+  if (def.onePerTown === true) out.push({ text: 'A city can have only one inside its borders.' });
+  if (def.countsAs !== undefined) {
+    out.push({
+      text: `Counts as ${withArticle(improvementRef(def.countsAs))}: everything that pays on one pays on this.`,
+    });
+  }
+  if (def.claimsNeighbours === true) {
+    out.push({ text: 'Claims its hex and every hex next to it for your empire.' });
+  }
+  if (def.claimsUnowned !== undefined) {
+    out.push({
+      text: `Claims its hex and every unowned hex within ${figure(def.claimsUnowned)} ${plural(def.claimsUnowned, 'hex', 'hexes')} for your nearest city. A city founded on it keeps that land.`,
+    });
+  }
+  if (def.watersBeside === true) {
+    out.push({
+      text: 'Your farms on the hexes next to it count as having fresh water. It waters only your own farms.',
+    });
+  }
+  if (def.copiesNeighbours === true) {
+    out.push({
+      text: 'Yields what each hex around it yields. Only hexes inside your borders count, and never a city or another of its kind. It pays only while a citizen works it.',
+    });
+  }
+  if (def.yieldsAs !== undefined) {
+    const work = improvementDef(def.yieldsAs.improvement).name.toLowerCase();
+    const ground = terrainDef(def.yieldsAs.terrain).name.toLowerCase();
+    out.push({
+      text: `Yields as ${withArticle(work)} on ${ground}, without the bonus for fresh water. The hex stays water for every other rule, and nothing that pays on ${withArticle(work)} pays on this.`,
+    });
+  }
+  if (def.tended === true) {
+    out.push({
+      text: 'A tended work: cards count its hex as wild land. It cannot be pillaged, and it gives access to no resource.',
+    });
+  }
+  // **A great person's work** (`isGreatPersonWork`): the five works a great
+  // person builds, the holy site, and a row that sets `countsAsGreatWork` (the
+  // Paradise Garden, which a worker builds). The user, 2026-11-21: "Paradise
+  // gardens for example, should have an entry noting they count as great
+  // people." The two sentences are what the predicate does in the simulation:
+  // every count of works reads it (cards, legacies, commissions, a capture's
+  // riders), and `openedResource` gives a work the resource under it.
+  if (isGreatPersonWork(id)) {
+    out.push({
+      text:
+        def.greatPerson === undefined
+          ? 'Counts as a great person’s work, though a worker builds it: every card, legacy and commission that counts works counts this.'
+          : def.greatPerson === 'prophet'
+            ? 'Counts as a great person’s work: every card, legacy and commission that counts works counts this.'
+            : 'A great person’s work: every card, legacy and commission that counts works counts this.',
+    });
+    out.push({
+      text: 'It gives access to a resource on its hex, and it can be built on a resource that asks for another improvement.',
+    });
+  }
+  // What technologies later add to it (`ImprovementDef.upgrades`), named by the
+  // technology. The technology's own page said this, and the improvement's did
+  // not.
+  for (const upgrade of def.upgrades ?? []) {
+    const water = upgrade.requiresFreshwater === true ? ' beside fresh water' : '';
+    out.push({ text: `${techRef(upgrade.tech)}: ${tileYieldFigures(upgrade.add)}${water}.` });
+  }
+  return out;
+}
+
 function improvementEntry(id: ImprovementId): CompendiumEntry {
   const def: ImprovementDef = improvementDef(id);
+  // A row that may stand only on the resources it gives access to prints the
+  // list one time, under a label that says both.
+  const opens = def.improvesResource ?? [];
+  const only = def.requiresResource ?? [];
+  const sameList = only.length > 0 && only.length === opens.length && only.every((one) => opens.includes(one));
+  const resourceRefs = (ids: readonly ResourceId[]): string =>
+    ids.map((resource) => ref('resource', resource, resourceDef(resource).name)).join(', ');
   const rows: CompendiumRow[] = [
     ...row('Adds to the hex', tileYieldFigures(def.yields)),
-    ...row('Work charges used', figure(def.chargeCost)),
+    ...row('Happiness', def.happiness === undefined ? '' : signedFigure(def.happiness)),
+    ...row('Defence for units on it', def.defense === undefined ? '' : signedFigure(def.defense)),
+    ...row('Work charges used', def.greatPerson !== undefined ? '' : figure(def.chargeCost)),
+    ...row('Built by', def.greatPerson === undefined ? '' : withArticle(def.greatPerson)),
     ...row('Terrain', eitherWords((def.validTerrain ?? []).map((terrain) => terrain))),
     ...row(
       'Terrain, beside fresh water',
@@ -1591,144 +1703,30 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
       'Flat or hills',
       def.requiresHills === undefined ? '' : def.requiresHills ? 'hills' : 'flat',
     ),
-    ...row(
-      'Gives access to',
-      words((def.improvesResource ?? []).map((resource) => resourceDef(resource).name)),
-    ),
-    ...row(
-      'Defence for units on it',
-      def.defense === undefined ? '' : signedFigure(def.defense),
-    ),
-    ...row('Built by', def.greatPerson ?? ''),
+    ...(sameList
+      ? row('Built only on, and gives access to', resourceRefs(opens))
+      : [...row('Built only on', resourceRefs(only)), ...row('Gives access to', resourceRefs(opens))]),
   ];
-  const clauses: CompendiumClause[] = [];
-  if (def.hillsIf !== undefined && def.hillsIf.length > 0) {
-    // The waiver forgives whichever ground the row refused, so the opening is
-    // read off `requiresHills` rather than written out. The farm wants flat
-    // ground and the waiver buys it a hillside; the mine wants hills and the
-    // waiver buys it flat ground for a niter seam (batch R6). One sentence for
-    // both would be false for one of them.
-    const allowed = def.requiresHills === true ? 'Flat ground is' : 'Hills are';
-    clauses.push({
-      text: `${allowed} allowed where the hex ${eitherWords(
-        // One phrase per waiver, off the union rather than off a ternary: a
-        // third reason arrived with the Terraces (batch L3c) and an `else`
-        // would have printed the resource's sentence for it.
-        def.hillsIf.map((why) => HILLS_WAIVER_WORDS[why]),
-      )}.`,
-    });
-  }
-  if (def.requiresResource !== undefined && def.requiresResource.length > 0) {
-    clauses.push({
-      text: `Can only be built on ${eitherWords(
-        def.requiresResource.map((resource) => resourceDef(resource).name),
-      )}.`,
-    });
-  }
-  if (def.adjacentImprovement !== undefined) {
-    const near = def.adjacentImprovement;
-    clauses.push({
-      text: `Can also be built on ${eitherWords(near.terrain.map((terrain) => terrain))} when a hex next to it already has ${withArticle(improvementDef(near.improvement).name)}.`,
-    });
-  }
-  if (def.requiresAdjacentMountain === true) {
-    clauses.push({
-      text: 'Requires an adjacent mountain.',
-    });
-  }
-  // **What a row stands in for**, said in the reader's terms and not in the
-  // marker's (batch L8): every rule anybody ever wrote about the row it counts
-  // as is true of this one, and a reader who has met the farm has met this.
-  if (def.countsAs !== undefined) {
-    clauses.push({
-      text:
-        `Counts everywhere as ${withArticle(improvementDef(def.countsAs).name)}: ` +
-        'anything that pays on one pays on this.',
-    });
-  }
-  if (def.clearsClutter) {
-    clauses.push({ text: 'Clears the loose plants and stones drawn on the hex.' });
-  }
-  if (def.claimsNeighbours === true) {
-    clauses.push({ text: 'Claims the hex it stands on and every hex next to it for your empire.' });
-  }
-  // **The Expansionist batch E4 rows' own rules**, read off the row.
-  if (def.onePerTown === true) {
-    clauses.push({ text: 'A city may hold only one, counted over every hex inside its borders.' });
-  }
-  // **The Scientific batch S5 row's own rule** (the Qanat), read off the row
-  // like the rules above, so a later row with the same field says the same
-  // thing.
-  if (def.watersBeside === true) {
-    clauses.push({
-      text: 'Your farms on the hexes next to it count as having fresh water, for every rule that asks whether a farm has it. It waters only your own farms, and only while it stands.',
-    });
-  }
-  if (def.copiesNeighbours === true) {
-    clauses.push({
-      text: 'Yields what each hex around it yields, counting only hexes inside your borders, and never a city or another hex of its kind. It pays only while a citizen works it.',
-    });
-  }
-  if (def.landBeside !== undefined) {
-    clauses.push({
-      text: `Needs at least ${figure(def.landBeside)} of your land hexes beside it.`,
-    });
-  }
-  if (def.yieldsAs !== undefined) {
-    const work = improvementDef(def.yieldsAs.improvement).name.toLowerCase();
-    const ground = terrainDef(def.yieldsAs.terrain).name.toLowerCase();
-    clauses.push({
-      text: `Yields as ${withArticle(work)} on ${ground}, without the renewals that need fresh water. The hex stays water for every other rule, and nothing that pays on ${withArticle(work)} pays on this.`,
-    });
-  }
-  if (def.beyondBorders !== undefined) {
-    clauses.push({
-      text: `Built only on unowned ground with no work on it, at most ${figure(def.beyondBorders)} ${plural(def.beyondBorders, 'hex', 'hexes')} beyond your borders.`,
-    });
-  }
-  if (def.claimsUnowned !== undefined) {
-    clauses.push({
-      text:
-        def.claimsUnowned === 1
-          ? 'Claims the hex it stands on and every unowned hex next to it for your nearest city. A city founded on it keeps that land.'
-          : `Claims every unowned hex within ${figure(def.claimsUnowned)} ${plural(def.claimsUnowned, 'hex', 'hexes')} of it for your nearest city. A city founded on it keeps that land.`,
-    });
-  }
-  // **What opens it** (C1): the row's own gate as a linked node, or the hand
-  // that lays it — where the "Unlocked by" row used to stand among the figures.
-  clauses.push(improvementOpening(id));
-  if (def.greatPerson !== undefined) {
-    // **`greatPerson` names the family, and the family is not always a great
-    // person's.** Since the prophet joined that field (`WorkFamily`), the flat
-    // sentence would have claimed a holy site is built by a scholar — so the
-    // hand is read off the row rather than assumed, exactly as the sim reads it
-    // (`plantingHandOf`).
-    clauses.push({
-      text:
-        def.greatPerson === 'prophet'
-          ? 'Only a prophet can plant this, and a prophet can build nothing else.'
-          : 'Only a great person can build this, and a great person can build nothing else.',
-      note: true,
-    });
-  }
-  // **Whose ground this is** (batch L8). Read off the roster rather than off
-  // this row, for the unit shelf's reason exactly: the row says *that* a figure
-  // opens it, and which figure is the sheet's to say — so a row that changes
-  // hands changes the eyebrow with it. The clause that used to say it here is
-  // the opening line's now (`improvementOpening`), with the figure linked.
-  const whoseRow = def.unlockedByLeader === true ? leaderThatOpensImprovement(id) : null;
-  // The halves this row's design has and the game does not, struck through, the
-  // way a card's are (`CardDefBase.deferred`). Last, because a reader wants what
-  // the thing *does* before what it does not do yet.
+  const clauses: CompendiumClause[] = improvementMarkers(id);
+  // How you get it: the row's own technology, the leader, the card, or the
+  // great person who builds it.
+  clauses.push({ ...improvementOpening(id), ...(improvementIsAbsent(id) ? { standing: true } : {}) });
+  // The parts of the row's design the game does not have yet, struck through.
   for (const waiting of def.deferred ?? []) clauses.push({ text: waiting, deferred: true });
+  // Whose row this is, read off the roster so a row that changes hands changes
+  // the eyebrow with it.
+  const whoseRow = def.unlockedByLeader === true ? leaderThatOpensImprovement(id) : null;
   return {
     id: compendiumId('improvement', id),
     section: 'improvement',
     name: def.name,
+    group: improvementGroup(id),
     eyebrow:
-      def.greatPerson !== undefined
-        ? 'improvement built by a great person'
-        : whoseRow !== null
+      def.greatPerson === 'prophet'
+        ? 'improvement built by a prophet'
+        : def.greatPerson !== undefined
+          ? 'improvement built by a great person'
+          : whoseRow !== null
           ? `improvement, ${whoseRow}'s alone`
           : 'improvement',
     mark: { kind: 'glyph', glyph: def.emoji },
@@ -1740,69 +1738,61 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
 
 // --- resources --------------------------------------------------------------
 
+/**
+ * The units that need a copy of each resource: `requiredResourcesOf` read
+ * backwards, built on first use. A unit nobody can get is left out.
+ */
+let resourceUsers: Partial<Record<ResourceId, UnitTypeId[]>> | null = null;
+
+function unitsThatNeed(id: ResourceId): readonly UnitTypeId[] {
+  if (resourceUsers === null) {
+    const index: Partial<Record<ResourceId, UnitTypeId[]>> = {};
+    for (const unit of UNIT_TYPE_IDS) {
+      if (unitIsAbsent(unit)) continue;
+      for (const resource of requiredResourcesOf(unitDef(unit))) (index[resource] ??= []).push(unit);
+    }
+    resourceUsers = index;
+  }
+  return resourceUsers[id] ?? [];
+}
+
 function resourceEntry(id: ResourceId): CompendiumEntry {
   const def: ResourceDef = resourceDef(id);
   const opener = improvementForResource(id);
-  // **Copies per seam** (batch R3's `copiesPerSource`, printed by R4). Only a
-  // strategic row rolls a quantity, and it is the figure that decides whether
-  // one hill is worth a town: a seam at the top of its range feeds twice the
-  // army a seam at the bottom does. Read straight off the row, like every other
-  // figure in this book.
+  // Copies per seam (`copiesPerSource`): only a strategic row has a quantity.
   const copies = def.copiesPerSource;
   const rows: CompendiumRow[] = [
     ...row('Adds to the hex', tileYieldFigures(def.yields)),
     ...row('Terrain', eitherWords(def.validTerrain.map((terrain) => terrain))),
     ...row('Features', eitherWords((def.validFeatures ?? []).map((feature) => feature))),
     ...row('Flat or hills', def.hills === undefined ? '' : def.hills ? 'hills' : 'flat'),
-    ...row('Revealed by', techName(def.requiresTech)),
-    ...row('Needs improvement', opener === null ? '' : improvementDef(opener).name),
+    // Until this technology is researched the resource is not drawn, pays
+    // nothing and cannot be used. The lead page of the shelf says so one time.
+    ...row('Revealed by', def.requiresTech === undefined ? '' : techRef(def.requiresTech)),
+    ...row('Needs improvement', opener === null ? '' : improvementRef(opener)),
     ...row(
       'Copies per seam',
       copies === undefined ? '' : copies[0] === copies[1] ? `${copies[0]}` : `${copies[0]}–${copies[1]}`,
     ),
+    ...row('Units that need a copy', unitsThatNeed(id).map(unitRef).join(', ')),
   ];
   const clauses: CompendiumClause[] = describeResourceSignature(id).map((line) => ({
     text:
-      line.fromAge === undefined
-        ? line.text
-        : `${line.text} — from ${ageWord(line.fromAge)} onward`,
+      line.fromAge === undefined ? line.text : `${line.text}, from ${ageWord(line.fromAge)} onward`,
   }));
-  // **One copy is enough for the bonus** (the user, 2026-09-18: *"players gain
-  // this bonus for having at least one copy, only applies once regardless of
-  // number of copies"*). Said on every row that has a signature at all, because
-  // it is the rule the signature is subject to and a reader cannot guess it from
-  // the effect alone. No number in the sentence — rule 7 — and none is needed:
-  // "one" is the rule, not a quantity.
+  // One copy is enough for the bonus (the user, 2026-09-18: *"players gain this
+  // bonus for having at least one copy, only applies once regardless of number
+  // of copies"*). Said on every row that has a bonus, because a reader cannot
+  // tell it from the effect.
   if (clauses.length > 0) {
     clauses.push({
-      text:
-        'Your empire needs only a single improved copy for this: holding more adds nothing to it. ' +
-        'Every copy beyond the first is there to be spent on units, or lent across a table.',
+      text: 'Your empire needs only a single improved copy for this. More copies add nothing to it.',
       note: true,
     });
   }
-  // **What a strategic seam is for.** The other half of the copies model, said
-  // once here so a reader who arrives at iron before they arrive at the
-  // longswordsman still meets the rule.
   if (def.kind === 'strategic') {
     clauses.push({
-      text:
-        'A unit that needs this holds one copy for as long as it lives, and hands it back when it dies ' +
-        'or is disbanded. A row waiting in a build queue holds one too. What is left is what you can ' +
-        'still build with.',
-      note: true,
-    });
-    clauses.push({
-      text:
-        'A strategic resource cannot be traded away. Only luxuries cross a table.',
-      note: true,
-    });
-  }
-  if (def.requiresTech !== undefined) {
-    clauses.push({
-      text:
-        'Until you have researched the technology above, this resource is invisible to you: ' +
-        'it is not drawn on the map, the hex is not paid for it, and it cannot be used.',
+      text: 'A unit that needs this holds one copy for as long as it lives. A strategic resource cannot be traded away.',
       note: true,
     });
   }
@@ -2010,19 +2000,11 @@ function charterTechEntry(id: TechId): CompendiumEntry {
   }
   for (const line of techRuleNote(id)) clauses.push({ text: line, note: true });
   if ((def.traits ?? []).length > 0) {
-    clauses.push({
-      text: 'A line trait stays with its units through every upgrade. No unit changes type or cost.',
-      note: true,
-    });
+    clauses.push({ text: 'A line trait stays with its units through every upgrade.', note: true });
   }
-  clauses.push({
-    text: 'The column price is what an ordinary technology at the same point in the tree costs. These prices leave out the cards an empire holds, which can change them.',
-    note: true,
-  });
-  clauses.push({
-    text: 'A charter technology does not count toward your empire’s age, and completing one is never a first in the world.',
-    note: true,
-  });
+  // What is true of every charter technology (its price is the ordinary one,
+  // it does not count toward an age) is on the Technology page of the Concepts
+  // shelf, one time, and not on each of these pages.
   return {
     id: compendiumId('tech', id),
     section: 'tech',
@@ -2465,18 +2447,18 @@ function riteEntry(id: RiteId): CompendiumEntry {
 function familyAct(family: Family): string {
   const great = RULES.greatPeople;
   if (family === 'scholar') {
-    return `Use it once: it adds ${figure(great.actGainTurns)} turns of your empire’s science to the technology you are researching.`;
+    return `${figure(great.actGainTurns)} turns of your empire’s science, added to the technology you are researching.`;
   }
   if (family === 'engineer') {
-    return `Use it once: it adds ${figure(great.engineerHammers)}${YIELD_GLYPH.production} to a city’s production, multiplied by the age your empire has reached — and it grows with every technology you research.`;
+    return `${figure(great.engineerHammers)}${YIELD_GLYPH.production} for a city, multiplied by the age of your empire. It grows with every technology you research.`;
   }
   if (family === 'merchant') {
-    return `Add ${figure(great.actGainTurns)} turns of your empire’s gold income to your treasury.`;
+    return `${figure(great.actGainTurns)} turns of your empire’s gold income, added to your treasury.`;
   }
   if (family === 'artist') {
-    return `Use it once: it adds ${figure(great.actGainTurns)} turns of your empire’s culture toward your next draft, and gives the city ${signedFigure(great.artistHappiness)} happiness for ${figure(great.artistTurns)} turns.`;
+    return `${figure(great.actGainTurns)} turns of your empire’s culture toward your next draft, and ${signedFigure(great.artistHappiness)} happiness in the city for ${figure(great.artistTurns)} turns.`;
   }
-  return `Use it once: every unit within ${figure(great.generalRadius)} hexes gains ${signedFigure(great.generalCombat)} combat strength for ${figure(great.generalTurns)} turns.`;
+  return `${signedFigure(great.generalCombat)} combat strength for every unit of yours within ${figure(great.generalRadius)} hexes, for ${figure(great.generalTurns)} turns.`;
 }
 
 function greatPersonEntry(id: GreatPersonId): CompendiumEntry {
@@ -2487,12 +2469,8 @@ function greatPersonEntry(id: GreatPersonId): CompendiumEntry {
   // and the work's clause carries its improvement as a keyword, which is what
   // an entry that mentions another entry does everywhere else in this file.
   const clauses: CompendiumClause[] = [
-    { text: `${describeFamilyVerb(def.family, 'act')}. ${familyAct(def.family)}` },
-    {
-      text:
-        `${describeFamilyVerb(def.family, 'work')}. Send it to a hex instead and the` +
-        ' work stands there for ever — this uses it up too.',
-    },
+    { text: `${describeFamilyVerb(def.family, 'act')}: ${familyAct(def.family)}` },
+    { text: `Or: ${describeFamilyVerb(def.family, 'work')}.` },
   ];
   clauses.push(...cardClauses(id));
   // The kernel is **biography, not a rule**, and a note clause in the rules
@@ -2745,6 +2723,12 @@ function wagerEntry(id: WagerId): CompendiumEntry {
  * at all. The uniques are named through `ref()` so the book links to their own
  * entries rather than restating their rows.
  */
+/** "leader · Commerce · Devotion": the decks a leader draws Orders from. */
+function leaderDecksWords(id: LeaderId): string {
+  const decks = leaderDef(id).decks;
+  return decks === undefined ? 'leader · every deck' : ['leader', ...decks.map(deckWord)].join(' · ');
+}
+
 function leaderEntry(id: LeaderId): CompendiumEntry {
   const def = leaderDef(id);
   const clauses: CompendiumClause[] = [
@@ -2752,8 +2736,7 @@ function leaderEntry(id: LeaderId): CompendiumEntry {
     // shelf is the one surface where a figure's pair cannot be *shown* — an
     // entry is prose and a keyword ref, not a swatch — so it is named instead,
     // off the row's own `colors.names`, which is the doc table's first cell.
-    { text: `Its colours are ${def.colors.names[0]} and ${def.colors.names[1]}.`, note: true },
-    { text: 'What this leader gives you from the first turn:', note: true },
+    { text: 'From the first turn:', note: true },
   ];
   for (const ability of def.abilities) {
     clauses.push({ text: `${ability.name}:`, note: true });
@@ -2763,7 +2746,7 @@ function leaderEntry(id: LeaderId): CompendiumEntry {
   // an ability is true the moment you sit down and a unique waits on its own
   // technology — which is the one thing a reader has to be told about it, and is
   // said here rather than restated from the row's own page.
-  clauses.push({ text: 'And two things nobody else may build:', note: true });
+  clauses.push({ text: 'Only this leader can build:', note: true });
   // The second row is a hall for twelve of the thirteen and a **work of the
   // ground** for the one (batch L8) — read off the sheet, so the sentence names
   // whichever it is and the shelf never has to know which.
@@ -2772,22 +2755,24 @@ function leaderEntry(id: LeaderId): CompendiumEntry {
       ? ref('improvement', def.improvement, improvementDef(def.improvement).name)
       : ref('building', def.building!, buildingDef(def.building!).name);
   clauses.push({
-    text:
-      `${ref('unit', def.unit, unitDef(def.unit).name)} and ${second}, ` +
-      'each the moment the technology that opens it arrives.',
+    text: `${ref('unit', def.unit, unitDef(def.unit).name)}, ${leaderOpeningWords('unit', def.unit)}.`,
+  });
+  clauses.push({
+    text: `${second}, ${leaderOpeningWords(def.improvement !== undefined ? 'improvement' : 'building', (def.improvement ?? def.building)!)}.`,
   });
   // **The towns** (batch L5, `docs/flags.md` (pppp)). Last, because it is the
   // last thing a player choosing at the table wants and the first thing they
   // will see on the board. One plain clause off the row itself: the names are
   // the sheet's, in the sheet's order, and nothing here interprets them.
   clauses.push({
-    text: `Its towns are named ${joined([...def.cities], 'and')}, in that order.`,
+    text: `Colours: ${def.colors.names[0]} and ${def.colors.names[1]}. Cities, in the order you found them: ${[...def.cities].join(', ')}.`,
+    note: true,
   });
   return {
     id: compendiumId('leader', id),
     section: 'leader',
     name: def.name,
-    eyebrow: 'a leader, and what its realm alone can do',
+    eyebrow: leaderDecksWords(id),
     mark: { kind: 'glyph', glyph: '♛' },
     rows: [],
     clauses,
@@ -3073,17 +3058,27 @@ export function compendiumSections(): CompendiumSection[] {
 
   for (const entry of INTRO_ENTRIES) push(entry);
   for (const entry of CONCEPT_ENTRIES) push(entry);
-  for (const id of UNIT_TYPE_IDS) push(unitEntry(id));
+  // **Ordinary rows first, then the headings** (`ROW_GROUPS`): the rows of one
+  // leader, the rows a card opens, the works of great people, and last the
+  // rows nobody can get. File order inside each, so the book's order is still
+  // the data's. An entry's id does not move with its heading.
+  const filed = (entries: CompendiumEntry[]): CompendiumEntry[] =>
+    entries
+      .map((entry, index) => ({ entry, index }))
+      .sort(
+        (a, b) =>
+          ROW_GROUPS.indexOf(a.entry.group) - ROW_GROUPS.indexOf(b.entry.group) || a.index - b.index,
+      )
+      .map(({ entry }) => entry);
+  for (const entry of filed(UNIT_TYPE_IDS.map(unitEntry))) push(entry);
   // **A withdrawn row has no page.** The fewer-things pass cut twelve ordinary
   // buildings and kept their rows so that a save which raised one still replays
   // (`BuildingDef.retired`); a reference that still described a Mint would be
   // teaching a build nobody can make. The reading is the shelf's, not the row's
   // — the data keeps the Mint, the book forgets it.
-  for (const id of BUILDING_IDS) {
-    if (buildingDef(id).retired === true) continue;
-    push(buildingEntry(id));
-  }
-  for (const id of IMPROVEMENT_IDS) push(improvementEntry(id));
+  const buildings = BUILDING_IDS.filter((id) => buildingDef(id).retired !== true).map(buildingEntry);
+  for (const entry of filed(buildings)) push(entry);
+  for (const entry of filed(IMPROVEMENT_IDS.map(improvementEntry))) push(entry);
   for (const id of RESOURCE_IDS) push(resourceEntry(id));
   // Age order, then the table's own order inside an age: a reference is read
   // forwards through the tree, which is not the order `techs.json` happens to
@@ -3196,8 +3191,10 @@ export function filterSections(
  * every list in this file is derived: a heading that could disagree with what
  * is under it is a heading that eventually will. A section whose entries carry
  * no `group` comes back empty, and the index and the body both draw nothing.
- * Only the Orders shelf and the Technologies shelf have groups; on the
- * Technologies shelf only the charter technologies carry one.
+ * Five shelves have groups. The Orders shelf has a heading for each deck. On
+ * the Technologies shelf only the charter technologies carry one. The Units,
+ * Buildings and Improvements shelves put their ordinary rows first and then
+ * the headings of `ROW_GROUPS`.
  *
  * Pure and exported for the same reason `compendiumView` is: this suite has no
  * jsdom, and "did the search leave a heading with nothing under it" has to be a
@@ -3355,7 +3352,10 @@ function entryNode(entry: CompendiumEntry): HTMLElement {
       const item = element('li', 'cmp-row');
       item.append(element('span', 'cmp-row-label', line.label));
       const value = element('span', 'cmp-row-value');
-      setYieldText(value, line.figures);
+      // `setDescriptorText` and not `setYieldText`: a row may name a thing the
+      // book has a page about ("Upgrades to", "Needs standing here"), and it
+      // draws the yield glyphs the same way.
+      setDescriptorText(value, line.figures);
       item.append(value);
       list.append(item);
     }

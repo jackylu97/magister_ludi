@@ -928,12 +928,13 @@ describe('the Compendium’s religion rows', () => {
   it('says what a prophet’s charges do, and never that they dig', () => {
     const clauses = entry('unit:prophet')!.clauses.map((clause) => clause.text);
     expect(clauses.some((text) => text.includes('holy site'))).toBe(true);
-    expect(clauses.some((text) => text.includes('Founding your religion'))).toBe(true);
-    // The ladder in words, since the ruling of 2026-09-10: the two acts that
-    // settle what a faith is take the piece, the two that spend its voice do
-    // not — and the retired redraft is gone from the shelf with it.
-    expect(clauses.some((text) => text.includes('takes every charge it carries'))).toBe(true);
-    expect(clauses.some((text) => text.includes('speak, and then speak again'))).toBe(true);
+    expect(clauses.some((text) => text.includes('found a religion'))).toBe(true);
+    // Since the Compendium pass of 2026-11-21 the page prints each act with its
+    // cost in charges, read from `rules.religion.prophetCosts`, in place of two
+    // paragraphs. The rule in words is on the Faith and religion page.
+    const costs = RULES.religion.prophetCosts;
+    expect(clauses.some((text) => text.includes(`found a religion ${costs.foundReligion}`))).toBe(true);
+    expect(clauses.some((text) => text.includes(`proclaim the faith ${costs.proclaim}`))).toBe(true);
     expect(clauses.some((text) => text.includes('pools back'))).toBe(false);
     // The worker's sentence would otherwise fire on a piece with charges and no
     // other marker.
@@ -942,8 +943,11 @@ describe('the Compendium’s religion rows', () => {
 
   it('says a holy site is planted by a prophet, not by a great person', () => {
     const clauses = entry('improvement:holySite')!.clauses.map((clause) => clause.text);
-    expect(clauses.some((text) => text.includes('Only a prophet can plant this'))).toBe(true);
-    expect(clauses.some((text) => text.includes('great person'))).toBe(false);
+    expect(clauses.some((text) => text.includes('only a prophet builds it'))).toBe(true);
+    expect(entry('improvement:holySite')!.eyebrow).toBe('improvement built by a prophet');
+    // It counts as a great person's work (`isGreatPersonWork`), and the page
+    // says so since the pass of 2026-11-21. Nothing says a great person builds it.
+    expect(clauses.some((text) => text.includes('great person builds'))).toBe(false);
   });
 
   it('shelves all three belief pools, each under its own eyebrow', () => {

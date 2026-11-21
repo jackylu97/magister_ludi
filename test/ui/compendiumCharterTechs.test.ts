@@ -175,7 +175,10 @@ describe('a charter technology’s page', () => {
     for (const tech of CHARTER_TECH_IDS) {
       const entry = entryOf(compendiumId('tech', tech));
       const notes = entry.clauses.filter((clause) => clause.note === true);
-      expect(notes.length, tech).toBeGreaterThan(0);
+      // A page may have no note: the two sentences every charter technology
+      // printed are on the Technology page of the Concepts shelf since the
+      // Compendium pass of 2026-11-21.
+      if (notes.length === 0) continue;
       const first = entry.clauses.findIndex((clause) => clause.note === true);
       expect(first, tech).toBe(entry.clauses.length - notes.length);
       for (const note of notes) expect(note.text, tech).not.toMatch(/\d/);

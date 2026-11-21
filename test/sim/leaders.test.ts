@@ -782,11 +782,15 @@ describe('the Compendium', () => {
     }
   });
 
-  it('says of a unique that no other realm may build it', () => {
+  it('says of a unique that one leader alone may build it, and what it does', () => {
     const units = compendiumSections().find((section) => section.id === 'unit');
     const entry = units!.entries.find((held) => held.name === unitDef('gendarme').name)!;
     const words = entry.clauses.map((clause) => clause.text).join(' ');
-    expect(words).toMatch(/Only one leader may ever raise this/);
+    // Shortened in the Compendium pass of 2026-11-21, which also made the page
+    // print the row's own combat lines and effects.
+    expect(words).toMatch(/Unlocked for \[\[leader:joan\|[^\]]+\]\] alone, /);
+    expect(entry.group).toBe('Unique to one leader');
+    expect(words).toContain('combat strength when attacking cities');
   });
 });
 

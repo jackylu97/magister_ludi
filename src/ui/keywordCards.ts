@@ -98,7 +98,6 @@ import {
   type KeywordDefinition,
   loadKeywordDefinitions,
 } from './keywordDefinitions';
-import { setYieldText } from './yieldMark';
 
 /** How far a card sits from its keyword, and from the window's edges. */
 const GAP = 8;
@@ -403,9 +402,9 @@ export function mountKeywordCards(options: KeywordCardsOptions = {}): KeywordCar
   }
 
   /**
-   * The definition, printed. The figures go through `setYieldText` and the
-   * clauses through `setDescriptorText`, the same two printers the Compendium
-   * uses, so a card reads exactly as the entry it came from.
+   * The definition, printed. The figures and the clauses go through
+   * `setDescriptorText`, the printer the Compendium uses, so a card reads
+   * exactly as the entry it came from.
    *
    * The keywords are links only on a locked card. A preview cannot be entered,
    * so a link on it would offer a click that cannot land; the same reason the
@@ -420,7 +419,9 @@ export function mountKeywordCards(options: KeywordCardsOptions = {}): KeywordCar
         const item = element('li', 'kwc-row');
         item.append(element('span', 'kwc-row-label', row.label));
         const value = element('span', 'kwc-row-value');
-        setYieldText(value, row.figures);
+        // A row may name a thing ("Upgrades to"), so it is drawn by the keyword
+        // printer, which draws the yield glyphs the same way.
+        setDescriptorText(value, row.figures, { linked });
         item.append(value);
         rows.append(item);
       }

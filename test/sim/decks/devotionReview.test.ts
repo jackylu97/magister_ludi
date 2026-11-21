@@ -277,8 +277,9 @@ describe('the Cathedral School', () => {
       '+2 science per building in this city that supplies faith',
       '+2 science per building in this city that supplies faith, while it is keeping a rite',
       "Unlocked by researching Scholasticism, a charter technology that only an empire holding The Schoolmen's Charter may research.",
-      buildingDef('cathedralSchool').note,
     ]);
+    // The page stopped printing the row's note in the Compendium pass of
+    // 2026-11-21: on a row with effects the note says the lines above again.
     // The note is player prose: no number and no identifier.
     expect(buildingDef('cathedralSchool').note).not.toMatch(/\d/);
     expect(buildingDef('cathedralSchool').note).not.toMatch(/[a-z][A-Z]/);

@@ -841,6 +841,7 @@ describe('never hand-written prose about a number', () => {
     for (const describer of [
       'describeCard', // the one place a card effect becomes words
       'describeBuildingRow', // and what a building row is worth, said once
+      'describeUnitRow', // a unit row's own combat lines and effects
       'describeResourceSignature', // the same bargain for a luxury
       'techGifts', // what a technology hands over
       'unitRosterCost', // the roster's own price, size line and column line
@@ -899,7 +900,9 @@ describe('never hand-written prose about a number', () => {
       const entry = everyEntry().find((row) => row.id === `building:${id}`)!;
       const needs = entry.rows.find((row) => row.label === 'Needs standing here');
       expect(needs, id).toBeDefined();
-      expect(needs!.figures, id).toBe(buildingDef(buildingDef(id).requiresBuilding!).name);
+      // A link to the parent's own page since the pass of 2026-11-21.
+      expect(stripRefs(needs!.figures), id).toBe(buildingDef(buildingDef(id).requiresBuilding!).name);
+      expect(needs!.figures, id).toContain(`:${buildingDef(id).requiresBuilding!}|`);
     }
     const plain = everyEntry().find((row) => row.id === 'building:library')!;
     expect(plain.rows.some((row) => row.label === 'Needs standing here')).toBe(false);
@@ -1597,9 +1600,9 @@ describe('what opens a thing', () => {
 
   it('names the figure on every unique, and calls a bench a bench', () => {
     // Every leader's own two rows credit the leader by keyword, in the sentence
-    // `test/sim/leaders.test.ts` reads ("Only one leader may ever raise this");
-    // a row nobody's sheet names says it is waiting rather than crediting a
-    // figure it has not got.
+    // `test/sim/leaders.test.ts` reads ("Unlocked for … alone"); a row no
+    // leader's sheet names says nobody can build it, and credits no leader.
+    // The sentence was shortened in the pass of 2026-11-21.
     const claimed = new Set<string>();
     for (const leader of LEADER_IDS) {
       const def = leaderDef(leader);
@@ -1613,29 +1616,28 @@ describe('what opens a thing', () => {
         const line = openingOf(entryOf(target));
         expect(line, `${leader} → ${target}`).toContain(`[[leader:${leader}|${def.name}]]`);
         expect(line, target).toMatch(/^Unlocked for /);
-        expect(line, target).toContain(
-          kind === 'improvement'
-            ? 'Only one leader may ever lay this'
-            : 'Only one leader may ever raise this',
-        );
+        expect(line, `${target} (${kind})`).toContain(' alone, ');
       }
     }
     expect(claimed.size).toBe(LEADER_IDS.length * 2);
     for (const id of BUILDING_IDS) {
       if (buildingDef(id).retired === true || buildingDef(id).unlockedByLeader !== true) continue;
       if (claimed.has(buildingEntryId(id))) continue;
-      expect(openingOf(entryOf(buildingEntryId(id))), id).toContain('no leader’s realm yet');
+      expect(openingOf(entryOf(buildingEntryId(id))), id).toBe('Unlocked for no leader yet: nobody can build this.');
+      expect(entryOf(buildingEntryId(id)).group, id).toBe('Not in the game');
     }
     for (const id of UNIT_TYPE_IDS) {
       if (unitDef(id).retired === true || unitDef(id).unlockedByLeader !== true) continue;
       if (claimed.has(compendiumId('unit', id))) continue;
-      expect(openingOf(entryOf(compendiumId('unit', id))), id).toContain('no leader’s realm yet');
+      expect(openingOf(entryOf(compendiumId('unit', id))), id).toBe('Unlocked for no leader yet: nobody can build this.');
+      expect(entryOf(compendiumId('unit', id)).group, id).toBe('Not in the game');
     }
   });
 
   it('keeps the world’s door beside the node on a row the world opens', () => {
-    // The Opus: the opening line credits Alchemy, and the note that says whose
-    // research counts (`worldUnlockTech`, Entry LVIII) stays under it as it was.
+    // The Opus: the opening line credits Alchemy and says whose research
+    // counts (`worldUnlockTech`, Entry LVIII). The note that said it a second
+    // time went in the pass of 2026-11-21.
     let doors = 0;
     for (const id of BUILDING_IDS) {
       const world = buildingDef(id).worldUnlockTech;
@@ -1644,13 +1646,8 @@ describe('what opens a thing', () => {
       const line = openingOf(entry);
       expect(line, id).toContain(`[[tech:${world}|`);
       expect(line, id).toContain('whichever empire in the world');
-      const gate = entry.clauses.find(
-        (clause) =>
-          clause.note === true &&
-          clause.text.startsWith('Nobody can begin one until') &&
-          clause.text.includes(techDef(world).name),
-      );
-      expect(gate, `${id} keeps its world-gate note`).toBeDefined();
+      const again = entry.clauses.filter((clause) => clause.text.includes('in the world'));
+      expect(again, `${id} says the world's door one time`).toHaveLength(1);
       doors += 1;
     }
     expect(doors).toBeGreaterThan(0);
@@ -1670,7 +1667,9 @@ describe('what opens a thing', () => {
         def.unlockedByCard !== true &&
         def.unlockedByLeader !== true &&
         def.placed !== true &&
-        def.grantedOnly !== true;
+        def.grantedOnly !== true &&
+        // The Hall of Deeds: no technology reaches it, so nobody can build it.
+        def.awaitsTech !== true;
       const line = openingOf(entryOf(buildingEntryId(id)));
       expect(line.includes('from the start'), `${id}: ${line}`).toBe(silent);
       if (silent) free += 1;
@@ -1699,7 +1698,11 @@ describe('what opens a thing', () => {
     const ids = new Set(everyEntry().map((entry) => entry.id));
     const kinds = new Set<string>();
     for (const entry of everyEntry()) {
-      for (const clause of entry.clauses) {
+      // A row's figures may name a thing too ("Upgrades to", "Needs standing
+      // here"), so the sweep reads the rows with the clauses.
+      const printed = [...entry.clauses.map((clause) => clause.text), ...entry.rows.map((row) => row.figures)];
+      for (const text of printed) {
+        const clause = { text };
         expect(stripRefs(clause.text), entry.id).not.toContain('[[');
         expect(stripRefs(clause.text), entry.id).not.toContain(']]');
         for (const found of clause.text.matchAll(new RegExp(mark.source, 'g'))) {
@@ -1810,9 +1813,10 @@ describe('a unit that spends a copy', () => {
       if (wants.length === 0) continue;
       gated += 1;
       const page = everyEntry().find((row) => row.id === `unit:${id}`);
-      const clause = page?.clauses.find((line) => /must have a spare copy/.test(line.text));
+      // A row since the pass of 2026-11-21: the names, each a link.
+      const clause = page?.rows.find((line) => line.label === 'Needs a copy of');
       expect(clause, id).toBeDefined();
-      const text = clause!.text;
+      const text = clause!.figures;
       for (const resource of wants) {
         expect(text, id).toContain(`[[resource:${resource}|${resourceDef(resource).name}]]`);
       }
@@ -1824,14 +1828,12 @@ describe('a unit that spends a copy', () => {
         expect(stripRefs(text), id).toContain(names.join(' or '));
         expect(stripRefs(text), id).not.toContain(names.join(' and '));
       }
-      // Both halves of the rule: which resources will do, and that the copy is
-      // held rather than merely owned — plus the queue's own reservation.
-      expect(text, id).toContain('for as long as it lives');
-      expect(
-        page!.clauses.some((line) => /waiting in a build queue holds its copy/.test(line.text)),
-        id,
-      ).toBe(true);
     }
     expect(gated).toBeGreaterThan(0);
+    // The rule that the copy is held, and that a queued unit holds one too, is
+    // true of every such unit, so it is said one time on the shelf's lead page.
+    const lead = SHELF_INTROS.unit!.clauses.map((clause) => clause.text).join(' ');
+    expect(lead).toContain('holds the copy for as long as it lives');
+    expect(lead).toContain('when you add it to a build queue');
   });
 });
