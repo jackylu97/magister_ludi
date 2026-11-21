@@ -64,6 +64,42 @@ the foot of the file. All 82 changes carry a ruling.
 - Each new improvement and building needs a board model and an icon; a
   missing board prop stops the game at load.
 
+### 0.1b The Devotion deck is ready for the build (2026-11-21)
+
+`docs/plans/devotion-design-pass-2026-11-20.md`. The pass is closed with
+nothing open. Read "Ready for the build" and the rulings sections at the foot
+of the file.
+
+- 78 cards of its own (9 Military, 22 Economic, 41 Civic, 6 Wildcard), 27
+  shared, 17 Doctrines, 10 charters. Own and shared together a Devotion seat
+  can be dealt 105 cards.
+- **Three rules for every rite,** the user's: a town that keeps a rite cannot
+  start another (the code already does this); a rite pays through its whole
+  length, not once at its start; a rite that is kept counts as started for
+  every card that reads "starting a rite" (such a card pays at the start and
+  again for each ten turns the rite is kept; the rite's price rises only at a
+  real start). All thirteen rites are restated under these rules in the plan.
+- Rite lengths add into one sum (The Octave +100%, the Chapel +50% in its
+  town, Chichen Itza +50%).
+- New rites: Hallowing, the Vigil of Arms, Naming. The Night Watch is shared
+  with Scientific.
+- Two unique improvements: the stone circle (The Megaliths) and the cliff
+  monastery. Charters: The Bell Towers opens a building, the Bell Tower; The
+  Call to Prayer opens a technology, Liturgy, which carries its rule.
+- A seat with no religion of its own: the religion of its capital counts for
+  "devout".
+- The Caliphate: devout towns cost 1 authority. Three cards read spare
+  authority with NO cap, on the user's word.
+- Faith discounts take the "faith buys more" form.
+- The Blessed Forges is Tier I on both sheets. The Field Mass is shared with
+  Dominion.
+- **"Known strong combinations"** in the plan are left uncapped on purpose.
+  The user: "For now, i want the game to be fun over balanced for
+  playtesters." Do not add caps.
+- Models and icons needed: the stone circle, the cliff monastery, the Bell
+  Tower. A missing board prop stops the game at load.
+- Nothing in the deck needs age 5.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and

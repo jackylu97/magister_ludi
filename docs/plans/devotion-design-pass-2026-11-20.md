@@ -1,6 +1,6 @@
 # Devotion design pass (2026-11-20)
 
-**Status, 2026-11-21, round three: the pass is closed, with five points open.** Every ruling of rounds one and two is applied. Your three rules for rites are applied to every rite, live and proposed. Each open point has a default that the build uses unless you say otherwise. Nothing is built, and no game data changed in this pass.
+**Status, 2026-11-21: the pass is CLOSED. Nothing is open.** Every ruling of the three rounds is applied, with your five comments on the closing round (changes 89 to 93). You made no comment on the five open points, so each default stands. Nothing is built, and no game data changed in this pass.
 
 Your request, 2026-11-20:
 
@@ -16,7 +16,7 @@ Your words that shaped this round, 2026-11-21:
 - The deck goes from 63 cards to 78, with 27 shared cards and 17 Doctrines.
 - I added no cap and no drawback that you did not ask for. Section 2 names the strong combinations and leaves them.
 - Every number is a first guess against the power bar, to tune in playtest. I ran no bot games and no tests.
-- The review page keeps the anchors `change-01` to `change-80`. The changes of this round are `change-81` to `change-88`, and the points are `r3-1` to `r3-10`.
+- The review page keeps the anchors `change-01` to `change-88`. Your last five comments are `change-89` to `change-93`, and the points are `r3-1` to `r3-11`.
 
 ## 1. Where the pass stands
 
@@ -26,23 +26,23 @@ Your words that shaped this round, 2026-11-21:
 
 | Tier | Cards | Military | Economic | Civic | Wildcard | Common | Uncommon | Rare | Need a religion |
 |---|---|---|---|---|---|---|---|---|---|
-| 0 | 8 | 1 | 1 | 6 | 0 | 6 | 2 | 0 | 0 |
-| I | 17 | 1 | 5 | 10 | 1 | 7 | 9 | 1 | 0 |
-| II | 22 | 3 | 3 | 14 | 2 | 8 | 11 | 3 | 14 |
-| III | 21 | 2 | 4 | 13 | 2 | 5 | 11 | 5 | 9 |
-| IV | 10 | 2 | 1 | 6 | 1 | 3 | 5 | 2 | 5 |
-| **All** | **78** | **9** | **14** | **49** | **6** | **29** | **38** | **11** | **28** |
+| 0 | 8 | 1 | 3 | 4 | 0 | 6 | 2 | 0 | 0 |
+| I | 17 | 1 | 6 | 9 | 1 | 7 | 9 | 1 | 0 |
+| II | 22 | 3 | 5 | 12 | 2 | 8 | 11 | 3 | 14 |
+| III | 21 | 2 | 7 | 10 | 2 | 5 | 11 | 5 | 9 |
+| IV | 10 | 2 | 1 | 6 | 1 | 3 | 5 | 2 | 4 |
+| **All** | **78** | **9** | **22** | **41** | **6** | **29** | **38** | **11** | **27** |
 
 **Own and shared together** (you count the commons, uncommons and rares of a deck, not its own cards against its shared ones)
 
 | Tier | Cards | Military | Economic | Civic | Wildcard | Common | Uncommon | Rare |
 |---|---|---|---|---|---|---|---|---|
-| 0 | 13 | 1 | 1 | 11 | 0 | 10 | 3 | 0 |
-| I | 29 | 4 | 6 | 18 | 1 | 11 | 17 | 1 |
-| II | 29 | 4 | 5 | 18 | 2 | 9 | 15 | 5 |
-| III | 24 | 3 | 4 | 15 | 2 | 5 | 12 | 7 |
+| 0 | 13 | 1 | 3 | 9 | 0 | 10 | 3 | 0 |
+| I | 29 | 4 | 7 | 17 | 1 | 11 | 17 | 1 |
+| II | 29 | 4 | 7 | 16 | 2 | 9 | 15 | 5 |
+| III | 24 | 3 | 7 | 12 | 2 | 5 | 12 | 7 |
 | IV | 10 | 2 | 1 | 6 | 1 | 3 | 5 | 2 |
-| **All** | **105** | **14** | **17** | **68** | **6** | **38** | **52** | **15** |
+| **All** | **105** | **14** | **25** | **60** | **6** | **38** | **52** | **15** |
 
 **By note**
 
@@ -69,16 +69,18 @@ Your words that shaped this round, 2026-11-21:
 | III | 5 / 11 / 5 | 12% | 2.7% | 2.0% | 16% |
 | IV | 3 / 5 / 2 | 20% | 6.0% | 5.0% | 23% |
 
-- **78 cards:** 23 as they are today, 33 changed or moved, and 22 new. 7 of today's 63 cards are retired.
+- **78 cards:** 22 as they are today, 34 changed or moved, and 22 new. 7 of today's 63 cards are retired.
 - **10 charters** take no chair (2 today). 2 boons, 6 commissions and 2 scalers. 68 cards take a chair.
-- **Cards that need a founded religion: 28 of 78 (36%).** Today it is 30 of 63 (48%). In Tiers II to IV it is 28 of 53 (53%), from 30 of 43 (70%).
+- **Cards that need a founded religion: 27 of 78 (35%).** Today it is 30 of 63 (48%). In Tiers II to IV it is 27 of 53 (51%), from 30 of 43 (70%).
 - **Cards that pay faith: 19 of 78 (24%).** Cards that pay "science and culture" as a pair: 9, from 12.
 - **Shared cards: 27.** Dominion 6, Expansionist 5, Commerce 5, Scientific 7, Magisterial 4. I checked each against `data/decks/common.json` as Astra built it.
 - **Doctrines: 17** (5, 4, 5 and 3).
 - **The spreading faith is 13 cards** after the cut of The Processions: six that spread the religion and seven that pay for the towns that follow. **Holy ground is 7** and is still the thin note. I add nothing to it.
 - **Tier 0 has no rare,** and Tier I has one, The Rites Commonwealth, which you confirmed.
+- **Chairs:** eight cards moved from Civic to Economic after your comment (change 89). The deck was 49 Civic and 14 Economic, and it is 41 and 22.
+- **Nothing in the deck needs a fifth age.** Every Order, Doctrine, rite and charter sits in Tiers 0 to IV, which need the four ages of the beta. The latest technology that a card of this deck needs is The Holy Office, in the fourth age.
 
-- **To rule:** Nothing to rule. Say if a count looks wrong.
+- **To rule:** Nothing to rule.
 
 ### r3-2. Your round-two rulings are in
 
@@ -104,9 +106,9 @@ Your words that shaped this round, 2026-11-21:
 |---|---|---|---|
 | Rite of the Harvest | Divination | Hexes that give food give +1 more. | It lasts already. No change. |
 | Omen Reading | Divination | +1 science for each building in the town. | No change. |
-| Consecration of the Bounds | Stonecraft | Luxury hexes gain +1 culture, and the town's borders grow 30% faster. | No change. |
+| Consecration of the Bounds | Stonecraft | Resource hexes gain +1 culture. | Your line (90). The border clause goes. |
 | Blessing of Arms | Bronze Working | +10 defence for the town. | No change. |
-| Rite of Plenty | Currency | Hexes with a resource give +1 gold. | No change. |
+| Rite of Plenty | Currency | The town gains +1 gold for each citizen. | Your line (91). |
 | Rite of Fasting | The Fast, a charter | The town does not grow, and gains +1 science and +1 culture for each citizen. | No change. |
 | Rite of the Sabbath | The Sabbath Laws, a charter | The town builds nothing, and gains its production as culture. | No change. |
 | Rite of Hallowing | The Hallowed Ground, a charter (67) | The town's improved hexes gain +1 faith. | Your line. It replaces the rite that claimed three hexes at once. |
@@ -114,14 +116,14 @@ Your words that shaped this round, 2026-11-21:
 | Rite of Naming | The Naming Feasts, a charter (40, 82) | The town gains +2 food for each citizen. | Reworked (82). You ruled two citizens at once; over ten turns this gives about two. |
 | Night Watch | The Observers' Charter, shared with Scientific | The city gains +1 science for each citizen. | It lasts. Your ruling in the Scientific pass. |
 | Votive Offering | The Votive Gifts, while it is seated | The town gains production equal to its faith. | Reworked (83). Today it turns faith into production at once. |
-| Restoring of the Host | The Host Restored, while it is seated | Your units in land that follows your religion heal 25 health each turn. | Reworked (84). Today it heals every unit once. |
+| Restoring of the Host | The Host Restored, while it is seated | Your units within three hexes of the town heal 25 health each turn. | Reworked (84), with a town's own reach by your comment (92). |
 
 - The Preaching and Recasting the Omens are retired rows, and they stay retired.
 - The Rite of Procession is cut with its card.
-- **The Votive Offering is the rite that rule 1 hurts most.** Today it holds the town's rite place for one turn, so a town that keeps any rite can never make the offering. Under long rites the card is dead. Changes 83 and 84 give the two rites that act at once a form that lasts. The other choice is in open point r3-10.
+- **The Votive Offering is the rite that rule 1 hurts most.** Today it holds the town's rite place for one turn, so a town that keeps any rite can never make the offering. Under long rites the card is dead. Changes 83 and 84 give the two rites that act at once a form that lasts.
 - **Lengths.** Every rite above is ten turns. The Octave, the Chapel and Chichen Itza lengthen all of them by the rule of change 63.
 
-- **To rule:** Changes 81 to 84 are in the build list. Open point r3-10 has the two choices.
+- **To rule:** Nothing to rule. Changes 81 to 84 and 90 to 92 are in the build list.
 
 ### r3-4. Rule 3: the cards that read a rite started
 
@@ -139,7 +141,7 @@ Your words that shaped this round, 2026-11-21:
 - Before rule 3, eight towns under thirty-turn rites gave The Rogations +8 once in thirty turns. Now a longer rite never makes such a card worse.
 - The Rites Commonwealth's shared rite counts once for each town it reaches, at the start and at each ten turns, as a prophet's rite over the realm counts today.
 
-- **To rule:** Change 85 is in the build list. Open point r3-10 asks you to confirm the form.
+- **To rule:** Nothing to rule. The form stands (85).
 
 ### r3-5. One rite at a time: what a town chooses among
 
@@ -158,10 +160,10 @@ Your words that shaped this round, 2026-11-21:
 - **Are the new rites too many? No.** The deck opens six rites by charter (Fasting, the Sabbath, Hallowing, the Vigil, Naming, and the Night Watch with Scientific) and two with a seated card. A charter is drafted, so a seat holds two or three of them in most games, and its towns choose among seven or eight rites.
 - A charter rite should beat the free rite of the same kind, because it cost a draft. Naming beats the Harvest in any town of four or more, and the Night Watch beats Omen Reading in a town with more citizens than buildings. That is right.
 - **The Double Feast** gives a second place, and it is the card that makes the menu a pairing: Naming with the Night Watch, or the Vigil with the Restoring of the Host.
-- **A third new rite in place of The Processions? I recommend no.** The round has three new rites without it: Hallowing, the Vigil and Naming. If you want one for the spread, the candidate is:
-- *The Rite of Pilgrimage:* for ten turns the town presses your religion twice as hard. It pays through its length, it moves no unit, and Mission Houses does not need it.
+- **No rite takes the place of The Processions.** The round has three new rites without it: Hallowing, the Vigil and Naming. I named a candidate, the Rite of Pilgrimage (the town presses your religion twice as hard), and you did not ask for it.
+- Four rites now pay for each citizen: Fasting (science and culture), Naming (food), the Night Watch (science) and, by your line, Plenty (gold).
 
-- **To rule:** Say if you want the Rite of Pilgrimage. I recommend none now.
+- **To rule:** Nothing to rule.
 
 ### r3-6. The Fast and the Night Watch
 
@@ -182,16 +184,17 @@ Your words that shaped this round, 2026-11-21:
 - **The Bell Towers (86) opens a building, the Bell Tower:** a small faith building, +1 faith, and its town presses your religion +1 harder for each faith building it holds. A bell tower is a building, and it is one more faith building for the temple economy.
 - **The Call to Prayer (87) is a rule with nothing to build, so it opens a technology, Liturgy,** and the technology carries the rule: your holy sites press your religion twice as far. This is how The Closed Book works in Scientific: its rule moved to the technology Ciphers. Mechanics and Casting carry rules the same way.
 - Liturgy costs 360 science, in the third age, under The High Temple. The star chart needs a place for it.
-- One difference for The Bell Towers: your approved line reached every town that follows your religion. The building reaches the towns that hold a Bell Tower. Open point r3-10 has the other form.
+- One difference for The Bell Towers: your first line reached every town that follows your religion. The building reaches the towns that hold a Bell Tower. You left the default, so the building stands.
 
-- **To rule:** Changes 86 and 87 are in the build list.
+- **To rule:** Nothing to rule. Changes 86 and 87 are in the build list.
 
 ### r3-8. The House of Worship: what the phrase meant
 
 - Each of the four faith houses is opened by one follower belief: **Minarets** opens the Mosque, **Temple Spires** the Wat, **The Open Kitchen** the Gurdwara, and **The Eternal Flame** the Dar-e Mehr.
 - A religion holds three follower beliefs of seventeen. So a religion has the house of each such belief that it chose, and many religions have none.
 - **The Doctrine gives your devout towns all four,** and it does not ask which beliefs your religion chose. That was the meaning of "whatever beliefs your religion holds".
-- The text now (change 88): "Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith."
+- The text now (changes 88 and 93): "Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. Buildings that supply faith give +1 science and +1 culture."
+- **Your added bonus (93)** pays every building that supplies faith, in any town. A town with nine such buildings gains +9 science and +9 culture, and The Prince-Bishops doubles it. It is in the list of strong combinations.
 
 - **To rule:** Nothing to rule.
 
@@ -218,17 +221,54 @@ Your words that shaped this round, 2026-11-21:
 
 - **To rule:** Nothing to rule.
 
-### r3-10. Open with you
+### r3-10. Nothing is open
 
-Five points. The build uses the default of each unless you say otherwise.
+You made no comment on the five open points, so each default stands. They are in "Ready for the build".
 
-1. **The two rites that act at once today (83 and 84).** Default: each becomes a rite that lasts. The Votive Offering: the town gains production equal to its faith. The Restoring of the Host: your units on the faith's ground heal 25 each turn. The other choice: each stays an act, takes no rite place, and so rule 1 does not block it.
-2. **The Rite of Naming (82).** Default: for ten turns the town gains +2 food for each citizen, which is about two citizens. You ruled "two citizens" when the rite acted at once, so this is my reading of your rule 2 on your own card.
-3. **The form for rule 3 (85).** Default: a card that reads a rite started pays at the start, and again for each ten turns the rite is kept.
-4. **The Bell Towers (86).** Default: the charter opens the Bell Tower, a building. The other choice: it opens a technology, Bell-Founding (the second age, 100 science), that carries your approved line for every town that follows.
-5. **The Vigil of Arms: which units.** Default: your units that stand within three hexes of the town when the rite starts. They keep +4 wherever they go, until the rite ends. The other reading: any unit of yours that comes within three hexes while the rite lasts gains it too.
+1. **The two rites that acted at once (83 and 84)** become rites that last. The Votive Offering: the town gains production equal to its faith. The Restoring of the Host: units heal 25 each turn, within three hexes of the town by your comment (92).
+2. **The Rite of Naming (82):** for ten turns the town gains +2 food for each citizen.
+3. **The form for rule 3 (85):** a card that reads a rite started pays at the start, and again for each ten turns the rite is kept.
+4. **The Bell Towers (86)** opens the Bell Tower, a building.
+5. **The Vigil of Arms:** your units that stand within three hexes of the town when the rite starts gain +4, and keep it until the rite ends.
 
-- **To rule:** Rule on any of the five, or let the defaults stand.
+- **To rule:** Nothing to rule.
+
+### r3-11. Your five comments on the closing round
+
+| Where | Your words | Result |
+|---|---|---|
+| The deck in numbers, the Civic count of 49 | "could we move a few civics to economic" | Eight cards move to the Economic chair (89). 41 Civic and 22 Economic. |
+| The rites table, Consecration of the Bounds | "modify: resource hexes gain +1 culture" | The rite reads: Resource hexes gain +1 culture (90). I read your line as the whole text, so the border clause goes. |
+| The rites table, Rite of Plenty | "gains +1 gold for every population in the city." | The rite reads: This town gains +1 gold for each citizen (91). |
+| The rites table, Restoring of the Host | "this needs to be a city-wide bonus, not an empire wide bonus" | Units within three hexes of the town heal 25 health each turn (92). The Vigil of Arms has the same reach. |
+| The House of Worship | "let's add an addtional bonus: buildings that supply faith give +1 science and +1 culture." | Added, with no cap (93). |
+
+**The eight chair moves**
+
+| Card | Tier | Why it is Economic |
+|---|---|---|
+| Lay Offerings | 0 | It pays on pastures, camps and plantations: the land. |
+| The Megaliths | 0 | It opens a work that workers build, as Expansionist's charters do. |
+| The Hallowed Ground | I | Its rite pays the town's improved hexes. |
+| The Cliff Monasteries | II | It opens a work on the land. |
+| The Old Holy Places | II | It pays on the holy site's hex. |
+| The Pilgrim Towns | III | It pays production and culture on the holy site's hex. |
+| The Consecration Feast | III | It pays food, and it pays for a building bought. |
+| The Prince-Bishops | III | It doubles what buildings yield, as Expansionist's The Water Boards does. |
+
+| Tier | Military | Economic | Civic | Wildcard | Economic and Civic cards that take a chair |
+|---|---|---|---|---|---|
+| 0 | 1 | 3 | 4 | 0 | 2 and 3 |
+| I | 1 | 6 | 9 | 1 | 5 and 7 |
+| II | 3 | 5 | 12 | 2 | 4 and 10 |
+| III | 2 | 7 | 10 | 2 | 6 and 9 |
+| IV | 2 | 1 | 6 | 1 | 1 and 5 |
+
+- Every tier has a card for the Economic chair and a card for the Civic chair. Tier IV has one Economic card that takes a chair, The Last Offering, as it has today.
+- I left the purse cards that pay culture or science for faith spent as Civic, as Commerce's Civic Receipts is.
+- **A fifth age:** no card, Doctrine, rite or charter of this deck needs one.
+
+- **To rule:** Nothing to rule. Say if the border clause of the Consecration of the Bounds should stay.
 
 ## 2. Ready for the build
 
@@ -259,16 +299,16 @@ Five points. The build uses the default of each unless you say otherwise.
 | Temple Estates | II | A holy site gains +2 food and +2 production for each improved hex beside it. | 14 |
 | Mission Houses | II | Your proclamations reach 50% farther and are 50% more effective in foreign cities. | 20, 80 |
 | Commission: The State Church | II | Goal: hold six towns, all devout. Reward: +1 authority and +1 happiness for every two devout towns. | 23 |
-| The Old Holy Places | II | Holy sites gain +1 faith and +1 culture for every ten turns they have stood. | 16 |
+| The Old Holy Places | II | Holy sites gain +1 faith and +1 culture for every ten turns they have stood. | 16, 89 |
 | The Offering Chests | II | Your faith buys 25% more. | 07, 79 |
 | The Holy Inquisition | III | Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included. | 35 |
 | The Psalter | III | Each rite a town starts grants science and culture equal to five times the town's population, and again for each ten turns it keeps the rite. | 32, 85 |
-| The Consecration Feast | III | Finishing or buying a faith building grants its town food and culture equal to ten times its population. | 33, 69 |
-| The Pilgrim Towns | III | Holy sites gain +1 production and +1 culture for each town that follows your religion. | 31 |
+| The Consecration Feast | III | Finishing or buying a faith building grants its town food and culture equal to ten times its population. | 33, 69, 89 |
+| The Pilgrim Towns | III | Holy sites gain +1 production and +1 culture for each town that follows your religion. | 31, 89 |
 | The Offered Stones | III | +4 culture for each building you have bought with faith. | 34, 70 |
 | The Caliphate | III | Devout towns cost 1 authority. | 78 |
 | The Conversion of Kings | III | Goal: convert a rival's capital. Reward: a Prophet and 1,000 culture. | 41 |
-| The Host Restored | IV | Towns may keep the Restoring of the Host, a rite: for ten turns your units in land that follows your religion heal 25 health each turn. | 45, 84 |
+| The Host Restored | IV | Towns may keep the Restoring of the Host, a rite: for ten turns your units within three hexes of the town heal 25 health each turn. | 45, 84, 92 |
 | The Great Commission | IV | Goal: more than half the world's cities follow your religion. Reward: each town that follows your religion, at home or abroad, gives you +3 science and +3 culture. | 46 |
 
 - The Temple Workshops is the row `theWaysideShrines`, renamed. Its id stays.
@@ -281,17 +321,17 @@ Five points. The build uses the default of each unless you say otherwise.
 - **To common:** The Anchorites (17); The Deaconries, The Parishes, The Spiritual Host (25); Mission Houses (80); The Chapter Houses (45).
 - **To uncommon:** The Gifts of the Faithful (06); The Settled Faith (24); The Old Holy Places (16); The Tithe of Nations, The Host Restored, The Last Offering (45).
 - **To rare:** The Offering Chests (07).
-- **Chair:** Temple Estates is Economic (14). The Offering Chests is Economic (07). The Consecration Feast stays Civic (69).
+- **Chair:** Temple Estates is Economic (14). The Offering Chests is Economic (07). Eight cards move from Civic to Economic (89): Lay Offerings, The Megaliths, The Hallowed Ground, The Cliff Monasteries, The Old Holy Places, The Pilgrim Towns, The Consecration Feast and The Prince-Bishops.
 
 ### New cards of this deck (22)
 
-- **Tier 0:** The Healer-Priests (04), The Megaliths (03, 62).
+- **Tier 0:** The Healer-Priests (04), The Megaliths (03, 62, 89).
 
-- **Tier I:** The Zealots (13), The Chantries (09, 63), The Hallowed Ground (67).
+- **Tier I:** The Zealots (13), The Chantries (09, 63), The Hallowed Ground (67, 89).
 
-- **Tier II:** The Temple Herds (28), The Bell Towers (65, 86), The Fetials (22), The Cliff Monasteries (26), The Vigil of Arms (68).
+- **Tier II:** The Temple Herds (28), The Bell Towers (65, 86), The Fetials (22), The Cliff Monasteries (26, 89), The Vigil of Arms (68).
 
-- **Tier III:** The Sacred Bequests (36), The Fabric Fund (37), The Defenders of the Faith (39), The Two Swords (75), The Prince-Bishops (38), The Naming Feasts (40, 82), The Call to Prayer (66, 87), Commission: The Anointing (77).
+- **Tier III:** The Sacred Bequests (36), The Fabric Fund (37), The Defenders of the Faith (39), The Two Swords (75), The Prince-Bishops (38, 89), The Naming Feasts (40, 82), The Call to Prayer (66, 87), Commission: The Anointing (77).
 
 - **Tier IV:** The Poor Tables (48, 71), The Soldiers of God (49), The Year of Release (47), The Commander of the Faithful (76).
 
@@ -309,7 +349,7 @@ Five points. The build uses the default of each unless you say otherwise.
 ### Doctrines
 
 - The Temenos is new, at Tier I (59): The hexes beside your towns with a Shrine gain +1 food and +1 faith.
-- The House of Worship moves to Tier III and takes the new text (60, 74, 88). Its four `unlocksBuilding` effects do not change.
+- The House of Worship moves to Tier III and takes the new text (60, 74, 88). Its four `unlocksBuilding` effects do not change. It gains your bonus (93): buildings that supply faith give +1 science and +1 culture.
 - The Canons of the Holy Sepulchre: In towns with a holy site, your faith buys 40% more (79).
 - 17 Doctrines: 5, 4, 5 and 3 by tier.
 
@@ -317,6 +357,7 @@ Five points. The build uses the default of each unless you say otherwise.
 
 - **Rule 1** is built. No change.
 - **Rule 2:** no rite row carries `atOnce` after this build. The two rows that have it change (83, 84).
+- **The Vigil of Arms:** your units that stand within three hexes of the town when the rite starts gain +4 strength, and keep it until the rite ends.
 - **Rule 3:** the tally `riteStarted` and the moment `rite` fire at a rite's start and again on each tenth turn of a live rite. `Player.ritesStarted`, which sets the price, rises only at a real start (81).
 - **Lengths (63):** the percentages add. The Octave is +100% (from +50%). The Chapel is +50% for a rite started in its town. Chichen Itza stays +50%. The realm's rite has the length it has in the capital.
 
@@ -326,9 +367,11 @@ Five points. The build uses the default of each unless you say otherwise.
 | `vigilOfArms` | new | All your units within three hexes of this town gain +4 strength, and keep it while the rite lasts. | The Vigil of Arms |
 | `riteOfNaming` | new | This town gains +2 food for each citizen. | The Naming Feasts |
 | `nightWatch` | new, from the Scientific pass | This city gains +1 science for each citizen. | The Observers' Charter |
-| `votiveOffering` | changed; open point 1 | This town gains production equal to its faith. | The Votive Gifts, while seated |
-| `restoringOfTheHost` | changed; open point 1 | Your units in land that follows your religion heal 25 health each turn. | The Host Restored, while seated |
-| the seven other live rites | unchanged |  |  |
+| `votiveOffering` | changed (83) | This town gains production equal to its faith. | The Votive Gifts, while seated |
+| `restoringOfTheHost` | changed (84, 92) | Your units within three hexes of this town heal 25 health each turn. | The Host Restored, while seated |
+| `consecrationOfTheBounds` | changed (90) | Resource hexes gain +1 culture. | Stonecraft |
+| `riteOfPlenty` | changed (91) | This town gains +1 gold for each citizen. | Currency |
+| the five other live rites | unchanged |  |  |
 
 ### Charters
 
@@ -374,8 +417,9 @@ Five points. The build uses the default of each unless you say otherwise.
 | Rule | a rite length modifier that belongs to one town; one clock for the realm's rite | the Chapel; The Rites Commonwealth |
 | Small extension | the capital's rite goes down the realm's path (`empireRiteAt`) | The Rites Commonwealth |
 | New rite effect | a strength line on the units within range of a town, stamped with the rite's own last turn (`Unit.timed`) | the Vigil of Arms |
-| New rite effect | a heal each turn for units on land that follows your religion, read in `healUnits` | the Restoring of the Host |
-| Data only | rite rows with `pays` lines: +1 faith on improved hexes; +2 food for each citizen; production as a share of faith | Hallowing, Naming, the Votive Offering |
+| New rite effect | a heal each turn for your units within three hexes of the town, read in `healUnits` | the Restoring of the Host |
+| Small extension | a `pays` line on every building that supplies faith (`buildingSupplies`) | the Doctrine The House of Worship |
+| Data only | rite rows with `pays` lines: +1 faith on improved hexes; +2 food for each citizen; production as a share of faith; +1 culture on resource hexes; +1 gold for each citizen | Hallowing, Naming, the Votive Offering, the Consecration of the Bounds, the Rite of Plenty |
 | New improvements | `stoneCircle`, `cliffMonastery` (shapes exist) | The Megaliths, The Cliff Monasteries |
 | New building | `bellTower`, with `pressure` counted by the faith buildings of its town | The Bell Towers |
 | New charter technology | `liturgy`, with a `pressureRule` key `siteRange` | The Call to Prayer |
@@ -408,7 +452,8 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 | The Rogations and The Psalter under the realm's rite | Each town counts every ten turns. | Eight towns: The Rogations gains +8 faith and +8 culture each ten turns, with no cap. The Psalter pays 400 science and 400 culture each ten turns. | A rare and two uncommons. |
 | The Caliphate, The Holy Inquisition, the commission and Mosques | A new devout town adds spare authority. | Twenty towns: 45 spare. With The Two Swords and The Commander of the Faithful: +22 happiness, +135 faith and +135 culture, and +20% production. | A rare and an uncommon of Tier III, a commission, a Doctrine, and two readers. |
 | Consecrated Labor, The Hearth Fire, The Parishes and The Caliphate | A town is bought with faith, starts with a Shrine, is devout at once, and costs 1 authority. | A settler costs 72 faith, and 18 more for each one. | Two commons, a shared uncommon and a rare. |
-| The House of Worship with the temple economy | Up to nine faith buildings in a town, and each is paid by five cards. | The Temple Workshops: +9 food and +9 production a town. The Prince-Bishops doubles every faith building. | A Tier III Doctrine, and 944 faith a town. |
+| The House of Worship with the temple economy | Up to nine faith buildings in a town. Each gives +1 science and +1 culture by the Doctrine, and each is paid by five cards. | A town: +9 science and +9 culture, and +9 food and +9 production with The Temple Workshops. The Prince-Bishops doubles all of it. Twelve towns: +216 science and +216 culture, when a median seat makes about 480 science at turn 150. | A Tier III Doctrine, an uncommon, and 944 faith a town. |
+| The Rites Commonwealth with the Rite of Plenty | Every town gains +1 gold for each citizen. | Eight towns of 12: +96 gold a turn. | A rare. The rite is in the technology tree. |
 | The Defenders of the Faith, The Zealots, The Spiritual Host and the Doctrine The Paean | Flat strength from four sources, and the Vigil on top. | With 24 towns that follow: +8, +5, +4, up to +9, and +4: +30. | Three Military chairs and a Doctrine. |
 | The Field Mass, The Oriflamme and The Second Prophet | An apostle with the army gives +4, and heals 25 three times. | About 450 health given back for one apostle. | Two shared cards and an uncommon. |
 | The Poor Tables with The Prince-Bishops | Happiness from faith, with no cap. | 600 faith a turn: +30 happiness. | A Tier IV common. |
@@ -434,6 +479,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 - That a town which buys a faith building under The Gifts of the Faithful fires The Consecration Feast once, and not once for the purchase and once for the completion.
 - That The Gurdwara's science for each citizen is listed in the build report, as the ruling on base science asks.
 - `docs/decks/devotion.md` and `test/sim/decks/devotion.test.ts` change with the data. The four partner sheets change for their shared rows. `test/fixtures/cardText.json` holds the text of every changed, new and retired row.
+- That a unit which leaves the three hexes of a town stops healing under the Restoring of the Host, and that the Vigil of Arms stamps units once, at the start.
 - The bots price a charter at nothing today (`src/ai/value.ts`). They need a price for the stone circle, the cliff monastery, the Chapel, the Bell Tower and the new rites.
 
 ## 3. The final deck
@@ -444,14 +490,14 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 
 | Card | Rarity | Chair | Text | Status | Shared with |
 |---|---|---|---|---|---|
-| Lay Offerings | common | Civic | Pastures, camps and plantations gain +1 faith and +1 food. | unchanged |  |
+| Lay Offerings | common | Economic | Pastures, camps and plantations gain +1 faith and +1 food. | changed (89) |  |
 | The Calling | common | Civic | Your capital gains +3 faith. | unchanged |  |
 | The Tithe Barns | common | Economic | Cities with a Granary gain +1 faith and +1 production. | unchanged |  |
 | The Household Gods | common | Civic | +2 faith in every town. | unchanged |  |
 | The First Offering | common | Civic (Boon) | On draft: gain 60 faith. | changed (02) |  |
 | The Healer-Priests | common | Military | Your units heal twice as fast in your own territory. | new (04) |  |
 | The Royal Cult | uncommon | Civic | Your capital gains +1 faith for each citizen. | unchanged |  |
-| The Megaliths | uncommon | Civic (Charter) | Workers may raise one stone circle in each town, on flat land: +2 faith and +1 culture, and +1 faith more for each pasture, camp or plantation beside it. | new (03, 62); also dealt in Tier I |  |
+| The Megaliths | uncommon | Economic (Charter) | Workers may raise one stone circle in each town, on flat land: +2 faith and +1 culture, and +1 faith more for each pasture, camp or plantation beside it. | new (03, 62, 89); also dealt in Tier I |  |
 | Rites of Passage | common | Civic | Gaining a military unit grants 12 faith. | unchanged | Dominion |
 | Sacred Groves | uncommon | Civic | Worked forests gain +1 food and +1 faith. | unchanged (built by the Expansionist pass) | Expansionist |
 | The Ambarvalia | common | Civic | Each town gains +1 faith for every two improved tiles. | unchanged | Expansionist |
@@ -466,7 +512,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 | The Temple Storehouses | common | Economic | Temples give +2 food and +2 happiness. | unchanged |  |
 | First Rites | common | Civic | Shrines give +2 faith. | unchanged |  |
 | The Temple Workshops | common | Economic | Faith buildings give +1 food and +1 production each. | changed (12); was The Wayside Shrines |  |
-| The Votive Gifts | common | Economic | Towns may keep the Votive Offering, a rite: for ten turns the town gains production equal to its faith. | changed (83); open point r3-10 |  |
+| The Votive Gifts | common | Economic | Towns may keep the Votive Offering, a rite: for ten turns the town gains production equal to its faith. | changed (83) |  |
 | The Pilgrim Staff | common | Civic | Spending faith grants culture equal to a fourth of it. | unchanged |  |
 | The Zealots | common | Military | Your units gain +1 strength for every 10 faith you make each turn, at most +5. | new (13) |  |
 | The Octave | uncommon | Civic | Your rites last twice as long. | changed (10, 63) |  |
@@ -477,7 +523,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 | The Gifts of the Faithful | uncommon | Economic | Towns with a Shrine may buy culture and faith buildings with faith. | changed (06) |  |
 | The Martyrology | uncommon | Civic (Scaler) | Gains +2 faith and +2 culture each time one of your units dies in battle. | unchanged |  |
 | The Chantries | uncommon | Civic (Charter) | Unlocks the Chapel: +2 faith and +2 culture, and rites in its city last 50% longer. | new (09, 63) |  |
-| The Hallowed Ground | uncommon | Civic (Charter) | Unlocks the Rite of Hallowing: for ten turns the town's improved hexes gain +1 faith. | new (67) |  |
+| The Hallowed Ground | uncommon | Economic (Charter) | Unlocks the Rite of Hallowing: for ten turns the town's improved hexes gain +1 faith. | new (67, 89) |  |
 | The Rites Commonwealth | rare | Civic | A rite your capital starts is kept by every town you hold. | changed (08) |  |
 | The Shrine Guards | common | Military | Towns with a Shrine may buy melee units with faith. | unchanged | Dominion |
 | The Sacred Host | uncommon | Military | Kills grant faith equal to the strength of the unit you killed. | changed (51) | Dominion |
@@ -507,13 +553,13 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 | Commission: The State Church | uncommon | Wildcard (Commission) | Goal: hold six towns, all devout. Reward: +1 authority and +1 happiness for every two devout towns. | changed (23) |  |
 | The Settled Faith | uncommon | Civic | Devout towns gain +15% science and culture. | changed (24) |  |
 | The Sabbath Laws | uncommon | Civic (Charter) | Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production. | unchanged |  |
-| The Old Holy Places | uncommon | Civic | Holy sites gain +1 faith and +1 culture for every ten turns they have stood. | changed (16) |  |
+| The Old Holy Places | uncommon | Economic | Holy sites gain +1 faith and +1 culture for every ten turns they have stood. | changed (16, 89) |  |
 | The Second Prophet | uncommon | Civic | Prophets and apostles you buy start with one extra charge. | unchanged |  |
 | The Living Hymnal | uncommon | Civic | Your capital gains +3 science and +3 culture for every city following your religion, with no cap. | unchanged |  |
 | The Mission | uncommon | Wildcard (Commission) | Goal: convert two foreign cities. Reward: an Apostle and 300 culture. | unchanged |  |
 | The Book of Life | uncommon | Civic | +1% science and culture for every 150 faith you have spent this game, at most +30%. | unchanged |  |
 | The Fetials | uncommon | Military | Military units you gain in a town keeping a rite start as Veterans. | new (22) |  |
-| The Cliff Monasteries | uncommon | Civic (Charter) | Workers may build one cliff monastery in each town, on a hex beside a mountain: +3 faith and +3 science, and +1 of each more for each mountain beside it. | new (26) |  |
+| The Cliff Monasteries | uncommon | Economic (Charter) | Workers may build one cliff monastery in each town, on a hex beside a mountain: +3 faith and +3 science, and +1 of each more for each mountain beside it. | new (26, 89) |  |
 | The Vigil of Arms | uncommon | Military (Charter) | Unlocks the Vigil of Arms, a rite: all your units within three hexes of the town gain +4 strength, and keep it while the rite lasts. | new (68) |  |
 | The Double Feast | rare | Civic | Your towns may keep two rites at once. | changed (30) |  |
 | Pentecost | rare | Civic | When a foreign town turns to your religion, your religion presses every town within four hexes of it. | changed (29) |  |
@@ -537,13 +583,13 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 | The Two Swords | common | Civic | +1 happiness for every two points of spare authority. | new (75) |  |
 | The Holy Inquisition | uncommon | Civic | Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included. | changed (35) |  |
 | The Psalter | uncommon | Civic | Each rite a town starts grants science and culture equal to five times the town's population, and again for each ten turns it keeps the rite. | changed (32, 85) |  |
-| The Consecration Feast | uncommon | Civic | Finishing or buying a faith building grants its town food and culture equal to ten times its population. | changed (33, 69) |  |
-| The Pilgrim Towns | uncommon | Civic | Holy sites gain +1 production and +1 culture for each town that follows your religion. | changed (31) |  |
+| The Consecration Feast | uncommon | Economic | Finishing or buying a faith building grants its town food and culture equal to ten times its population. | changed (33, 69, 89) |  |
+| The Pilgrim Towns | uncommon | Economic | Holy sites gain +1 production and +1 culture for each town that follows your religion. | changed (31, 89) |  |
 | The Mass Baptisms | uncommon | Civic | The first time a foreign town turns to your religion, gain science and culture equal to twenty times its population. | unchanged |  |
 | The Offered Stones | uncommon | Economic | +4 culture for each building you have bought with faith. | changed (34, 70) |  |
 | The Learned Clergy | uncommon | Civic | +2 science and +2 culture for every 10 faith your empire makes each turn. | unchanged |  |
-| The Prince-Bishops | uncommon | Civic | Your faith buildings yield twice as much. | new (38) |  |
-| The Naming Feasts | uncommon | Economic (Charter) | Unlocks the Rite of Naming: for ten turns the town gains +2 food for each citizen. | new (40, 82); open point r3-10 |  |
+| The Prince-Bishops | uncommon | Economic | Your faith buildings yield twice as much. | new (38, 89) |  |
+| The Naming Feasts | uncommon | Economic (Charter) | Unlocks the Rite of Naming: for ten turns the town gains +2 food for each citizen. | new (40, 82) |  |
 | The Call to Prayer | uncommon | Civic (Charter) | Opens Liturgy: your holy sites press your religion twice as far. | new (66, 87) |  |
 | Commission: The Anointing | uncommon | Wildcard (Commission) | Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture. | new (77) |  |
 | The Caliphate | rare | Civic | Devout towns cost 1 authority. | changed (78) |  |
@@ -563,7 +609,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 | The Poor Tables | common | Civic | +1 happiness for every 20 faith you make each turn. | new (48, 71) |  |
 | The Soldiers of God | common | Military | Military units you buy with faith gain +6 strength. | new (49) |  |
 | The Tithe of Nations | uncommon | Civic | Gain 1 faith each turn for every two citizens in the world who follow your religion. | changed (45) |  |
-| The Host Restored | uncommon | Military | Towns may keep the Restoring of the Host, a rite: for ten turns your units in land that follows your religion heal 25 health each turn. | changed (45, 84); open point r3-10 |  |
+| The Host Restored | uncommon | Military | Towns may keep the Restoring of the Host, a rite: for ten turns your units within three hexes of the town heal 25 health each turn. | changed (45, 84, 92) |  |
 | The Last Offering | uncommon | Economic | In your holy city, faith you pour into the Magnum Opus buys 50% more production. | changed (45) |  |
 | The Year of Release | uncommon | Civic (Boon) | On draft: gain faith equal to ten turns of your faith. | new (47) |  |
 | The Commander of the Faithful | uncommon | Civic | +3 faith and +3 culture for each point of spare authority. | new (76) |  |
@@ -587,7 +633,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 | Canossa | III | the spreading faith | You and an empire whose capital follows your religion cannot declare war on each other. | unchanged |
 | The Canons of the Holy Sepulchre | III | the purse | In towns with a holy site, your faith buys 40% more. | changed (79) |
 | The Martyr's Crown | III | the spreading faith | Each of your units that dies in battle presses your religion on every town within three hexes. | unchanged |
-| The House of Worship | III | the temple economy | Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. | changed (60, 74, 88): Tier III and a clearer text |
+| The House of Worship | III | the temple economy | Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. Buildings that supply faith give +1 science and +1 culture. | changed (60, 74, 88, 93): Tier III, a clearer text and your bonus |
 | The Saint Peter's Indulgence | IV | the purse | +1% production toward the Magnum Opus for every 150 faith you have spent this game. | unchanged |
 | The Apostolic Camera | IV | the spreading faith | Your follower beliefs also pay you in every foreign town that follows your religion. | unchanged |
 | The Two Sanctuaries | IV | holy ground | Hexes with a holy site have double yields, applied after every other change to the hex. | unchanged |
@@ -689,20 +735,96 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 | 78 | The Caliphate: one authority, not none | III | approved | "ok i like this change" | Devout towns cost 1 authority. |
 | 79 | Faith discounts take the "buys more" form | all | approved | "great" | The Offering Chests: Your faith buys 25% more. The Canons of the Holy Sepulchre and the belief Apostles: 40% more. The belief The Alms Box: 25% more. |
 | 80 | Rarities after your rulings | II and III | approved | "great" | Mission Houses is a common. The Holy Inquisition stays an uncommon. |
-| 81 | The three rite rules | all | new this round |  | (1) A town that keeps a rite cannot start another until it ends. (2) Every rite pays through its whole length, and no rite acts at once. (3) A rite counts as started on the turn it starts, and again for each ten turns that the town keeps it. |
-| 82 | The Naming Feasts: a rite that lasts | III | new this round |  | Unlocks the Rite of Naming: for ten turns the town gains +2 food for each citizen. |
-| 83 | The Votive Gifts: the Votive Offering lasts | I | new this round |  | Towns may keep the Votive Offering, a rite: for ten turns the town gains production equal to its faith. |
-| 84 | The Host Restored: the rite lasts | IV | new this round |  | Towns may keep the Restoring of the Host, a rite: for ten turns your units in land that follows your religion heal 25 health each turn. |
-| 85 | The cards that read a rite started: one form | I and III | new this round |  | The Rogations: Gains +1 faith and +1 culture each time a town starts a rite, and again for each ten turns it keeps one. The Psalter: Each rite a town starts grants science and culture equal to five times the town's population, and again for each ten turns it keeps the rite. |
-| 86 | The Bell Towers: what the charter opens | II | new this round |  | Unlocks the Bell Tower, a faith building: +1 faith, and its town presses your religion +1 harder for each faith building it holds. |
-| 87 | The Call to Prayer: what the charter opens | III | new this round |  | Opens Liturgy: your holy sites press your religion twice as far. |
-| 88 | The House of Worship: the text (Doctrine) | III | new this round |  | Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. |
+| 81 | The three rite rules | all | approved |  | (1) A town that keeps a rite cannot start another until it ends. (2) Every rite pays through its whole length, and no rite acts at once. (3) A rite counts as started on the turn it starts, and again for each ten turns that the town keeps it. |
+| 82 | The Naming Feasts: a rite that lasts | III | approved |  | Unlocks the Rite of Naming: for ten turns the town gains +2 food for each citizen. |
+| 83 | The Votive Gifts: the Votive Offering lasts | I | approved |  | Towns may keep the Votive Offering, a rite: for ten turns the town gains production equal to its faith. |
+| 84 | The Host Restored: the rite lasts | IV | approved |  | Towns may keep the Restoring of the Host, a rite: for ten turns your units in land that follows your religion heal 25 health each turn. |
+| 85 | The cards that read a rite started: one form | I and III | approved |  | The Rogations: Gains +1 faith and +1 culture each time a town starts a rite, and again for each ten turns it keeps one. The Psalter: Each rite a town starts grants science and culture equal to five times the town's population, and again for each ten turns it keeps the rite. |
+| 86 | The Bell Towers: what the charter opens | II | approved |  | Unlocks the Bell Tower, a faith building: +1 faith, and its town presses your religion +1 harder for each faith building it holds. |
+| 87 | The Call to Prayer: what the charter opens | III | approved |  | Opens Liturgy: your holy sites press your religion twice as far. |
+| 88 | The House of Worship: the text (Doctrine) | III | approved |  | Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. |
+| 89 | Eight cards move from the Civic chair to the Economic chair | 0 to III | your text | "could we move a few civics to economic" | Lay Offerings, The Megaliths, The Hallowed Ground, The Cliff Monasteries, The Old Holy Places, The Pilgrim Towns, The Consecration Feast and The Prince-Bishops are Economic. The deck has 41 Civic cards and 22 Economic cards. |
+| 90 | Consecration of the Bounds: your line | a rite | your text | "modify: resource hexes gain +1 culture" | Resource hexes gain +1 culture. |
+| 91 | Rite of Plenty: your line | a rite | your text | "gains +1 gold for every population in the city." | This town gains +1 gold for each citizen. |
+| 92 | The Restoring of the Host: a town's own ground | IV | your text | "this needs to be a city-wide bonus, not an empire wide bonus" | Towns may keep the Restoring of the Host, a rite: for ten turns your units within three hexes of the town heal 25 health each turn. |
+| 93 | The House of Worship: one more bonus (Doctrine) | III | your text | "let's add an addtional bonus: buildings that supply faith give +1 science and +1 culture." | Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. Buildings that supply faith give +1 science and +1 culture. |
+
+### Your comments on the closing round (89 to 93)
+
+#### 89. Eight cards move from the Civic chair to the Economic chair (move)
+
+- **Ruling:** your text. Your words: *"could we move a few civics to economic"*
+- **Answers:** your comment on the Civic count of 49
+- **Tier, rarity, type:** Eight cards
+- **Now:** The deck has 49 Civic cards and 14 Economic cards.
+- **Proposed:** Lay Offerings, The Megaliths, The Hallowed Ground, The Cliff Monasteries, The Old Holy Places, The Pilgrim Towns, The Consecration Feast and The Prince-Bishops are Economic. The deck has 41 Civic cards and 22 Economic cards.
+- **Why:** I followed the split of the two decks that are built. In Expansionist a card that works the land is Economic whatever it pays: The Totem Poles pays culture, and The Desert and the Snow pays faith and culture. A card that changes what buildings yield is Economic too: The Water Boards. Each move, with its reason: **Lay Offerings** pays on pastures, camps and plantations. **The Megaliths** and **The Cliff Monasteries** open a work that workers build. **The Hallowed Ground**'s rite pays the town's improved hexes. **The Old Holy Places** and **The Pilgrim Towns** pay on the holy site's hex. **The Consecration Feast** pays food, and it pays for a building bought. **The Prince-Bishops** doubles what buildings yield.
+- **Arithmetic:** By tier, Economic and Civic: Tier 0, 3 and 4; Tier I, 6 and 9; Tier II, 5 and 12; Tier III, 7 and 10; Tier IV, 1 and 6. Cards that take a chair, Economic and Civic: 2 and 3; 5 and 7; 4 and 10; 6 and 9; 1 and 5. So every tier has a card for each of the two chairs.
+- **Synergy:** No card changes what it does.
+- **Shape:** Data only: the `type` of eight rows.
+- **Confidence:** good
+- **Depends, joins and notes:** Tier IV has one Economic card that takes a chair, The Last Offering, as it has today. The purse cards that pay culture or science for faith spent stay Civic, as Commerce's Civic Receipts is.
+
+#### 90. Consecration of the Bounds: your line (rework)
+
+- **Ruling:** your text. Your words: *"modify: resource hexes gain +1 culture"*
+- **Answers:** your comment on the rites table
+- **Tier, rarity, type:** A rite of the technology tree (Stonecraft)
+- **Now:** Luxury hexes gain +1 culture, and this town's borders grow 30% faster.
+- **Proposed:** Resource hexes gain +1 culture.
+- **Why:** Your line. It reaches every resource, not only a luxury.
+- **Arithmetic:** A town works three or four resource hexes: +3 or +4 culture for ten turns, where it had +1 or +2.
+- **Synergy:** It is a rite of every seat, not only of this deck.
+- **Shape:** Data only: the hex test of the rite's `pays` line. The border line goes from the row.
+- **Confidence:** good
+- **Depends, joins and notes:** A reading: your line replaces the whole text, so the rite no longer makes borders grow faster. Say if the border clause should stay.
+
+#### 91. Rite of Plenty: your line (rework)
+
+- **Ruling:** your text. Your words: *"gains +1 gold for every population in the city."*
+- **Answers:** your comment on the rites table
+- **Tier, rarity, type:** A rite of the technology tree (Currency)
+- **Now:** Hexes with a resource give +1 gold.
+- **Proposed:** This town gains +1 gold for each citizen.
+- **Why:** Your line. It joins the rites that pay for each citizen: Fasting, Naming and the Night Watch.
+- **Arithmetic:** A town of 12: +12 gold a turn, where it had about +3. Under The Rites Commonwealth, eight towns of 12: +96 gold a turn.
+- **Synergy:** It is a rite of every seat.
+- **Shape:** Data only: a `pays` line by the town's population.
+- **Confidence:** good
+
+#### 92. The Restoring of the Host: a town's own ground (rework)
+
+- **Ruling:** your text. Your words: *"this needs to be a city-wide bonus, not an empire wide bonus"*
+- **Answers:** your comment on the rites table
+- **Tier, rarity, type:** IV, uncommon, Military
+- **Now:** Round three: for ten turns your units in land that follows your religion heal 25 health each turn.
+- **Proposed:** Towns may keep the Restoring of the Host, a rite: for ten turns your units within three hexes of the town heal 25 health each turn.
+- **Why:** Your comment: the rite is for one city, not for the empire. I use the same reach as the Vigil of Arms: three hexes from the town, which is also as far as a town works.
+- **Arithmetic:** A unit that stands within three hexes of the town heals 25 a turn, and it may fight. A unit that leaves the ground stops healing. The card no longer needs a religion.
+- **Synergy:** With the Vigil of Arms, a town on the border is a place to gather and to heal: both rites reach three hexes. A town keeps one of them at a time, or both with The Double Feast.
+- **Shape:** A rite row with a heal each turn for your units within three hexes of the town, read in `healUnits`.
+- **Confidence:** good
+- **Depends, joins and notes:** The Vigil of Arms keeps its default: your units that stand within three hexes when the rite starts gain +4 and keep it until the rite ends.
+
+#### 93. The House of Worship: one more bonus (Doctrine) (doctrine)
+
+- **Ruling:** your text. Your words: *"let's add an addtional bonus: buildings that supply faith give +1 science and +1 culture."*
+- **Answers:** your comment on change 88
+- **Tier, rarity, type:** Doctrine, Tier III
+- **Now:** Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith.
+- **Proposed:** Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. Buildings that supply faith give +1 science and +1 culture.
+- **Why:** Your line. It pays every building that supplies faith, in any town, on the building's own line.
+- **Arithmetic:** A town with a Shrine, a Temple and a Cathedral: +3 science and +3 culture. With a Chapel, a Bell Tower and the four houses: nine buildings, +9 and +9. Twelve such towns: +108 science and +108 culture. The Prince-Bishops doubles it, because the line is on the building: +216 and +216. A median seat makes about 480 science at turn 150.
+- **Synergy:** It adds to The Cathedral Works (+8 science), the Cathedral School (+2 science for each building that supplies faith) and the shared The Painted Chapels (+3 culture each). With the shared The Monastery Libraries a Library supplies faith, so it counts too.
+- **Shape:** A `pays` line on each building that supplies faith (`buildingSupplies` is the one reading of "supplies"). Small extension if no row pays a building by that test today.
+- **Confidence:** good
+- **Depends, joins and notes:** No cap, as you asked. It is in the list of strong combinations.
 
 ### The changes of round three (81 to 88)
 
 #### 81. The three rite rules (rule)
 
-- **Ruling:** new this round.
+- **Ruling:** approved.
 - **Answers:** your comment on change 67
 - **Tier, rarity, type:** A rule for every rite
 - **Now:** Rule 1 is in the game: a town with no free rite place cannot start a rite (`riteClausesBeforeTheBank` in `src/sim/religion.ts`). A town has one place, or two with The Double Feast. Rule 2 is not: two live rites act at once. Rule 3 is not: a rite counts as started once, on the turn it starts.
@@ -716,7 +838,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 
 #### 82. The Naming Feasts: a rite that lasts (rework)
 
-- **Ruling:** new this round.
+- **Ruling:** approved.
 - **Answers:** rule 2, and your ruling on change 40 ("let's buff this to two citizens")
 - **Tier, rarity, type:** III, uncommon, Economic (Charter)
 - **Now:** Unlocks the Rite of Naming: the town gains two citizens at once, and may start no other rite for ten turns.
@@ -730,7 +852,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 
 #### 83. The Votive Gifts: the Votive Offering lasts (rework)
 
-- **Ruling:** new this round.
+- **Ruling:** approved.
 - **Answers:** rule 2 ("an offering")
 - **Tier, rarity, type:** I, common, Economic
 - **Now:** Towns may spend faith to add production to what they are building. Not wonders. The offering acts at once and holds the town's rite place for one turn. A town that keeps a rite cannot offer.
@@ -744,7 +866,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 
 #### 84. The Host Restored: the rite lasts (rework)
 
-- **Ruling:** new this round.
+- **Ruling:** approved.
 - **Answers:** rule 2
 - **Tier, rarity, type:** IV, uncommon, Military
 - **Now:** Towns may spend faith to heal every unit of yours in land that follows your religion. The rite acts at once, and the town waits five turns.
@@ -758,7 +880,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 
 #### 85. The cards that read a rite started: one form (rework)
 
-- **Ruling:** new this round.
+- **Ruling:** approved.
 - **Answers:** rule 3
 - **Tier, rarity, type:** The Rogations, The Psalter, The Founding Vows, and the shared The Votive Accounts
 - **Now:** The Rogations: Gains +1 faith and +1 culture each time a town starts a rite. The Psalter: Each rite a town starts grants science and culture equal to five times the town's population.
@@ -771,7 +893,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 
 #### 86. The Bell Towers: what the charter opens (rework)
 
-- **Ruling:** new this round.
+- **Ruling:** approved.
 - **Answers:** your ruling on change 65: "make this a charter"
 - **Tier, rarity, type:** II, common, Civic (Charter)
 - **Now:** A seated card: A town that follows your religion presses it +1 harder for each faith building it holds.
@@ -785,7 +907,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 
 #### 87. The Call to Prayer: what the charter opens (rework)
 
-- **Ruling:** new this round.
+- **Ruling:** approved.
 - **Answers:** your ruling on change 66: "make this a charter, because its hard to slot"
 - **Tier, rarity, type:** III, uncommon, Civic (Charter)
 - **Now:** A seated card: Your holy sites press your religion twice as far.
@@ -798,7 +920,7 @@ You asked for fun before balance, so none of these has a cap. Tune them after pl
 
 #### 88. The House of Worship: the text (Doctrine) (doctrine)
 
-- **Ruling:** new this round.
+- **Ruling:** approved.
 - **Answers:** your question on change 74
 - **Tier, rarity, type:** Doctrine, Tier III
 - **Now:** Unlocks the Mosque, the Wat, the Gurdwara and the Dar-e Mehr in your devout towns, whatever beliefs your religion holds. Each is bought with faith.
@@ -2462,3 +2584,19 @@ playtesters."
 
 Questions: The Megaliths "sg"; The Offering Chests at Tier II as a rare "y";
 The Rites Commonwealth as the only rare of Tier I "y"; The Caliphate "y".
+
+## The user's comments on the closing round (2026-11-21, comments on the page)
+
+The coordinator passed these on, word for word. The user made no comment on
+the five open points of the closing round, so each default stands (the
+user's rule: no comment means approved).
+
+| Where | The user's words | Result |
+|---|---|---|
+| "The deck in numbers", the Civic count of 49 | "could we move a few civics to economic" | Eight cards move from the Civic chair to the Economic chair (change 89). |
+| The rites table, Consecration of the Bounds | "modify: resource hexes gain +1 culture" | The rite reads: Resource hexes gain +1 culture (change 90). |
+| The rites table, Rite of Plenty | "gains +1 gold for every population in the city." | The rite reads: This town gains +1 gold for each citizen (change 91). |
+| The rites table, Restoring of the Host | "this needs to be a city-wide bonus, not an empire wide bonus" | Units within three hexes of the town heal 25 health each turn (change 92). |
+| The House of Worship | "let's add an addtional bonus: buildings that supply faith give +1 science and +1 culture." | Added to the Doctrine, with no cap (change 93). |
+
+The pass is closed. Nothing waits on the user.
