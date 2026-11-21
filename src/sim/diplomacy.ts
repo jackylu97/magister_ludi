@@ -403,17 +403,10 @@ function reseatEmpire(state: GameState, playerId: number): void {
  *     A tribute is not: an empire may promise more per turn than it earns and
  *     go into arrears for it, which is a real decision the creditors already
  *     price (`upkeep.ts`);
- *   · **copies they hold** — a luxury, named once each, that this empire has at
- *     least one **net** copy of (`resourceCopies`, which has already subtracted
- *     everything promised to somebody else, so an empire cannot lend the same
- *     copy twice). Since the copies ruling (flags (tt)) a row names a kind once
- *     and lends one copy of it, so an empire with two amber may sign two
- *     bargains and is refused a third; lending the **last** copy stays legal,
- *     which is `lentCopiesAwayBy`'s stated ruling and not an oversight. Only
- *     luxuries: iron and horses are what an army is made of, and trading the
- *     strategic table is a design decision nobody has taken. **Only copies it
- *     owns** (the ruling of 2026-11-17): a copy somebody lent this empire can
- *     be used and not lent, so the count asked is `lendableCopies`;
+ *   · **resources they can lend**: each side can lend one available copy of a
+ *     luxury or strategic resource per offer. `lendableCopies` excludes copies
+ *     the giver borrowed, already lent or needs for units. A separate offer can
+ *     lend another available copy of the same resource;
  *   · **no law against lending**: a seat under The Forbidden Silks may name no
  *     luxury (`luxuryLendingBan`, batch DT7);
  *   · **a right of way both may write** — the mutual technology gate below;

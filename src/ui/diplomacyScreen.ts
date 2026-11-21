@@ -841,7 +841,7 @@ export function termLines(state: GameState, terms: DealTerms): string[] {
 /**
  * One clause of a side's terms, as the paper prints it, with the key that
  * takes it back off the table (batch SS6): `gold`, `goldPerTurn`,
- * `luxury:<id>`, `openBorders` or `city:<id>`.
+ * `luxury:<id>`, `strategic:<id>`, `openBorders` or `city:<id>`.
  */
 export interface TermItem {
   key: string;
@@ -860,6 +860,7 @@ export function termItems(state: GameState, terms: DealTerms): TermItem[] {
   const perTurn = terms.goldPerTurn ?? 0;
   if (perTurn > 0) items.push({ key: 'goldPerTurn', text: `${figure(perTurn)} gold a turn` });
   for (const id of terms.luxuries ?? []) items.push({ key: `luxury:${id}`, text: resourceDef(id).name });
+  for (const id of terms.strategics ?? []) items.push({ key: `strategic:${id}`, text: resourceDef(id).name });
   if (terms.openBorders === true) items.push({ key: 'openBorders', text: 'Open borders' });
   for (const cityId of terms.cities ?? []) {
     items.push({
@@ -879,11 +880,12 @@ export function removeTerm(terms: DealTerms, key: string): void {
   if (key === 'gold') delete terms.gold;
   else if (key === 'goldPerTurn') delete terms.goldPerTurn;
   else if (key === 'openBorders') delete terms.openBorders;
-  else if (key.startsWith('luxury:')) {
-    const id = key.slice('luxury:'.length);
-    const kept = (terms.luxuries ?? []).filter((held) => held !== id);
-    if (kept.length > 0) terms.luxuries = kept;
-    else delete terms.luxuries;
+  else if (key.startsWith('luxury:') || key.startsWith('strategic:')) {
+    const group = key.startsWith('luxury:') ? 'luxuries' : 'strategics';
+    const id = key.slice(key.indexOf(':') + 1);
+    const kept = (terms[group] ?? []).filter((held) => held !== id);
+    if (kept.length > 0) terms[group] = kept;
+    else delete terms[group];
   } else if (key.startsWith('city:')) {
     const id = Number(key.slice('city:'.length));
     const kept = (terms.cities ?? []).filter((held) => held !== id);

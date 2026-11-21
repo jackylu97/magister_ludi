@@ -42,4 +42,4 @@ Four fresh browser sessions repeated the first click on worker 479. Two used the
 | Time inside the page handler | 10.7 and 8.5 ms | 8.2 and 6.5 ms |
 | End of handler to end of first draw | 14.1 and 36.2 ms | 35.0 and 9.3 ms |
 
-A first click still took about 47 ms with advice disabled. In each case much of the wait fell before the handler ran or between the handler and the next draw. The draw itself took 3.4 to 4.6 ms on the main thread. The two observations per group are too few to estimate an average saving. The measurements do not establish when the monitor displayed the selection.
+A first click still took about 47 ms with advice disabled. In each case much of the wait fell before the handler ran or between the handler and entry to the painted board draw. This second interval includes preparing scene overlays and matrices. It does not isolate the time Chrome waited for a frame callback. The painted board draw took 3.4 to 4.6 ms on the main thread. The two observations per group are too few to estimate an average saving. The measurements do not establish when the monitor displayed the selection.

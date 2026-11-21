@@ -233,10 +233,11 @@ describe('what a paper says', () => {
         gold: 40,
         goldPerTurn: 3,
         luxuries: ['silk'],
+        strategics: ['iron'],
         openBorders: true,
         cities: [mine.id],
       }),
-    ).toEqual(['40 gold', '3 gold a turn', 'Silk', 'Open borders', mine.name]);
+    ).toEqual(['40 gold', '3 gold a turn', 'Silk', 'Iron', 'Open borders', mine.name]);
   });
 
   it('says "Nothing" rather than printing an empty list', () => {
@@ -673,6 +674,18 @@ describe('the treaty desk (batch SS6)', () => {
     expect(items.map((item) => item.text)).toEqual(termLines(state, terms));
     expect(termItems(state, {})).toEqual([]);
     expect(termLines(state, {})).toEqual(['Nothing']);
+  });
+
+  it('lets a player read and remove a strategic loan from a counteroffer', () => {
+    const terms: Parameters<typeof removeTerm>[0] = { strategics: ['iron', 'horses'] };
+    expect(termItems(bench(), terms)).toEqual([
+      { key: 'strategic:iron', text: 'Iron' },
+      { key: 'strategic:horses', text: 'Horses' },
+    ]);
+    removeTerm(terms, 'strategic:iron');
+    expect(termLines(bench(), terms)).toEqual(['Horses']);
+    removeTerm(terms, 'strategic:horses');
+    expect(terms).toEqual({});
   });
 
   it('takes a clause back by deleting the term, never by writing nothing', () => {
