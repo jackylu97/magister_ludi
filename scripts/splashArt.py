@@ -190,6 +190,12 @@ BELIEFS = {
     'holywater': 'holyWater', 'lamps': 'lampsOfTheShrine', 'openkitchen': 'theOpenKitchen',
     'quiethours': 'theQuietHours', 'templespires': 'templeSpires', 'tithehouses': 'titheHouses',
     'warriormonks': 'warriorMonks',
+    # The names the enhancer masters arrived with (2026-11-21). `longroads` is The Long Road.
+    'crusade': 'theCrusade', 'holyorder': 'holyOrder', 'itinerantpreachers': 'itinerantPreachers',
+    'longroads': 'theLongRoad', 'marvelsofthefaith': 'marvelsOfTheFaith',
+    'pilgrimscoin': 'pilgrimsCoin', 'pulseofbells': 'thePulseOfBells',
+    'sacredcartography': 'sacredCartography', 'scriptoria': 'theScriptoria',
+    'worldchurch': 'worldChurch',
 }
 # The title screen's one painting.
 TITLE = {'title': 'title'}
