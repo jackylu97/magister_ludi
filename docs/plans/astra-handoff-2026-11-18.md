@@ -211,6 +211,8 @@ Both six-seat version 258 games finished 120 turns and reloaded exactly. The due
 
 The difficulty rules for tiers zero through five are on `codex/beta-difficulty`, based on the first-age candidate. The tier is part of the save (version 259). Tier five uses the proposed 75/20/5 rarity weights before bonuses. Claude can set `GameConfig.tier` on the setup screen, read `game.state.tier ?? 0` on the ending screen and use `DIFFICULTY_RULES` for the rules list. The current draw and pass preview both use the acting player's odds. Higher tiers and the separate “First game” setting are outside this beta candidate.
 
+The first full difficulty run found failures in 18 files. After the fixes, all 537 tests in those files passed. The repaired candidate is `ad26311a`. A full run on that revision is still due before release. The bot-strength comparisons use normal difficulty on the separate version 257 branch.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
