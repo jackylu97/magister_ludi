@@ -271,6 +271,15 @@ uses `codex/wager-score-accounting` for section 0.1f. Wager marks and score
 weights still need measurements. The science/Order planning experiments and
 the water-site tuning trial are not in this play release.
 
+### 0.1g Units heal faster at home and in a city (2026-11-22)
+
+Ruling and detail: `docs/flags.md`, "Units heal faster at home and in a
+city". New labelled lines in `explainUnitHeal`: +20 on a hex that the unit's
+owner owns; +30 in its owner's city in place of the +20, but not while the
+city is under siege (then the +20 still applies). Figures in `rules.healing`.
+One reading is open with the user: whether the figures add to the rested 10
+(30 and 40 a turn) or are totals. Build it as added unless the flag changes.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
