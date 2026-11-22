@@ -102,6 +102,35 @@ PEOPLE = {
     'belisarius': 'belisarius', 'gajah_mada': 'gajahMada', 'amina_of_zazzau': 'amina',
     'tlacaelel': 'tlacaelel', 'basho': 'basho', 'sor_juana': 'sorJuana', 'vaucanson': 'vaucanson',
     'gustavus_adolphus': 'gustavusAdolphus',
+    # The names the masters arrived with (2026-11-21). They are shorter than the names
+    # above, and some are misspelled. The master files keep their names; this table
+    # follows them. `hero` is Hero of Alexandria (row heronOfAlexandria); the row
+    # heroOfAlexandria is Amanitore now, and its master is `amanitore`.
+    'ahmose': 'ahmoseSonOfEbana', 'alfihri': 'fatimaAlFihri', 'alhaytham': 'ibnAlHaytham',
+    'amenhotep': 'amenhotepSonOfHapu', 'amina': 'amina', 'aneni': 'ineni',
+    'assuridi': 'assurIdi', 'bacon': 'rogerBacon', 'badhayana': 'baudhayana',
+    'banzhao': 'banZhao', 'benjamin': 'benjaminOfTudela', 'brahe': 'tychoBrahe',
+    'brunelleschi': 'brunelleschi', 'buekelzsoon': 'willemBeukelszoon', 'cailun': 'caiLun',
+    'caiyan': 'caiYan', 'coeur': 'cosimoDeMedici', 'colaeus': 'colaeus', 'dante': 'dante',
+    'datini': 'francescoDatini', 'dee': 'johnDee', 'elcid': 'elCid',
+    'eratosthones': 'eratosthenes', 'fanli': 'fanLi', 'fugger': 'jakobFugger',
+    'fuhao': 'fuHao', 'gaiusmarius': 'gaiusMarius', 'gajahmada': 'gajahMada',
+    'guoshoujing': 'guoShoujing', 'gutenberg': 'gutenberg', 'hanno': 'hanno',
+    'hanxin': 'hanXin', 'heimiunu': 'hemiunu', 'hero': 'heronOfAlexandria',
+    'hildegard': 'hildegardOfBingen', 'honnecourt': 'villardDeHonnecourt',
+    'ibnjubayr': 'ibnBattuta', 'ibnmajid': 'ibnMajid', 'iddinmarduk': 'iddinMarduk',
+    'jangbogo': 'pytheas', 'jangyeongsil': 'jangYeongSil', 'juliuscaesar': 'juliusCaesar',
+    'khaldun': 'ibnKhaldun', 'li bai': 'liBai', 'libing': 'liBing', 'liqingzhao': 'liQingzhao',
+    'luban': 'luBan', 'lubuwei': 'luBuwei', 'mariahabraea': 'mariaHebraea',
+    'moduchanyu': 'moduChanyu', 'nasi': 'graciaMendesNasi', 'nzinga': 'nzingaOfNdongo',
+    'omarkhayyam': 'epicurus', 'pizan': 'christineDePizan', 'quyuan': 'quYuan',
+    'sanghongyan': 'sangHongyang', 'shonagon': 'seiShonagon', 'simaqian': 'simaQian',
+    'sulayman': 'sostratus', 'sunshuao': 'sunshuAo', 'suntzu': 'sunTzu', 'susong': 'suSong',
+    'taqi': 'taqiAlDin', 'thales': 'thales', 'thutmose': 'thutmoseTheSculptor',
+    'tiravalluvar': 'tiruvalluvar', 'trungtrac': 'trungTrac', 'unnini': 'sinLeqiUnninni',
+    'wangxizhi': 'wangXizhi', 'widowqing': 'widowQing', 'yarhai': 'yarhai',
+    'yisunsin': 'yiSunSin', 'zhangheng': 'zhangHeng', 'zhengguo': 'zhengGuo',
+    'zhugeliang': 'zhugeLiang', 'zizka': 'janZizka',
 }
 # One painting an age in each of three sets. A game shows one set throughout.
 AGES = {
@@ -175,6 +204,25 @@ INSETS = {
     'leaders/joan': (52, 60, 52, 60),
         'leaders/mehmed': (52, 60, 52, 52),
     'leaders/pachacuti': (22, 14, 22, 14),
+    # People masters whose paper mount shows on two or three sides only, so the
+    # automatic trim does not see a mount (it needs all four corners to match).
+    'people/ahmose': (34, 38, 34, 0),
+    'people/alhaytham': (34, 51, 34, 0),
+    'people/anacharsis': (31, 0, 27, 0),
+    'people/boudica': (20, 0, 20, 0),
+    'people/caiyan': (37, 45, 34, 0),
+    'people/coeur': (17, 0, 17, 0),
+    'people/gajahmada': (40, 42, 41, 0),
+    'people/jangyeongsil': (46, 0, 47, 0),
+    'people/leonidas': (46, 50, 44, 0),
+    'people/libing': (35, 0, 34, 0),
+    'people/moduchanyu': (34, 0, 36, 0),
+    'people/ptahhotep': (59, 53, 56, 0),
+    'people/quyuan': (56, 0, 55, 57),
+    'people/shikibu': (22, 0, 20, 0),
+    'people/susong': (46, 0, 47, 0),
+    'people/wenamun': (29, 0, 29, 0),
+    'people/zhangheng': (47, 53, 47, 0),
 }
 # Where each leader's head is, so that every portrait shows the leader at one
 # size, from the middle of the body up. Fractions of the trimmed picture:
