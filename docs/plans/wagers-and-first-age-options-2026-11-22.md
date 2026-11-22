@@ -678,7 +678,7 @@ think age 2 could use 2-3 more technologies."
 | 2 | **The Granary** unlocks with Agriculture. | |
 | 3 | **Calendar and Fletching swap places** in the order of technologies, so that plantations come earlier. | |
 | 4 | **The Monument** unlocks with Pottery. | |
-| 5 | **The Shrine** gives +2 faith and unlocks with Husbandry. | Read as: a Shrine's faith is raised by 2. To confirm: +2 in all, or +2 more. |
+| 5 | **The Shrine** gives +2 faith and unlocks with Husbandry. | The user confirmed 2 faith per turn in total. The old Shrine gave 1. |
 | 6 | **Sailing** moves to the first column, with Agriculture as its only prerequisite. | |
 | 7 | **The Lumber Mill** unlocks with Bronze Working. | |
 | 8 | Later: age II wants two or three more technologies. | Not designed. |
