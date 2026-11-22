@@ -590,9 +590,88 @@ export type LoadResult =
   | { ok: true; game: Game; payload: SavePayload }
   | { ok: false; error: string; detail?: string };
 
-/** What every version refusal says after the numbers. No migrations, pre-release. */
-const NO_MIGRATIONS =
-  'This is a pre-release build: saves are not migrated between versions.';
+/**
+ * What every version refusal says after the reason: what the player can do, and
+ * that the refusal changed nothing. The game does not convert a save from one
+ * build to another.
+ */
+const NO_MIGRATIONS = 'Start a new game. Your file is not changed.';
+
+/** "an older build" or "a newer build", from the two version numbers. */
+function whichBuild(theirs: unknown, ours: number): string {
+  return typeof theirs === 'number' && theirs > ours ? 'a newer build' : 'an older build';
+}
+
+/**
+ * The short commit of the build that made a problem report, or `null`.
+ *
+ * A report carries the build stamp of the page that wrote it
+ * (`problemReport.ts`). When the save inside is refused for its version, the
+ * commit tells a developer which build to check out to open it.
+ */
+function reportBuild(parsed: object): string | null {
+  const report = parsed as { kind?: unknown; build?: { commit?: unknown } | null };
+  if (report.kind !== REPORT_KIND) return null;
+  const commit = report.build?.commit;
+  return typeof commit === 'string' && commit !== '' ? commit : null;
+}
+
+/**
+ * How many stored saves this build cannot list because their version differs.
+ *
+ * `readSlot` leaves such a save out of every list, so before this count the
+ * save disappeared from Continue, the title's recent worlds and the Load sheet
+ * with no word. The count reads the same label `readSlot` reads. A slot with
+ * no readable label is not counted: it is damaged, not from another build.
+ */
+export function otherBuildSaves(storage: SaveStorage): number {
+  let count = 0;
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (key === null || !key.startsWith(SAVE_KEY_PREFIX)) continue;
+    const text = labelText(storage, key.slice(SAVE_KEY_PREFIX.length));
+    if (text === null) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      continue;
+    }
+    if (typeof parsed !== 'object' || parsed === null) continue;
+    const label = parsed as { formatVersion?: unknown; schemaVersion?: unknown };
+    if (typeof label.formatVersion !== 'number' || typeof label.schemaVersion !== 'number') continue;
+    if (label.formatVersion !== SAVE_FORMAT_VERSION || label.schemaVersion !== SCHEMA_VERSION) count += 1;
+  }
+  return count;
+}
+
+/** The JSON text that holds a slot's versions: the label, or a plain JSON save. */
+function labelText(storage: SaveStorage, slotId: string): string | null {
+  const meta = storage.getItem(metaKey(slotId));
+  if (meta !== null && !meta.startsWith(LABEL_PENDING)) return meta;
+  const json = storage.getItem(storageKey(slotId));
+  if (json === null) return null;
+  if (json.startsWith(SLOT_HEADER)) {
+    const end = json.indexOf('\n', SLOT_HEADER.length);
+    return end === -1 ? null : json.slice(SLOT_HEADER.length, end);
+  }
+  if (json.startsWith(SAVE_PACK_PREFIX)) return meta === null ? null : '{' + meta.slice(1);
+  return json;
+}
+
+/**
+ * The sentence the title and the Load sheet show while `otherBuildSaves` is
+ * above zero, or `null`. It says what happened, what the player can do, and
+ * that nothing was deleted. It states no count, because the count adds nothing
+ * the player can act on.
+ */
+export function otherBuildSavesNotice(count: number): string | null {
+  if (count <= 0) return null;
+  return (
+    'A saved game in this browser is from another build of the game and cannot continue here. ' +
+    'Start a new game. The saved game was not deleted.'
+  );
+}
 
 /**
  * A file that has passed every check short of the log walk: the normalised
@@ -677,21 +756,26 @@ export function readSaveEnvelope(json: string): EnvelopeResult {
     return { ok: false, error: 'That report has no save in it.' };
   }
   const payload = inside as Partial<SavePayload>;
+  // A report names the build that made it, so a developer knows which build opens it.
+  const madeBy = reportBuild(parsed);
+  const maker = madeBy === null ? '' : ` Build ${madeBy} made this report.`;
 
   if (payload.formatVersion !== SAVE_FORMAT_VERSION) {
     return {
       ok: false,
       error:
-        `That save is in format ${String(payload.formatVersion)}; this build reads ` +
-        `format ${SAVE_FORMAT_VERSION}. ${NO_MIGRATIONS}`,
+        `This save is from ${whichBuild(payload.formatVersion, SAVE_FORMAT_VERSION)} of the game ` +
+        `and cannot continue here (file format ${String(payload.formatVersion)}; this build reads ` +
+        `format ${SAVE_FORMAT_VERSION}). ${NO_MIGRATIONS}${maker}`,
     };
   }
   if (payload.schemaVersion !== SCHEMA_VERSION) {
     return {
       ok: false,
       error:
-        `That save is from rules version ${String(payload.schemaVersion)}; this build ` +
-        `plays version ${SCHEMA_VERSION}. ${NO_MIGRATIONS}`,
+        `This save is from ${whichBuild(payload.schemaVersion, SCHEMA_VERSION)} of the game ` +
+        `and cannot continue here (save version ${String(payload.schemaVersion)}; this build ` +
+        `plays version ${SCHEMA_VERSION}). ${NO_MIGRATIONS}${maker}`,
     };
   }
   if (typeof payload.config !== 'object' || payload.config === null) {

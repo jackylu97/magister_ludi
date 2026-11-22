@@ -96,6 +96,8 @@ import {
   makeSavePayload,
   namedSlotId,
   newestSlot,
+  otherBuildSaves,
+  otherBuildSavesNotice,
   readSlot,
   resumeSeat,
   writeSave,
@@ -572,6 +574,7 @@ const continueLabelEl = requireElement<HTMLElement>('continue-label');
 const landingLoadButton = requireElement<HTMLButtonElement>('landing-load');
 const shelfEl = requireElement<HTMLElement>('landing-shelf');
 const shelfEmptyEl = requireElement<HTMLElement>('landing-shelf-empty');
+const shelfOtherBuildEl = requireElement<HTMLElement>('landing-other-build');
 /* The landing's three steps (batch L7): two of the title screen's buttons,
    the world step's switch, its summary and the four ways between steps. */
 const newGameButton = requireElement<HTMLButtonElement>('landing-new');
@@ -934,6 +937,7 @@ const savesPanel = createSavesPanel({
   importButton: requireElement('saves-import'),
   fileInput: requireElement<HTMLInputElement>('saves-file'),
   emptyNote: requireElement('saves-empty'),
+  otherBuildNote: requireElement('saves-other-build'),
   errorEl: requireElement('saves-error'),
   storage: saveStorage,
   // Only once a game is up *and* on screen: with the landing showing, the game
@@ -1545,6 +1549,11 @@ function refreshResumeRow(): void {
     shelfEl.append(row);
   }
   shelfEmptyEl.hidden = worlds.length > 0;
+  // A save or an autosave from another build is in no list, so Continue does
+  // not offer it. The title says so, in place of a save that only vanished.
+  const otherBuild = otherBuildSavesNotice(otherBuildSaves(saveStorage));
+  shelfOtherBuildEl.textContent = otherBuild ?? '';
+  shelfOtherBuildEl.hidden = otherBuild === null;
 }
 
 /**

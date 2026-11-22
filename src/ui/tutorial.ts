@@ -186,7 +186,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '#unit-panel',
     title: 'Found your capital',
     body:
-      'Press Found City. The wagon becomes your capital and starts working the land around it. Grass and fresh water are best — a town away from water grows slowly until it builds an aqueduct — but don\'t overthink it: settling now beats searching for the perfect spot.',
+      'Press Found City. The wagon becomes your capital and starts working the land around it. Grass and fresh water are best — a town away from water grows slowly until it builds an aqueduct — but don\'t overthink it: settling now beats searching for the perfect spot. While the settler is selected, the land is tinted by its water (the key is at the bottom right), and corner ticks mark the sites we recommend. Point at one to read why.',
     advance: { kind: 'command', command: 'foundCity' },
   },
   {
@@ -237,7 +237,7 @@ export const STEPS: readonly TutorialStep[] = [
     board: 'mover',
     title: 'Move your starting unit',
     body:
-      'Your other unit is the scout, standing on your new city. Select it, then right-click a faraway hex to send it exploring — it keeps walking by itself each turn. The map stays dark until one of your units sees it.',
+      'Your other unit is the scout, standing on your new city. Select it, then right-click a faraway hex to send it exploring — it keeps walking by itself each turn. The map stays dark until one of your units sees it. While a scout or a soldier is selected, corner ticks mark ruins and camps worth a visit.',
     advance: { kind: 'command', command: 'moveUnit' },
   },
   {
@@ -263,7 +263,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: null,
     title: 'The rest arrives as you reach it',
     body:
-      'That is the basics. Each new mechanic explains itself the first time it appears, then leaves you alone. The question mark at the top right lists every control. The menu beside it opens the Compendium, which holds every rule in the game and the pamphlet you started with.',
+      'That is the basics. Each new mechanic explains itself the first time it appears, then leaves you alone. The question mark at the top right lists every control. The menu beside it opens the Compendium, which holds every rule in the game and the pamphlet you started with. If something looks broken, the same menu has Report a problem, which saves one file you can send us.',
     advance: { kind: 'next' },
   },
 ];
@@ -310,7 +310,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'A draft is ready',
         body:
-          'Your culture has earned a draft: pick one of these cards. A card is a standing law, but it does nothing until you place it in one of your government\'s slots, on the Statecraft screen. A placed card is locked in for a few turns.',
+          'Your culture has earned a draft: pick one of these cards. A card is a standing law, but it does nothing until you place it in one of your government\'s chairs, on the Statecraft screen. A placed card is locked in for a few turns.',
       },
     ],
   },
@@ -404,7 +404,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'Somebody else is out there',
         body:
-          'That unit belongs to another empire. You are at peace until someone declares war — at peace their soldiers cannot enter your land, and you cannot attack them. Declaring happens on the Diplomacy screen (the flag button). Barbarians follow no rules and attack anyone, so keep a soldier in each city.',
+          'That unit belongs to another empire. You are at peace until someone declares war — at peace their soldiers cannot enter your land, and you cannot attack them. Declaring happens on the Diplomacy screen: press W, or the Diplomacy mark on the panel at the top left. Barbarians follow no rules and attack anyone, so keep a soldier in each city.',
       },
     ],
   },
@@ -445,6 +445,42 @@ export const TIPS: readonly TutorialTip[] = [
           // Below zero, borders stop growing and land cannot be bought; the
           // yield penalty starts further down (`meterEffects`, `src/sim/meters.ts`).
           'You hold more cities than your authority can govern, so your borders stop growing and you cannot buy land until it recovers. Go further over and your production, science and culture drop too. Certain buildings raise it, and so does entering a new age — hover the authority number at the top of the screen for the full account.',
+      },
+    ],
+  },
+  // Three hints for things built in November 2026 that no step explains. Each
+  // is raised by a signal the interface already sends. The first follows the
+  // player's first build order, because the player is in the city screen then.
+  {
+    id: 'citizens',
+    triggers: ['command:setCityProduction'],
+    pages: [
+      {
+        title: 'The bar at the foot of the city',
+        body:
+          'The city chooses which hexes its citizens work. To choose for it, press Manage citizens and click a hex to pin a citizen there. Buy tiles adds land for gold, and Leave city returns you to the map.',
+      },
+    ],
+  },
+  {
+    id: 'workerAdvice',
+    triggers: ['select:worker'],
+    pages: [
+      {
+        title: 'Advice for a worker',
+        body:
+          'Corner ticks mark the hexes we recommend this worker improves. Point at one, and the line at the bottom of the screen says what to build there and how the yields change. You can ignore the advice.',
+      },
+    ],
+  },
+  {
+    id: 'healing',
+    triggers: ['command:attack'],
+    pages: [
+      {
+        title: 'Rest a hurt unit',
+        body:
+          'A hurt unit heals when it does not move or fight. Press Fortify until healed on its panel (the U key): it digs in, stops asking for orders, and wakes at full health or when an enemy comes into sight.',
       },
     ],
   },

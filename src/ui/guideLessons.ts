@@ -293,6 +293,9 @@ export const GUIDE_LESSONS = [
     workingTitle: 'Levy',
   },
   {
+    // A unique improvement: one that an Order opens for a worker. The id and
+    // the `tendedWork` tag keep the design's old word, because the guide's
+    // memory stores lesson ids (`guideStorage.ts`).
     id: 'tendedWork',
     kind: 'firstContact',
     switch: 'lessons',
@@ -302,7 +305,7 @@ export const GUIDE_LESSONS = [
     hosts: ['board'],
     trigger: { kind: 'holds', when: flag('tendAvailable') },
     completes: [{ by: 'command', command: 'buildImprovement', tag: 'tendedWork' }],
-    workingTitle: 'Tended work',
+    workingTitle: 'Unique improvement',
   },
   {
     id: 'newBand',

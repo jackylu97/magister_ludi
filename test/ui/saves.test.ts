@@ -39,6 +39,8 @@ import {
   metaKey,
   namedSlotId,
   newestSlot,
+  otherBuildSaves,
+  otherBuildSavesNotice,
   readSaveText,
   readSlot,
   resumeSeat,
@@ -49,6 +51,7 @@ import {
   writeSave,
 } from '../../src/ui/saves';
 import { createGame, newGame } from '../sim/newGameHelpers';
+import { uiSource } from './sourceHelpers';
 
 // Every test in this file does real save work. The default 5 s limit failed on a loaded machine in
 // several main gates on 2026-11-17, each time on a different test, and each passed alone. The limit is
@@ -693,22 +696,76 @@ describe('loadSave', SLOW, () => {
     expect(loadSave('[]')).toMatchObject({ ok: false, error: /not a save/ });
   });
 
-  it('refuses either version mismatch, and says there are no migrations', async () => {
+  it('refuses either version mismatch with a calm sentence that says what to do', async () => {
     const game = playedGame();
     const older = { ...makeSavePayload(game, 'Rome', 0), formatVersion: 0 };
     const format = loadSave(JSON.stringify(older));
     expect(format.ok).toBe(false);
-    expect(format.ok === false && format.error).toMatch(/format 0/);
-    expect(format.ok === false && format.error).toMatch(/not migrated/);
+    expect(format.ok === false && format.error).toMatch(/file format 0/);
+    expect(format.ok === false && format.error).toMatch(/Start a new game\. Your file is not changed\./);
 
-    const rules = loadSave(
+    const newer = loadSave(
       JSON.stringify({ ...makeSavePayload(game, 'Rome', 0), schemaVersion: SCHEMA_VERSION + 1 }),
     );
-    expect(rules.ok).toBe(false);
-    expect(rules.ok === false && rules.error).toMatch(
-      new RegExp(`rules version ${SCHEMA_VERSION + 1}`),
+    expect(newer.ok === false && newer.error).toMatch(/from a newer build of the game/);
+    expect(newer.ok === false && newer.error).toMatch(
+      new RegExp(`save version ${SCHEMA_VERSION + 1}; this build plays version ${SCHEMA_VERSION}`),
     );
-    expect(rules.ok === false && rules.error).toMatch(/not migrated/);
+  });
+
+  // The three places an older save enters: Import a file, and the two lists
+  // (the title's Continue and recent worlds at boot, and the Load sheet).
+  it('Import a file: an older save is refused in plain words, and never throws', async () => {
+    const game = playedGame();
+    const text = JSON.stringify({ ...makeSavePayload(game, 'Rome', 0), schemaVersion: SCHEMA_VERSION - 1 });
+    const result = loadSave(text);
+    expect(result).toMatchObject({ ok: false });
+    expect(result.ok === false && result.error).toBe(
+      `This save is from an older build of the game and cannot continue here (save version ` +
+        `${SCHEMA_VERSION - 1}; this build plays version ${SCHEMA_VERSION}). Start a new game. ` +
+        'Your file is not changed.',
+    );
+    // A version that is not a number at all (a hand-edited file) reads the same way.
+    const odd = loadSave(JSON.stringify({ ...makeSavePayload(game, 'Rome', 0), schemaVersion: 'x' }));
+    expect(odd.ok === false && odd.error).toMatch(/cannot continue here/);
+  });
+
+  it('boot and the Load sheet: an older autosave is in no list, is counted, and is kept', async () => {
+    const storage = fakeStorage();
+    const game = playedGame();
+    await writeSave(storage, 'autosave', makeSavePayload(game, 'Rome', 0));
+    expect(listSaves(storage)).toHaveLength(1);
+    expect(otherBuildSaves(storage)).toBe(0);
+    expect(otherBuildSavesNotice(0)).toBeNull();
+
+    // Make the stored save an older one: lower the version in every key it wrote.
+    const now = `"schemaVersion":${SCHEMA_VERSION}`;
+    const then = `"schemaVersion":${SCHEMA_VERSION - 1}`;
+    let edited = 0;
+    for (const [key, value] of [...storage.map]) {
+      if (!value.includes(now)) continue;
+      storage.map.set(key, value.split(now).join(then));
+      edited += 1;
+    }
+    expect(edited).toBeGreaterThan(0);
+    const before = new Map(storage.map);
+
+    // Continue and both lists read `listSaves`, so the save is offered nowhere.
+    expect(listSaves(storage)).toEqual([]);
+    expect(newestSlot(storage)).toBeNull();
+    // The count is what the title and the Load sheet turn into the sentence.
+    expect(otherBuildSaves(storage)).toBe(1);
+    const notice = otherBuildSavesNotice(otherBuildSaves(storage));
+    expect(notice).toMatch(/from another build of the game and cannot continue here/);
+    expect(notice).toMatch(/Start a new game\. The saved game was not deleted\./);
+    // Reading the lists deleted and changed nothing.
+    expect(storage.map).toEqual(before);
+  });
+
+  it('the title and the Load sheet both print the other-build sentence', () => {
+    for (const file of ['main.ts', 'savesPanel.ts']) {
+      expect(uiSource(file)).toMatch(/otherBuildSavesNotice\(otherBuildSaves\(/);
+    }
   });
 
   it('refuses a file with no config and one with no log', async () => {

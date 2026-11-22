@@ -36,6 +36,8 @@ import {
   deleteSave,
   exportFilename,
   listSaves,
+  otherBuildSaves,
+  otherBuildSavesNotice,
   memorySaveStorage,
   readSaveText,
   slotSummary,
@@ -87,6 +89,8 @@ interface SavesPanelOptions {
   fileInput: HTMLInputElement;
   /** Shown instead of the list when the shelf is empty. */
   emptyNote: HTMLElement;
+  /** Where the sheet says that a stored save is from another build. Optional. */
+  otherBuildNote?: HTMLElement;
   /** Where a refusal is printed. Cleared on every open. */
   errorEl: HTMLElement;
   storage: SaveStorage;
@@ -212,6 +216,7 @@ export function createSavesPanel(options: SavesPanelOptions): SavesPanel {
     importButton,
     fileInput,
     emptyNote,
+    otherBuildNote,
     errorEl,
     storage,
     abandonsGame,
@@ -440,6 +445,12 @@ export function createSavesPanel(options: SavesPanelOptions): SavesPanel {
     const slots = listSaves(storage);
     list.replaceChildren(...slots.map(buildRow));
     emptyNote.hidden = slots.length > 0;
+    // A save from another build is in no list. Say so, or it has only vanished.
+    if (otherBuildNote !== undefined) {
+      const notice = otherBuildSavesNotice(otherBuildSaves(storage));
+      otherBuildNote.textContent = notice ?? '';
+      otherBuildNote.hidden = notice === null;
+    }
   }
 
   // --- the file picker ------------------------------------------------------

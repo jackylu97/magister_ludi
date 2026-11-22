@@ -151,7 +151,11 @@ describe('the report file', SLOW, () => {
     const older = { ...moment.save, schemaVersion: SCHEMA_VERSION - 1 };
     expect(loadSave(reportText(moment.head, JSON.stringify(older)))).toMatchObject({
       ok: false,
-      error: expect.stringMatching(/rules version/),
+      error: expect.stringMatching(/from an older build of the game and cannot continue here/),
+    });
+    // A developer who opens an old report is told which build made it.
+    expect(loadSave(reportText(moment.head, JSON.stringify(older)))).toMatchObject({
+      error: expect.stringContaining(`Build ${moment.head.build.commit} made this report.`),
     });
   });
 

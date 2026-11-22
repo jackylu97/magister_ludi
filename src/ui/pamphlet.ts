@@ -172,10 +172,10 @@ export const PAMPHLET_PAGES: readonly PamphletPage[] = [
     title: 'Statecraft and religion',
     panel: {
       image: '/pamphlet/statecraft.png',
-      caption: 'The Statecraft screen: a drafted card going into a government slot.',
+      caption: 'The Statecraft screen: a drafted card going into a government chair.',
     },
     lines: [
-      'Culture earns drafts of cards — pick one, then place it in a slot on the [[concept:statecraft|Statecraft]] screen to make it law.',
+      'Culture earns drafts of cards — pick one, then place it in a chair on the [[concept:statecraft|Statecraft]] screen to make it law.',
       // The faith screen is named Faith since the interface rework (2026-10-15).
       'The Faith screen holds your gods, your blessings and, in time, a [[concept:religion|religion]] of your own.',
     ],
@@ -194,7 +194,7 @@ export const PAMPHLET_PAGES: readonly PamphletPage[] = [
   },
   {
     id: 'fog',
-    title: 'The fog and the wild',
+    title: 'The fog and the barbarians',
     panel: {
       image: '/pamphlet/fog-camp.png',
       caption: 'The edge of the known world, with a barbarian camp found in it.',
@@ -237,7 +237,7 @@ export const PAMPHLET_PAGES: readonly PamphletPage[] = [
     },
     lines: [
       'You are at peace until somebody declares war — until then their soldiers cannot enter your land, and you cannot [[concept:combat|attack]] them.',
-      'War, peace, and deals live on the Diplomacy screen, behind the flag button.',
+      'War, peace, and deals live on the Diplomacy screen: press W, or the Diplomacy mark on the panel at the top left.',
     ],
   },
   {

@@ -71,6 +71,7 @@ import {
 } from '../../src/ui/pamphlet';
 import { numberWords } from '../../src/ui/numberWords';
 import { stripRefs } from '../../src/sim/statecraft';
+import { uiSource as hintSource } from './sourceHelpers';
 
 const SOURCES = import.meta.glob(
   [
@@ -1023,5 +1024,33 @@ describe('the pamphlet', () => {
     expect(text).toContain('stays in the Compendium');
     // And the address it means is the entry the book actually shelves.
     expect(PAMPHLET_ENTRY_ID).toBe('intro:pamphlet');
+  });
+});
+
+// --- the hints of November 2026 -----------------------------------------------
+
+describe('the hints for what the November 2026 builds added', () => {
+  const words = [
+    ...STEPS.map((step) => step.body),
+    ...TIPS.flatMap((tip) => tip.pages.map((page) => page.body)),
+  ].join('\n');
+
+  it('raises each hint from a signal the interface sends', () => {
+    const triggerOf = (id: string) => TIPS.find((tip) => tip.id === id)?.triggers;
+    expect(triggerOf('citizens')).toEqual(['command:setCityProduction']);
+    expect(triggerOf('workerAdvice')).toEqual(['select:worker']);
+    expect(triggerOf('healing')).toEqual(['command:attack']);
+  });
+
+  it('names each control by the label the screen prints', () => {
+    const screens = ['index.html', 'unitPanel.ts', 'cityPanel.ts'].map(hintSource).join('\n');
+    for (const label of ['Manage citizens', 'Buy tiles', 'Leave city', 'Fortify until healed', 'Report a problem']) {
+      expect(words, label).toContain(label);
+      expect(screens, label).toContain(label);
+    }
+  });
+
+  it('names no removed thing', () => {
+    expect(words).not.toMatch(/tended|wild land|pennant|flag button|government's slots/i);
   });
 });
