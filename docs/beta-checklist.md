@@ -1,5 +1,9 @@
 # Beta checklist
 
+> **The current list is `docs/plans/beta-checklist-2026-11-21.md`.** It carries
+> every item of this file that is still open (its section B2). This file is
+> kept for its detail on each item.
+
 Work to do, or to decide, before the closed beta. Each item says what it is,
 why it is here, and where its details are. Add a new item at the end of its
 section. When an item is done, mark it `[x]` and give the commit.

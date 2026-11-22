@@ -32,6 +32,23 @@ Owners: **A** is Astra (bots, rendering, models, rules and card builds).
 | 14 | A resource picker for composing a strategic resource offer on the diplomacy screen | C | Built. Each tray has a strategic group after the luxuries: the free copies on each chip, a struck chip with the sim's reason when none is free, and a hover note when the receiver cannot use it yet. The paper, the drawer and the peace terms name the loan (`docs/README.md`, "Strategic resources in an offer"). |
 | 15 | Wonders on the board: one model for a city that holds any wonder | A | **Done** by Astra: one landmark a city, which changes with the owner's age. |
 
+## B2. Carried from the first checklist (`docs/beta-checklist.md`, 2026-11-16 to 2026-11-19)
+
+The Claude session found on 2026-11-22 that an older checklist held items
+that this file had missed. Their state today:
+
+| Item | Owner | State |
+|---|---|---|
+| **Citizens ignore faith, science and culture when they choose a hex** | A (a rule), with C | **Still open.** `rules.cities.citizenWeights` counts food, production and gold only. A hex that pays 2 faith scores as nothing. The new decks put much more faith, culture and science on hexes (unique improvements, rites, holy sites), so this now costs more than when it was written. |
+| **Age 1 pacing** | U, then A or C | **Still open, and not defined.** The user wants the first age looked at. Evidence then: the first age ran to about turn 70 in the user's game and 87 in a test game. Since then: science from citizens was halved, units, workers and settlers cost more, and the world clock turns sooner. Measure again before deciding. |
+| **A check of the card yield figures** | C | **Still open.** The user saw figures on cards that looked wrong. Examples were never collected. |
+| **Difficulty levels** | U, then A | **Still open, no design.** The game has no difficulty setting. |
+| **The wager rework** | U | **Still open, no design.** Held with it: the abacus draws 13 beads a rod and the rule is 7. |
+| **The tutorial** | C to design, A to build | In discussion (2026-11-22). The guide's stale lessons are being fixed now; the designed tutorial is a separate job. |
+| **Changes to the other screens after In play shipped** (Faith sheet, Reliquary, Ledger overlap with In play) | C | Not done. Can wait for testers. |
+| Deck polish; the leader roster; choosing worked hexes; the city screen | | **Done** (the six deck passes, the roster of sixteen, the city screen's mode and scrim). |
+| A fifth age | | After the beta (ruled 2026-11-21). |
+
 ## C. Settled, no work
 
 - The unit pieces stay as they are. The kit in `art/unit-kit-trial/` is shelved.
