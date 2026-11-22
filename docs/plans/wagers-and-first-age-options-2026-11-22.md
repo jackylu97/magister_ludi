@@ -780,3 +780,16 @@ The user: "1. adds, the hardest difficulty should be brutal 2. yup 3. only you
 More wagers from the user, to add to the list: "total population. total
 cumulative faith+gold gain. total cumulative science + culture gain. what are
 some others that could be fun?"
+
+### Wagers the user liked (2026-11-22)
+
+The user: "highest production of one city is great, improved hexes is great,
+buildings finished this age is cool, different luxuries you hold is good, gold
+and faith spent good." On the largest single payout: "thats so cool but idk if
+it works with the game." The user's own three: total population; faith and
+gold gained over the age; science and culture gained over the age.
+
+Kept for the list: the highest production of one city, improved hexes,
+buildings finished this age, different luxuries held, gold and faith spent
+this age, total population, faith and gold gained, science and culture
+gained. The largest single payout is open.
