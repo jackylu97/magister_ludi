@@ -3369,3 +3369,31 @@ purchases share one launch rule), and the fish trap gate was already
 confirmed to Astra by the user. The wonder model ruling above is newer than
 the handoff's row 12 ("three shared models on the city tile") and refines it:
 one model for a city that holds any wonder.
+
+## City sites should prefer fresh water and the coast (ruled 2026-11-22, not built)
+
+The user: "the city suggestions don't seem very good, it should prioritize
+settling fresh water or coastal. Do the bots not care about fresh water/coastal
+settles? Fresh water increases growth in the city right?" Then: "add it to the
+handoff doc, astra should be keeping an eye on it."
+
+- A city with no fresh water grows 30% slower (`rules.cities.drySettlePercent`
+  −30, the line "No fresh water" in `explainGrowthPercent`), until an Aqueduct
+  or the like waters it.
+- The site score (`rules.sites`, read by `appraiseSite` in `src/sim/sites.ts`)
+  gives fresh water 6 points and the coast 4, against 14 for each luxury, 10
+  for each strategic resource and 2 for each hill. So a dry site with two
+  luxuries beats a river site with one.
+- The bots choose where to found with the same score (`explainSite` in
+  `src/ai/bot.ts` and `chain.ts`), so the settler's advice and the bots share
+  the fault, and one fix serves both.
+- **Starting figures proposed by the Claude session:** fresh water 24, coast
+  12. Fresh water then beats a luxury and a half; the coast sits just under a
+  luxury. The coast was priced before the Lighthouse, the Harbour, the fifteen
+  sea cards of Commerce and the rule that a city is coastal from two hexes
+  inland.
+- These two weights change where every bot founds, so they belong at the
+  start of a bot tuning run or among the knobs it tunes.
+- Later, not now: the coast could count for more when the seat's own decks
+  use the sea.
+- Owner: Astra.
