@@ -321,6 +321,7 @@ import {
   foundingErrorAt,
   growthThreshold,
   queueItemCost,
+  refreshCityDerived,
   tileContextAt,
   tileCopies,
   tileOwnerCityId,
@@ -525,6 +526,8 @@ export function valueContext(
    * passes one; every other caller gets a context with none, as before.
    */
   sitting?: SittingKey,
+  /** The price of a hammer only needs the technology chains. */
+  through: 'chains' | 'banks' = 'banks',
 ): ValueContext {
   const ai = aiFor(player);
   // One reading of the empire's books for the whole context — the pressure, the
@@ -642,6 +645,7 @@ export function valueContext(
   const traded: ValueContext = { ...staked, routes: routeOutlook(state, player, staked) };
   const raced: ValueContext = { ...traded, race: beadChain(state, player, traded) };
   const engines: ValueContext = { ...raced, chains: liveChains(state, player, raced) };
+  if (through === 'chains') return engines;
   const chained: ValueContext = {
     ...engines,
     expansion: nextTownChain(state, player, engines),
@@ -3264,6 +3268,37 @@ function sheetTable(state: GameState, city: City, ctx: ValueContext): FocusTable
   };
 }
 
+const FOCUS_HAMMER_PRICE = new WeakMap<ValueContext, number>();
+
+/** A city must value the hammers it gives up at the same price before and after it moves its workers. */
+function balancedHammerPrice(ctx: ValueContext): number {
+  const cached = FOCUS_HAMMER_PRICE.get(ctx);
+  if (cached !== undefined) return cached;
+  const state = ctx.state;
+  const focused = state.cities.filter(city => city.ownerId === ctx.playerId && cityFocus(city) !== 'default');
+  let baseline = ctx;
+  if (focused.length > 0) {
+    // Default assignments can change the build times used to price technology chains.
+    // Share the map, players, units and all cities whose assignments can stay as they are.
+    const copies = new Map(focused.map(city => [city.id, { ...city, focus: 'default' as const }]));
+    const view = { ...state, cities: state.cities.map(city => copies.get(city.id) ?? city) };
+    let changed = false;
+    for (const city of focused) {
+      const copy = copies.get(city.id)!;
+      refreshCityDerived(view, copy);
+      changed ||= copy.workedTiles.length !== city.workedTiles.length
+        || copy.workedTiles.some((tile, i) => {
+          const old = city.workedTiles[i]!;
+          return tile.col !== old.col || tile.row !== old.row;
+        });
+    }
+    if (changed) baseline = valueContext(view, state.players[ctx.playerId]!, undefined, undefined, 'chains');
+  }
+  const price = hammerPrice(baseline);
+  FOCUS_HAMMER_PRICE.set(ctx, price);
+  return price;
+}
+
 /**
  * **The hammer premium a sheet gives up**, as a printed term, or `null` (bot batch
  * BP13b). `hammerTerm`'s mirror for a negative change: the same price
@@ -3276,7 +3311,7 @@ function sheetTable(state: GameState, city: City, ctx: ValueContext): FocusTable
  */
 function lostHammerTerm(production: number, ctx: ValueContext): ValueTerm | null {
   if (production >= 0) return null;
-  const price = hammerPrice(ctx);
+  const price = balancedHammerPrice(ctx);
   const table = yieldWeight(ctx.ai, 'production', ctx.age);
   const over = price - table;
   if (over === 0) return null;

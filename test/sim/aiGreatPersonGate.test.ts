@@ -32,7 +32,7 @@ import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map
 import { renownThreshold } from '../../src/sim/renown';
 import { type GameState, type Player, bumpRevision, playerById } from '../../src/sim/state';
 import { researchExpansion } from '../../src/sim/tech';
-import { ABILITY_TECH } from '../../src/sim/techData';
+import { ABILITY_TECH, TECH_IDS, techColumn, techDef } from '../../src/sim/techData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { newGame } from './newGameHelpers';
 
@@ -46,8 +46,8 @@ function at(map: GameMap, col: number, row: number): Tile {
 }
 
 /**
- * Two grown towns for seat 0 on a blank board, with every technology on the
- * gate's road known except the gate itself, and `renown` banked.
+ * Two grown towns have finished the first research column and can research the
+ * great-person gate. The banked renown is the difference between the two cases.
  */
 function bench(renown: number): { state: GameState; player: Player } {
   const state = newGame({
@@ -73,7 +73,8 @@ function bench(renown: number): { state: GameState; player: Player } {
   }
   const player = playerById(state, 0)!;
   const road = researchExpansion(state, 0, GATE);
-  player.techsResearched = [...player.techsResearched, ...road.filter((id) => id !== GATE)];
+  const opening = TECH_IDS.filter(id => techDef(id).age === 1 && !techDef(id).charter && techColumn(id) <= 1);
+  player.techsResearched = [...new Set([...player.techsResearched, ...opening, ...road.filter(id => id !== GATE)])];
   player.renownPool = renown;
   recomputeAllVisibility(state);
   bumpRevision(state);

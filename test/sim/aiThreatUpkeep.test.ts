@@ -92,6 +92,9 @@ describe('P1: the threat count weighs a peaceful army by its owner’s lean', ()
   function neighbourAtTheGate(): { state: GameState; city: City } {
     const state = bench();
     const city = homeTown(state);
+    // Both cases use the same established town with its opening buildings finished.
+    city.buildings.push('granary', 'hallOfDeeds');
+    refreshCityDerived(state, city);
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 3, 3 + i);
     const far = foundCityAt(state, 1, at(state.map, 24, 6));
     refreshCityDerived(state, far);
@@ -122,7 +125,7 @@ describe('P1: the threat count weighs a peaceful army by its owner’s lean', ()
     openWar(state, 0, 1);
     bumpRevision(state);
     expect(valueContext(state, seat(state, 0)).threat).toBe(6);
-    expect(isSoldierItem(chooseProduction(state, seat(state, 0), city))).toBe(true);
+    expect(chooseProduction(state, seat(state, 0), city)).toEqual({ kind: 'unit', id: 'warrior' });
   });
 
   it('still trains the one defender of an empty town', () => {

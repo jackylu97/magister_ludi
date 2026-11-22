@@ -67,7 +67,7 @@ export function createWorksFixture() {
   const town = foundCityAt(state, 0, tile(8, 10));
   town.population = 4;
   state.tileOwner.fill(town.id);
-  state.players[0]!.techsResearched.push('calendar', 'siegecraft', 'sailing', 'agriculture', 'bronzePanoply', 'husbandry', 'mining', 'fletching');
+  state.players[0]!.techsResearched.push('calendar', 'bronzeWorking', 'sailing', 'agriculture', 'bronzePanoply', 'husbandry', 'mining', 'fletching');
   // The fixture edits the board by hand, so it announces before the next ask, as a command would.
   bumpRevision(state);
   for (const [col, row, id] of [

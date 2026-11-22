@@ -75,6 +75,7 @@ import {
   type GameConfig,
   type GameState,
   type Player,
+  addBuilding,
   createUnit,
   realPlayers,
   bumpRevision,
@@ -121,7 +122,7 @@ import {
   tilePurchaseError,
 } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
-import { unitDef, unitStampStrength } from '../../src/sim/unitData';
+import { isCombatant, unitDef, unitStampStrength } from '../../src/sim/unitData';
 import {
   foldEmpireRates,
 } from '../../src/sim/yields/empire';
@@ -744,21 +745,33 @@ describe('the chain in the book', () => {
   });
 
   it('carries no bridge term on a row no chain owes', () => {
-    // The other half: the term is a *reading of a live chain*, not a bonus for
-    // being for sale. A town that already holds the row owes the chain nothing.
     const { state, player } = chained(2, 'letters');
     player.gold = 4000;
-    const found = bridgeable(valueContext(state, player));
-    expect(found).not.toBeNull();
-    for (const city of state.cities) city.buildings.push(found!.id as never);
+    const before = valueContext(state, player);
+    const found = bridgeable(before);
+    const item = before.wants.gold.find(row => row.label === found?.label)?.buy?.item;
+    if (item?.kind !== 'building') throw new Error('Expected a building on a live chain');
+
+    for (const city of state.cities) addBuilding(state, city, item.id);
     bumpRevision(state);
     const ctx = valueContext(state, player);
+    expect(ctx.chains.flatMap(chain => chain.steps)
+      .some(step => step.kind === 'building' && step.id === item.id)).toBe(false);
+    expect(ctx.wants.gold.some(row => row.buy?.item.kind === 'building' && row.buy.item.id === item.id)).toBe(false);
+
+    // Other buildings can still advance the same technology. A purchase earns
+    // that credit only if the chain still needs this building in this city.
     for (const want of ctx.wants.gold) {
-      expect(
-        want.terms.some((term) =>
-          new RegExp(`buys the ${found!.goal} engine`).test(term.label),
-        ),
-      ).toBe(false);
+      const bridge = want.terms.find(term => term.label.includes(' engine the turns'));
+      if (!bridge) continue;
+      const purchase = want.buy;
+      if (purchase?.item.kind !== 'building') throw new Error('Expected a building purchase');
+      const building = purchase.item.id;
+      expect(ctx.chains.some(chain =>
+        bridge.label.includes(`the ${techDef(chain.goal).name} engine`)
+        && chain.steps.some(step => step.kind === 'building' && step.id === building
+          && step.copies.some(copy => copy.cityId === purchase.cityId)),
+      ), want.label).toBe(true);
     }
   });
 
@@ -2853,24 +2866,25 @@ describe('bot purchases in a garrisoned town', () => {
   it('buys beside the garrison without issuing a move', () => {
     const { state, player, city, blockerId } = garrisoned();
     const sitting = botSitting(0);
-    const log: { type: string; unitId?: number; cityId?: number }[] = [];
+    let bought;
     for (let ask = 0; ask < 60; ask++) {
       const decision = nextBotDecision(state, player.id, sitting);
-      if (decision === null) break;
-      const result = applyCommand(state, decision.command);
-      // The driver's rule: a refusal is a bug. A seat that had to be refused to
-      // get here would prove nothing about the two commands being one plan.
-      expect(result.ok).toBe(true);
-      log.push(decision.command as unknown as { type: string; unitId?: number; cityId?: number });
-      if (decision.command.type === 'purchaseItem') break;
+      if (decision === null || decision.command.type === 'endTurn') break;
+      const command = decision.command;
+      expect(command.type === 'moveUnit' && command.unitId === blockerId).toBe(false);
+      const firstNewId = state.nextEntityId;
+      expect(applyCommand(state, command).ok).toBe(true);
+      if (command.type === 'purchaseItem' && command.cityId === city.id
+        && command.item.kind === 'unit' && isCombatant(unitDef(command.item.id))) {
+        const type = command.item.id;
+        bought = state.units.find(unit =>
+          unit.id >= firstNewId && unit.ownerId === player.id && unit.type === type);
+        break;
+      }
     }
 
-    const step = log.findIndex((row) => row.type === 'moveUnit' && row.unitId === blockerId);
-    const buy = log.findIndex((row) => row.type === 'purchaseItem' && row.cityId === city.id);
-    expect(step).toBe(-1);
-    expect(buy).toBeGreaterThanOrEqual(0);
     expect(state.units.find(unit => unit.id === blockerId)).toMatchObject({ col: city.col, row: city.row });
-    const bought = state.units[state.units.length - 1]!;
+    if (!bought) throw new Error('Expected a new combat unit in this city');
     expect(wrappedDistance(state.map, tileHex(getTileAt(state.map, bought.col, bought.row)!),
       tileHex(getTileAt(state.map, city.col, city.row)!))).toBe(1);
   });

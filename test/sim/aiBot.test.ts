@@ -46,7 +46,7 @@ import { findPath, isPassable } from '../../src/sim/pathfind';
 import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
 import { buildImprovementAt, improvementErrorAt } from '../../src/sim/improvements';
 import { firstBlocker } from '../../src/ui/turnBlockers';
-import { UNIT_TYPE_IDS, type UnitTypeId, isCombatant, unitDef } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, isCombatant, isFieldSoldier, unitDef } from '../../src/sim/unitData';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { buildError, researchExpansion } from '../../src/sim/tech';
 import { type OrderId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
@@ -517,69 +517,32 @@ describe('the scored build list', () => {
 
 describe('the bot defends itself', () => {
   it('raises a soldier over an economy building when a column is next door', () => {
-    // **Design addendum 1.** The same town, appraised twice: once in a quiet
-    // world, once with three hostile soldiers parked beside it. What must change
-    // is what the town starts.
-    // **Re-sited 2026-09-11**, twice, for the user's new mapgen defaults and
-    // then M2's spacing (`docs/flags.md` (tttt), (rrrr)). The bench is a played
-    // board, so a different world is a differently-developed town, and the
-    // comparison the addendum is about — a worker in the quiet world, a soldier
-    // under the column — only shows on turns when the town is between errands:
-    // on a turn it has just taken a second site it wants a settler badly enough
-    // that a column next door does not move it. **Re-sited a third time,
-    // 2026-09-15**, for the soldiers' new price (`docs/flags.md` (mmmmm)).
-    // **Re-sited a fourth time for D1b**: the decks carry live rows now, so the
-    // bots draft from turn one and the played board is a differently-developed
-    // town by turn sixteen — where the quiet pick had become a scout, which is
-    // a combatant, and the comparison said nothing.
-    // **Re-sited a fifth time for R3**: the strategic roster changed what the
-    // ground carries and what a town can raise, and turn twenty-one now reads
-    // a worker either way. Swept 8–30 again: **nineteen** reads as the addendum
-    // says — a worker in the quiet world, a warrior under the column — and so
-    // does every turn from 16 to 20, which is the widest contiguous run on this
-    // board. It is asserted below rather than assumed: the quiet pick must be
-    // something other than a soldier, or the test proves nothing by finding one
-    // under siege.
-    // **Re-sited a sixth time for bot batch BP10**: a settler is now raised for
-    // every site no other settler of the seat is for, so the capital raises
-    // settlers through most of these turns, and under the column it took a
-    // settler on turn nineteen. Swept 8–32 again: turns 16 to 18 read as the
-    // addendum says (a settler in the quiet world, a soldier under the column),
-    // and seventeen is the middle of that run.
-    // Re-sited a seventh time for bot batch BP13b, whose workers lay only hexes a
-    // citizen will work, so the duel's towns develop differently. Swept 8 to 32
-    // again: turns 10 to 14 read as the addendum says (a worker or a granary in
-    // the quiet world, a warrior under the column), and twelve is the middle.
-    const game = grownGame(12);
-    const player = seat(game.state, 0);
-    const city = firstCity(game.state, 0);
-    // A quiet world is ESTABLISHED, not assumed (2026-09-05): on the retuned
-    // sheet the grown bench already has wild pieces wandering inside the threat
-    // radius of the first town, so the wild is cleared off the board before the
-    // quiet appraisal — the test's own column is placed below.
-    game.state.units = game.state.units.filter((unit) => unit.ownerId === player.id);
+    // One city has a garrison. The other still needs a defender.
+    const state = bareState(16, 12, true);
+    state.turn = 35;
+    const player = seat(state, 0);
+    player.isHuman = false;
+    player.techsResearched = ['agriculture'];
+    player.gold = 400;
+    const city = foundCityAt(state, player.id, at(state, 5, 5));
+    foundCityAt(state, player.id, at(state, 12, 7));
+    createUnit(state, player.id, 'warrior', city.col, city.row);
+    createUnit(state, player.id, 'scout', 1, 4);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    expect(valueContext(state, player).threat).toBe(0);
+    expect(chooseProduction(state, player, city)?.kind).toBe('building');
 
-    const quiet = chooseProduction(game.state, player, city);
-    expect(quiet).not.toBeNull();
-    // The other half of "what must change": with no column in sight the town is
-    // building for its economy, not for its walls.
-    expect(
-      quiet!.kind === 'unit' && isCombatant(unitDef((quiet as { id: 'warrior' }).id)),
-    ).toBe(false);
-    expect(valueContext(game.state, player).threat).toBe(0);
-
-    // The wild's own pieces, standing one hex off the town. `threatLevel` reads
-    // the board rather than the fog — the creed's omniscience clause, unchanged.
-    const wild = game.state.players.find((other) => other.barbarian)!;
-    for (let i = 0; i < 3; i++) {
-      createUnit(game.state, wild.id, 'warrior', city.col + 1, city.row + 1 + i);
+    const wild = state.players.find(other => other.barbarian)!;
+    for (const tile of tileNeighbors(state.map, at(state, city.col, city.row)).slice(0, 3)) {
+      createUnit(state, wild.id, 'warrior', tile.col, tile.row);
     }
-    expect(valueContext(game.state, player).threat).toBeGreaterThan(0);
-
-    const besieged = chooseProduction(game.state, player, city);
-    expect(besieged).not.toBeNull();
-    expect(besieged!.kind).toBe('unit');
-    expect(isCombatant(unitDef((besieged as { id: 'warrior' }).id))).toBe(true);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    expect(valueContext(state, player).threat).toBe(3);
+    const defense = chooseProduction(state, player, city);
+    if (defense?.kind !== 'unit') throw new Error('Expected the city to train a defender');
+    expect(isFieldSoldier(unitDef(defense.id))).toBe(true);
   });
 
   it('holds the garrison rule while it hunts', () => {

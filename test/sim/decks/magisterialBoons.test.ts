@@ -560,7 +560,7 @@ describe('the seams of the boons', () => {
 
   it('draws the foreign card rarity first, with no pity', () => {
     expect(body('sim/statecraft/draft.ts', 'drawForeignCard')).toContain(
-      'drawRarityFirst(state, foreignCardBag(state, player), 0)',
+      'drawRarityFirst(state, foreignCardBag(state, player), 0, 0, humanOrderRarity(state, player))',
     );
     expect(filesWith('drawForeignCard(')).toEqual(['sim/cities.ts', 'sim/statecraft/draft.ts']);
   });

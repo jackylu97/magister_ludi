@@ -11,7 +11,7 @@
  * eleventh chain or a sixth unique would need no line here.
  *
  * Five concerns, in the order a player meets them: the chain, the withdrawn
- * rows, the founding artefact, the five uniques, and the deeds that used to name
+ * rows, the founding artefact, the empire buildings, and the deeds that used to name
  * cut rows.
  */
 import { describe, expect, it } from 'vitest';
@@ -307,30 +307,23 @@ describe('the Town Charter is granted and never built', () => {
   });
 });
 
-// --- the five uniques --------------------------------------------------------
+// --- empire buildings --------------------------------------------------------
 
-describe('the five unique buildings', () => {
-  it('stands one to a realm, on its own node, at about half its age’s wonder', () => {
+describe('empire buildings on the ordinary research tree', () => {
+  const expected = ['caravanserai', 'forum', 'hallOfDeeds', 'heroicEpic', 'highTemple', 'imperialThrone'] as const;
+
+  it('prices each of the six buildings as large, at about half the base price of a wonder', () => {
     const priced = UNIQUES.filter((id) => BUILDING_UNLOCK_TECH.has(id));
-    // The three national rows and the Opus wear the same marker; what is under
-    // test is the set the fewer-things pass added, which is exactly the five
-    // that sit on an ordinary node in Æra II or III.
-    // The three national bead rows wear the same marker and are not this set:
-    // they are `oncePerEmpire` **doors** that grant a bead, so the fewer-things
-    // five are picked out by the age and by paying no bead.
-    // The great houses a charter technology opens (Scientific batch S4: the
-    // Mouseion and the Bimaristan sit in Æra II and III) are not this set
-    // either: their node is off the sky, and only a charter's holder may
-    // research it.
+    // Charter buildings require a specific deck. National wonders grant a bead.
     const set = priced.filter(
       (id) =>
         techDef(BUILDING_UNLOCK_TECH.get(id)!).age <= 3 &&
         techDef(BUILDING_UNLOCK_TECH.get(id)!).charter !== true &&
         (buildingDef(id).onComplete ?? []).every((grant) => grant.grant !== 'bead'),
     );
-    expect([...set].sort()).toEqual(
-      ['caravanserai', 'forum', 'heroicEpic', 'highTemple', 'imperialThrone'].sort(),
-    );
+    expect([...set].sort()).toEqual(expected);
+    expect(BUILDING_UNLOCK_TECH.get('hallOfDeeds')).toBe('agriculture');
+    expect(buildingProductionCost('hallOfDeeds')).toBe(RULES.production.sizeHammers.large);
     // **"About half" is now a statement about the two sizes** (batch P1,
     // `docs/production-costs.md`): a unique is a `large` building and a wonder
     // is a `wonder`, so the proportion the ruling names lives in one place —
@@ -352,11 +345,12 @@ describe('the five unique buildings', () => {
   it('is refused a second time in the realm, and byte-identically', () => {
     const g = game();
     const first = found(g.state, 0);
+    expect(buildingProductionCost('hallOfDeeds', g.state, 0)).toBe(30);
     const spot = g.state.map.tiles.find(
       (tile) => tile.terrain === 'grassland' && Math.abs(tile.col - first.col) > 5,
     )!;
     const second = foundCityAt(g.state, 0, spot);
-    for (const id of ['heroicEpic', 'imperialThrone', 'highTemple', 'forum', 'caravanserai'] as const) {
+    for (const id of expected) {
       learnUpTo(g.state, 0, id);
       expect(buildError(g.state, 0, 'building', id, second), id).toBeNull();
       first.buildings.push(id);

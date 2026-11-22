@@ -85,16 +85,16 @@ it('completes the research head on draft and on wonder completion, leaving the n
   const { state, player, home } = board();
   player.techsResearched = ['agriculture'];
   player.researching = 'mining';
-  player.researchQueue = ['husbandry', 'fletching'];
+  player.researchQueue = ['husbandry', 'calendar'];
   player.sciencePool = 4;
   player.statecraft.pendingOrder = { options: ['theAlfonsineTables'] };
   expect(applyCommand(state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
   expect(player.techsResearched).toContain('mining');
-  expect(researchPlan(player)).toEqual(['husbandry', 'fletching']);
+  expect(researchPlan(player)).toEqual(['husbandry', 'calendar']);
   seat(state, 'theLodgeBooks');
   realiseItem(state, home, { kind: 'building', id: 'stonehenge' });
   expect(player.techsResearched).toContain('husbandry');
-  expect(researchPlan(player)).toEqual(['fletching']);
+  expect(researchPlan(player)).toEqual(['calendar']);
 });
 
 it.each([true, false])('captures a city with an available technology = %s', hasTech => {
@@ -102,23 +102,23 @@ it.each([true, false])('captures a city with an available technology = %s', hasT
   const other = state.players[1]!;
   player.techsResearched = ['agriculture'];
   other.techsResearched = hasTech ? ['agriculture','mining','bronzeWorking'] : ['agriculture'];
-  player.researching = 'fletching';
+  player.researching = 'calendar';
   player.sciencePool = 3;
   rival.population = 4;
   rival.hp = 0;
   seat(state, 'carriedOffScholars');
   const attacker = createUnit(state, 0, 'warrior', 9, 5);
-  const price = foldTechCost(explainTechCost(state, player, 'fletching'));
+  const price = foldTechCost(explainTechCost(state, player, 'calendar'));
   const result = applyCommand(state, { type: 'attack', playerId: 0, unitId: attacker.id, target: { col: 10, row: 5 } });
   expect(result.ok, JSON.stringify(result)).toBe(true);
   expect(rival.ownerId).toBe(0);
   if (hasTech) {
     expect(player.techsResearched).toContain('mining');
     expect(player.techsResearched).not.toContain('bronzeWorking');
-    expect(player.researching).toBe('fletching');
+    expect(player.researching).toBe('calendar');
     expect(player.sciencePool).toBe(3);
   } else {
-    expect(player.techsResearched).toContain('fletching');
+    expect(player.techsResearched).toContain('calendar');
     expect(player.sciencePool).toBe(3 + 30 * 4 - price);
     expect(player.techsResearched).not.toContain('mining');
   }
@@ -154,9 +154,9 @@ it('keeps unassigned science and drops the learned node from a planned queue', (
   grantCapturedTechnology(state, player, 'mining');
   expect(player.sciencePool).toBe(9);
   expect(player.researching).toBeNull();
-  player.researching = 'fletching';
+  player.researching = 'calendar';
   player.researchQueue = ['husbandry', 'earthenware'];
   grantCapturedTechnology(state, player, 'husbandry');
-  expect(researchPlan(player)).toEqual(['fletching', 'earthenware']);
+  expect(researchPlan(player)).toEqual(['calendar', 'earthenware']);
   expect(player.sciencePool).toBe(9);
 });

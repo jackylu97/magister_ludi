@@ -437,9 +437,9 @@ describe('the roster is priced by its size and its column', () => {
     expect(unitProductionCost(state, 0, 'scout')).toBe(18);
     expect(unitProductionCost(state, 0, 'warrior')).toBe(18);
     expect(unitProductionCost(state, 0, 'worker')).toBe(14);
-    expect(unitProductionCost(state, 0, 'archer')).toBe(18);
-    // One column on, the spearman pays the rate once over the line base, then
-    // the military surcharge.
+    // Sailing unlocks the Trireme in column one. Fletching unlocks the Archer in column two.
+    expect(unitProductionCost(state, 0, 'trireme')).toBe(25);
+    expect(unitProductionCost(state, 0, 'archer')).toBe(23);
     expect(unitProductionCost(state, 0, 'spearman')).toBe(32);
     // The mounted premium is the `heavy` size, and where a horse sits in the
     // tree is the rest of it: the chariot is The Wheel's in Æra I, the horseman
@@ -776,12 +776,10 @@ describe('the palisade is a wall the town built', () => {
     expect(buildingCityStat(city, 'sight')).toEqual([]);
   });
 
-  it('is handed over by Stonecraft, on the same list the monument is', () => {
-    // The wonders homed on each node are on the same list and after the
-    // ordinary rows, because that is the order `unlocks.buildings` carries.
+  it('unlocks the Palisade with Stonecraft and the Monument with Pottery', () => {
+    expect(techGifts('earthenware')).toContainEqual(expect.objectContaining({ kind: 'building', id: 'monument' }));
     const gifts = techGifts('stonecraft').filter((gift) => gift.kind === 'building');
     expect(gifts.map((gift) => gift.id)).toEqual([
-      'monument',
       'palisade',
       'stonehenge',
       'pyramids',

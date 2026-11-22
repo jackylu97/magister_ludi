@@ -328,7 +328,7 @@ describe('faith that buys buildings', () => {
   /** A seat making faith, with a Shrine standing and the Temple open. */
   function faithful(): { state: GameState; player: Player; towns: City[] } {
     const made = board([6, 6]);
-    learn(made.state, 0, 'divination', 'theHighTemple');
+    learn(made.state, 0, 'husbandry', 'divination', 'theHighTemple');
     made.towns[0]!.buildings.push('shrine');
     refreshCityDerived(made.state, made.towns[0]!);
     bumpRevision(made.state);
@@ -371,13 +371,12 @@ describe('faith that buys buildings', () => {
 
   it('is worth nothing to a seat that makes no faith', () => {
     const { state, player } = board([6]);
-    learn(state, 0, 'divination', 'theHighTemple');
+    learn(state, 0, 'husbandry', 'divination', 'theHighTemple');
     expect(scoreEffects(effectsOf(GIFTS), valueContext(state, player))).toBe(0);
   });
 
   it('prices one faith budget across several building purchase rules', () => {
     const { state, player } = faithful();
-    learn(state, 0, 'stonecraft');
     const ctx = valueContext(state, player);
     const gifts = effectsOf(GIFTS);
     const separate = gifts.map((effect) => scoreEffects([effect], ctx));

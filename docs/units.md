@@ -175,7 +175,7 @@ column, which is carried through every regeneration.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Warrior | melee | 20 | — | — | 2 | 100 | 2 | light | 18 | — | Agriculture | Swordsman | — |  |
 | Scout | scout | 10 | — | — | 2 | 100 | 3 | light | 18 | — | Agriculture | — | ignores terrain |  |
-| Archer | ranged | 15 | 20 | 2 | 2 | 100 | 2 | light | 18 | — | Fletching | Bowman | — |  |
+| Archer | ranged | 15 | 20 | 2 | 2 | 100 | 2 | light | 23 | — | Fletching | Bowman | — |  |
 | Bowman | ranged | 20 | 28 | 2 | 2 | 100 | 2 | line | 73 | — | Siegecraft | Composite Bowman | — |  |
 | Spearman | melee | 25 | — | — | 2 | 100 | 2 | line | 32 | — | Bronzeworking | Phalanx | — |  |
 | Horseman | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 181 | — | The Saddle | Knight | needs improved Horses or Camels |  |
@@ -224,7 +224,7 @@ column, which is carried through every regeneration.
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Trireme | navalLight | 36 | — | — | 4 | 100 | 2 | line | 32 | — | Sailing | Bireme | hit and run |  |
+| Trireme | navalLight | 36 | — | — | 4 | 100 | 2 | line | 25 | — | Sailing | Bireme | hit and run |  |
 | Bireme | navalLight | 40 | — | — | 5 | 100 | 2 | line | 73 | — | Wayfinding | Galley | hit and run |  |
 | Galley | navalLight | 52 | — | — | 5 | 100 | 2 | line | 126 | — | Shipwrights | Caravel | hit and run |  |
 | Caravel | navalLight | 65 | — | — | 6 | 100 | 2 | heavy | 534 | — | The Astrolabe | Corvette | hit and run |  |

@@ -361,15 +361,10 @@ describe('the worker offers every improvement the table names', () => {
     }
   });
 
-  it('has the lumbermill in it, on the terrain and the technology the ruling named', () => {
-    // The row itself is the sim batch's; this is the interface's half of the
-    // claim — that the row is all there was to it.
+  it('offers the Lumber Mill on forest and jungle after Bronze Working', () => {
     expect(IMPROVEMENT_IDS).toContain('lumbermill');
     const def = improvementDef('lumbermill');
-    // Moved to Siegecraft on 2026-09-03 (user: "lumbermills need to be way
-    // earlier in the tech tree, early age 2 probably") — the row is the whole
-    // of the change, and this is the interface's half of that claim.
-    expect(def.requiresTech).toBe('siegecraft');
+    expect(def.requiresTech).toBe('bronzeWorking');
     expect(def.yields.production).toBe(2);
     expect(def.validFeatures).toEqual(['forest', 'jungle']);
   });

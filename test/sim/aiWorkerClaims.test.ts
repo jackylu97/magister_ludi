@@ -428,7 +428,9 @@ describe('the focus arm compares all four citizen sheets (bot batch BP13b)', () 
       city.focus = focus;
       refreshCityDerived(state, city);
       bumpRevision(state);
+      const before = JSON.stringify(state);
       const table = focusReading(state, city, valueContext(state, seat(state)));
+      expect(JSON.stringify(state)).toBe(before);
       return { best: table.best, scores: Object.values(table.sheets).map((row) => row!.score) };
     });
     for (const reading of readings) {

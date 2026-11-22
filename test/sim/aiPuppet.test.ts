@@ -27,6 +27,7 @@ import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
 import type { QueueItem } from '../../src/sim/state';
 import { type BuildingId, buildingDef } from '../../src/sim/buildingData';
 import { projectDef } from '../../src/sim/projectData';
+import { buildError } from '../../src/sim/tech';
 import { TECH_IDS } from '../../src/sim/techData';
 import { at, bareState } from './improvementHelpers';
 import aiJson from '../../data/ai.json';
@@ -54,7 +55,8 @@ function bench(options: {
 }): { state: GameState; puppet: City } {
   const state = bareState(20, 16);
   const home = foundCityAt(state, 0, at(state, 3, 3));
-  home.queue = [{ kind: 'building', id: 'granary' }];
+  // Reserving the empire's Hall here keeps the puppet's choice between a local building and a project.
+  home.queue = [{ kind: 'building', id: 'hallOfDeeds' }];
   const puppet = foundCityAt(state, 0, at(state, 12, 9));
   puppet.puppet = true;
   puppet.population = options.population ?? 6;
@@ -140,6 +142,8 @@ describe('what a puppet raises', () => {
     // Library is beakers minus a wage, so this is exactly the comparison the
     // puppet profile's thumb decides, and the thumb was re-cut on this bench.
     const { state, puppet } = bench({ buildings: CHEAP_ROWS });
+    expect(buildError(state, 0, 'building', 'library', puppet)).toBeNull();
+    expect(buildError(state, 0, 'project', 'tithes', puppet)).toBeNull();
     const chosen = pick(state, puppet);
     expect(chosen).toEqual({ kind: 'building', id: 'library' });
   });

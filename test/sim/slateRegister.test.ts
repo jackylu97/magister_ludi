@@ -299,7 +299,7 @@ const ANNOUNCING = new Set([
   'visibility.ts#recomputeVisibility',
   'camps.ts#settleCampBounty',
   'beads.ts#payWindfall',
-  'barbarians.ts#foundCamps',
+  'barbarians.ts#placeCampBand',
   'cities.ts#assignCitizens',
   'cities.ts#claimTile',
   'cities.ts#foundCityAt',

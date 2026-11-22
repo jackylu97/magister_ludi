@@ -327,16 +327,17 @@ describe('a completion rider fires at the pace of its own rows', () => {
 
   it('reads a row not yet raised at the towns that could raise it, over the horizon', () => {
     const { state, player } = board([4, 4]);
-    player.techsResearched.push('stonecraft' as never);
-    bumpRevision(state);
-    const ctx = valueContext(state, player);
     const named: CardEffect = {
       kind: 'windfallRider',
       occasion: 'buildingCompletion',
       building: 'monument' as never,
       grant: GOLD,
     };
-    // Each of the two towns may raise a Monument, and none stands: 2 / horizon a turn.
+    expect(scoreEffects([named], valueContext(state, player))).toBe(0);
+    player.techsResearched.push('earthenware');
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    // After Pottery, both towns can build their first Monument.
     expect(scoreEffects([named], ctx)).toBeCloseTo((2 / HORIZON) * worth(ctx), 10);
   });
 });

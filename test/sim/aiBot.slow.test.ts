@@ -110,70 +110,15 @@ describe('a hundred and twenty turns of bots', () => {
         realPlayers(played.game.state).some((player) => player.pantheon.rungs > 0);
       expect(faithSpent).toBe(true);
 
-      // The treasury never runs away — the mirror of the solvency floor below,
-      // and the same kind of claim. What is asserted is "something spends it",
-      // so the bar is a share of what the seat earned rather than a fixed
-      // number of coins: a seat with no sink holds about everything it ever
-      // netted, and a seat whose spend arm works holds a small part of it.
-      //
-      // **Why not a fixed ceiling any more** (2026-10-13). The bar used to be
-      // 1,000 coins (once `4 × (spending.goldSpendAbove + spending.goldReserve)`,
-      // two knobs the want book retired). It failed after the midgame card buff
-      // and the current-band draft rule (c0a7536e), and the bot was not
-      // hoarding. Measured on this game, Crimson spent gold on 19 of the last
-      // 20 turns (22 routes hired and 15 gold purchases over the game) and
-      // ended at 1,038 coins. That figure is the spend arm working as designed:
-      // `bankSpend` keeps a hard cover of `solvency.reserveTurnsOfUpkeep` turns
-      // of the standing bill (3 × 221 = 663 at t120), the cheapest rows still
-      // unbought cost 468 and 1,056, and the reading is taken after the turn's
-      // income lands (+385 at t120). Cover plus one turn's income is already
-      // about 1,050. Before the change the same seat ended at 933 but stood at
-      // 1,279 on turn 119, so the fixed bar was passing on the turn it happened
-      // to be read. A fixed number grows stale as the economy grows; a share
-      // of earnings does not.
-      //
-      // Measured shares (end treasury ÷ the sum of each turn's positive net
-      // gold): Crimson 0.13 and Teal 0.18 after the change, 0.11 and 0.18
-      // before; the highest reading on any turn was 0.25. A seat with no sink
-      // would read near 1. One third leaves room for tuning and still fails a
-      // bot that stops spending.
-      //
-      // **The share is read above the wage cover** (2026-10-26). `bankSpend`
-      // never spends the cover, so coin inside it is coin the seat may not
-      // spend, and it says nothing about whether the spend arm works. The bar
-      // above assumed the cover is a small part of what a seat earns, which
-      // holds for a seat that lives on its income. It fails for a seat that
-      // lives on lump sums. When the bots learned to cut a deficit before the
-      // treasury runs out (`solvency.runwayTurns`), Teal stopped running its
-      // treasury down to pay a deficit. Its income was near nothing for the
-      // whole game (399 coins of positive net gold in 120 turns), most of its
-      // coin came from three great merchants' bargains, and it ended at 300 coins
-      // against a cover of 330. A third of 399 is 133, which is below its own
-      // cover, so the old reading passed only while the seat let a deficit eat
-      // the cover, and the solvency claims below exist to stop that.
-      // Crimson ends 550 coins above its cover of 648, against a bar of 4,084.
-      // A seat with no sink still fails: everything it earns piles up above
-      // the cover.
-      const share = 1 / 3;
+      // A seat can also earn gold in lump sums. Measure the gold it kept above
+      // its wage reserve against the gold it actually chose to spend.
       for (const player of realPlayers(played.game.state)) {
-        const earned = played.curve
-          .filter((reading) => reading.playerId === player.id)
-          .reduce((sum, reading) => sum + Math.max(0, reading.netGold), 0);
-        const cover =
-          aiJson.solvency.reserveTurnsOfUpkeep * upkeepBill(played.game.state, player.id);
-        expect({
-          seat: player.name,
-          gold: Math.round(player.gold),
-          cover: Math.round(cover),
-          earned: Math.round(earned),
-          spends: player.gold - cover < share * earned,
-        }).toEqual({
-          seat: player.name,
-          gold: Math.round(player.gold),
-          cover: Math.round(cover),
-          earned: Math.round(earned),
-          spends: true,
-        });
+        const cover = aiJson.solvency.reserveTurnsOfUpkeep * upkeepBill(played.game.state, player.id);
+        const available = Math.max(0, player.gold - cover);
+        if (available === 0) continue;
+        const retainedShare = available / (available + player.goldSpent);
+        expect(retainedShare, `${player.name} kept ${available} gold above reserve and spent ${player.goldSpent}`)
+          .toBeLessThan(1 / 3);
       }
     },
     PATIENCE,
