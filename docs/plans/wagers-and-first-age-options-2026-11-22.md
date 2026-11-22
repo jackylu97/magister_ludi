@@ -764,3 +764,19 @@ So the format in the user's words: **a fixed goal for a bead, and one more
 bead for leading the world at the age's end; a seat must stake one wager, and
 a failed stake has a cost.** What the cost is, and what the wagers count, is
 still in discussion.
+
+### The four readings, confirmed (2026-11-22)
+
+The user: "1. adds, the hardest difficulty should be brutal 2. yup 3. only you
+4. +2 faith total."
+1. **Every tier adds.** At tier 15 the rivals have +80% to all yields (tier 7
+   and tier 15), with tier 2 and tier 12 on top. "the hardest difficulty should
+   be brutal".
+2. **Tier 8:** the culture price of a draft and the renown price of a great
+   person each rise by 30%.
+3. **Tier 14:** technologies cost 30% more for the player only.
+4. **The Shrine gives +2 faith in all.**
+
+More wagers from the user, to add to the list: "total population. total
+cumulative faith+gold gain. total cumulative science + culture gain. what are
+some others that could be fun?"
