@@ -491,7 +491,7 @@ export class LensLayer {
        * gain their backing.
        */
       over: boolean;
-      /** True when the player's yields lens is on: the worked hexes' scrim is much stronger, and a free hex's figures are quieter. */
+      /** True when the player's yields lens is on. In an open city a free hex's figures are then quieter. */
       strong: boolean;
     },
   ): void {
@@ -532,8 +532,11 @@ export class LensLayer {
       // A city's hexes use the plaque variant's layout and place, worked or free, so that all of them line up.
       const laid = plaqueLayout(style && !marks!.over ? style.layout : 'stack', rows.map((key) => value[key]));
       const anchor = style && !marks!.over ? plaqueAnchor(style, laid.depth) : 0;
-      if (style && (kind === 'worked' || kind === 'pinned')) {
-        this.addPlaque(collector, centre.x, y, centre.z + anchor, laid, style, kind === 'pinned' ? marks!.seat : null, marks!.strong);
+      // The backing shows in one case: the pointer on a city while the yields are on for the whole board. In an
+      // open city, and under the pointer with the yields off, the outline says which hexes the city works, and a
+      // pinned hex has only its pin head.
+      if (style && (kind === 'worked' || kind === 'pinned') && (marks!.over || kind === 'pinned')) {
+        this.addPlaque(collector, centre.x, y, centre.z + anchor, laid, style, kind === 'pinned' ? marks!.seat : null, marks!.over);
       }
       rows.forEach((key, rowIndex) => {
         const cell = laid.cells[rowIndex]!;
@@ -575,6 +578,9 @@ export class LensLayer {
    * The backing under a worked hex's yield figures, and the pin head of a
    * pinned hex (idea e, "the yields are the mark"; see `citizenMarks.ts`).
    *
+   * `backed` is false wherever the outline already says which hexes the city
+   * works, and then only the pin head of a pinned hex is drawn.
+   *
    * The backing is one more flat quad behind the figures, in the same
    * collector, sized to them: the content plus `plaque.padX` each side and
    * `plaque.padZ` above and below. Sizes are rounded up to `plaque.step`, and
@@ -583,26 +589,29 @@ export class LensLayer {
    * for the pin heads. Which backing, which layout and where it sits are the
    * variant's (`plaque.styles`, chosen by `plaque.style`).
    */
-  private addPlaque(collector: InstanceCollector, x: number, y: number, z: number, laid: PlaqueLayout, style: PlaqueStyle, pinSeat: number | null, strong = false): void {
+  private addPlaque(collector: InstanceCollector, x: number, y: number, z: number, laid: PlaqueLayout, style: PlaqueStyle, pinSeat: number | null, backed: boolean): void {
     const spec = VIEW3D.territory.citizens.plaque;
     const snap = (size: number): number => Math.ceil(size / spec.step - 1e-6) * spec.step;
     const width = snap(laid.width + spec.padX * 2), depth = snap(laid.depth + spec.padZ * 2);
     // Only the pill wears the seat's colour on its edge. The others say "pinned" with the pin head alone.
     const edgeSeat = style.back === 'pill' ? pinSeat : null;
-    const key = `${style.back}:${width.toFixed(3)}x${depth.toFixed(3)}:${edgeSeat ?? ''}:${strong ? 'strong' : ''}`;
-    if (!this.plaques.has(key)) this.plaques.set(key, plaqueBackMaterial(style.back, width, depth, edgeSeat, strong));
-    const plaque = this.plaques.get(key);
-    if (!plaque) return;
     this.plaqueQuad ??= new PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-    const margin = plaqueMargin() * 2, flat = new Quaternion(), foot = style.back === 'tag' ? spec.foot : 0;
-    // The tag's quad is deeper than its paper by the foot, which is below the paper.
-    collector.add(this.plaqueQuad, [], new Matrix4().compose(new Vector3(x, y, z + foot / 2), flat, new Vector3(width + margin, 1, depth + foot + margin)),
-      { material: plaque, order: RENDER_ORDER.tileIcon - 0.5 });
+    const flat = new Quaternion();
+    if (backed) {
+      const key = `${style.back}:${width.toFixed(3)}x${depth.toFixed(3)}:${edgeSeat ?? ''}`;
+      if (!this.plaques.has(key)) this.plaques.set(key, plaqueBackMaterial(style.back, width, depth, edgeSeat));
+      const plaque = this.plaques.get(key);
+      const margin = plaqueMargin() * 2, foot = style.back === 'tag' ? spec.foot : 0;
+      // The tag's quad is deeper than its paper by the foot, which is below the paper.
+      if (plaque) collector.add(this.plaqueQuad, [], new Matrix4().compose(new Vector3(x, y, z + foot / 2), flat, new Vector3(width + margin, 1, depth + foot + margin)),
+        { material: plaque, order: RENDER_ORDER.tileIcon - 0.5 });
+    }
     if (pinSeat === null) return;
     if (!this.plaques.has(`pin:${pinSeat}`)) this.plaques.set(`pin:${pinSeat}`, pinHeadMaterial(pinSeat));
     const pin = this.plaques.get(`pin:${pinSeat}`);
-    // The pin head sits on the backing's top edge, as the camera sees it, or at its left end.
-    const at = style.pin === 'left' ? new Vector3(x - width / 2, y, z) : new Vector3(x, y, z - depth / 2);
+    // The pin head stands just above the figures, as the camera sees it, so that it covers no coin, or at the
+    // left end of a bar. It has its own dark rim and shadow, so it needs no backing under it.
+    const at = style.pin === 'left' ? new Vector3(x - width / 2, y, z) : new Vector3(x, y, z - depth / 2 - spec.pinSize * spec.pinRise);
     if (pin) collector.add(this.plaqueQuad, [], new Matrix4().compose(at, flat, new Vector3(spec.pinSize, 1, spec.pinSize)),
       { material: pin, order: RENDER_ORDER.tileIcon + 0.5 });
   }

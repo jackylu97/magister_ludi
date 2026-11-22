@@ -147,7 +147,7 @@ describe('the pointer on a city, with the yields on', () => {
     const off = lens({ citizens: { cityId, manage: true, lensOn: false } }), on = lens({ citizens: { cityId, manage: true, lensOn: true } });
     expect(sameLens(off, on)).toBe(false);
     expect(sameLens(on, on)).toBe(true);
-    expect(VIEW3D.territory.citizens.plaque.lensOn.scrimOpacity).toBeGreaterThan(VIEW3D.territory.citizens.plaque.scrimOpacity);
+    expect(VIEW3D.territory.citizens.plaque.lensOn.scrimOpacity).toBeGreaterThan(0.5);
     expect(VIEW3D.territory.citizens.plaque.lensOn.otherOpacity).toBeLessThan(VIEW3D.territory.citizens.freeYieldOpacity);
   });
 });

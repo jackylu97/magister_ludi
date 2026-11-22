@@ -7068,10 +7068,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .citizen-key-mark { display: inline-flex; }
 /* The board's own marks, small: a hex of ground, the light outline around a
-   city's work, and the dark scrim under a worked hex's yield coins. */
+   city's work, and a worked hex's yield coins. */
 .citizen-key-ground { fill: #6f8f52; stroke: var(--ink); stroke-width: 0.8; }
-.citizen-key-outline { fill: none; stroke: #e6d3a4; stroke-width: 1.3; stroke-linejoin: round; }
-.citizen-key-scrim { fill: rgba(29, 26, 32, 0.62); }
+.citizen-key-outline { fill: none; stroke: #e6d3a4; stroke-width: 1.6; stroke-linejoin: round; paint-order: stroke; filter: drop-shadow(0 0 0.6px rgba(29, 26, 32, 0.7)); }
+.citizen-key-disc { stroke: var(--ink); stroke-width: 0.6; }
 .citizen-key-disc.is-food { fill: var(--yield-food, #5d9a3c); }
 .citizen-key-disc.is-work { fill: var(--yield-production, #b9762f); }
 .citizen-key-pin { fill: var(--citizen-seat); stroke: var(--ink); stroke-width: 1.1; }

@@ -2041,3 +2041,35 @@ Built, not committed by the builder. The pictures are in `city-yields-fix.html`.
 - **Removed:** the knobs `outlineRound` and `doubleGap`, and the old key's
   `.citizen-key-plaque` rule. The plaque styles a, c, d and e stay in the data
   as options.
+
+
+## The outline's weight, and the dark shade in one case only (2026-11-22)
+
+The user, on the built outline and scrim: "lets give the outline slightly more
+wieght too, dark backing is fine. pointer's own white ring being stronger is
+fine. The dark shading is not great, lets just have it only apply on the
+mouseover preview when yield lens is on, remove it from the city screen and
+when the yield lens is off."
+
+Built, not committed by the builder:
+
+- **The outline** is about 30% wider: `outlineWidth` 0.047 (from 0.036),
+  `outlineOpacity` 0.95. Its dark backing is `outlineBackingExtra` 0.04 at
+  `outlineBackingOpacity` 0.42 (from 0.03 at 0.32). The pointer's ring is not
+  changed.
+- **The scrim** shows in one case: the pointer on a city on the main map while
+  the yields lens is on (`hover: 'over'`), at `plaque.lensOn.scrimOpacity`. It
+  is gone from the city screen, in the mode and out of it, with the lens on or
+  off, and from a hover with the lens off. There the outline says which hexes
+  the city works, and the yields print with nothing behind them.
+- **The pin head** of a pinned hex stands just above the hex's yields
+  (`plaque.pinRise`, a share of the pin's size), so that it covers no coin. It
+  keeps its own dark rim and shadow and has no backing.
+- **A free hex** in the city screen is fainter than a worked one, as before
+  (`freeYieldOpacity`, and `plaque.lensOn.otherOpacity` with the lens on).
+- **The dock's keys** have no scrim: the outline and two coins, and the same
+  with the pin head above the coins.
+- **Removed:** the knob `plaque.scrimOpacity` (the scrim has one strength now),
+  the `strong` argument of `plaqueBackMaterial` and of `addPlaque`, and the
+  `.citizen-key-scrim` rule. The plaque styles a, c, d and e stay in the data;
+  a style's backing now shows only in the one case above.

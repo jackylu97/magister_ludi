@@ -221,13 +221,14 @@ export type PlaqueBack = 'paper' | 'scrim' | 'pill' | 'tag';
  *     long. The quad is deeper than the paper by the foot, and the foot points
  *     at the hex's centre.
  *
- * `strong` is the scrim for a board that prints yields on every hex (the
- * player's yields lens): much darker (`plaque.lensOn.scrimOpacity`), so that
- * the city's hexes stand out from the rest.
+ * The scrim has one strength, `plaque.lensOn.scrimOpacity`, because it shows
+ * in one case only: the pointer on a city while the board prints yields on
+ * every hex (the user, 2026-11-22: "The dark shading is not great, lets just
+ * have it only apply on the mouseover preview when yield lens is on").
  *
  * Null where there is no canvas.
  */
-export function plaqueBackMaterial(back: PlaqueBack, width: number, depth: number, seat: number | null = null, strong = false): MeshBasicMaterial | null {
+export function plaqueBackMaterial(back: PlaqueBack, width: number, depth: number, seat: number | null = null): MeshBasicMaterial | null {
   if (back === 'paper') return plaqueMaterial(width, depth);
   const px = PLAQUE.pixelsPerUnit, margin = Math.ceil(PLAQUE.shadow * px * 1.6);
   const w = Math.round(width * px), body = Math.round(depth * px), foot = back === 'tag' ? Math.round(PLAQUE.foot * px) : 0;
@@ -236,9 +237,8 @@ export function plaqueBackMaterial(back: PlaqueBack, width: number, depth: numbe
     if (back === 'scrim') {
       ctx.filter = `blur(${Math.max(1, PLAQUE.scrimBlur * px)}px)`;
       ctx.beginPath(); ctx.roundRect(margin, margin, w, body, Math.min(w, body) * 0.35);
-      ctx.globalAlpha = strong ? PLAQUE.lensOn.scrimOpacity : PLAQUE.scrimOpacity; ctx.fillStyle = css(ART.ink); ctx.fill();
-      // The strong scrim is laid twice, so that its middle is nearly solid and only its edge is soft.
-      if (strong) ctx.fill();
+      // Laid twice, so that its middle is nearly solid and only its edge is soft.
+      ctx.globalAlpha = PLAQUE.lensOn.scrimOpacity; ctx.fillStyle = css(ART.ink); ctx.fill(); ctx.fill();
       return;
     }
     const outline = (inset: number): void => {
