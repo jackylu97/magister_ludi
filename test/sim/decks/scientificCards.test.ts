@@ -273,7 +273,8 @@ describe('the register', () => {
       "+2 renown per turn in every city, per building there that supplies science, favouring scholars",
     ]);
     expect(said('theWarManuals')).toEqual([
-      "+2 combat strength for ranged units",
+      // Every unit with a ranged attack: the words say so since 2026-11-22.
+      "+2 combat strength for units with a ranged attack",
     ]);
     expect(said('learnedCommissions')).toEqual([
       "+25% production toward empire buildings, in every city with a Library",

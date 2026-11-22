@@ -128,8 +128,15 @@ describe('the shelves', () => {
     // arrays they are built from, for the same reason one scale up.
     expect(shelf('intro').entries).toHaveLength(INTRO_ENTRIES.length);
     expect(shelf('concept').entries).toHaveLength(CONCEPT_ENTRIES.length);
-    expect(shelf('unit').entries).toHaveLength(UNIT_TYPE_IDS.length + LEAD);
-    expect(shelf('improvement').entries).toHaveLength(IMPROVEMENT_IDS.length + LEAD);
+    // The Units and Improvements shelves open with the pages of their kinds
+    // (mounted units, great person's works and so on) since 2026-11-22.
+    const kindsOn = (id: CompendiumSectionId, heading: string): number =>
+      shelf(id).entries.filter((entry) => entry.group === heading).length;
+    expect(kindsOn('unit', 'Kinds of unit')).toBeGreaterThan(0);
+    expect(shelf('unit').entries).toHaveLength(UNIT_TYPE_IDS.length + LEAD + kindsOn('unit', 'Kinds of unit'));
+    expect(shelf('improvement').entries).toHaveLength(
+      IMPROVEMENT_IDS.length + LEAD + kindsOn('improvement', 'Kinds of improvement'),
+    );
     expect(shelf('resource').entries).toHaveLength(RESOURCE_IDS.length + LEAD);
     // Every technology row has a page, the charter technologies included
     // (Scientific batch S12).

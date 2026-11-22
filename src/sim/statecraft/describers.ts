@@ -1195,6 +1195,52 @@ const BUILDING_KIND_PATTERNS: readonly (readonly [RegExp, (found: string) => str
 ];
 
 /**
+ * **The kinds of unit a card can name, each with the filter that decides it**
+ * (the user, 2026-11-22: "Unit classes yes"). The Compendium's Units shelf
+ * opens with a page for each, and the page lists every unit that
+ * `unitMatches` admits for the filter, which is the function every card effect
+ * asks. The page's name is `filterWords` of the filter, so the page, the card
+ * and the unit's own entry use one name.
+ *
+ * `words` is how a card's text says the kind, as a pattern for
+ * `markBuildingKinds`. A longer phrase stands before a shorter one that it
+ * contains.
+ */
+export const UNIT_KINDS: readonly { page: string; filter: UnitFilter; words: string }[] = [
+  { page: 'setRangedAttackUnits', filter: { ranged: true }, words: 'units? with a ranged attack' },
+  { page: 'setFiringShips', filter: { modelClass: 'navalRanged' }, words: 'ships that fire at a distance' },
+  { page: 'setLightWarships', filter: { modelClass: 'navalLight' }, words: 'light warships?' },
+  { page: 'setHeavyWarships', filter: { modelClass: 'navalHeavy' }, words: 'heavy warships?' },
+  { page: 'setMountedArchers', filter: { modelClass: 'mountedRanged' }, words: 'mounted archers?' },
+  { page: 'setMilitaryUnits', filter: { category: 'military' }, words: 'military units?' },
+  { page: 'setCivilianUnits', filter: { category: 'civilian' }, words: 'civilian units?' },
+  { page: 'setReligiousUnits', filter: { religious: true }, words: 'religious units?' },
+  { page: 'setMeleeUnits', filter: { modelClass: 'melee' }, words: 'melee units?' },
+  { page: 'setRangedUnits', filter: { modelClass: 'ranged' }, words: 'ranged units?' },
+  { page: 'setMountedUnits', filter: { modelClass: 'mounted' }, words: 'mounted units?' },
+  { page: 'setSiegeUnits', filter: { modelClass: 'siege' }, words: 'siege units?' },
+  { page: 'setScouts', filter: { explores: true }, words: 'scout units?|scouts?' },
+  { page: 'setShips', filter: { category: 'naval' }, words: 'ships' },
+];
+
+/** The pages of the two kinds of improvement a card can name. */
+export const IMPROVEMENT_KIND_PAGES = {
+  greatPersonWork: 'setGreatPersonWorks',
+  uniqueImprovement: 'setUniqueImprovements',
+} as const;
+
+/** The words for the kinds of unit and of improvement, each with its page. */
+const OTHER_KIND_PATTERNS: readonly (readonly [RegExp, RefKind, string])[] = [
+  ...UNIT_KINDS.map((kind): readonly [RegExp, RefKind, string] => [
+    new RegExp(`\\b(?:${kind.words})\\b`, 'g'),
+    'unit',
+    kind.page,
+  ]),
+  [/\bgreat(?: person[’']s|-person| people[’']s) works?\b/g, 'improvement', IMPROVEMENT_KIND_PAGES.greatPersonWork],
+  [/\bunique improvements?\b/g, 'improvement', IMPROVEMENT_KIND_PAGES.uniqueImprovement],
+];
+
+/**
  * A clause with each kind of building it names made a link to that kind's
  * page: "per [[building:setPublicWorks|public work]] you hold". The project's
  * rule is that a named thing in a describer is a keyword ref, and a kind of
@@ -1211,15 +1257,29 @@ export function markBuildingKinds(text: string): string {
   let from = 0;
   const plain = (part: string): string => {
     let marked = part;
-    for (const [pattern, page] of BUILDING_KIND_PATTERNS) {
+    // Buildings first, then the kinds of unit and of improvement (the same
+    // pass since 2026-11-22: "Unit classes yes").
+    const patterns: (readonly [RegExp, (found: string) => string])[] = [
+      ...BUILDING_KIND_PATTERNS.map(
+        ([pattern, page]): readonly [RegExp, (found: string) => string] => [
+          pattern,
+          (found) => ref('building', page(found), found),
+        ],
+      ),
+      ...OTHER_KIND_PATTERNS.map(
+        ([pattern, kind, page]): readonly [RegExp, (found: string) => string] => [
+          pattern,
+          (found) => ref(kind, page, found),
+        ],
+      ),
+    ];
+    for (const [pattern, mark] of patterns) {
       // A part already marked by an earlier pattern is split again, so that no
       // pattern reads inside a mark.
       marked = marked
         .split(/(\[\[[^\]]*\]\])/)
         .map((piece) =>
-          piece.startsWith('[[')
-            ? piece
-            : piece.replace(new RegExp(pattern.source, 'g'), (found) => ref('building', page(found), found)),
+          piece.startsWith('[[') ? piece : piece.replace(new RegExp(pattern.source, 'g'), mark),
         )
         .join('');
     }
@@ -6515,8 +6575,14 @@ function unitNounWords(filter: UnitFilter): string {
   if (filter.modelClasses !== undefined && filter.modelClasses.length > 0) {
     return `${listWords(filter.modelClasses.map(modelClassWord))} units`;
   }
-  if (filter.ranged === true) return 'ranged units';
-  if (filter.ranged === false) return 'melee units';
+  // **Not "ranged units" and "melee units"** (2026-11-22). Those are the
+  // words for the two classes (`modelClass`), and this filter is a different
+  // set: every unit that has a ranged attack, whatever its class (a siege
+  // engine, a mounted archer, a ship that fires), and every unit that has
+  // none. One word for two sets meant a reader could not tell which units a
+  // card reached.
+  if (filter.ranged === true) return 'units with a ranged attack';
+  if (filter.ranged === false) return 'units with no ranged attack';
   if (filter.category !== undefined) return `${filter.category} units`;
   if (filter.consecrates === false) return 'units other than augurs';
   return 'all units';

@@ -121,7 +121,7 @@
     "text": "a great person waiting to be called may be bought with gold"
    },
    {
-    "raw": "the works on every hex carrying a great person's work pay +50%",
+    "raw": "the works on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] pay +50%",
     "text": "the works on every hex carrying a great person's work pay +50%"
    }
   ],
@@ -235,7 +235,7 @@
     "text": "renown earns great people without waiting for Epic Poetry"
    },
    {
-    "raw": "+1 production on every hex carrying a great person's work",
+    "raw": "+1 production on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+1 production on every hex carrying a great person's work"
    }
   ],
@@ -305,7 +305,7 @@
   ],
   "manifestOfTheSteppe": [
    {
-    "raw": "mounted units: +1 movement",
+    "raw": "[[unit:setMountedUnits|mounted units]]: +1 movement",
     "text": "mounted units: +1 movement"
    },
    {
@@ -604,21 +604,21 @@
   ],
   "theHorseTribes": [
    {
-    "raw": "mounted units: +1 movement",
+    "raw": "[[unit:setMountedUnits|mounted units]]: +1 movement",
     "text": "mounted units: +1 movement"
    },
    {
-    "raw": "+2 combat strength for mounted units",
+    "raw": "+2 combat strength for [[unit:setMountedUnits|mounted units]]",
     "text": "+2 combat strength for mounted units"
    }
   ],
   "theSteppeConfederacy": [
    {
-    "raw": "+50% production toward mounted units",
+    "raw": "+50% production toward [[unit:setMountedUnits|mounted units]]",
     "text": "+50% production toward mounted units"
    },
    {
-    "raw": "+3 combat strength for mounted units when attacking a wounded unit",
+    "raw": "+3 combat strength for [[unit:setMountedUnits|mounted units]] when attacking a wounded unit",
     "text": "+3 combat strength for mounted units when attacking a wounded unit"
    }
   ],
@@ -658,27 +658,27 @@
     "text": "entering a war (at most once every 20 turns) grants a melee unit in every city of 5 or more citizens"
    },
    {
-    "raw": "+3 combat strength for melee units",
+    "raw": "+3 combat strength for [[unit:setMeleeUnits|melee units]]",
     "text": "+3 combat strength for melee units"
    },
    {
-    "raw": "+3 combat strength for melee units beside a great general",
+    "raw": "+3 combat strength for [[unit:setMeleeUnits|melee units]] beside a great general",
     "text": "+3 combat strength for melee units beside a great general"
    }
   ],
   "theMarianReforms": [
    {
-    "raw": "military units cost no gold in maintenance",
+    "raw": "[[unit:setMilitaryUnits|military units]] cost no gold in maintenance",
     "text": "military units cost no gold in maintenance"
    },
    {
-    "raw": "-25% production toward military units, after the town's own bonuses",
+    "raw": "-25% production toward [[unit:setMilitaryUnits|military units]], after the town's own bonuses",
     "text": "-25% production toward military units, after the town's own bonuses"
    }
   ],
   "theLawsOfLordShang": [
    {
-    "raw": "a city building a military unit puts its food surplus into production instead of into growth",
+    "raw": "a city building a [[unit:setMilitaryUnits|military unit]] puts its food surplus into production instead of into growth",
     "text": "a city building a military unit puts its food surplus into production instead of into growth"
    }
   ],
@@ -688,23 +688,23 @@
     "text": "+5 combat strength while fortified"
    },
    {
-    "raw": "+5% science and +5% production in every city per fortified military unit inside its borders (at most +30% each)",
+    "raw": "+5% science and +5% production in every city per fortified [[unit:setMilitaryUnits|military unit]] inside its borders (at most +30% each)",
     "text": "+5% science and +5% production in every city per fortified military unit inside its borders (at most +30% each)"
    }
   ],
   "theSoldiersShare": [
    {
-    "raw": "melee units: +1 movement",
+    "raw": "[[unit:setMeleeUnits|melee units]]: +1 movement",
     "text": "melee units: +1 movement"
    },
    {
-    "raw": "+3 combat strength for melee units",
+    "raw": "+3 combat strength for [[unit:setMeleeUnits|melee units]]",
     "text": "+3 combat strength for melee units"
    }
   ],
   "theServianReforms": [
    {
-    "raw": "military units cost 25% less to build and to buy",
+    "raw": "[[unit:setMilitaryUnits|military units]] cost 25% less to build and to buy",
     "text": "military units cost 25% less to build and to buy"
    },
    {
@@ -762,11 +762,11 @@
     "text": "+3 combat strength"
    },
    {
-    "raw": "+3 combat strength while standing beside siege units",
+    "raw": "+3 combat strength while standing beside [[unit:setSiegeUnits|siege units]]",
     "text": "+3 combat strength while standing beside siege units"
    },
    {
-    "raw": "your siege units beside one of your melee units cannot be attacked in melee",
+    "raw": "your [[unit:setSiegeUnits|siege units]] beside one of your [[unit:setMeleeUnits|melee units]] cannot be attacked in melee",
     "text": "your siege units beside one of your melee units cannot be attacked in melee"
    }
   ],
@@ -832,7 +832,7 @@
   ],
   "theGeorgics": [
    {
-    "raw": "your improvements, tended works and great people's works count as having stood twice as long for your cards",
+    "raw": "your improvements, tended works and [[improvement:setGreatPersonWorks|great people's works]] count as having stood twice as long for your cards",
     "text": "your improvements, tended works and great people's works count as having stood twice as long for your cards"
    },
    {
@@ -1190,7 +1190,7 @@
   ],
   "thePaean": [
    {
-    "raw": "+1 combat strength for military units per god or belief you hold",
+    "raw": "+1 combat strength for [[unit:setMilitaryUnits|military units]] per god or belief you hold",
     "text": "+1 combat strength for military units per god or belief you hold"
    }
   ],
@@ -1208,7 +1208,7 @@
   ],
   "theRibats": [
    {
-    "raw": "newly created military units in every devout city gain +3 combat strength",
+    "raw": "newly created [[unit:setMilitaryUnits|military units]] in every devout city gain +3 combat strength",
     "text": "newly created military units in every devout city gain +3 combat strength"
    },
    {
@@ -1318,11 +1318,11 @@
   ],
   "theWorkshopsOfSyracuse": [
    {
-    "raw": "+5 combat strength for military units",
+    "raw": "+5 combat strength for [[unit:setMilitaryUnits|military units]]",
     "text": "+5 combat strength for military units"
    },
    {
-    "raw": "military units cost 50% more to build and to buy",
+    "raw": "[[unit:setMilitaryUnits|military units]] cost 50% more to build and to buy",
     "text": "military units cost 50% more to build and to buy"
    }
   ],
@@ -1376,12 +1376,12 @@
   ],
   "theVolleyFire": [
    {
-    "raw": "ranged units may attack twice a turn",
+    "raw": "[[unit:setRangedUnits|ranged units]] may attack twice a turn",
     "text": "ranged units may attack twice a turn"
    },
    {
-    "raw": "-4 combat strength for ranged units against melee units when defending",
-    "text": "-4 combat strength for ranged units against melee units when defending"
+    "raw": "-4 combat strength for [[unit:setRangedUnits|ranged units]] against units with no ranged attack when defending",
+    "text": "-4 combat strength for ranged units against units with no ranged attack when defending"
    }
   ],
   "theKulliye": [
@@ -1406,7 +1406,7 @@
     "text": "each time research upgrades one of your units, it gains +2 combat strength for good"
    },
    {
-    "raw": "-25% production toward military units, after the town's own bonuses",
+    "raw": "-25% production toward [[unit:setMilitaryUnits|military units]], after the town's own bonuses",
     "text": "-25% production toward military units, after the town's own bonuses"
    }
   ],
@@ -1478,11 +1478,11 @@
   ],
   "thePeregrini": [
    {
-    "raw": "+1 food, +1 production on every hex beside a great person's work, once for every adjacent hex carrying a great person's work",
+    "raw": "+1 food, +1 production on every hex beside a [[improvement:setGreatPersonWorks|great person's work]], once for every adjacent hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+1 food, +1 production on every hex beside a great person's work, once for every adjacent hex carrying a great person's work"
    },
    {
-    "raw": "laying a great person's work makes your next great person cost 20% less",
+    "raw": "laying a [[improvement:setGreatPersonWorks|great person's work]] makes your next great person cost 20% less",
     "text": "laying a great person's work makes your next great person cost 20% less"
    }
   ],
@@ -1510,7 +1510,7 @@
   ],
   "theBourgs": [
    {
-    "raw": "+50% food surplus stored toward growth, in every city working a great person's work",
+    "raw": "+50% food surplus stored toward growth, in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+50% food surplus stored toward growth, in every city working a great person's work"
    }
   ],
@@ -1534,7 +1534,7 @@
   ],
   "theGobelins": [
    {
-    "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per hex carrying a great person's work in your borders (at most +50%)",
+    "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per hex carrying a [[improvement:setGreatPersonWorks|great person's work]] in your borders (at most +50%)",
     "text": "+10% production toward The Magnum Opus per hex carrying a great person's work in your borders (at most +50%)"
    }
   ],
@@ -1562,7 +1562,7 @@
     "text": "clearing a barbarian camp grants +25 food"
    },
    {
-    "raw": "clearing a barbarian camp grants a random military unit",
+    "raw": "clearing a barbarian camp grants a random [[unit:setMilitaryUnits|military unit]]",
     "text": "clearing a barbarian camp grants a random military unit"
    }
   ],
@@ -1578,7 +1578,7 @@
   ],
   "theLongWatch": [
    {
-    "raw": "+1 happiness per military unit standing in your cities",
+    "raw": "+1 happiness per [[unit:setMilitaryUnits|military unit]] standing in your cities",
     "text": "+1 happiness per military unit standing in your cities"
    },
    {
@@ -1674,7 +1674,7 @@
   ],
   "horseLords": [
    {
-    "raw": "mounted units: +1 movement",
+    "raw": "[[unit:setMountedUnits|mounted units]]: +1 movement",
     "text": "mounted units: +1 movement"
    }
   ],
@@ -1784,7 +1784,7 @@
   ],
   "marchDiscipline": [
    {
-    "raw": "military units: +1 movement",
+    "raw": "[[unit:setMilitaryUnits|military units]]: +1 movement",
     "text": "military units: +1 movement"
    }
   ],
@@ -1928,8 +1928,8 @@
   ],
   "skirmishersCreed": [
    {
-    "raw": "ranged units: +1 range",
-    "text": "ranged units: +1 range"
+    "raw": "[[unit:setRangedAttackUnits|units with a ranged attack]]: +1 range",
+    "text": "units with a ranged attack: +1 range"
    }
   ],
   "theFinishersArt": [
@@ -2026,21 +2026,21 @@
     "text": "+2 renown per turn"
    },
    {
-    "raw": "+3 on every hex carrying a great person's work — science on an [[improvement:academy|Academy]], culture on a [[improvement:landmark|Landmark]], production on a [[improvement:manufactory|Manufactory]], gold on a [[improvement:customsHouse|Customs House]] and production on a [[improvement:citadel|Citadel]]",
+    "raw": "+3 on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] — science on an [[improvement:academy|Academy]], culture on a [[improvement:landmark|Landmark]], production on a [[improvement:manufactory|Manufactory]], gold on a [[improvement:customsHouse|Customs House]] and production on a [[improvement:citadel|Citadel]]",
     "text": "+3 on every hex carrying a great person's work — science on an Academy, culture on a Landmark, production on a Manufactory, gold on a Customs House and production on a Citadel"
    }
   ],
   "theLegion": [
    {
-    "raw": "melee units: +1 movement",
+    "raw": "[[unit:setMeleeUnits|melee units]]: +1 movement",
     "text": "melee units: +1 movement"
    },
    {
-    "raw": "+2 combat strength for melee units",
+    "raw": "+2 combat strength for [[unit:setMeleeUnits|melee units]]",
     "text": "+2 combat strength for melee units"
    },
    {
-    "raw": "+15% production toward melee units",
+    "raw": "+15% production toward [[unit:setMeleeUnits|melee units]]",
     "text": "+15% production toward melee units"
    }
   ],
@@ -2052,7 +2052,7 @@
   ],
   "wolfRunners": [
    {
-    "raw": "scouts: +1 movement",
+    "raw": "[[unit:setScouts|scouts]]: +1 movement",
     "text": "scouts: +1 movement"
    },
    {
@@ -2225,23 +2225,23 @@
   ],
   "theQuartermasters": [
    {
-    "raw": "military units cost 1 less gold in maintenance",
+    "raw": "[[unit:setMilitaryUnits|military units]] cost 1 less gold in maintenance",
     "text": "military units cost 1 less gold in maintenance"
    }
   ],
   "theWarChest": [
    {
-    "raw": "military units cost 2 less gold in maintenance",
+    "raw": "[[unit:setMilitaryUnits|military units]] cost 2 less gold in maintenance",
     "text": "military units cost 2 less gold in maintenance"
    }
   ],
   "forcedMarches": [
    {
-    "raw": "melee units: +1 movement",
+    "raw": "[[unit:setMeleeUnits|melee units]]: +1 movement",
     "text": "melee units: +1 movement"
    },
    {
-    "raw": "melee units: +1 movement inside your territory",
+    "raw": "[[unit:setMeleeUnits|melee units]]: +1 movement inside your territory",
     "text": "melee units: +1 movement inside your territory"
    }
   ],
@@ -2259,7 +2259,7 @@
   ],
   "theSaintsFields": [
    {
-    "raw": "+3 faith on every hex carrying a great person's work",
+    "raw": "+3 faith on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+3 faith on every hex carrying a great person's work"
    }
   ],
@@ -2293,13 +2293,13 @@
   ],
   "theGroundskeepers": [
    {
-    "raw": "+2 food, +2 production on every hex carrying a great person's work",
+    "raw": "+2 food, +2 production on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+2 food, +2 production on every hex carrying a great person's work"
    }
   ],
   "theMastersPresence": [
    {
-    "raw": "+15% all yields in every city beside a great person's work",
+    "raw": "+15% all yields in every city beside a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+15% all yields in every city beside a great person's work"
    }
   ],
@@ -2325,13 +2325,13 @@
   ],
   "theShipwrightShores": [
    {
-    "raw": "+3 production and +30% production toward ships, in every coastal city",
+    "raw": "+3 production and +30% production toward [[unit:setShips|ships]], in every coastal city",
     "text": "+3 production and +30% production toward ships, in every coastal city"
    }
   ],
   "theDryDocks": [
    {
-    "raw": "+25% production toward ships, in every city with a [[building:harbour|Harbour]]",
+    "raw": "+25% production toward [[unit:setShips|ships]], in every city with a [[building:harbour|Harbour]]",
     "text": "+25% production toward ships, in every city with a Harbour"
    }
   ],
@@ -2621,27 +2621,27 @@
   ],
   "theMarshalsPurse": [
    {
-    "raw": "You gain 33.33% buying power on military units",
+    "raw": "You gain 33.33% buying power on [[unit:setMilitaryUnits|military units]]",
     "text": "You gain 33.33% buying power on military units"
    }
   ],
   "knightlyOrders": [
    {
-    "raw": "+10 combat strength for mounted units inside your territory",
+    "raw": "+10 combat strength for [[unit:setMountedUnits|mounted units]] inside your territory",
     "text": "+10 combat strength for mounted units inside your territory"
    },
    {
-    "raw": "-25% production toward mounted units",
+    "raw": "-25% production toward [[unit:setMountedUnits|mounted units]]",
     "text": "-25% production toward mounted units"
    }
   ],
   "theSiegeTrain": [
    {
-    "raw": "siege units: +1 movement",
+    "raw": "[[unit:setSiegeUnits|siege units]]: +1 movement",
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+12 combat strength when attacking cities and while standing beside siege units",
+    "raw": "+12 combat strength when attacking cities and while standing beside [[unit:setSiegeUnits|siege units]]",
     "text": "+12 combat strength when attacking cities and while standing beside siege units"
    }
   ],
@@ -2731,7 +2731,7 @@
   ],
   "forcedMarch": [
    {
-    "raw": "military units: +1 movement outside your territory",
+    "raw": "[[unit:setMilitaryUnits|military units]]: +1 movement outside your territory",
     "text": "military units: +1 movement outside your territory"
    }
   ],
@@ -2747,7 +2747,7 @@
   ],
   "theSalon": [
    {
-    "raw": "the works on every hex carrying a great person's work pay +100%",
+    "raw": "the works on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] pay +100%",
     "text": "the works on every hex carrying a great person's work pay +100%"
    }
   ],
@@ -3088,11 +3088,11 @@
   ],
   "ridersOfTheSteppe": [
    {
-    "raw": "mounted units ignore enemy zone of control",
+    "raw": "[[unit:setMountedUnits|mounted units]] ignore enemy zone of control",
     "text": "mounted units ignore enemy zone of control"
    },
    {
-    "raw": "mounted units pillage without spending movement",
+    "raw": "[[unit:setMountedUnits|mounted units]] pillage without spending movement",
     "text": "mounted units pillage without spending movement"
    }
   ],
@@ -3104,7 +3104,7 @@
   ],
   "mercenaries": [
    {
-    "raw": "newly created military units bought with gold gain +2 combat strength",
+    "raw": "newly created [[unit:setMilitaryUnits|military units]] bought with gold gain +2 combat strength",
     "text": "newly created military units bought with gold gain +2 combat strength"
    },
    {
@@ -3136,7 +3136,7 @@
   ],
   "dominionBloodedSpears": [
    {
-    "raw": "+2 combat strength for military units",
+    "raw": "+2 combat strength for [[unit:setMilitaryUnits|military units]]",
     "text": "+2 combat strength for military units"
    }
   ],
@@ -3182,11 +3182,11 @@
   ],
   "pathfinders": [
    {
-    "raw": "scout units: +1 movement",
+    "raw": "[[unit:setScouts|scout units]]: +1 movement",
     "text": "scout units: +1 movement"
    },
    {
-    "raw": "+8 combat strength for scout units",
+    "raw": "+8 combat strength for [[unit:setScouts|scout units]]",
     "text": "+8 combat strength for scout units"
    }
   ],
@@ -3256,7 +3256,7 @@
   ],
   "theScalingLadders": [
    {
-    "raw": "+4 combat strength for melee units when attacking cities",
+    "raw": "+4 combat strength for [[unit:setMeleeUnits|melee units]] when attacking cities",
     "text": "+4 combat strength for melee units when attacking cities"
    }
   ],
@@ -3286,11 +3286,11 @@
   ],
   "theArmedColony": [
    {
-    "raw": "new cities claim 3 more hexes beside their borders at once, when founded beside one of your military units",
+    "raw": "new cities claim 3 more hexes beside their borders at once, when founded beside one of your [[unit:setMilitaryUnits|military units]]",
     "text": "new cities claim 3 more hexes beside their borders at once, when founded beside one of your military units"
    },
    {
-    "raw": "a new city founded beside one of your military units makes that unit a Veteran",
+    "raw": "a new city founded beside one of your [[unit:setMilitaryUnits|military units]] makes that unit a Veteran",
     "text": "a new city founded beside one of your military units makes that unit a Veteran"
    }
   ],
@@ -3328,13 +3328,13 @@
     "text": "Scaler"
    },
    {
-    "raw": "Gains +1 science and +1 culture each time you gain a military unit",
+    "raw": "Gains +1 science and +1 culture each time you gain a [[unit:setMilitaryUnits|military unit]]",
     "text": "Gains +1 science and +1 culture each time you gain a military unit"
    }
   ],
   "theArmourersSecret": [
    {
-    "raw": "completing a technology grants one of each military unit it unlocks in your capital",
+    "raw": "completing a technology grants one of each [[unit:setMilitaryUnits|military unit]] it unlocks in your capital",
     "text": "completing a technology grants one of each military unit it unlocks in your capital"
    }
   ],
@@ -3352,7 +3352,7 @@
   ],
   "dominionFieldSurgeons": [
    {
-    "raw": "military units: +10 healing per turn while dug in",
+    "raw": "[[unit:setMilitaryUnits|military units]]: +10 healing per turn while dug in",
     "text": "military units: +10 healing per turn while dug in"
    }
   ],
@@ -3392,7 +3392,7 @@
   ],
   "theSoldiersPurse": [
    {
-    "raw": "military units cost 1 less gold in maintenance for each rank they hold",
+    "raw": "[[unit:setMilitaryUnits|military units]] cost 1 less gold in maintenance for each rank they hold",
     "text": "military units cost 1 less gold in maintenance for each rank they hold"
    }
   ],
@@ -3486,12 +3486,12 @@
   ],
   "soldierSettlers": [
    {
-    "raw": "a town you found comes with a melee unit already standing in it — not built yet",
+    "raw": "a town you found comes with a [[unit:setMeleeUnits|melee unit]] already standing in it — not built yet",
     "text": "a town you found comes with a melee unit already standing in it — not built yet",
     "deferred": true
    },
    {
-    "raw": "a melee unit you train can do a worker’s job once, building an improvement or felling a wood — not built yet",
+    "raw": "a [[unit:setMeleeUnits|melee unit]] you train can do a worker’s job once, building an improvement or felling a wood — not built yet",
     "text": "a melee unit you train can do a worker’s job once, building an improvement or felling a wood — not built yet",
     "deferred": true
    }
@@ -3504,7 +3504,7 @@
   ],
   "theSeaLevy": [
    {
-    "raw": "ships are cheaper to keep — not built yet",
+    "raw": "[[unit:setShips|ships]] are cheaper to keep — not built yet",
     "text": "ships are cheaper to keep — not built yet",
     "deferred": true
    },
@@ -3552,11 +3552,11 @@
   ],
   "dominionHorseLords": [
    {
-    "raw": "+3 combat strength for mounted units",
+    "raw": "+3 combat strength for [[unit:setMountedUnits|mounted units]]",
     "text": "+3 combat strength for mounted units"
    },
    {
-    "raw": "mounted units: +1 movement",
+    "raw": "[[unit:setMountedUnits|mounted units]]: +1 movement",
     "text": "mounted units: +1 movement"
    }
   ],
@@ -3594,11 +3594,11 @@
   ],
   "theSwiftRiders": [
    {
-    "raw": "mounted units may move after attacking",
+    "raw": "[[unit:setMountedUnits|mounted units]] may move after attacking",
     "text": "mounted units may move after attacking"
    },
    {
-    "raw": "mounted units pillage without spending movement",
+    "raw": "[[unit:setMountedUnits|mounted units]] pillage without spending movement",
     "text": "mounted units pillage without spending movement"
    }
   ],
@@ -3660,17 +3660,17 @@
   ],
   "siegeWorks": [
    {
-    "raw": "+4 combat strength for siege units when attacking cities",
+    "raw": "+4 combat strength for [[unit:setSiegeUnits|siege units]] when attacking cities",
     "text": "+4 combat strength for siege units when attacking cities"
    },
    {
-    "raw": "siege units: +1 movement",
+    "raw": "[[unit:setSiegeUnits|siege units]]: +1 movement",
     "text": "siege units: +1 movement"
    }
   ],
   "dominionTheWarChest": [
    {
-    "raw": "military units cost 1 less gold in maintenance",
+    "raw": "[[unit:setMilitaryUnits|military units]] cost 1 less gold in maintenance",
     "text": "military units cost 1 less gold in maintenance"
    },
    {
@@ -3733,7 +3733,7 @@
     "text": "+10% production and +2 culture in every city with a Shipyard"
    },
    {
-    "raw": "newly created ships in every city with a [[building:shipyard|Shipyard]] gain +10 maximum health",
+    "raw": "newly created [[unit:setShips|ships]] in every city with a [[building:shipyard|Shipyard]] gain +10 maximum health",
     "text": "newly created ships in every city with a Shipyard gain +10 maximum health"
    }
   ],
@@ -3751,13 +3751,13 @@
   ],
   "marineDrill": [
    {
-    "raw": "at the end of your turn, each of your ships pillages one enemy improvement on the shore beside it",
+    "raw": "at the end of your turn, each of your [[unit:setShips|ships]] pillages one enemy improvement on the shore beside it",
     "text": "at the end of your turn, each of your ships pillages one enemy improvement on the shore beside it"
    }
   ],
   "dominionRidersOfTheSteppe": [
    {
-    "raw": "mounted units pillage without spending movement",
+    "raw": "[[unit:setMountedUnits|mounted units]] pillage without spending movement",
     "text": "mounted units pillage without spending movement"
    }
   ],
@@ -3782,11 +3782,11 @@
   ],
   "theLongMarch": [
    {
-    "raw": "+1 combat strength for melee units",
+    "raw": "+1 combat strength for [[unit:setMeleeUnits|melee units]]",
     "text": "+1 combat strength for melee units"
    },
    {
-    "raw": "melee units: +1 movement",
+    "raw": "[[unit:setMeleeUnits|melee units]]: +1 movement",
     "text": "melee units: +1 movement"
    }
   ],
@@ -3816,11 +3816,11 @@
   ],
   "mercenaryCompanies": [
    {
-    "raw": "You gain 33.33% buying power on military units, in every city with a [[building:barracks|Barracks]]",
+    "raw": "You gain 33.33% buying power on [[unit:setMilitaryUnits|military units]], in every city with a [[building:barracks|Barracks]]",
     "text": "You gain 33.33% buying power on military units, in every city with a Barracks"
    },
    {
-    "raw": "newly created military units bought with gold gain +10 maximum health",
+    "raw": "newly created [[unit:setMilitaryUnits|military units]] bought with gold gain +10 maximum health",
     "text": "newly created military units bought with gold gain +10 maximum health"
    }
   ],
@@ -3859,7 +3859,7 @@
     "deferred": true
    },
    {
-    "raw": "your ships beside a city you take are mended completely — not built yet",
+    "raw": "your [[unit:setShips|ships]] beside a city you take are mended completely — not built yet",
     "text": "your ships beside a city you take are mended completely — not built yet",
     "deferred": true
    }
@@ -3870,13 +3870,13 @@
     "text": "+1 trade route per 2 Shipyards (at most +2)"
    },
    {
-    "raw": "ships: +1 sight",
+    "raw": "[[unit:setShips|ships]]: +1 sight",
     "text": "ships: +1 sight"
    }
   ],
   "blockade": [
    {
-    "raw": "one of your ships beside an enemy coastal city puts that city under siege — not built yet",
+    "raw": "one of your [[unit:setShips|ships]] beside an enemy coastal city puts that city under siege — not built yet",
     "text": "one of your ships beside an enemy coastal city puts that city under siege — not built yet",
     "deferred": true
    },
@@ -3907,7 +3907,7 @@
   ],
   "masterBowyers": [
    {
-    "raw": "ranged, mounted archer, firing ship and siege units: +1 range",
+    "raw": "ranged, [[unit:setMountedArchers|mounted archer]], firing ship and [[unit:setSiegeUnits|siege units]]: +1 range",
     "text": "ranged, mounted archer, firing ship and siege units: +1 range"
    }
   ],
@@ -3942,7 +3942,7 @@
   ],
   "dominionTheRelayStations": [
    {
-    "raw": "military units: +2 movement when they start their turn in one of your cities joined to your capital",
+    "raw": "[[unit:setMilitaryUnits|military units]]: +2 movement when they start their turn in one of your cities joined to your capital",
     "text": "military units: +2 movement when they start their turn in one of your cities joined to your capital"
    }
   ],
@@ -3974,13 +3974,13 @@
   ],
   "livingOffTheLand": [
    {
-    "raw": "military units cost no gold in maintenance outside your territory",
+    "raw": "[[unit:setMilitaryUnits|military units]] cost no gold in maintenance outside your territory",
     "text": "military units cost no gold in maintenance outside your territory"
    }
   ],
   "theSerriedRanks": [
    {
-    "raw": "+10 combat strength for melee units when defending while standing beside melee units",
+    "raw": "+10 combat strength for [[unit:setMeleeUnits|melee units]] when defending while standing beside [[unit:setMeleeUnits|melee units]]",
     "text": "+10 combat strength for melee units when defending while standing beside melee units"
    }
   ],
@@ -4034,8 +4034,8 @@
   ],
   "theLongbowmen": [
    {
-    "raw": "+4 combat strength for ranged units",
-    "text": "+4 combat strength for ranged units"
+    "raw": "+4 combat strength for [[unit:setRangedAttackUnits|units with a ranged attack]]",
+    "text": "+4 combat strength for units with a ranged attack"
    }
   ],
   "theStateForges": [
@@ -4062,7 +4062,7 @@
   ],
   "theMilitaryRoads": [
    {
-    "raw": "your military units walk your own roads for nothing inside your borders — not built yet",
+    "raw": "your [[unit:setMilitaryUnits|military units]] walk your own roads for nothing inside your borders — not built yet",
     "text": "your military units walk your own roads for nothing inside your borders — not built yet",
     "deferred": true
    },
@@ -4074,23 +4074,23 @@
   ],
   "arsenals": [
    {
-    "raw": "+30% production and +75% production toward ships, in every city with an [[building:armoury|Armoury]]",
+    "raw": "+30% production and +75% production toward [[unit:setShips|ships]], in every city with an [[building:armoury|Armoury]]",
     "text": "+30% production and +75% production toward ships, in every city with an Armoury"
    }
   ],
   "dominionTheSiegeTrain": [
    {
-    "raw": "siege units: +1 movement",
+    "raw": "[[unit:setSiegeUnits|siege units]]: +1 movement",
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+5 combat strength for siege units when defending",
+    "raw": "+5 combat strength for [[unit:setSiegeUnits|siege units]] when defending",
     "text": "+5 combat strength for siege units when defending"
    }
   ],
   "reserveOfficers": [
    {
-    "raw": "while you are at war: +60% production toward military units, in every city with a [[building:barracks|Barracks]]",
+    "raw": "while you are at war: +60% production toward [[unit:setMilitaryUnits|military units]], in every city with a [[building:barracks|Barracks]]",
     "text": "while you are at war: +60% production toward military units, in every city with a Barracks"
    },
    {
@@ -4107,7 +4107,7 @@
   ],
   "defensiveLines": [
    {
-    "raw": "+3 combat strength for military units within 1 hex of one of your cities",
+    "raw": "+3 combat strength for [[unit:setMilitaryUnits|military units]] within 1 hex of one of your cities",
     "text": "+3 combat strength for military units within 1 hex of one of your cities"
    },
    {
@@ -4134,11 +4134,11 @@
   ],
   "navalSupremacy": [
    {
-    "raw": "ships: +1 sight",
+    "raw": "[[unit:setShips|ships]]: +1 sight",
     "text": "ships: +1 sight"
    },
    {
-    "raw": "ships: +1 range",
+    "raw": "[[unit:setShips|ships]]: +1 range",
     "text": "ships: +1 range"
    },
    {
@@ -4158,7 +4158,7 @@
   ],
   "theVeteransGrant": [
    {
-    "raw": "every military unit you have ever trained pays your capital hammers and beakers, up to a limit — not built yet",
+    "raw": "every [[unit:setMilitaryUnits|military unit]] you have ever trained pays your capital hammers and beakers, up to a limit — not built yet",
     "text": "every military unit you have ever trained pays your capital hammers and beakers, up to a limit — not built yet",
     "deferred": true
    }
@@ -4170,7 +4170,7 @@
     "deferred": true
    },
    {
-    "raw": "your military units may not dig in — not built yet",
+    "raw": "your [[unit:setMilitaryUnits|military units]] may not dig in — not built yet",
     "text": "your military units may not dig in — not built yet",
     "deferred": true
    }
@@ -4184,7 +4184,7 @@
   ],
   "totalWar": [
    {
-    "raw": "while you are at war: +4 combat strength for military units; military units: +1 movement; -2 happiness in every city",
+    "raw": "while you are at war: +4 combat strength for [[unit:setMilitaryUnits|military units]]; [[unit:setMilitaryUnits|military units]]: +1 movement; -2 happiness in every city",
     "text": "while you are at war: +4 combat strength for military units; military units: +1 movement; -2 happiness in every city"
    }
   ],
@@ -4248,7 +4248,7 @@
   ],
   "theKeshik": [
    {
-    "raw": "mounted units that are a Veteran or better: +1 movement",
+    "raw": "[[unit:setMountedUnits|mounted units]] that are a Veteran or better: +1 movement",
     "text": "mounted units that are a Veteran or better: +1 movement"
    }
   ],
@@ -4270,7 +4270,7 @@
   ],
   "theYam": [
    {
-    "raw": "for mounted units alone, pillaging heals the unit fully",
+    "raw": "for [[unit:setMountedUnits|mounted units]] alone, pillaging heals the unit fully",
     "text": "for mounted units alone, pillaging heals the unit fully"
    }
   ],
@@ -4342,7 +4342,7 @@
   ],
   "dominionTheLegionsLabour": [
    {
-    "raw": "for military units alone, disbanding a unit in a city building a wonder or raising the Magnum Opus grants production equal to 50% of its production cost",
+    "raw": "for [[unit:setMilitaryUnits|military units]] alone, disbanding a unit in a city building a wonder or raising the Magnum Opus grants production equal to 50% of its production cost",
     "text": "for military units alone, disbanding a unit in a city building a wonder or raising the Magnum Opus grants production equal to 50% of its production cost"
    }
   ],
@@ -4352,13 +4352,13 @@
     "text": "every city raising the Magnum Opus: +5 city defence per combat unit standing in the city"
    },
    {
-    "raw": "+6 combat strength for military units within 2 hexes of your city raising the Magnum Opus",
+    "raw": "+6 combat strength for [[unit:setMilitaryUnits|military units]] within 2 hexes of your city raising the Magnum Opus",
     "text": "+6 combat strength for military units within 2 hexes of your city raising the Magnum Opus"
    }
   ],
   "dominionTheGrandArmy": [
    {
-    "raw": "+6 science and +6 culture in your capital per military unit in the field",
+    "raw": "+6 science and +6 culture in your capital per [[unit:setMilitaryUnits|military unit]] in the field",
     "text": "+6 science and +6 culture in your capital per military unit in the field"
    }
   ],
@@ -4398,11 +4398,11 @@
   ],
   "dominionTheGrandCoalition": [
    {
-    "raw": "+6 combat strength for military units against an empire raising the Magnum Opus",
+    "raw": "+6 combat strength for [[unit:setMilitaryUnits|military units]] against an empire raising the Magnum Opus",
     "text": "+6 combat strength for military units against an empire raising the Magnum Opus"
    },
    {
-    "raw": "while you are at war with an empire raising the Magnum Opus: +30% production toward military units, in every city with a [[building:barracks|Barracks]]",
+    "raw": "while you are at war with an empire raising the Magnum Opus: +30% production toward [[unit:setMilitaryUnits|military units]], in every city with a [[building:barracks|Barracks]]",
     "text": "while you are at war with an empire raising the Magnum Opus: +30% production toward military units, in every city with a Barracks"
    }
   ],
@@ -4440,7 +4440,7 @@
   ],
   "theGreatBombards": [
    {
-    "raw": "siege units break a town’s walls in one blow",
+    "raw": "[[unit:setSiegeUnits|siege units]] break a town’s walls in one blow",
     "text": "siege units break a town’s walls in one blow"
    }
   ],
@@ -4464,13 +4464,13 @@
   ],
   "theSpearMakers": [
    {
-    "raw": "+40% production toward military units",
+    "raw": "+40% production toward [[unit:setMilitaryUnits|military units]]",
     "text": "+40% production toward military units"
    }
   ],
   "theDefiantKingdom": [
    {
-    "raw": "while an empire you have met holds more towns than you: +25% production toward military units",
+    "raw": "while an empire you have met holds more towns than you: +25% production toward [[unit:setMilitaryUnits|military units]]",
     "text": "while an empire you have met holds more towns than you: +25% production toward military units"
    }
   ],
@@ -4492,7 +4492,7 @@
   ],
   "theCastra": [
    {
-    "raw": "+1 production, +1 science on every hex with a fortified military unit of yours",
+    "raw": "+1 production, +1 science on every hex with a fortified [[unit:setMilitaryUnits|military unit]] of yours",
     "text": "+1 production, +1 science on every hex with a fortified military unit of yours"
    },
    {
@@ -4508,7 +4508,7 @@
   ],
   "warFeedsItself": [
    {
-    "raw": "at the end of each turn, each of your military units in the territory of an empire you are at war with yields you the yields of its hex",
+    "raw": "at the end of each turn, each of your [[unit:setMilitaryUnits|military units]] in the territory of an empire you are at war with yields you the yields of its hex",
     "text": "at the end of each turn, each of your military units in the territory of an empire you are at war with yields you the yields of its hex"
    }
   ],
@@ -4540,7 +4540,7 @@
   ],
   "theSpartanDiscipline": [
    {
-    "raw": "+30% production toward military units",
+    "raw": "+30% production toward [[unit:setMilitaryUnits|military units]]",
     "text": "+30% production toward military units"
    },
    {
@@ -4576,7 +4576,7 @@
   ],
   "theTakerOfCities": [
    {
-    "raw": "+5 combat strength for military units when attacking cities and beside a great general",
+    "raw": "+5 combat strength for [[unit:setMilitaryUnits|military units]] when attacking cities and beside a great general",
     "text": "+5 combat strength for military units when attacking cities and beside a great general"
    }
   ],
@@ -4646,13 +4646,13 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: pillage 4 hexes. Reward: your mounted units gain +50% yields from pillaging",
+    "raw": "Goal: pillage 4 hexes. Reward: your [[unit:setMountedUnits|mounted units]] gain +50% yields from pillaging",
     "text": "Goal: pillage 4 hexes. Reward: your mounted units gain +50% yields from pillaging"
    }
   ],
   "rallyToTheStandard": [
    {
-    "raw": "a military unit you gain appears beside your nearest great general instead of in its city, if that general stands within 10 hexes of the city",
+    "raw": "a [[unit:setMilitaryUnits|military unit]] you gain appears beside your nearest great general instead of in its city, if that general stands within 10 hexes of the city",
     "text": "a military unit you gain appears beside your nearest great general instead of in its city, if that general stands within 10 hexes of the city"
    }
   ],
@@ -4664,7 +4664,7 @@
   ],
   "theUpstarts": [
    {
-    "raw": "+5 combat strength for military units against an empire that knows more technologies than you",
+    "raw": "+5 combat strength for [[unit:setMilitaryUnits|military units]] against an empire that knows more technologies than you",
     "text": "+5 combat strength for military units against an empire that knows more technologies than you"
    }
   ],
@@ -4698,7 +4698,7 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: each of your military units gains 4 experience",
+    "raw": "On draft: each of your [[unit:setMilitaryUnits|military units]] gains 4 experience",
     "text": "On draft: each of your military units gains 4 experience"
    }
   ],
@@ -4732,7 +4732,7 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units",
+    "raw": "Goal: kill 10 enemy units. Reward: +3 combat strength for [[unit:setMilitaryUnits|military units]]",
     "text": "Goal: kill 10 enemy units. Reward: +3 combat strength for military units"
    }
   ],
@@ -4784,7 +4784,7 @@
   ],
   "theCadastre": [
    {
-    "raw": "+3 science on every hex with a unique improvement",
+    "raw": "+3 science on every hex with a [[improvement:setUniqueImprovements|unique improvement]]",
     "text": "+3 science on every hex with a unique improvement"
    }
   ],
@@ -4800,7 +4800,7 @@
   ],
   "theFyrd": [
    {
-    "raw": "+1 combat strength for military units per 2 yields on this tile (at most +6) while standing inside your territory",
+    "raw": "+1 combat strength for [[unit:setMilitaryUnits|military units]] per 2 yields on this tile (at most +6) while standing inside your territory",
     "text": "+1 combat strength for military units per 2 yields on this tile (at most +6) while standing inside your territory"
    }
   ],
@@ -4836,7 +4836,7 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: build 8 unique improvements. Reward: +1 food, +1 production on every hex with a unique improvement",
+    "raw": "Goal: build 8 [[improvement:setUniqueImprovements|unique improvements]]. Reward: +1 food, +1 production on every hex with a [[improvement:setUniqueImprovements|unique improvement]]",
     "text": "Goal: build 8 unique improvements. Reward: +1 food, +1 production on every hex with a unique improvement"
    }
   ],
@@ -5276,13 +5276,13 @@
   ],
   "veteranColonies": [
    {
-    "raw": "for military units alone, disbanding a unit in one of your cities gives that city one more citizen",
+    "raw": "for [[unit:setMilitaryUnits|military units]] alone, disbanding a unit in one of your cities gives that city one more citizen",
     "text": "for military units alone, disbanding a unit in one of your cities gives that city one more citizen"
    }
   ],
   "theLandscapeGarden": [
    {
-    "raw": "+3 culture on every tended hex that is beside a great person's work or beside a city that holds a wonder",
+    "raw": "+3 culture on every tended hex that is beside a [[improvement:setGreatPersonWorks|great person's work]] or beside a city that holds a wonder",
     "text": "+3 culture on every tended hex that is beside a great person's work or beside a city that holds a wonder"
    }
   ],
@@ -5503,7 +5503,7 @@
   ],
   "theStationes": [
    {
-    "raw": "+3 combat strength for military units when defending while standing in a city joined to your capital by road",
+    "raw": "+3 combat strength for [[unit:setMilitaryUnits|military units]] when defending while standing in a city joined to your capital by road",
     "text": "+3 combat strength for military units when defending while standing in a city joined to your capital by road"
    }
   ],
@@ -5527,7 +5527,7 @@
   ],
   "theTrainedBands": [
    {
-    "raw": "military units raised by a levy start as Veterans",
+    "raw": "[[unit:setMilitaryUnits|military units]] raised by a levy start as Veterans",
     "text": "military units raised by a levy start as Veterans"
    }
   ],
@@ -6018,7 +6018,7 @@
     "text": "+2 production on every hex with a Pasture"
    },
    {
-    "raw": "-25% production toward mounted and mounted archer units",
+    "raw": "-25% production toward mounted and [[unit:setMountedArchers|mounted archer]] units",
     "text": "-25% production toward mounted and mounted archer units"
    }
   ],
@@ -6150,17 +6150,17 @@
   ],
   "thePathfindersCompany": [
    {
-    "raw": "scouts: +1 sight",
+    "raw": "[[unit:setScouts|scouts]]: +1 sight",
     "text": "scouts: +1 sight"
    },
    {
-    "raw": "scouts: +1 movement",
+    "raw": "[[unit:setScouts|scouts]]: +1 movement",
     "text": "scouts: +1 movement"
    }
   ],
   "theLighthouseKeepers": [
    {
-    "raw": "ships: +1 sight",
+    "raw": "[[unit:setShips|ships]]: +1 sight",
     "text": "ships: +1 sight"
    },
    {
@@ -6281,7 +6281,7 @@
     "text": "+38% gold in every city"
    },
    {
-    "raw": "-10% production toward military units",
+    "raw": "-10% production toward [[unit:setMilitaryUnits|military units]]",
     "text": "-10% production toward military units"
    },
    {
@@ -6291,11 +6291,11 @@
   ],
   "theConvoy": [
    {
-    "raw": "+4 combat strength for military units while standing beside trader units",
+    "raw": "+4 combat strength for [[unit:setMilitaryUnits|military units]] while standing beside trader units",
     "text": "+4 combat strength for military units while standing beside trader units"
    },
    {
-    "raw": "+4 combat strength for ships while standing beside trader units",
+    "raw": "+4 combat strength for [[unit:setShips|ships]] while standing beside trader units",
     "text": "+4 combat strength for ships while standing beside trader units"
    },
    {
@@ -6431,7 +6431,7 @@
   ],
   "theCharteredArsenal": [
    {
-    "raw": "newly created military units bought with gold gain +4 combat strength",
+    "raw": "newly created [[unit:setMilitaryUnits|military units]] bought with gold gain +4 combat strength",
     "text": "newly created military units bought with gold gain +4 combat strength"
    }
   ],
@@ -6481,11 +6481,11 @@
   ],
   "theCharterFleet": [
    {
-    "raw": "You gain 25% buying power on ships",
+    "raw": "You gain 25% buying power on [[unit:setShips|ships]]",
     "text": "You gain 25% buying power on ships"
    },
    {
-    "raw": "newly created ships bought with gold gain +1 movement",
+    "raw": "newly created [[unit:setShips|ships]] bought with gold gain +1 movement",
     "text": "newly created ships bought with gold gain +1 movement"
    }
   ],
@@ -6545,7 +6545,7 @@
     "text": "+3 authority capacity"
    },
    {
-    "raw": "+5 combat strength for ships when attacking cities",
+    "raw": "+5 combat strength for [[unit:setShips|ships]] when attacking cities",
     "text": "+5 combat strength for ships when attacking cities"
    }
   ],
@@ -6584,11 +6584,11 @@
   ],
   "thePaidArmy": [
    {
-    "raw": "military units cost 1 less gold in maintenance",
+    "raw": "[[unit:setMilitaryUnits|military units]] cost 1 less gold in maintenance",
     "text": "military units cost 1 less gold in maintenance"
    },
    {
-    "raw": "You gain 33.33% buying power on military units",
+    "raw": "You gain 33.33% buying power on [[unit:setMilitaryUnits|military units]]",
     "text": "You gain 33.33% buying power on military units"
    }
   ],
@@ -6821,7 +6821,7 @@
   ],
   "theHiredGarrison": [
    {
-    "raw": "a city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn",
+    "raw": "a city with a world wonder or the Magnum Opus at the front of its queue may buy any number of [[unit:setMilitaryUnits|military units]] with gold each turn",
     "text": "a city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn"
    }
   ],
@@ -7041,7 +7041,7 @@
   ],
   "theSlipways": [
    {
-    "raw": "+50% production toward ships",
+    "raw": "+50% production toward [[unit:setShips|ships]]",
     "text": "+50% production toward ships"
    },
    {
@@ -7147,11 +7147,11 @@
   ],
   "theWoodenWalls": [
    {
-    "raw": "+6 combat strength for ships",
+    "raw": "+6 combat strength for [[unit:setShips|ships]]",
     "text": "+6 combat strength for ships"
    },
    {
-    "raw": "ships: +1 movement",
+    "raw": "[[unit:setShips|ships]]: +1 movement",
     "text": "ships: +1 movement"
    }
   ],
@@ -7163,7 +7163,7 @@
   ],
   "theTenThousand": [
    {
-    "raw": "military units you gain bought with gold start as Veterans",
+    "raw": "[[unit:setMilitaryUnits|military units]] you gain bought with gold start as Veterans",
     "text": "military units you gain bought with gold start as Veterans"
    }
   ],
@@ -7265,7 +7265,7 @@
   ],
   "theSoldiersOfGod": [
    {
-    "raw": "newly created military units bought with faith gain +6 combat strength",
+    "raw": "newly created [[unit:setMilitaryUnits|military units]] bought with faith gain +6 combat strength",
     "text": "newly created military units bought with faith gain +6 combat strength"
    }
   ],
@@ -7283,7 +7283,7 @@
   ],
   "theFetials": [
    {
-    "raw": "military units you gain in every city while it is keeping a rite start as Veterans",
+    "raw": "[[unit:setMilitaryUnits|military units]] you gain in every city while it is keeping a rite start as Veterans",
     "text": "military units you gain in every city while it is keeping a rite start as Veterans"
    }
   ],
@@ -7558,7 +7558,7 @@
   ],
   "theSpiritualHost": [
    {
-    "raw": "+4 combat strength for military units inside cities that follow your religion",
+    "raw": "+4 combat strength for [[unit:setMilitaryUnits|military units]] inside cities that follow your religion",
     "text": "+4 combat strength for military units inside cities that follow your religion"
    }
   ],
@@ -7692,7 +7692,7 @@
   ],
   "theLastCrusade": [
    {
-    "raw": "+8 combat strength for military units inside cities that follow your religion and against an empire raising the Magnum Opus",
+    "raw": "+8 combat strength for [[unit:setMilitaryUnits|military units]] inside cities that follow your religion and against an empire raising the Magnum Opus",
     "text": "+8 combat strength for military units inside cities that follow your religion and against an empire raising the Magnum Opus"
    }
   ],
@@ -7884,7 +7884,7 @@
   ],
   "theTurningOfSwords": [
    {
-    "raw": "once a turn, an enemy military unit your attack kills on land that follows your religion, outside a city, joins you at full health instead of dying",
+    "raw": "once a turn, an enemy [[unit:setMilitaryUnits|military unit]] your attack kills on land that follows your religion, outside a city, joins you at full health instead of dying",
     "text": "once a turn, an enemy military unit your attack kills on land that follows your religion, outside a city, joins you at full health instead of dying"
    }
   ],
@@ -8142,11 +8142,11 @@
   ],
   "theClayMap": [
    {
-    "raw": "scouts: +1 sight",
+    "raw": "[[unit:setScouts|scouts]]: +1 sight",
     "text": "scouts: +1 sight"
    },
    {
-    "raw": "scouts receive double rewards from discoveries",
+    "raw": "[[unit:setScouts|scouts]] receive double rewards from discoveries",
     "text": "scouts receive double rewards from discoveries"
    }
   ],
@@ -8316,11 +8316,11 @@
   ],
   "practicalAstronomy": [
    {
-    "raw": "scouts: +1 sight",
+    "raw": "[[unit:setScouts|scouts]]: +1 sight",
     "text": "scouts: +1 sight"
    },
    {
-    "raw": "ships: +1 sight",
+    "raw": "[[unit:setShips|ships]]: +1 sight",
     "text": "ships: +1 sight"
    },
    {
@@ -8396,7 +8396,7 @@
   ],
   "theEndowedProvinces": [
    {
-    "raw": "+6 food, +5 production in every city working a great person's work",
+    "raw": "+6 food, +5 production in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+6 food, +5 production in every city working a great person's work"
    }
   ],
@@ -8444,7 +8444,7 @@
   ],
   "theAcademyQuarter": [
    {
-    "raw": "+5 production and +5 gold in every city holding an [[building:setEmpireBuildings|empire building]] per kind of great person's work worked there (at most +25 each)",
+    "raw": "+5 production and +5 gold in every city holding an [[building:setEmpireBuildings|empire building]] per kind of [[improvement:setGreatPersonWorks|great person's work]] worked there (at most +25 each)",
     "text": "+5 production and +5 gold in every city holding an empire building per kind of great person's work worked there (at most +25 each)"
    }
   ],
@@ -8550,7 +8550,7 @@
   ],
   "theDistantColleges": [
    {
-    "raw": "a town holding an [[building:setEmpireBuildings|empire building]] may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it — not built yet",
+    "raw": "a town holding an [[building:setEmpireBuildings|empire building]] may work your [[improvement:setGreatPersonWorks|great people's works]] one hex beyond its usual reach, and gains no ground and no citizens by it — not built yet",
     "text": "a town holding an empire building may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it — not built yet",
     "deferred": true
    }
@@ -8567,7 +8567,7 @@
   ],
   "theLearnedRealm": [
    {
-    "raw": "+1 authority capacity per city working a great person's work (at most +8)",
+    "raw": "+1 authority capacity per city working a [[improvement:setGreatPersonWorks|great person's work]] (at most +8)",
     "text": "+1 authority capacity per city working a great person's work (at most +8)"
    },
    {
@@ -8687,7 +8687,7 @@
     "text": "opens Gunfounding for you to research"
    },
    {
-    "raw": "[[tech:gunfounding|Gunfounding]] lets you build the [[building:tophane|Tophane]]: newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +50% production toward military units, in every city with a [[building:tophane|Tophane]]",
+    "raw": "[[tech:gunfounding|Gunfounding]] lets you build the [[building:tophane|Tophane]]: newly created [[unit:setMilitaryUnits|military units]] in every city with a [[building:tophane|Tophane]] gain +4 combat strength; +50% production toward [[unit:setMilitaryUnits|military units]], in every city with a [[building:tophane|Tophane]]",
     "text": "Gunfounding lets you build the Tophane: newly created military units in every city with a Tophane gain +4 combat strength; +50% production toward military units, in every city with a Tophane"
    }
   ],
@@ -8795,7 +8795,7 @@
   ],
   "theStudiumGenerale": [
    {
-    "raw": "a great person's work beside an [[improvement:academy|Academy]] of yours counts as an [[improvement:academy|Academy]] for your cards",
+    "raw": "a [[improvement:setGreatPersonWorks|great person's work]] beside an [[improvement:academy|Academy]] of yours counts as an [[improvement:academy|Academy]] for your cards",
     "text": "a great person's work beside an Academy of yours counts as an Academy for your cards"
    }
   ],
@@ -8897,8 +8897,8 @@
   ],
   "theWarManuals": [
    {
-    "raw": "+2 combat strength for ranged units",
-    "text": "+2 combat strength for ranged units"
+    "raw": "+2 combat strength for [[unit:setRangedAttackUnits|units with a ranged attack]]",
+    "text": "+2 combat strength for units with a ranged attack"
    }
   ],
   "theRoyalEstates": [
@@ -8931,7 +8931,7 @@
   ],
   "thePalaceSchools": [
    {
-    "raw": "newly created military units in every city holding an [[building:setEmpireBuildings|empire building]] gain +4 combat strength",
+    "raw": "newly created [[unit:setMilitaryUnits|military units]] in every city holding an [[building:setEmpireBuildings|empire building]] gain +4 combat strength",
     "text": "newly created military units in every city holding an empire building gain +4 combat strength"
    }
   ],
@@ -9079,7 +9079,7 @@
   ],
   "theBreachingBatteries": [
    {
-    "raw": "each blow your siege units land on a city building the [[building:theMagnumOpus|Magnum Opus]] removes 5% of the production banked toward it",
+    "raw": "each blow your [[unit:setSiegeUnits|siege units]] land on a city building the [[building:theMagnumOpus|Magnum Opus]] removes 5% of the production banked toward it",
     "text": "each blow your siege units land on a city building the Magnum Opus removes 5% of the production banked toward it"
    }
   ],
@@ -9171,13 +9171,13 @@
     "text": "great people cost 20% less renown"
    },
    {
-    "raw": "+2 science on every hex carrying a great person's work",
+    "raw": "+2 science on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+2 science on every hex carrying a great person's work"
    }
   ],
   "magisterialTheSpiritWay": [
    {
-    "raw": "Your wonders count as great-person works.",
+    "raw": "Your wonders count as [[improvement:setGreatPersonWorks|great-person works]].",
     "text": "Your wonders count as great-person works."
    }
   ],
@@ -9334,7 +9334,7 @@
     "text": "+20% food and +20% gold in every capital city with a Monument with a Granary"
    },
    {
-    "raw": "-15% production toward military units, in your capital",
+    "raw": "-15% production toward [[unit:setMilitaryUnits|military units]], in your capital",
     "text": "-15% production toward military units, in your capital"
    }
   ],
@@ -9378,7 +9378,7 @@
   ],
   "theCitizensWatch": [
    {
-    "raw": "+30% production toward military units, in every city with 2 or more [[building:setCultureBuildings|culture buildings]]",
+    "raw": "+30% production toward [[unit:setMilitaryUnits|military units]], in every city with 2 or more [[building:setCultureBuildings|culture buildings]]",
     "text": "+30% production toward military units, in every city with 2 or more culture buildings"
    },
    {
@@ -9416,7 +9416,7 @@
   ],
   "magisterialTheLaureate": [
    {
-    "raw": "+3 science, +5 culture in every city working a great person's work",
+    "raw": "+3 science, +5 culture in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+3 science, +5 culture in every city working a great person's work"
    }
   ],
@@ -9493,17 +9493,17 @@
     "text": "+20% renown"
    },
    {
-    "raw": "+5 food, +5 production in every city working a great person's work",
+    "raw": "+5 food, +5 production in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+5 food, +5 production in every city working a great person's work"
    }
   ],
   "theArtisanCourt": [
    {
-    "raw": "+2 renown per turn in every city working a great person's work",
+    "raw": "+2 renown per turn in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+2 renown per turn in every city working a great person's work"
    },
    {
-    "raw": "You gain 33.33% buying power on [[building:setCultureBuildings|culture buildings]], in every city working a great person's work",
+    "raw": "You gain 33.33% buying power on [[building:setCultureBuildings|culture buildings]], in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "You gain 33.33% buying power on culture buildings, in every city working a great person's work"
    }
   ],
@@ -9578,7 +9578,7 @@
     "text": "+5 science in every city per Harbour there"
    },
    {
-    "raw": "newly created ships in every city with 2 or more [[building:setCultureBuildings|culture buildings]] gain +3 combat strength",
+    "raw": "newly created [[unit:setShips|ships]] in every city with 2 or more [[building:setCultureBuildings|culture buildings]] gain +3 combat strength",
     "text": "newly created ships in every city with 2 or more culture buildings gain +3 combat strength"
    }
   ],
@@ -9590,7 +9590,7 @@
   ],
   "magisterialTheMastersPresence": [
    {
-    "raw": "+30% production toward buildings and +23% gold, in every city working a great person's work",
+    "raw": "+30% production toward buildings and +23% gold, in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+30% production toward buildings and +23% gold, in every city working a great person's work"
    }
   ],
@@ -9600,7 +9600,7 @@
     "text": "+8 science, +8 culture in every city containing a wonder"
    },
    {
-    "raw": "+2 happiness in every city working a great person's work",
+    "raw": "+2 happiness in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+2 happiness in every city working a great person's work"
    }
   ],
@@ -9634,21 +9634,21 @@
   ],
   "theSculptorsSchools": [
    {
-    "raw": "+5 gold, +5 science on every hex carrying a great person's work",
+    "raw": "+5 gold, +5 science on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+5 gold, +5 science on every hex carrying a great person's work"
    },
    {
-    "raw": "+1 renown per turn in every city working a great person's work",
+    "raw": "+1 renown per turn in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+1 renown per turn in every city working a great person's work"
    }
   ],
   "thePatronsFleet": [
    {
-    "raw": "+53% production toward ships, in every city with a [[building:harbour|Harbour]] with 2 or more [[building:setCultureBuildings|culture buildings]]",
+    "raw": "+53% production toward [[unit:setShips|ships]], in every city with a [[building:harbour|Harbour]] with 2 or more [[building:setCultureBuildings|culture buildings]]",
     "text": "+53% production toward ships, in every city with a Harbour with 2 or more culture buildings"
    },
    {
-    "raw": "ships: +1 movement",
+    "raw": "[[unit:setShips|ships]]: +1 movement",
     "text": "ships: +1 movement"
    }
   ],
@@ -9744,7 +9744,7 @@
   ],
   "theMastersDomain": [
    {
-    "raw": "+6 food, +6 production on every hex carrying a great person's work",
+    "raw": "+6 food, +6 production on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+6 food, +6 production on every hex carrying a great person's work"
    }
   ],
@@ -9760,7 +9760,7 @@
   ],
   "theImperialPageant": [
    {
-    "raw": "Soldiers defending near your marvels and your great people's works fight harder. A strength line can be told whose ground the fight is on, but not what stands two hexes away from it. — not built yet",
+    "raw": "Soldiers defending near your marvels and your [[improvement:setGreatPersonWorks|great people's works]] fight harder. A strength line can be told whose ground the fight is on, but not what stands two hexes away from it. — not built yet",
     "text": "Soldiers defending near your marvels and your great people's works fight harder. A strength line can be told whose ground the fight is on, but not what stands two hexes away from it. — not built yet",
     "deferred": true
    },
@@ -9878,7 +9878,7 @@
   ],
   "theSitingMasters": [
    {
-    "raw": "+1 culture on every hex carrying a great person's work, once for every adjacent hill or mountain or forest or water hex (at most 3)",
+    "raw": "+1 culture on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]], once for every adjacent hill or mountain or forest or water hex (at most 3)",
     "text": "+1 culture on every hex carrying a great person's work, once for every adjacent hill or mountain or forest or water hex (at most 3)"
    }
   ],
@@ -9938,13 +9938,13 @@
   ],
   "magisterialTheQuarterOfMasters": [
    {
-    "raw": "+4 production, +4 culture on every hex carrying a great person's work beside a great person's work",
+    "raw": "+4 production, +4 culture on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] beside a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+4 production, +4 culture on every hex carrying a great person's work beside a great person's work"
    }
   ],
   "theGazetteers": [
    {
-    "raw": "+3% production and +3% gold in every city per hex carrying a great person's work in your borders (at most +30% each)",
+    "raw": "+3% production and +3% gold in every city per hex carrying a [[improvement:setGreatPersonWorks|great person's work]] in your borders (at most +30% each)",
     "text": "+3% production and +3% gold in every city per hex carrying a great person's work in your borders (at most +30% each)"
    }
   ],
@@ -9968,7 +9968,7 @@
   ],
   "theGardenCourts": [
    {
-    "raw": "+20% culture and +20% science in every city working a great person's work",
+    "raw": "+20% culture and +20% science in every city working a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+20% culture and +20% science in every city working a great person's work"
    }
   ],
@@ -10108,7 +10108,7 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold 3 great-person works. Reward: a great person to call, and +200 culture",
+    "raw": "Goal: hold 3 [[improvement:setGreatPersonWorks|great-person works]]. Reward: a great person to call, and +200 culture",
     "text": "Goal: hold 3 great-person works. Reward: a great person to call, and +200 culture"
    }
   ],
@@ -10120,7 +10120,7 @@
   ],
   "theCustodians": [
    {
-    "raw": "+4 combat strength while standing on a great-person work",
+    "raw": "+4 combat strength while standing on a [[improvement:setGreatPersonWorks|great-person work]]",
     "text": "+4 combat strength while standing on a great-person work"
    }
   ],
@@ -10136,7 +10136,7 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have one of your cities hold 2 wonders and work 2 great-person works. Reward: that city gains +100% culture, +100% science and +100% production",
+    "raw": "Goal: have one of your cities hold 2 wonders and work 2 [[improvement:setGreatPersonWorks|great-person works]]. Reward: that city gains +100% culture, +100% science and +100% production",
     "text": "Goal: have one of your cities hold 2 wonders and work 2 great-person works. Reward: that city gains +100% culture, +100% science and +100% production"
    }
   ],
@@ -10148,7 +10148,7 @@
   ],
   "theDivineProportion": [
    {
-    "raw": "what your other Orders pay on hexes carrying a great person's work is +100% more",
+    "raw": "what your other Orders pay on hexes carrying a [[improvement:setGreatPersonWorks|great person's work]] is +100% more",
     "text": "what your other Orders pay on hexes carrying a great person's work is +100% more"
    }
   ],
@@ -10192,7 +10192,7 @@
     "text": "Boon"
    },
    {
-    "raw": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder or great-person work you hold and each Order you hold, seated or not",
+    "raw": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder or [[improvement:setGreatPersonWorks|great-person work]] you hold and each Order you hold, seated or not",
     "text": "On draft: +40 culture, +40 science and +40 production in your capital for each wonder or great-person work you hold and each Order you hold, seated or not"
    }
   ],
@@ -10202,19 +10202,19 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have one of your cities work 3 great-person works. Reward: the yields of every hex carrying a great person's work are doubled, after every other change to the hex",
+    "raw": "Goal: have one of your cities work 3 [[improvement:setGreatPersonWorks|great-person works]]. Reward: the yields of every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] are doubled, after every other change to the hex",
     "text": "Goal: have one of your cities work 3 great-person works. Reward: the yields of every hex carrying a great person's work are doubled, after every other change to the hex"
    }
   ],
   "theProcessionalWay": [
    {
-    "raw": "+10 science, +10 culture on every hex beside 2 or more great-person works",
+    "raw": "+10 science, +10 culture on every hex beside 2 or more [[improvement:setGreatPersonWorks|great-person works]]",
     "text": "+10 science, +10 culture on every hex beside 2 or more great-person works"
    }
   ],
   "thePullOfTheMasters": [
    {
-    "raw": "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken",
+    "raw": "each turn, each of your [[improvement:setGreatPersonWorks|great-person works]] takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's [[improvement:setGreatPersonWorks|great-person work]] are never taken",
     "text": "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken"
    }
   ],
@@ -10316,7 +10316,7 @@
   ],
   "commonRitesOfPassage": [
    {
-    "raw": "for military units alone, gaining a unit grants +12 faith",
+    "raw": "for [[unit:setMilitaryUnits|military units]] alone, gaining a unit grants +12 faith",
     "text": "for military units alone, gaining a unit grants +12 faith"
    }
   ],
@@ -10334,11 +10334,11 @@
   ],
   "theEngineerCorps": [
    {
-    "raw": "siege units: +1 movement",
+    "raw": "[[unit:setSiegeUnits|siege units]]: +1 movement",
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+30% production toward siege units, in every city with a [[building:workshop|Workshop]]",
+    "raw": "+30% production toward [[unit:setSiegeUnits|siege units]], in every city with a [[building:workshop|Workshop]]",
     "text": "+30% production toward siege units, in every city with a Workshop"
    },
    {
@@ -10418,7 +10418,7 @@
   ],
   "theSculptedLandscape": [
    {
-    "raw": "+2 food, +2 culture on every hex with a [[improvement:farm|Farm]] beside a great person's work",
+    "raw": "+2 food, +2 culture on every hex with a [[improvement:farm|Farm]] beside a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+2 food, +2 culture on every hex with a Farm beside a great person's work"
    }
   ],
@@ -10458,7 +10458,7 @@
     "text": "+1 renown per turn in every city with a culture building, per trade route to another empire leaving it, at most 3 per city"
    },
    {
-    "raw": "+3 gold on every hex carrying a great person's work, in every city with a [[building:setCultureBuildings|culture building]]",
+    "raw": "+3 gold on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]], in every city with a [[building:setCultureBuildings|culture building]]",
     "text": "+3 gold on every hex carrying a great person's work, in every city with a culture building"
    }
   ],
@@ -10525,7 +10525,7 @@
   ],
   "theCrusaderOrders": [
    {
-    "raw": "+3 combat strength for military units inside cities that do not follow your religion",
+    "raw": "+3 combat strength for [[unit:setMilitaryUnits|military units]] inside cities that do not follow your religion",
     "text": "+3 combat strength for military units inside cities that do not follow your religion"
    }
   ],
@@ -10915,7 +10915,7 @@
   ],
   "theOriflamme": [
    {
-    "raw": "+4 combat strength for military units while standing beside religious units",
+    "raw": "+4 combat strength for [[unit:setMilitaryUnits|military units]] while standing beside [[unit:setReligiousUnits|religious units]]",
     "text": "+4 combat strength for military units while standing beside religious units"
    }
   ],
@@ -10947,7 +10947,7 @@
   ],
   "warBonds": [
    {
-    "raw": "+1 combat strength for military units per 150 gold in your treasury (at most +5)",
+    "raw": "+1 combat strength for [[unit:setMilitaryUnits|military units]] per 150 gold in your treasury (at most +5)",
     "text": "+1 combat strength for military units per 150 gold in your treasury (at most +5)"
    }
   ],
@@ -10973,11 +10973,11 @@
   ],
   "mercenaryContracts": [
    {
-    "raw": "military units bought with gold cost no upkeep for 20 turns",
+    "raw": "[[unit:setMilitaryUnits|military units]] bought with gold cost no upkeep for 20 turns",
     "text": "military units bought with gold cost no upkeep for 20 turns"
    },
    {
-    "raw": "military units bought with faith cost no upkeep for 20 turns",
+    "raw": "[[unit:setMilitaryUnits|military units]] bought with faith cost no upkeep for 20 turns",
     "text": "military units bought with faith cost no upkeep for 20 turns"
    }
   ],
@@ -11017,13 +11017,13 @@
   ],
   "lootedArt": [
    {
-    "raw": "capturing a city grants +20 renown for each great-person work and wonder inside its borders",
+    "raw": "capturing a city grants +20 renown for each [[improvement:setGreatPersonWorks|great-person work]] and wonder inside its borders",
     "text": "capturing a city grants +20 renown for each great-person work and wonder inside its borders"
    }
   ],
   "theFarmingGarrisons": [
    {
-    "raw": "+1 food, +1 production on every hex with a fortified military unit of yours",
+    "raw": "+1 food, +1 production on every hex with a fortified [[unit:setMilitaryUnits|military unit]] of yours",
     "text": "+1 food, +1 production on every hex with a fortified military unit of yours"
    }
   ],
@@ -11143,7 +11143,7 @@
   ],
   "theShrineGuards": [
    {
-    "raw": "melee units may be bought with faith in every city with a [[building:shrine|Shrine]]",
+    "raw": "[[unit:setMeleeUnits|melee units]] may be bought with faith in every city with a [[building:shrine|Shrine]]",
     "text": "melee units may be bought with faith in every city with a Shrine"
    }
   ],
@@ -11249,7 +11249,7 @@
   ],
   "theArmyContractors": [
    {
-    "raw": "for military units alone, buying anything grants production equal to 25% of the gold paid",
+    "raw": "for [[unit:setMilitaryUnits|military units]] alone, buying anything grants production equal to 25% of the gold paid",
     "text": "for military units alone, buying anything grants production equal to 25% of the gold paid"
    }
   ],
@@ -11291,7 +11291,7 @@
   ],
   "thePatronsQuarter": [
    {
-    "raw": "+2 production, +2 culture on every hex carrying a great person's work, for each [[building:setGoldBuildings|gold building]] in its town",
+    "raw": "+2 production, +2 culture on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]], for each [[building:setGoldBuildings|gold building]] in its town",
     "text": "+2 production, +2 culture on every hex carrying a great person's work, for each gold building in its town"
    }
   ],
@@ -11385,11 +11385,11 @@
   ],
   "oracleOfTheCrossroads": [
    {
-    "raw": "scout units: +1 movement",
+    "raw": "[[unit:setScouts|scout units]]: +1 movement",
     "text": "scout units: +1 movement"
    },
    {
-    "raw": "scout units: +1 sight",
+    "raw": "[[unit:setScouts|scout units]]: +1 sight",
     "text": "scout units: +1 sight"
    },
    {
@@ -11874,7 +11874,7 @@
     "text": "The Bottega gives +3 renown per turn toward great artists"
    },
    {
-    "raw": "+2 production per hex carrying a luxury resource or carrying a great person's work in this city",
+    "raw": "+2 production per hex carrying a luxury resource or carrying a [[improvement:setGreatPersonWorks|great person's work]] in this city",
     "text": "+2 production per hex carrying a luxury resource or carrying a great person's work in this city"
    }
   ],
@@ -12038,11 +12038,11 @@
     "text": "+1 gold on every hex with a Fishing Boat"
    },
    {
-    "raw": "+3 combat strength for ships",
+    "raw": "+3 combat strength for [[unit:setShips|ships]]",
     "text": "+3 combat strength for ships"
    },
    {
-    "raw": "ships: +1 movement",
+    "raw": "[[unit:setShips|ships]]: +1 movement",
     "text": "ships: +1 movement"
    }
   ],
@@ -12140,7 +12140,7 @@
   ],
   "mausoleum": [
    {
-    "raw": "the yields of every hex carrying a great person's work are doubled, after every other change to the hex",
+    "raw": "the yields of every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] are doubled, after every other change to the hex",
     "text": "the yields of every hex carrying a great person's work are doubled, after every other change to the hex"
    }
   ],
@@ -12375,7 +12375,7 @@
   ],
   "chartTheStars": [
    {
-    "raw": "ships: +1 movement",
+    "raw": "[[unit:setShips|ships]]: +1 movement",
     "text": "ships: +1 movement"
    },
    {
@@ -12447,11 +12447,11 @@
   ],
   "tophane": [
    {
-    "raw": "newly created military units in every city with a [[building:tophane|Tophane]] gain +4 combat strength",
+    "raw": "newly created [[unit:setMilitaryUnits|military units]] in every city with a [[building:tophane|Tophane]] gain +4 combat strength",
     "text": "newly created military units in every city with a Tophane gain +4 combat strength"
    },
    {
-    "raw": "+50% production toward military units, in every city with a [[building:tophane|Tophane]]",
+    "raw": "+50% production toward [[unit:setMilitaryUnits|military units]], in every city with a [[building:tophane|Tophane]]",
     "text": "+50% production toward military units, in every city with a Tophane"
    }
   ],
@@ -12819,7 +12819,7 @@
   ],
   "homer": [
    {
-    "raw": "+3 on every hex carrying a great person's work — science on an [[improvement:academy|Academy]], culture on a [[improvement:landmark|Landmark]], production on a [[improvement:manufactory|Manufactory]], gold on a [[improvement:customsHouse|Customs House]], production on a [[improvement:citadel|Citadel]] and faith on a [[improvement:holySite|Holy Site]]",
+    "raw": "+3 on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] — science on an [[improvement:academy|Academy]], culture on a [[improvement:landmark|Landmark]], production on a [[improvement:manufactory|Manufactory]], gold on a [[improvement:customsHouse|Customs House]], production on a [[improvement:citadel|Citadel]] and faith on a [[improvement:holySite|Holy Site]]",
     "text": "+3 on every hex carrying a great person's work — science on an Academy, culture on a Landmark, production on a Manufactory, gold on a Customs House, production on a Citadel and faith on a Holy Site"
    }
   ],
@@ -12891,7 +12891,7 @@
   ],
   "ahmoseSonOfEbana": [
    {
-    "raw": "+3 combat strength for melee units",
+    "raw": "+3 combat strength for [[unit:setMeleeUnits|melee units]]",
     "text": "+3 combat strength for melee units"
    },
    {
@@ -12957,11 +12957,11 @@
   ],
   "archimedes": [
    {
-    "raw": "siege units: +1 movement",
+    "raw": "[[unit:setSiegeUnits|siege units]]: +1 movement",
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+3 combat strength for siege units",
+    "raw": "+3 combat strength for [[unit:setSiegeUnits|siege units]]",
     "text": "+3 combat strength for siege units"
    }
   ],
@@ -13155,7 +13155,7 @@
   ],
   "murasakiShikibu": [
    {
-    "raw": "+4 culture per melee unit in the field",
+    "raw": "+4 culture per [[unit:setMeleeUnits|melee unit]] in the field",
     "text": "+4 culture per melee unit in the field"
    }
   ],
@@ -13209,7 +13209,7 @@
   ],
   "benjaminOfTudela": [
    {
-    "raw": "+2 gold, +1 culture on every hex carrying a great person's work",
+    "raw": "+2 gold, +1 culture on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+2 gold, +1 culture on every hex carrying a great person's work"
    }
   ],
@@ -13233,22 +13233,22 @@
   ],
   "subutai": [
    {
-    "raw": "mounted units: +1 movement",
+    "raw": "[[unit:setMountedUnits|mounted units]]: +1 movement",
     "text": "mounted units: +1 movement"
    },
    {
-    "raw": "+2 combat strength for mounted units",
+    "raw": "+2 combat strength for [[unit:setMountedUnits|mounted units]]",
     "text": "+2 combat strength for mounted units"
    }
   ],
   "tomoeGozen": [
    {
-    "raw": "+3 combat strength for mounted units",
+    "raw": "+3 combat strength for [[unit:setMountedUnits|mounted units]]",
     "text": "+3 combat strength for mounted units"
    },
    {
-    "raw": "+3 combat strength for ranged units",
-    "text": "+3 combat strength for ranged units"
+    "raw": "+3 combat strength for [[unit:setRangedAttackUnits|units with a ranged attack]]",
+    "text": "+3 combat strength for units with a ranged attack"
    }
   ],
   "janZizka": [
@@ -13395,11 +13395,11 @@
   ],
   "gustavusAdolphus": [
    {
-    "raw": "+3 combat strength for ranged units",
-    "text": "+3 combat strength for ranged units"
+    "raw": "+3 combat strength for [[unit:setRangedAttackUnits|units with a ranged attack]]",
+    "text": "+3 combat strength for units with a ranged attack"
    },
    {
-    "raw": "siege units: +1 movement",
+    "raw": "[[unit:setSiegeUnits|siege units]]: +1 movement",
     "text": "siege units: +1 movement"
    }
   ],
@@ -13419,13 +13419,13 @@
     "text": "+3 food in every coastal city"
    },
    {
-    "raw": "+3 combat strength for ships",
+    "raw": "+3 combat strength for [[unit:setShips|ships]]",
     "text": "+3 combat strength for ships"
    }
   ],
   "lautaro": [
    {
-    "raw": "+5 combat strength against mounted units",
+    "raw": "+5 combat strength against [[unit:setMountedUnits|mounted units]]",
     "text": "+5 combat strength against mounted units"
    }
   ],
@@ -13505,7 +13505,7 @@
   ],
   "sunTzu": [
    {
-    "raw": "military units: +1 sight",
+    "raw": "[[unit:setMilitaryUnits|military units]]: +1 sight",
     "text": "military units: +1 sight"
    },
    {
@@ -13557,8 +13557,8 @@
   ],
   "zhugeLiang": [
    {
-    "raw": "+3 combat strength for ranged units",
-    "text": "+3 combat strength for ranged units"
+    "raw": "+3 combat strength for [[unit:setRangedAttackUnits|units with a ranged attack]]",
+    "text": "+3 combat strength for units with a ranged attack"
    },
    {
     "raw": "+2 food in every city with a unit standing in it",
@@ -13611,7 +13611,7 @@
   ],
   "ferdowsi": [
    {
-    "raw": "+4 culture on every hex carrying a great person's work",
+    "raw": "+4 culture on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+4 culture on every hex carrying a great person's work"
    }
   ],
@@ -13659,7 +13659,7 @@
   ],
   "gajahMada": [
    {
-    "raw": "+4 combat strength for military units",
+    "raw": "+4 combat strength for [[unit:setMilitaryUnits|military units]]",
     "text": "+4 combat strength for military units"
    },
    {
@@ -13849,7 +13849,7 @@
   ],
   "artemisia": [
    {
-    "raw": "+1 combat strength for ships",
+    "raw": "+1 combat strength for [[unit:setShips|ships]]",
     "text": "+1 combat strength for ships"
    },
    {
@@ -13859,7 +13859,7 @@
   ],
   "tomyris": [
    {
-    "raw": "+3 combat strength for mounted units",
+    "raw": "+3 combat strength for [[unit:setMountedUnits|mounted units]]",
     "text": "+3 combat strength for mounted units"
    },
    {
@@ -13963,11 +13963,11 @@
   ],
   "moduChanyu": [
    {
-    "raw": "+3 combat strength for mounted units",
+    "raw": "+3 combat strength for [[unit:setMountedUnits|mounted units]]",
     "text": "+3 combat strength for mounted units"
    },
    {
-    "raw": "+20% production toward mounted units",
+    "raw": "+20% production toward [[unit:setMountedUnits|mounted units]]",
     "text": "+20% production toward mounted units"
    }
   ],
@@ -14093,17 +14093,17 @@
     "text": "capturing a city heals every one of your units"
    },
    {
-    "raw": "for military units alone, gaining a unit grants science equal to 50% of its strength",
+    "raw": "for [[unit:setMilitaryUnits|military units]] alone, gaining a unit grants science equal to 50% of its strength",
     "text": "for military units alone, gaining a unit grants science equal to 50% of its strength"
    }
   ],
   "genghisKhan": [
    {
-    "raw": "mounted units: +1 movement on grassland and plains",
+    "raw": "[[unit:setMountedUnits|mounted units]]: +1 movement on grassland and plains",
     "text": "mounted units: +1 movement on grassland and plains"
    },
    {
-    "raw": "mounted archers: +1 movement on grassland and plains",
+    "raw": "[[unit:setMountedArchers|mounted archers]]: +1 movement on grassland and plains",
     "text": "mounted archers: +1 movement on grassland and plains"
    },
    {
@@ -14321,17 +14321,17 @@
   ],
   "royalArmy": [
    {
-    "raw": "for military units alone, gaining a unit grants science equal to 50% of its strength",
+    "raw": "for [[unit:setMilitaryUnits|military units]] alone, gaining a unit grants science equal to 50% of its strength",
     "text": "for military units alone, gaining a unit grants science equal to 50% of its strength"
    }
   ],
   "steppeRidersOfMongolia": [
    {
-    "raw": "mounted units: +1 movement on grassland and plains",
+    "raw": "[[unit:setMountedUnits|mounted units]]: +1 movement on grassland and plains",
     "text": "mounted units: +1 movement on grassland and plains"
    },
    {
-    "raw": "mounted archers: +1 movement on grassland and plains",
+    "raw": "[[unit:setMountedArchers|mounted archers]]: +1 movement on grassland and plains",
     "text": "mounted archers: +1 movement on grassland and plains"
    },
    {
@@ -14563,11 +14563,11 @@
   ],
   "theMandate": [
    {
-    "raw": "+3 combat strength for melee units",
+    "raw": "+3 combat strength for [[unit:setMeleeUnits|melee units]]",
     "text": "+3 combat strength for melee units"
    },
    {
-    "raw": "melee units: +1 movement",
+    "raw": "[[unit:setMeleeUnits|melee units]]: +1 movement",
     "text": "melee units: +1 movement"
    }
   ],
@@ -14579,11 +14579,11 @@
   ],
   "steppeRiders": [
    {
-    "raw": "mounted units: +1 movement on grassland and plains",
+    "raw": "[[unit:setMountedUnits|mounted units]]: +1 movement on grassland and plains",
     "text": "mounted units: +1 movement on grassland and plains"
    },
    {
-    "raw": "mounted archers: +1 movement on grassland and plains",
+    "raw": "[[unit:setMountedArchers|mounted archers]]: +1 movement on grassland and plains",
     "text": "mounted archers: +1 movement on grassland and plains"
    },
    {
@@ -14635,11 +14635,11 @@
   ],
   "treasureFleet": [
    {
-    "raw": "ships: +2 movement",
+    "raw": "[[unit:setShips|ships]]: +2 movement",
     "text": "ships: +2 movement"
    },
    {
-    "raw": "ships: +1 sight",
+    "raw": "[[unit:setShips|ships]]: +1 sight",
     "text": "ships: +1 sight"
    }
   ],
@@ -14666,7 +14666,7 @@
   ],
   "theCommentaries": [
    {
-    "raw": "the works on every hex carrying a great person's work pay +50%",
+    "raw": "the works on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] pay +50%",
     "text": "the works on every hex carrying a great person's work pay +50%"
    }
   ],

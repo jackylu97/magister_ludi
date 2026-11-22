@@ -253,6 +253,8 @@ export {
   describeBuildingRow,
   // The kinds of building a card can name, as links to their pages.
   BUILDING_KIND_PAGES,
+  IMPROVEMENT_KIND_PAGES,
+  UNIT_KINDS,
   markBuildingKinds,
   // The Compendium's unit page: a row's own combat lines and effects, worded.
   describeUnitRow,

@@ -506,7 +506,8 @@ describe("the card table", () => {
     // `docs/plans/deck-simplification-2026-11-10.md`, "Governments"). Pinned as
     // the describers' sentences, so a row that drifts from its signature fails
     // here as well as in the doc-sync test.
-    const said = (id: GovernmentId): string[] => describeCard(id).map((clause) => clause.text);
+    // Read with the marks taken out: a kind of unit is a link to its page since 2026-11-22.
+    const said = (id: GovernmentId): string[] => describeCard(id).map((clause) => stripRefs(clause.text));
     expect(said("warChief")).toEqual([
       "+4 combat strength",
       "killing a unit grants +10 science",

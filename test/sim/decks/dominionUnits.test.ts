@@ -569,7 +569,8 @@ describe('Dominion D5 — words and the bot', () => {
     expect(words('theOpenMuster')).toContain('passing on an Order hand grants a melee unit in your capital');
     expect(words('theSack')).toContain('razing a city you captured');
     expect(words('theCleruchy')).toBe('Boon | On draft: a Settler joins you in your capital');
-    expect(words('theLongbowmen')).toBe('+4 combat strength for ranged units');
+    // Every unit with a ranged attack, not the ranged class alone: the words say which since 2026-11-22.
+    expect(words('theLongbowmen')).toBe('+4 combat strength for units with a ranged attack');
     expect(words('theStateForges')).toContain('a melee unit in your capital');
     expect(words('theMuralCrown')).toContain('for each great general you have gained this game');
     expect(words('valhalla')).toContain('+25 culture for each Monument');

@@ -129,6 +129,9 @@ import {
   SLOT_WORDS,
   anyCardDef,
   BUILDING_KIND_PAGES,
+  IMPROVEMENT_KIND_PAGES,
+  UNIT_KINDS,
+  unitMatches,
   cityScopeWords,
   describeBuildingRow,
   describeCard,
@@ -381,6 +384,12 @@ export interface CompendiumEntry {
    * unset.
    */
   written?: boolean;
+  /**
+   * True for the page of a kind ("Public works", "Mounted units"): a written
+   * page whose first paragraph is a list of the entries of the kind. The index's
+   * search reads its name only.
+   */
+  list?: boolean;
   /**
    * True for the printed pamphlet's one page (`pamphlet.ts`): `clauses` still
    * carries every paragraph so the search reaches the prose, but the card is
@@ -1148,6 +1157,93 @@ function unitPurchaseWords(def: UnitDef): string | null {
     : `Can also be bought with ${spec.currency} in a city${needs}.${rise}`;
 }
 
+/** The heading the pages of the kinds of unit stand under, first on the shelf. */
+const UNIT_KINDS_GROUP = 'Kinds of unit';
+
+/**
+ * How the game decides each kind of unit, in one plain sentence. Keyed by the
+ * page of the kind (`UNIT_KINDS`, `describers.ts`). Who is of the kind is never
+ * read from here: the page asks `unitMatches`.
+ */
+const UNIT_KIND_RULES: Readonly<Record<string, string>> = {
+  setMilitaryUnits: 'A military unit is a land unit that fights. Ships, civilians and traders are not military units.',
+  setCivilianUnits: 'A civilian unit cannot fight, and an enemy that reaches one captures it.',
+  setShips: 'A ship is a unit that moves on water. A land unit at sea is not a ship.',
+  setMeleeUnits: 'Melee units are one class of unit: the foot soldiers that fight hand to hand. A mounted unit is not a melee unit.',
+  setRangedUnits: 'Ranged units are one class of unit: the foot archers. A siege engine, a mounted archer and a ship that fires are other classes. A card that means all of them says "units with a ranged attack".',
+  setMountedUnits: 'Mounted units are one class of unit. A mounted archer is another class.',
+  setMountedArchers: 'Mounted archers are one class of unit. They are not mounted units and not ranged units.',
+  setSiegeUnits: 'Siege units are one class of unit: the engines that attack cities.',
+  setScouts: 'A scout is a unit made to explore.',
+  setReligiousUnits: 'A religious unit is a unit whose charges pay for acts of a religion.',
+  setRangedAttackUnits: 'Every unit that has a ranged strength, whatever its class.',
+  setLightWarships: 'Light warships are one class of ship.',
+  setHeavyWarships: 'Heavy warships are one class of ship.',
+  setFiringShips: 'Ships that fire at a distance are one class of ship.',
+};
+
+/**
+ * One kind of unit's page: every unit `unitMatches` admits for the kind's
+ * filter, as links. A written page, so the hover card of a card's "mounted
+ * units" shows the list. A unit can be on several pages.
+ */
+function unitKindEntry(kind: (typeof UNIT_KINDS)[number]): CompendiumEntry {
+  const name = capital(filterWords(kind.filter));
+  const members = UNIT_TYPE_IDS.filter((id) => !unitIsAbsent(id) && unitMatches(id, kind.filter));
+  return {
+    id: compendiumId('unit', kind.page),
+    section: 'unit',
+    name,
+    group: UNIT_KINDS_GROUP,
+    eyebrow: 'a kind of unit',
+    mark: { kind: 'glyph', glyph: '⚔' },
+    rows: [],
+    clauses: [
+      { text: members.length === 0 ? 'No unit is of this kind now.' : `${name}: ${members.map(unitRef).join(', ')}.` },
+      { text: `${UNIT_KIND_RULES[kind.page] ?? ''} A card that says "${filterWords(kind.filter)}" means these.`.trim() },
+    ],
+    flavor: null,
+    written: true,
+    list: true,
+  };
+}
+
+/** The two kinds of improvement a card can name, each with the simulation's own test. */
+const IMPROVEMENT_KINDS: readonly { page: string; name: string; has: (id: ImprovementId) => boolean; rule: string }[] = [
+  {
+    page: IMPROVEMENT_KIND_PAGES.greatPersonWork,
+    name: 'Great person’s works',
+    has: isGreatPersonWork,
+    rule: 'A work is an improvement that a great person builds, the holy site of a prophet, and any improvement that counts as one. A card that says "great person’s work" means these.',
+  },
+  {
+    page: IMPROVEMENT_KIND_PAGES.uniqueImprovement,
+    name: 'Unique improvements',
+    has: isUniqueImprovement,
+    rule: 'A unique improvement is one that a leader, a card or a charter technology opens. A card that says "unique improvement" means these.',
+  },
+];
+
+/** The heading the two pages stand under, first on the Improvements shelf. */
+const IMPROVEMENT_KINDS_GROUP = 'Kinds of improvement';
+
+function improvementKindEntry(kind: (typeof IMPROVEMENT_KINDS)[number]): CompendiumEntry {
+  const members = IMPROVEMENT_IDS.filter((id) => !improvementIsAbsent(id) && kind.has(id));
+  return {
+    id: compendiumId('improvement', kind.page),
+    section: 'improvement',
+    name: kind.name,
+    group: IMPROVEMENT_KINDS_GROUP,
+    eyebrow: 'a kind of improvement',
+    mark: { kind: 'glyph', glyph: '⛏' },
+    rows: [],
+    clauses: [{ text: `${kind.name}: ${members.map(improvementRef).join(', ')}.` }, { text: kind.rule }],
+    flavor: null,
+    written: true,
+    list: true,
+  };
+}
+
 function unitEntry(type: UnitTypeId): CompendiumEntry {
   const def = unitDef(type);
   // Three kinds of row have no production price: a great person is recruited
@@ -1169,12 +1265,13 @@ function unitEntry(type: UnitTypeId): CompendiumEntry {
         ? ''
         : `${figure(def.rangedStrength)} at a range of ${figure(def.range ?? 0)}`,
     ),
-    // The class a card means when it says "mounted units" or "light
-    // warships": the card describer's own words for the row's class
-    // (`filterWords`), so the page and the card use one name (2026-11-22).
+    // Every kind of unit this row is of, each a link to the page that lists
+    // the kind: the words a card uses ("mounted units", "military units").
     ...row(
-      'A card calls these',
-      def.combatStrength > 0 ? filterWords({ modelClass: def.modelClass }) : '',
+      'Kinds',
+      UNIT_KINDS.filter((kind) => unitMatches(type, kind.filter))
+        .map((kind) => ref('unit', kind.page, capital(filterWords(kind.filter))))
+        .join(' · '),
     ),
     ...row('Movement points', figure(def.movement)),
     ...row('Sight in hexes', figure(def.sight)),
@@ -1546,6 +1643,7 @@ function buildingKindEntry(kind: BuildingKind): CompendiumEntry {
     ],
     flavor: null,
     written: true,
+    list: true,
   };
 }
 
@@ -3273,6 +3371,8 @@ export function compendiumSections(): CompendiumSection[] {
         (a, b) => order.indexOf(a.entry.group) - order.indexOf(b.entry.group) || a.index - b.index,
       )
       .map(({ entry }) => entry);
+  // The pages of the kinds of unit first, then the units.
+  for (const kind of UNIT_KINDS) push(unitKindEntry(kind));
   for (const entry of filed(UNIT_TYPE_IDS.map(unitEntry))) push(entry);
   // **A withdrawn row has no page.** The fewer-things pass cut twelve ordinary
   // buildings and kept their rows so that a save which raised one still replays
@@ -3289,6 +3389,7 @@ export function compendiumSections(): CompendiumSection[] {
   ];
   const buildings = BUILDING_IDS.filter((id) => buildingDef(id).retired !== true).map(buildingEntry);
   for (const entry of filed(buildings, buildingOrder)) push(entry);
+  for (const kind of IMPROVEMENT_KINDS) push(improvementKindEntry(kind));
   for (const entry of filed(IMPROVEMENT_IDS.map(improvementEntry))) push(entry);
   for (const id of RESOURCE_IDS) push(resourceEntry(id));
   // Age order, then the table's own order inside an age: a reference is read
@@ -3368,7 +3469,10 @@ export function compendiumSections(): CompendiumSection[] {
  */
 function entryMatches(entry: CompendiumEntry, needle: string): boolean {
   if (entry.name.toLowerCase().includes(needle)) return true;
-  if (entry.written !== true) return false;
+  // A page of a kind is a list of names. A search for "swordsman" is for the
+  // Swordsman, not for each list the Swordsman is on, so such a page answers
+  // by its own name only.
+  if (entry.written !== true || entry.list === true) return false;
   // **Stripped**, because a search is over words. A clause's marks carry the
   // *ids* of the things it names (`[[building:granary|a Granary]]`), and a
   // reader typing "building" is not asking for every card that happens to name

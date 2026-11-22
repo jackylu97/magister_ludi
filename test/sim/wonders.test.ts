@@ -1375,7 +1375,8 @@ describe('a wonder in words', () => {
   });
 
   it('names who a filtered combat line is for, and whose ground a tile line is on', () => {
-    expect(describeCard('greatLighthouse').map((c) => c.text)).toContain(
+    // Read with the marks taken out: "ships" is a link to the page of that kind since 2026-11-22.
+    expect(describeCard('greatLighthouse').map((c) => stripRefs(c.text))).toContain(
       '+3 combat strength for ships',
     );
     expect(describeCard('petra').map((c) => stripRefs(c.text))).toContain(

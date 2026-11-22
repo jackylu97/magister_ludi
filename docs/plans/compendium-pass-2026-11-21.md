@@ -777,3 +777,92 @@ Rows that are not in the game are not listed.
   `test/sim/statecraft.test.ts`, `test/sim/decks/commerceDoctrines.test.ts`,
   `test/sim/decks/scientificDoctrines.test.ts` (three comparisons of a marked
   clause), `test/fixtures/cardText.json` (regenerated).
+
+## The kinds of unit, 2026-11-22 (fifth round)
+
+The user: "Unit classes yes." And, about a row in two kinds: "buildings can
+belong to more than one category, just have them listed in more than one
+section (i.e. palisades are military and defensive)".
+
+### The terms a card uses, and how the game decides each
+
+Every card effect that names a kind of unit carries a `UnitFilter`, and one
+function decides who is in it: `unitMatches` (`statecraft/evaluator.ts`). The
+words are `filterWords` of the filter. So a kind is a filter, its page is every
+unit `unitMatches` admits, and its name is `filterWords`. The table of kinds is
+`UNIT_KINDS` in `describers.ts`.
+
+| Term on a card | The filter | What `unitMatches` reads |
+|---|---|---|
+| "military units" | `category: military` | The row's category. Ships, civilians and traders are other categories |
+| "civilian units" | `category: civilian` | The row's category |
+| "ships" | `category: naval` | The row's category |
+| "melee units", "ranged units", "mounted units", "mounted archers", "siege units" | `modelClass` | The row's one class |
+| "light warships", "heavy warships", "ships that fire at a distance" | `modelClass` | The three classes of ship |
+| "scouts", "scout units" | `explores: true` | `isExplorer` |
+| "religious units" | `religious: true` | The four markers of a religious unit |
+| "units with a ranged attack" | `ranged: true` | The row has a range |
+
+- **One word meant two sets, and that is fixed.** `filterWords` said "ranged
+  units" for the ranged class (6 units) and for every unit with a ranged attack
+  (18 units), and "melee units" for the melee class and for every unit with no
+  ranged attack. The second pair now reads "units with a ranged attack" and
+  "units with no ranged attack". Seven card clauses changed their words.
+- Not a page: "all units"; a named unit and a unit line (the card links the
+  unit); a rank such as Veteran (the Unit ranks page); "units of the newest age
+  you know" (depends on the empire); a list of classes in one phrase ("melee
+  and ranged units": the last class in the phrase is the link).
+- A unit a leader or a card opens, and a unit bought with faith, say so on
+  their entries and are under their own headings.
+
+### What was built
+
+- **Fourteen pages under "Kinds of unit"**, first on the Units shelf. Each
+  lists its units as links, then says how the game decides. A unit can be on
+  several pages: the Catapult is on Siege units, Military units and Units with
+  a ranged attack.
+- **Each unit's entry has a row "Kinds"** of links, in place of the row "A
+  card calls these".
+- **A card's words are links**, through the same pass as the buildings
+  (`markBuildingKinds`). 255 clauses of the card text fixture changed in their
+  marked form: about 200 for units and 59 for improvements.
+- **Two pages under "Kinds of improvement"**: Great person's works
+  (`isGreatPersonWork`) and Unique improvements (`isUniqueImprovement`). Cards
+  name both (56 and 3 clauses), and no page listed them. The Paradise Garden is
+  on the first page.
+- **The Palisade** is on Military buildings and on Fortifications. This was
+  checked by the script that wrote this section.
+
+### The pages and their sizes
+
+| Page | Anchor | Members | Listed |
+|---|---|---|---|
+| Units with a ranged attack | `unit:setRangedAttackUnits` | 16 | Archer, Bowman, Chariot Archer, Catapult, Composite Bowman, Crossbowman, Trebuchet, Fire Ship, Gun Galley, Horse Archer, Slinger, Keshig, Camel Archer, Qin Crossbowman, Ballista Elephant, Hwacha |
+| Ships that fire at a distance | `unit:setFiringShips` | 2 | Fire Ship, Gun Galley |
+| Light warships | `unit:setLightWarships` | 5 | Trireme, Bireme, Galley, Caravel, The Alexandrian Galley |
+| Heavy warships | `unit:setHeavyWarships` | 3 | War Galley, Tower Ship, Carrack |
+| Mounted archers | `unit:setMountedArchers` | 4 | Chariot Archer, Horse Archer, Keshig, Camel Archer |
+| Military units | `unit:setMilitaryUnits` | 39 | Warrior, Scout, Archer, Bowman, Spearman, Horseman, War Chariot, Chariot Archer, Swordsman, Catapult, Composite Bowman, Pikeman, Crossbowman, Knight, Longswordsman, Trebuchet, Phalanx, Legionary, Horse Archer, Cataphract, Spear Wall, War Elephant, The Fire Lance, Knights Templar, Numidian Cavalry, Company Guard, Slinger, Keshig, Camel Archer, The Gendarme, The Mandekalu, The Eagle Warrior, Hypaspist, Janissary, Qin Crossbowman, Ballista Elephant, Sparabara, Condottiere, Hwacha |
+| Civilian units | `unit:setCivilianUnits` | 6 | Settler, Worker, Prophet, Apostle, Inquisitor, Great Person |
+| Religious units | `unit:setReligiousUnits` | 3 | Prophet, Apostle, Inquisitor |
+| Melee units | `unit:setMeleeUnits` | 15 | Warrior, Spearman, Swordsman, Pikeman, Longswordsman, Phalanx, Legionary, Spear Wall, The Fire Lance, Company Guard, The Eagle Warrior, Hypaspist, Janissary, Sparabara, Condottiere |
+| Ranged units | `unit:setRangedUnits` | 6 | Archer, Bowman, Composite Bowman, Crossbowman, Slinger, Qin Crossbowman |
+| Mounted units | `unit:setMountedUnits` | 10 | Horseman, War Chariot, Knight, Cataphract, War Elephant, Knights Templar, Numidian Cavalry, The Gendarme, The Mandekalu, Ballista Elephant |
+| Siege units | `unit:setSiegeUnits` | 3 | Catapult, Trebuchet, Hwacha |
+| Scouts | `unit:setScouts` | 1 | Scout |
+| Ships | `unit:setShips` | 10 | Trireme, Bireme, Galley, Caravel, War Galley, Tower Ship, Carrack, Fire Ship, Gun Galley, The Alexandrian Galley |
+| Great person’s works | `improvement:setGreatPersonWorks` | 7 | Academy, Landmark, Manufactory, Customs House, Citadel, Holy Site, The Paradise Garden |
+| Unique improvements | `improvement:setUniqueImprovements` | 18 | Cliff Monastery, Stone Circle, Smelter, Terraces, Fish Traps, Wild Orchard, Keep, Polder, Outpost, Physic Garden, Qanat, The Paradise Garden, Nazca Lines, Inuksuk, Totem Pole, Stepwell, Hillfort, Baray |
+
+Rows that are not in the game are not listed.
+
+### Tests
+
+- New: `test/ui/compendiumUnitKinds.test.ts`.
+- Changed: `test/ui/compendium.test.ts` and `test/ui/compendiumDecks.test.ts`
+  (shelf lengths and headings), `test/sim/statecraft.test.ts` and
+  `test/sim/wonders.test.ts` (two comparisons of a marked clause),
+  `test/fixtures/cardText.json` (regenerated).
+- Seven card clauses changed their plain words ("ranged units" to "units with
+  a ranged attack"). `test/sim/decks/dominionUnits.test.ts` and
+  `test/sim/decks/scientificCards.test.ts` pinned two of them and were updated.
