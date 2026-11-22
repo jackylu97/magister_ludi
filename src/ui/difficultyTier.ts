@@ -40,6 +40,8 @@ export interface TierRule {
   /** The row's key in `data/difficulty.json`. */
   key: string;
   text: string;
+  /** A short form of the sentence, for the game menu's narrow list. */
+  short: string;
 }
 
 /** `75 / 20 / 5`: the three rarity weights in the order common, uncommon, rare. */
@@ -65,6 +67,19 @@ const RULE_WORDS: { [K in RuleKey]: (row: RuleRow<K>) => string } = {
     `Your Order offers hold fewer uncommon and rare cards: the odds are ${odds(row.weights)}, not ${odds(STATECRAFT.rarityOdds)}.`,
 };
 
+/**
+ * The short form of each rule, for the game menu. The menu is narrow, and a
+ * full sentence takes two or three lines there. A short form fits one line.
+ * The menu shows the full sentence when the player opens the row.
+ */
+const RULE_SHORT: { [K in RuleKey]: (row: RuleRow<K>) => string } = {
+  strength: (row) => `Rivals, barbarians +${row.points} strength`,
+  rivalGrowthAndProduction: (row) => `Rivals +${row.percent}% growth, production`,
+  campWave: (row) => `Age close: new camps of ${row.unitsPerCamp}`,
+  humanBuildCost: (row) => `Your builds cost ${row.percent}% more`,
+  humanOrderRarity: (row) => `Order odds ${odds(row.weights)}`,
+};
+
 /** `rivalGrowthAndProduction` to "Rival growth and production", for a row with no sentence. */
 function keyWords(key: string): string {
   const words = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
@@ -82,11 +97,12 @@ export function clampTier(value: unknown): number {
 function allRules(): TierRule[] {
   const rows = DIFFICULTY_RULES as Record<string, { tier: number }>;
   const words = RULE_WORDS as Record<string, ((row: never) => string) | undefined>;
+  const shorts = RULE_SHORT as Record<string, ((row: never) => string) | undefined>;
   return Object.keys(rows)
     .map((key) => {
       const row = rows[key]!;
-      const write = words[key];
-      return { tier: row.tier, key, text: write ? write(row as never) : keyWords(key) };
+      const text = words[key]?.(row as never) ?? keyWords(key);
+      return { tier: row.tier, key, text, short: shorts[key]?.(row as never) ?? text };
     })
     .sort((a, b) => a.tier - b.tier);
 }
@@ -117,8 +133,20 @@ export function tierLine(tier: number): string {
 /** The sentence under the chooser that says how much is in force. */
 export function tierCountLine(tier: number): string {
   const count = tierRules(tier).length;
-  if (count === 0) return 'The standard rules. No extra rule is in force.';
+  if (count === 0) return 'The standard rules';
   return count === 1 ? '1 rule in force' : `${count} rules in force`;
+}
+
+/** The one line the rule list shows at tier 0. */
+export const NO_RULES_LINE = 'No added rules.';
+
+/**
+ * "played on Tier 3": the short line of the Opus close's ending page. Tier 0
+ * has no line there, so the standard game's page is as it was.
+ */
+export function playedOnLine(tier: number): string | null {
+  const at = clampTier(tier);
+  return at === 0 ? null : `played on ${tierLine(at)}`;
 }
 
 /**
@@ -198,11 +226,25 @@ export function setRuleText(target: HTMLElement, text: string): void {
 /**
  * Fills a list element with the rules in force at a tier, one line each. The
  * rule the tier itself adds carries `is-newest` and the word "new".
+ *
+ * Two forms:
+ * - `full` (the setup screen): the whole sentence. At tier 0 the list holds
+ *   one quiet line, `NO_RULES_LINE`.
+ * - `short` (the game menu): the short form on one line. Each row is a
+ *   `<details>`, so a press or Enter on it opens the full sentence beneath.
  */
-export function drawTierRules(list: HTMLElement, tier: number): void {
+export function drawTierRules(list: HTMLElement, tier: number, form: 'full' | 'short' = 'full'): void {
   const at = clampTier(tier);
   list.replaceChildren();
-  for (const rule of tierRules(at)) {
+  const rules = tierRules(at);
+  if (rules.length === 0 && form === 'full') {
+    const none = document.createElement('li');
+    none.className = 'tier-rule-none';
+    none.textContent = NO_RULES_LINE;
+    list.append(none);
+    return;
+  }
+  for (const rule of rules) {
     const row = document.createElement('li');
     row.className = rule.tier === at ? 'tier-rule is-newest' : 'tier-rule';
     const step = document.createElement('span');
@@ -211,9 +253,21 @@ export function drawTierRules(list: HTMLElement, tier: number): void {
     step.setAttribute('aria-label', `Tier ${rule.tier}`);
     const words = document.createElement('span');
     words.className = 'tier-rule-words';
-    setRuleText(words, rule.text);
+    if (form === 'short') {
+      const more = document.createElement('details');
+      more.className = 'tier-rule-more';
+      const short = document.createElement('summary');
+      setRuleText(short, rule.short);
+      const full = document.createElement('p');
+      full.className = 'tier-rule-full';
+      setRuleText(full, rule.text);
+      more.append(short, full);
+      words.append(more);
+    } else {
+      setRuleText(words, rule.text);
+    }
     row.append(step, words);
-    if (rule.tier === at) {
+    if (rule.tier === at && form === 'full') {
       const mark = document.createElement('span');
       mark.className = 'tier-rule-new';
       mark.textContent = 'new';

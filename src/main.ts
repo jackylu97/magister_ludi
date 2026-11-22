@@ -2933,7 +2933,7 @@ async function boot(initial: Game | null): Promise<void> {
     // The tier is read from the state, which is where a loaded save keeps it.
     const tier = tierOf(game.state);
     infoTier.textContent = tierLine(tier);
-    drawTierRules(infoTierRules, tier);
+    drawTierRules(infoTierRules, tier, 'short');
     infoTierRules.hidden = tier === 0;
   }
 

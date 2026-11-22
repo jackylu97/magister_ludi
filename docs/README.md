@@ -1639,7 +1639,7 @@ Eight root pages, all named in `vite.config.ts` inputs:
   - **The rule list** under the steps shows every rule in force, one line
     each, lowest tier first. The chosen tier's own rule is marked "new". The
     list has a fixed height and scrolls inside itself, so the card keeps its
-    size.
+    size. At tier 0 it holds one line, "No added rules."
   - **The words** are `RULE_WORDS`: one sentence for each data row, with every
     number read from the row. The data has no player-facing line. A row with
     no sentence shows its key in plain words, and the test fails until it has
@@ -1652,8 +1652,11 @@ Eight root pages, all named in `vite.config.ts` inputs:
     keeps its tier.
   - **In a game**, every surface reads the state (`tierOf(state)`, where a
     missing tier is 0): the game menu's Difficulty row and its rule list, the
-    line "played on" on the Standings, and the problem report (`game.tier` in
-    the file, "Difficulty:" in the summary). A row of the Load sheet adds
+    line "played on" on the Standings and on the Opus close's ending page
+    (`playedOnLine`, no line at tier 0), and the problem report (`game.tier`
+    in the file, "Difficulty:" in the summary). The menu's list uses the short
+    form of each rule (`RULE_SHORT`), one line each, and a press on a row
+    opens the full sentence. A row of the Load sheet adds
     "tier N" above tier 0 (`slotSummary`), from the save's label.
   - `test/ui/difficultyTier.test.ts` holds the list against the data.
 - **The title step** is frame a8 of the Quiet Table boards (approved

@@ -94,6 +94,7 @@ import { shownAge } from './topBar';
 import { element } from './dom';
 import { prefersReducedMotion } from './motion';
 import { headText, victoryHead } from './victoryScreen';
+import { playedOnLine, tierOf } from './difficultyTier';
 import './agePlate.css';
 import './opusClose.css';
 
@@ -162,6 +163,8 @@ export interface OpusCloseReading {
   winner: string;
   /** The sentence under the name: "You closed The Magnum Opus in Baghdad. The game is yours." */
   line: string;
+  /** "played on Tier 3", from the state's difficulty tier. `null` at tier 0: no line. */
+  tier: string | null;
   /** The rods, in roster order, as the Abacus screen strings them. */
   rows: readonly AbacusRow[];
   /** Which rod is the winner's, or -1 when the winner has none. */
@@ -186,6 +189,7 @@ export function opusCloseReading(
     painting: endingPaintingUrl(win),
     winner: winnerId < 0 ? '' : seatName(state, winnerId),
     line: headText(victoryHead(state, localPlayerId, 'closed')),
+    tier: playedOnLine(tierOf(state)),
     rows,
     winnerRod: rows.findIndex((row) => row.playerId === winnerId),
     age: shownAge(state).age,
@@ -313,6 +317,8 @@ export function createOpusClose(options: OpusCloseOptions): OpusClose {
       name,
       element('p', 'opus-ending-line', read.line),
     );
+    // The difficulty tier, as on the standings. Tier 0 adds no line.
+    if (read.tier !== null) words.append(element('p', 'opus-ending-tier', read.tier));
 
     // The Quiet Table kit's two buttons on a dark ground: the plates' gilt
     // outline (`.age-plate-continue`) and the cinnabar primary (`.btn-primary`).

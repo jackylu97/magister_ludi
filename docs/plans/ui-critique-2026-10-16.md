@@ -2144,3 +2144,15 @@ interface only.
     should move into `data/difficulty.json` when the rules settle.
   - In the game menu, which is 235 px wide, a rule takes two or three lines.
   - The ending page of the Opus close (`opusClose.ts`) does not show the tier.
+
+### Three fixes the user approved (2026-11-22)
+
+- **Tier 0.** The rule list holds one line in the muted ink, "No added
+  rules." The list keeps its height.
+- **The game menu.** Each rule is its short form on one line, in the note
+  size ("Rivals +20% growth, production"). The row is a `<details>`: a press
+  or Enter opens the full sentence under it. The word "new" is not shown
+  there, because the game's tier does not change.
+- **The Opus close.** The ending page shows "played on Tier N" in small caps
+  under the sentence. Tier 0 shows no line. The first two open points above
+  that name the menu and the Opus close are closed.

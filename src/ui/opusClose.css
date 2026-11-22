@@ -139,6 +139,19 @@
   mask: var(--wp-moon) center / contain no-repeat;
 }
 
+/* The difficulty tier the game was played on: a small line under the
+   sentence, in the small caps of "The Great Work is closed". */
+.opus-ending-tier {
+  margin: clamp(4px, 0.8vh, 8px) 0 0;
+  color: var(--plate-paper);
+  font-family: var(--face-name);
+  font-size: clamp(12px, 1vw, 14px);
+  font-variant: small-caps;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
 /* "The Great Work is closed": small capitals in the lit gilt, as the wonder
    plate sets its first line. */
 .opus-ending-closed {

@@ -1094,11 +1094,61 @@ body {
   color: var(--vermilion);
 }
 
-/* The same list in the game menu: as tall as its rules, and off at tier 0. */
+/* The one line the list shows at tier 0, in the muted ink. */
+.tier-rule-none {
+  padding: 2px 0 2px 24px;
+  color: var(--ink-faint);
+}
+
+/* The same list in the game menu: as tall as its rules, and off at tier 0.
+   The menu is narrow, so each rule is its short form on one line, in the
+   note size. A row opens to show the full sentence. */
 .menu-tier-rules {
   height: auto;
-  max-height: 150px;
+  max-height: 190px;
   margin-top: 6px;
+  font-size: var(--size-note);
+  color: var(--ink);
+}
+
+.menu-tier-rules .tier-rule {
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 7px;
+  padding: 1px 0;
+}
+
+.menu-tier-rules .tier-rule.is-newest .tier-rule-step {
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+.tier-rule-more > summary {
+  list-style: none;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tier-rule-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tier-rule-more > summary:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--ink-line);
+  text-underline-offset: 3px;
+}
+
+.tier-rule-more > summary:focus-visible {
+  outline: var(--border-thin) solid var(--vermilion);
+  outline-offset: 1px;
+}
+
+.tier-rule-full {
+  margin: 1px 0 4px;
+  color: var(--ink-soft);
+  line-height: 1.4;
 }
 
 .menu-tier-rules[hidden] {

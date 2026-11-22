@@ -26,6 +26,7 @@ import { createBeadModal } from '../ui/beadModal';
 import { requireElement } from '../ui/dom';
 import { endingPaintingUrl } from '../ui/endingPaintings';
 import { OPUS_CLOSE_TIMING, OPUS_ENDING_PRIMARY, createOpusClose, opusCloseSchedule } from '../ui/opusClose';
+import { playedOnLine } from '../ui/difficultyTier';
 
 const params = new URLSearchParams(location.search);
 
@@ -112,6 +113,8 @@ export function mountStage(stage: 'bead' | 'screen' | 'close'): void {
       line: win
         ? 'You closed The Magnum Opus in Cusco. The game is yours.'
         : 'Hypatia of the Alexandrians closed The Magnum Opus in Alexandria. The game is theirs.',
+      // `?tier=3` shows the difficulty line. With no tier the page has none, as at tier 0.
+      tier: playedOnLine(Number(params.get('tier') ?? 0)),
       rows: ROWS,
       winnerRod: win ? 0 : 1,
       age: AGE,

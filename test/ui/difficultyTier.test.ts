@@ -13,9 +13,11 @@ import { createGame } from '../../src/sim/game';
 import type { GameConfig } from '../../src/sim/state';
 import {
   DEFAULT_TIER,
+  NO_RULES_LINE,
   TIER_KEY,
   TOP_TIER,
   clampTier,
+  playedOnLine,
   readTier,
   ruleHasWords,
   tierConfig,
@@ -27,6 +29,7 @@ import {
   writeTier,
 } from '../../src/ui/difficultyTier';
 import { summaryStrip } from '../../src/ui/landingFlow';
+import { opusCloseReading } from '../../src/ui/opusClose';
 import { type ReportHead, reportSummary } from '../../src/ui/problemReport';
 import { type SaveSlot, slotSummary } from '../../src/ui/saves';
 import { victoryPage } from '../../src/ui/victoryScreen';
@@ -62,7 +65,8 @@ describe('the rules a tier lists', () => {
 
   it('lists no rule at tier 0', () => {
     expect(tierRules(0)).toEqual([]);
-    expect(tierCountLine(0)).toBe('The standard rules. No extra rule is in force.');
+    expect(tierCountLine(0)).toBe('The standard rules');
+    expect(NO_RULES_LINE).toBe('No added rules.');
   });
 
   it('lists exactly the data rows from tier 1 to the chosen tier, lowest first', () => {
@@ -150,9 +154,36 @@ describe('the surfaces that print a game\'s tier', () => {
     const body = braceBody(uiSource('main.ts'), 'function updateMapInfo(): void {');
     expect(body).toContain('const tier = tierOf(game.state);');
     expect(body).toContain('infoTier.textContent = tierLine(tier);');
-    expect(body).toContain('drawTierRules(infoTierRules, tier);');
+    expect(body).toContain("drawTierRules(infoTierRules, tier, 'short');");
     expect(tierOf({})).toBe(0);
     expect(tierOf({ tier: 2 })).toBe(2);
+  });
+
+  it('the menu\'s short form carries the row\'s numbers, and the full sentence stays', () => {
+    for (const rule of tierRules(TOP_TIER)) {
+      expect(rule.short.length, rule.key).toBeLessThan(rule.text.length);
+      expect(rule.short.length, rule.key).toBeLessThanOrEqual(34);
+    }
+    const short = (key: string): string => tierRules(TOP_TIER).find((rule) => rule.key === key)!.short;
+    expect(short('strength')).toContain(`+${DIFFICULTY_RULES.strength.points} `);
+    expect(short('rivalGrowthAndProduction')).toContain(`+${DIFFICULTY_RULES.rivalGrowthAndProduction.percent}%`);
+    expect(short('campWave')).toContain(String(DIFFICULTY_RULES.campWave.unitsPerCamp));
+    expect(short('humanBuildCost')).toContain(`${DIFFICULTY_RULES.humanBuildCost.percent}%`);
+    // The drawing puts the full sentence inside the row it opens.
+    const draw = braceBody(uiSource('difficultyTier.ts'), 'export function drawTierRules(');
+    expect(draw).toContain('setRuleText(short, rule.short);');
+    expect(draw).toContain('setRuleText(full, rule.text);');
+    expect(draw).toContain('none.textContent = NO_RULES_LINE;');
+  });
+
+  it('the Opus close reads the state\'s tier, and says nothing at tier 0', () => {
+    expect(playedOnLine(0)).toBeNull();
+    expect(playedOnLine(4)).toBe('played on Tier 4');
+    expect(opusCloseReading(createGame(config(4)).state, [], 0).tier).toBe('played on Tier 4');
+    expect(opusCloseReading(createGame(config()).state, [], 0).tier).toBeNull();
+    expect(uiSource('opusClose.ts')).toContain(
+      "if (read.tier !== null) words.append(element('p', 'opus-ending-tier', read.tier));",
+    );
   });
 
   it('the Load sheet\'s row shows a tier above 0', () => {
