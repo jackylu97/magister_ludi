@@ -1,0 +1,851 @@
+{
+  "fourMapPositions": [
+    {
+      "seed": 1204,
+      "turns": 100,
+      "leaders": [
+        "justinian",
+        "cleopatra"
+      ],
+      "warnings": 0,
+      "results": [
+        {
+          "weight": 1,
+          "samples": 41,
+          "swaps": 1,
+          "newDeficits": 0,
+          "delta": {
+            "food": 1,
+            "production": -3,
+            "gold": 3,
+            "science": 1.2000000000000002,
+            "culture": 0,
+            "faith": 0
+          }
+        },
+        {
+          "weight": 2,
+          "samples": 41,
+          "swaps": 1,
+          "newDeficits": 0,
+          "delta": {
+            "food": 1,
+            "production": -3,
+            "gold": 3,
+            "science": 1.2000000000000002,
+            "culture": 0,
+            "faith": 0
+          }
+        }
+      ],
+      "examples": [
+        {
+          "turn": 80,
+          "city": 163,
+          "difference": {
+            "food": 1,
+            "production": -3,
+            "gold": 3,
+            "science": 1.2000000000000002,
+            "culture": 0,
+            "faith": 0
+          }
+        }
+      ]
+    },
+    {
+      "seed": 212,
+      "turns": 100,
+      "leaders": [
+        "justinian",
+        "cleopatra"
+      ],
+      "warnings": 0,
+      "results": [
+        {
+          "weight": 1,
+          "samples": 64,
+          "swaps": 8,
+          "newDeficits": 0,
+          "delta": {
+            "food": 11,
+            "production": -3.8999999999999995,
+            "gold": -6,
+            "science": 0,
+            "culture": 5.6,
+            "faith": 14
+          }
+        },
+        {
+          "weight": 2,
+          "samples": 64,
+          "swaps": 12,
+          "newDeficits": 0,
+          "delta": {
+            "food": 11,
+            "production": -1.8999999999999995,
+            "gold": -13,
+            "science": 0,
+            "culture": 9,
+            "faith": 21
+          }
+        }
+      ],
+      "examples": [
+        {
+          "turn": 40,
+          "city": 5,
+          "difference": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "science": 0,
+            "culture": 0,
+            "faith": 1
+          }
+        },
+        {
+          "turn": 40,
+          "city": 74,
+          "difference": {
+            "food": 1,
+            "production": 1,
+            "gold": -1,
+            "science": 0,
+            "culture": 0,
+            "faith": 1
+          }
+        },
+        {
+          "turn": 50,
+          "city": 5,
+          "difference": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "science": 0,
+            "culture": 0,
+            "faith": 1
+          }
+        },
+        {
+          "turn": 50,
+          "city": 74,
+          "difference": {
+            "food": 1,
+            "production": 1.1000000000000005,
+            "gold": -1,
+            "science": 0,
+            "culture": 0,
+            "faith": 1
+          }
+        },
+        {
+          "turn": 70,
+          "city": 5,
+          "difference": {
+            "food": 6,
+            "production": -4,
+            "gold": 0,
+            "science": 0,
+            "culture": 2.4000000000000004,
+            "faith": 4
+          }
+        }
+      ]
+    },
+    {
+      "seed": 617,
+      "turns": 100,
+      "leaders": [
+        "harunAlRashid",
+        "sejongTheGreat"
+      ],
+      "warnings": 0,
+      "results": [
+        {
+          "weight": 1,
+          "samples": 46,
+          "swaps": 1,
+          "newDeficits": 0,
+          "delta": {
+            "food": 1,
+            "production": -1.1000000000000005,
+            "gold": -2,
+            "science": 1,
+            "culture": 0,
+            "faith": 0
+          }
+        },
+        {
+          "weight": 2,
+          "samples": 46,
+          "swaps": 9,
+          "newDeficits": 0,
+          "delta": {
+            "food": 0,
+            "production": -2.200000000000002,
+            "gold": -7,
+            "science": 6.2,
+            "culture": 3,
+            "faith": 0
+          }
+        }
+      ],
+      "examples": [
+        {
+          "turn": 30,
+          "city": 6,
+          "difference": {
+            "food": 1,
+            "production": -1.1000000000000005,
+            "gold": -2,
+            "science": 1,
+            "culture": 0,
+            "faith": 0
+          }
+        }
+      ]
+    },
+    {
+      "seed": 719,
+      "turns": 100,
+      "leaders": [
+        "harunAlRashid",
+        "sejongTheGreat"
+      ],
+      "warnings": 0,
+      "results": [
+        {
+          "weight": 1,
+          "samples": 40,
+          "swaps": 2,
+          "newDeficits": 0,
+          "delta": {
+            "food": -1,
+            "production": -2.6999999999999993,
+            "gold": 8,
+            "science": 0,
+            "culture": 2.8000000000000007,
+            "faith": 0
+          }
+        },
+        {
+          "weight": 2,
+          "samples": 40,
+          "swaps": 4,
+          "newDeficits": 0,
+          "delta": {
+            "food": -5,
+            "production": -2.6999999999999993,
+            "gold": 8,
+            "science": 0,
+            "culture": 7.000000000000001,
+            "faith": 0
+          }
+        }
+      ],
+      "examples": [
+        {
+          "turn": 10,
+          "city": 5,
+          "difference": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "science": 0,
+            "culture": 1,
+            "faith": 0
+          }
+        },
+        {
+          "turn": 100,
+          "city": 5,
+          "difference": {
+            "food": -1,
+            "production": -2.6999999999999993,
+            "gold": 8,
+            "science": 0,
+            "culture": 1.8000000000000007,
+            "faith": 0
+          }
+        }
+      ]
+    }
+  ],
+  "guardedPositions": [
+    {
+      "seed": 1204,
+      "turns": 100,
+      "leaders": [
+        "justinian",
+        "cleopatra"
+      ],
+      "warnings": 0,
+      "results": [
+        {
+          "weight": 1,
+          "samples": 41,
+          "swaps": 1,
+          "newDeficits": 0,
+          "delta": {
+            "food": 1,
+            "production": -3,
+            "gold": 3,
+            "science": 1.2000000000000002,
+            "culture": 0,
+            "faith": 0
+          }
+        },
+        {
+          "weight": 2,
+          "samples": 41,
+          "swaps": 1,
+          "newDeficits": 0,
+          "delta": {
+            "food": 1,
+            "production": -3,
+            "gold": 3,
+            "science": 1.2000000000000002,
+            "culture": 0,
+            "faith": 0
+          }
+        }
+      ],
+      "examples": [
+        {
+          "turn": 80,
+          "city": 163,
+          "difference": {
+            "food": 1,
+            "production": -3,
+            "gold": 3,
+            "science": 1.2000000000000002,
+            "culture": 0,
+            "faith": 0
+          }
+        }
+      ]
+    },
+    {
+      "seed": 212,
+      "turns": 100,
+      "leaders": [
+        "justinian",
+        "cleopatra"
+      ],
+      "warnings": 0,
+      "results": [
+        {
+          "weight": 1,
+          "samples": 64,
+          "swaps": 8,
+          "newDeficits": 0,
+          "delta": {
+            "food": 11,
+            "production": -3.8999999999999995,
+            "gold": -6,
+            "science": 0,
+            "culture": 5.6,
+            "faith": 14
+          }
+        },
+        {
+          "weight": 2,
+          "samples": 64,
+          "swaps": 12,
+          "newDeficits": 0,
+          "delta": {
+            "food": 11,
+            "production": -1.8999999999999995,
+            "gold": -13,
+            "science": 0,
+            "culture": 9,
+            "faith": 21
+          }
+        }
+      ],
+      "examples": [
+        {
+          "turn": 40,
+          "city": 5,
+          "difference": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "science": 0,
+            "culture": 0,
+            "faith": 1
+          }
+        },
+        {
+          "turn": 40,
+          "city": 74,
+          "difference": {
+            "food": 1,
+            "production": 1,
+            "gold": -1,
+            "science": 0,
+            "culture": 0,
+            "faith": 1
+          }
+        },
+        {
+          "turn": 50,
+          "city": 5,
+          "difference": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "science": 0,
+            "culture": 0,
+            "faith": 1
+          }
+        },
+        {
+          "turn": 50,
+          "city": 74,
+          "difference": {
+            "food": 1,
+            "production": 1.1000000000000005,
+            "gold": -1,
+            "science": 0,
+            "culture": 0,
+            "faith": 1
+          }
+        },
+        {
+          "turn": 70,
+          "city": 5,
+          "difference": {
+            "food": 6,
+            "production": -4,
+            "gold": 0,
+            "science": 0,
+            "culture": 2.4000000000000004,
+            "faith": 4
+          }
+        }
+      ]
+    },
+    {
+      "seed": 617,
+      "turns": 100,
+      "leaders": [
+        "harunAlRashid",
+        "sejongTheGreat"
+      ],
+      "warnings": 0,
+      "results": [
+        {
+          "weight": 1,
+          "samples": 46,
+          "swaps": 1,
+          "newDeficits": 0,
+          "delta": {
+            "food": 1,
+            "production": -1.1000000000000005,
+            "gold": -2,
+            "science": 1,
+            "culture": 0,
+            "faith": 0
+          }
+        },
+        {
+          "weight": 2,
+          "samples": 46,
+          "swaps": 9,
+          "newDeficits": 0,
+          "delta": {
+            "food": 0,
+            "production": -2.200000000000002,
+            "gold": -7,
+            "science": 6.2,
+            "culture": 3,
+            "faith": 0
+          }
+        }
+      ],
+      "examples": [
+        {
+          "turn": 30,
+          "city": 6,
+          "difference": {
+            "food": 1,
+            "production": -1.1000000000000005,
+            "gold": -2,
+            "science": 1,
+            "culture": 0,
+            "faith": 0
+          }
+        }
+      ]
+    },
+    {
+      "seed": 719,
+      "turns": 100,
+      "leaders": [
+        "harunAlRashid",
+        "sejongTheGreat"
+      ],
+      "warnings": 0,
+      "results": [
+        {
+          "weight": 1,
+          "samples": 40,
+          "swaps": 2,
+          "newDeficits": 0,
+          "delta": {
+            "food": -1,
+            "production": -2.6999999999999993,
+            "gold": 8,
+            "science": 0,
+            "culture": 2.8000000000000007,
+            "faith": 0
+          }
+        },
+        {
+          "weight": 2,
+          "samples": 40,
+          "swaps": 4,
+          "newDeficits": 0,
+          "delta": {
+            "food": -5,
+            "production": -2.6999999999999993,
+            "gold": 8,
+            "science": 0,
+            "culture": 7.000000000000001,
+            "faith": 0
+          }
+        }
+      ],
+      "examples": [
+        {
+          "turn": 10,
+          "city": 5,
+          "difference": {
+            "food": 0,
+            "production": 0,
+            "gold": 0,
+            "science": 0,
+            "culture": 1,
+            "faith": 0
+          }
+        },
+        {
+          "turn": 100,
+          "city": 5,
+          "difference": {
+            "food": -1,
+            "production": -2.6999999999999993,
+            "gold": 8,
+            "science": 0,
+            "culture": 1.8000000000000007,
+            "faith": 0
+          }
+        }
+      ]
+    }
+  ],
+  "desertTown": [
+    {
+      "weight": 0,
+      "food": 8,
+      "upkeep": 6,
+      "science": 1.75,
+      "worked": [
+        {
+          "col": 6,
+          "row": 4
+        },
+        {
+          "col": 5,
+          "row": 5
+        },
+        {
+          "col": 6,
+          "row": 6
+        }
+      ],
+      "bestFed": {
+        "score": 18,
+        "food": 8,
+        "science": 1.75
+      }
+    },
+    {
+      "weight": 1,
+      "food": 4,
+      "upkeep": 6,
+      "science": 17.75,
+      "worked": [
+        {
+          "col": 6,
+          "row": 4
+        },
+        {
+          "col": 7,
+          "row": 4
+        },
+        {
+          "col": 7,
+          "row": 5
+        }
+      ],
+      "bestFed": {
+        "score": 20,
+        "food": 6,
+        "science": 9.75
+      }
+    },
+    {
+      "weight": 2,
+      "food": 4,
+      "upkeep": 6,
+      "science": 17.75,
+      "worked": [
+        {
+          "col": 6,
+          "row": 4
+        },
+        {
+          "col": 7,
+          "row": 4
+        },
+        {
+          "col": 7,
+          "row": 5
+        }
+      ],
+      "bestFed": {
+        "score": 28,
+        "food": 6,
+        "science": 9.75
+      }
+    }
+  ],
+  "guardedDesertTown": [
+    {
+      "weight": 0,
+      "food": 8,
+      "upkeep": 6,
+      "science": 1.75,
+      "worked": [
+        {
+          "col": 6,
+          "row": 4
+        },
+        {
+          "col": 5,
+          "row": 5
+        },
+        {
+          "col": 6,
+          "row": 6
+        }
+      ],
+      "bestFed": {
+        "score": 18,
+        "food": 8,
+        "science": 1.75
+      }
+    },
+    {
+      "weight": 1,
+      "food": 6,
+      "upkeep": 6,
+      "science": 9.75,
+      "worked": [
+        {
+          "col": 6,
+          "row": 4
+        },
+        {
+          "col": 5,
+          "row": 5
+        },
+        {
+          "col": 7,
+          "row": 5
+        }
+      ],
+      "bestFed": {
+        "score": 20,
+        "food": 6,
+        "science": 9.75
+      }
+    },
+    {
+      "weight": 2,
+      "food": 6,
+      "upkeep": 6,
+      "science": 9.75,
+      "worked": [
+        {
+          "col": 6,
+          "row": 4
+        },
+        {
+          "col": 5,
+          "row": 5
+        },
+        {
+          "col": 7,
+          "row": 5
+        }
+      ],
+      "bestFed": {
+        "score": 28,
+        "food": 6,
+        "science": 9.75
+      }
+    }
+  ],
+  "pairedPlay": [
+    {
+      "seed": 212,
+      "weight": 0,
+      "turns": 100,
+      "warnings": 0,
+      "seats": [
+        {
+          "leader": "justinian",
+          "score": 661,
+          "techs": 26,
+          "drafts": 13,
+          "yields": {
+            "food": 135,
+            "production": 152.2,
+            "gold": 50,
+            "science": 99.97499999999998,
+            "culture": 59,
+            "faith": 37
+          }
+        },
+        {
+          "leader": "cleopatra",
+          "score": 727,
+          "techs": 27,
+          "drafts": 15,
+          "yields": {
+            "food": 85,
+            "production": 175.65,
+            "gold": 81,
+            "science": 156.2625,
+            "culture": 67,
+            "faith": 8
+          }
+        }
+      ]
+    },
+    {
+      "seed": 212,
+      "weight": 1,
+      "turns": 100,
+      "warnings": 0,
+      "seats": [
+        {
+          "leader": "justinian",
+          "score": 567,
+          "techs": 19,
+          "drafts": 11,
+          "yields": {
+            "food": 171,
+            "production": 130.4,
+            "gold": 79.1,
+            "science": 79.25,
+            "culture": 37,
+            "faith": 21
+          }
+        },
+        {
+          "leader": "cleopatra",
+          "score": 791,
+          "techs": 28,
+          "drafts": 15,
+          "yields": {
+            "food": 118,
+            "production": 191.8,
+            "gold": 74,
+            "science": 220.85000000000005,
+            "culture": 54.400000000000006,
+            "faith": 4
+          }
+        }
+      ]
+    },
+    {
+      "seed": 617,
+      "weight": 0,
+      "turns": 100,
+      "warnings": 0,
+      "seats": [
+        {
+          "leader": "harunAlRashid",
+          "score": 451,
+          "techs": 20,
+          "drafts": 12,
+          "yields": {
+            "food": 46,
+            "production": 59,
+            "gold": 14,
+            "science": 40.5,
+            "culture": 40,
+            "faith": 3
+          }
+        },
+        {
+          "leader": "sejongTheGreat",
+          "score": 269,
+          "techs": 16,
+          "drafts": 10,
+          "yields": {
+            "food": 56,
+            "production": 31.68,
+            "gold": 21,
+            "science": 10,
+            "culture": 7,
+            "faith": 0
+          }
+        }
+      ]
+    },
+    {
+      "seed": 617,
+      "weight": 1,
+      "turns": 100,
+      "warnings": 0,
+      "seats": [
+        {
+          "leader": "harunAlRashid",
+          "score": 538,
+          "techs": 22,
+          "drafts": 12,
+          "yields": {
+            "food": 87,
+            "production": 67.5,
+            "gold": 32.2,
+            "science": 48.015,
+            "culture": 36.3,
+            "faith": 10
+          }
+        },
+        {
+          "leader": "sejongTheGreat",
+          "score": 418,
+          "techs": 18,
+          "drafts": 13,
+          "yields": {
+            "food": 80,
+            "production": 58.52,
+            "gold": 34,
+            "science": 26.5,
+            "culture": 33.900000000000006,
+            "faith": 0
+          }
+        }
+      ]
+    }
+  ],
+  "baseCommit": "e09c6a356d31e376088b0ba882e9976ea501ea8e"
+}

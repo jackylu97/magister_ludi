@@ -1,0 +1,2836 @@
+{
+  "revision": "ccaa2f8b20f63dfc7a777a7aee016fddb9a7b390",
+  "saveVersion": 257,
+  "totals": {
+    "control": {
+      "all": {
+        "towns": 34,
+        "fresh": 13,
+        "saltOnly": 5,
+        "nearOnly": 3,
+        "fullyDry": 13,
+        "immediatelyCoastal": 8,
+        "wetOrCoastal": 18,
+        "remaining": 34,
+        "startPopulation": 37,
+        "endPopulation": 139,
+        "popGained": 102,
+        "endsAtNewOwner": 0
+      },
+      "expansions": {
+        "towns": 28,
+        "fresh": 9,
+        "saltOnly": 5,
+        "nearOnly": 3,
+        "fullyDry": 11,
+        "immediatelyCoastal": 6,
+        "wetOrCoastal": 14,
+        "remaining": 28,
+        "startPopulation": 31,
+        "endPopulation": 99,
+        "popGained": 68,
+        "endsAtNewOwner": 0
+      },
+      "empire": {
+        "score": 2914,
+        "pop": 139,
+        "cities": 34,
+        "rateTotal": 1601.455,
+        "techs": 114,
+        "drafts": 74,
+        "captures": 0
+      },
+      "rates": {
+        "food": 343,
+        "production": 545.55,
+        "gold": 104.05,
+        "science": 308.355,
+        "culture": 237.0,
+        "faith": 63.5
+      },
+      "warnings": 0
+    },
+    "candidate": {
+      "all": {
+        "towns": 32,
+        "fresh": 16,
+        "saltOnly": 6,
+        "nearOnly": 2,
+        "fullyDry": 8,
+        "immediatelyCoastal": 14,
+        "wetOrCoastal": 22,
+        "remaining": 32,
+        "startPopulation": 37,
+        "endPopulation": 128,
+        "popGained": 91,
+        "endsAtNewOwner": 0
+      },
+      "expansions": {
+        "towns": 26,
+        "fresh": 11,
+        "saltOnly": 6,
+        "nearOnly": 2,
+        "fullyDry": 7,
+        "immediatelyCoastal": 11,
+        "wetOrCoastal": 17,
+        "remaining": 26,
+        "startPopulation": 31,
+        "endPopulation": 90,
+        "popGained": 59,
+        "endsAtNewOwner": 0
+      },
+      "empire": {
+        "score": 2667,
+        "pop": 128,
+        "cities": 32,
+        "rateTotal": 1778.095,
+        "techs": 103,
+        "drafts": 72,
+        "captures": 0
+      },
+      "rates": {
+        "food": 342,
+        "production": 645.835,
+        "gold": 163,
+        "science": 266.44,
+        "culture": 334.82,
+        "faith": 26
+      },
+      "warnings": 0
+    }
+  },
+  "byMap": {
+    "control": {
+      "314": {
+        "all": {
+          "towns": 19,
+          "fresh": 5,
+          "saltOnly": 3,
+          "nearOnly": 2,
+          "fullyDry": 9,
+          "immediatelyCoastal": 5,
+          "wetOrCoastal": 8,
+          "remaining": 19,
+          "startPopulation": 22,
+          "endPopulation": 65,
+          "popGained": 43,
+          "endsAtNewOwner": 0
+        },
+        "expansions": {
+          "towns": 16,
+          "fresh": 3,
+          "saltOnly": 3,
+          "nearOnly": 2,
+          "fullyDry": 8,
+          "immediatelyCoastal": 4,
+          "wetOrCoastal": 6,
+          "remaining": 16,
+          "startPopulation": 19,
+          "endPopulation": 46,
+          "popGained": 27,
+          "endsAtNewOwner": 0
+        },
+        "empire": {
+          "score": 1443,
+          "pop": 65,
+          "cities": 19,
+          "rateTotal": 819.2450000000001,
+          "techs": 55,
+          "drafts": 36,
+          "captures": 0
+        },
+        "rates": {
+          "food": 161,
+          "production": 230.64,
+          "gold": 70,
+          "science": 159.405,
+          "culture": 173.2,
+          "faith": 25
+        },
+        "warnings": 0
+      },
+      "2026": {
+        "all": {
+          "towns": 15,
+          "fresh": 8,
+          "saltOnly": 2,
+          "nearOnly": 1,
+          "fullyDry": 4,
+          "immediatelyCoastal": 3,
+          "wetOrCoastal": 10,
+          "remaining": 15,
+          "startPopulation": 15,
+          "endPopulation": 74,
+          "popGained": 59,
+          "endsAtNewOwner": 0
+        },
+        "expansions": {
+          "towns": 12,
+          "fresh": 6,
+          "saltOnly": 2,
+          "nearOnly": 1,
+          "fullyDry": 3,
+          "immediatelyCoastal": 2,
+          "wetOrCoastal": 8,
+          "remaining": 12,
+          "startPopulation": 12,
+          "endPopulation": 53,
+          "popGained": 41,
+          "endsAtNewOwner": 0
+        },
+        "empire": {
+          "score": 1471,
+          "pop": 74,
+          "cities": 15,
+          "rateTotal": 782.21,
+          "techs": 59,
+          "drafts": 38,
+          "captures": 0
+        },
+        "rates": {
+          "food": 182,
+          "production": 314.91,
+          "gold": 34.05000000000001,
+          "science": 148.95,
+          "culture": 63.8,
+          "faith": 38.5
+        },
+        "warnings": 0
+      }
+    },
+    "candidate": {
+      "314": {
+        "all": {
+          "towns": 19,
+          "fresh": 7,
+          "saltOnly": 4,
+          "nearOnly": 2,
+          "fullyDry": 6,
+          "immediatelyCoastal": 8,
+          "wetOrCoastal": 11,
+          "remaining": 19,
+          "startPopulation": 24,
+          "endPopulation": 68,
+          "popGained": 44,
+          "endsAtNewOwner": 0
+        },
+        "expansions": {
+          "towns": 16,
+          "fresh": 5,
+          "saltOnly": 4,
+          "nearOnly": 2,
+          "fullyDry": 5,
+          "immediatelyCoastal": 7,
+          "wetOrCoastal": 9,
+          "remaining": 16,
+          "startPopulation": 21,
+          "endPopulation": 49,
+          "popGained": 28,
+          "endsAtNewOwner": 0
+        },
+        "empire": {
+          "score": 1555,
+          "pop": 68,
+          "cities": 19,
+          "rateTotal": 1173.415,
+          "techs": 50,
+          "drafts": 38,
+          "captures": 0
+        },
+        "rates": {
+          "food": 200,
+          "production": 455.17500000000007,
+          "gold": 80,
+          "science": 171.94,
+          "culture": 245.3,
+          "faith": 21
+        },
+        "warnings": 0
+      },
+      "2026": {
+        "all": {
+          "towns": 13,
+          "fresh": 9,
+          "saltOnly": 2,
+          "nearOnly": 0,
+          "fullyDry": 2,
+          "immediatelyCoastal": 6,
+          "wetOrCoastal": 11,
+          "remaining": 13,
+          "startPopulation": 13,
+          "endPopulation": 60,
+          "popGained": 47,
+          "endsAtNewOwner": 0
+        },
+        "expansions": {
+          "towns": 10,
+          "fresh": 6,
+          "saltOnly": 2,
+          "nearOnly": 0,
+          "fullyDry": 2,
+          "immediatelyCoastal": 4,
+          "wetOrCoastal": 8,
+          "remaining": 10,
+          "startPopulation": 10,
+          "endPopulation": 41,
+          "popGained": 31,
+          "endsAtNewOwner": 0
+        },
+        "empire": {
+          "score": 1112,
+          "pop": 60,
+          "cities": 13,
+          "rateTotal": 604.68,
+          "techs": 53,
+          "drafts": 34,
+          "captures": 0
+        },
+        "rates": {
+          "food": 142,
+          "production": 190.66,
+          "gold": 83,
+          "science": 94.5,
+          "culture": 89.52,
+          "faith": 5
+        },
+        "warnings": 0
+      }
+    }
+  },
+  "games": {
+    "control": {
+      "314": {
+        "settlements": [
+          {
+            "turn": 1,
+            "player": 1,
+            "name": "Florence",
+            "id": 7,
+            "col": 17,
+            "row": 4,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 5,
+            "endOwner": 1
+          },
+          {
+            "turn": 1,
+            "player": 2,
+            "name": "Angkor Thom",
+            "id": 8,
+            "col": 13,
+            "row": 19,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 8,
+            "endOwner": 2
+          },
+          {
+            "turn": 4,
+            "player": 0,
+            "name": "Istanbul",
+            "id": 9,
+            "col": 20,
+            "row": 13,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 6,
+            "endOwner": 0
+          },
+          {
+            "turn": 21,
+            "player": 2,
+            "name": "Phimai",
+            "id": 65,
+            "col": 14,
+            "row": 13,
+            "startPopulation": 2,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 2
+          },
+          {
+            "turn": 31,
+            "player": 2,
+            "name": "Banteay Chhmar",
+            "id": 100,
+            "col": 17,
+            "row": 16,
+            "startPopulation": 2,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 5,
+            "endOwner": 2
+          },
+          {
+            "turn": 34,
+            "player": 1,
+            "name": "Pisa",
+            "id": 109,
+            "col": 14,
+            "row": 9,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 3,
+            "endOwner": 1
+          },
+          {
+            "turn": 44,
+            "player": 0,
+            "name": "Edirne",
+            "id": 145,
+            "col": 24,
+            "row": 13,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 0
+          },
+          {
+            "turn": 44,
+            "player": 2,
+            "name": "Lavo",
+            "id": 146,
+            "col": 16,
+            "row": 21,
+            "startPopulation": 2,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 5,
+            "endOwner": 2
+          },
+          {
+            "turn": 51,
+            "player": 0,
+            "name": "Bursa",
+            "id": 170,
+            "col": 18,
+            "row": 9,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 0
+          },
+          {
+            "turn": 52,
+            "player": 1,
+            "name": "Arezzo",
+            "id": 174,
+            "col": 12,
+            "row": 1,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 1
+          },
+          {
+            "turn": 57,
+            "player": 2,
+            "name": "Beng Mealea",
+            "id": 189,
+            "col": 19,
+            "row": 19,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 2
+          },
+          {
+            "turn": 62,
+            "player": 2,
+            "name": "Koh Ker",
+            "id": 199,
+            "col": 10,
+            "row": 20,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 2
+          },
+          {
+            "turn": 63,
+            "player": 1,
+            "name": "Volterra",
+            "id": 205,
+            "col": 16,
+            "row": 0,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 1
+          },
+          {
+            "turn": 65,
+            "player": 1,
+            "name": "Prato",
+            "id": 212,
+            "col": 22,
+            "row": 9,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 1
+          },
+          {
+            "turn": 70,
+            "player": 2,
+            "name": "Aldermarch",
+            "id": 223,
+            "col": 22,
+            "row": 17,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 2,
+            "endOwner": 2
+          },
+          {
+            "turn": 73,
+            "player": 2,
+            "name": "Brightwater",
+            "id": 235,
+            "col": 12,
+            "row": 23,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 2,
+            "endOwner": 2
+          },
+          {
+            "turn": 74,
+            "player": 0,
+            "name": "Thessalonica",
+            "id": 239,
+            "col": 26,
+            "row": 8,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 0
+          },
+          {
+            "turn": 76,
+            "player": 2,
+            "name": "Cinderhold",
+            "id": 243,
+            "col": 19,
+            "row": 23,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 2
+          },
+          {
+            "turn": 77,
+            "player": 0,
+            "name": "Trebizond",
+            "id": 245,
+            "col": 21,
+            "row": 5,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 1,
+            "endOwner": 0
+          }
+        ],
+        "policy": "combined",
+        "seed": 314,
+        "seat": "all",
+        "mapSize": "duel",
+        "roster": "trio",
+        "turns": 80,
+        "winner": null,
+        "warnings": 0,
+        "problems": [],
+        "lateMedianMs": 512.3634590000001,
+        "lateP95Ms": 699.2068749999999,
+        "checkpoints": {
+          "50": [
+            {
+              "id": 0,
+              "leader": "mehmedTheConqueror",
+              "decks": [
+                "dominion",
+                "scientific"
+              ],
+              "alive": true,
+              "techs": 7,
+              "column": 2,
+              "age": 1,
+              "drafts": 5,
+              "orders": [
+                "theThreshingFloor",
+                "dominionSwordAndPlough",
+                "theMarchmen",
+                "warFoundries",
+                "scientificTheAlmanac"
+              ],
+              "doctrines": [
+                "theWorkshopsOfSyracuse"
+              ],
+              "worksBuilt": {},
+              "captures": 0,
+              "cities": 2,
+              "pop": 7,
+              "score": 125,
+              "rates": {
+                "food": 19,
+                "production": 13,
+                "gold": 3,
+                "science": 2.75,
+                "culture": 6,
+                "faith": 0
+              },
+              "rateTotal": 43.75,
+              "cumulative": {
+                "food": 511,
+                "production": 297.5999999999999,
+                "gold": 221,
+                "science": 90.625,
+                "culture": 168.6,
+                "faith": 0
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 12,
+                "works": 0,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 1,
+              "leader": "lorenzoDeMedici",
+              "decks": [
+                "commerce",
+                "magisterial"
+              ],
+              "alive": true,
+              "techs": 10,
+              "column": 3,
+              "age": 1,
+              "drafts": 9,
+              "orders": [
+                "commerceOpenMarket",
+                "magisterialTheHeralds",
+                "magisterialTheTwelveTables",
+                "theWorkingCourt",
+                "theGrainBanks",
+                "theCeremonialGuard",
+                "theBrickKilns",
+                "theWorkshopAtOlympia"
+              ],
+              "doctrines": [
+                "theChoregia"
+              ],
+              "worksBuilt": {
+                "mine": 2,
+                "quarry": 1
+              },
+              "captures": 0,
+              "cities": 2,
+              "pop": 5,
+              "score": 151,
+              "rates": {
+                "food": 11,
+                "production": 33.4,
+                "gold": 2,
+                "science": 2.475,
+                "culture": 26.400000000000002,
+                "faith": 0
+              },
+              "rateTotal": 75.275,
+              "cumulative": {
+                "food": 306,
+                "production": 658,
+                "gold": 110,
+                "science": 84.95,
+                "culture": 445.29999999999984,
+                "faith": 0
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 3,
+                "works": 3,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 2,
+              "leader": "jayavarmanVII",
+              "decks": [
+                "expansionist",
+                "devotion"
+              ],
+              "alive": true,
+              "techs": 13,
+              "column": 4,
+              "age": 2,
+              "drafts": 8,
+              "orders": [
+                "theHomeFields",
+                "theSeedGrain",
+                "thePalaceSchool",
+                "theZealots",
+                "theGildedCountry",
+                "theDesertAndTheSnow",
+                "outposts",
+                "devotionFirstRites"
+              ],
+              "doctrines": [
+                "theHighlandClans"
+              ],
+              "worksBuilt": {
+                "mine": 2,
+                "farm": 1,
+                "pasture": 1,
+                "outpost": 1
+              },
+              "captures": 0,
+              "cities": 4,
+              "pop": 10,
+              "score": 223,
+              "rates": {
+                "food": 28,
+                "production": 26,
+                "gold": 19,
+                "science": 10.5,
+                "culture": 12,
+                "faith": 1
+              },
+              "rateTotal": 96.5,
+              "cumulative": {
+                "food": 686,
+                "production": 600.9,
+                "gold": 423,
+                "science": 217.25,
+                "culture": 288.2,
+                "faith": 5
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 8,
+                "works": 5,
+                "newWorks": 0
+              }
+            }
+          ],
+          "80": [
+            {
+              "id": 0,
+              "leader": "mehmedTheConqueror",
+              "decks": [
+                "dominion",
+                "scientific"
+              ],
+              "alive": true,
+              "techs": 13,
+              "column": 4,
+              "age": 2,
+              "drafts": 9,
+              "orders": [
+                "theThreshingFloor",
+                "dominionSwordAndPlough",
+                "theMarchmen",
+                "warFoundries",
+                "scientificTheAlmanac",
+                "theFarmingGarrisons",
+                "dominionTheGeneralStaff",
+                "theSkyWatchers",
+                "scientificTheScribesHall"
+              ],
+              "doctrines": [
+                "theWorkshopsOfSyracuse"
+              ],
+              "worksBuilt": {
+                "mine": 4,
+                "pasture": 1,
+                "farm": 1,
+                "plantation": 3
+              },
+              "captures": 0,
+              "cities": 5,
+              "pop": 14,
+              "score": 262,
+              "rates": {
+                "food": 37,
+                "production": 41,
+                "gold": 11,
+                "science": 4.95,
+                "culture": 22,
+                "faith": 0
+              },
+              "rateTotal": 115.95,
+              "cumulative": {
+                "food": 1328,
+                "production": 1112.9999999999998,
+                "gold": 445,
+                "science": 200.14999999999998,
+                "culture": 565.5,
+                "faith": 0
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 24,
+                "works": 9,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 1,
+              "leader": "lorenzoDeMedici",
+              "decks": [
+                "commerce",
+                "magisterial"
+              ],
+              "alive": true,
+              "techs": 21,
+              "column": 8,
+              "age": 3,
+              "drafts": 15,
+              "orders": [
+                "commerceOpenMarket",
+                "magisterialTheHeralds",
+                "magisterialTheTwelveTables",
+                "theWorkingCourt",
+                "theGrainBanks",
+                "theCeremonialGuard",
+                "theBrickKilns",
+                "theWorkshopAtOlympia",
+                "commonFestivals",
+                "magisterialTheHallofHeroes",
+                "theTownWatch",
+                "theLearnedPatron",
+                "theEpibatai",
+                "marketGardens",
+                "theSummerPalace"
+              ],
+              "doctrines": [
+                "theChoregia",
+                "theJinshi",
+                "magisterialTheSteleofDeeds"
+              ],
+              "worksBuilt": {
+                "mine": 5,
+                "quarry": 1,
+                "farm": 1,
+                "pasture": 1,
+                "lumbermill": 2
+              },
+              "captures": 0,
+              "cities": 5,
+              "pop": 16,
+              "score": 649,
+              "rates": {
+                "food": 37,
+                "production": 123.4,
+                "gold": 23,
+                "science": 102.47999999999999,
+                "culture": 108,
+                "faith": 10
+              },
+              "rateTotal": 403.88,
+              "cumulative": {
+                "food": 1039,
+                "production": 2842.9200000000005,
+                "gold": 369,
+                "science": 1226.4700000000003,
+                "culture": 2143.4,
+                "faith": 126
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 13,
+                "works": 10,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 2,
+              "leader": "jayavarmanVII",
+              "decks": [
+                "expansionist",
+                "devotion"
+              ],
+              "alive": true,
+              "techs": 21,
+              "column": 6,
+              "age": 3,
+              "drafts": 12,
+              "orders": [
+                "theHomeFields",
+                "theSeedGrain",
+                "thePalaceSchool",
+                "theZealots",
+                "theGildedCountry",
+                "theDesertAndTheSnow",
+                "outposts",
+                "devotionFirstRites",
+                "theThreeSisters",
+                "theTempleBaths",
+                "expansionistTheWaterworks",
+                "theBellTowers"
+              ],
+              "doctrines": [
+                "theHighlandClans",
+                "theCensors"
+              ],
+              "worksBuilt": {
+                "mine": 3,
+                "farm": 3,
+                "pasture": 1,
+                "outpost": 12,
+                "lumbermill": 1
+              },
+              "captures": 0,
+              "cities": 9,
+              "pop": 35,
+              "score": 532,
+              "rates": {
+                "food": 87,
+                "production": 66.24,
+                "gold": 36,
+                "science": 51.97500000000001,
+                "culture": 43.2,
+                "faith": 15
+              },
+              "rateTotal": 299.415,
+              "cumulative": {
+                "food": 2253,
+                "production": 1897.92,
+                "gold": 1024,
+                "science": 1050.925,
+                "culture": 1114.5000000000002,
+                "faith": 268
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 11,
+                "works": 20,
+                "newWorks": 0
+              }
+            }
+          ]
+        }
+      },
+      "2026": {
+        "settlements": [
+          {
+            "turn": 1,
+            "player": 2,
+            "name": "Pella",
+            "id": 7,
+            "col": 25,
+            "row": 17,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 9,
+            "endOwner": 2
+          },
+          {
+            "turn": 2,
+            "player": 0,
+            "name": "Niani",
+            "id": 8,
+            "col": 25,
+            "row": 6,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 0
+          },
+          {
+            "turn": 3,
+            "player": 1,
+            "name": "Hanseong",
+            "id": 9,
+            "col": 11,
+            "row": 4,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 10,
+            "endOwner": 1
+          },
+          {
+            "turn": 17,
+            "player": 2,
+            "name": "Aigai",
+            "id": 51,
+            "col": 22,
+            "row": 16,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 6,
+            "endOwner": 2
+          },
+          {
+            "turn": 25,
+            "player": 0,
+            "name": "Timbuktu",
+            "id": 78,
+            "col": 29,
+            "row": 6,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 3,
+            "endOwner": 0
+          },
+          {
+            "turn": 40,
+            "player": 0,
+            "name": "Djenn\u00e9",
+            "id": 140,
+            "col": 25,
+            "row": 12,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 5,
+            "endOwner": 0
+          },
+          {
+            "turn": 47,
+            "player": 2,
+            "name": "Amphipolis",
+            "id": 174,
+            "col": 22,
+            "row": 21,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 8,
+            "endOwner": 2
+          },
+          {
+            "turn": 49,
+            "player": 1,
+            "name": "Gaeseong",
+            "id": 185,
+            "col": 14,
+            "row": 7,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 1
+          },
+          {
+            "turn": 52,
+            "player": 1,
+            "name": "Pyongyang",
+            "id": 207,
+            "col": 14,
+            "row": 3,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 1
+          },
+          {
+            "turn": 56,
+            "player": 0,
+            "name": "Gao",
+            "id": 222,
+            "col": 29,
+            "row": 10,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 0
+          },
+          {
+            "turn": 57,
+            "player": 2,
+            "name": "Alexandria Eschate",
+            "id": 232,
+            "col": 19,
+            "row": 20,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 6,
+            "endOwner": 2
+          },
+          {
+            "turn": 59,
+            "player": 2,
+            "name": "Bucephala",
+            "id": 243,
+            "col": 26,
+            "row": 22,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 2
+          },
+          {
+            "turn": 66,
+            "player": 2,
+            "name": "Kandahar",
+            "id": 292,
+            "col": 15,
+            "row": 21,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 5,
+            "endOwner": 2
+          },
+          {
+            "turn": 71,
+            "player": 2,
+            "name": "Aldermarch",
+            "id": 322,
+            "col": 14,
+            "row": 17,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 5,
+            "endOwner": 2
+          },
+          {
+            "turn": 76,
+            "player": 0,
+            "name": "Walata",
+            "id": 354,
+            "col": 18,
+            "row": 3,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 1,
+            "endOwner": 0
+          }
+        ],
+        "policy": "combined",
+        "seed": 2026,
+        "seat": "all",
+        "mapSize": "duel",
+        "roster": "trio",
+        "turns": 80,
+        "winner": null,
+        "warnings": 0,
+        "problems": [],
+        "lateMedianMs": 1299.3660420000015,
+        "lateP95Ms": 2107.8494580000115,
+        "checkpoints": {
+          "50": [
+            {
+              "id": 0,
+              "leader": "mansaMusa",
+              "decks": [
+                "commerce",
+                "devotion"
+              ],
+              "alive": true,
+              "techs": 11,
+              "column": 4,
+              "age": 2,
+              "drafts": 9,
+              "orders": [
+                "theRoyalHousehold",
+                "theRoyalCult",
+                "travellersLetters",
+                "theSlipways",
+                "theTempleStorehouses",
+                "theZealots",
+                "theMegaliths",
+                "theFast"
+              ],
+              "doctrines": [
+                "theDelianLeague"
+              ],
+              "worksBuilt": {
+                "quarry": 1,
+                "mine": 1,
+                "fishingBoats": 1
+              },
+              "captures": 0,
+              "cities": 3,
+              "pop": 6,
+              "score": 189,
+              "rates": {
+                "food": 18,
+                "production": 22,
+                "gold": 8,
+                "science": 7.1499999999999995,
+                "culture": 12.1,
+                "faith": 0
+              },
+              "rateTotal": 67.25,
+              "cumulative": {
+                "food": 418,
+                "production": 503.4999999999999,
+                "gold": 147,
+                "science": 218.72500000000002,
+                "culture": 414.6000000000001,
+                "faith": 26
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 10,
+                "works": 3,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 1,
+              "leader": "sejongTheGreat",
+              "decks": [
+                "scientific",
+                "magisterial"
+              ],
+              "alive": true,
+              "techs": 11,
+              "column": 4,
+              "age": 2,
+              "drafts": 5,
+              "orders": [
+                "theHouseOfLife",
+                "theHerbalistsCharter",
+                "theHomeFields",
+                "scientificTheAlmanac",
+                "theGildedCountry"
+              ],
+              "doctrines": [
+                "theArthashastra"
+              ],
+              "worksBuilt": {
+                "physicGarden": 1,
+                "fishingBoats": 3
+              },
+              "captures": 0,
+              "cities": 2,
+              "pop": 7,
+              "score": 174,
+              "rates": {
+                "food": 23,
+                "production": 15.399999999999999,
+                "gold": 22,
+                "science": 11.100000000000001,
+                "culture": 8.4,
+                "faith": 0
+              },
+              "rateTotal": 79.9,
+              "cumulative": {
+                "food": 538,
+                "production": 309.0999999999999,
+                "gold": 323,
+                "science": 295.6000000000001,
+                "culture": 140.49999999999994,
+                "faith": 0
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 2,
+                "works": 4,
+                "newWorks": 1
+              }
+            },
+            {
+              "id": 2,
+              "leader": "alexanderTheGreat",
+              "decks": [
+                "dominion",
+                "expansionist"
+              ],
+              "alive": true,
+              "techs": 15,
+              "column": 5,
+              "age": 2,
+              "drafts": 9,
+              "orders": [
+                "expansionistGranaryLevies",
+                "theSpearMakers",
+                "commonFarRunners",
+                "thePacifiedMarches",
+                "dominionTheQuartermasters",
+                "theGrainCensus",
+                "theBeacons",
+                "theGatheringHost",
+                "commonFestivals"
+              ],
+              "doctrines": [
+                "theSoldiersShare"
+              ],
+              "worksBuilt": {
+                "fishingBoats": 1,
+                "quarry": 1,
+                "mine": 1
+              },
+              "captures": 0,
+              "cities": 3,
+              "pop": 12,
+              "score": 244,
+              "rates": {
+                "food": 30,
+                "production": 52.6,
+                "gold": -11,
+                "science": 8.8,
+                "culture": 15.4,
+                "faith": 1
+              },
+              "rateTotal": 96.8,
+              "cumulative": {
+                "food": 546,
+                "production": 909.1600000000002,
+                "gold": 76,
+                "science": 157.20000000000005,
+                "culture": 247.99999999999994,
+                "faith": 43
+              },
+              "actions": {
+                "declarations": 5,
+                "attacks": 69,
+                "works": 3,
+                "newWorks": 0
+              }
+            }
+          ],
+          "80": [
+            {
+              "id": 0,
+              "leader": "mansaMusa",
+              "decks": [
+                "commerce",
+                "devotion"
+              ],
+              "alive": true,
+              "techs": 16,
+              "column": 5,
+              "age": 2,
+              "drafts": 11,
+              "orders": [
+                "theRoyalHousehold",
+                "theRoyalCult",
+                "travellersLetters",
+                "theSlipways",
+                "theTempleStorehouses",
+                "theZealots",
+                "theMegaliths",
+                "theFast",
+                "theBookOfLife",
+                "housesOfAccount"
+              ],
+              "doctrines": [
+                "theDelianLeague",
+                "theCapitularyOfHerstal"
+              ],
+              "worksBuilt": {
+                "quarry": 2,
+                "mine": 2,
+                "fishingBoats": 1,
+                "stoneCircle": 2,
+                "farm": 3,
+                "camp": 1,
+                "plantation": 1
+              },
+              "captures": 0,
+              "cities": 5,
+              "pop": 15,
+              "score": 303,
+              "rates": {
+                "food": 44,
+                "production": 40.400000000000006,
+                "gold": 33.7,
+                "science": 11.7,
+                "culture": 14.399999999999999,
+                "faith": 7
+              },
+              "rateTotal": 151.20000000000002,
+              "cumulative": {
+                "food": 1427,
+                "production": 1477,
+                "gold": 732.3999999999999,
+                "science": 556.5500000000002,
+                "culture": 885.4000000000001,
+                "faith": 109
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 112,
+                "works": 12,
+                "newWorks": 2
+              }
+            },
+            {
+              "id": 1,
+              "leader": "sejongTheGreat",
+              "decks": [
+                "scientific",
+                "magisterial"
+              ],
+              "alive": true,
+              "techs": 20,
+              "column": 5,
+              "age": 2,
+              "drafts": 10,
+              "orders": [
+                "theHouseOfLife",
+                "theHerbalistsCharter",
+                "theHomeFields",
+                "scientificTheAlmanac",
+                "theGildedCountry",
+                "theReformOfTheCalendar",
+                "theSkyWatchers",
+                "commonCisternWorks",
+                "theFoundersRights",
+                "gardenProvinces"
+              ],
+              "doctrines": [
+                "theArthashastra",
+                "theMagnaura"
+              ],
+              "worksBuilt": {
+                "physicGarden": 2,
+                "fishingBoats": 3,
+                "pasture": 3,
+                "mine": 4,
+                "lumbermill": 4
+              },
+              "captures": 0,
+              "cities": 3,
+              "pop": 16,
+              "score": 312,
+              "rates": {
+                "food": 45,
+                "production": 37.4,
+                "gold": 24,
+                "science": 75,
+                "culture": 14.4,
+                "faith": 0
+              },
+              "rateTotal": 195.8,
+              "cumulative": {
+                "food": 1583,
+                "production": 1021.4249999999998,
+                "gold": 998,
+                "science": 1124.8625000000002,
+                "culture": 515.3499999999997,
+                "faith": 0
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 40,
+                "works": 16,
+                "newWorks": 2
+              }
+            },
+            {
+              "id": 2,
+              "leader": "alexanderTheGreat",
+              "decks": [
+                "dominion",
+                "expansionist"
+              ],
+              "alive": true,
+              "techs": 23,
+              "column": 7,
+              "age": 3,
+              "drafts": 17,
+              "orders": [
+                "expansionistGranaryLevies",
+                "theSpearMakers",
+                "commonFarRunners",
+                "thePacifiedMarches",
+                "dominionTheQuartermasters",
+                "theGrainCensus",
+                "theBeacons",
+                "theGatheringHost",
+                "commonFestivals",
+                "examinationsOfState",
+                "theGreatHouseholds",
+                "theBookOfSettlements",
+                "levyOfTheLand",
+                "siegeWorks",
+                "theBuildingProgramme",
+                "theHighlands"
+              ],
+              "doctrines": [
+                "theSoldiersShare",
+                "theCensors"
+              ],
+              "worksBuilt": {
+                "fishingBoats": 3,
+                "quarry": 3,
+                "mine": 3,
+                "pasture": 4,
+                "lumbermill": 5
+              },
+              "captures": 0,
+              "cities": 7,
+              "pop": 43,
+              "score": 856,
+              "rates": {
+                "food": 93,
+                "production": 237.11,
+                "gold": -23.64999999999999,
+                "science": 62.25,
+                "culture": 35,
+                "faith": 31.5
+              },
+              "rateTotal": 435.21000000000004,
+              "cumulative": {
+                "food": 2596,
+                "production": 4487.419999999999,
+                "gold": -127.94999999999997,
+                "science": 1133.825,
+                "culture": 998.4999999999999,
+                "faith": 478
+              },
+              "actions": {
+                "declarations": 9,
+                "attacks": 150,
+                "works": 18,
+                "newWorks": 0
+              }
+            }
+          ]
+        }
+      }
+    },
+    "candidate": {
+      "314": {
+        "settlements": [
+          {
+            "turn": 1,
+            "player": 1,
+            "name": "Florence",
+            "id": 7,
+            "col": 17,
+            "row": 4,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 7,
+            "endOwner": 1
+          },
+          {
+            "turn": 1,
+            "player": 2,
+            "name": "Angkor Thom",
+            "id": 8,
+            "col": 13,
+            "row": 19,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 5,
+            "endOwner": 2
+          },
+          {
+            "turn": 4,
+            "player": 0,
+            "name": "Istanbul",
+            "id": 9,
+            "col": 20,
+            "row": 13,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 7,
+            "endOwner": 0
+          },
+          {
+            "turn": 21,
+            "player": 2,
+            "name": "Phimai",
+            "id": 65,
+            "col": 14,
+            "row": 13,
+            "startPopulation": 2,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 2
+          },
+          {
+            "turn": 31,
+            "player": 2,
+            "name": "Banteay Chhmar",
+            "id": 100,
+            "col": 17,
+            "row": 16,
+            "startPopulation": 2,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 2
+          },
+          {
+            "turn": 34,
+            "player": 1,
+            "name": "Pisa",
+            "id": 109,
+            "col": 14,
+            "row": 9,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 3,
+            "endOwner": 1
+          },
+          {
+            "turn": 44,
+            "player": 0,
+            "name": "Edirne",
+            "id": 147,
+            "col": 23,
+            "row": 11,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 0
+          },
+          {
+            "turn": 46,
+            "player": 1,
+            "name": "Arezzo",
+            "id": 152,
+            "col": 19,
+            "row": 8,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 4,
+            "endOwner": 1
+          },
+          {
+            "turn": 51,
+            "player": 1,
+            "name": "Volterra",
+            "id": 179,
+            "col": 13,
+            "row": 3,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 5,
+            "endOwner": 1
+          },
+          {
+            "turn": 52,
+            "player": 2,
+            "name": "Lavo",
+            "id": 180,
+            "col": 20,
+            "row": 17,
+            "startPopulation": 2,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 2
+          },
+          {
+            "turn": 55,
+            "player": 0,
+            "name": "Bursa",
+            "id": 188,
+            "col": 24,
+            "row": 6,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 0
+          },
+          {
+            "turn": 58,
+            "player": 2,
+            "name": "Beng Mealea",
+            "id": 199,
+            "col": 20,
+            "row": 21,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 5,
+            "endOwner": 2
+          },
+          {
+            "turn": 60,
+            "player": 2,
+            "name": "Koh Ker",
+            "id": 204,
+            "col": 10,
+            "row": 20,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 2
+          },
+          {
+            "turn": 65,
+            "player": 2,
+            "name": "Aldermarch",
+            "id": 214,
+            "col": 16,
+            "row": 21,
+            "startPopulation": 2,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 2
+          },
+          {
+            "turn": 71,
+            "player": 2,
+            "name": "Brightwater",
+            "id": 232,
+            "col": 10,
+            "row": 16,
+            "startPopulation": 2,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 2
+          },
+          {
+            "turn": 75,
+            "player": 1,
+            "name": "Prato",
+            "id": 242,
+            "col": 27,
+            "row": 8,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 2,
+            "endOwner": 1
+          },
+          {
+            "turn": 76,
+            "player": 2,
+            "name": "Cinderhold",
+            "id": 246,
+            "col": 23,
+            "row": 15,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 2
+          },
+          {
+            "turn": 79,
+            "player": 0,
+            "name": "Thessalonica",
+            "id": 254,
+            "col": 28,
+            "row": 13,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 0
+          },
+          {
+            "turn": 80,
+            "player": 1,
+            "name": "Pistoia",
+            "id": 263,
+            "col": 19,
+            "row": 1,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 1,
+            "endOwner": 1
+          }
+        ],
+        "policy": "combined",
+        "seed": 314,
+        "seat": "all",
+        "mapSize": "duel",
+        "roster": "trio",
+        "turns": 80,
+        "winner": null,
+        "warnings": 0,
+        "problems": [],
+        "lateMedianMs": 1185.034749999999,
+        "lateP95Ms": 4074.306749999996,
+        "checkpoints": {
+          "50": [
+            {
+              "id": 0,
+              "leader": "mehmedTheConqueror",
+              "decks": [
+                "dominion",
+                "scientific"
+              ],
+              "alive": true,
+              "techs": 7,
+              "column": 2,
+              "age": 1,
+              "drafts": 5,
+              "orders": [
+                "theThreshingFloor",
+                "dominionSwordAndPlough",
+                "theMarchmen",
+                "warFoundries",
+                "scientificTheAlmanac"
+              ],
+              "doctrines": [
+                "theWorkshopsOfSyracuse"
+              ],
+              "worksBuilt": {
+                "pasture": 1
+              },
+              "captures": 0,
+              "cities": 2,
+              "pop": 7,
+              "score": 125,
+              "rates": {
+                "food": 19,
+                "production": 14,
+                "gold": 4,
+                "science": 2.75,
+                "culture": 6,
+                "faith": 0
+              },
+              "rateTotal": 45.75,
+              "cumulative": {
+                "food": 501,
+                "production": 310.5999999999999,
+                "gold": 222,
+                "science": 90.625,
+                "culture": 168.6,
+                "faith": 0
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 12,
+                "works": 1,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 1,
+              "leader": "lorenzoDeMedici",
+              "decks": [
+                "commerce",
+                "magisterial"
+              ],
+              "alive": true,
+              "techs": 11,
+              "column": 3,
+              "age": 1,
+              "drafts": 9,
+              "orders": [
+                "commerceOpenMarket",
+                "magisterialTheHeralds",
+                "magisterialTheTwelveTables",
+                "theWorkingCourt",
+                "theGrainBanks",
+                "theCeremonialGuard",
+                "theGildedCountry",
+                "lettersOfCredit",
+                "theBrickKilns"
+              ],
+              "doctrines": [
+                "theChoregia"
+              ],
+              "worksBuilt": {
+                "mine": 2,
+                "quarry": 1
+              },
+              "captures": 0,
+              "cities": 3,
+              "pop": 6,
+              "score": 173,
+              "rates": {
+                "food": 16,
+                "production": 43.1,
+                "gold": -4,
+                "science": 3.5,
+                "culture": 28,
+                "faith": 0
+              },
+              "rateTotal": 86.6,
+              "cumulative": {
+                "food": 317,
+                "production": 700.6,
+                "gold": 96.4,
+                "science": 89.67500000000001,
+                "culture": 451.4,
+                "faith": 0
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 6,
+                "works": 3,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 2,
+              "leader": "jayavarmanVII",
+              "decks": [
+                "expansionist",
+                "devotion"
+              ],
+              "alive": true,
+              "techs": 12,
+              "column": 4,
+              "age": 2,
+              "drafts": 8,
+              "orders": [
+                "theHomeFields",
+                "theSeedGrain",
+                "thePalaceSchool",
+                "theZealots",
+                "theGildedCountry",
+                "theDesertAndTheSnow",
+                "outposts",
+                "theFoundingVows"
+              ],
+              "doctrines": [
+                "theHighlandClans"
+              ],
+              "worksBuilt": {
+                "mine": 2,
+                "farm": 1,
+                "pasture": 1,
+                "outpost": 1
+              },
+              "captures": 0,
+              "cities": 3,
+              "pop": 8,
+              "score": 197,
+              "rates": {
+                "food": 21,
+                "production": 22,
+                "gold": 17,
+                "science": 11,
+                "culture": 12.100000000000001,
+                "faith": 1
+              },
+              "rateTotal": 84.1,
+              "cumulative": {
+                "food": 652,
+                "production": 573.9,
+                "gold": 418,
+                "science": 226.975,
+                "culture": 288.6,
+                "faith": 5
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 5,
+                "works": 5,
+                "newWorks": 0
+              }
+            }
+          ],
+          "80": [
+            {
+              "id": 0,
+              "leader": "mehmedTheConqueror",
+              "decks": [
+                "dominion",
+                "scientific"
+              ],
+              "alive": true,
+              "techs": 12,
+              "column": 4,
+              "age": 2,
+              "drafts": 9,
+              "orders": [
+                "theThreshingFloor",
+                "dominionSwordAndPlough",
+                "theMarchmen",
+                "warFoundries",
+                "scientificTheAlmanac",
+                "theMonasteryLibraries",
+                "theBrickKilns",
+                "dominionTheQuartermasters",
+                "dominionTheFoederati"
+              ],
+              "doctrines": [
+                "theWorkshopsOfSyracuse"
+              ],
+              "worksBuilt": {
+                "pasture": 1,
+                "mine": 2,
+                "camp": 1,
+                "plantation": 2
+              },
+              "captures": 0,
+              "cities": 4,
+              "pop": 15,
+              "score": 252,
+              "rates": {
+                "food": 46,
+                "production": 45,
+                "gold": 17,
+                "science": 6.324999999999999,
+                "culture": 17.6,
+                "faith": 0
+              },
+              "rateTotal": 131.925,
+              "cumulative": {
+                "food": 1342,
+                "production": 1053.6,
+                "gold": 598,
+                "science": 201.45,
+                "culture": 537.2,
+                "faith": 0
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 19,
+                "works": 6,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 1,
+              "leader": "lorenzoDeMedici",
+              "decks": [
+                "commerce",
+                "magisterial"
+              ],
+              "alive": true,
+              "techs": 20,
+              "column": 5,
+              "age": 2,
+              "drafts": 18,
+              "orders": [
+                "commerceOpenMarket",
+                "magisterialTheHeralds",
+                "magisterialTheTwelveTables",
+                "theWorkingCourt",
+                "theGrainBanks",
+                "theCeremonialGuard",
+                "theGildedCountry",
+                "lettersOfCredit",
+                "theBrickKilns",
+                "theGoldenAge",
+                "magisterialTheQuarterOfMasters",
+                "theLearnedPatron",
+                "magisterialTheHallofHeroes",
+                "magisterialTheLawgiver",
+                "theSpiceExchange",
+                "theGrandVizier",
+                "theTeaHorseRoad"
+              ],
+              "doctrines": [
+                "theChoregia",
+                "theBarmakids",
+                "theJinshi",
+                "theForbiddenSilks"
+              ],
+              "worksBuilt": {
+                "mine": 11,
+                "quarry": 2,
+                "plantation": 1,
+                "pasture": 1,
+                "farm": 4
+              },
+              "captures": 0,
+              "cities": 6,
+              "pop": 22,
+              "score": 847,
+              "rates": {
+                "food": 79,
+                "production": 347.08500000000004,
+                "gold": 24,
+                "science": 119.03999999999999,
+                "culture": 203.4,
+                "faith": 18
+              },
+              "rateTotal": 790.525,
+              "cumulative": {
+                "food": 1397,
+                "production": 4660.767,
+                "gold": 300,
+                "science": 1410.37,
+                "culture": 2803.9249999999997,
+                "faith": 219
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 10,
+                "works": 19,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 2,
+              "leader": "jayavarmanVII",
+              "decks": [
+                "expansionist",
+                "devotion"
+              ],
+              "alive": true,
+              "techs": 18,
+              "column": 5,
+              "age": 2,
+              "drafts": 11,
+              "orders": [
+                "theHomeFields",
+                "theSeedGrain",
+                "thePalaceSchool",
+                "theZealots",
+                "theGildedCountry",
+                "theDesertAndTheSnow",
+                "outposts",
+                "theFoundingVows",
+                "commonCisternWorks",
+                "provincialCouncils",
+                "levyOfTheLand"
+              ],
+              "doctrines": [
+                "theHighlandClans",
+                "theCensors"
+              ],
+              "worksBuilt": {
+                "mine": 2,
+                "farm": 1,
+                "pasture": 1,
+                "outpost": 11,
+                "quarry": 1,
+                "lumbermill": 2
+              },
+              "captures": 0,
+              "cities": 9,
+              "pop": 31,
+              "score": 456,
+              "rates": {
+                "food": 75,
+                "production": 63.09,
+                "gold": 39,
+                "science": 46.575,
+                "culture": 24.299999999999997,
+                "faith": 3
+              },
+              "rateTotal": 250.96500000000003,
+              "cumulative": {
+                "food": 2020,
+                "production": 1751.46,
+                "gold": 998,
+                "science": 912.875,
+                "culture": 732.5999999999997,
+                "faith": 79
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 20,
+                "works": 18,
+                "newWorks": 0
+              }
+            }
+          ]
+        }
+      },
+      "2026": {
+        "settlements": [
+          {
+            "turn": 1,
+            "player": 0,
+            "name": "Niani",
+            "id": 7,
+            "col": 26,
+            "row": 5,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 5,
+            "endOwner": 0
+          },
+          {
+            "turn": 1,
+            "player": 2,
+            "name": "Pella",
+            "id": 8,
+            "col": 25,
+            "row": 17,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 7,
+            "endOwner": 2
+          },
+          {
+            "turn": 3,
+            "player": 1,
+            "name": "Hanseong",
+            "id": 9,
+            "col": 11,
+            "row": 4,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 7,
+            "endOwner": 1
+          },
+          {
+            "turn": 13,
+            "player": 0,
+            "name": "Timbuktu",
+            "id": 36,
+            "col": 24,
+            "row": 8,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 0
+          },
+          {
+            "turn": 22,
+            "player": 2,
+            "name": "Aigai",
+            "id": 71,
+            "col": 25,
+            "row": 13,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 7,
+            "endOwner": 2
+          },
+          {
+            "turn": 28,
+            "player": 0,
+            "name": "Djenn\u00e9",
+            "id": 92,
+            "col": 30,
+            "row": 7,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 6,
+            "endOwner": 0
+          },
+          {
+            "turn": 29,
+            "player": 1,
+            "name": "Gaeseong",
+            "id": 98,
+            "col": 13,
+            "row": 7,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": true,
+            "endPopulation": 4,
+            "endOwner": 1
+          },
+          {
+            "turn": 48,
+            "player": 0,
+            "name": "Gao",
+            "id": 169,
+            "col": 20,
+            "row": 2,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 2,
+            "endOwner": 0
+          },
+          {
+            "turn": 60,
+            "player": 0,
+            "name": "Walata",
+            "id": 219,
+            "col": 21,
+            "row": 10,
+            "startPopulation": 1,
+            "fresh": true,
+            "growthWater": true,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 3,
+            "endOwner": 0
+          },
+          {
+            "turn": 60,
+            "player": 2,
+            "name": "Amphipolis",
+            "id": 220,
+            "col": 21,
+            "row": 6,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 2
+          },
+          {
+            "turn": 62,
+            "player": 2,
+            "name": "Alexandria Eschate",
+            "id": 227,
+            "col": 28,
+            "row": 10,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 6,
+            "endOwner": 2
+          },
+          {
+            "turn": 63,
+            "player": 0,
+            "name": "Kumbi Saleh",
+            "id": 231,
+            "col": 33,
+            "row": 3,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": true,
+            "futureCoast": false,
+            "endPopulation": 4,
+            "endOwner": 0
+          },
+          {
+            "turn": 78,
+            "player": 1,
+            "name": "Pyongyang",
+            "id": 314,
+            "col": 17,
+            "row": 5,
+            "startPopulation": 1,
+            "fresh": false,
+            "growthWater": false,
+            "coastal": false,
+            "futureCoast": false,
+            "endPopulation": 1,
+            "endOwner": 1
+          }
+        ],
+        "policy": "combined",
+        "seed": 2026,
+        "seat": "all",
+        "mapSize": "duel",
+        "roster": "trio",
+        "turns": 80,
+        "winner": null,
+        "warnings": 0,
+        "problems": [],
+        "lateMedianMs": 2386.011375000002,
+        "lateP95Ms": 5542.30529199999,
+        "checkpoints": {
+          "50": [
+            {
+              "id": 0,
+              "leader": "mansaMusa",
+              "decks": [
+                "commerce",
+                "devotion"
+              ],
+              "alive": true,
+              "techs": 12,
+              "column": 5,
+              "age": 2,
+              "drafts": 9,
+              "orders": [
+                "thePalaceSchool",
+                "theRoyalCult",
+                "travellersLetters",
+                "lettersOfCredit",
+                "theBrickKilns",
+                "theIncenseRoad",
+                "financedIndustry",
+                "theTempleStorehouses",
+                "theGildedCountry"
+              ],
+              "doctrines": [
+                "theApoikia"
+              ],
+              "worksBuilt": {
+                "camp": 1,
+                "mine": 2,
+                "quarry": 1,
+                "pasture": 1
+              },
+              "captures": 0,
+              "cities": 4,
+              "pop": 12,
+              "score": 232,
+              "rates": {
+                "food": 30,
+                "production": 30.78,
+                "gold": 3,
+                "science": 8.799999999999999,
+                "culture": 15.4,
+                "faith": 1
+              },
+              "rateTotal": 88.98,
+              "cumulative": {
+                "food": 687,
+                "production": 726.3000000000001,
+                "gold": 91.60000000000002,
+                "science": 274.70000000000005,
+                "culture": 381.3999999999999,
+                "faith": 34
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 21,
+                "works": 5,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 1,
+              "leader": "sejongTheGreat",
+              "decks": [
+                "scientific",
+                "magisterial"
+              ],
+              "alive": true,
+              "techs": 8,
+              "column": 3,
+              "age": 1,
+              "drafts": 5,
+              "orders": [
+                "theCornerstone",
+                "illuminatedTreatises",
+                "theMarchmen",
+                "scientificTheScribesHall",
+                "theFreeCities"
+              ],
+              "doctrines": [
+                "theArthashastra"
+              ],
+              "worksBuilt": {
+                "fishingBoats": 3,
+                "mine": 1
+              },
+              "captures": 0,
+              "cities": 2,
+              "pop": 7,
+              "score": 125,
+              "rates": {
+                "food": 17,
+                "production": 22.2,
+                "gold": 12,
+                "science": 4.125,
+                "culture": 5.5,
+                "faith": 0
+              },
+              "rateTotal": 60.825,
+              "cumulative": {
+                "food": 536,
+                "production": 324.99999999999994,
+                "gold": 304,
+                "science": 125.375,
+                "culture": 169.6,
+                "faith": 0
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 5,
+                "works": 4,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 2,
+              "leader": "alexanderTheGreat",
+              "decks": [
+                "dominion",
+                "expansionist"
+              ],
+              "alive": true,
+              "techs": 12,
+              "column": 5,
+              "age": 2,
+              "drafts": 7,
+              "orders": [
+                "expansionistGranaryLevies",
+                "theHorrea",
+                "thePalaceSchool",
+                "martialLaw",
+                "outposts",
+                "theFoundersSchools"
+              ],
+              "doctrines": [
+                "theCommanderies"
+              ],
+              "worksBuilt": {
+                "outpost": 1,
+                "plantation": 1
+              },
+              "captures": 0,
+              "cities": 2,
+              "pop": 10,
+              "score": 190,
+              "rates": {
+                "food": 28,
+                "production": 15.4,
+                "gold": -4,
+                "science": 6.5,
+                "culture": 5,
+                "faith": 1
+              },
+              "rateTotal": 51.9,
+              "cumulative": {
+                "food": 634,
+                "production": 407.09999999999997,
+                "gold": 115,
+                "science": 156.5,
+                "culture": 177.8,
+                "faith": 11
+              },
+              "actions": {
+                "declarations": 1,
+                "attacks": 46,
+                "works": 2,
+                "newWorks": 0
+              }
+            }
+          ],
+          "80": [
+            {
+              "id": 0,
+              "leader": "mansaMusa",
+              "decks": [
+                "commerce",
+                "devotion"
+              ],
+              "alive": true,
+              "techs": 21,
+              "column": 6,
+              "age": 3,
+              "drafts": 14,
+              "orders": [
+                "thePalaceSchool",
+                "theRoyalCult",
+                "travellersLetters",
+                "lettersOfCredit",
+                "theBrickKilns",
+                "theIncenseRoad",
+                "financedIndustry",
+                "theTempleStorehouses",
+                "theGildedCountry",
+                "theFestivalCalendar",
+                "theWaysideInns",
+                "theSpiceExchange",
+                "theTreatyPorts"
+              ],
+              "doctrines": [
+                "theApoikia",
+                "theForbiddenSilks"
+              ],
+              "worksBuilt": {
+                "camp": 2,
+                "mine": 8,
+                "quarry": 1,
+                "pasture": 1,
+                "plantation": 3,
+                "lumbermill": 2
+              },
+              "captures": 0,
+              "cities": 6,
+              "pop": 24,
+              "score": 497,
+              "rates": {
+                "food": 56,
+                "production": 83.52,
+                "gold": 38,
+                "science": 54,
+                "culture": 53.519999999999996,
+                "faith": 3
+              },
+              "rateTotal": 288.03999999999996,
+              "cumulative": {
+                "food": 1964,
+                "production": 2156.3000000000006,
+                "gold": 1065.6,
+                "science": 1211.5750000000003,
+                "culture": 1333.32,
+                "faith": 94
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 57,
+                "works": 17,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 1,
+              "leader": "sejongTheGreat",
+              "decks": [
+                "scientific",
+                "magisterial"
+              ],
+              "alive": true,
+              "techs": 13,
+              "column": 5,
+              "age": 2,
+              "drafts": 9,
+              "orders": [
+                "theCornerstone",
+                "illuminatedTreatises",
+                "theMarchmen",
+                "scientificTheScribesHall",
+                "theFreeCities",
+                "theAstronomicalDiaries",
+                "theKeepersOfWonders",
+                "civicGranaries",
+                "theCeremonialGuard"
+              ],
+              "doctrines": [
+                "theArthashastra"
+              ],
+              "worksBuilt": {
+                "fishingBoats": 4,
+                "mine": 1,
+                "pasture": 2,
+                "farm": 1,
+                "plantation": 1
+              },
+              "captures": 0,
+              "cities": 3,
+              "pop": 12,
+              "score": 267,
+              "rates": {
+                "food": 29,
+                "production": 36.08,
+                "gold": 20,
+                "science": 10.8,
+                "culture": 22.8,
+                "faith": 0
+              },
+              "rateTotal": 118.67999999999999,
+              "cumulative": {
+                "food": 1327,
+                "production": 1118.52,
+                "gold": 980,
+                "science": 372.5000000000001,
+                "culture": 517.4000000000002,
+                "faith": 30
+              },
+              "actions": {
+                "declarations": 0,
+                "attacks": 26,
+                "works": 9,
+                "newWorks": 0
+              }
+            },
+            {
+              "id": 2,
+              "leader": "alexanderTheGreat",
+              "decks": [
+                "dominion",
+                "expansionist"
+              ],
+              "alive": true,
+              "techs": 19,
+              "column": 5,
+              "age": 2,
+              "drafts": 11,
+              "orders": [
+                "expansionistGranaryLevies",
+                "theHorrea",
+                "thePalaceSchool",
+                "martialLaw",
+                "outposts",
+                "theFoundersSchools",
+                "theAediles",
+                "thePacifiedMarches",
+                "theHighlands",
+                "siegeWorks"
+              ],
+              "doctrines": [
+                "theCommanderies",
+                "theCensors"
+              ],
+              "worksBuilt": {
+                "outpost": 7,
+                "plantation": 1,
+                "fishingBoats": 1,
+                "lumbermill": 2,
+                "mine": 3
+              },
+              "captures": 0,
+              "cities": 4,
+              "pop": 24,
+              "score": 348,
+              "rates": {
+                "food": 57,
+                "production": 71.06,
+                "gold": 25,
+                "science": 29.700000000000003,
+                "culture": 13.2,
+                "faith": 2
+              },
+              "rateTotal": 197.95999999999998,
+              "cumulative": {
+                "food": 1965,
+                "production": 1352.21,
+                "gold": 407.5,
+                "science": 534.675,
+                "culture": 462.54999999999984,
+                "faith": 88
+              },
+              "actions": {
+                "declarations": 5,
+                "attacks": 88,
+                "works": 14,
+                "newWorks": 0
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
