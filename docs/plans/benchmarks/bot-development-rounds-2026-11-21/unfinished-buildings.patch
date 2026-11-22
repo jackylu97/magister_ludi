@@ -1,0 +1,88 @@
+diff --git a/src/ai/chain.ts b/src/ai/chain.ts
+index 717f2f03..146a21f7 100644
+--- a/src/ai/chain.ts
++++ b/src/ai/chain.ts
+@@ -568,7 +568,7 @@ export function techChain(
+       ? 'the towns have still to raise it'
+       : `the ${techDef(node).name} node has to land and the towns to raise it`;
+ 
+-    for (const unit of gifts.units) {
++    for (const unit of held ? [] : gifts.units) {
+       // **The option waits for its node** (batch X1b's second half, and X1d's
+       // road). It advances no cursor — nothing queues behind a piece nobody has
+       // decided to raise — but it is still a payoff on the far side of the road,
+@@ -668,6 +668,10 @@ export function techChain(
+       });
+     }
+ 
++    // Research completion already paid for the units, abilities and renewals.
++    // A known technology's construction plan only gains its unfinished buildings.
++    if (held) continue;
++
+     // **The flat gifts wait for their node too** (batch X1d). Before the road was
+     // walked there was one node and its projects, abilities, bead and rules were
+     // folded at full price; now there are ten of them down a long road, and a
+diff --git a/test/sim/aiCompletedResearch.test.ts b/test/sim/aiCompletedResearch.test.ts
+new file mode 100644
+--- /dev/null
++++ b/test/sim/aiCompletedResearch.test.ts
+@@ -0,0 +1,59 @@
++import { describe, expect, it } from 'vitest';
++import { valueContext } from '../../src/ai/bot';
++import { techChain } from '../../src/ai/chain';
++import { foldTerms } from '../../src/ai/decision';
++import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
++import { getTileAt } from '../../src/sim/map';
++import { bumpRevision } from '../../src/sim/state';
++import { researchExpansion } from '../../src/sim/tech';
++import type { TechId } from '../../src/sim/techData';
++import { unitDef } from '../../src/sim/unitData';
++import { newGame } from './newGameHelpers';
++
++function fixture(goal: TechId) {
++  const state = newGame({ seed: 29, sizeName: 'duel', players: [{ name: 'A', color: '#a00' }, { name: 'B', color: '#00a' }] });
++  const player = state.players[0]!;
++  const settler = state.units.find(unit => unit.ownerId === 0 && unitDef(unit.type).foundsCity)!;
++  const city = foundCityAt(state, 0, getTileAt(state.map, settler.col, settler.row)!);
++  city.population = 4;
++  refreshCityDerived(state, city);
++  const complete = () => {
++    player.techsResearched.push(...researchExpansion(state, 0, goal));
++    bumpRevision(state);
++  };
++  const chain = () => techChain(state, player, { ...valueContext(state, player), scienceRate: 100 }, goal);
++  return { state, city, player, complete, chain };
++}
++
++describe('construction plans after research completes', () => {
++  it('keeps unfinished buildings without paying again for unlocked units', () => {
++    const { chain, complete } = fixture('theWheel');
++    expect(chain().steps.some(step => step.kind === 'unit')).toBe(true);
++    complete();
++    const after = chain();
++    expect(after.held).toBe(true);
++    expect(after.steps.some(step => step.id === 'stable')).toBe(true);
++    expect(after.steps.every(step => step.kind === 'building')).toBe(true);
++    expect(after.worth).toBeCloseTo(after.steps.reduce((sum, step) => sum + step.value, 0), 10);
++    expect(after.worth).toBe(foldTerms(after.terms));
++  });
++
++  it('gives no construction reward for an ability that is already available', () => {
++    const { chain, complete } = fixture('sailing');
++    expect(chain().worth).toBeGreaterThan(0);
++    complete();
++    const after = chain();
++    expect(after.steps.every(step => step.kind === 'building')).toBe(true);
++    expect(after.worth).toBeCloseTo(after.steps.reduce((sum, step) => sum + step.value, 0), 10);
++  });
++
++  it('still values a missing Library after Letters is researched, without changing the state', () => {
++    const { state, chain, complete } = fixture('letters');
++    complete();
++    const snapshot = JSON.stringify(state);
++    const after = chain();
++    expect(after.researchDelay).toBe(0);
++    expect(after.steps.find(step => step.id === 'library')!.value).toBeGreaterThan(0);
++    expect(JSON.stringify(state)).toBe(snapshot);
++  });
++});

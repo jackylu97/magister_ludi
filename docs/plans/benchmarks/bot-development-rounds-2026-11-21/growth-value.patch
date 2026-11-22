@@ -1,0 +1,15 @@
+diff --git a/src/ai/bot.ts b/src/ai/bot.ts
+index 7102e542..c921b9c2 100644
+--- a/src/ai/bot.ts
++++ b/src/ai/bot.ts
+@@ -3358,6 +3358,10 @@ function growthTerm(
+       label: `the ground it would work — (${nextHex.col},${nextHex.row})`,
+       value: ground,
+     },
++    nest('the science it makes by existing', explainYields({ science: sciencePerPopOf(state, city) }, ctx)),
++    ...(city.population < ageBand(ctx.ai.growth.smallCityPop, ctx.age)
++      ? [{ label: 'the existing small-city growth premium', value: ctx.ai.growth.smallCityPremium }]
++      : []),
+     ...(keep === null ? [] : [keep]),
+   ]);
+   // Nothing to charge either way: a citizen worth exactly nothing is a citizen

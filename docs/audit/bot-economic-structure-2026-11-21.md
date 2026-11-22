@@ -17,6 +17,9 @@ The median was 474. The mean was 724 because a few strong economies raised it.
 | Local threat for walls | 947 | 538 | 6/18 | 818 | 24.5 | 15.5 | 8 |
 | Remove unsupported ships and missing building sites from research payoffs | 617 | 511 | 4/18 | 756 | 21.7 | 14.6 | 2 |
 
+A later [development study](bot-development-rounds-2026-11-21.md) validates the
+local-defense patch on three more maps and accepts it on the isolated bot branch.
+
 These are screening experiments, not accepted defaults. The local-defense
 change improved yields for eleven seats but did not raise the number reaching
 the target. Its mean gain also includes one Lorenzo game rising from 2,983 to

@@ -1,0 +1,202 @@
+{
+  "sourceCommit": "a90137f0",
+  "sourceBranch": "codex/bot-development-rounds",
+  "baseline": "77e33d9d",
+  "schema": 257,
+  "baselineCanary": {
+    "seed": 42,
+    "identicalSavedCommandLog": true
+  },
+  "replayChecks": [
+    {
+      "policy": "research-progress",
+      "seed": 42,
+      "matched": true
+    },
+    {
+      "policy": "research-progress",
+      "seed": 2026,
+      "matched": true
+    },
+    {
+      "policy": "research-progress",
+      "seed": 314,
+      "matched": true
+    },
+    {
+      "policy": "resource-unlocks",
+      "seed": 42,
+      "matched": true
+    },
+    {
+      "policy": "resource-unlocks",
+      "seed": 2026,
+      "matched": true
+    },
+    {
+      "policy": "resource-unlocks",
+      "seed": 314,
+      "matched": true
+    },
+    {
+      "policy": "unfinished-buildings",
+      "seed": 42,
+      "matched": true
+    },
+    {
+      "policy": "unfinished-buildings",
+      "seed": 2026,
+      "matched": true
+    },
+    {
+      "policy": "unfinished-buildings",
+      "seed": 314,
+      "matched": true
+    },
+    {
+      "policy": "growth-value",
+      "seed": 42,
+      "matched": true
+    },
+    {
+      "policy": "growth-value",
+      "seed": 2026,
+      "matched": true
+    },
+    {
+      "policy": "growth-value",
+      "seed": 314,
+      "matched": true
+    },
+    {
+      "policy": "holdout-baseline",
+      "seed": 7,
+      "matched": true
+    },
+    {
+      "policy": "holdout-baseline",
+      "seed": 999,
+      "matched": true
+    },
+    {
+      "policy": "holdout-baseline",
+      "seed": 2025,
+      "matched": true
+    },
+    {
+      "policy": "holdout-defense",
+      "seed": 7,
+      "matched": true
+    },
+    {
+      "policy": "holdout-defense",
+      "seed": 999,
+      "matched": true
+    },
+    {
+      "policy": "holdout-defense",
+      "seed": 2025,
+      "matched": true
+    }
+  ],
+  "firstDecisionChanges": [
+    {
+      "size": "duel",
+      "firstCommandIndex": 865,
+      "turn": 45,
+      "before": {
+        "type": "setCityProduction",
+        "playerId": 2,
+        "cityId": 109,
+        "queue": [
+          {
+            "kind": "building",
+            "id": "palisade"
+          }
+        ]
+      },
+      "after": {
+        "type": "setCityProduction",
+        "playerId": 2,
+        "cityId": 109,
+        "queue": [
+          {
+            "kind": "building",
+            "id": "monument"
+          }
+        ]
+      },
+      "city": "Junipers Rest",
+      "empireThreat": 3.0001155001154998,
+      "localThreat": 1,
+      "wall": {
+        "local": 38.78260869565217,
+        "global": 77.56745708919621
+      }
+    },
+    {
+      "size": "standard",
+      "firstCommandIndex": 690,
+      "turn": 39,
+      "before": {
+        "type": "setCityProduction",
+        "playerId": 0,
+        "cityId": 13,
+        "queue": [
+          {
+            "kind": "building",
+            "id": "palisade"
+          }
+        ]
+      },
+      "after": {
+        "type": "setCityProduction",
+        "playerId": 0,
+        "cityId": 13,
+        "queue": [
+          {
+            "kind": "building",
+            "id": "granary"
+          }
+        ]
+      },
+      "city": "Aldermarch",
+      "empireThreat": 2,
+      "localThreat": 1,
+      "wall": {
+        "local": 38.78260869565217,
+        "global": 58.17391304347826
+      }
+    }
+  ],
+  "digestTransitions": {
+    "duel": {
+      "before": "cc8c3899:346798",
+      "after": "000a4464:364669"
+    },
+    "standard": {
+      "before": "724cc604:1061917",
+      "after": "83f56a0b:1099866"
+    }
+  },
+  "checks": {
+    "typecheck": "passed",
+    "core": {
+      "files": 565,
+      "tests": 12826,
+      "passed": true
+    },
+    "build": "passed with existing chunk-size warning",
+    "slow": {
+      "files": 50,
+      "tests": 172,
+      "initialFailures": "two intentional state digest changes",
+      "otherTestsPassed": 170,
+      "updatedPinRecheck": {
+        "files": 2,
+        "tests": 6,
+        "passed": true
+      }
+    }
+  }
+}

@@ -1,0 +1,61 @@
+diff --git a/data/ai.json b/data/ai.json
+index 3e7299d6..271de3c4 100644
+--- a/data/ai.json
++++ b/data/ai.json
+@@ -389,6 +389,7 @@
+   },
+   "research": {
+     "goalHorizon": 6,
++    "missingResourceUnitShare": 0,
+     "abilityValue": 20,
+     "greatPersonTurns": 30,
+     "charterTurns": 15,
+diff --git a/src/ai/aiConfig.ts b/src/ai/aiConfig.ts
+index 607f08c7..c27bd482 100644
+--- a/src/ai/aiConfig.ts
++++ b/src/ai/aiConfig.ts
+@@ -2107,6 +2107,8 @@ export interface AiConfig {
+   research: {
+     /** Nodes a goal's prerequisite closure may hold before it is too far. */
+     goalHorizon: number;
++    /** Share of a combat unlock's value when its required resources are not controlled. */
++    missingResourceUnitShare: number;
+     /** What one unlocked ability (embarkation) is worth. */
+     abilityValue: number;
+     /**
+diff --git a/src/ai/chain.ts b/src/ai/chain.ts
+index 717f2f03..0a7bc7df 100644
+--- a/src/ai/chain.ts
++++ b/src/ai/chain.ts
+@@ -237,6 +237,7 @@ import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData'
+ import {
+   buildingProductionCost,
+   controlledResources,
++  hasResource,
+   resourceCopies,
+   unitProductionCost,
+ } from '../sim/cities';
+@@ -245,7 +246,7 @@ import { type ResourceEffect, ageLabel, resourceDef } from '../sim/resourceData'
+ import { type ProjectId, projectDef } from '../sim/projectData';
+ import { renownPerTurn, renownThreshold } from '../sim/renown';
+ import { type City, type GameState, type Player, playerById, realPlayers } from '../sim/state';
+-import { buildError, gatingTech, hasAbility, opusOpen, researchExpansion, researchPlan } from '../sim/tech';
++import { buildError, gatingTech, hasAbility, opusOpen, requiredResource, researchExpansion, researchPlan } from '../sim/tech';
+ import { type AbilityId, type TechAge, type TechId, techDef } from '../sim/techData';
+ import { type UnitTypeId, isCombatant, isExplorer, trades, unitDef } from '../sim/unitData';
+ import { round } from './decision';
+@@ -1414,6 +1415,14 @@ function unitTerm(unit: UnitTypeId, ctx: ValueContext, levy: LevyReading): Value
+     // arm does not have — is the honest half of it: the chain is deciding what a
+     // *node* is worth, not what the next spear is worth, and the town's arm is
+     // still the thing that decides whether the spear gets built.
++    const needed = requiredResource('unit', unit);
++    if (needed.length > 0 && !needed.some(resource => hasResource(ctx.state, ctx.playerId, resource))) {
++      parts.push({
++        label: '× research.missingResourceUnitShare: the empire does not control a required resource',
++        value: ai.research.missingResourceUnitShare,
++        op: 'mul',
++      });
++    }
+     return { label: def.name, value: foldTerms(parts), parts };
+   }
+   if (def.foundsCity) return { label: `${def.name} — one more town`, value: ai.weights.city };

@@ -1,0 +1,138 @@
+diff --git a/src/ai/chain.ts b/src/ai/chain.ts
+index 717f2f03..15f07762 100644
+--- a/src/ai/chain.ts
++++ b/src/ai/chain.ts
+@@ -244,7 +244,7 @@ import { authorityOf, happinessOf } from '../sim/meters';
+ import { type ResourceEffect, ageLabel, resourceDef } from '../sim/resourceData';
+ import { type ProjectId, projectDef } from '../sim/projectData';
+ import { renownPerTurn, renownThreshold } from '../sim/renown';
+-import { type City, type GameState, type Player, playerById, realPlayers } from '../sim/state';
++import { type City, type GameState, type Player, bankedTowardTech, playerById, realPlayers } from '../sim/state';
+ import { buildError, gatingTech, hasAbility, opusOpen, researchExpansion, researchPlan } from '../sim/tech';
+ import { type AbilityId, type TechAge, type TechId, techDef } from '../sim/techData';
+ import { type UnitTypeId, isCombatant, isExplorer, trades, unitDef } from '../sim/unitData';
+@@ -519,7 +519,7 @@ export function techChain(
+   knownRoad?: TechId[],
+ ): TechChain {
+   const ai = ctx.ai;
+-  const { road, beakers: remainingBeakers, delay: researchDelay } = researchRoad(state, player, ctx, goal, knownRoad);
++  const { road, costs, beakers: remainingBeakers, delay: researchDelay } = researchRoad(state, player, ctx, goal, knownRoad);
+   const held = road.length === 0;
+   // **The whole road, node by node** (batch X1d(b)). A held goal is a road of
+   // one that is already walked; anything else is every node `researchExpansion`
+@@ -554,10 +554,10 @@ export function techChain(
+   // is printed on that node and no other — a road that crosses into Æra III at
+   // its third node carries one crossing, however many Æra III nodes follow.
+   let ageSoFar = ctx.age;
+-  for (const node of nodes) {
++  for (const [nodeIndex, node] of nodes.entries()) {
+     // The folded price (Scientific batch S13): a charter technology's premium
+     // and every card that changes a price, as `researchRoad` reads them.
+-    if (!held) owedSoFar += techCostFor(ctx, node);
++    if (!held) owedSoFar += costs[nodeIndex]!;
+     // **Where this node lands**: the beakers owed for the road *through* it over
+     // the empire's own science rate. The last node's landing is `researchDelay`
+     // exactly, which is the identity that keeps the whole-road reading a
+@@ -849,13 +849,20 @@ export function researchRoad(
+   ctx: ValueContext,
+   goal: TechId,
+   road = researchExpansion(state, player.id, goal),
+-): { road: TechId[]; beakers: number; delay: number } {
+-  // Each node at the price this empire pays for it (`techCostFor`, the fold of
+-  // `explainTechCost`; Scientific batch S13), so a drafted charter
+-  // technology's road carries its premium and a card's cut is counted.
++): { road: TechId[]; costs: number[]; beakers: number; delay: number } {
++  // Research already paid for shortens the wait. An unrelated parked account
++  // stays with its technology, while unassigned science and overflow carry forward.
++  let carry = player.researching === null ? player.sciencePool : 0;
++  const costs: number[] = [];
+   let beakers = 0;
+-  for (const step of road) beakers += techCostFor(ctx, step);
+-  return { road, beakers, delay: beakers / Math.max(1, ctx.scienceRate) };
++  for (const step of road) {
++    const unpaid = techCostFor(ctx, step) - bankedTowardTech(player, step) - carry;
++    const cost = Math.max(0, unpaid);
++    carry = Math.max(0, -unpaid);
++    costs.push(cost);
++    beakers += cost;
++  }
++  return { road, costs, beakers, delay: beakers / Math.max(1, ctx.scienceRate) };
+ }
+ 
+ // --- a node's gifts, once for the sitting -------------------------------------
+diff --git a/test/sim/aiResearchProgress.test.ts b/test/sim/aiResearchProgress.test.ts
+new file mode 100644
+--- /dev/null
++++ b/test/sim/aiResearchProgress.test.ts
+@@ -0,0 +1,71 @@
++import { describe, expect, it } from 'vitest';
++import { valueContext } from '../../src/ai/bot';
++import { researchRoad, techChain } from '../../src/ai/chain';
++import { bumpRevision } from '../../src/sim/state';
++import { techDef } from '../../src/sim/techData';
++import { newGame } from './newGameHelpers';
++
++function fixture() {
++  const state = newGame({ seed: 29, sizeName: 'duel', players: [{ name: 'A', color: '#a00' }, { name: 'B', color: '#00a' }] });
++  const player = state.players[0]!;
++  const context = () => ({ ...valueContext(state, player), scienceRate: 10 });
++  return { state, player, context };
++}
++
++describe('research progress in bot completion estimates', () => {
++  it('credits active and parked progress only on the technologies the plan includes', () => {
++    const { state, player, context } = fixture();
++    const before = researchRoad(state, player, context(), 'letters');
++    const [first, second] = before.road;
++    expect(before.road.length).toBeGreaterThan(1);
++    player.researching = first!;
++    player.sciencePool = before.costs[0]! - 3;
++    player.techProgress = { [second!]: before.costs[1]! - 4 };
++    bumpRevision(state);
++    const snapshot = JSON.stringify(state);
++    const after = researchRoad(state, player, context(), 'letters');
++    expect(after.costs.slice(0, 2)).toEqual([3, 4]);
++    expect(after.beakers).toBe(7 + before.costs.slice(2).reduce((sum, cost) => sum + cost, 0));
++    expect(after.delay).toBe(after.beakers / 10);
++    expect(JSON.stringify(state)).toBe(snapshot);
++  });
++
++  it('does not spend the active bank on an unrelated research path', () => {
++    const { state, player, context } = fixture();
++    const before = researchRoad(state, player, context(), 'fletching');
++    expect(before.road).not.toContain('sailing');
++    player.researching = 'sailing';
++    player.sciencePool = 1000;
++    bumpRevision(state);
++    const after = researchRoad(state, player, context(), 'fletching');
++    expect(after.beakers).toBe(before.beakers);
++  });
++
++  it('uses unassigned science once and carries excess to the next node', () => {
++    const { state, player, context } = fixture();
++    const before = researchRoad(state, player, context(), 'letters');
++    player.researching = null;
++    player.sciencePool = before.costs[0]! + 5;
++    bumpRevision(state);
++    const after = researchRoad(state, player, context(), 'letters');
++    expect(after.costs[0]).toBe(0);
++    expect(after.costs[1]).toBe(before.costs[1]! - 5);
++    expect(after.beakers).toBe(before.beakers - player.sciencePool);
++  });
++
++  it('uses remaining research for the unlock delay as well as the whole path', () => {
++    const { state, player, context } = fixture();
++    const before = researchRoad(state, player, context(), 'fletching');
++    player.researching = before.road[0]!;
++    player.sciencePool = before.costs[0]! - 2;
++    bumpRevision(state);
++    const ctx = context();
++    const road = researchRoad(state, player, ctx, 'fletching');
++    const chain = techChain(state, player, ctx, 'fletching');
++    const id = techDef('fletching').unlocks.units![0]!;
++    const step = chain.steps.find(row => row.kind === 'unit' && row.id === id)!;
++    expect(chain.remainingBeakers).toBe(road.beakers);
++    expect(step.delay).toBe(road.delay);
++    expect(step.delay).toBeLessThan(before.delay);
++  });
++});
