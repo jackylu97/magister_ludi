@@ -440,9 +440,13 @@ describe('The Pull of the Masters: the sweep (reading 40)', () => {
 
   it('re-seats both towns and redraws both empires sight after a take', () => {
     const { state, capital, rival, rivalRing } = scene();
-    // A farm on the first hex makes it the best hex the capital could work.
+    // A farm on the first hex makes it the best hex the capital could work
+    // after the Landmark's own hex. Since 2026-11-22 the citizens count the
+    // Landmark's culture, so the first citizen stays on the work and a second
+    // citizen is the one who takes the farm.
     lay(state, [rivalRing[0]!], FARM);
     capital.lockedTiles = [];
+    capital.population = 2;
     refreshCityDerived(state, capital);
     expect(worksOn(capital, rivalRing[0]!)).toBe(false);
     // The rival's assignment is stale on purpose: the re-seat replaces it.

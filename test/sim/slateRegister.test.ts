@@ -466,11 +466,15 @@ const EXCUSED = new Map<string, string>([
   ],
   [
     'cities.ts#writeAssignment',
-    'assignCitizens’ own half — its only callers are that function and `capFoodSurplus` beneath it, and it announces once, after comparing',
+    'assignCitizens’ own half — its only callers are that function and the two trims beneath it (`feedTown`, `capFoodSurplus`), and it announces once, after comparing',
   ],
   [
     'cities.ts#capFoodSurplus',
     'called only by `assignCitizens`, before its comparison — see that function',
+  ],
+  [
+    'cities.ts#feedTown',
+    'called only by `assignCitizens`, before its comparison, as `capFoodSurplus` is. See that function',
   ],
   [
     'movement.ts#hangLandfall',

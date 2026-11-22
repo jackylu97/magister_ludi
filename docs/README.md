@@ -286,6 +286,19 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   Terraces' `workMountains` city rule lets citizens work mountains
   (`isWorkableTile`). A great person's act pays its riders in the town where
   the act landed.
+- **How a town places its citizens** (`assignCitizens`): honoured pins first,
+  then the best hexes by a sheet, ties to the lower tile index.
+  - A town with no focus uses the default sheet, `rules.cities.citizenWeights`,
+    read at the owner's age by `citizenWeightsFor`. It weighs all six yields,
+    and food counts for less in each later age (the user's ruling of
+    2026-11-22; the figures are the bots' `weights` of that day, times five).
+  - A focus (food, production, gold) uses its sheet in
+    `rules.cities.citizenFocusWeights`, and is refused if it leaves the town
+    short of food.
+  - A town the default placement leaves short of food swaps hexes toward food
+    until it is fed (`feedTown`). Then Avoid growth trims the surplus
+    (`capFoodSurplus`). Neither trim moves a pinned hex.
+  - Details: `docs/city-screen.md`, "Citizen focus pane".
 - **Each hex belongs to one town** (`state.tileOwner`), and a town's citizens
   work only its own hexes inside its reach (`assignableTiles`).
   - **A pin may take a hex** from another town of the same empire (the user's

@@ -27,6 +27,9 @@ section. When an item is done, mark it `[x]` and give the commit.
     Do it as its own small rule batch.
   - Until then the bots choose among the four sheets as they are (batch BP13b,
     `docs/flags.md`).
+  - Built 2026-11-22, save version 257, not yet committed. See
+    `docs/plans/beta-checklist-2026-11-21.md` section B2 and
+    `docs/city-screen.md`, "Citizen focus pane".
 
 - [ ] **Wager rework.** Added 2026-11-18.
   - The user wants to rethink how wagers work. No design yet.

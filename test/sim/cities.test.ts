@@ -9,6 +9,8 @@ import {
   buildingProductionCost,
   citizenFocus,
   citizenFocusError,
+  citizenWeightsAt,
+  citizenWeightsFor,
   cityFocus,
   cityTile,
   emptyCityYields,
@@ -104,6 +106,8 @@ import {
   FEATURE_IDS,
   TERRAIN_IDS,
   TILE_YIELD_KEYS,
+  type TileYield,
+  emptyTileYield,
   readTileYield,
   tileYield,
 } from '../../src/sim/terrainData';
@@ -246,12 +250,12 @@ describe('tile yield algebra', () => {
     expect(tileYield('grassland', 'none', false).food).toBe(2);
   });
 
-  it('scores a tile with the rules weights', () => {
-    const w = CITIES.citizenWeights;
-    expect(yieldScore(readTileYield({ food: 2, production: 0, gold: 0 }))).toBe(2 * w.food);
-    expect(yieldScore(readTileYield({ food: 1, production: 1, gold: 1 }))).toBe(
-      w.food + w.production + w.gold,
-    );
+  it('scores a tile with the rules weights, all six yields', () => {
+    const w = citizenWeightsAt(1);
+    expect(yieldScore(readTileYield({ food: 2, production: 0, gold: 0 }), w)).toBe(2 * w.food);
+    expect(
+      yieldScore(readTileYield({ food: 1, production: 1, gold: 1, science: 1, culture: 1, faith: 1 }), w),
+    ).toBe(w.food + w.production + w.gold + w.science + w.culture + w.faith);
   });
 });
 
@@ -863,11 +867,11 @@ describe('the citizen focus pane', () => {
   }
 
   /**
-   * A one-citizen town whose ring holds three tiles that pull three ways: a mine
-   * (hammers), a customs house (coin) and a bare grassland (bushels). The mine
-   * and the grassland score the *same* on the balanced sheet, and the mine has
-   * the lower index, so Default takes the mine and the food focus is the only
-   * thing that can move the citizen onto the grass.
+   * A one-citizen town whose ring holds four tiles that pull four ways: a mine
+   * (hammers), a customs house (coin), a bare grassland (bushels) and an
+   * academy (science). At the first age the default sheet takes the academy,
+   * by a small margin over the grassland (since 2026-11-22 it weighs science
+   * too), so each focus has to move the citizen to reach its own yield.
    */
   function threeWays(state: GameState): City {
     const city = plant(state, 0, 8, 5);
@@ -878,18 +882,17 @@ describe('the citizen focus pane', () => {
     hexes[0]!.improvement = 'mine';
     hexes[1]!.improvement = 'customsHouse';
     hexes[2]!.terrain = 'grassland';
+    hexes[3]!.improvement = 'academy';
     return city;
   }
 
-  /** What the citizens are actually standing on, folded. */
-  function harvest(state: GameState, city: City): { food: number; production: number; gold: number } {
+  /** What the citizens are actually standing on, folded, in all six yields. */
+  function harvest(state: GameState, city: City): TileYield {
     const ctx = yieldContextFor(state, city.ownerId);
-    const total = { food: 0, production: 0, gold: 0 };
+    const total = emptyTileYield();
     for (const cell of city.workedTiles) {
       const paid = foldTile(at(state.map, cell.col, cell.row), ctx);
-      total.food += paid.food;
-      total.production += paid.production;
-      total.gold += paid.gold;
+      for (const voice of TILE_YIELD_KEYS) total[voice] += paid[voice];
     }
     return total;
   }
@@ -899,15 +902,16 @@ describe('the citizen focus pane', () => {
     const city = threeWays(state);
     assignCitizens(state, city);
 
-    // Not "a good tile" — *the* best by `citizenWeights`, ties to the lowest
-    // index, which is the promise the pane must not quietly cost a player who
-    // never opens it.
+    // Not "a good tile" — *the* best by `citizenWeights` at the owner's age,
+    // ties to the lowest index, which is the promise the pane must not quietly
+    // cost a player who never opens it.
     const ctx = yieldContextFor(state, 0);
-    const scored = ring(state, city).map((tile) => yieldScore(foldTile(tile, ctx)));
+    const sheet = citizenWeightsFor(state, 0);
+    const scored = ring(state, city).map((tile) => yieldScore(foldTile(tile, ctx), sheet));
     const best = Math.max(...scored);
     expect(city.workedTiles).toHaveLength(1);
     const standing = at(state.map, city.workedTiles[0]!.col, city.workedTiles[0]!.row);
-    expect(yieldScore(foldTile(standing, ctx))).toBe(best);
+    expect(yieldScore(foldTile(standing, ctx), sheet)).toBe(best);
     expect(citizenFocus(city)).toBe('balanced');
     expect(cityFocus(city)).toBe('default');
   });
@@ -918,6 +922,9 @@ describe('the citizen focus pane', () => {
 
     assignCitizens(state, city);
     const balanced = harvest(state, city);
+
+    // Default stands on the academy.
+    expect(balanced.science).toBeGreaterThan(0);
 
     const gains: Record<'food' | 'production' | 'gold', typeof balanced> = {
       food: balanced,
@@ -940,21 +947,15 @@ describe('the citizen focus pane', () => {
     // nothing.
     expect(gains.food.food).toBeGreaterThan(balanced.food);
     expect(gains.gold.gold).toBeGreaterThan(balanced.gold);
-    expect(gains.production.production).toBe(balanced.production);
+    expect(gains.production.production).toBeGreaterThan(balanced.production);
 
     // And **Default is never dominated**: no focus pays at least as much in
     // every voice and more in one. That is the guardrail — a strictly better
-    // sheet would make the balanced ordering a mistake.
+    // sheet would make the balanced ordering a mistake. All six voices count.
     for (const focus of ['food', 'production', 'gold'] as const) {
       const paid = gains[focus];
-      const everywhere =
-        paid.food >= balanced.food &&
-        paid.production >= balanced.production &&
-        paid.gold >= balanced.gold;
-      const somewhere =
-        paid.food > balanced.food ||
-        paid.production > balanced.production ||
-        paid.gold > balanced.gold;
+      const everywhere = TILE_YIELD_KEYS.every((voice) => paid[voice] >= balanced[voice]);
+      const somewhere = TILE_YIELD_KEYS.some((voice) => paid[voice] > balanced[voice]);
       expect(`${focus}: ${everywhere && somewhere ? 'dominates' : 'trades'}`).toBe(
         `${focus}: trades`,
       );
@@ -985,7 +986,7 @@ describe('the citizen focus pane', () => {
     city.lockedTiles = [{ col: hexes[1]!.col, row: hexes[1]!.row }];
     city.focus = 'food';
     assignCitizens(state, city);
-    // The customs house, which the food sheet ranks last of the three.
+    // The customs house, which the food sheet ranks below the grass and the mine.
     expect(worked(city)).toEqual([`${hexes[1]!.col},${hexes[1]!.row}`]);
   });
 

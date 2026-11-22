@@ -1548,9 +1548,15 @@ export function focusLabel(focus: CitizenFocus): string {
   return 'Gold';
 }
 
-/** What a focus segment's hover says: what pressing it would do to the town. */
+/**
+ * What a focus segment's hover says: what pressing it would do to the town.
+ *
+ * Default counts every yield, and food counts for less in each later age
+ * (`rules.cities.citizenWeights`, read at the owner's age by
+ * `citizenWeightsFor`). The words say so without a number.
+ */
 export function focusHint(focus: CitizenFocus): string {
-  if (focus === 'default') return 'Place citizens on the best hexes overall';
+  if (focus === 'default') return 'Place citizens on the best hexes, counting every yield, with food first in the early ages';
   if (focus === 'food') return 'Favour hexes that feed the town';
   if (focus === 'production') return 'Favour hexes that pay hammers';
   return 'Favour hexes that pay coin';

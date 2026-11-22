@@ -24,6 +24,7 @@ import { describe, expect, it } from 'vitest';
 import { type BuildingId } from '../../src/sim/buildingData';
 import {
   assignableTiles,
+  citizenWeightsFor,
   claimTile,
   refreshCityDerived,
   workableSeats,
@@ -397,7 +398,7 @@ describe('the citizen who left', () => {
     const ctx = yieldContextFor(g.state, 0);
     const score = (key: string): number => {
       const [col, row] = key.split(',').map(Number);
-      return yieldScore(foldTile(getTileAt(g.state.map, col!, row!)!, ctx));
+      return yieldScore(foldTile(getTileAt(g.state.map, col!, row!)!, ctx), citizenWeightsFor(g.state, 0));
     };
     const worst = Math.min(...after.map(score));
     expect(score(dropped[0]!)).toBeLessThanOrEqual(worst);

@@ -44,7 +44,8 @@
  * Scoring is `citizenWeights` dotted with the tile's yield, ties broken by tile
  * index. Both are deliberate: the weights are data a designer tunes, and the
  * tie-break makes the assignment a pure function of the board rather than of the
- * order `mapRange` happened to return tiles in.
+ * order `mapRange` happened to return tiles in. The weights cover all six
+ * yields and are read at the owner's age (`citizenWeightsFor`).
  *
  * The same score picks the next border tile, which is not a coincidence — a city
  * should grow toward the land it would want to work.
@@ -271,8 +272,10 @@ import { type TileYield, isWaterTerrain, isWorkableTerrain } from './terrainData
 import {
   BUILDING_UNLOCK_TECH,
   TECH_IDS,
+  type TechAge,
   type TechId,
   UNIT_UNLOCK_TECH,
+  highestAge,
   isCharterTech,
   isTechId,
   techColumn,
@@ -1523,21 +1526,63 @@ export function isWorkableTile(tile: Tile, mountains = false): boolean {
 }
 
 /**
- * How much a city wants a tile: the weighted sum of its yields.
+ * How much a city wants a tile: the weighted sum of its six yields.
  *
  * One function for two jobs — which citizen works where, and which tile the
  * borders take next — because a city that expands toward land it would not work
  * is a city that expands for no reason.
+ *
+ * The caller always names the sheet. Since 2026-11-22 the default sheet
+ * depends on the owner's age (`citizenWeightsFor`), so there is no default
+ * that would be right for every caller. Yields and weights are whole numbers,
+ * so the score is a whole number and ties break the same way everywhere.
  */
-export function yieldScore(
-  value: TileYield,
-  weights: CitizenWeights = CITIES.citizenWeights,
-): number {
+export function yieldScore(value: TileYield, weights: CitizenWeights): number {
   return (
     value.food * weights.food +
     value.production * weights.production +
-    value.gold * weights.gold
+    value.gold * weights.gold +
+    value.science * weights.science +
+    value.culture * weights.culture +
+    value.faith * weights.faith
   );
+}
+
+/**
+ * The default citizen sheet at one age: one entry of each row of
+ * `rules.cities.citizenWeights`.
+ *
+ * A row shorter than the ages uses its last entry, and an empty row reads
+ * nought. This is the rule the bots use for their own age rows (`ageBand`,
+ * `src/ai/prices.ts`), written again here because the sim may not import the
+ * bots.
+ */
+export function citizenWeightsAt(age: TechAge): CitizenWeights {
+  const rows = CITIES.citizenWeights;
+  const at = (row: readonly number[]): number => row[Math.min(row.length - 1, Math.max(0, age - 1))] ?? 0;
+  return {
+    food: at(rows.food),
+    production: at(rows.production),
+    gold: at(rows.gold),
+    science: at(rows.science),
+    culture: at(rows.culture),
+    faith: at(rows.faith),
+  };
+}
+
+/**
+ * **The default sheet for a seat's towns**: `citizenWeightsAt` at the seat's
+ * age (`highestAge`, the age every other age rule reads). A town with no
+ * focus places its citizens by this.
+ *
+ * The age is read off the owner, never off the world clock, so a seat that
+ * reaches a new age changes how its own towns work their hexes and nobody
+ * else's. `highestAge` remembers its answer for each list of technologies,
+ * so the call is cheap enough to make for every town at every assignment.
+ */
+export function citizenWeightsFor(state: GameState, playerId: number): CitizenWeights {
+  const player = playerById(state, playerId);
+  return citizenWeightsAt(player ? highestAge(player.techsResearched) : 1);
 }
 
 /** The city that owns a tile, or `null`. Reads `state.tileOwner`. */
@@ -2513,6 +2558,15 @@ export function workableSeats(state: GameState, city: City): number {
  * pipeline banks with, so what it refuses is exactly the deficit `growCities`
  * would have taken a population point for.
  *
+ * Feeding the town
+ * ----------------
+ * The ordinary sheet can leave a town short too. Since 2026-11-22 it weighs
+ * science, culture and faith, and in the late ages it puts a point of science
+ * above a point of food. So when the ordinary placement leaves the town short,
+ * `feedTown` swaps worked hexes for idle hexes that pay more food, one swap at
+ * a time, until the town is fed or no swap adds food. A town that cannot be
+ * fed starves as it always did.
+ *
  * Avoid growth
  * ------------
  * And last, a town told to stop growing has its surplus trimmed toward zero by
@@ -2536,8 +2590,10 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
   // Any other helper whose write is idempotent turn to turn keeps the same
   // discipline; this is the one the profile named.
   const before = city.workedTiles;
-  const balanced = CITIES.citizenWeights;
-  writeAssignment(state, city, chooseCitizens(state, city, balanced));
+  const balanced = citizenWeightsFor(state, city.ownerId);
+  const plain = chooseCitizens(state, city, balanced);
+  writeAssignment(state, city, plain.worked);
+  const plainCells = city.workedTiles;
   const lean = citizenLean(city);
   let weights = balanced;
   if (lean) {
@@ -2547,7 +2603,7 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
     // this the same arithmetic the turn pipeline performs.
     const fallback = city.workedTiles;
     weights = CITIES.citizenFocusWeights[lean];
-    writeAssignment(state, city, chooseCitizens(state, city, weights));
+    writeAssignment(state, city, chooseCitizens(state, city, weights).worked);
     // If both choices put every citizen on the same tile, the fallback can
     // only affect the weights used for the avoid-growth swaps below.
     const needsFoodCheck = city.avoidGrowth === true || !sameAssignment(fallback, city.workedTiles);
@@ -2555,6 +2611,14 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
       city.workedTiles = fallback;
       weights = balanced;
     }
+  }
+  // **A town short of food swaps toward food** (2026-11-22). Asked only of the
+  // ordinary placement: a focused placement that differs from it was checked
+  // above and kept only because it feeds the town. And asked only when some
+  // idle hex pays more food than some worked hex, which the greedy already
+  // knows, so a town that has no swap to make costs no extra town fold.
+  if (plain.foodLeftIdle && sameAssignment(plainCells, city.workedTiles)) {
+    feedTown(state, city, weights);
   }
   // **A surplus with somewhere to go is not capped** (Expansionist batch E6,
   // The Breadbasket; the triage's reading 78). While a card moves this town's
@@ -2753,6 +2817,106 @@ function writeAssignment(state: GameState, city: City, worked: readonly Tile[]):
 }
 
 /**
+ * **A town short of food swaps toward food**: one worked hex for one idle hex
+ * that pays more food, one swap at a time, until the town is fed (2026-11-22).
+ *
+ * `capFoodSurplus` turned the other way, and it keeps that trim's rules:
+ *
+ *   - Each step takes the swap that **costs the least score** by the sheet in
+ *     force, so the town gives up its weakest hex for food and keeps its best
+ *     science or faith hex if a cheaper swap feeds it. Ties go to the larger
+ *     gain in food, then to the lower tile index of the hex that leaves, then
+ *     of the hex that arrives (rule 2).
+ *   - It never moves a **pinned** hex.
+ *   - Each swap is written and `foldCity` is asked, the evaluator the turn
+ *     banks with. A swap that adds no food to the town's harvest (a percentage
+ *     and a floor can swallow a point) is put back, and the trim stops.
+ *
+ * It stops as soon as the harvest covers what the citizens eat. A town still
+ * short when no swap adds food starves as it always did.
+ *
+ * The cost is one `foldCity` to learn that the town is short, and one more for
+ * each swap. `assignCitizens` asks this only when the greedy left an idle hex
+ * that pays more food than a worked one, so a town that could not gain food by
+ * any swap pays nothing.
+ */
+function feedTown(state: GameState, city: City, weights: CitizenWeights): void {
+  const { map } = state;
+  const upkeep = foodUpkeep(city);
+  let food = foldCity(state, city).food;
+  if (food >= upkeep) return;
+
+  const index = (cell: { col: number; row: number }): number => tileIndex(map, cell.col, cell.row);
+  const pinned = new Set(city.lockedTiles.map(index));
+  const ctx = cityContext(state, city);
+  const candidates = assignableTiles(state, city);
+  const foodAt = new Map<number, number>();
+  const scoreAt = new Map<number, number>();
+  for (const tile of candidates) {
+    const paid = foldTile(tile, ctx);
+    foodAt.set(index(tile), paid.food);
+    scoreAt.set(index(tile), yieldScore(paid, weights));
+  }
+  const foodOf = (tile: Tile): number => foodAt.get(index(tile)) ?? 0;
+  const scoreOf = (tile: Tile): number => scoreAt.get(index(tile)) ?? 0;
+
+  for (;;) {
+    const seated = new Set(city.workedTiles.map(index));
+    const out = candidates.filter((tile) => seated.has(index(tile)) && !pinned.has(index(tile)));
+    const into = candidates.filter((tile) => !seated.has(index(tile)));
+
+    let best: { out: Tile; into: Tile; gain: number; cost: number } | null = null;
+    for (const leaving of out) {
+      for (const arriving of into) {
+        const gain = foodOf(arriving) - foodOf(leaving);
+        if (gain <= 0) continue;
+        const cost = scoreOf(leaving) - scoreOf(arriving);
+        if (
+          best === null ||
+          cost < best.cost ||
+          (cost === best.cost && gain > best.gain) ||
+          (cost === best.cost && gain === best.gain && index(leaving) < index(best.out)) ||
+          (cost === best.cost &&
+            gain === best.gain &&
+            index(leaving) === index(best.out) &&
+            index(arriving) < index(best.into))
+        ) {
+          best = { out: leaving, into: arriving, gain, cost };
+        }
+      }
+    }
+    if (!best) return;
+
+    const swap = best;
+    const previous = city.workedTiles;
+    const swapped = candidates.filter(
+      (tile) =>
+        (seated.has(index(tile)) && index(tile) !== index(swap.out)) ||
+        index(tile) === index(swap.into),
+    );
+    writeAssignment(state, city, swapped);
+    const next = foldCity(state, city).food;
+    if (next <= food) {
+      city.workedTiles = previous;
+      return;
+    }
+    food = next;
+    if (food >= upkeep) return;
+  }
+}
+
+/** What the greedy chose, and whether a swap toward food is open to it. */
+interface CitizenChoice {
+  /** The hexes chosen: honoured pins first, then the best by the sheet. */
+  worked: Tile[];
+  /**
+   * True when an idle hex pays more food than a hex the sheet chose (pins
+   * aside). Only then can `feedTown` add food by a swap.
+   */
+  foodLeftIdle: boolean;
+}
+
+/**
  * The greedy itself: honoured locks first, then the best remaining tiles by
  * `weights`. Pure — it reads the board and returns a list, so `assignCitizens`
  * can ask it twice with two sheets and keep the one that feeds the town.
@@ -2761,7 +2925,7 @@ function chooseCitizens(
   state: GameState,
   city: City,
   weights: CitizenWeights,
-): Tile[] {
+): CitizenChoice {
   const { map } = state;
   const candidates = assignableTiles(state, city);
   const index = (tile: Tile): number => tileIndex(map, tile.col, tile.row);
@@ -2783,8 +2947,8 @@ function chooseCitizens(
   const cap = Math.max(0, city.population - totalSpecialists(city)) + cardGarrisonSeats(state, city);
 
   // writeAssignment sorts by tile index. If every tile fits, pins and scores
-  // cannot change the stored assignment.
-  if (candidates.length <= cap) return candidates;
+  // cannot change the stored assignment, and no hex is left idle.
+  if (candidates.length <= cap) return { worked: candidates, foodLeftIdle: false };
 
   const assignable = new Set<number>();
   if (city.lockedTiles.length > 0) {
@@ -2805,21 +2969,30 @@ function chooseCitizens(
     worked.push(tile);
   }
 
-  if (worked.length === cap) return worked;
+  // Every seat is pinned: no hex the sheet chose could be swapped.
+  if (worked.length === cap) return { worked, foodLeftIdle: false };
 
   const ctx = cityContext(state, city);
   const ranked = [];
   for (const tile of candidates) {
     const at = index(tile);
     if (taken.has(at)) continue;
-    ranked.push({ tile, at, score: yieldScore(foldTile(tile, ctx), weights) });
+    const paid = foldTile(tile, ctx);
+    ranked.push({ tile, at, food: paid.food, score: yieldScore(paid, weights) });
   }
   ranked.sort((a, b) => b.score - a.score || a.at - b.at);
-  for (const { tile } of ranked) {
-    if (worked.length >= cap) break;
-    worked.push(tile);
-  }
-  return worked;
+  const free = cap - worked.length;
+  let leastChosen = Infinity;
+  let mostIdle = -Infinity;
+  ranked.forEach((row, place) => {
+    if (place < free) {
+      worked.push(row.tile);
+      leastChosen = Math.min(leastChosen, row.food);
+    } else {
+      mostIdle = Math.max(mostIdle, row.food);
+    }
+  });
+  return { worked, foodLeftIdle: mostIdle > leastChosen };
 }
 
 /**
@@ -6986,9 +7159,10 @@ export function releaseOpusBanks(state: GameState): void {
  * slightly more unfavored"), summed rather than folded into `yieldScore` alone:
  *
  *   1. **Yield** — the same weighted-sum reading `yieldScore` gives a citizen,
- *      against `expansion.yieldWeights` (defaults to `citizenWeights`' 3/2/1,
- *      its own table so the two can diverge later without one edit touching
- *      the other — see the docblock on `ExpansionRules`).
+ *      against `expansion.yieldWeights` (food, production and gold at 3/2/1,
+ *      the old citizen sheet). It is its own table, and since 2026-11-22 it is
+ *      no longer the same as the citizens' sheet. See the docblock on
+ *      `ExpansionRules`.
  *   2. **Resource** — a flat bonus when the tile carries a resource this
  *      empire's techs actually reveal (`resourceIsVisibleTo`, the same reveal
  *      rule `explainTileYield` gates the yield line on) — never an unrevealed

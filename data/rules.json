@@ -233,32 +233,77 @@
       "renownPerSpecialist": 1
     },
     "citizenWeights": {
-      "food": 3,
-      "production": 2,
-      "gold": 1
+      "food": [
+        49,
+        42,
+        35,
+        28
+      ],
+      "production": [
+        28,
+        28,
+        28,
+        28
+      ],
+      "gold": [
+        15,
+        15,
+        20,
+        20
+      ],
+      "science": [
+        25,
+        30,
+        30,
+        30
+      ],
+      "culture": [
+        25,
+        25,
+        25,
+        25
+      ],
+      "faith": [
+        15,
+        20,
+        15,
+        10
+      ]
     },
     "citizenFocusWeights": {
       "food": {
         "food": 4,
         "production": 2,
-        "gold": 1
+        "gold": 1,
+        "science": 1,
+        "culture": 1,
+        "faith": 1
       },
       "production": {
         "food": 2,
         "production": 4,
-        "gold": 1
+        "gold": 1,
+        "science": 1,
+        "culture": 1,
+        "faith": 1
       },
       "gold": {
         "food": 2,
         "production": 1,
-        "gold": 4
+        "gold": 4,
+        "science": 1,
+        "culture": 1,
+        "faith": 1
       }
     },
     "expansion": {
       "yieldWeights": {
         "food": 3,
         "production": 2,
-        "gold": 1
+        "gold": 1,
+        "science": 0,
+        "culture": 0,
+        "faith": 0
       },
       "resourceBonus": 6,
       "bareWaterPenalty": 4,

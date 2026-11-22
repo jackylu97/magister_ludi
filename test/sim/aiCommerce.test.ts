@@ -403,7 +403,11 @@ describe('Land Speculation', () => {
     const { state, player } = board([6]);
     hold(state, 0, LAND_SPECULATION);
     // A frontier hex with a resource the seat can name and holds no copy of.
+    // On desert: since 2026-11-22 the citizens count silk's culture, and silk
+    // on grassland would beat the hexes the town works, so the want would be
+    // charged a citizen's keep. On desert no citizen would move to it.
     const silk = at(state.map, 5, 5);
+    silk.terrain = 'desert';
     silk.resource = 'silk' as never;
     bumpRevision(state);
     const ctx = valueContext(state, player);

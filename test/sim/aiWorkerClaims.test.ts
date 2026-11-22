@@ -388,14 +388,18 @@ describe('the price counts the charges that will land (bot batch BP13b)', () => 
 
 describe('the focus arm compares all four citizen sheets (bot batch BP13b)', () => {
   /**
-   * A town of one at (5,5) on grassland, with a mined grassland hill at (5,4), the
-   * lowest tile index of its ring. The balanced sheet scores the mined hill (3
-   * production) and grassland (2 food) the same, so it takes the hill; the
-   * production sheet takes the hill too. The food and gold sheets take grassland.
+   * A town of one at (5,5) on grassland, with a hill fort on a grassland hill at
+   * (6,5) (4 production) and grassland (2 food) on the rest of its ring, (5,4)
+   * the lowest tile index. At the first age the balanced sheet scores the hill
+   * fort above grassland, so it takes the hill; the production sheet takes the
+   * hill too. The food and gold sheets score the two the same, and the lower
+   * tile index takes grassland. (Until 2026-11-22 this bench used a mined hill,
+   * which the old balanced sheet scored level with grassland. The new balanced
+   * sheet puts two food above three production, so the hill needed a fourth.)
    */
   function hillTown(): { state: GameState; city: City } {
     const state = bench('grassland');
-    const city = townOn(state, { '5,4': { hills: true, improvement: 'mine' } }, 1);
+    const city = townOn(state, { '6,5': { hills: true, improvement: 'hillfort' } }, 1);
     return { state, city };
   }
 

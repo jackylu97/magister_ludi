@@ -137,6 +137,7 @@ import {
   bestExpansionTile,
   borderGrowth,
   buildingProductionCost,
+  citizenWeightsFor,
   mirrorRowFor,
   tileCopies,
   tileOwnerCityId,
@@ -723,6 +724,9 @@ function tileWants(state: GameState, ctx: ValueContext, city: City, standing: Ci
   // it was being rebuilt for every worked hex and again for every hex on offer.
   // One reading, spent by both loops below.
   const here = cityContext(state, city);
+  // The town's default sheet at its owner's age, the one `assignCitizens`
+  // places a town with no focus by.
+  const sheet = citizenWeightsFor(state, city.ownerId);
   // The poorest hex the town works today, hoisted per town: what a citizen
   // moving to bought ground would give up.
   let poorest: { score: number; yields: TileYield } | null = null;
@@ -730,7 +734,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City, standing: Ci
     const tile = getTileAt(state.map, at.col, at.row);
     if (!tile) continue;
     const yields = foldTileLines(explainTileYield(tile, here));
-    const score = yieldScore(yields);
+    const score = yieldScore(yields, sheet);
     if (poorest === null || score < poorest.score) poorest = { score, yields };
   }
   // The keep of the citizen who would stand on bought ground, hoisted for the
@@ -761,7 +765,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City, standing: Ci
   const quote = (tile: Tile, price: number | null): Appraisal | null => {
     const yields = foldTileLines(explainTileYield(tile, here));
     const terms: ValueTerm[] = [];
-    const beats = poorest === null || yieldScore(yields) > poorest.score;
+    const beats = poorest === null || yieldScore(yields, sheet) > poorest.score;
     if (beats) {
       const bag = bagOfTileYield(yields);
       if (poorest !== null) {

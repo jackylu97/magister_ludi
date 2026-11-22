@@ -631,11 +631,21 @@ import {
  * ('untilHealed' | 'awake'), because a plain fortified unit can now be awake,
  * and `Unit.enemyInSight` joins the state. A v254 log replays to a board with
  * these marks on it, so the saved state differs. Nothing is migrated.
+ *
+ * v257 changes how every town places its citizens (the user's ruling of
+ * 2026-11-22, `docs/plans/beta-checklist-2026-11-21.md` section B2). The
+ * default sheet weighs all six yields, and its weights change with the
+ * owner's age (`rules.cities.citizenWeights`). The focus sheets give science,
+ * culture and faith a small weight, and a town that the default sheet leaves
+ * short of food swaps hexes toward food (`feedTown`). No field joins or
+ * leaves the state. A v256 log replays to different worked hexes, so every
+ * later outcome can differ. Nothing is migrated.
  */
 // Version 254 changes the draft pools, purchase prices, ship placement and combat outcomes.
 // Version 255 wakes a plain fortified unit for an enemy in sight; see above.
-// The Scientific and Devotion decks change seeded offers, research and rites.
-export const SCHEMA_VERSION = 256;
+// Version 256: the Scientific and Devotion decks change seeded offers, research and rites.
+// Version 257 changes where citizens work; see above.
+export const SCHEMA_VERSION = 257;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -571,9 +571,33 @@ As built:
   leans on the `production` row of the same table. `citizenLean` decides which
   speaks, and **the player's word outranks the game's guess** — a town told to
   chase coin chases coin with a settler at the front. Each sheet gives the
-  focused yield the top weight and leaves the other two in `citizenWeights`'
-  own order beneath it; nothing is zeroed. Default is untouched, and is pinned
-  as never dominated by a focus (`test/sim/cities.test.ts`).
+  focused yield the top weight and leaves food, production and gold in that
+  order beneath it; science, culture and faith take the smallest weight;
+  nothing is zeroed. Default is pinned as never dominated by a focus, in all
+  six yields (`test/sim/cities.test.ts`).
+- **The default sheet weighs all six yields, by age** (the user's ruling of
+  2026-11-22: *"Let's have it use the bot's curve so that food is important
+  early and less important late."*).
+  - `rules.cities.citizenWeights` holds one row for each yield and one entry
+    for each age. `citizenWeightsFor` reads it at the owner's age
+    (`highestAge`); `yieldScore` dots it with a hex's six yields.
+  - The figures are the bots' `weights` in `data/ai.json` as they stood on
+    2026-11-22, times five so that each is a whole number. It is a copy: the
+    bots' table is tuned often, and the game's rule must not move with it.
+  - Food leads in the first age and falls each age until it is level with
+    production in the last. In the last age a point of science is worth a
+    little more than a point of food. Science, culture and faith have a real
+    weight in every age, so a hex that pays only faith beats an empty hex.
+  - The focus sheets do not change with the age.
+  - The border chooser keeps its own three-yield sheet
+    (`rules.cities.expansion.yieldWeights`).
+- **A town short of food swaps toward food** (`feedTown`, 2026-11-22). If the
+  default placement leaves the town eating more than it harvests, it swaps one
+  worked hex for one idle hex that pays more food, the cheapest swap by the
+  sheet first, until the town is fed or no swap adds food. It never moves a
+  pinned hex. It runs only when an idle hex pays more food than a worked one.
+  A refused focus falls back to the default placement, and the same rule
+  feeds it.
 - **Avoid growth** is a trim applied *after* the sheet has chosen
   (`capFoodSurplus`): one swap at a time, cheapest score first, stopping at
   the swap that would put the town into deficit. It never moves a pinned

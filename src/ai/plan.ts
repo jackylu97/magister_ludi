@@ -91,6 +91,7 @@ import {
 
 import {
   assignableTiles,
+  citizenWeightsFor,
   cityFocus,
   hasResource,
   improvementWouldOpenResource,
@@ -1359,8 +1360,9 @@ function citizenSeats(state: GameState, city: City, ctx: ValueContext): Set<numb
   const seats = new Set<number>();
   for (const cell of city.workedTiles) seats.add(tileIndex(state.map, cell.col, cell.row));
   const ground = cityContext(state, city);
+  const sheet = citizenWeightsFor(state, city.ownerId);
   const ranked = assignableTiles(state, city)
-    .map((tile) => ({ at: tileIndex(state.map, tile.col, tile.row), score: yieldScore(foldTile(tile, ground)) }))
+    .map((tile) => ({ at: tileIndex(state.map, tile.col, tile.row), score: yieldScore(foldTile(tile, ground), sheet) }))
     .sort((a, b) => b.score - a.score || a.at - b.at);
   for (const row of ranked.slice(0, Math.max(1, city.population + AHEAD))) seats.add(row.at);
   memo.set(city.id, seats);
@@ -1615,9 +1617,11 @@ function outranks(a: ScoredHex, b: ScoredHex): boolean {
  * BP13b), remembered on the context while the economy clock and the town's focus
  * stand still.
  *
- * The sheet is `RULES.cities.citizenWeights` for a town on the balanced ordering
- * and the town's focus sheet otherwise (`citizenFocusWeights`), read off
- * `City.focus`. The scorer is the simulation's own (`yieldScore` over `foldTile` in
+ * The sheet is the default sheet at the owner's age (`citizenWeightsFor`) for a
+ * town on the balanced ordering and the town's focus sheet otherwise
+ * (`citizenFocusWeights`), read off `City.focus`. The memo also checks the
+ * sheet itself, because a technology can move the owner's age without moving
+ * a citizen. The scorer is the simulation's own (`yieldScore` over `foldTile` in
  * the town's context), so the reading is the one `assignCitizens` makes. The town's
  * own hex is not a seat.
  */
@@ -1639,9 +1643,17 @@ function townSheetOf(state: GameState, ctx: ValueContext, town: City): TownSheet
   const memo = memoOf(ctx).sheets;
   const economy = economyStamp(state);
   const focus = cityFocus(town);
+  const weights =
+    focus === 'default' ? citizenWeightsFor(state, town.ownerId) : RULES.cities.citizenFocusWeights[focus];
   const held = memo.get(town.id);
-  if (held !== undefined && held.economy === economy && held.focus === focus) return held;
-  const weights = focus === 'default' ? RULES.cities.citizenWeights : RULES.cities.citizenFocusWeights[focus];
+  if (
+    held !== undefined &&
+    held.economy === economy &&
+    held.focus === focus &&
+    TILE_YIELD_KEYS.every((key) => held.weights[key] === weights[key])
+  ) {
+    return held;
+  }
   const ground = cityContext(state, town);
   const worked = new Map<number, number>();
   let weakest: ScoredHex | null = null;

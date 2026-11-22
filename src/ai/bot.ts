@@ -313,6 +313,7 @@ import type { City, GameState, Player, Unit } from '../sim/state';
 import {
   assignableTiles,
   citizenFocusError,
+  citizenWeightsFor,
   cityFocus,
   cityTile,
   foodUpkeep,
@@ -2635,9 +2636,10 @@ function reaimBeeline(
  *
  * Three things keep it honest and one keeps it finite:
  *
- *   · **the sheets are the simulation's own** (`RULES.cities.citizenWeights` and
- *     `citizenFocusWeights.production`), read through the simulation's own
- *     scorer (`yieldScore` over `foldTile` in the owning town's context), so
+ *   · **the sheets are the simulation's own** (`citizenWeightsFor`, the default
+ *     sheet at the owner's age, and `citizenFocusWeights.production`), read
+ *     through the simulation's own scorer (`yieldScore` over `foldTile` in the
+ *     owning town's context), so
  *     what the bot predicts a focus would do is what `assignCitizens` will
  *     actually do;
  *   · **the starvation guard is anticipated, not discovered.** A focused sheet
@@ -2907,7 +2909,7 @@ function focusTable(
   city: City,
   ctx: ValueContext,
 ): { best: CitizenFocus; edge: number; gated: boolean; candidates: BotCandidate[] } {
-  const balanced = RULES.cities.citizenWeights;
+  const balanced = citizenWeightsFor(state, city.ownerId);
   const leaning = RULES.cities.citizenFocusWeights.production;
   const tiles = assignableTiles(state, city);
   // **The ring's context, hoisted for the table** (batch 9): the two sheets are
@@ -3140,7 +3142,7 @@ const SHEET_LABELS: Record<CitizenLean, string> = {
  *
  * `focusTable`'s comparison said once for each sheet a town can carry. The town's
  * people are placed by the balanced sheet and by each of the food, production and
- * gold sheets (`RULES.cities.citizenWeights`, `citizenFocusWeights`), through the
+ * gold sheets (`citizenWeightsFor`, `citizenFocusWeights`), through the
  * simulation's own scorer, and each placement is priced against the balanced one
  * in the bot's own currency:
  *
@@ -3164,7 +3166,7 @@ const SHEET_LABELS: Record<CitizenLean, string> = {
  * yields have already lost is not priced further.
  */
 function sheetTable(state: GameState, city: City, ctx: ValueContext): FocusTable {
-  const balanced = RULES.cities.citizenWeights;
+  const balanced = citizenWeightsFor(state, city.ownerId);
   const tiles = assignableTiles(state, city);
   // The setup is `focusTable`'s, line for line, and its docblock says why each
   // reading is the one it is: the ring's context hoisted, the town's books taken
@@ -7025,11 +7027,12 @@ export function explainCitizen(state: GameState, city: City, ctx: ValueContext):
 function nextWorkableTile(state: GameState, city: City): { tile: Tile; yields: TileYield } | null {
   const worked = new Set(city.workedTiles.map((cell) => `${cell.col},${cell.row}`));
   const ground = tileContextField(state, city.ownerId);
+  const sheet = citizenWeightsFor(state, city.ownerId);
   let best: { tile: Tile; yields: TileYield; score: number } | null = null;
   for (const tile of assignableTiles(state, city)) {
     if (worked.has(`${tile.col},${tile.row}`)) continue;
     const yields = foldTile(tile, ground(tile));
-    const score = yieldScore(yields);
+    const score = yieldScore(yields, sheet);
     if (best === null || score > best.score) best = { tile, yields, score };
   }
   return best === null ? null : { tile: best.tile, yields: best.yields };

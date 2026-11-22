@@ -1441,9 +1441,12 @@ describe('determinism', () => {
    * The schema version and that name are the only changed fields in the two snapshots.
    */
   // Schema 256 changes the available Orders and technologies in these games.
+  // Schema 257 changes where citizens work. These seats found no town, so only
+  // the save version changed: with 257 printed as 256 the two hashes were
+  // 92694eec and 925b8ae6 again.
   const RANGED_BOARDS: Record<number, string> = {
-    11: '92694eec:190684',
-    2026: '925b8ae6:190844',
+    11: '93910d37:190684',
+    2026: '2cd3709d:190844',
   };
 
   for (const seed of [11, 2026]) {

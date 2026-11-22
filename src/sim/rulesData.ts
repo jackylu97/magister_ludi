@@ -991,20 +991,35 @@ interface BarbarianRules {
   frontierClaimTownRange: number;
 }
 
-/** Relative desirability of each yield when a citizen picks a tile to work. */
+/**
+ * What one point of each yield is worth when a citizen picks a tile to work.
+ * One weight for each of the six yields that a hex can pay. Every figure is a
+ * whole number, so a tile's score is a whole number and two hexes compare the
+ * same way on every machine.
+ */
 export interface CitizenWeights {
   food: number;
   production: number;
   gold: number;
+  science: number;
+  culture: number;
+  faith: number;
 }
+
+/**
+ * The default citizen sheet, one row for each yield and one entry in each row
+ * for each age (index `age − 1`). A shorter row uses its last entry for the
+ * later ages. `citizenWeightsAt` (`cities.ts`) reads one age out of it.
+ */
+export type CitizenWeightsByAge = Record<keyof CitizenWeights, number[]>;
 
 /**
  * What a town's people are being placed *for* — the player's own instruction,
  * and the vocabulary the halted lean speaks too (`citizenLean`, `cities.ts`).
  *
  * `'default'` is the absence of an instruction rather than a fourth sheet: the
- * town is placed by `citizenWeights`, the balanced ordering this game has always
- * used, and `City.focus` is simply not written. The other three name a sheet in
+ * town is placed by `citizenWeights`, the default sheet at its owner's age, and
+ * `City.focus` is simply not written. The other three name a sheet in
  * `citizenFocusWeights` below.
  */
 export type CitizenFocus = 'default' | 'food' | 'production' | 'gold';
@@ -1324,8 +1339,23 @@ interface CityRules {
   levy: LevyRules;
   /** How a town's people leave the fields for the trades. See `GuildRules`. */
   guilds: GuildRules;
-  /** Weights the citizen assigner and the border chooser both score tiles with. */
-  citizenWeights: CitizenWeights;
+  /**
+   * The default sheet: what a town with no focus places its citizens by. It
+   * weighs all six yields, and its weights change with the owner's age.
+   *
+   * The figures are the bots' value of one point of each yield
+   * (`weights` in `data/ai.json`) as it stood on 2026-11-22, multiplied by
+   * five so that every weight is a whole number. The user's ruling of that
+   * day: *"Let's have it use the bot's curve so that food is important early
+   * and less important late."* Food is worth the most in the first age and
+   * falls each age until it is level with production in the last. Science,
+   * culture and faith have a real weight in every age.
+   *
+   * It is a copy, not a reference to the bots' table. The bots' weights are
+   * tuned often, and a rule of the game must not move each time a bot knob
+   * does. The border chooser has its own sheet (`expansion.yieldWeights`).
+   */
+  citizenWeights: CitizenWeightsByAge;
   /**
    * One sheet per **focus** — what a town's citizens are placed by when they are
    * placed for something in particular rather than for the balance.
@@ -1344,6 +1374,11 @@ interface CityRules {
    * sheet that starves a town to finish a settler faster. See `assignCitizens`,
    * which refuses a focused sheet outright when it would put the town into
    * deficit.
+   *
+   * Science, culture and faith take the smallest weight in each focus sheet
+   * (since 2026-11-22). The focused yield still leads, and a hex that pays
+   * faith still beats a hex that pays nothing. The focus sheets do not change
+   * with the age: they are what the player asked for.
    */
   citizenFocusWeights: Record<CitizenLean, CitizenWeights>;
   /**
@@ -1352,9 +1387,11 @@ interface CityRules {
    * Split from `citizenWeights` deliberately — Ruling 2 (user, 2026-08-29:
    * "coastal cities expanding to useless coastal tiles with no resources")
    * wanted the *border chooser* retuned without moving what a citizen sits on,
-   * and a shared sheet could not do both. `yieldWeights` defaults to the same
-   * 3/2/1 as `citizenWeights` but is its own table so the two can diverge
-   * later without one edit silently touching the other.
+   * and a shared sheet could not do both. `yieldWeights` was the same 3/2/1 as
+   * the old `citizenWeights`, and it is its own table so the two can diverge
+   * without one edit silently touching the other. Since 2026-11-22 they do:
+   * the citizens' sheet weighs six yields by age, and this one still weighs
+   * food, production and gold only (science, culture and faith at nought).
    */
   expansion: ExpansionRules;
   /**

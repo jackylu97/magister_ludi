@@ -1420,11 +1420,13 @@ describe('the focus arm', () => {
     const [lean, balance] = state.cities;
     for (const tile of state.map.tiles) tile.hills = false;
     for (const city of state.cities) city.population = 2;
-    // Balanced focus prefers the wheat. Gold focus offers tea without risking
+    // Balanced focus prefers the wheat. Gold focus offers wine without risking
     // starvation. The other town has identical tiles and gains nothing from a lean.
+    // (Wine, not tea: since 2026-11-22 the balanced sheet counts tea's science,
+    // and it then prefers the tea to the wheat.)
     const fields = neighborTiles(state.map, tileHex(getTileAt(state.map, lean!.col, lean!.row)!));
     for (const field of fields.slice(0, 2)) field.resource = 'wheat';
-    for (const field of fields.slice(2, 4)) field.resource = 'tea';
+    for (const field of fields.slice(2, 4)) field.resource = 'wine';
     bumpRevision(state);
     for (const city of state.cities) refreshCityDerived(state, city);
     expect(applyCommand(state, {
@@ -1818,14 +1820,31 @@ describe('batch 8 — the hexes a town would buy', () => {
     return book.find((row) => row.label.includes(`(${at.col},${at.row})`))!;
   }
 
+  /**
+   * Makes the hex on offer bare flat desert. Since 2026-11-22 the citizens count
+   * silk's culture, so silk on a grassland hill beats the hexes the town works
+   * and a citizen would move to it. On bare desert, silk's one culture still
+   * scores below a grassland hill, so no citizen moves and the seam is the only
+   * thing the hex is worth.
+   */
+  function bareDesert(state: GameState, at: { col: number; row: number }): void {
+    const tile = getTileAt(state.map, at.col, at.row)!;
+    tile.terrain = 'desert';
+    tile.hills = false;
+    tile.feature = 'none';
+    bumpRevision(state);
+  }
+
   it('prices a hex whose luxury this empire owns no copy of above a plain one', () => {
     const { state, player, offers } = frontier();
     expect(offers.length).toBeGreaterThan(1);
     const seam = offers[1]!;
+    bareDesert(state, seam);
     // The plain hex is worth nothing at all on this bench and is *not* a want:
-    // every hex here is the same grassland hill, so no citizen would move to it
-    // and the book does not carry a row worth nought. That is the comparison —
-    // the seam is the whole of the difference between the two hexes.
+    // it is bare desert, poorer than the grassland hills the town works, so no
+    // citizen would move to it and the book does not carry a row worth nought.
+    // That is the comparison — the seam is the whole of the difference between
+    // the two hexes.
     const before = wantAt(state, player, seam);
     expect(before).toBeUndefined();
     getTileAt(state.map, seam.col, seam.row)!.resource = SILK;
@@ -1849,6 +1868,7 @@ describe('batch 8 — the hexes a town would buy', () => {
     // that opens it is one this empire may make whenever it likes.
     const { state, player, city, offers } = frontier();
     const seam = offers[1]!;
+    bareDesert(state, seam);
     getTileAt(state.map, seam.col, seam.row)!.resource = SILK;
     bumpRevision(state);
     expect(JSON.stringify(wantAt(state, player, seam).terms)).toContain('owns no copy of');
