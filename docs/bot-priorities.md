@@ -1207,3 +1207,28 @@ what the log holds.
 **The bot is not a balance instrument** (the user's standing ruling): a human
 plays several times the bot's tier-1 yields. Playtest is the judge; the arena is
 for regressions and floors.
+
+
+## Defensive firing and army tuning
+
+- The simulation wakes fortified units when an enemy first enters their sight.
+  It keeps their defensive bonus. Bots skip those alerts in the ordinary order
+  queue so a unit that keeps healing cannot hide other units or empty queues.
+- Before ordinary unit orders, `fortifiedRangedAttack` checks fortified ranged
+  units for legal attacks. A city archer can shoot a barbarian without a nearby
+  camp or a war against another nation. The existing healing policy and combat
+  forecast still apply. Attacking stays on the same tile but uses the normal
+  attack command, which ends fortification.
+- `military.routineArmyShareByAge` scales the routine soldiers-per-city target
+  and extra demand from scouted camps and hostiles. The minimum stays one
+  defender per city. Nearby threats and active war forces keep their existing
+  demand. The default is one in every age, so recruitment is unchanged.
+- `military.screenHoldExchange` sets the damage required per counter-damage
+  before melee leaves a defensive line against barbarians. It applies only
+  when a healthy friendly ranged unit stands behind it and can hit the target
+  from its current tile. The preview ignores whether that ranged unit has
+  already fired, but keeps range, sight and combat rules. Predicted kills and
+  assembled camp assaults keep their existing policy. A held attack also
+  prevents a later march from leaving the position. Zero disables this
+  experimental policy and is the default.
+- Both settings appear in the generated Arena controls. No game rule changes.

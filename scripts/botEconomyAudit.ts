@@ -1,5 +1,6 @@
 /** Record normal bot economies on a fixed six-leader roster without resuming mid-game. */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { setAiTuning } from '../src/ai/aiConfig';
 import { driveBots } from '../src/ai/driver';
 import { createGame, saveGame } from '../src/sim/game';
 import { leaderDef, type LeaderId } from '../src/sim/leaderData';
@@ -9,7 +10,9 @@ import { citiesOf, realPlayers } from '../src/sim/state';
 import { highestAge, techColumn } from '../src/sim/techData';
 import { isCombatant, unitDef } from '../src/sim/unitData';
 
-const [seedInput, output] = process.argv.slice(2);
+const [seedInput, output, tuningPath] = process.argv.slice(2);
+const tuning = tuningPath ? JSON.parse(readFileSync(tuningPath, 'utf8')) : null;
+if (tuning !== null) setAiTuning(tuning);
 const seed = Number(seedInput);
 if (!Number.isSafeInteger(seed) || !output) throw Error('Pass an integer seed and an output directory.');
 mkdirSync(output, { recursive: true });
@@ -44,6 +47,7 @@ function sample() {
       column: Math.max(0, ...player.techsResearched.map(techColumn)),
       age: highestAge(player.techsResearched), drafts: player.statecraft.drafts,
       captures: player.citiesCaptured ?? 0,
+      unitsLost: player.unitsLost ?? 0, enemiesKilled: player.enemiesKilled ?? 0, campsCleared: player.campsCleared ?? 0,
       military: state.units.filter(unit => unit.ownerId === player.id && isCombatant(unitDef(unit.type))).length,
       government: player.statecraft.government, orders: player.statecraft.orders,
       slots: player.statecraft.slots, commands: commandCounts[player.id],
@@ -77,5 +81,5 @@ while (state.turn <= 100 && state.winnerId === null) {
   }
 }
 writeFileSync(`${output}/${seed}.json`, JSON.stringify({
-  seed, turn: state.turn, winner: state.winnerId, checkpoints, warnings,
+  seed, tuning, turn: state.turn, winner: state.winnerId, checkpoints, warnings,
 }) + '\n');

@@ -1332,9 +1332,19 @@ import { digestOfState, type Played } from './aiDigestHelpers';
 /** Version 252 changes combat at rivers and at sea. The new rules also skip the counter roll against an embarked unit. */
 // Version 254 includes the revised decks, worker plans, trade terms and combat rules.
 // Version 256 changes the Scientific and Devotion pools, rite rules and bot values for charters.
+// Bot workers can plan six more works. Bots take zero-damage captures and can repeat earned actions.
+// Version 257 uses all six yields to place citizens and keeps towns from going short of food when possible.
+// Both six-seat games completed 120 turns without a warning or stall. Both saved command logs replayed exactly.
+// Local defense pricing changes the first production choice at turn 45 on duel
+// (Palisade to Monument) and turn 39 on standard (Palisade to Granary).
+// Both traces replay exactly. See docs/audit/bot-development-rounds-2026-11-21.md.
+// Fortified ranged units now fire independently of campaign and camp routines.
+// The first changes are legal shots by healthy awake archers on turns 47 (duel)
+// and 61 (standard). Both full games replay exactly with no warning or stall.
+// The new recruitment and screen-holding settings keep neutral defaults.
 const DIGESTS = {
-  duel: '61fd7db6:346524',
-  standard: 'd5357525:1097051',
+  duel: 'c24d0512:361085',
+  standard: '85584be0:1093391',
 };
 
 /** Check driver errors before comparing the state digest. */

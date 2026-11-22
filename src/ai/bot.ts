@@ -2028,21 +2028,13 @@ function phasedDecision(state: GameState, player: Player, sitting: BotSitting): 
 }
 
 /**
- * **The dug-in pieces that woke, set aside from the bot's blockers** (the
- * rulings of 2026-11-21, `Unit.dugIn`).
+ * Keep awake fortified units out of the ordinary blocker queue. A wounded
+ * unit that keeps healing has no new command and would hide later blockers.
  *
- * A dug-in unit now asks for orders again when a foreign soldier comes into its
- * sight or attacks it. That is a prompt for a person at the seat. This bot
- * already has its own ways back to a dug-in piece (`wakeTheCampaign`,
- * `wakeTheHunt`, `reaskTheMarch`), each of which takes only a march or a blow,
- * and before the ruling it never heard of a dug-in piece through
- * `firstBlocker`. Passing the awake ones as skipped keeps that true, so the
- * ruling changes no decision this bot makes. Without it, an awake piece that
- * `restAndHeal` answers with `'resting'` would stand first in the blockers with
- * no answer, and hide every idle piece and empty queue behind it.
- *
- * `undefined` when the seat has no awake piece, which is nearly always, so the
- * usual call is unchanged.
+ * The simulation still wakes these units when enemies appear. Bots reconsider
+ * them through the campaign and camp routines. Fortified ranged units also get
+ * a direct attack check, so a city archer does not depend on a march to fire.
+ * Waking alone does not require a unit to leave its defensive position.
  */
 function awakeTrenches(state: GameState, playerId: number): { skippedUnitIds: Set<number> } | undefined {
   let ids: Set<number> | undefined;
@@ -2170,6 +2162,8 @@ function askPhase(
  * it. It cost more to read than it saved, so it was taken out.
  */
 function theLoop(state: GameState, player: Player, sitting: BotSitting, blocker: TurnBlocker | null): BotDecision | null {
+  const ranged = ask('fortifiedRangedAttack', () => fortifiedRangedAttack(state, player));
+  if (ranged !== null) return ranged;
   if (blocker !== null) {
     if (blocker.kind === 'cityProduction') {
       const spade = ask('wakeIdleWorker:beforeBuild', () => wakeIdleWorker(state, player, sitting));
@@ -2270,6 +2264,9 @@ function theOldPass(state: GameState, player: Player, sitting?: BotSitting): Bot
   // (`phasedDecision`), and a copy for the end check opens it again.
   const abroad = diplomacyDecision(state, player, seatContext(state, player, sitting), true);
   if (abroad !== null) return abroad;
+
+  const ranged = fortifiedRangedAttack(state, player);
+  if (ranged !== null) return ranged;
 
   if (blocker !== null) {
     // **A sleeping worker is asked before a town chooses its build** (bot
@@ -10372,6 +10369,12 @@ function soldierCommand(
       focus: strike.at,
     };
   }
+  if (strikes.heldScreen) {
+    const hold = standDown(state, unit,
+      'Keeps its position in front of a ranged unit that can continue firing at the raider.');
+    if (hold !== null) hold.candidates = [...weighed, ...hold.candidates];
+    return hold;
+  }
   // **The screen**, before every march: a bowman with a hostile in sight looks
   // for a hex with one of our spearmen between it and the trouble.
   const screen = screenMarch(state, player, unit);
@@ -10500,10 +10503,37 @@ function preferredCityCapture(
   return best;
 }
 
+/**
+ * Fortified archers can fire without leaving their defensive positions. They
+ * must not depend on a camp march or a war against another nation to act.
+ */
+function fortifiedRangedAttack(state: GameState, player: Player): BotDecision | null {
+  const ai = aiFor(player);
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id || unit.fortifiedTurns === undefined) continue;
+    if (!isRanged(unitDef(unit.type)) || unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
+    if (restAndHeal(state, player, unit) !== null) continue;
+    const review: StrikeReview = { candidates: [], deferredToRanged: false };
+    const strike = favourableBlow(state, player, unit, holdsWild, ai.military.wildAggression, review)
+      ?? favourableBlow(state, player, unit, holdsRival, ai.military.aggression, review);
+    if (strike === null) continue;
+    return {
+      kind: 'unitOrder',
+      command: { type: 'attack', playerId: player.id, unitId: unit.id, target: strike.at },
+      subject: unitLabel(unit),
+      summary: `Fires from its defensive position. ${strike.summary}`,
+      candidates: strike.candidates,
+      focus: strike.at,
+    };
+  }
+  return null;
+}
+
 /** Keep both target scans so a unit that holds can explain the reason. */
 interface StrikeReview {
   candidates: BotCandidate[];
   deferredToRanged: boolean;
+  heldScreen?: boolean;
 }
 
 /**
@@ -10686,6 +10716,21 @@ function favourableBlow(
       tried.push(exchange);
       continue;
     }
+    const screen = !shoots && !decisive && !besieging && holds === holdsWild && ai.military.screenHoldExchange > 0
+      ? rangedUnitBehind(state, player, unit, near)
+      : null;
+    const screenBar = preview.damageToAttacker * ai.military.screenHoldExchange;
+    if (screen !== null && preview.damageToDefender <= screenBar) {
+      review.heldScreen = true;
+      terms.push({
+        label: `Protects ${unitLabel(screen)}: requires more than ${round1(screenBar)} damage to leave the defensive line`,
+        value: Math.max(0, screenBar - preview.damageToAttacker),
+        op: 'sub',
+      });
+      exchange.score = foldTerms(terms);
+      tried.push(exchange);
+      continue;
+    }
     if (decisive || preview.damageToDefender > bar) {
       exchange.chosen = true;
       tried.push(exchange);
@@ -10773,6 +10818,30 @@ function rangedFriendReady(
     if (other.hasAttacked) continue;
     if (other.movesLeft <= 0) continue;
     if (previewCombat(state, other.id, { col: target.col, row: target.row }).ok) return other;
+  }
+  return null;
+}
+
+/**
+ * A healthy ranged unit behind this melee unit can keep firing next turn.
+ * The simulation's hypothetical preview checks range, sight and combat rules
+ * without changing the real unit's spent movement or attack flag.
+ */
+function rangedUnitBehind(state: GameState, player: Player, screen: Unit, target: Tile): Unit | null {
+  const here = getTileAt(state.map, screen.col, screen.row);
+  if (here === undefined) return null;
+  const from = tileHex(here);
+  const threat = tileHex(target);
+  const screenDistance = wrappedDistance(state.map, from, threat);
+  const healBelow = aiFor(player).military.healBelowHealth;
+  for (const other of state.units) {
+    if (other.ownerId !== player.id || !isRanged(unitDef(other.type))) continue;
+    const at = getTileAt(state.map, other.col, other.row);
+    if (at === undefined) continue;
+    if (wrappedDistance(state.map, from, tileHex(at)) > 1) continue;
+    if (wrappedDistance(state.map, tileHex(at), threat) <= screenDistance) continue;
+    if (other.hp / unitMaxHp(other, unitHealthBonus(state, player.id)) < healBelow) continue;
+    if (previewCombat(state, other.id, target, { from: other }).ok) return other;
   }
   return null;
 }

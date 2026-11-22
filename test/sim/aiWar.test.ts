@@ -1359,6 +1359,111 @@ describe('the three tactics', () => {
     expect(opportunity(50)).toEqual({ target: { col: 8, row: 5 }, owner: 0 });
   });
 
+  it('fires a fortified city archer at a barbarian without a camp or a war against a nation', () => {
+    const state = bench(2, { barbarians: true });
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    seat(state, 0).gold = 120;
+    const bow = createUnit(state, 0, 'archer', city.col, city.row);
+    bow.fortifiedTurns = 2;
+    bow.dugIn = 'awake';
+    const wild = state.players.find(p => p.barbarian)!;
+    const target = createUnit(state, wild.id, 'warrior', 7, 5);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    expect(state.camps).toHaveLength(0);
+    expect(previewCombat(state, bow.id, target).ok).toBe(true);
+    const decision = orderFor(state, 0, bow.id, 20);
+    expect(decision?.command).toMatchObject({ type: 'attack', unitId: bow.id, target: { col: 7, row: 5 } });
+    expect(decision!.summary).toContain('defensive position');
+    for (const candidate of decision!.candidates) expect(foldTerms(candidate.terms)).toBe(candidate.score);
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+    expect([bow.col, bow.row]).toEqual([city.col, city.row]);
+    expect(bow.hasAttacked).toBe(true);
+    expect(orderFor(state, 0, bow.id, 20)?.command.type).not.toBe('attack');
+  });
+
+  it('gives a fortified archer its legal shot before an idle melee unit acts', () => {
+    const { state, spear } = bothCanHit();
+    const bow = state.units.find(unit => unit.type === 'archer')!;
+    bow.fortifiedTurns = 2;
+    bow.dugIn = 'awake';
+    bumpRevision(state);
+    const decision = nextBotDecision(state, 0);
+    expect(decision?.command).toMatchObject({ type: 'attack', unitId: bow.id });
+    expect(spear.hasAttacked).not.toBe(true);
+  });
+
+  it('keeps a wounded fortified archer healing when no shot can finish the enemy', () => {
+    const { state, city } = front(true);
+    const bow = createUnit(state, 0, 'archer', city.col + 1, city.row);
+    bow.fortifiedTurns = 2;
+    bow.dugIn = 'awake';
+    bow.hp = 10;
+    const wild = state.players.find(p => p.barbarian)!;
+    createUnit(state, wild.id, 'warrior', city.col + 2, city.row);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    expect(orderFor(state, 0, bow.id, 20)?.command.type).not.toBe('attack');
+  });
+
+  function defendedRaider() {
+    const { state } = front(true);
+    const spear = createUnit(state, 0, 'spearman', 5, 5);
+    const bow = createUnit(state, 0, 'archer', 4, 5);
+    bow.hasAttacked = true;
+    bow.movesLeft = 0;
+    const wild = state.players.find(player => player.barbarian)!;
+    const target = createUnit(state, wild.id, 'warrior', 6, 5);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    return { state, spear, bow, target };
+  }
+
+  it('holds a melee screen after its archer fires when the configured exchange is too costly', () => {
+    withAiTuning({ military: { screenHoldExchange: 2 } }, () => {
+      const { state, spear, bow } = defendedRaider();
+      const decision = orderFor(state, 0, spear.id, 20);
+      expect(decision?.command.type).toBe('fortify');
+      expect(decision?.summary).toContain('continue firing');
+      expect(labels(decision!)).toContain('Protects');
+      for (const candidate of decision!.candidates) expect(foldTerms(candidate.terms)).toBe(candidate.score);
+      expect(applyCommand(state, decision!.command).ok).toBe(true);
+      expect([spear.col, spear.row]).toEqual([5, 5]);
+      expect(bow.hasAttacked).toBe(true);
+      expect(bow.movesLeft).toBe(0);
+    });
+  });
+
+  it('lets a melee screen finish a barbarian instead of waiting for another shot', () => {
+    withAiTuning({ military: { screenHoldExchange: 2 } }, () => {
+      const { state, spear, target } = defendedRaider();
+      target.hp = 1;
+      bumpRevision(state);
+      const decision = orderFor(state, 0, spear.id, 20);
+      expect(decision?.command.type).toBe('attack');
+      expect(applyCommand(state, decision!.command).ok).toBe(true);
+    });
+  });
+
+  it('does not count an archer on the enemy side as protected support', () => {
+    withAiTuning({ military: { screenHoldExchange: 2 } }, () => {
+      const { state, spear, bow } = defendedRaider();
+      bow.col = 7;
+      recomputeAllVisibility(state);
+      bumpRevision(state);
+      const decision = orderFor(state, 0, spear.id, 20);
+      expect(decision?.command.type).toBe('attack');
+      expect(applyCommand(state, decision!.command).ok).toBe(true);
+    });
+  });
+
+  it('preserves the old barbarian exchange when the screen setting is disabled', () => {
+    withAiTuning({ military: { screenHoldExchange: 0 } }, () => {
+      const { state, spear } = defendedRaider();
+      expect(orderFor(state, 0, spear.id, 20)?.command.type).toBe('attack');
+    });
+  });
+
   it('takes the blow once the bowman has already shot', () => {
     const { state, spear } = bothCanHit();
     const bow = state.units.find((unit) => unit.type === 'archer')!;

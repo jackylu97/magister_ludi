@@ -582,6 +582,10 @@ export interface AiConfig {
      */
     unrestGarrison: number;
     armyPerCity: number;
+    /** Scale routine garrisons and distant camp demand by age; keep one defender per city.
+     * Local emergencies and active war forces keep their full demand.
+     */
+    routineArmyShareByAge: number[];
     /**
      * **The warmonger's one capability.** Zero is the peaceful bot this file
      * shipped with: it hunts the wild, garrisons its towns and never once
@@ -719,6 +723,12 @@ export interface AiConfig {
      * charge is what the candidate table shows — unless it kills or captures.
      */
     rangedDeferral: number;
+    /**
+     * Required damage per counter-damage when a melee unit screens a healthy
+     * ranged unit against barbarians. Zero disables this extra caution.
+     * Predicted kills and assembled camp assaults keep their normal policy.
+     */
+    screenHoldExchange: number;
     /** Extra combat score for a guaranteed city capture when another target is available. */
     cityCaptureValue: number;
     /**

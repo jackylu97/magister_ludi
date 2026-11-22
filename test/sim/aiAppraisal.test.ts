@@ -836,6 +836,21 @@ describe('the wanted army reads what the seat has sighted', () => {
     return decision!.candidates.find((row) => row.label === 'Warrior') ?? null;
   }
 
+  it('reduces routine early recruitment while preserving emergency demand and a defender per city', () => {
+    const state = levy([]);
+    const ctx = valueContext(state, seat(state, 0));
+    const ai = { ...ctx.ai, military: { ...ctx.ai.military, routineArmyShareByAge: [0.5, 1, 1, 1] } };
+    const first = { ...ctx, ai, age: 1 as const, threat: 0 };
+    const second = { ...first, age: 2 as const };
+    expect(levyReading(first).wanted).toBe(Math.max(1, ai.military.armyPerCity * 0.5));
+    expect(levyReading(second).wanted).toBe(Math.max(1, ai.military.armyPerCity));
+    expect(levyReading({ ...first, threat: 4 }).wanted - levyReading(first).wanted)
+      .toBe(4 * ai.threat.extraArmyPerThreat);
+    const scouts = { ...first, sighted: { camps: 4, hostiles: 0 } };
+    expect(levyReading(scouts).wanted - levyReading(first).wanted)
+      .toBe(Math.min(ai.threat.sightedArmyCap, 4 * ai.threat.armyPerSightedCamp) * 0.5);
+  });
+
   /**
    * **Re-aimed 2026-09-05, batch 4 of `docs/bot-priorities.md`.** These two used
    * to assert `toBeNull()` — the levy was a *gate*, and an army at its size

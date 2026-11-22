@@ -286,7 +286,7 @@ export function levyReading(ctx: ValueContext): LevyReading {
   const sighted = sightedArmyWanted(ctx);
   // The standing army is at least one soldier a town (batch BP1's floor; see
   // `garrisonOwed`), whatever `military.armyPerCity` a sheet sets.
-  const standing = towns * Math.max(1, ai.military.armyPerCity);
+  const standing = towns * Math.max(1, ai.military.armyPerCity * routineArmyShare(ctx));
   const wanted = standing + ctx.threat * ai.threat.extraArmyPerThreat + sighted.extra;
   const held = fieldSoldiersOf(ctx.state, ctx.playerId).length;
   return {
@@ -296,6 +296,12 @@ export function levyReading(ctx: ValueContext): LevyReading {
     standing: wanted <= 0 ? 1 : held / wanted,
     note: sighted.note,
   };
+}
+
+/** Routine expansion of the army can wait while young cities develop. */
+function routineArmyShare(ctx: ValueContext): number {
+  const shares = ctx.ai.military.routineArmyShareByAge;
+  return Math.max(0, shares[Math.min(shares.length - 1, Math.max(0, ctx.age - 1))] ?? 1);
 }
 
 /**
@@ -326,7 +332,7 @@ function sightedArmyWanted(ctx: ValueContext): { extra: number; note: string } {
   const raw =
     ctx.sighted.camps * ai.threat.armyPerSightedCamp +
     ctx.sighted.hostiles * ai.threat.armyPerSightedHostile;
-  const sighted = Math.max(0, Math.min(ai.threat.sightedArmyCap, raw));
+  const sighted = Math.max(0, Math.min(ai.threat.sightedArmyCap, raw)) * routineArmyShare(ctx);
   const fighting = atWarWithAnybody(ctx.state, ctx.playerId);
   const campaign = fighting ? Math.max(0, ai.war.strikeForce) : 0;
   return {
@@ -334,6 +340,7 @@ function sightedArmyWanted(ctx: ValueContext): { extra: number; note: string } {
     note:
       `${ctx.sighted.camps} camp${ctx.sighted.camps === 1 ? '' : 's'} charted and ` +
       `${ctx.sighted.hostiles} hostile piece${ctx.sighted.hostiles === 1 ? '' : 's'} in sight` +
+      (routineArmyShare(ctx) === 1 ? '' : `, routine army share ${routineArmyShare(ctx)} in age ${ctx.age}`) +
       (fighting ? `, and a war on wants a strike force of ${campaign} besides` : ''),
   };
 }
