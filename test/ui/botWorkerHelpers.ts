@@ -12,7 +12,7 @@
  */
 
 import { botSitting, nextBotCommand } from '../../src/ai/bot';
-import { answerAudience, driveBots, noteSentOrder, repeatsAnOrder } from '../../src/ai/driver';
+import { answerAudience, driveBots, noteSentOrder, orderAttemptKey, repeatsAnOrder } from '../../src/ai/driver';
 import { pendingDealRefusal, rememberDealRefusal } from '../../src/ai/dealMemory';
 import { readHarnessMemory } from '../../src/ai/harnessMemory';
 import type { Command } from '../../src/sim/commands';
@@ -68,7 +68,7 @@ function playThePerson(game: Game, thinker: Thinker, tally: { audiences: number;
   for (let step = 0; step < 400; step++) {
     const command = nextBotCommand(game.state, 0, sitting);
     if (command === null || command.type === 'endTurn') return;
-    const key = JSON.stringify(command);
+    const key = orderAttemptKey(game.state, command);
     if (repeatsAnOrder(sent, game.state, command, key)) return;
     const refusal = pendingDealRefusal(game.state, command);
     const result = dispatch(game, command);

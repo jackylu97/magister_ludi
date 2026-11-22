@@ -8358,6 +8358,10 @@ export function workPlacementTerms(ctx: ValueContext, tile: Tile, id: Improvemen
     }
     if (value) terms.push({ label: 'the known unowned ground it claims', value });
   }
+  const happiness = (def.happiness ?? 0) - (old?.happiness ?? 0);
+  if (happiness && tileOwnerPlayerId(ctx.state, tile.col, tile.row) === ctx.playerId) {
+    terms.push({ label: 'happiness from the owned improvement', value: happiness * meterWeight(ctx, 'happiness') });
+  }
   const defense = (def.defense ?? 0) - (old?.defense ?? 0);
   if (defense) terms.push({ label: 'strength when defending this tile', value: defense * ctx.ai.workers.workDefenseValue });
   const renown = (def.renown?.amount ?? 0) - (old?.renown?.amount ?? 0);
@@ -8523,9 +8527,14 @@ function lineShare(line: UnitTypeId, ctx: ValueContext): number {
   return Math.max(ctx.ai.score.scientific.traitLine, seen);
 }
 
-/** The work rows a technology opens: every improvement that requires it. */
-function worksOpenedBy(tech: TechId): ImprovementId[] {
-  return IMPROVEMENT_IDS.filter((id) => improvementDef(id).requiresTech === tech);
+/** Forecast only works this seat could lay once it knows the technology. */
+function worksOpenedBy(tech: TechId, ctx: ValueContext): ImprovementId[] {
+  return IMPROVEMENT_IDS.filter(id =>
+    improvementDef(id).requiresTech === tech &&
+    ctx.ai.workers.improvements.includes(id) &&
+    improvementLeaderError(ctx.state, ctx.playerId, id) === null &&
+    improvementCardError(ctx.state, ctx.playerId, id) === null
+  );
 }
 
 /**
@@ -8565,7 +8574,7 @@ function worksForecast(id: ImprovementId, ctx: ValueContext): number {
  */
 export function explainTechWorks(tech: TechId, ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [];
-  for (const id of worksOpenedBy(tech)) {
+  for (const id of worksOpenedBy(tech, ctx)) {
     const row = improvementDef(id);
     if (row.perNeighbour) {
       const value = availableSiteValue(ctx, id);
@@ -8601,7 +8610,7 @@ export function explainTechWorks(tech: TechId, ctx: ValueContext): Appraisal {
  * With no such effect, this is `explainEffects` of the row, term for term.
  */
 export function explainTechEffects(tech: TechId, ctx: ValueContext): Appraisal {
-  const works = worksOpenedBy(tech);
+  const works = worksOpenedBy(tech, ctx);
   const terms: ValueTerm[] = [];
   for (const effect of techDef(tech).effects ?? []) {
     const work = countedWork(effect, works);

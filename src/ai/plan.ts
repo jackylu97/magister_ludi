@@ -324,7 +324,9 @@ function walkImprovementPlan(
  * but a tie, because the plan scores every row on every hex.
  */
 function workRoster(ai: AiConfig): ImprovementId[] {
-  return ai.workers.improvements.filter((id): id is ImprovementId => isImprovementId(id));
+  return ai.workers.improvements.filter((id): id is ImprovementId =>
+    isImprovementId(id) && improvementDef(id).greatPerson === undefined
+  );
 }
 
 /**

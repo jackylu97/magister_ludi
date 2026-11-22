@@ -719,6 +719,8 @@ export interface AiConfig {
      * charge is what the candidate table shows — unless it kills or captures.
      */
     rangedDeferral: number;
+    /** Above zero, prefer a certain city capture if the worst counter costs at most this share of current health. */
+    cityCaptureRisk: number;
     /**
      * **The least a blow in the field must deal for every point it takes**
      * (ruled 2026-09-15, `docs/flags.md` (nnnnn): *"we should really tune its

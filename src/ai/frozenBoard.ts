@@ -88,12 +88,17 @@ import { type GameState, playerById, unitById } from '../sim/state';
 
 // --- the guards of one seat's loop ------------------------------------------
 
-/**
- * The unit orders a seat has had accepted this turn: the command's JSON, mapped
- * to its piece's JSON as the order left it. One per seat per turn, held by
- * `driveSeat` and by the stepper.
- */
+/** Each accepted attempt maps to the piece as it stood after dispatch, for this seat and turn. */
 export type SentOrders = Map<string, string>;
+
+/** Read before dispatch so a second attack or Great Person use has a distinct key. */
+export function orderAttemptKey(state: GameState, command: Command): string {
+  const key = JSON.stringify(command);
+  if (command.type === 'attack' && unitById(state, command.unitId)?.firstAttackTurn === state.turn) return `${key}#second`;
+  if (command.type !== 'greatPersonAct' && command.type !== 'greatPersonWork') return key;
+  const uses = unitById(state, command.unitId)?.extraUsesTaken ?? 0;
+  return `${key}#${uses}`;
+}
 
 /**
  * Whether a command is an order to one piece. Only those are held to
@@ -151,7 +156,7 @@ export interface SeatGuards {
   repeated: number;
   /** Redraws that used the extra allowance for contested great person choices. */
   redraws: number;
-  /** Keyed by the command's own JSON, which is exactly "the identical command". Membership only. */
+  /** Refused attempts for this sitting. */
   refusedCommands: Set<string>;
   /** The unit orders accepted this turn, with their pieces (`repeatsAnOrder`). */
   sentOrders: SentOrders;
@@ -197,7 +202,7 @@ export function* runSitting(
     const asked = ask(state, playerId, sitting);
     if (asked === null) break;
     const { command } = asked;
-    const key = JSON.stringify(command);
+    const key = orderAttemptKey(state, command);
     // The bot is still asking for something the rules refused. Nothing this
     // loop can do about it; the caller's End Turn ends the seat.
     if (guards.refusedCommands.has(key)) break;
@@ -503,6 +508,7 @@ export function applyNextStep(
   }
   const firstMinted = state.nextEntityId;
   const refusal = pendingDealRefusal(state, command);
+  const key = orderAttemptKey(state, command);
   const result = put(command);
   run.next += 1;
   if (!result.ok) {
@@ -515,7 +521,7 @@ export function applyNextStep(
     return { step, command, result };
   }
   if (refusal !== null) rememberDealRefusal(state, refusal);
-  noteSentOrder(run.guards.sentOrders, state, command, JSON.stringify(command));
+  noteSentOrder(run.guards.sentOrders, state, command, key);
   run.guards.accepted += 1;
   run.resume = step.marks;
   frozenTally.landed += 1;

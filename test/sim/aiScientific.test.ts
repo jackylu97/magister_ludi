@@ -38,12 +38,14 @@ import {
   explainTechTraits,
   explainTechWorks,
   scoreEffects,
+  workPlacementTerms,
   techCostFor,
 } from '../../src/ai/value';
 import {
   bagOfTileYield,
   buildTurns,
   delayDiscount,
+  meterWeight,
   explainLump,
   explainYields,
   valueOfYields,
@@ -55,7 +57,7 @@ import { buildingDef, isWonder } from '../../src/sim/buildingData';
 import { buildingProductionCost, channelSurplus, foundCityAt, ownedTiles, refreshCityDerived } from '../../src/sim/cities';
 import { FAMILIES, greatPersonDef } from '../../src/sim/greatPeopleData';
 import { leaderAbilityDef } from '../../src/sim/leaderData';
-import { type ImprovementId, workForFamily } from '../../src/sim/improvementData';
+import { IMPROVEMENT_IDS, type ImprovementId, improvementDef, workForFamily } from '../../src/sim/improvementData';
 import { improvementGroundError, improvementYieldDelta } from '../../src/sim/improvements';
 import { type GameMap, type Tile, createMap, getTileAt, tileNeighbors } from '../../src/sim/map';
 import { renownPerTurn, renownThreshold } from '../../src/sim/renown';
@@ -81,6 +83,7 @@ import { explainTechCost, foldTechCost, researchExpansion } from '../../src/sim/
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { cityContext } from '../../src/sim/yields/hex';
+import { tileContextField } from '../../src/ai/ground';
 import { readCity } from '../../src/sim/readings';
 import { foldCity } from '../../src/sim/yields/town';
 import { newGame } from './newGameHelpers';
@@ -294,6 +297,57 @@ describe('a technology charter is priced as what knowing its technology gives (S
     cities[0]!.population += 4;
     bumpRevision(state);
     expect(worth().total).toBeGreaterThan(initial.total);
+  });
+
+  it('lists every ordinary worker improvement once in the default plan', () => {
+    const workerWorks = IMPROVEMENT_IDS.filter(id => {
+      const row = improvementDef(id);
+      return row.greatPerson === undefined && row.tended !== true;
+    });
+    expect([...aiJson.workers.improvements].sort()).toEqual([...workerWorks].sort());
+  });
+
+  it('values direct charters on eligible sites until the seat holds the charter', () => {
+    const { state, player } = board(1);
+    const price = (id: OrderId) => explainCharter(id, valueContext(state, player))!.total;
+    expect(price('theMegaliths')).toBeGreaterThan(0);
+    expect(price('theCliffMonasteries')).toBe(0);
+    at(state.map, 3, 3).terrain = 'mountain';
+    at(state.map, 3, 4).mountainsBeside = 1;
+    bumpRevision(state);
+    expect(price('theCliffMonasteries')).toBeGreaterThan(0);
+    player.statecraft.orders.push('theMegaliths', 'theCliffMonasteries');
+    bumpRevision(state);
+    expect(price('theMegaliths')).toBe(0);
+    expect(price('theCliffMonasteries')).toBe(0);
+  });
+
+  it('prices the Paradise Garden’s happiness when a town owns the site, even when no citizen works it', () => {
+    const { state, player, cities } = board(1);
+    const ctx = valueContext(state, player);
+    const city = cities[0]!;
+    const owned = ownedTiles(state, city).find(tile => tile.col !== city.col)!;
+    city.workedTiles = [];
+    const ground = tileContextField(state, player.id);
+    const gain = (tile: Tile) => workPlacementTerms(ctx, tile, 'paradiseGarden', ground)
+      .find(term => term.label.includes('happiness'))?.value ?? 0;
+    expect(gain(owned)).toBe(meterWeight(ctx, 'happiness'));
+    expect(gain(at(state.map, 20, 8))).toBe(0);
+    owned.improvement = 'paradiseGarden';
+    const loss = workPlacementTerms(ctx, owned, 'farm', ground).find(term => term.label.includes('happiness'));
+    expect(loss?.value).toBe(-meterWeight(ctx, 'happiness'));
+  });
+
+  it('uses a custom worker roster when pricing a charter or a technology', () => {
+    const { state, player, cities } = board(1);
+    const tile = ownedTiles(state, cities[0]!).find(tile => tile.col !== cities[0]!.col)!;
+    tile.improvement = 'mine';
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    expect(explainTechWorks('smelting', ctx).total).toBeGreaterThan(0);
+    const limited = { ...ctx, ai: { ...ctx.ai, workers: { ...ctx.ai.workers, improvements: ['farm'] } } };
+    expect(explainCharter('theMegaliths', limited)!.total).toBe(0);
+    expect(explainTechWorks('smelting', limited).total).toBe(0);
   });
 
   it('prices a smelter more highly where it can work beside a mine', () => {

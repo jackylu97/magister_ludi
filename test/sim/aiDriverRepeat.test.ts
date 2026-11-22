@@ -21,10 +21,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { BotDecision } from '../../src/ai/decision';
-import { driveSeat, sentToAPiece } from '../../src/ai/driver';
+import { driveBots, driveSeat, sentToAPiece } from '../../src/ai/driver';
 import { createBotStepper } from '../../src/ai/stepper';
 import { applyCommand, type Command, type MoveUnitCommand } from '../../src/sim/commands';
 import { restoreState, snapshotState } from '../../src/sim/game';
+import { bumpRevision, createUnit, unitById } from '../../src/sim/state';
+import { rankThreshold } from '../../src/sim/ranks';
+import { bareState } from './improvementHelpers';
+import { openEveryWar } from './warHelpers';
 import { getTileAt, mapRange, tileHex } from '../../src/sim/map';
 import { createGame } from './newGameHelpers';
 
@@ -99,6 +103,61 @@ describe('an accepted unit order is not sent again to an unchanged piece', () =>
     const before = JSON.stringify(unit);
     expect(applyCommand(game.state, command).ok).toBe(true);
     expect(JSON.stringify(unit)).toBe(before);
+  });
+
+  it.each([
+    ['theCollectedWorks', 'brahmagupta'],
+    ['theCompanyOfTheStaple', 'lamassi'],
+  ] as const)('spends both uses of %s in a single bot turn', (card, person) => {
+    const game = createGame({
+      seed: 4242, sizeName: 'duel', barbarians: false,
+      players: [{ name: 'A', color: '#a00' }, { name: 'B', color: '#00b' }],
+    });
+    const { state } = game;
+    const player = state.players[0]!;
+    player.researching = 'alchemy';
+    player.statecraft.orders.push(card);
+    player.statecraft.slots.push({ card, sealedUntil: state.turn });
+    const start = state.units.find(unit => unit.ownerId === player.id)!;
+    const unit = createUnit(state, player.id, 'greatPerson', start.col, start.row, person);
+    bumpRevision(state);
+    const act = { type: 'greatPersonAct', playerId: player.id, unitId: unit.id } as const;
+    const warnings: string[] = [];
+    driveBots(game, {
+      decide: (board, id) => id === player.id && unitById(board, unit.id) !== undefined ? act : null,
+      warn: message => warnings.push(message),
+    });
+    expect(warnings).toEqual([]);
+    expect(game.log.filter(command => command.type === 'greatPersonAct')).toEqual([act, act]);
+    expect(unitById(state, unit.id)).toBeUndefined();
+    expect(player.legacies.filter(entry => entry.id === person)).toHaveLength(1);
+  });
+
+  it.each(['theVolleyFire', 'theVarangianGuard'] as const)('uses both attacks from %s against the same target', card => {
+    const game = createGame({
+      seed: 1, sizeName: 'duel', barbarians: false,
+      players: [{ name: 'A', color: '#a00' }, { name: 'B', color: '#00b' }],
+    });
+    const state = game.state = bareState();
+    const player = state.players[0]!;
+    const attacker = createUnit(state, 0, 'crossbowman', 6, 5);
+    const defender = createUnit(state, 1, 'knight', 8, 5);
+    if (card === 'theVolleyFire') {
+      player.statecraft.doctrines.push(card);
+    } else {
+      player.statecraft.orders.push(card);
+      player.statecraft.slots.push({ card, sealedUntil: state.turn });
+      attacker.experience = rankThreshold('elite');
+    }
+    openEveryWar(state);
+    const attack = { type: 'attack', playerId: 0, unitId: attacker.id, target: { col: defender.col, row: defender.row } } as const;
+    const warnings: string[] = [];
+    driveSeat(game, 0, {
+      decide: () => attacker.hasAttacked || !unitById(state, defender.id) ? null : attack,
+      warn: message => warnings.push(message),
+    });
+    expect(warnings).toEqual([]);
+    expect(game.log.filter(command => command.type === 'attack')).toEqual([attack, attack]);
   });
 
   it('driveSeat sends it once, warns, and stops asking', () => {

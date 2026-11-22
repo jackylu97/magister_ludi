@@ -41,7 +41,7 @@ import { hasPeaceOffer } from '../sim/wars';
  * the plan and the live sitting share them. Re-exported by name for the files
  * that import them from here.
  */
-export { type SentOrders, noteSentOrder, repeatsAnOrder, sentToAPiece } from './frozenBoard';
+export { type SentOrders, noteSentOrder, orderAttemptKey, repeatsAnOrder, sentToAPiece } from './frozenBoard';
 
 /**
  * What a bot's accepted command is reported to, and it is one function on

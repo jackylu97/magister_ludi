@@ -94,10 +94,11 @@ import { typeRowsByOldOffice } from './statecraftHelpers';
  */
 function bench(
   seats = 2,
-  { width = 20, height = 12, terrain = 'grassland' }: { width?: number; height?: number; terrain?: TerrainId } = {},
+  { width = 20, height = 12, terrain = 'grassland', barbarians = false }: { width?: number; height?: number; terrain?: TerrainId; barbarians?: boolean } = {},
 ): GameState {
   const colors = ['#a00', '#00a', '#0a0', '#aa0'];
   const state = newGame({
+    barbarians,
     seed: 11,
     sizeName: 'duel',
     players: Array.from({ length: seats }, (_unused, index) => ({
@@ -1156,8 +1157,8 @@ describe('the three tactics', () => {
    * anything else (`disbandCommand`, ahead of every blocker) and a rich one buys
    * a soldier, and neither is what these boards are about.
    */
-  function front(): { state: GameState; city: City } {
-    const state = bench(2);
+  function front(barbarians = false): { state: GameState; city: City } {
+    const state = bench(2, { barbarians });
     const city = foundCityAt(state, 0, at(state.map, 2, 2));
     const garrison = createUnit(state, 0, 'warrior', city.col, city.row);
     garrison.fortifiedTurns = 0;
@@ -1332,6 +1333,30 @@ describe('the three tactics', () => {
     // candidate still folds to its own score.
     for (const row of decision!.candidates) expect(foldTerms(row.terms)).toBe(row.score);
     expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('lets the Arena give a certain city capture priority over a nearby raider', () => {
+    function opportunity(risk: number) {
+      return withAiTuning({ military: { cityCaptureRisk: risk } }, () => {
+        const { state } = front(true);
+        const city = foundCityAt(state, 1, at(state.map, 8, 5));
+        city.hp = 1;
+        const spear = createUnit(state, 0, 'spearman', 7, 5);
+        const wild = state.players.find(p => p.barbarian)!;
+        const raider = createUnit(state, wild.id, 'warrior', 7, 4);
+        raider.hp = 1;
+        recomputeAllVisibility(state);
+        bumpRevision(state);
+        const forecast = previewCombat(state, spear.id, { col: city.col, row: city.row });
+        expect(forecast.ok && forecast.capturesCity).toBe(true);
+        const decision = orderFor(state, 0, spear.id, 20);
+        expect(decision?.command.type).toBe('attack');
+        expect(applyCommand(state, decision!.command).ok).toBe(true);
+        return { target: (decision!.command as { target: { col: number; row: number } }).target, owner: city.ownerId };
+      });
+    }
+    expect(opportunity(0)).toEqual({ target: { col: 7, row: 4 }, owner: 1 });
+    expect(opportunity(.5)).toEqual({ target: { col: 8, row: 5 }, owner: 0 });
   });
 
   it('takes the blow once the bowman has already shot', () => {

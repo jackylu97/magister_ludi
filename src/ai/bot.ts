@@ -10335,7 +10335,7 @@ function soldierCommand(
   // next piece of the force finishes what this one starts. See `campAssault`.
   const blow = stays
     ? null
-    : favourableBlow(
+    : preferredCityCapture(state, player, unit, ai.military.cityCaptureRisk) ?? favourableBlow(
         state,
         player,
         unit,
@@ -10476,6 +10476,34 @@ interface UnitTarget {
   at: { col: number; row: number };
   summary: string;
   candidates: BotCandidate[];
+}
+
+/**
+ * If the seat prefers a capture over its first ordinary attack, use the same
+ * forecast as the player. A possible kill at the middle roll is insufficient.
+ */
+function preferredCityCapture(state: GameState, player: Player, unit: Unit, risk: number): UnitTarget | null {
+  if (risk <= 0 || isRanged(unitDef(unit.type))) return null;
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return null;
+  let best: UnitTarget | null = null;
+  let leastDamage = Infinity;
+  for (const near of mapRange(state.map, tileHex(here), 1)) {
+    const city = cityAt(state, near.col, near.row);
+    if (!city || city.ownerId === player.id || !atWar(state, player.id, city.ownerId)) continue;
+    const at = { col: near.col, row: near.row };
+    const preview = previewCombat(state, unit.id, at);
+    if (!preview.ok) continue;
+    const certain = preview.capturesCity || (preview.capturesCityOnKill && preview.damageToDefenderMin >= preview.defenderHp);
+    const counter = preview.damageToAttackerMax;
+    if (!certain || counter >= unit.hp || counter > unit.hp * risk || counter >= leastDamage) continue;
+    leastDamage = counter;
+    const label = `Take ${city.name}`;
+    const terms = [{ label: 'Health remaining after the strongest counterattack', value: unit.hp - counter }];
+    best = { at, summary: `${label}. The strongest counterattack costs ${counter} of ${unit.hp} health.`,
+      candidates: [{ label, terms, chosen: true, score: foldTerms(terms) }] };
+  }
+  return best;
 }
 
 /** Keep both target scans so a unit that holds can explain the reason. */

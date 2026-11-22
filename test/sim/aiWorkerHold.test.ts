@@ -26,7 +26,7 @@ import type { BotDecision } from '../../src/ai/decision';
 import { buildImprovementPlan, explainWorkerCraving } from '../../src/ai/plan';
 import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
-import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import { type GameMap, type Tile, createMap, getTileAt, tileIndex, tileNeighbors } from '../../src/sim/map';
 import { type City, type GameState, type Unit, addBuilding, bumpRevision, createUnit, playerById } from '../../src/sim/state';
 import { researchExpansion } from '../../src/sim/tech';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
@@ -89,6 +89,55 @@ function sit(state: GameState, limit = 80): BotDecision[] {
 function about(sent: readonly BotDecision[], unit: Unit): BotDecision[] {
   return sent.filter((decision) => (decision.command as { unitId?: number }).unitId === unit.id);
 }
+
+describe('workers act on the improvements their seat has unlocked', () => {
+  it('keeps specialist-only works out of a custom worker roster', () => {
+    const state = bench();
+    homeTown(state);
+    const player = playerById(state, 0)!;
+    recomputeAllVisibility(state);
+    const base = valueContext(state, player);
+    const ctx = { ...base, ai: { ...base.ai, workers: { ...base.ai.workers, improvements: ['academy'] } } };
+    expect(buildImprovementPlan(state, player, ctx).entries.some(entry => entry.improvement === 'academy')).toBe(false);
+  });
+
+  it.each(['stoneCircle', 'cliffMonastery', 'smelter', 'physicGarden', 'qanat', 'paradiseGarden'] as const)(
+    'builds %s on a suitable worked tile after its unlock', id => {
+      const state = bench();
+      const city = homeTown(state);
+      const player = playerById(state, 0)!;
+      const tile = at(state.map, city.col + 1, city.row);
+      const near = tileNeighbors(state.map, tile).find(near => near.col !== city.col)!;
+      city.population = 4;
+      city.lockedTiles = [{ col: tile.col, row: tile.row }];
+      if (id === 'cliffMonastery') {
+        near.terrain = 'mountain';
+        tile.mountainsBeside = 1;
+      }
+      if (id === 'qanat') near.hills = true;
+      if (id === 'smelter') near.improvement = 'mine';
+      if (id === 'paradiseGarden' || id === 'physicGarden') tile.freshwater = true;
+      refreshCityDerived(state, city);
+      const worker = createUnit(state, 0, 'worker', tile.col, tile.row);
+      recomputeAllVisibility(state);
+      const plan = () => buildImprovementPlan(state, player, valueContext(state, player));
+      expect(plan().entries.some(entry => entry.improvement === id)).toBe(false);
+      if (id === 'stoneCircle') player.statecraft.orders.push('theMegaliths');
+      if (id === 'cliffMonastery') player.statecraft.orders.push('theCliffMonasteries');
+      if (id === 'smelter') player.techsResearched.push('smelting');
+      if (id === 'qanat') player.techsResearched.push('surveying');
+      if (id === 'physicGarden') player.techsResearched.push('herbals');
+      if (id === 'paradiseGarden') player.leader = 'cyrusTheGreat';
+      bumpRevision(state);
+      expect(plan().byTile.get(tileIndex(state.map, tile.col, tile.row))?.improvement).toBe(id);
+      const orders = about(sit(state), worker).map(d => d.command);
+      expect(orders).toContainEqual(expect.objectContaining({ type: 'buildImprovement', improvement: id }));
+      expect(tile.improvement).toBe(id);
+      const cityPlots = plan().entries.filter(entry => state.tileOwner[tileIndex(state.map, entry.col, entry.row)] === city.id);
+      expect(cityPlots.some(entry => entry.improvement === id)).toBe(false);
+    }
+  );
+});
 
 describe('a worker that steps back stays there for the turn', () => {
   it('is not ordered out of its town again in the same sitting', () => {
