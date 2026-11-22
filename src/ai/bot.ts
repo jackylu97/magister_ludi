@@ -541,6 +541,7 @@ export function valueContext(
   const netGold = netNow(state, player.id, ledger);
   const pressure = goldPressure(state, player, netGold);
   const age = highestAge(player.techsResearched);
+  const threats = cityThreatReading(state, player);
   // **The prior**: the context as it read before the book existed, with each
   // bank priced at the table's own number. It is what the book is appraised
   // against, and the band the price is then clamped into is drawn around it.
@@ -556,7 +557,8 @@ export function valueContext(
     books: ledger,
     goldPressure: pressure.value,
     pressureNote: pressure.note,
-    threat: threatLevel(state, player),
+    threat: threats.total,
+    cityThreats: threats.towns,
     // The seat's own chart, read once for the whole decision: two sweeps of the
     // board through the fog grid, and the wanted-army arithmetic asks for the
     // answer once per candidate row of every town.
@@ -1655,39 +1657,34 @@ function goldReserveFor(state: GameState, player: Player): number {
 // the charge and its reading went.
 
 /**
- * The combat pieces standing within `threat.radius` of one of this empire's
- * towns, **each counted by its owner's weight** (`threatWeights`).
- *
- * The omniscient reading, like every other search in this file, and it is the
- * creed's second clause said out loud rather than a new cheat: the successor is
- * a fog-honest read (`citySightings`), and the whole of what would change is
- * this function.
- *
- * **Who counts, and how much** (batch BP1, `docs/flags.md` (ooooooo) P1). This
- * used to count anybody else's soldier as one. The audit found that by turn 150
- * a seat counted 11 to 35 pieces of peaceful neighbours against 3.5 to 5 of the
- * wild, and every seat armed against every other
- * (`docs/audit/bot-pass-3-competitiveness.md` §3.1). Now the wild's pieces and
- * the pieces of an empire at war with this one count as one each, and a
- * peaceful neighbour's count at `threat.peaceShare` times that neighbour's lean
- * toward a war on this seat. The bot still defends against a neighbour that
- * looks ready to strike, which is why the share is not nought: a seat that
- * ignored an army walking up to its capital until the war was declared would be
- * too late. Each town keeps its one defender whatever this reads
- * (`garrisonOwed`).
+ * Count nearby combat units once for the empire and once for each city they threaten.
+ * A wall protects its own city, while army planning needs the empire total.
+ * The existing radius and diplomatic weights apply to both readings.
  */
-function threatLevel(state: GameState, player: Player): number {
+function cityThreatReading(state: GameState, player: Player): { total: number; towns: ReadonlyMap<number, number> } {
   const ai = aiFor(player);
   const weights = threatWeights(state, player);
-  let threat = 0;
+  const cities = citiesOf(state, player.id).map(city => ({
+    id: city.id,
+    hex: tileHex(getTileAt(state.map, city.col, city.row)!),
+  }));
+  const towns = new Map<number, number>(cities.map(city => [city.id, 0]));
+  let total = 0;
   for (const unit of state.units) {
     const weight = weights[unit.ownerId] ?? 1;
-    if (weight <= 0) continue;
-    if (!isCombatant(unitDef(unit.type))) continue;
-    if (nearOwnCity(state, player, unit.col, unit.row, ai.threat.radius) === null) continue;
-    threat += weight;
+    if (weight <= 0 || !isCombatant(unitDef(unit.type))) continue;
+    const tile = getTileAt(state.map, unit.col, unit.row);
+    if (tile === undefined) continue;
+    const hex = tileHex(tile);
+    let near = false;
+    for (const city of cities) {
+      if (wrappedDistance(state.map, hex, city.hex) > ai.threat.radius) continue;
+      towns.set(city.id, towns.get(city.id)! + weight);
+      near = true;
+    }
+    if (near) total += weight;
   }
-  return threat;
+  return { total, towns };
 }
 
 /**

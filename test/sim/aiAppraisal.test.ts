@@ -3724,6 +3724,25 @@ describe('the two missing signs (batch X5)', () => {
     expect(loudLine.value).toBeCloseTo(quietLine.value * (1 + besieged.threat), 10);
   });
 
+  it('keeps a distant threat out of local wall values without reducing the army threat', () => {
+    const state = bench(2, { width: 40, height: 20 });
+    const frontier = foundCityAt(state, 0, at(state.map, 5, 5));
+    const interior = foundCityAt(state, 0, at(state.map, 20, 5));
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const player = seat(state, 0);
+    const quiet = valueContext(state, player);
+    const quietInterior = explainBuildingRow('palisade', quiet, interior);
+    const quietFrontier = explainBuildingRow('palisade', quiet, frontier);
+    createUnit(state, 1, 'warrior', 6, 5);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const threatened = valueContext(state, player);
+    expect(threatened.threat).toBeGreaterThan(quiet.threat);
+    expect(explainBuildingRow('palisade', threatened, frontier).total).toBeGreaterThan(quietFrontier.total);
+    expect(explainBuildingRow('palisade', threatened, interior).total).toBe(quietInterior.total);
+  });
+
   it('reads no building’s hit points anywhere but through buildingEffects', () => {
     // A source-reading register, `hasFoldReadEngine`'s discipline: the day
     // somebody writes `def.cityHp` into the appraisal there are two opinions about

@@ -602,6 +602,8 @@ export interface ValueContext {
    * neighbour's (batch BP1). Zero in a quiet world, and not always a whole number.
    */
   threat: number;
+  /** Weighted enemies near each city, for defenses that protect only that city. */
+  cityThreats?: ReadonlyMap<number, number>;
   /**
    * **What the seat has sighted** — the wild's camps it has charted and the
    * hostile pieces it can see (`sightedThreat` in `bot.ts`), read through this
@@ -1020,6 +1022,8 @@ export function explainBuildingRow(
     if (wagered !== null) terms.push(wagered);
     return appraise(terms);
   }
+  const defended = middlingTown(ctx, city);
+  const defenseThreat = defended === undefined ? 0 : (ctx.cityThreats?.get(defended.id) ?? ctx.threat);
   if (def.happiness !== undefined) {
     terms.push({
       label: `${signed(def.happiness)} happiness × ${meterWords(ctx, 'happiness')}`,
@@ -1040,8 +1044,8 @@ export function explainBuildingRow(
     // A wall is worth what a soldier's worth of strength is worth, scaled by how
     // much this empire currently minds being attacked.
     terms.push({
-      label: `${signed(def.cityStat.amount)} town strength × ${ctx.ai.weights.military} × ${round(1 + ctx.threat)} threat`,
-      value: def.cityStat.amount * ctx.ai.weights.military * (1 + ctx.threat),
+      label: `${signed(def.cityStat.amount)} town strength × ${ctx.ai.weights.military} × ${round(1 + defenseThreat)} threat`,
+      value: def.cityStat.amount * ctx.ai.weights.military * (1 + defenseThreat),
     });
   }
   // **The other half of a wall** (batch X5, `docs/audit/bot-pass-2.md` Part 2
@@ -1079,7 +1083,7 @@ export function explainBuildingRow(
   // above already uses: `cityBaseStrength × weights.military`. A wall that adds
   // a fifth to the bar is worth a fifth of what defending this town is worth.
   //
-  // Still scaled by the **same** existing factor, `1 + ctx.threat`, so the two
+  // Still scaled by the **same** existing factor, `1 + defenseThreat`, so the two
   // halves of one wall move together — an empire with a column at its gate wants
   // the whole row more, not half of it more. No new knob: the rate, the bar and
   // the strength are all readings that already exist.
@@ -1100,8 +1104,8 @@ export function explainBuildingRow(
     terms.push({
       label:
         `${signed(hp)} town hit points — ${round(share)} of the town’s bar × ` +
-        `${round(defence)} what its defence is worth × ${round(1 + ctx.threat)} threat`,
-      value: share * defence * (1 + ctx.threat),
+        `${round(defence)} what its defence is worth × ${round(1 + defenseThreat)} threat`,
+      value: share * defence * (1 + defenseThreat),
     });
   }
   // **The five rows nobody read** (batch X8, `docs/audit/bot-pass-2.md` Part 2
