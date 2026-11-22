@@ -4,7 +4,8 @@
  * The vignettes are the user's splash art: one 1:1 JPEG a belief in
  * `public/art/splash/beliefs/`, named by the belief's row id
  * (`public/art/splash/README.md`), made by `scripts/splashArt.py beliefs`.
- * The 23 pantheon beliefs have one (2026-11-19). A belief with none shows its
+ * The 23 pantheon beliefs have one (2026-11-19), and the 17 follower beliefs
+ * (2026-11-21). The enhancer beliefs have none yet. A belief with none shows its
  * drawn mark in the arched window of its tablet on the Faith sheet's Bonuses
  * tab (`beliefPicture`).
  *
@@ -24,27 +25,44 @@ import { element } from './dom';
 /** Row ids of the beliefs with a vignette. The file is `<id>.jpg`. */
 export const BELIEF_PICTURES: readonly string[] = [
   'ancestorWorship',
+  'cathedralsOfTheSky',
+  'choirs',
+  'commonTable',
   'courtAugurs',
   'cultOfHeroes',
   'desertFathers',
+  'feastDays',
   'godOfTheForge',
   'goddessOfTheHarvest',
+  'guildOfTheFaithful',
+  'harvestBlessing',
   'herdGods',
+  'holyWater',
   'keeperOfTheCalendar',
   'keeperOfTheHearth',
   'ladyOfTheHunt',
+  'lampsOfTheShrine',
   'lordOfTheHoard',
   'lordOfTheSea',
+  'minarets',
   'oracleOfTheCrossroads',
   'patronOfMerchants',
+  'pilgrimage',
   'ritesOfBlood',
   'riverMother',
   'sacredFire',
   'spiritsOfTheWood',
   'starReaders',
+  'templeSpires',
+  'theAlmsBox',
+  'theEternalFlame',
   'theMuses',
+  'theOpenKitchen',
+  'theQuietHours',
   'theStandingStones',
+  'titheHouses',
   'vineyardRites',
+  'warriorMonks',
   'winterMother',
 ];
 

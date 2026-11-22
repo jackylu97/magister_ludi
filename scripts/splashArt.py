@@ -182,6 +182,14 @@ BELIEFS = {
     'holy_order': 'holyOrder', 'congregation': 'congregation', 'pilgrims_coin': 'pilgrimsCoin',
     'world_church': 'worldChurch', 'the_long_prayer': 'theLongPrayer', 'the_crusade': 'theCrusade',
     'marvels_of_the_faith': 'marvelsOfTheFaith', 'the_scriptoria': 'theScriptoria',
+    # The names the first round of follower masters arrived with (2026-11-21); `pilgrimage`
+    # and `choirs` and `minarets` already match a line above.
+    'almsbox': 'theAlmsBox', 'cathedrals': 'cathedralsOfTheSky', 'commontable': 'commonTable',
+    'eternalflame': 'theEternalFlame', 'feastdays': 'feastDays',
+    'guildfaithful': 'guildOfTheFaithful', 'harvestblessing': 'harvestBlessing',
+    'holywater': 'holyWater', 'lamps': 'lampsOfTheShrine', 'openkitchen': 'theOpenKitchen',
+    'quiethours': 'theQuietHours', 'templespires': 'templeSpires', 'tithehouses': 'titheHouses',
+    'warriormonks': 'warriorMonks',
 }
 # The title screen's one painting.
 TITLE = {'title': 'title'}

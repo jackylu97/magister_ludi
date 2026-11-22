@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { inPlayMarkDataUri } from '../../src/art/inPlayMarks';
-import { BELIEF_IDS, FOLLOWER_BELIEF_IDS } from '../../src/sim/religionData';
+import { ALL_BELIEF_IDS } from '../../src/sim/religionData';
 import { BELIEF_PICTURES, BELIEF_PICTURES_PATH, beliefPictureUrl } from '../../src/ui/beliefPictures';
 import { beliefPicture, beliefWindowNode } from '../../src/ui/beliefPictures';
 import { type FakeNode, byClass, installFakeDocument } from './faithTabHelpers';
@@ -25,7 +25,7 @@ describe('the belief pictures', () => {
   it('names each picture once, in order, and only a row the table knows', () => {
     expect(new Set(BELIEF_PICTURES).size).toBe(BELIEF_PICTURES.length);
     expect([...BELIEF_PICTURES]).toEqual([...BELIEF_PICTURES].sort());
-    for (const id of BELIEF_PICTURES) expect(BELIEF_IDS as readonly string[]).toContain(id);
+    for (const id of BELIEF_PICTURES) expect(ALL_BELIEF_IDS as readonly string[]).toContain(id);
   });
 
   it('loads them from the folder under public', () => {
@@ -34,7 +34,7 @@ describe('the belief pictures', () => {
   });
 
   it('answers a vignette where one exists and the drawn mark elsewhere', () => {
-    for (const id of BELIEF_IDS) {
+    for (const id of ALL_BELIEF_IDS) {
       const url = beliefPictureUrl(id);
       expect(beliefPicture(id), id).toEqual(url === null ? { kind: 'mark' } : { kind: 'painted', url });
     }
@@ -70,7 +70,8 @@ describe('the belief window', () => {
   });
 
   it('shows the drawn mark for a belief with no vignette, and for the holy city', () => {
-    const plain = FOLLOWER_BELIEF_IDS.find((id) => beliefPictureUrl(id) === null);
+    // Every pantheon and follower belief has a vignette now, so this is an enhancer belief.
+    const plain = ALL_BELIEF_IDS.find((id) => beliefPictureUrl(id) === null);
     expect(plain).toBeDefined();
     for (const [belief, mark] of [
       [plain!, 'belief'],
