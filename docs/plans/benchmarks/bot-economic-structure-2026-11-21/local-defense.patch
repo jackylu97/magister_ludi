@@ -1,0 +1,177 @@
+diff --git a/src/ai/bot.ts b/src/ai/bot.ts
+index 7102e542..e1ac9fb3 100644
+--- a/src/ai/bot.ts
++++ b/src/ai/bot.ts
+@@ -541,6 +541,7 @@ export function valueContext(
+   const netGold = netNow(state, player.id, ledger);
+   const pressure = goldPressure(state, player, netGold);
+   const age = highestAge(player.techsResearched);
++  const threats = cityThreatReading(state, player);
+   // **The prior**: the context as it read before the book existed, with each
+   // bank priced at the table's own number. It is what the book is appraised
+   // against, and the band the price is then clamped into is drawn around it.
+@@ -556,7 +557,8 @@ export function valueContext(
+     books: ledger,
+     goldPressure: pressure.value,
+     pressureNote: pressure.note,
+-    threat: threatLevel(state, player),
++    threat: threats.total,
++    cityThreats: threats.towns,
+     // The seat's own chart, read once for the whole decision: two sweeps of the
+     // board through the fog grid, and the wanted-army arithmetic asks for the
+     // answer once per candidate row of every town.
+@@ -1655,39 +1657,34 @@ function goldReserveFor(state: GameState, player: Player): number {
+ // the charge and its reading went.
+ 
+ /**
+- * The combat pieces standing within `threat.radius` of one of this empire's
+- * towns, **each counted by its owner's weight** (`threatWeights`).
+- *
+- * The omniscient reading, like every other search in this file, and it is the
+- * creed's second clause said out loud rather than a new cheat: the successor is
+- * a fog-honest read (`citySightings`), and the whole of what would change is
+- * this function.
+- *
+- * **Who counts, and how much** (batch BP1, `docs/flags.md` (ooooooo) P1). This
+- * used to count anybody else's soldier as one. The audit found that by turn 150
+- * a seat counted 11 to 35 pieces of peaceful neighbours against 3.5 to 5 of the
+- * wild, and every seat armed against every other
+- * (`docs/audit/bot-pass-3-competitiveness.md` §3.1). Now the wild's pieces and
+- * the pieces of an empire at war with this one count as one each, and a
+- * peaceful neighbour's count at `threat.peaceShare` times that neighbour's lean
+- * toward a war on this seat. The bot still defends against a neighbour that
+- * looks ready to strike, which is why the share is not nought: a seat that
+- * ignored an army walking up to its capital until the war was declared would be
+- * too late. Each town keeps its one defender whatever this reads
+- * (`garrisonOwed`).
+- */
+-function threatLevel(state: GameState, player: Player): number {
++ * Count nearby combat units once for the empire and once for each city they threaten.
++ * A wall protects its own city, while army planning needs the empire total.
++ * The existing radius and diplomatic weights apply to both readings.
++ */
++function cityThreatReading(state: GameState, player: Player): { total: number; towns: ReadonlyMap<number, number> } {
+   const ai = aiFor(player);
+   const weights = threatWeights(state, player);
+-  let threat = 0;
++  const cities = citiesOf(state, player.id).map(city => ({
++    id: city.id,
++    hex: tileHex(getTileAt(state.map, city.col, city.row)!),
++  }));
++  const towns = new Map<number, number>(cities.map(city => [city.id, 0]));
++  let total = 0;
+   for (const unit of state.units) {
+     const weight = weights[unit.ownerId] ?? 1;
+-    if (weight <= 0) continue;
+-    if (!isCombatant(unitDef(unit.type))) continue;
+-    if (nearOwnCity(state, player, unit.col, unit.row, ai.threat.radius) === null) continue;
+-    threat += weight;
++    if (weight <= 0 || !isCombatant(unitDef(unit.type))) continue;
++    const tile = getTileAt(state.map, unit.col, unit.row);
++    if (tile === undefined) continue;
++    const hex = tileHex(tile);
++    let near = false;
++    for (const city of cities) {
++      if (wrappedDistance(state.map, hex, city.hex) > ai.threat.radius) continue;
++      towns.set(city.id, towns.get(city.id)! + weight);
++      near = true;
++    }
++    if (near) total += weight;
+   }
+-  return threat;
++  return { total, towns };
+ }
+ 
+ /**
+@@ -6007,7 +6004,7 @@ function scoreOf(ranked: readonly RankedBuild[], item: QueueItem): number | null
+  * started a warrior instead of a library gets told the library was struck out by
+  * the floor, and by what income figure.
+  */
+-function productionTable(
++export function productionTable(
+   state: GameState,
+   player: Player,
+   city: City,
+diff --git a/src/ai/value.ts b/src/ai/value.ts
+index f985118b..040ea4d6 100644
+--- a/src/ai/value.ts
++++ b/src/ai/value.ts
+@@ -602,6 +602,8 @@ export interface ValueContext {
+    * neighbour's (batch BP1). Zero in a quiet world, and not always a whole number.
+    */
+   threat: number;
++  /** Weighted enemies near each city, for defenses that protect only that city. */
++  cityThreats?: ReadonlyMap<number, number>;
+   /**
+    * **What the seat has sighted** — the wild's camps it has charted and the
+    * hostile pieces it can see (`sightedThreat` in `bot.ts`), read through this
+@@ -1020,6 +1022,8 @@ export function explainBuildingRow(
+     if (wagered !== null) terms.push(wagered);
+     return appraise(terms);
+   }
++  const defended = middlingTown(ctx, city);
++  const defenseThreat = defended === undefined ? 0 : (ctx.cityThreats?.get(defended.id) ?? ctx.threat);
+   if (def.happiness !== undefined) {
+     terms.push({
+       label: `${signed(def.happiness)} happiness × ${meterWords(ctx, 'happiness')}`,
+@@ -1040,8 +1044,8 @@ export function explainBuildingRow(
+     // A wall is worth what a soldier's worth of strength is worth, scaled by how
+     // much this empire currently minds being attacked.
+     terms.push({
+-      label: `${signed(def.cityStat.amount)} town strength × ${ctx.ai.weights.military} × ${round(1 + ctx.threat)} threat`,
+-      value: def.cityStat.amount * ctx.ai.weights.military * (1 + ctx.threat),
++      label: `${signed(def.cityStat.amount)} town strength × ${ctx.ai.weights.military} × ${round(1 + defenseThreat)} threat`,
++      value: def.cityStat.amount * ctx.ai.weights.military * (1 + defenseThreat),
+     });
+   }
+   // **The other half of a wall** (batch X5, `docs/audit/bot-pass-2.md` Part 2
+@@ -1079,7 +1083,7 @@ export function explainBuildingRow(
+   // above already uses: `cityBaseStrength × weights.military`. A wall that adds
+   // a fifth to the bar is worth a fifth of what defending this town is worth.
+   //
+-  // Still scaled by the **same** existing factor, `1 + ctx.threat`, so the two
++  // Still scaled by the **same** existing factor, `1 + defenseThreat`, so the two
+   // halves of one wall move together — an empire with a column at its gate wants
+   // the whole row more, not half of it more. No new knob: the rate, the bar and
+   // the strength are all readings that already exist.
+@@ -1100,8 +1104,8 @@ export function explainBuildingRow(
+     terms.push({
+       label:
+         `${signed(hp)} town hit points — ${round(share)} of the town’s bar × ` +
+-        `${round(defence)} what its defence is worth × ${round(1 + ctx.threat)} threat`,
+-      value: share * defence * (1 + ctx.threat),
++        `${round(defence)} what its defence is worth × ${round(1 + defenseThreat)} threat`,
++      value: share * defence * (1 + defenseThreat),
+     });
+   }
+   // **The five rows nobody read** (batch X8, `docs/audit/bot-pass-2.md` Part 2
+diff --git a/test/sim/aiAppraisal.test.ts b/test/sim/aiAppraisal.test.ts
+index e4199533..218c92cd 100644
+--- a/test/sim/aiAppraisal.test.ts
++++ b/test/sim/aiAppraisal.test.ts
+@@ -3724,6 +3724,25 @@ describe('the two missing signs (batch X5)', () => {
+     expect(loudLine.value).toBeCloseTo(quietLine.value * (1 + besieged.threat), 10);
+   });
+ 
++  it('keeps a distant threat out of local wall values without reducing the army threat', () => {
++    const state = bench(2, { width: 40, height: 20 });
++    const frontier = foundCityAt(state, 0, at(state.map, 5, 5));
++    const interior = foundCityAt(state, 0, at(state.map, 20, 5));
++    recomputeAllVisibility(state);
++    bumpRevision(state);
++    const player = seat(state, 0);
++    const quiet = valueContext(state, player);
++    const quietInterior = explainBuildingRow('palisade', quiet, interior);
++    const quietFrontier = explainBuildingRow('palisade', quiet, frontier);
++    createUnit(state, 1, 'warrior', 6, 5);
++    recomputeAllVisibility(state);
++    bumpRevision(state);
++    const threatened = valueContext(state, player);
++    expect(threatened.threat).toBeGreaterThan(quiet.threat);
++    expect(explainBuildingRow('palisade', threatened, frontier).total).toBeGreaterThan(quietFrontier.total);
++    expect(explainBuildingRow('palisade', threatened, interior).total).toBe(quietInterior.total);
++  });
++
+   it('reads no building’s hit points anywhere but through buildingEffects', () => {
+     // A source-reading register, `hasFoldReadEngine`'s discipline: the day
+     // somebody writes `def.cityHp` into the appraisal there are two opinions about

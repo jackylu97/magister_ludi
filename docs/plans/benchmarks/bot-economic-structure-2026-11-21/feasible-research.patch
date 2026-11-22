@@ -1,0 +1,30 @@
+diff --git a/src/ai/chain.ts b/src/ai/chain.ts
+index 717f2f03..bf3311df 100644
+--- a/src/ai/chain.ts
++++ b/src/ai/chain.ts
+@@ -244,6 +244,7 @@ import { authorityOf, happinessOf } from '../sim/meters';
+ import { type ResourceEffect, ageLabel, resourceDef } from '../sim/resourceData';
+ import { type ProjectId, projectDef } from '../sim/projectData';
+ import { renownPerTurn, renownThreshold } from '../sim/renown';
++import { cityScopeAdmits } from '../sim/statecraft';
+ import { type City, type GameState, type Player, playerById, realPlayers } from '../sim/state';
+ import { buildError, gatingTech, hasAbility, opusOpen, researchExpansion, researchPlan } from '../sim/tech';
+ import { type AbilityId, type TechAge, type TechId, techDef } from '../sim/techData';
+@@ -988,6 +989,8 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
+   const units: NodeUnit[] = [];
+   for (const unit of charter ? [] : (unlocks.units ?? [])) {
+     const row = unitDef(unit);
++    // The production policy does not build naval units. Their unlock cannot yet pay this plan.
++    if (row.category === 'naval') continue;
+     units.push({
+       id: unit,
+       name: row.name,
+@@ -1304,6 +1307,8 @@ function buildingCopies(ctx: ValueContext, id: BuildingId, folds: TownFolds): No
+   for (let index = 0; index < folds.towns.length; index++) {
+     const city = folds.towns[index]!;
+     if (city.buildings.includes(id)) continue;
++    // Count a payoff only where its site exists. A missing site needs its own preparation plan.
++    if (def.requiresSite !== undefined && !cityScopeAdmits(state, city, def.requiresSite)) continue;
+     const raise = folds.turns(index, id);
+     if (raise === null) continue;
+     copies.push({
