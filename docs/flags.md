@@ -3460,3 +3460,28 @@ Move the Camp's required technology from Fletching to Husbandry. Keep its
 resource requirements, yields and worker charge cost. Include this with the
 first-age changes in the next play build. The changed unlock requires a new
 save version.
+
+## Units heal faster at home and in a city (ruled 2026-11-22, not built)
+
+The user: "units should heal more quickly when in friendly territory, and
+should heal even more quickly in a city. Lets say +20 in friendly territory
+and +30 in a city. Units should not gain the city bonus if the city is under
+siege."
+
+- Today a rested unit heals 10 a turn (`rules.healing.perTurnIfRested`),
+  plus its cards' lines, in `explainUnitHeal` (`healing.ts`). Where it stands
+  does not matter.
+- New lines in that list, each labelled: **+20 on a hex that its owner owns**;
+  **+30 in a city of its owner, in place of the +20,** and not while the city
+  is under siege (`underSiege`, derived). A unit in a besieged city still
+  gets the +20 for its own land.
+- **One reading to confirm with the user:** "+20" and "+30" are read as added
+  to the 10, so a rested unit heals 30 a turn at home and 40 in a city. If the
+  user meant totals, the lines are +10 and +20.
+- Unchanged: a unit heals only if it rested, `noHealAbroad`, the cards' and
+  the Keeps' lines, and the cap at full health. The figures go in
+  `rules.healing`.
+- The unit sheet's "+X HP" reads the same list, so it needs no change. The
+  bots should know that home ground heals faster when they choose where to
+  rest.
+- Owner: Astra.
