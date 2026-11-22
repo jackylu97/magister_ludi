@@ -28,6 +28,7 @@
  * imports `readings.ts` — the memos sit above this layer, never inside it.
  */
 
+import { rivalGrowthAndProduction } from '../difficulty';
 import {
   BUILDING_IDS,
   type BuildingId,
@@ -942,6 +943,8 @@ export function empirePercents(state: GameState, playerId: number): EmpirePercen
       });
     }
   }
+  const difficulty = rivalGrowthAndProduction(state, playerId);
+  if (difficulty) meters.push({ source: 'Difficulty', yield: 'production', percent: difficulty, stage: 'empire' });
   // **Arrears** (the maintenance ruling, 2026-08-28). A treasury under water
   // costs the empire a quarter of its science and its culture, and it joins
   // `cityYieldPercents` at the **empire** stage rather than being a

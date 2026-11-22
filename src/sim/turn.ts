@@ -102,7 +102,8 @@
  * ever fire on a hand-edited state, which is a phase no test can honestly cover.
  */
 
-import { barbarianTurn, barbarianUnitType } from "./barbarians";
+import { ageClosesThisTurn } from './worldClock';
+import { barbarianTurn, barbarianUnitType, foundAgeCloseCamps } from "./barbarians";
 import type { CampBounty } from "./camps";
 import {
   advanceProduction,
@@ -830,7 +831,11 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // over. It became a phase of its own because the clock is no longer the Bead
     // Race's private business — the wager, the Horde and the top bar all read
     // it. See `runWorldClock`.
-    run: runWorldClock,
+    run: (state, report) => {
+      const closes = ageClosesThisTurn(state);
+      runWorldClock(state, report);
+      if (closes) foundAgeCloseCamps(state);
+    },
   },
   {
     name: "wagers",

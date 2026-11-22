@@ -45,6 +45,8 @@ export interface ArenaSpec {
   turns: number;
   seats: readonly ArenaSeat[];
   barbarians: boolean;
+  /** All Arena seats are rivals. Zero uses standard rules. */
+  tier?: number;
   /** The panel's sparse sheet, or `null` for `data/ai.json` exactly as it is. */
   tuning: PersonaOverride | null;
   /** Leave empty to apply the sheet to every seat. */
@@ -159,6 +161,7 @@ export function runArenaGame(spec: ArenaSpec, onTurn?: (turn: number) => void): 
       sizeName: spec.sizeName,
       players,
       barbarians: spec.barbarians,
+      tier: spec.tier,
     });
 
     let warnings = 0;

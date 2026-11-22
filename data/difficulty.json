@@ -1,0 +1,7 @@
+{
+  "strength": { "tier": 1, "points": 2 },
+  "rivalGrowthAndProduction": { "tier": 2, "percent": 20 },
+  "campWave": { "tier": 3, "unitsPerCamp": 2 },
+  "humanBuildCost": { "tier": 4, "percent": 25 },
+  "humanOrderRarity": { "tier": 5, "weights": { "common": 75, "uncommon": 20, "rare": 5 } }
+}

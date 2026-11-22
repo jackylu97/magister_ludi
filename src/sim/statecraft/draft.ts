@@ -18,6 +18,7 @@
  * `../statecraft.ts` re-exports it, so no import path in the tree changed.
  */
 
+import { humanOrderRarity } from '../difficulty';
 import {
 } from '../yields/town';
 import {
@@ -209,9 +210,8 @@ export const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
  * three rungs may sum to more than the table's hundred. That is safe, because every
  * reader spreads the rungs over their sum.
  */
-export function rarityOdds(skips: number, rarePercent = 0): Record<OrderRarity, number> {
+export function rarityOdds(skips: number, rarePercent = 0, base = STATECRAFT.rarityOdds): Record<OrderRarity, number> {
   const passes = Math.max(0, Math.floor(skips));
-  const base = STATECRAFT.rarityOdds;
   const up = Math.max(0, STATECRAFT.skipPity.uncommon ?? 0) * passes;
   const top = Math.max(0, STATECRAFT.skipPity.rare ?? 0) * passes;
   const common = Math.max(0, (base.common ?? 0) - up - top);
@@ -232,8 +232,8 @@ export function rarityOdds(skips: number, rarePercent = 0): Record<OrderRarity, 
  * a pass buys anything (`passFigure`, `main.ts`: the rare rung's points now
  * against its points after one more pass).
  */
-export function rarityDrawWeight(rarity: OrderRarity, skips: number, rarePercent = 0): number {
-  return rarityOdds(skips, rarePercent)[rarity];
+export function rarityDrawWeight(rarity: OrderRarity, skips: number, rarePercent = 0, base = STATECRAFT.rarityOdds): number {
+  return rarityOdds(skips, rarePercent, base)[rarity];
 }
 
 /**
@@ -251,9 +251,10 @@ export function rarityFirstOdds(
   bag: readonly OrderId[],
   skips: number,
   rarePercent = 0,
+  base = STATECRAFT.rarityOdds,
 ): { id: OrderId; chance: number }[] {
   if (bag.length === 0) return [];
-  const odds = rarityOdds(skips, rarePercent);
+  const odds = rarityOdds(skips, rarePercent, base);
   const counts: Record<OrderRarity, number> = { common: 0, uncommon: 0, rare: 0 };
   for (const id of bag) counts[orderDef(id).rarity] += 1;
   let total = 0;
@@ -1084,7 +1085,7 @@ export function foreignCardBag(
  * as a pick (`settleCardTaken`).
  */
 export function drawForeignCard(state: GameState, player: Player): OrderId | undefined {
-  return drawRarityFirst(state, foreignCardBag(state, player), 0);
+  return drawRarityFirst(state, foreignCardBag(state, player), 0, 0, humanOrderRarity(state, player));
 }
 
 // --- the draw ---------------------------------------------------------------
@@ -1467,9 +1468,10 @@ export function drawRarityFirst(
   bag: readonly OrderId[],
   skips: number,
   rarePercent = 0,
+  base = STATECRAFT.rarityOdds,
 ): OrderId | undefined {
   if (bag.length === 0) return undefined;
-  const odds = rarityOdds(skips, rarePercent);
+  const odds = rarityOdds(skips, rarePercent, base);
   const rungs = RARITIES.map((rarity) => ({
     rarity,
     cards: bag.filter((id) => orderDef(id).rarity === rarity),
@@ -1537,6 +1539,7 @@ export function drawOrderOptions(
   decks: readonly DeckId[],
   foreign: readonly OrderId[] = [],
   rarePercent = 0,
+  base = STATECRAFT.rarityOdds,
 ): OrderId[] {
   const hand: OrderId[] = [];
   const open = (): OrderId[] => eligible.filter((id) => !hand.includes(id));
@@ -1548,13 +1551,13 @@ export function drawOrderOptions(
     // inaccessible deck, never a duplicate — both are outside `eligible`.
     const pool = position.kind === 'foreign' ? foreign.filter((id) => !hand.includes(id)) : rest;
     const bag = positionBag(pool, position, decks);
-    const drawn = drawRarityFirst(state, bag.length > 0 ? bag : rest, skips, rarePercent);
+    const drawn = drawRarityFirst(state, bag.length > 0 ? bag : rest, skips, rarePercent, base);
     if (drawn !== undefined) hand.push(drawn);
   }
   // The extra cards a rider adds (rule 6): distinct, eligible, rarity-first,
   // from the union — no guaranteed category.
   for (let extra = hand.length; extra < wanted; extra++) {
-    const drawn = drawRarityFirst(state, open(), skips, rarePercent);
+    const drawn = drawRarityFirst(state, open(), skips, rarePercent, base);
     if (drawn === undefined) break;
     hand.push(drawn);
   }
@@ -1657,6 +1660,7 @@ export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
   const sc = player.statecraft;
   const positions = sc.pendingOrder?.positions ?? drawHandPositions(state, player, sc.drafts);
   const eligible = eligibleFor(state, player);
+  const base = humanOrderRarity(state, player);
   const options = drawOrderOptions(
     state,
     eligible,
@@ -1666,10 +1670,11 @@ export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
     player.decks,
     positions.some((position) => position.kind === 'foreign') ? foreignCardBag(state, player) : [],
     cardRareWeight(state, player.id),
+    base,
   );
   if (options.length < RULES.offers.max && cardOfferRule(state, player.id, 'additionalCharter')) {
     const charters = eligible.filter(id => orderDef(id).charter !== undefined && !options.includes(id));
-    const extra = drawRarityFirst(state, charters, sc.orderSkips, cardRareWeight(state, player.id));
+    const extra = drawRarityFirst(state, charters, sc.orderSkips, cardRareWeight(state, player.id), base);
     if (extra !== undefined) options.push(extra);
   }
   return { options, positions };

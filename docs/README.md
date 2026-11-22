@@ -24,6 +24,22 @@ mythologised, never historically over-specific.
 Single-player against bots is the product; hot-seat is the dev harness; netcode
 comes after a playable core and a good AI.
 
+## Beta difficulty
+
+A game's optional `GameConfig.tier` selects the cumulative rules in
+`data/difficulty.json`. A missing tier and zero both use the standard rules.
+`Player.isHuman` identifies each human seat. The other real seats are rivals.
+Every seat in an Arena or spectator game counts as a rival.
+
+Growth modifiers apply to the food surplus. Production modifiers apply at the
+empire percentage stage. Build prices use the same breakdown for the queue and
+for purchases priced from production. Order rarity changes the initial weights
+before skip pity and rare-card modifiers.
+
+An age-close wave uses the opening camp sweep's count, spacing, visibility
+and world cap. Each new camp needs room for its band. Existing camps remain.
+New units first act on the next turn.
+
 ## The loop and the turn
 
 - **Turns are simultaneous.** Each player has `turnEnded`; resolution runs when

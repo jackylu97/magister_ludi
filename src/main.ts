@@ -42,6 +42,7 @@ import './style.css';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
 import { type Game, dispatch } from './sim/game';
+import { humanOrderRarity } from './sim/difficulty';
 import type { Command, CommandResult } from './sim/commands';
 import { answerAudience, botSeatsToDrive, driveBots } from './ai/driver';
 import { valueContext } from './ai/bot';
@@ -52,6 +53,7 @@ import {
   type CensusRecord,
   type GameConfig,
   type GameState,
+  type Player,
   type Unit,
   foundedReligion,
   hasEndedTurn,
@@ -3433,9 +3435,12 @@ async function boot(initial: Game | null): Promise<void> {
    * asked twice — so a knob retuned to nothing prints an honest nothing rather
    * than a promise the bag will not keep.
    */
-  function passFigure(skips: number, rarePercent: number): string {
-    const now = rarityDrawWeight('rare', skips, rarePercent);
-    const next = rarityDrawWeight('rare', skips + 1, rarePercent);
+  function passFigure(state: GameState, player: Player): string {
+    const skips = player.statecraft.orderSkips;
+    const rarePercent = cardRareWeight(state, player.id);
+    const base = humanOrderRarity(state, player);
+    const now = rarityDrawWeight('rare', skips, rarePercent, base);
+    const next = rarityDrawWeight('rare', skips + 1, rarePercent, base);
     return next === now ? 'No rarer cards next draft' : 'See rarer cards next draft';
   }
 
@@ -3688,7 +3693,7 @@ async function boot(initial: Game | null): Promise<void> {
             label: 'Pass',
             // The bag's own numbers, never a sentence with a figure invented in
             // it — see `passFigure`.
-            figure: passFigure(sc.orderSkips, cardRareWeight(game.state, seat)),
+            figure: passFigure(game.state, player),
             note: passNote(sc.orderSkips),
           },
           // **The third answer** (2026-09-06): faith buys another hand. Absent

@@ -61,6 +61,7 @@
  * command.
  */
 
+import { humanOrderRarity } from '../sim/difficulty';
 import { type TileContextField, tileContextField } from './ground';
 import type { AiConfig } from './aiConfig';
 // The seat's books, a type only: `armySupport.ts` is a leaf this file only names.
@@ -402,6 +403,7 @@ import {
   type GrantCount,
   type OccasionMeasure,
   type OrderId,
+  type OrderRarity,
   type RateSource,
   type TallyOccasion,
   type TileCondition,
@@ -13082,6 +13084,7 @@ function freshChairReading(ctx: ValueContext, empty: ChairReading): ChairReading
           sc.orderSkips,
           (id) => (neverSeatedError(sc, id) !== null ? 0 : explainCardEffects(id, orderDef(id).effects, ctx, 'walk').total),
           cardRareWeight(ctx.state, ctx.playerId),
+          humanOrderRarity(ctx.state, player),
         );
   const reading: ChairReading = { bench, free, card, pace };
   CHAIR_WORTH_MEMO.set(ctx, reading);
@@ -13152,6 +13155,7 @@ export function expectedBestOrder(
   skips: number,
   score: (id: OrderId) => number,
   rarePercent = 0,
+  base?: Record<OrderRarity, number>,
 ): number {
   const draws = bags.filter((bag) => bag.length > 0);
   if (draws.length === 0) return 0;
@@ -13159,7 +13163,7 @@ export function expectedBestOrder(
   for (const bag of draws) for (const id of bag) if (!scores.has(id)) scores.set(id, score(id));
 
   // Each bag's own distribution, the draw's arithmetic and not a copy of it.
-  const odds = draws.map((bag) => rarityFirstOdds(bag, skips, rarePercent));
+  const odds = draws.map((bag) => rarityFirstOdds(bag, skips, rarePercent, base));
   // The distinct scores, ascending — the points the step function of the maximum
   // can jump at, and nowhere else.
   const values = [...new Set([...scores.values()])].sort((a, b) => a - b);
@@ -14279,7 +14283,7 @@ const FOREIGN_CARD_MEMO = new WeakMap<ValueContext, number>();
 function foreignCardWorth(player: Player, ctx: ValueContext): number {
   return onContext(FOREIGN_CARD_MEMO, ctx, () => {
     let worth = 0;
-    for (const { id, chance } of rarityFirstOdds(foreignCardBag(ctx.state, player), 0)) {
+    for (const { id, chance } of rarityFirstOdds(foreignCardBag(ctx.state, player), 0, 0, humanOrderRarity(ctx.state, player))) {
       worth += chance * explainCardEffects(id, orderDef(id).effects, ctx).total;
     }
     return worth;

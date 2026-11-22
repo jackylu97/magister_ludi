@@ -29,6 +29,7 @@
  * debugging, test fixtures, and eventually mid-game AI experiments.
  */
 
+import { isDifficultyTier } from './difficulty';
 import { type Command, type CommandResult, applyCommand } from './commands';
 import { type GameConfig, type GameState, SCHEMA_VERSION, newGame, normalizeConfig } from './state';
 
@@ -233,6 +234,7 @@ export function isSavedConfig(value: unknown): value is GameConfig {
   if (!isRecord(value) || !Number.isFinite(value.seed) || typeof value.sizeName !== 'string') {
     return false;
   }
+  if (value.tier !== undefined && !isDifficultyTier(value.tier)) return false;
   if (value.barbarians !== undefined && typeof value.barbarians !== 'boolean') return false;
   if (value.mapgenOverrides !== undefined && !isRecord(value.mapgenOverrides)) return false;
   if (!Array.isArray(value.players)) return false;

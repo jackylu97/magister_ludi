@@ -1445,9 +1445,10 @@ describe('determinism', () => {
   // the save version changed: with 257 printed as 256 the two hashes were
   // 92694eec and 925b8ae6 again.
   // Version 258 changes first-age rules. Neither seat has a city in these games.
+  // Version 259 adds optional difficulty. Both of these games use tier zero.
   const RANGED_BOARDS: Record<number, string> = {
-    11: '5704fece:190684',
-    2026: '21e72c84:190844',
+    11: '2aa99109:190684',
+    2026: '6769a3f3:190844',
   };
 
   for (const seed of [11, 2026]) {

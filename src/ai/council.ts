@@ -24,6 +24,7 @@
 
 // `bot.ts` imports this file back. Each name from it is used only inside a
 // function, so neither edge is read while the modules load.
+import { humanOrderRarity } from '../sim/difficulty';
 import { type BotSitting, seatContext } from './bot';
 import {
   type Appraisal,
@@ -773,8 +774,9 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
     return fresh;
   };
   const rare = cardRareWeight(state, player.id);
-  const pitied = expectedBestOrder(bags, sc.orderSkips + 1, score, rare);
-  const asIs = expectedBestOrder(bags, sc.orderSkips, score, rare);
+  const base = humanOrderRarity(state, player);
+  const pitied = expectedBestOrder(bags, sc.orderSkips + 1, score, rare, base);
+  const asIs = expectedBestOrder(bags, sc.orderSkips, score, rare, base);
   // The next draft's own wait: the whole of the next threshold over what the
   // meter fills at, because a pass spends the culture already banked for this one.
   // The threshold is the seat's own price, discounts included (Magisterial

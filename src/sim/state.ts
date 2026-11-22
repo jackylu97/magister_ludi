@@ -54,6 +54,7 @@
  * disagree with itself.
  */
 
+import { isDifficultyTier } from './difficulty';
 import { type BuildingId, isWonder } from "./buildingData";
 import { type BeadCardId, type BeadFamily, type BeadKind } from "./beadData";
 import type { ProjectId } from "./projectData";
@@ -646,7 +647,8 @@ import {
 // Version 256: the Scientific and Devotion decks change seeded offers, research and rites.
 // Version 257 changes where citizens work; see above.
 // Version 258 changes the first-age build list, research order and culture from combat losses.
-export const SCHEMA_VERSION = 258;
+// A tier changes combat, production, camp placement and Order draws during replay.
+export const SCHEMA_VERSION = 259;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3743,6 +3745,8 @@ export function emptyRenownFeed(): Record<Family, number> {
 // --- state ------------------------------------------------------------------
 
 export interface GameConfig {
+  /** A missing tier and tier zero both use the standard rules. */
+  tier?: number;
   /** Numeric seed; use `hashSeed` to turn a word into one. */
   seed: number;
   /** Size key from `data/mapgen.json`. */
@@ -3785,6 +3789,8 @@ export interface GameConfig {
 }
 
 export interface GameState {
+  /** Fixed when the game is created. The selected rules apply to the configured seats. */
+  tier?: number;
   schemaVersion: number;
   /** 1-based; `data/rules.json` sets the starting value. */
   turn: number;
@@ -4190,6 +4196,10 @@ export function normalizeConfig(config: GameConfig): GameConfig {
   // the wild existed. `false` and absent are the same world and must serialise
   // the same way.
   if (config.barbarians === true) normalized.barbarians = true;
+  if (config.tier !== undefined) {
+    if (!isDifficultyTier(config.tier)) throw new Error(`Unknown difficulty tier ${String(config.tier)}`);
+    if (config.tier > 0) normalized.tier = config.tier;
+  }
   return normalized;
 }
 
@@ -4312,6 +4322,7 @@ export function newGame(config: GameConfig): GameState {
   const rng = deriveGameplayRng(normalized.seed);
   const state: GameState = {
     schemaVersion: SCHEMA_VERSION,
+    ...(normalized.tier === undefined ? {} : { tier: normalized.tier }),
     turn: RULES.game.startingTurn,
     // Nought, and the first accepted command makes it one. See `GameState.revision`.
     revision: 0,

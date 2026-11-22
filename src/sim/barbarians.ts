@@ -108,6 +108,7 @@
  * any other, it will never found, and it is cargo.
  */
 
+import { ageCampBandSize } from './difficulty';
 import { campAt, hasCampAt } from './camps';
 import { cityAt, tileOwnerPlayerId } from './cities';
 import { applyCombat, fortifyError, isCombatant, isFortified } from './combat';
@@ -488,10 +489,30 @@ export function foundCamps(state: GameState): void {
   if (state.turn < BARB.firstCampTurn) return;
   if ((state.turn - BARB.firstCampTurn) % Math.max(1, BARB.campEveryTurns) !== 0) return;
 
+  placeCampBand(state, wild);
+}
+
+/** An age close uses the opening founding sweep's count and legal sites, with a fixed band. */
+export function foundAgeCloseCamps(state: GameState): void {
+  const size = ageCampBandSize(state);
+  if (!size) return;
+  const wild = barbarianPlayer(state);
+  if (wild) placeCampBand(state, wild, size);
+}
+
+function placeCampBand(state: GameState, wild: Player, fixedBand?: number): void {
   const starts = startsFor(state.map, realPlayers(state).length);
   for (let founded = 0; founded < BARB.campsPerSpawn; founded++) {
     if (state.camps.length >= BARB.maxCamps) return;
-    const candidates = state.map.tiles.filter((tile) => canFoundCampAt(state, tile, starts));
+    const candidates = state.map.tiles.filter(tile => {
+      if (!canFoundCampAt(state, tile, starts)) return false;
+      if (fixedBand === undefined) return true;
+      // A wave camp must have room for its entire band when it is founded.
+      const spaces = tileNeighbors(state.map, tile).filter(near =>
+        isPassable(near) && hasStackingRoom(state, near.col, near.row, 'military'),
+      );
+      return 1 + spaces.length >= fixedBand;
+    });
     if (candidates.length === 0) return;
     const tile = candidates[nextInt(state.rng, 0, candidates.length)]!;
     const camp: BarbarianCamp = { col: tile.col, row: tile.row, foundedTurn: state.turn };
@@ -499,7 +520,7 @@ export function foundCamps(state: GameState): void {
     // A camp on the board is a line of the meters where a card counts the ones
     // an empire can see (`count: 'visibleCamps'`) — batch M3, `slate.ts`.
     bumpEconomy(state);
-    raiseStartingBand(state, wild, camp);
+    raiseStartingBand(state, wild, camp, fixedBand);
   }
 }
 
@@ -522,12 +543,15 @@ function startingBandSize(state: GameState): number {
  * first takes the camp hex and digs in there, and the next stands on a
  * neighbour. A camp that is boxed in raises what it has room for.
  */
-function raiseStartingBand(state: GameState, wild: Player, camp: BarbarianCamp): void {
-  const size = startingBandSize(state);
+function raiseStartingBand(state: GameState, wild: Player, camp: BarbarianCamp, fixedBand?: number): void {
+  const size = fixedBand ?? startingBandSize(state);
   for (let raised = 0; raised < size; raised++) {
     const type = barbarianUnitType(state, camp);
     if (type === null) return;
-    if (raiseAtCamp(state, wild, camp, type) === null) return;
+    const unit = raiseAtCamp(state, wild, camp, type);
+    if (!unit) return;
+    // Wave camps appear before the barbarian phase. Their band first acts next turn.
+    if (fixedBand !== undefined) unit.movesLeft = 0;
   }
 }
 

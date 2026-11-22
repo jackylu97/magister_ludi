@@ -61,6 +61,7 @@
  * city again next turn for the same debt.
  */
 
+import { difficultyBuildCost, rivalGrowthAndProduction } from './difficulty';
 import { purchaseDiscountLines } from './purchaseDiscount';
 import {
   type BuildingId,
@@ -3626,6 +3627,8 @@ interface GrowthPercentLine {
  */
 export function explainGrowthPercent(state: GameState, city: City): GrowthPercentLine[] {
   const lines: GrowthPercentLine[] = [];
+  const difficulty = rivalGrowthAndProduction(state, city.ownerId);
+  if (difficulty) lines.push({ source: 'Difficulty', percent: difficulty });
   // What the town holds (`townShelf`, Expansionist batch E12), so an
   // Aqueduct The Cura Aquarum gives a town waters it as a built one does.
   const dry = !cityHasFreshwater(state, city) && !cityIsWatered(townShelf(state, city));
@@ -4299,8 +4302,17 @@ export function explainBuildingCost(
     // above, floored once. See `prototypePriced`.
     const line = prototypeLine(state, playerId, 'building', id, running);
     if (line !== null) lines.push(line);
+    appendDifficultyCost(lines, state, playerId);
   }
   return lines;
+}
+
+/** Apply the seat's cost after the town, card and prototype costs have been priced. */
+function appendDifficultyCost(lines: UnitCostLine[], state: GameState, playerId: number): void {
+  const percent = difficultyBuildCost(state, playerId);
+  if (!percent) return;
+  const added = Math.floor(foldUnitCost(lines) * percent / 100);
+  if (added) lines.push({ source: `Difficulty +${percent}%`, amount: added });
 }
 
 /**
@@ -4431,6 +4443,7 @@ export function explainUnitCost(
   // figure every line above comes to, as the building fold adds it.
   const prototype = prototypeLine(state, playerId, 'unit', type, running);
   if (prototype !== null) lines.push(prototype);
+  appendDifficultyCost(lines, state, playerId);
 
   return lines;
 }

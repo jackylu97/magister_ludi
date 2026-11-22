@@ -245,10 +245,12 @@ describe('the reroll button', () => {
    */
   it('reads the pity off the simulation’s own bag', () => {
     const figure = offerSource('passFigure');
-    expect(figure).toContain("rarityDrawWeight('rare', skips, rarePercent)");
-    expect(figure).toContain("rarityDrawWeight('rare', skips + 1, rarePercent)");
+    expect(figure).toContain("rarityDrawWeight('rare', skips, rarePercent, base)");
+    expect(figure).toContain("rarityDrawWeight('rare', skips + 1, rarePercent, base)");
     expect(offerSource('passNote')).toContain('leans rarer');
-    expect(MAIN).toContain('figure: passFigure(sc.orderSkips, cardRareWeight(game.state, seat))');
+    expect(MAIN).toContain('figure: passFigure(game.state, player)');
+    expect(figure).toContain('const base = humanOrderRarity(state, player)');
+    expect(figure).toContain('const rarePercent = cardRareWeight(state, player.id)');
   });
 });
 
@@ -401,7 +403,7 @@ describe('the pass beside its twin', () => {
     expect(body).toContain("'No rarer cards next draft'");
     expect(body).not.toContain('→');
     // Still the simulation's reading: the knob retuned to nothing prints nothing rarer.
-    expect(body).toContain("rarityDrawWeight('rare', skips + 1, rarePercent)");
+    expect(body).toContain("rarityDrawWeight('rare', skips + 1, rarePercent, base)");
   });
 
   it('stands the answers in the board’s foot, told apart by mark and place', () => {

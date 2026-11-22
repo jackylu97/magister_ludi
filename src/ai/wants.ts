@@ -92,6 +92,7 @@
  * prior, the clamp, the printed note — is the shape above, said once more.
  */
 
+import { humanOrderRarity } from '../sim/difficulty';
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
 // The soldier forecast (batch BP1): how many soldiers the seat's gold can pay
 // for, read the way the disband arm reads it. A leaf with no edge back here.
@@ -2139,7 +2140,7 @@ export function draftPlan(
   const shelf = new Set<OrderId>();
   for (const bag of bags) for (const id of bag) shelf.add(id);
   const score = (id: OrderId): number => inputs.cardWorth(id).total;
-  const hand = expectedBestOrder(bags, sc.orderSkips, score, cardRareWeight(state, player.id));
+  const hand = expectedBestOrder(bags, sc.orderSkips, score, cardRareWeight(state, player.id), humanOrderRarity(state, player));
   const delay = Math.max(0, cost - player.culturePool) / Math.max(1, inputs.cultureRate);
 
   const terms: ValueTerm[] = [

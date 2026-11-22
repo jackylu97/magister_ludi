@@ -301,6 +301,7 @@
  * of five.
  */
 
+import { difficultyStrength } from './difficulty';
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { blockadedWaterAround, blockades } from './blockade';
 import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from './buildingData';
@@ -1101,6 +1102,8 @@ export function explainCityStrength(state: GameState, city: City): CityStrengthL
     // with something, and the floor says with what.
     lines.push({ source: 'Garrison strength', amount: COMBAT.cityMinStrength });
   }
+  const difficulty = difficultyStrength(state, city.ownerId);
+  if (difficulty) lines.push({ source: 'Difficulty', amount: difficulty });
   const citizens = COMBAT.cityStrengthPerPop * city.population;
   if (citizens !== 0) {
     lines.push({
@@ -1971,6 +1974,13 @@ function planCombat(
    * empire's raider there is nothing to be steadier than.
    */
   const defenderOwnerId = defenderId;
+  const attackerDifficulty = difficultyStrength(state, attacker.ownerId);
+  if (attackerDifficulty) bonuses.push({ source: 'Difficulty', side: 'attacker', amount: attackerDifficulty });
+  // A city's base strength already includes its difficulty line.
+  if (target.unit) {
+    const defenderDifficulty = difficultyStrength(state, defenderOwnerId);
+    if (defenderDifficulty) bonuses.push({ source: 'Difficulty', side: 'defender', amount: defenderDifficulty });
+  }
   const wildBonus = RULES.barbarians.combatBonus;
   if (wildBonus !== 0) {
     if (!isBarbarian(state, attacker.ownerId) && isBarbarian(state, defenderOwnerId)) {
