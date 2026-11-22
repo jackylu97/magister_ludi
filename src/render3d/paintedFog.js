@@ -115,8 +115,9 @@ export function createPaintedFog(width, height, onCanopyChange) {
      * something to fade from; at strength 0 the shader reads none.
      *
      * The settler lens uses the same texels for its tints: 4 (fresh water),
-     * 5 (coast) and 6 (dry ground) are hexes that are not set back and take a
-     * tint, and `tint` is the strength of the tints, 0 to 1. The city screen
+     * 5 (coast), 6 (dry ground) and 7 (land that takes no city) are hexes that
+     * are not set back and take a tint, and `tint` is the strength of the
+     * tints, 0 to 1. The city screen
      * leaves `tint` at 0, so its own kinds are never read as tints.
      */
     applySetBack(kinds, at, shade = 1, rim = 1, tint = 0) {
@@ -124,7 +125,7 @@ export function createPaintedFog(width, height, onCanopyChange) {
       if (kinds !== null) {
         for (let cell = 0; cell < cells; cell++) {
           const kind = kinds[cell] ?? 2;
-          const far = kind === 4 ? 85 : kind === 5 ? 170 : kind >= 2 ? 255 : 0;
+          const far = kind === 4 ? 64 : kind === 5 ? 128 : kind === 6 ? 192 : kind >= 2 ? 255 : 0;
           if (light.writeBack(cell, kind === 1 || kind === 2 ? 255 : 0, far)) changed++;
         }
       }

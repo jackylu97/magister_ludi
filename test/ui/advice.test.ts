@@ -19,7 +19,9 @@ import { applyCommand } from '../../src/sim/commands';
 import { emptyTileYield } from '../../src/sim/terrainData';
 import { getTileAt } from '../../src/sim/map';
 import { readSites } from '../../src/sim/readings';
-import { SITE_REASON_LIMIT, adviceFigures, adviceForWork, adviceText } from '../../src/ui/advicePanel';
+import { FIND_LEGEND, SITE_LEGEND, SITE_REASON_LIMIT, adviceFigures, adviceForWork, adviceText, seatKnowsFinds } from '../../src/ui/advicePanel';
+import { EXPLORED } from '../../src/sim/visibility';
+import { tileIndex } from '../../src/sim/map';
 import { recommendedSiteRow, siteReasons } from '../../src/ui/tileReadout';
 import { workerAdvice } from '../../src/ai/bot';
 import { newGame } from '../sim/newGameHelpers';
@@ -95,5 +97,29 @@ describe('worker advice', () => {
     }
     // The same question asked twice has the same answer, and asking changes nothing.
     expect(workerAdvice(state, 0, worker.id, limits)).toEqual(list);
+  });
+});
+
+describe('the lens legends', () => {
+  it('names the red tint in the settler legend, and two things in the explorer legend', () => {
+    expect(SITE_LEGEND.map((row) => row.label)).toEqual(['Fresh water', 'Coast', 'No water', 'Cannot settle']);
+    expect(FIND_LEGEND.map((row) => row.key)).toEqual(['ruin', 'camp']);
+  });
+
+  it('knows when the explorer lens has nothing to draw', () => {
+    const state = newGame({ seed: 11, sizeName: 'duel', players: [{ name: 'A', color: '#a00', isHuman: true }] });
+    state.camps = [];
+    for (const tile of state.map.tiles) delete tile.discovery;
+    expect(seatKnowsFinds(state, 0)).toBe(false);
+    // A camp on a hex the seat has not charted is not known. The same camp on a charted hex is.
+    const far = state.map.tiles.find((tile) => state.visibility[0]![tileIndex(state.map, tile.col, tile.row)] === 0)!;
+    state.camps.push({ col: far.col, row: far.row, foundedTurn: 1 });
+    expect(seatKnowsFinds(state, 0)).toBe(false);
+    state.visibility[0]![tileIndex(state.map, far.col, far.row)] = EXPLORED;
+    expect(seatKnowsFinds(state, 0)).toBe(true);
+    // A ruin on a charted hex is known too.
+    state.camps = [];
+    far.discovery = 'ruins';
+    expect(seatKnowsFinds(state, 0)).toBe(true);
   });
 });

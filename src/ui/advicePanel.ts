@@ -40,9 +40,12 @@ import { improvementDef } from '../sim/improvementData';
 import { aRow } from '../sim/improvements';
 import type { TileYield } from '../sim/terrainData';
 import { TILE_YIELD_KEYS } from '../sim/terrainData';
+import type { GameState } from '../sim/state';
+import { isExploredBy } from '../sim/visibility';
 import { roundYield } from '../sim/yieldFormat';
 
 import { VIEW3D } from '../render3d/lookData';
+import { seatSeesKind } from '../render3d/sites3d';
 
 import { YIELD_NAME } from './figures';
 import { yieldFigureNodes } from './yieldMark';
@@ -137,45 +140,85 @@ export function mountAdvicePanel(host: HTMLElement): AdvicePanel {
 }
 
 /** The settler lens's legend: what each tint means, in the order best to worst. */
-export const SITE_LEGEND: readonly { key: 'fresh' | 'coast' | 'dry' | 'none'; label: string }[] = [
+export const SITE_LEGEND: readonly { key: 'fresh' | 'coast' | 'dry' | 'refused'; label: string }[] = [
   { key: 'fresh', label: 'Fresh water' },
   { key: 'coast', label: 'Coast' },
   { key: 'dry', label: 'No water' },
-  { key: 'none', label: 'No city here' },
+  { key: 'refused', label: 'Cannot settle' },
 ];
 
+/** The explorer lens's legend: the two things it marks. */
+export const FIND_LEGEND: readonly { key: 'ruin' | 'camp'; label: string }[] = [
+  { key: 'ruin', label: 'Ruin' },
+  { key: 'camp', label: 'Barbarian camp' },
+];
+
+/** What the explorer legend says when the seat knows no ruin and no camp. */
+export const NO_FINDS = 'No ruin or camp found yet';
+
+/**
+ * True if the explorer lens has something to draw for this seat: a discovery
+ * the seat can name on a hex it has charted, or a camp on a charted hex. The
+ * same two questions the lens asks (`addDiscoveryWash` in `lens3d.ts`).
+ */
+export function seatKnowsFinds(state: GameState, seat: number): boolean {
+  if (state.camps.some((camp) => isExploredBy(state, seat, camp.col, camp.row))) return true;
+  return state.map.tiles.some(
+    (tile) => tile.discovery !== undefined && seatSeesKind(state, seat, tile.discovery) && isExploredBy(state, seat, tile.col, tile.row),
+  );
+}
+
 export interface LensLegend {
-  show(on: boolean): void;
+  /** Shows the legend of this lens, or none. `empty` is true when the explorer lens has nothing to draw. */
+  show(lens: 'settler' | 'explorer' | null, empty?: boolean): void;
   dispose(): void;
 }
 
 /**
- * The legend of the settler lens: a small card above the lens button, shown
- * while that lens is up. Four rows, a swatch and a word each. The three tints
- * are the lens's own colours from `data/view3d.json`, so the card cannot drift
- * from the board. The fourth swatch is the grey of ground that is set back.
- * Like the advice panel, it takes no pointer events.
+ * The legend of the settler lens and of the explorer lens: a small card above
+ * the lens button, shown while that lens is up. Each row is a swatch and a
+ * word. The swatches are the lens's own colours from `data/view3d.json`, so
+ * the card cannot drift from the board. The explorer card has one more line,
+ * shown in place of its rows when the seat knows no ruin and no camp, so that
+ * an empty board does not look like a broken lens. Like the advice panel, the
+ * card takes no pointer events.
  */
 export function mountLensLegend(host: HTMLElement): LensLegend {
-  const card = document.createElement('div');
-  card.className = 'lens-legend';
-  card.hidden = true;
   const css = (color: number): string => '#' + color.toString(16).padStart(6, '0');
-  const tint = { fresh: VIEW3D.lens.siteFreshColor, coast: VIEW3D.lens.siteCoastColor, dry: VIEW3D.lens.siteDryColor };
-  for (const row of SITE_LEGEND) {
-    const line = document.createElement('div');
-    line.className = 'lens-legend-row';
-    const swatch = document.createElement('span');
-    swatch.className = `lens-legend-swatch is-${row.key}`;
-    if (row.key !== 'none') swatch.style.setProperty('--tint', css(tint[row.key]));
-    const word = document.createElement('span');
-    word.textContent = row.label;
-    line.append(swatch, word);
-    card.append(line);
-  }
-  host.append(card);
+  const card = (rows: readonly { key: string; label: string }[], tint: Record<string, number>): HTMLElement => {
+    const el = document.createElement('div');
+    el.className = 'lens-legend';
+    el.hidden = true;
+    for (const row of rows) {
+      const line = document.createElement('div');
+      line.className = 'lens-legend-row';
+      const swatch = document.createElement('span');
+      swatch.className = `lens-legend-swatch is-${row.key}`;
+      swatch.style.setProperty('--tint', css(tint[row.key]!));
+      const word = document.createElement('span');
+      word.textContent = row.label;
+      line.append(swatch, word);
+      el.append(line);
+    }
+    host.append(el);
+    return el;
+  };
+  const lens = VIEW3D.lens;
+  const sites = card(SITE_LEGEND, { fresh: lens.siteFreshColor, coast: lens.siteCoastColor, dry: lens.siteDryColor, refused: lens.siteRefusedColor });
+  const finds = card(FIND_LEGEND, { ruin: lens.discoveryColor, camp: lens.advice.campTickColor });
+  const none = document.createElement('div');
+  none.className = 'lens-legend-none';
+  none.textContent = NO_FINDS;
+  none.hidden = true;
+  finds.append(none);
+  const set = (el: HTMLElement, hidden: boolean): void => { if (el.hidden !== hidden) el.hidden = hidden; };
   return {
-    show(on) { if (card.hidden === on) card.hidden = !on; },
-    dispose() { card.remove(); },
+    show(which, empty = false) {
+      set(sites, which !== 'settler');
+      set(finds, which !== 'explorer');
+      set(none, !empty);
+      finds.classList.toggle('is-empty', empty);
+    },
+    dispose() { sites.remove(); finds.remove(); },
   };
 }

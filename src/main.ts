@@ -87,7 +87,7 @@ import {
   tileYieldLineNodes,
   tileYieldNodes,
 } from './ui/tileReadout';
-import { type Advice, adviceForWork, mountAdvicePanel, mountLensLegend } from './ui/advicePanel';
+import { type Advice, adviceForWork, mountAdvicePanel, mountLensLegend, seatKnowsFinds } from './ui/advicePanel';
 import { explainDiscoveryOffer } from './sim/discoveries';
 import { unitsOnTile } from './sim/units';
 import {
@@ -2918,9 +2918,20 @@ async function boot(initial: Game | null): Promise<void> {
   // hex the board recommends, for a settler's site or a worker's job.
   const advicePanel = mountAdvicePanel(contextEl.parentElement ?? document.body);
   gameDisposers.push(() => advicePanel.dispose());
-  // The settler lens's legend, above the lens button while that lens is up.
+  // The legend of the settler lens or the explorer lens, above the lens button while that lens is up.
   const lensLegend = mountLensLegend(contextEl.parentElement ?? document.body);
   gameDisposers.push(() => lensLegend.dispose());
+  // "Does the seat know a ruin or a camp" is a sweep of the map, so it is asked once for each state and seat.
+  let findsMemo: { revision: number; seat: number; any: boolean } | null = null;
+  function showLensLegend(): void {
+    const lens = controls.boardLens();
+    if (lens !== 'explorer') { lensLegend.show(lens === 'settler' ? 'settler' : null); return; }
+    const seat = controls.localPlayerId();
+    if (findsMemo === null || findsMemo.revision !== game.state.revision || findsMemo.seat !== seat) {
+      findsMemo = { revision: game.state.revision, seat, any: seatKnowsFinds(game.state, seat) };
+    }
+    lensLegend.show('explorer', !findsMemo.any);
+  }
 
   function adviceUnder(hover: HoverInfo | null): Advice | null {
     if (!hover) return null;
@@ -2935,7 +2946,7 @@ async function boot(initial: Game | null): Promise<void> {
 
   function updateContext(hover: HoverInfo | null): void {
     advicePanel.show(adviceUnder(hover));
-    lensLegend.show(controls.boardLens() === 'settler');
+    showLensLegend();
     /**
      * Terra Incognita: the one place the naming bible's register (design-notes
      * Entry X) is allowed into the readout.
@@ -4358,12 +4369,12 @@ async function boot(initial: Game | null): Promise<void> {
     {
       mode: 'settler',
       label: 'Settler',
-      hint: 'Where a city may go: blue is coastal, green is fresh water',
+      hint: 'Where a city may go, by its water. Light red is land that takes no city',
     },
     {
       mode: 'explorer',
       label: 'Explorer',
-      hint: 'What is left to find: gold is a ruin or a village, red is a camp',
+      hint: 'Ruins and barbarian camps you have found: gold is a ruin, red is a camp',
     },
     // The third, appended rather than inserted — which is all a new lens costs,
     // because the digit hotkey is `lensOrder`'s position rather than a mapping
@@ -5044,7 +5055,7 @@ async function boot(initial: Game | null): Promise<void> {
     lensCurrentEl.textContent =
       current === 'none' ? (yields ? '—' : 'off') : (chosen?.label ?? 'off');
     lensYieldsFlagEl.hidden = !yields;
-    lensLegend.show(controls.boardLens() === 'settler');
+    showLensLegend();
   }
 
   /**

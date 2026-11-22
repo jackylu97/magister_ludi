@@ -23,7 +23,6 @@ import { VIEW3D } from './lookData';
  * - `addCornerTicks`: the ticks over a dark backing, in two weights.
  * - `addPips`: one to three pips on a dark plate at the foot of the hex, for
  *   how good a recommended city site is.
- * - `addEye`: a small eye at the foot of the hex, for a hill that sees far.
  * - `addRuinLight`: a warm glow on the ground and a faint upright shaft, so a
  *   ruin can be found from far out. It is still. The renderer rests when
  *   nothing moves, and a shimmer would keep it awake for the whole time the
@@ -82,8 +81,6 @@ export function cornerTicks(width: number, extra = 0): BufferGeometry {
 
 const disc = (radius: number, steps = 16): BufferGeometry =>
   fan(Array.from({ length: steps }, (_, j) => around(radius, (j / steps) * Math.PI * 2)));
-const oval = (width: number, depth: number, steps = 20): BufferGeometry =>
-  fan(Array.from({ length: steps }, (_, j) => { const p = around(1, (j / steps) * Math.PI * 2); return { x: (p.x * width) / 2, z: (p.z * depth) / 2 }; }));
 /** A bar with round ends, `width` long in x. */
 function pill(width: number, depth: number, steps = 20): BufferGeometry {
   const r = depth / 2, reach = Math.max(0, width / 2 - r);
@@ -92,7 +89,7 @@ function pill(width: number, depth: number, steps = 20): BufferGeometry {
 
 export interface Shapes {
   ticks: BufferGeometry; ticksBack: BufferGeometry; ticksBest: BufferGeometry; ticksBestBack: BufferGeometry;
-  pip: BufferGeometry; plate: BufferGeometry; eyeBack: BufferGeometry; eye: BufferGeometry; pupil: BufferGeometry;
+  pip: BufferGeometry; plate: BufferGeometry;
   ground: PlaneGeometry; upright: PlaneGeometry;
 }
 let shapes: Shapes | null = null;
@@ -101,7 +98,6 @@ function made(): Shapes {
     ticks: cornerTicks(ADVICE.tickWidth), ticksBack: cornerTicks(ADVICE.tickWidth, ADVICE.tickBackingExtra),
     ticksBest: cornerTicks(ADVICE.tickWidthBest), ticksBestBack: cornerTicks(ADVICE.tickWidthBest, ADVICE.tickBackingExtra),
     pip: disc(ADVICE.pipRadius), plate: pill(ADVICE.pipPlateWidth, ADVICE.pipPlateDepth),
-    eyeBack: oval(ADVICE.eyeWidth + 0.05, ADVICE.eyeDepth + 0.05), eye: oval(ADVICE.eyeWidth, ADVICE.eyeDepth), pupil: disc(ADVICE.eyeDepth * 0.3),
     ground: new PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
     // The shaft stands on its foot: the quad's bottom edge is at the origin.
     upright: new PlaneGeometry(1, 1).translate(0, 0.5, 0),
@@ -123,7 +119,7 @@ const at = (x: number, y: number, z: number): Matrix4 => new Matrix4().compose(n
  */
 const ORDER = RENDER_ORDER.onTop + 0.6;
 
-/** Which ticks a hex wears: `best` is heavier, `pale` is the quiet colour of a second choice or a lookout. */
+/** Which ticks a hex wears: `best` is heavier, `pale` is the quiet colour of a second choice. */
 export interface TickStyle { best?: boolean; pale?: boolean; color?: number }
 
 /** The corner ticks of one hex, centred at (x, z) on ground at height y. Two instances. */
@@ -146,14 +142,6 @@ export function addPips(collector: InstanceCollector, x: number, y: number, z: n
   for (let i = 0; i < 3; i++) {
     collector.add(s.pip, [i < count ? ADVICE.tickColor : ADVICE.pipEmptyColor], at(x + (i - 1) * ADVICE.pipGap, y, foot), { onTop: true, order: ORDER + 0.3 });
   }
-}
-
-/** The eye at the foot of a far-seeing hill. Three instances. */
-export function addEye(collector: InstanceCollector, x: number, y: number, z: number): void {
-  const s = made(), foot = z + HEX * ADVICE.eyeOffset;
-  collector.add(s.eyeBack, [ADVICE.eyeInkColor], at(x, y, foot), { onTop: true, order: ORDER + 0.2 });
-  collector.add(s.eye, [ADVICE.eyePaperColor], at(x, y, foot), { onTop: true, order: ORDER + 0.3 });
-  collector.add(s.pupil, [ADVICE.eyeInkColor], at(x, y, foot), { onTop: true, order: ORDER + 0.4 });
 }
 
 /** A soft texture from a rule for its alpha, white everywhere. `v` is 0 at the bottom row. */

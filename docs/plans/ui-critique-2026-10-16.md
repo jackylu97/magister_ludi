@@ -2073,3 +2073,42 @@ Built, not committed by the builder:
   the `strong` argument of `plaqueBackMaterial` and of `addPlaque`, and the
   `.citizen-key-scrim` rule. The plaque styles a, c, d and e stay in the data;
   a style's backing now shows only in the one case above.
+
+## The two lenses: resources, a light red, and camps and ruins only (2026-11-22)
+
+The user: "the settler screen should not hide bonus resources, or other
+resources. could we add a red highlight on land tiles that can't be settled
+on? just a light red tint, not as heavy as before. Also, the scouting
+indicator is confusing, i'm not sure why thats there, explorer lens should just
+highlight barb camps and ruins."
+
+Built, not committed by the builder:
+
+- **The settler lens hides no resource.** Two things hid them. The lens
+  removed the badge of every resource that was not a luxury or a strategic
+  resource (`addResourceMarkers`, the `sitesOnly` argument). It also set back
+  all land that takes no city, at `lens.siteSetBack` 0.85, and the props on
+  that land went dull. Both are removed. The `RevealView` rule is not changed:
+  a resource the seat cannot name stays hidden.
+- **Land that takes no city has a light red tint.** The rule is
+  `foundingErrorAt`, asked for the settler's owner, once for each hex when the
+  lens is built (`siteKindOf` and `settlerGroundKinds` in `lens3d.ts`). The
+  tint is on land only. Water and mountains have none, because nobody expects
+  to settle there and a red sea would be the old lens again. The colour is
+  `lens.siteRefusedColor` `#c4453f` at `lens.siteRefusedOpacity` 0.24, against
+  0.42 for fresh water and coast and 0.36 for dry ground. It goes through the same shader path as the
+  other tints (`SET_BACK_PAINT`, a fourth alpha level). The legend's fourth
+  row is "Cannot settle".
+- **The explorer lens marks two things**: a ruin (gilt ticks, a gilt tint and
+  the light) and a barbarian camp (heavy ticks in `advice.campTickColor`, a
+  tint at `advice.campTintOpacity` 0.3). It follows the sites layer's fog
+  rule. It has a legend with two rows, and one line, "No ruin or camp found
+  yet", when the seat knows neither.
+- **Removed:** the lookout marks (pale ticks and tint on hills and edges, and
+  the eye), `src/sim/lookouts.ts` and its test, `addEye` and its shapes, the
+  gallery stall "a far-seeing hill", and the knobs `siteSetBack`,
+  `paleTintOpacity`, `paleColor`, the five `eye…` knobs and the five
+  `lookout…` knobs.
+- **Open:** red over green grass reads as a warm brown-red. On remembered
+  ground it reads mauve. A camp has no light, so a ruin is easier to find from
+  far out.

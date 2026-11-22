@@ -23369,8 +23369,9 @@ body.compendium-page {
 .advice-panel .advice-warning { color: var(--rubric); }
 .advice-panel .advice-warning { font-weight: 600; }
 
-/* The settler lens's legend (`mountLensLegend` in `src/ui/advicePanel.ts`): a
-   small card above the lens button and End Turn, shown while that lens is up. */
+/* The legend of the settler lens and of the explorer lens (`mountLensLegend` in
+   `src/ui/advicePanel.ts`): a small card above the lens button and End Turn,
+   shown while that lens is up. */
 .lens-legend {
   position: fixed;
   right: 14px;
@@ -23398,10 +23399,16 @@ body.compendium-page {
   height: 12px;
   border: 1px solid var(--ink-line);
   /* The tint over a sample of grass, as the board shows it. */
-  background: linear-gradient(color-mix(in srgb, var(--tint) 62%, transparent), color-mix(in srgb, var(--tint) 62%, transparent)), #7c9a56;
+  background: linear-gradient(color-mix(in srgb, var(--tint) var(--mix, 62%), transparent), color-mix(in srgb, var(--tint) var(--mix, 62%), transparent)), #7c9a56;
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 }
-.lens-legend-swatch.is-none { background: #8d8f86; }
+/* The red is light on the board, so its swatch is light too. */
+.lens-legend-swatch.is-refused { --mix: 46%; }
+.lens-legend-swatch.is-ruin,
+.lens-legend-swatch.is-camp { --mix: 88%; }
+.lens-legend.is-empty .lens-legend-row { display: none; }
+.lens-legend-none[hidden] { display: none; }
+.lens-legend-none { color: var(--ink-soft, var(--ink)); white-space: nowrap; }
 /* The city screen has the bottom of the screen to itself. */
 body:has(.city-mode:not([hidden])) .lens-legend,
 body:has(.city-mode:not([hidden])) .advice-dock { display: none; }

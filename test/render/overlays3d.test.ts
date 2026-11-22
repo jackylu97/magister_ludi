@@ -1081,13 +1081,18 @@ describe('the settler lens tints a site rather than scoring it', () => {
     expect(washOver(state, 6, 4)).toEqual([LENS.siteDryColor]);
   });
 
-  it('draws nothing on ground the rules refuse, and nothing on water', () => {
+  it('draws the light red on land the rules refuse, and nothing on water or a mountain', () => {
     const state = flatState();
     foundCityAt(state, 0, at(state, 5, 4));
-    expect(washOver(state, 5, 4)).toEqual([]);
-    expect(washOver(state, 6, 4)).toEqual([]);
+    expect(washOver(state, 5, 4)).toEqual([LENS.siteRefusedColor]);
+    expect(washOver(state, 6, 4)).toEqual([LENS.siteRefusedColor]);
     at(state, 9, 6).terrain = 'coast';
     expect(washOver(state, 9, 6)).toEqual([]);
+    at(state, 9, 2).terrain = 'mountain';
+    expect(washOver(state, 9, 2)).toEqual([]);
+    // Light: clearly weaker than the three tints of legal ground.
+    expect(LENS.siteRefusedOpacity).toBeLessThan(LENS.siteOpacity * 0.7);
+    expect(LENS.siteRefusedOpacity).toBeLessThan(LENS.siteDryOpacity * 0.7);
   });
 
   it('adds no ring for a resource: the badge names it', () => {

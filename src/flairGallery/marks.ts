@@ -494,13 +494,8 @@ function adviceFamily(into: HTMLElement): void {
   const repaint = [
     stall('ticks, the best hex', '#7c9a56', (ctx, fill) => { ticks(advice.tickColor, true)(ctx, fill); pips(3)(ctx, fill); }),
     stall('ticks, a second hex', '#5f7f4a', (ctx, fill) => { ticks(advice.tickPaleColor, false)(ctx, fill); pips(2)(ctx, fill); }),
-    stall('a camp', '#6d8a52', ticks(VIEW3D.lens.campColor, false)),
+    stall('a camp', '#6d8a52', ticks(advice.campTickColor, true)),
   ];
-  stall('a far-seeing hill', '#8a8f6a', (ctx, fill) => {
-    ticks(advice.tickPaleColor, false)(ctx, fill);
-    const shapes = adviceShapes(), foot = VIEW3D.board.hexRadius * advice.eyeOffset;
-    fill(shapes.eyeBack, css(advice.eyeInkColor), foot); fill(shapes.eye, css(advice.eyePaperColor), foot); fill(shapes.pupil, css(advice.eyeInkColor), foot);
-  });
   stall('the light on a ruin', '#4f6a44', (ctx, fill) => {
     ticks(advice.tickColor, false)(ctx, fill);
     // The two light textures, added over the ground as the board adds them.

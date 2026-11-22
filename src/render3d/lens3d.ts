@@ -121,16 +121,14 @@ import {
 } from '../sim/cities';
 import { type GameMap, type Tile, getTileAt, tileIndex } from '../sim/map';
 import { holySites, pressureTotals } from '../sim/religion';
-import { resourceDef } from '../sim/resourceData';
 import { type GameState, type ReligionId, cityReligion, foundedReligion } from '../sim/state';
 import { readSites } from '../sim/readings';
 import { visibleResourceAt } from '../sim/tech';
-import { explorerTargets } from '../sim/lookouts';
 import { isWaterTerrain } from '../sim/terrainData';
 import { hasFreshWater, isCoastal } from '../sim/water';
 import type { CellRef, LensView } from '../ui/mapView';
 
-import { type TickStyle, addCornerTicks, addEye, addPips, addRuinLight, pipsFor } from './adviceMarks';
+import { type TickStyle, addCornerTicks, addPips, addRuinLight, pipsFor } from './adviceMarks';
 import { type TileIcons, YIELD_KEYS } from './badges3d';
 import { type BoardTileYields, type TileYieldSample, sameTileYieldSamples, seenTileYields } from './boardTileYields';
 export { seenTileYields } from './boardTileYields';
@@ -197,21 +195,27 @@ export function siteTintOf(map: GameMap, tile: Tile): 'fresh' | 'coast' | 'dry' 
 }
 
 /** The numbers `PaintedBoard.applySetBack` takes for the settler lens. */
-export const SITE_GROUND = { none: 0, refused: 1, fresh: 4, coast: 5, dry: 6 } as const;
+export const SITE_GROUND = { none: 0, fresh: 4, coast: 5, dry: 6, refused: 7 } as const;
+
+/** What the settler lens says about one hex, or `null` for a hex it leaves alone. */
+export function siteKindOf(state: GameState, playerId: number, tile: Tile): 'fresh' | 'coast' | 'dry' | 'refused' | null {
+  // Water and mountains have no tint. Nobody expects to settle there, and a red sea would be the old lens again.
+  if (isWaterTerrain(tile.terrain) || tile.terrain === 'mountain') return null;
+  // The reducer's own rule for `foundCity`, asked for this seat: too close to a town, foreign land, and the rest.
+  return foundingErrorAt(state, playerId, tile) !== null ? 'refused' : siteTintOf(state.map, tile);
+}
 
 /**
  * The settler lens's ground for `PaintedBoard.applySetBack`, one number for
- * each cell: a tint for a hex of land that would take a city, "set back" for
- * a hex of land where the rules refuse one, and nothing for every other hex.
- * Water is never tinted or set back: nobody tries to found a city on it, and
- * a darker sea would change the whole board.
+ * each cell: one of three tints for a hex of land that would take a city, a
+ * light red for a hex of land where the rules refuse one, and nothing for
+ * water and mountains. One sweep, when the lens is built.
  */
 export function settlerGroundKinds(state: GameState, playerId: number, tiles: readonly Tile[]): Uint8Array {
   const ground = new Uint8Array(state.map.tiles.length);
   for (const tile of tiles) {
-    if (isWaterTerrain(tile.terrain)) continue;
-    ground[tileIndex(state.map, tile.col, tile.row)] =
-      foundingErrorAt(state, playerId, tile) !== null ? SITE_GROUND.refused : SITE_GROUND[siteTintOf(state.map, tile)];
+    const kind = siteKindOf(state, playerId, tile);
+    if (kind !== null) ground[tileIndex(state.map, tile.col, tile.row)] = SITE_GROUND[kind];
   }
   return ground;
 }
@@ -408,8 +412,6 @@ export class LensLayer {
         icons,
         faceCamera,
         lens.revealResources ?? false,
-        // A settler chooses a site by its luxuries and strategic resources. The other badges only add to a busy board.
-        lens.mode === 'settler',
       );
     }
     if (lens.yields && icons) {
@@ -674,8 +676,6 @@ export class LensLayer {
     icons: TileIcons,
     faceCamera: Quaternion,
     reveal: boolean,
-    /** True under the settler lens: only a luxury or a strategic resource keeps its badge. */
-    sitesOnly = false,
   ): void {
     const upright = new Quaternion();
     const disc = new Vector3(LENS.resourceIconSize, LENS.resourceIconSize, 1);
@@ -691,7 +691,6 @@ export class LensLayer {
       // rule, and the only viewer allowed past it is one that is not a seat.
       const id = reveal ? (tile.resource ?? null) : visibleResourceAt(state, playerId, tile);
       if (id === null) continue;
-      if (sitesOnly && resourceDef(id).kind !== 'luxury' && resourceDef(id).kind !== 'strategic') continue;
       // A town on the tile wears no pin. See the docblock: the *readout* still
       // answers, because that question is asked of the simulation and not of
       // this layer.
@@ -787,8 +786,11 @@ export class LensLayer {
    * is the better fact. The three differ in lightness as well as hue, so that a
    * colour-blind player can tell them apart.
    *
-   * A hex the rules refuse (`foundingErrorAt`, the reducer's own rule) has no
-   * tint. Water has no tint.
+   * Land the rules refuse (`foundingErrorAt`, the reducer's own rule, asked
+   * for the settler's owner) has a fourth tint, a light red, much weaker than
+   * the three (the user, 2026-11-22: "could we add a red highlight on land
+   * tiles that can't be settled on? just a light red tint, not as heavy as
+   * before"). Water and mountains have no tint (`siteKindOf`).
    *
    * **This method is the fallback.** The painted board tints its own ground in
    * its shader, from `settlerGroundKinds` (`SET_BACK_PAINT` in
@@ -798,11 +800,12 @@ export class LensLayer {
    * path, so it gets one decal a hex from here, at the hex's full size so that
    * neighbours meet edge to edge.
    *
-   * The crimson wash, the estuary ring and the luxury ring are gone. A luxury
-   * or a strategic resource keeps its badge under this lens, and the other
-   * resources lose theirs (`addResourceMarkers`).
+   * The heavy crimson wash, the estuary ring and the luxury ring are gone.
+   * Every resource the seat can name keeps its badge under this lens (the
+   * user, 2026-11-22: "the settler screen should not hide bonus resources, or
+   * other resources").
    *
-   * Cost: nothing on the painted board (texels and one uniform). Here, three buckets of one instanced draw each.
+   * Cost: nothing on the painted board (texels and one uniform). Here, four buckets of one instanced draw each.
    */
   private addSiteWash(
     state: GameState,
@@ -813,16 +816,17 @@ export class LensLayer {
   ): void {
     const identity = new Quaternion();
     const scale = new Vector3(1, 1, 1);
+    const ink = { fresh: LENS.siteFreshColor, coast: LENS.siteCoastColor, dry: LENS.siteDryColor, refused: LENS.siteRefusedColor };
+    const strength = { fresh: LENS.siteOpacity, coast: LENS.siteOpacity, dry: LENS.siteDryOpacity, refused: LENS.siteRefusedOpacity };
     for (const tile of tiles) {
-      if (isWaterTerrain(tile.terrain)) continue;
-      if (foundingErrorAt(state, playerId, tile) !== null) continue;
-      const kind = siteTintOf(state.map, tile);
+      const kind = siteKindOf(state, playerId, tile);
+      if (kind === null) continue;
       const centre = cellCenter(tile.col, tile.row);
       collector.add(
         geometry.territory,
-        [kind === 'fresh' ? LENS.siteFreshColor : kind === 'coast' ? LENS.siteCoastColor : LENS.siteDryColor],
+        [ink[kind]],
         new Matrix4().compose(new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift, centre.z), identity, scale),
-        { onTop: true, opacity: kind === 'dry' ? LENS.siteDryOpacity : LENS.siteOpacity },
+        { onTop: true, opacity: strength[kind] },
       );
     }
   }
@@ -1026,20 +1030,15 @@ export class LensLayer {
    * down than what we had before. Could we also do a lighting effect to make
    * the ruins more obvious?"
    *
-   * Four kinds of hex, and nothing else:
+   * Two kinds of hex, and nothing else (the user, 2026-11-22: "the scouting
+   * indicator is confusing, i'm not sure why thats there, explorer lens should
+   * just highlight barb camps and ruins"):
    *
    *   - a discovery the seat can name (`tile.discovery`, which a claim deletes;
    *     gated by `seatSeesKind`, the site layer's own gate): gilt ticks, a gilt
    *     tint, and a still light (`addRuinLight`) so that it shows from far out;
-   *   - a barbarian camp the seat has charted: ticks and a tint in the alert
-   *     colour, and no light;
-   *   - a hill that sees far into uncharted ground: pale ticks, a pale tint
-   *     and a small eye;
-   *   - a hex beside uncharted ground that would reveal the most: pale ticks
-   *     and a pale tint.
-   *
-   * The last two come from `explorerTargets` (`src/sim/lookouts.ts`), a few
-   * hexes at most, and only for a real seat.
+   *   - a barbarian camp the seat has charted: heavy ticks in a bright red and
+   *     a stronger red tint, and no light.
    *
    * The tint is `advice.tintOpacity`, well under the old wash
    * (`discoveryOpacity`, `campOpacity`), and the full ring is gone.
@@ -1084,21 +1083,10 @@ export class LensLayer {
     for (const camp of state.camps) {
       if (!knowsCell(levels, state.map, camp.col, camp.row)) continue;
       const tile = getTileAt(state.map, camp.col, camp.row);
-      if (tile) mark(tile, LENS.campColor, ADVICE.tintOpacity, { color: LENS.campColor });
+      // The camp's mark has the weight of the ruin's: a stronger tint and the heavy ticks, in the hostile colour, and no light.
+      if (tile) mark(tile, LENS.campColor, ADVICE.campTintOpacity, { best: true, color: ADVICE.campTickColor });
     }
 
-    if (viewerId === null || state.players[viewerId] === undefined) return;
-    const targets = explorerTargets(state, viewerId, {
-      sight: ADVICE.lookoutSight, minUnseen: ADVICE.lookoutMinUnseen, spacing: ADVICE.lookoutSpacing,
-      hills: ADVICE.lookoutHills, edges: ADVICE.lookoutEdges,
-    });
-    for (const [list, eye] of [[targets.hills, true], [targets.edges, false]] as const) {
-      for (const { tile } of list) {
-        if (!knowsCell(levels, state.map, tile.col, tile.row)) continue;
-        const at = mark(tile, ADVICE.paleColor, ADVICE.paleTintOpacity, { pale: true });
-        if (at && eye) addEye(collector, at.x, at.y, at.z);
-      }
-    }
   }
 
   /**

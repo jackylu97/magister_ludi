@@ -6,8 +6,8 @@
  *   1. The corner ticks stay inside their hex, and the heavier ticks and the
  *      backing are wider than the plain ones.
  *   2. The pips follow the score beside the best score.
- *   3. The settler lens gives each legal land hex one tint, sets refused land
- *      back, and leaves water alone. Fresh water wins over coast.
+ *   3. The settler lens gives each legal land hex one tint and refused land a
+ *      fourth, and leaves water and mountains alone. Fresh water wins over coast.
  *   4. On the painted board the lens draws no tint decal (the board tints its
  *      own ground). On the toon board it draws one decal for each legal land
  *      hex, at the hex's full size.
@@ -89,7 +89,7 @@ describe('the corner ticks', () => {
 });
 
 describe('the settler lens', () => {
-  it('tints each legal land hex once, sets refused land back and leaves water alone', () => {
+  it('tints each legal land hex once, gives refused land its own tint and leaves water and mountains alone', () => {
     const state = board();
     const ground = settlerGroundKinds(state, 0, state.map.tiles);
     let tinted = 0;
@@ -103,6 +103,11 @@ describe('the settler lens', () => {
     expect(tinted).toBeGreaterThan(0);
     // The town's own hex and its neighbours are refused.
     expect(ground[tileIndex(state.map, 1, 1)]).toBe(SITE_GROUND.refused);
+    // A mountain takes no city, and it has no tint: the red is for land a settler could stand on.
+    const peak = state.map.tiles.find((tile) => tile.terrain === 'grassland' && foundingErrorAt(state, 0, tile) === null)!;
+    peak.terrain = 'mountain';
+    expect(foundingErrorAt(state, 0, peak)).not.toBeNull();
+    expect(settlerGroundKinds(state, 0, state.map.tiles)[tileIndex(state.map, peak.col, peak.row)]).toBe(SITE_GROUND.none);
     // All three tints are on this board, and fresh water wins on a hex that has coast too.
     const kinds = new Set([...ground]);
     for (const kind of [SITE_GROUND.fresh, SITE_GROUND.coast, SITE_GROUND.dry]) expect(kinds.has(kind), String(kind)).toBe(true);
@@ -110,7 +115,7 @@ describe('the settler lens', () => {
     expect(lakeside).toBeDefined();
   });
 
-  it('draws no tint decal on the painted board, and one for each legal land hex on the toon board', () => {
+  it('draws no tint decal on the painted board, and one for each land hex on the toon board', () => {
     const state = board();
     const decals = (shaded: boolean): number => {
       const layer = new LensLayer();
@@ -129,8 +134,9 @@ describe('the settler lens', () => {
       return count;
     };
     expect(decals(true)).toBe(0);
-    const legal = state.map.tiles.filter((tile) => tile.terrain === 'grassland' && foundingErrorAt(state, 0, tile) === null).length;
-    expect(decals(false)).toBe(legal * 3);
+    // Legal land has one of three tints and refused land the fourth.
+    const land = state.map.tiles.filter((tile) => tile.terrain === 'grassland').length;
+    expect(decals(false)).toBe(land * 3);
   });
 
   it('has no settler ground under another lens', () => {

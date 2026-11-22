@@ -231,7 +231,8 @@ export function paintedFogUniforms(light: PaintedLightField): PaintedFogUniforms
     paintedTintFresh: { value: new Color(VIEW3D.lens.siteFreshColor) },
     paintedTintCoast: { value: new Color(VIEW3D.lens.siteCoastColor) },
     paintedTintDry: { value: new Color(VIEW3D.lens.siteDryColor) },
-    paintedTintStrength: { value: new Vector3(VIEW3D.lens.siteOpacity, VIEW3D.lens.siteOpacity, VIEW3D.lens.siteDryOpacity) },
+    paintedTintRefused: { value: new Color(VIEW3D.lens.siteRefusedColor) },
+    paintedTintStrength: { value: new Vector4(VIEW3D.lens.siteOpacity, VIEW3D.lens.siteOpacity, VIEW3D.lens.siteDryOpacity, VIEW3D.lens.siteRefusedOpacity) },
     paintedBackEdge: { value: SET_BACK.edge },
     paintedBackFree: { value: new Vector3(SET_BACK.freeShade, SET_BACK.freeGrey, SET_BACK.freeCool) },
     paintedBackFar: { value: new Vector3(SET_BACK.farShade, SET_BACK.farGrey, SET_BACK.farCool) },
@@ -315,7 +316,8 @@ uniform float paintedTintOn;
 uniform vec3 paintedTintFresh;
 uniform vec3 paintedTintCoast;
 uniform vec3 paintedTintDry;
-uniform vec3 paintedTintStrength;
+uniform vec3 paintedTintRefused;
+uniform vec4 paintedTintStrength;
 uniform float paintedBackEdge;
 uniform vec3 paintedBackFree;
 uniform vec3 paintedBackFar;
@@ -403,11 +405,13 @@ outgoingLight = mix(paintedCool, outgoingLight, paintedLit);
  *
  * The tint reads the alpha channel at the fragment's own hex centre, which is
  * exact, so the edge of a tint is the edge of the hex. On a hex that is not set
- * back (blue 0), alpha is 0 for no tint, one third for fresh water, two thirds
- * for coast and 1 for dry ground. `paintedTintOn` is 0 unless the settler lens
- * is up, so the city screen's own use of alpha (its own hex) is never read as
- * a tint. A hex is either tinted or set back, never both, so no hex is darker
- * because two things were drawn on it.
+ * back (blue 0), alpha is 0 for no tint, a quarter for fresh water, a half for
+ * coast, three quarters for dry ground, and 1 for land that takes no city (a
+ * light red; the user, 2026-11-22: "just a light red tint, not as heavy as
+ * before"). `paintedTintOn` is 0 unless the settler lens is up, so the city
+ * screen's own use of alpha (its own hex) is never read as a tint. The settler
+ * lens sets no hex back, so no hex is darker because two things were drawn on
+ * it.
  */
 const SET_BACK_PAINT = `
 if (paintedBackOn > 0.0 || paintedTintOn > 0.0) {
@@ -436,10 +440,11 @@ if (paintedBackOn > 0.0 || paintedTintOn > 0.0) {
     + paintedRimColor * (paintedRim.z * paintedRimBand);
   if (paintedTintOn > 0.0) {
     float paintedTintKind = paintedOwn.a * (1.0 - step(.5, paintedOwn.b));
-    vec3 paintedTint = paintedTintKind < .5 ? paintedTintFresh : (paintedTintKind < .84 ? paintedTintCoast : paintedTintDry);
-    float paintedTintWeight = paintedTintKind < .5 ? paintedTintStrength.x
-      : (paintedTintKind < .84 ? paintedTintStrength.y : paintedTintStrength.z);
-    outgoingLight = mix(outgoingLight, paintedTint, step(.17, paintedTintKind) * paintedTintWeight * paintedTintOn);
+    vec3 paintedTint = paintedTintKind < .37 ? paintedTintFresh : (paintedTintKind < .63 ? paintedTintCoast
+      : (paintedTintKind < .88 ? paintedTintDry : paintedTintRefused));
+    float paintedTintWeight = paintedTintKind < .37 ? paintedTintStrength.x : (paintedTintKind < .63 ? paintedTintStrength.y
+      : (paintedTintKind < .88 ? paintedTintStrength.z : paintedTintStrength.w));
+    outgoingLight = mix(outgoingLight, paintedTint, step(.12, paintedTintKind) * paintedTintWeight * paintedTintOn);
   }
 }
 `;

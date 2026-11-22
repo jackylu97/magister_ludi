@@ -869,12 +869,11 @@ interface LensSpec {
   /**
    * The settler lens's third tint: legal ground with no water. Its own opacity,
    * because straw over green grass is weaker than the two blues at the same
-   * strength. `siteSetBack` is how far the painted board sets back the land that
-   * takes no city (0 is not at all, 1 is the city screen's full shade).
+   * strength. Land that takes no city has a fourth tint, `siteRefusedColor` at
+   * `siteRefusedOpacity`: a muted red, much lighter than the three.
    */
   siteDryColor: number;
   siteDryOpacity: number;
-  siteSetBack: number;
   /** The marks that mean "we recommend this hex", and the explorer lens's marks. See `LensAdviceSpec`. */
   advice: LensAdviceSpec;
   /**
@@ -1774,8 +1773,8 @@ interface IconSpec {
 }
 
 /**
- * The corner ticks, the pips, the explorer lens's soft tint, the eye of a
- * far-seeing hill and the light on a ruin (`adviceMarks.ts`). Lengths are in
+ * The corner ticks, the pips, the explorer lens's soft tint and the light on a
+ * ruin (`adviceMarks.ts`). Lengths are in
  * board units, with a hex of circumradius `board.hexRadius`.
  *
  * - `tick…`: six short ticks at a hex's corners. `tickLength` is the share of
@@ -1784,12 +1783,11 @@ interface IconSpec {
  * - `pip…`: one to three pips on a dark plate at the foot of a recommended
  *   site. A site within `pipNear` of the best score has three, one within
  *   `pipMid` has two, the others one.
- * - `tintOpacity`, `paleTintOpacity`: the explorer lens's tint inside a ticked
- *   hex (a ruin or a camp, and a lookout).
+ * - `tintOpacity`, `campTintOpacity`: the explorer lens's tint inside a ruin's
+ *   hex and a camp's hex. `campTickColor` is the camp's ticks, a brighter red
+ *   than its tint so that they read on dark forest.
  * - `ruin…`: the still light on a ruin, a glow on the ground and an upright
  *   shaft.
- * - `lookout…`: which hexes the explorer lens marks as worth a walk
- *   (`explorerTargets`, `src/sim/lookouts.ts`).
  * - `worker…`: how many hexes worker advice names, how far it looks, and how
  *   near the best score a second hex must be (`src/ui/workerAdvice.ts`).
  */
@@ -1798,11 +1796,9 @@ export interface LensAdviceSpec {
   tickInset: number; tickLength: number; tickWidth: number; tickWidthBest: number; tickBackingExtra: number;
   pipRadius: number; pipGap: number; pipOffset: number; pipPlateColor: number; pipEmptyColor: number;
   pipPlateWidth: number; pipPlateDepth: number; pipNear: number; pipMid: number;
-  tintOpacity: number; paleTintOpacity: number; paleColor: number; tintScale: number;
-  eyeOffset: number; eyeWidth: number; eyeDepth: number; eyePaperColor: number; eyeInkColor: number;
+  tintOpacity: number; campTintOpacity: number; campTickColor: number; tintScale: number;
   ruinGlowColor: number; ruinGlowSize: number; ruinGlowOpacity: number;
   ruinShaftWidth: number; ruinShaftHeight: number; ruinShaftOpacity: number;
-  lookoutSight: number; lookoutMinUnseen: number; lookoutSpacing: number; lookoutHills: number; lookoutEdges: number;
   workerCount: number; workerWalk: number; workerNear: number;
 }
 
@@ -2869,7 +2865,7 @@ export interface VisualTestSpec {
 
 /** `#rrggbb` (or `rrggbb`) → 0xRRGGBB. Throws loudly rather than rendering black. */
 /** The colours of `lens.advice`, written as #rrggbb in the sheet. */
-const ADVICE_COLOR_KEYS = ['tickColor', 'tickPaleColor', 'tickBackingColor', 'pipPlateColor', 'pipEmptyColor', 'paleColor', 'eyePaperColor', 'eyeInkColor', 'ruinGlowColor'] as const;
+const ADVICE_COLOR_KEYS = ['tickColor', 'tickPaleColor', 'tickBackingColor', 'pipPlateColor', 'pipEmptyColor', 'campTickColor', 'ruinGlowColor'] as const;
 
 function parseColor(value: string, where: string): number {
   const hex = value.startsWith('#') ? value.slice(1) : value;
@@ -3414,7 +3410,6 @@ export const VIEW3D: View3DData = {
     campRingOpacity: viewJson.lens.campRingOpacity,
     siteDryColor: parseColor(viewJson.lens.siteDryColor, 'lens.siteDryColor'),
     siteDryOpacity: viewJson.lens.siteDryOpacity,
-    siteSetBack: viewJson.lens.siteSetBack,
     advice: {
       ...viewJson.lens.advice,
       ...Object.fromEntries(ADVICE_COLOR_KEYS.map((key) => [key, parseColor(viewJson.lens.advice[key], `lens.advice.${key}`)])),

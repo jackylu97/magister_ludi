@@ -117,8 +117,7 @@ function flatState(width = 10, height = 8): GameState {
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
   resetVisibility(state);
-  // The seat has charted the whole board, so the explorer lens has no uncharted ground to point at
-  // (`explorerTargets`), and these tests count only what they place.
+  // The seat has charted the whole board, so these tests count only what they place.
   for (const chart of state.visibility) chart.fill(EXPLORED);
   state.units = [];
   state.cities = [];
@@ -617,8 +616,9 @@ describe('the explorer lens', () => {
     const meshes = layer.group.children.filter(
       (child): child is InstancedMesh => child instanceof InstancedMesh,
     );
-    // The tint and the ticks in each of the two inks, one dark backing that both share, and the two parts of the light.
-    expect(meshes).toHaveLength(7);
+    // The tint, the ticks and the dark backing of each (the camp's ticks are the heavy ones, a shape of their
+    // own), and the two parts of the ruin's light.
+    expect(meshes).toHaveLength(8);
     expect(VIEW3D.lens.campColor).not.toBe(VIEW3D.lens.discoveryColor);
     layer.dispose();
   });
