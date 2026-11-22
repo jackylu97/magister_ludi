@@ -192,7 +192,7 @@ BELIEFS = {
     'warriormonks': 'warriorMonks',
     # The names the enhancer masters arrived with (2026-11-21). `longroads` is The Long Road.
     'crusade': 'theCrusade', 'holyorder': 'holyOrder', 'itinerantpreachers': 'itinerantPreachers',
-    'longroads': 'theLongRoad', 'marvelsofthefaith': 'marvelsOfTheFaith',
+    'longroads': 'theLongRoad', 'longprayer': 'theLongPrayer', 'marvelsofthefaith': 'marvelsOfTheFaith',
     'pilgrimscoin': 'pilgrimsCoin', 'pulseofbells': 'thePulseOfBells',
     'sacredcartography': 'sacredCartography', 'scriptoria': 'theScriptoria',
     'worldchurch': 'worldChurch',

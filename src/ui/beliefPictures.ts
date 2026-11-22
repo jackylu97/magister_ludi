@@ -68,6 +68,7 @@ export const BELIEF_PICTURES: readonly string[] = [
   'theAlmsBox',
   'theCrusade',
   'theEternalFlame',
+  'theLongPrayer',
   'theLongRoad',
   'theMuses',
   'theOpenKitchen',
