@@ -2112,3 +2112,35 @@ Built, not committed by the builder:
 - **Open:** red over green grass reads as a warm brown-red. On remembered
   ground it reads mauve. A camp has no light, so a ruin is easier to find from
   far out.
+
+## The difficulty tier chooser (2026-11-22)
+
+The design is `docs/plans/wagers-and-first-age-options-2026-11-22.md`, Part 3.
+The rules are on the branch `codex/beta-difficulty`. This section is the
+interface only.
+
+- **Where it is.** On the "Draw a world" step, across the full width of the
+  card, between the two columns and the foot. The card is 510 px tall with it.
+  At 1280 by 800 the button "Choose your leader" ends at 636 px.
+- **The steps.** One pill of six numbered steps, 0 to 5, in the counted face.
+  The chosen step is ink. The steps below it carry a light fill, because their
+  rules are in force too. Beside the pill: the tier's name ("Normal" or
+  "Tier 3") and the count ("3 rules in force").
+- **The rule list.** One line for each rule, with the tier's number at the
+  left. The chosen tier's own rule is in full ink, with a vermilion number and
+  the word "new". The older rules are in soft ink. The list is 112 px tall,
+  which holds five lines, and scrolls inside itself when the ladder grows.
+- **The keyboard.** The pill is a radio group. One step is in the tab order.
+  The arrow keys move the tier, and Home and End go to the two ends.
+- **No hover note.** The list already says what each step adds, so a step
+  carries an `aria-label` and nothing else.
+- **In the game.** The game menu has a Difficulty row and the same list, as
+  tall as its rules and hidden at tier 0. The Standings have one line, "played
+  on Tier 3", under the head. The summary line of the world step and a row of
+  the Load sheet add "tier N" above tier 0.
+- **Open points.**
+  - The data has no player-facing line for a rule. The sentences are in
+    `src/ui/difficultyTier.ts` and take their numbers from the data. They
+    should move into `data/difficulty.json` when the rules settle.
+  - In the game menu, which is 235 px wide, a rule takes two or three lines.
+  - The ending page of the Opus close (`opusClose.ts`) does not show the tier.

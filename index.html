@@ -320,6 +320,26 @@
             </div>
           </div>
 
+          <!-- The difficulty tier (src/ui/difficultyTier.ts). A radio group with
+               one step for each tier in data/difficulty.json, built by script so
+               that a new tier in the data needs no edit here. The list under it
+               shows every rule in force and has a fixed height, so the card
+               does not change size when the tier changes. -->
+          <div class="tier-chooser">
+            <div class="tier-head">
+              <span id="tier-label" class="tier-label">Difficulty</span>
+              <div
+                id="tier-steps"
+                class="tier-steps"
+                role="radiogroup"
+                aria-labelledby="tier-label"
+                aria-describedby="tier-name"
+              ></div>
+              <p id="tier-name" class="tier-name" aria-live="polite"></p>
+            </div>
+            <ol id="tier-rules" class="tier-rules" aria-label="Rules in force" tabindex="0"></ol>
+          </div>
+
           <div class="landing-foot">
             <button id="landing-back-title" class="btn btn-quiet" type="button">← Back</button>
             <button id="landing-to-civ" class="btn btn-primary landing-next" type="button">
@@ -718,11 +738,22 @@
           <dd id="info-map">—</dd>
           <dt>Seed</dt>
           <dd id="info-seed">—</dd>
+          <dt>Difficulty</dt>
+          <dd id="info-tier">—</dd>
           <dt>Build</dt>
           <dd id="info-build">—</dd>
           <dt>Saves</dt>
           <dd id="info-save-version">—</dd>
         </dl>
+
+        <!-- The rules of this game's difficulty tier, one line each
+             (src/ui/difficultyTier.ts). Hidden at tier 0, which has none. -->
+        <ol
+          id="info-tier-rules"
+          class="tier-rules menu-tier-rules"
+          aria-label="Difficulty rules in force"
+          hidden
+        ></ol>
 
         <!-- The "Display" settings (shadows, the time of day, stopping the
              motion when idle) are appended here by main.ts, because only the

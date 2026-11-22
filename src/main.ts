@@ -295,6 +295,14 @@ import {
 import { bindScreenHotkeys } from './ui/screenHotkeys';
 import { requireElement } from './ui/dom';
 import { BUILD_STAMP, saveVersionLine } from './ui/buildStamp';
+import {
+  type TierChooser,
+  createTierChooser,
+  drawTierRules,
+  tierConfig,
+  tierLine,
+  tierOf,
+} from './ui/difficultyTier';
 import { createErrorLog } from './ui/errorLog';
 import { type ProblemReportSheet, createProblemReportSheet, reportMoment } from './ui/problemReport';
 
@@ -623,6 +631,8 @@ const combatForecastEl = requireElement<HTMLElement>('combat-forecast');
 
 const infoMap = requireElement<HTMLElement>('info-map');
 const infoSeed = requireElement<HTMLElement>('info-seed');
+const infoTier = requireElement<HTMLElement>('info-tier');
+const infoTierRules = requireElement<HTMLElement>('info-tier-rules');
 const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
 const infoWater = requireElement<HTMLElement>('info-water');
@@ -663,6 +673,13 @@ sizeSelect.value = MAP_SIZE_NAMES.includes(DEFAULT_SIZE) ? DEFAULT_SIZE : MAP_SI
 function seatCount(): number {
   return clampSeats(Number(seatsValue.value));
 }
+
+/**
+ * The difficulty tier chooser. It is built further down, after the save
+ * storage it remembers its tier in. The summary line is first written before
+ * that (`setSeatCount` below), so the holder starts empty and reads as tier 0.
+ */
+let tierChooser: TierChooser | null = null;
 
 /** Winds the stepper to a count, and tells the rest of the card about it. */
 function setSeatCount(seats: number): void {
@@ -850,6 +867,23 @@ const tutorial = createTutorial({
 // for "has been shown", which is what `TutorialProgress` is.
 tutorialToggle.checked = tutorial.enabled();
 tutorialToggle.addEventListener('change', () => tutorial.setEnabled(tutorialToggle.checked));
+
+/**
+ * The difficulty tier chooser on the world step (`src/ui/difficultyTier.ts`).
+ *
+ * It uses the save storage handle, as the tutorial does, to remember the tier
+ * this browser used last. Restart and "Back to the title" show the landing
+ * again without rebuilding it, so the chooser keeps its tier as the seed and
+ * the size keep theirs.
+ */
+tierChooser = createTierChooser({
+  steps: requireElement<HTMLElement>('tier-steps'),
+  name: requireElement<HTMLElement>('tier-name'),
+  rules: requireElement<HTMLElement>('tier-rules'),
+  storage: saveStorage,
+  onChange: () => refreshSummary(),
+});
+refreshSummary();
 
 /**
  * The pamphlet (`src/ui/pamphlet.ts`), the guide's front matter: a five-minute
@@ -1902,6 +1936,7 @@ function refreshSummary(): void {
     seats: seatCount(),
     seed: parseSeed(seedInput.value),
     hotSeat: hotSeatToggle.checked,
+    tier: tierChooser?.tier ?? 0,
   });
 }
 /* The two controls that change under the player's own hand. The seats stepper
@@ -1937,6 +1972,8 @@ function parseSeed(raw: string): number {
 function currentConfig(): GameConfig {
   const seed = parseSeed(seedInput.value);
   return {
+    // The difficulty tier. Tier 0 writes no key (`tierConfig`).
+    ...tierConfig(tierChooser?.tier ?? 0),
     seed,
     sizeName: sizeSelect.value,
     // Whose chairs are filled and which of them a person is sitting in. See
@@ -2893,6 +2930,11 @@ async function boot(initial: Game | null): Promise<void> {
     const size = getMapSize(game.config.sizeName);
     infoMap.textContent = `${size.width} × ${size.height} (${game.config.sizeName})`;
     infoSeed.textContent = String(game.config.seed);
+    // The tier is read from the state, which is where a loaded save keeps it.
+    const tier = tierOf(game.state);
+    infoTier.textContent = tierLine(tier);
+    drawTierRules(infoTierRules, tier);
+    infoTierRules.hidden = tier === 0;
   }
 
   /**

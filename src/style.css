@@ -949,6 +949,162 @@ body {
   color: var(--ink-soft);
 }
 
+/* --- the difficulty tier chooser (src/ui/difficultyTier.ts) ---
+   A row of numbered steps, one for each tier, and the list of rules in force
+   beneath it. The list has a fixed height and scrolls inside itself, so the
+   card keeps its size when the tier changes. */
+.tier-chooser {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: var(--border-thin) solid var(--rule);
+}
+
+.tier-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tier-label {
+  font-family: var(--face-ui);
+  font-size: var(--size-ui);
+  color: var(--ink);
+}
+
+.tier-steps {
+  display: inline-flex;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--parchment);
+}
+
+.tier-step {
+  min-width: 30px;
+  padding: 4px 0;
+  border: 0;
+  border-left: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--size-label);
+  cursor: pointer;
+}
+
+.tier-step:first-child {
+  border-left: 0;
+}
+
+/* A step below the chosen one: its rule is in force too. */
+.tier-step.is-in-force {
+  background: rgba(29, 26, 32, 0.12);
+}
+
+.tier-step[aria-checked='true'] {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.tier-step:hover:not([aria-checked='true']) {
+  background: rgba(29, 26, 32, 0.2);
+}
+
+.tier-step:focus-visible {
+  outline: var(--border-thin) solid var(--vermilion);
+  outline-offset: -3px;
+}
+
+.tier-name {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tier-name-title {
+  font-family: var(--face-name);
+  font-size: var(--size-ui);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.tier-name-count {
+  font-size: var(--size-note);
+  color: var(--ink-soft);
+}
+
+.tier-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.94em;
+  /* A mono space is wide. This closes up a run such as "75 / 20 / 5". */
+  word-spacing: -0.35em;
+}
+
+.tier-rules {
+  height: 112px;
+  margin: 8px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.tier-rules:focus-visible {
+  outline: var(--border-thin) solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+.tier-rule {
+  display: grid;
+  grid-template-columns: 16px fit-content(100%) auto;
+  justify-content: start;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.tier-rule-step {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--size-note);
+  color: var(--ink-faint);
+  text-align: right;
+}
+
+.tier-rule.is-newest {
+  color: var(--ink);
+}
+
+.tier-rule.is-newest .tier-rule-step {
+  color: var(--vermilion);
+  font-weight: 600;
+}
+
+.tier-rule-new {
+  font-family: var(--face-name);
+  font-variant-caps: all-small-caps;
+  font-size: var(--size-label);
+  letter-spacing: 0.04em;
+  color: var(--vermilion);
+}
+
+/* The same list in the game menu: as tall as its rules, and off at tier 0. */
+.menu-tier-rules {
+  height: auto;
+  max-height: 150px;
+  margin-top: 6px;
+}
+
+.menu-tier-rules[hidden] {
+  display: none;
+}
+
 /* Back at one end, the way on at the other — the mockup's foot, and the same
    shape the civ step's own foot takes. */
 .landing-foot {

@@ -1630,6 +1630,32 @@ Eight root pages, all named in `vite.config.ts` inputs:
   steps, which is what keeps `currentConfig` byte-identical for the same
   choices. The step walk, the breadcrumbs, the summary and the keys are
   `src/ui/landingFlow.ts`.
+- **The difficulty tier on the interface** (`src/ui/difficultyTier.ts`,
+  2026-11-22; the rules are "Beta difficulty" at the top of this file):
+  - **The chooser** is on the world step, under the two columns. It is a radio
+    group with one numbered step for each tier, from 0 to the top tier in
+    `data/difficulty.json` (`TOP_TIER`). Tier 0 is the default and is named
+    "Normal". The arrow keys move the tier, and Home and End go to the ends.
+  - **The rule list** under the steps shows every rule in force, one line
+    each, lowest tier first. The chosen tier's own rule is marked "new". The
+    list has a fixed height and scrolls inside itself, so the card keeps its
+    size.
+  - **The words** are `RULE_WORDS`: one sentence for each data row, with every
+    number read from the row. The data has no player-facing line. A row with
+    no sentence shows its key in plain words, and the test fails until it has
+    one.
+  - **The config.** `currentConfig` spreads `tierConfig(tier)`. Tier 0 writes
+    no key, so the default game's config did not change.
+  - **The memory.** `readTier`/`writeTier` keep the last tier under the key
+    `magisterludi:tier:v1`, in the save storage handle the tutorial uses.
+    Restart and "Back to the title" show the same landing, so the chooser
+    keeps its tier.
+  - **In a game**, every surface reads the state (`tierOf(state)`, where a
+    missing tier is 0): the game menu's Difficulty row and its rule list, the
+    line "played on" on the Standings, and the problem report (`game.tier` in
+    the file, "Difficulty:" in the summary). A row of the Load sheet adds
+    "tier N" above tier 0 (`slotSummary`), from the save's label.
+  - `test/ui/difficultyTier.test.ts` holds the list against the data.
 - **The title step** is frame a8 of the Quiet Table boards (approved
   2026-11-19, `docs/plans/ui-critique-2026-10-16.md`):
   - the painting across the full width of the window, with "Magister Ludi" on

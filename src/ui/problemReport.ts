@@ -57,6 +57,7 @@ import { ERROR_LINES, type ReportError } from './errorLog';
 import { createModalShell } from './modalShell';
 import { element } from './dom';
 import './problemReport.css';
+import { tierLine, tierOf } from './difficultyTier';
 
 /** This file's own version, raised if the fields below change shape. */
 export const REPORT_FORMAT = 1;
@@ -98,6 +99,8 @@ export interface ReportGame {
   seed: number;
   size: string;
   seats: number;
+  /** The difficulty tier, from the state. 0 is the standard game. */
+  tier: number;
 }
 
 /** Everything in the file except the save. */
@@ -156,6 +159,7 @@ function gameFacts(state: GameState, game: Game, seat: number): ReportGame {
     seed: game.config.seed,
     size: game.config.sizeName,
     seats: game.config.players.length,
+    tier: tierOf(state),
   };
 }
 
@@ -250,6 +254,8 @@ export function reportSummary(head: ReportHead, filename: string): string {
     `What happened: ${note}`,
     `Build ${head.build.commit}, save version ${head.build.schemaVersion}`,
     `Turn ${game.turn}, seat ${game.seat}: ${game.seatName}${decks}`,
+    // A report file from before the tiers has no tier. It reads as tier 0.
+    `Difficulty: ${tierLine(game.tier ?? 0)}`,
     `On screen: ${screen.join('; ')}`,
     `Report file: ${filename}`,
   ].join('\n');

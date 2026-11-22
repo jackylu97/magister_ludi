@@ -64,6 +64,7 @@ import { YIELD_GLYPH, figure } from './figures';
 import { setYieldText } from './yieldMark';
 import { element } from './dom';
 import { createModalShell } from './modalShell';
+import { tierLine, tierOf } from './difficultyTier';
 import { isGoldenBead } from './beadsScreen';
 import './victoryScreen.css';
 
@@ -132,6 +133,8 @@ interface VictoryPage {
   columns: VictoryColumn[];
   /** What statecraft paid the seat reading the sheet, voice by voice. */
   deck: string;
+  /** The difficulty tier the game was played on, as `tierLine` prints it. */
+  tier: string;
 }
 
 /** What the closing wonder is called, off its own marker and never by name. */
@@ -282,6 +285,7 @@ export function victoryPage(state: GameState, localPlayerId: number): VictoryPag
   const template = columns.find((column) => column.you) ?? columns[0];
   return {
     head: victoryHead(state, localPlayerId),
+    tier: tierLine(tierOf(state)),
     labels: (template?.lines ?? []).map((line) => line.label),
     weights: (template?.lines ?? []).map((line) => line.weight),
     columns,
@@ -444,6 +448,11 @@ export function createVictoryScreen(options: VictoryScreenOptions): VictoryScree
     const page = victoryPage(options.getState(), options.getPlayerId());
     body.replaceChildren();
     body.append(drawHead(page.head));
+    // The tier the game was played on, read from the state.
+    const tier = element('p', 'standings-tier');
+    tier.append(element('span', 'standings-tier-label', 'played on'));
+    tier.append(element('span', 'standings-tier-value', page.tier));
+    body.append(tier);
     body.append(drawTable(page));
     const deck = element('p', 'standings-deck');
     deck.append(element('span', 'standings-deck-label', 'what your statecraft pays'));

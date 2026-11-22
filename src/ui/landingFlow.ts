@@ -65,12 +65,15 @@ export function summaryStrip(reading: {
   seats: number;
   seed: number;
   hotSeat: boolean;
+  /** The difficulty tier. Tier 0, or no tier, adds nothing to the line. */
+  tier?: number;
 }): string {
   const parts = [
     reading.size,
     reading.seats === 1 ? '1 seat' : `${reading.seats} seats`,
     `seed ${reading.seed}`,
   ];
+  if (reading.tier !== undefined && reading.tier > 0) parts.push(`tier ${reading.tier}`);
   if (reading.hotSeat) parts.unshift('hot-seat');
   return parts.join(' · ');
 }

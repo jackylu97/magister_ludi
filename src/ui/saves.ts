@@ -206,6 +206,8 @@ export interface SaveSlot {
    * have to read the save itself for it.
    */
   leader?: string;
+  /** The difficulty tier off the config, when it is above 0. */
+  tier?: number;
 }
 
 /**
@@ -223,6 +225,7 @@ interface SaveMeta {
   sizeName: string;
   seats: number;
   leader?: string;
+  tier?: number;
   /** Length of the stored slot text, packed. */
   chars: number;
 }
@@ -277,7 +280,8 @@ function slotKind(slotId: string): SlotKind {
  */
 export function slotSummary(slot: SaveSlot): string {
   const seats = slot.seats === 1 ? 'solo' : `${slot.seats} seats`;
-  return `Turn ${slot.turn} · ${slot.sizeName} · ${seats} · seed ${slot.seed}`;
+  const tier = slot.tier !== undefined && slot.tier > 0 ? ` · tier ${slot.tier}` : '';
+  return `Turn ${slot.turn} · ${slot.sizeName} · ${seats} · seed ${slot.seed}${tier}`;
 }
 
 /** `rome-turn-42.json` — the name the browser's download picker opens with. */
@@ -373,6 +377,7 @@ function metaOf(payload: SavePayload): Omit<SaveMeta, 'chars'> {
     sizeName: config.sizeName,
     seats: config.players.length,
     ...(typeof leader === 'string' ? { leader } : {}),
+    ...(typeof config.tier === 'number' && config.tier > 0 ? { tier: config.tier } : {}),
   };
 }
 
@@ -525,6 +530,7 @@ export function readSlot(storage: SaveStorage, slotId: string): SaveSlot | null 
     sizeName: typeof config.sizeName === 'string' ? config.sizeName : '—',
     seats: Array.isArray(config.players) ? config.players.length : 0,
     ...(typeof leader === 'string' ? { leader } : {}),
+    ...(typeof config.tier === 'number' && config.tier > 0 ? { tier: config.tier } : {}),
   };
 }
 
@@ -550,6 +556,7 @@ function slotFromMeta(slotId: string, text: string): SaveSlot | null {
     sizeName: typeof meta.sizeName === 'string' ? meta.sizeName : '—',
     seats: typeof meta.seats === 'number' ? meta.seats : 0,
     ...(typeof meta.leader === 'string' ? { leader: meta.leader } : {}),
+    ...(typeof meta.tier === 'number' && meta.tier > 0 ? { tier: meta.tier } : {}),
   };
 }
 
