@@ -109,6 +109,7 @@ import {
   describeBuildingRow,
   describeCard,
   describeEffects,
+  markBuildingKinds,
   keywordMark,
   draftCost,
   drawDoctrineOffer,
@@ -2615,7 +2616,12 @@ describe("a card is what it prints", () => {
           ? orderDef(id).effects
           : orderDef(id).effects.filter((_, at) => !shape.rows.includes(at));
       const body = said.slice((keyword === null ? 0 : 1) + (shape === null ? 0 : 1));
-      const printed = describeEffects(effects);
+      // A card's clause links each kind of building it names (`markBuildingKinds`,
+      // 2026-11-22), so the effects' own words are marked the same way here.
+      const printed = describeEffects(effects).map((clause) => ({
+        ...clause,
+        text: markBuildingKinds(clause.text),
+      }));
       expect(body.slice(0, printed.length), id).toEqual(printed);
     }
   });

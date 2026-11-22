@@ -1110,7 +1110,8 @@ describe('The Flying Money (batch DT7)', () => {
       'In towns with a gold building, your gold buys 25% more when buying units and buildings. Your other towns cannot buy them with gold.',
     );
     // The clause agrees. 'leaves a shut town its faith' holds a faith purchase open.
-    expect(describeCard('theFlyingMoney').map((clause) => clause.text)).toContain(
+    // Read with the marks taken out: "gold building" is a link to the page of that kind since 2026-11-22.
+    expect(describeCard('theFlyingMoney').map((clause) => stripRefs(clause.text))).toContain(
       'units and buildings may be bought with gold only in a city with a gold building',
     );
   });

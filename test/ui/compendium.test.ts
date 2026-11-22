@@ -169,7 +169,13 @@ describe('the shelves', () => {
     const live = BUILDING_IDS.filter((id) => buildingDef(id).retired !== true);
     const wonders = live.filter(isWonder);
     expect(shelf('wonder').entries).toHaveLength(wonders.length + LEAD);
-    expect(shelf('building').entries).toHaveLength(live.length - wonders.length + LEAD);
+    // And the pages of the kinds of building (public works, fortifications,
+    // each category and so on) stand before the buildings since 2026-11-22.
+    const kinds = shelf('building').entries.filter((entry) => entry.group === 'Kinds of building');
+    expect(kinds.length).toBeGreaterThan(0);
+    expect(shelf('building').entries).toHaveLength(
+      live.length - wonders.length + LEAD + kinds.length,
+    );
     expect(shelf('building').entries.length).toBeGreaterThan(LEAD);
     expect(shelf('wonder').entries.length).toBeGreaterThan(LEAD);
   });

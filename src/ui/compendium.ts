@@ -76,6 +76,12 @@ import {
   type BuildingDef,
   type BuildingId,
   buildingDef,
+  type BuildingCategory,
+  buildingRowSupplies,
+  isEmpireBuilding,
+  isFaithHouse,
+  isFortification,
+  isPublicWork,
   isWonder,
 } from '../sim/buildingData';
 import { buildingProductionCost, explainBuildingCost, unitRosterCost } from '../sim/cities';
@@ -109,6 +115,7 @@ import {
   riteDef,
 } from '../sim/religionData';
 import {
+  type CityYieldKey,
   RESOURCE_IDS,
   type ResourceDef,
   type ResourceId,
@@ -121,6 +128,7 @@ import {
   type RefKind,
   SLOT_WORDS,
   anyCardDef,
+  BUILDING_KIND_PAGES,
   cityScopeWords,
   describeBuildingRow,
   describeCard,
@@ -1161,6 +1169,13 @@ function unitEntry(type: UnitTypeId): CompendiumEntry {
         ? ''
         : `${figure(def.rangedStrength)} at a range of ${figure(def.range ?? 0)}`,
     ),
+    // The class a card means when it says "mounted units" or "light
+    // warships": the card describer's own words for the row's class
+    // (`filterWords`), so the page and the card use one name (2026-11-22).
+    ...row(
+      'A card calls these',
+      def.combatStrength > 0 ? filterWords({ modelClass: def.modelClass }) : '',
+    ),
     ...row('Movement points', figure(def.movement)),
     ...row('Sight in hexes', figure(def.sight)),
     ...row('Health', figure(def.maxHp)),
@@ -1375,15 +1390,170 @@ function buildingIsAbsent(id: BuildingId): boolean {
   return def.unlockedByCard === true && cardThatOpens('building', id) === null;
 }
 
-/** The heading a building's page is filed under. See `ROW_GROUPS`. */
+/** The heading a building's page is filed under: its category. See `BUILDING_GROUPS`. */
 function buildingGroup(id: BuildingId): string | undefined {
   const def = buildingDef(id);
   if (buildingIsAbsent(id)) return ABSENT_GROUP;
-  if (def.unlockedByLeader === true) return LEADER_GROUP;
-  // A row the tree also names (the Aqueduct, which a charter technology opens
-  // early) is an ordinary row with a second way in.
-  if (def.unlockedByCard === true && gatingTech('building', id) === null) return CARD_GROUP;
-  return undefined;
+  // A wonder is on its own shelf, which has no headings.
+  if (isWonder(id)) return undefined;
+  // The category is the heading (the user, 2026-11-22). Who opens a row (a
+  // leader, a card) is in its opening line and no longer in a heading.
+  return `${capital(def.category)} buildings`;
+}
+
+/**
+ * **The kinds of building a card can name** (the user, 2026-11-22: "many of
+ * the public works are labelled as food buildings. Could we add sections to
+ * the buildings list that break down the types of building by type ... so that
+ * it's clear what certain orders are referring to", and "also, defensive
+ * buildings").
+ *
+ * A building has one category, and it can be in other kinds too: the Granary
+ * is a food building and a public work. A card names a kind in words ("each
+ * public work", "science buildings", "per fortification"), and a reader could
+ * not tell which buildings count. So each kind has a page that lists its
+ * buildings, every building's entry has a row that names its kinds, and the
+ * card describer links the words to the page (`markBuildingKinds`).
+ *
+ * **Who is in a kind is asked of the function the simulation asks**, never of
+ * a list written here: `BuildingDef.category` (what every category test in
+ * `statecraft/evaluator.ts` compares), `isPublicWork`, `isEmpireBuilding`,
+ * `isFortification`, `isFaithHouse` and `buildingRowSupplies`
+ * (`buildingData.ts`). A building added to the data joins its pages with no
+ * edit here.
+ */
+interface BuildingKind {
+  /** The entry's id on the Buildings shelf, shared with the describers. */
+  page: string;
+  /** The page's name, which is the plural a card uses: "Public works". */
+  name: string;
+  /** The word on a building's own entry: "Public work". */
+  chip: string;
+  /** Is this building of the kind? The simulation's own answer. */
+  has: (id: BuildingId) => boolean;
+  /** How the game decides, in one or two plain sentences. */
+  rule: string;
+}
+
+/** The seven categories, in the order the shelf lists them. */
+const BUILDING_CATEGORIES: readonly BuildingCategory[] = [
+  'food',
+  'production',
+  'gold',
+  'science',
+  'culture',
+  'faith',
+  'military',
+];
+
+/** The six yields a card can count the suppliers of. */
+const SUPPLY_VOICES: readonly CityYieldKey[] = ['food', 'production', 'gold', 'science', 'culture', 'faith'];
+
+function capital(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+/**
+ * Every kind, in the order a reader looks for them: the kinds that cut across
+ * categories first (they are the ones a category label hides), then the seven
+ * categories, then the six "supplies" sets.
+ */
+const BUILDING_KINDS: readonly BuildingKind[] = [
+  {
+    page: BUILDING_KIND_PAGES.publicWork,
+    name: 'Public works',
+    chip: 'Public work',
+    has: isPublicWork,
+    rule: 'A public work also has a category, and most are food buildings. A card that says "public work" means the buildings on this page, whatever their category.',
+  },
+  {
+    page: BUILDING_KIND_PAGES.empireBuilding,
+    name: 'Empire buildings',
+    chip: 'Empire building',
+    has: isEmpireBuilding,
+    rule: `Your empire can build only one of each. ${ref('concept', 'empireBuilding', 'Empire buildings')} has the rules.`,
+  },
+  {
+    page: BUILDING_KIND_PAGES.fortification,
+    name: 'Fortifications',
+    chip: 'Fortification',
+    has: isFortification,
+    rule: 'A fortification is a defensive building: any building that adds to the defence strength of its city or to the health of its city. A card that says "fortification" means these. Most are military buildings, and a building of another category that adds either figure counts too.',
+  },
+  {
+    page: BUILDING_KIND_PAGES.faithHouse,
+    name: 'Faith houses',
+    chip: 'Faith house',
+    has: isFaithHouse,
+    rule: `A faith house is bought with faith and stands only in a city that follows the religion that opened it. ${ref('concept', 'faithHouse', 'Faith house')} has the rules.`,
+  },
+  ...BUILDING_CATEGORIES.map(
+    (category): BuildingKind => ({
+      page: BUILDING_KIND_PAGES.category(category),
+      name: `${capital(category)} buildings`,
+      chip: `${capital(category)} building`,
+      has: (id) => buildingDef(id).category === category,
+      rule: `Each building has one category, and this is the list for ${category}. A card that says "${category} building" means these. A wonder has a category too, and it counts unless the card says "other than wonders".`,
+    }),
+  ),
+  ...SUPPLY_VOICES.map(
+    (voice): BuildingKind => ({
+      page: BUILDING_KIND_PAGES.supplies(voice),
+      name: `Buildings that supply ${voice}`,
+      chip: `Supplies ${voice}`,
+      has: (id) => buildingRowSupplies(id, voice),
+      rule: `A building supplies ${voice} if it is ${withArticle(`${voice} building`)} or if its own row pays ${voice}. This is not the same list as the ${voice} buildings. A card or a luxury can make more buildings supply ${voice} while it lasts; see ${ref('concept', 'supplies', 'Supplies')}.`,
+    }),
+  ),
+];
+
+/** The heading the pages of the kinds stand under, first on the shelf. */
+const KINDS_GROUP = 'Kinds of building';
+
+/** `[[building:setPublicWorks|Public work]]`: a kind, as a link to its page. */
+function kindRef(kind: BuildingKind, words = kind.chip): string {
+  return ref('building', kind.page, words);
+}
+
+/** The buildings a kind's page lists: every row that has a page and is in the game. */
+function kindMembers(kind: BuildingKind): BuildingId[] {
+  return BUILDING_IDS.filter(
+    (id) => buildingDef(id).retired !== true && !buildingIsAbsent(id) && kind.has(id),
+  );
+}
+
+/**
+ * One kind's page. A written page, so the hover card of a card's "public work"
+ * shows its first paragraph, and that paragraph is the list.
+ */
+function buildingKindEntry(kind: BuildingKind): CompendiumEntry {
+  const members = kindMembers(kind);
+  const buildings = members.filter((id) => !isWonder(id)).map(buildingRef);
+  const wonders = members.filter((id) => isWonder(id)).map(buildingRef);
+  const list = buildings.length === 0 ? 'No building is of this kind now.' : `${kind.name}: ${buildings.join(', ')}.`;
+  return {
+    id: compendiumId('building', kind.page),
+    section: 'building',
+    name: kind.name,
+    group: KINDS_GROUP,
+    eyebrow: 'a kind of building',
+    mark: { kind: 'glyph', glyph: '▣' },
+    rows: [],
+    clauses: [
+      { text: list },
+      ...(wonders.length === 0 ? [] : [{ text: `Wonders that count: ${wonders.join(', ')}.` }]),
+      { text: kind.rule },
+    ],
+    flavor: null,
+    written: true,
+  };
+}
+
+/** The kinds a building is of, its category first. The "supplies" sets are a row of their own. */
+function kindsOf(id: BuildingId): BuildingKind[] {
+  const category = BUILDING_KIND_PAGES.category(buildingDef(id).category);
+  const named = BUILDING_KINDS.filter((kind) => !kind.page.startsWith('setSupplies') && kind.has(id));
+  return [...named.filter((kind) => kind.page === category), ...named.filter((kind) => kind.page !== category)];
 }
 
 /**
@@ -1408,9 +1578,7 @@ function buildingMarkers(id: BuildingId): CompendiumClause[] {
   } else if (def.oncePerEmpire === true) {
     out.push({ text: 'Your empire can build only one.', note: true });
   }
-  if (def.publicWork === true) {
-    out.push({ text: 'A public work: a card that counts public works counts this.', note: true });
-  }
+  // A public work says so in its Kinds row, which links the page of the kind.
   if (def.waters === true) {
     out.push({
       text: 'A city not beside fresh water grows more slowly until this is built.',
@@ -1481,7 +1649,18 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   // A row nobody builds has no price to print: a granted row and a placed row
   // are refused by the queue and by the bank (`buildError`, `purchaseError`).
   const unbuildable = def.grantedOnly === true || def.placed === true;
+  const kinds = kindsOf(id);
+  const supplies = BUILDING_KINDS.filter((kind) => kind.page.startsWith('setSupplies') && kind.has(id));
   const rows: CompendiumRow[] = [
+    // Every kind the building is of, each a link to the page that lists the
+    // kind: the Granary says "Public work" as plainly as it says "Food
+    // building". The yields it supplies are a row of their own, because that
+    // is a different question (`buildingRowSupplies`).
+    ...row('Kinds', kinds.map((kind) => kindRef(kind)).join(' · ')),
+    ...row(
+      'Supplies',
+      supplies.map((kind) => kindRef(kind, kind.chip.replace(/^Supplies /, ''))).join(', '),
+    ),
     ...row(
       'Production cost',
       unbuildable ? '' : `${figure(buildingProductionCost(id))}${YIELD_GLYPH.production}`,
@@ -1527,7 +1706,12 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
     section: wonder ? 'wonder' : 'building',
     name: def.name,
     group: buildingGroup(id),
-    eyebrow: `${def.category} ${wonder ? 'wonder' : 'building'}`,
+    // The category first, then each other kind, in plain words: the same list
+    // the Kinds row links.
+    eyebrow: [
+      `${def.category} ${wonder ? 'wonder' : 'building'}`,
+      ...kinds.slice(1).map((kind) => kind.chip.toLowerCase()),
+    ].join(' · '),
     mark: charterWorkIcons[id] ? { kind: 'charter', id } : { kind: 'glyph', glyph: wonder ? '✶' : '▣' },
     rows,
     clauses,
@@ -3079,12 +3263,14 @@ export function compendiumSections(): CompendiumSection[] {
   // leader, the rows a card opens, the works of great people, and last the
   // rows nobody can get. File order inside each, so the book's order is still
   // the data's. An entry's id does not move with its heading.
-  const filed = (entries: CompendiumEntry[]): CompendiumEntry[] =>
+  const filed = (
+    entries: CompendiumEntry[],
+    order: readonly (string | undefined)[] = ROW_GROUPS,
+  ): CompendiumEntry[] =>
     entries
       .map((entry, index) => ({ entry, index }))
       .sort(
-        (a, b) =>
-          ROW_GROUPS.indexOf(a.entry.group) - ROW_GROUPS.indexOf(b.entry.group) || a.index - b.index,
+        (a, b) => order.indexOf(a.entry.group) - order.indexOf(b.entry.group) || a.index - b.index,
       )
       .map(({ entry }) => entry);
   for (const entry of filed(UNIT_TYPE_IDS.map(unitEntry))) push(entry);
@@ -3093,8 +3279,16 @@ export function compendiumSections(): CompendiumSection[] {
   // (`BuildingDef.retired`); a reference that still described a Mint would be
   // teaching a build nobody can make. The reading is the shelf's, not the row's
   // — the data keeps the Mint, the book forgets it.
+  // The Buildings shelf: the pages of the kinds first, then the buildings
+  // under a heading for each category, then the rows that are not in the game.
+  for (const kind of BUILDING_KINDS) push(buildingKindEntry(kind));
+  const buildingOrder: (string | undefined)[] = [
+    undefined,
+    ...BUILDING_CATEGORIES.map((category) => `${capital(category)} buildings`),
+    ABSENT_GROUP,
+  ];
   const buildings = BUILDING_IDS.filter((id) => buildingDef(id).retired !== true).map(buildingEntry);
-  for (const entry of filed(buildings)) push(entry);
+  for (const entry of filed(buildings, buildingOrder)) push(entry);
   for (const entry of filed(IMPROVEMENT_IDS.map(improvementEntry))) push(entry);
   for (const id of RESOURCE_IDS) push(resourceEntry(id));
   // Age order, then the table's own order inside an age: a reference is read

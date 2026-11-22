@@ -462,7 +462,8 @@ describe('The Academy of Gondishapur', () => {
     expect(doctrineDef('theAcademyOfGondishapur' as DoctrineId).text).toContain(
       '+20% production toward empire buildings, except the Magnum Opus and its works.',
     );
-    expect(describeCard('theAcademyOfGondishapur' as DoctrineId).map((clause) => clause.text)).toContain(
+    // Read with the marks taken out: "empire buildings" is a link to the page of that kind since 2026-11-22.
+    expect(describeCard('theAcademyOfGondishapur' as DoctrineId).map((clause) => stripRefs(clause.text))).toContain(
       '+20% production toward empire buildings, except the Magnum Opus and its works',
     );
   });
