@@ -25,17 +25,17 @@ detail of each item.
 | 3 | **A city is coastal when it owns a coast hex within two hexes** | `docs/flags.md`, "A coastal city is a city that owns a coast hex within two hexes" | Buildings and bonuses use the city’s owned coast. Ship production and purchases share one launch rule. See `docs/flags.md`. |
 | 4 | **Purchase discounts as "gold buys more", for gold and for faith** | `docs/flags.md`, "A purchase discount is 'gold buys more'" | Gold and faith buying power add before the price is rounded up. The Commerce sheet lists the revised card text. |
 | 5 | **Fish Traps require their Order** | `docs/flags.md`, "Three rulings from the Compendium review" | The user confirmed the charter gate. The Gathering Grounds opens Fish Traps and orchards in the closed deck pass. |
-| 6 | **Strategic resources may be traded** | the same flag | The sim and bots support strategic loans. Offers, counters and signed treaties name the resource. Claude owns adding the resource picker for composing new offers. |
+| 6 | **Strategic resources may be traded** | the same flag | The sim and bots support strategic loans. Offers, counters and signed treaties name the resource. The diplomacy screen now includes a picker for strategic resources. |
 | 7 | **The Volley Fire** | `docs/plans/scientific-design-pass-2026-11-20.md`, change 59; `docs/flags.md`, "The percentages of combat strength that remain" | Archers can attack twice and lose four strength when defending against a melee attack. The combat preview shows the loss. |
 | 8 | **City site ranking** | section 0.3 below | The site ranking spaces legal settlements, caps the extra hill score and charges for proximity to known camps. |
 | 9 | **Values for worker advice** | section 0.3 below | Selecting a worker requests advice in a background worker. The board marks up to three hexes. The hover panel shows the recommended build or repair and its yield changes. |
-| 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The prior version 252 replay pins were already refreshed at `8886505e`. Both six-player maps reached turn 121 with no warnings or stalls on version 254. The replay tests record their expected results. |
+| 10 | **Test results to record again** | `SCHEMA_VERSION` 252 (the river and naval rules, commit `239af13d`) | The version 256 replay checks passed on `df460761`. Both six-seat maps completed turn 120 without warnings or stalls. |
 | 11 | **The unit kit** | 3.16 | The [spearman and archer comparison](../../art/unit-kit-trial/astra-review/renders/comparison.png) is ready for review. The game keeps its current pieces. |
 | 12 | **Wonders on the board** | 3.13 | One landmark per city. Ages I and II use the Sun Gate, Age III the Lantern Tower, and Age IV the Meridian Dial. [See the city at each age](../../art/terrain-study/wonder-options/wonder-age-progression.jpg). |
 
 **Integration with the playtest branch.** The first 21 November playtest already had Claude’s Fortify until healed command at save version 253. Save version 254 includes that command, the settler and explorer lenses, the worker advice panel, and both deck passes.
 
-**Performance.** See [the turn 73 camera trace](benchmarks/turn73-drag-and-city-shade-2026-11-21.md) and [worker advice timings and integration](benchmarks/turn73-worker-advice-2026-11-21.md). The camera trace measured submission to the graphics driver. The worker reader keeps a cold recommendation off the input thread. Claude owns the remaining UI work for composing strategic resource offers, displaying the original and discounted price together, and offering a gold payment for The Brokers’ Redraw. The approved Scientific and Devotion specs are in sections 0.1a and 0.1b.
+**Performance.** See [the turn 73 camera trace](benchmarks/turn73-drag-and-city-shade-2026-11-21.md) and [worker advice timings and integration](benchmarks/turn73-worker-advice-2026-11-21.md). The camera trace measured submission to the graphics driver. The worker reader keeps a cold recommendation off the input thread. The diplomacy screen now includes the strategic resource picker. Claude owns the UI for showing the original and discounted prices together and offering a gold payment for The Brokers’ Redraw. The approved Scientific and Devotion specs are in sections 0.1a and 0.1b.
 
 ### 0.1a The Scientific deck is ready for the build (2026-11-21)
 
@@ -108,7 +108,8 @@ of the file.
 - Devotion has 105 Orders and 17 Doctrines. Its town rites report their duration, the turns left and the next ten-turn credit.
 - The Gurdwara gives each town three food and three faith. It also gives one science for every three citizens. The House of Worship opens all four faith houses to devout towns.
 - [Smelter, Stone Circle and Cliff Monastery](../../art/terrain-study/improvement-studies/charter-works.jpg) and [Bell Tower, Great Archive and Glasshouse](../../art/terrain-study/improvement-studies/charter-city-buildings.jpg) show the models in the board renderer.
-- Six bots completed 120 turns on both the duel and standard boards. Both games finished without a rejected command or a stalled turn.
+- Six bots completed 120 turns on both the duel and standard boards. Both games finished without a rejected command or a stalled turn. The final state checks were `61fd7db6:346524` (duel) and `d5357525:1097051` (standard).
+- On 2026-11-21, `npm run test:all` passed all 12,949 tests in 613 files on `df460761`. Typechecking and the production build also passed. The version 256 build went to port 5199 for fresh games.
 - Save version 256 uses the new card pools. The wonder marker update also works on version 255.
 
 ### 0.1c A change in the bots and the save version, by the Claude session (2026-11-21)
@@ -117,16 +118,94 @@ The user ruled that plain Fortify wakes for an enemy in sight. The build is
 on `decks` (the commit "A fortified unit asks for orders when an enemy comes
 into its sight").
 
-- **`SCHEMA_VERSION` is 255.** `Unit.untilHealed` became `Unit.dugIn`
-  ('untilHealed' | 'awake'), with `enemyInSight` beside it. The state digests
-  in `aiDigestPins.ts` and the replay pins need a new recording.
+- Version 255 changed `Unit.untilHealed` to `Unit.dugIn` ('untilHealed' | 'awake') and added `enemyInSight`. The version 256 release recorded the expected states in `aiDigestPins.ts` and passed both replay checks.
 - **One edit in `src/ai/bot.ts`** (about 30 lines): the bots pass over an
   awake dug-in piece as they pass over a skipped one. Without it, a bot unit
   that rests to heal would have hidden every blocker behind it in
   `firstBlocker`. The bots' decisions should not change. Eight core bot test
   files pass (`aiBot`, `aiDecision`, `aiDriverRepeat`, `aiEndCheckLoops`,
-  `aiDriverEliminated`, `aiGarrison`, `aiEscorts`, `aiFrozenBoard`). No bot
-  game was run: please run your six-seat maps once and say if a seat stalls.
+  `aiDriverEliminated`, `aiGarrison`, `aiEscorts`, `aiFrozenBoard`). The two six-seat games in the build report above completed without a stall.
+
+### 0.1d City sites should prefer fresh water and the coast (2026-11-22, for your tuning run)
+
+The user: "the city suggestions don't seem very good, it should prioritize
+settling fresh water or coastal." Detail and figures: `docs/flags.md`, "City
+sites should prefer fresh water and the coast".
+
+- A dry city grows 30% slower, and the site score gives fresh water 6 points
+  and the coast 4, against 14 for a luxury. The bots found by the same score
+  (`explainSite`), so they share the fault.
+- Proposed starting figures in `rules.sites`: `freshWater` 24, `coast` 12.
+- They change where every bot founds. Take them at the start of your tuning
+  run, or tune them in it. The user asked that you keep an eye on it.
+
+The [settlement study](benchmarks/settlement-water-2026-11-21/report.md) found that the bot used its own fresh-water value and gave coast no direct bonus. The trial branch `codex/bot-settlement-water` shares those values with the settler lens. With 16 for fresh water and 8 for coast, 17 of 26 new towns had water access, up from 14 of 28. Total score fell 8.5% across the two version 257 maps. The trial remains separate for review.
+
+### 0.1e The first age and the difficulty ladder (ruled 2026-11-22)
+
+The user's words and the full tables: `docs/plans/wagers-and-first-age-options-2026-11-22.md`,
+the section "The user's rulings" at its foot. Both change the bots' world, so
+take them where they fit your tuning run.
+
+**The first age: seven changes, ready to build.**
+1. The Hall of Deeds: +4 culture, +2 authority. Units of yours that fall in
+   combat yield culture equal to 50% of their combat strength. This replaces
+   its present effects.
+2. The Granary unlocks with Agriculture.
+3. Calendar and Fletching swap places, so that plantations come earlier.
+4. The Monument unlocks with Pottery.
+5. The Shrine gives +2 faith and unlocks with Husbandry.
+6. Sailing moves to the first column, with Agriculture as its only
+   prerequisite.
+7. The Lumber Mill unlocks with Bronze Working.
+The tree's lanes are the user's chart, and crossings are pinned as a number:
+say what the moves do to both. Later, not now: age II wants two or three more
+technologies, and the user is toying with one that opens a Mill (+2 food, +2
+gold) and a Public Fountain (+1 happiness, +1 more with a garrison).
+
+**Difficulty: a ladder of fifteen tiers.** Each tier adds ONE rule to all the
+tiers below it (the model is Slay the Spire's Ascension). A tier is part of a
+game's config, so a save replays. No percentage of combat strength: flat
+points only.
+1. Rivals and barbarians gain +2 strength.
+2. Rivals gain +20% growth and production.
+3. When an age closes, barbarians spawn across the map, about as at the
+   start of the game, each camp with two units.
+4. Your buildings and units cost 25% more.
+5. Rare and uncommon Orders appear less often.
+6. Rivals start with one more Warrior and a Settler.
+7. Rivals gain +30% to all yields.
+8. Your Order drafts and great people cost 30% more.
+9. Barbarians and rivals produce units 30% faster.
+10. Rivals gain +50% production toward wonders.
+11. Buying with faith and gold costs you 30% more.
+12. Rivals gain +25% science and culture.
+13. Wager milestones are 40% higher for you.
+14. Technologies cost 30% more.
+15. Rivals gain +50% to all yields.
+The readings are confirmed (2026-11-22): every tier ADDS ("the hardest difficulty
+should be brutal"), so tier 15 puts the rivals at +80% to all yields with tiers 2
+and 12 on top; tier 8 raises the culture price of a draft and the renown price
+of a great person; tier 14 is for the player only. The Shrine gives +2 faith in
+all. Tier 13 waits for the wager rework.
+Smallest version proposed for the beta: a gentler "First game" setting and
+tiers 0 to 5, all open, with no record kept.
+**A question from the user for you:** "Not sure if this is in, but barbarians
+should opt to pillage your improvements before they attack your city." Do
+they today?
+
+**The wagers are NOT ready.** The user's direction: a fixed goal pays a bead,
+leading the world at the age's end pays one more, a seat must stake one, and a
+failed stake has a cost that is still being designed. The Field of Glory is
+cut. Do not build yet. The user wants the format settled, then your tuning
+loop, then the numbers.
+
+**Also merged by the Claude session on 2026-11-22, in your files:** towns
+count all six yields when they place citizens (`docs/flags.md`, "Towns count
+all six yields"): save version 257; `src/ai/bot.ts`, `plan.ts` and `wants.ts`
+read the new sheet; the digests and slow replay pins need a new recording.
+
+The seven first-age changes and the barbarian change are on `codex/first-age-handoff` (save version 258). The Shrine gives two faith per turn in total. The regular Age I tree has no crossings. The whole chart keeps one crossing. Astronomy keeps Calendar as a prerequisite and moves one lane on the Scientific charter shelf to clear Smelting. Raiders fight adjacent soldiers first, then prefer a reachable, visible improvement over attacking a city. The [bot study](../audit/bot-play-2026-11-21.md) uses version 257 and records its replay checks separately.
 
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
@@ -213,6 +292,8 @@ merge. Section 5 lists the files in flight today.
 
 ### 3.1 Bots
 
+**Follow-up.** The shared bot runner, worker planning and the 16-seed comparison are complete. Tests of delaying research decisions and pricing fewer Council candidates found no useful gain to ship. The November 19 report records the results for each item in the original queue below. [Bot performance report](bot-performance-and-cleanup-2026-11-19.md#performance-queue)
+
 **In flight, finished by the Claude session before the handoff:**
 - Stage C1, frozen-board play on one thread. An agent is building it. The
   Claude session gates and lands it, then stops bot work. Astra starts from
@@ -257,6 +338,8 @@ ms per turn varies by about 14 between a cold and a warm run.
 before BP13; audit items T1, T5 and T6; a persona for each leader.
 
 ### 3.2 Rendering speed
+
+**Follow-up.** Close-zoom ground paint has a playable trial and comparison images. The default still uses detailed land up close. The Giant-map trials are on hold. [Trial and measurements](close-terrain-trial-2026-11-19.md)
 
 **In flight, finished by the Claude session before the handoff:**
 - Ground paint texture, stages 1 and 2: plain textured land at the middle and

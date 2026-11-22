@@ -3433,8 +3433,10 @@ The user's comments on the options page are recorded in
   unlocks with Pottery; the Shrine gives +2 faith and unlocks with Husbandry;
   Sailing moves to the first column behind Agriculture alone; the Lumber Mill
   unlocks with Bronze Working.
-- **A difficulty ladder of fifteen tiers,** each adding one rule to all below
-  it. Five readings are open (how the rivals' yield tiers add up, above all).
+- **A difficulty ladder of fifteen tiers.** The user confirmed that all tiers
+  add together. Tier eight raises the culture price of a draft and the renown
+  price of a Great Person. Tier fourteen raises technology costs for humans.
+  The proposed rarity odds for tier five are still a tuning value.
 - **The wagers:** a direction only. Do not build.
 Owner: Astra, after its bot tuning run has a stable baseline; both change the
 bots' world.
