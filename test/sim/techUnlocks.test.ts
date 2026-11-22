@@ -49,6 +49,8 @@ describe('techGifts', () => {
       'warrior',
       'scout',
       'worker',
+      'granary',
+      'hallOfDeeds',
       'farm',
     ]);
     expect(techGifts('agriculture').map((gift) => gift.kind)).toEqual([
@@ -56,14 +58,12 @@ describe('techGifts', () => {
       'unit',
       'unit',
       'unit',
+      'building',
+      'building',
       'improvement',
     ]);
-    // Earthenware is the jar and nothing else after the playtest notes of
-    // 2026-09-03: the plantation moved to the Calendar, where the year being cut
-    // into pieces is what a crop that ripens on a date wants, and the granary is
-    // all the jar hands over.
     expect(techGifts('earthenware').map((gift) => [gift.kind, gift.id])).toEqual([
-      ['building', 'granary'],
+      ['building', 'monument'],
     ]);
     expect(techGifts('calendar').map((gift) => [gift.kind, gift.id])).toEqual([
       ['building', 'hangingGardens'],
@@ -107,28 +107,15 @@ describe('techGifts', () => {
       ['unit', 'compositeBowman'],
       ['building', 'armoury'],
     ]);
-    // Engineering took Construction's works: four buildings, the Circus Maximus
-    // among them, because a wonder is an ordinary building on this list. The
-    // lumbermill left for Siegecraft on 2026-09-03 (user: "lumbermills need to
-    // be way earlier in the tech tree, early age 2 probably"), so Engineering
-    // hands over buildings and nothing else. Three since 2026-09-07, not
-    // four: batch D retired the Baths and the walk now reads the live lists
-    // (`liveUnlocks`), so a retired row is not a gift on any surface.
     expect(techGifts('engineering').map((gift) => gift.kind)).toEqual([
       'building',
       'building',
       'building',
     ]);
-    // And Siegecraft is where it went: the bowman, the walls, then the
-    // improvement and the siege ability with the other verbs. The walls manned
-    // by the townsfolk, the node's own rule from the user's tree pass of
-    // 2026-09-10, were cut in batch TT1 (`docs/flags.md` (iiiiiii)). The reading
-    // order is the same reading order, one age earlier.
     expect(techGifts('siegecraft').map((gift) => [gift.kind, gift.id])).toEqual([
       ['unit', 'bowman'],
       ['building', 'stoneWalls'],
       ['building', 'ironPillar'],
-      ['improvement', 'lumbermill'],
       ['ability', 'siege'],
     ]);
     // Bronzeworking unlocks the Spearman, Barracks, School of Mieza and Walls of Uruk.
@@ -138,6 +125,7 @@ describe('techGifts', () => {
       'building',
       'building',
       'building',
+      'improvement',
       'ability',
       'ability',
     ]);

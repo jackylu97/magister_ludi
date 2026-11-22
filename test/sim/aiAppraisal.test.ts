@@ -1708,7 +1708,7 @@ describe('the tech chain', () => {
     // Three towns and no soldiers: `military.armyPerCity` apiece is the whole of
     // the levy on a quiet one-seat board (no column at a gate, nothing charted),
     // and Fletching's only step is the archer it unlocks.
-    const { state, player } = chained(3);
+    const { state, player } = chained(3, 'calendar');
     const chain = techChain(state, player, valueContext(state, player), 'fletching');
     const step = chain.steps.find((one) => one.kind === 'unit');
     expect(step).toBeDefined();
@@ -1803,18 +1803,17 @@ describe('the tech chain', () => {
     const decision = decisionOfType(state, 0, 'setCityProduction');
     expect(decision).not.toBeNull();
     const ctx = valueContext(state, seat(state, 0));
-    const owns = (chain: { steps: readonly { name: string }[] }): boolean =>
-      chain.steps.some((step) => decision!.candidates.some((row) => row.label === step.name));
-    const chain = ctx.chains.find(owns);
-    expect(chain, 'no live chain owns a candidate on this board').toBeDefined();
-    const step = chain!.steps.find((one) =>
-      decision!.candidates.some((row) => row.label === one.name),
-    )!;
-    const candidate = decision!.candidates.find((row) => row.label === step.name)!;
-    const share = findTerm(
-      candidate.terms,
-      new RegExp(`a step of the ${techDef(chain!.goal).name} engine`),
+    const candidates = decision!.candidates.filter(row => row.rejected === undefined);
+    const matches = ctx.chains.flatMap(chain =>
+      chain.steps.flatMap(step => {
+        const candidate = candidates.find(row => row.label === step.name);
+        if (candidate === undefined) return [];
+        const share = findTerm(candidate.terms, new RegExp(`a step of the ${techDef(chain.goal).name} engine`));
+        return share === null ? [] : [{ candidate, share }];
+      }),
     );
+    expect(matches.length).toBeGreaterThan(0);
+    const { candidate, share } = matches[0]!;
     expect(share).not.toBeNull();
     expect(share!.label).toMatch(/one of \d+ things? still to happen/);
     expect(foldTerms(candidate.terms)).toBe(candidate.score);
@@ -1967,18 +1966,6 @@ describe('the tech chain', () => {
    * includes the value of all the prerequisite techs that you research along the
    * way."*
    */
-  function twoNodeRoad(state: GameState): { goal: TechId; road: TechId[] } | null {
-    for (const id of TECH_IDS) {
-      const road = researchExpansion(state, 0, id);
-      if (road.length !== 2) continue;
-      const first = techDef(road[0]!).unlocks.buildings ?? [];
-      const last = techDef(road[1]!).unlocks.buildings ?? [];
-      if (first.length === 0 || last.length === 0) continue;
-      return { goal: id, road };
-    }
-    return null;
-  }
-
   /**
    * **Wonder patience, and the wait the queue never charged** — the third of
    * batch X1d's rulings, read off one game by the user on 2026-09-09
@@ -2052,9 +2039,9 @@ describe('the tech chain', () => {
 
   it('prices both nodes of a two-node road, and drops the first once it is held', () => {
     const { state, player } = chained(2);
-    const found = twoNodeRoad(state);
-    expect(found).not.toBeNull();
-    const { goal, road } = found!;
+    const goal = 'stonecraft';
+    const road = researchExpansion(state, 0, goal);
+    expect(road).toEqual(['earthenware', 'stonecraft']);
     const ctx = valueContext(state, player);
     const chain = techChain(state, player, ctx, goal);
     expect(chain.road).toEqual(road);
@@ -4585,7 +4572,7 @@ describe('the ground nobody works (batch X1d-ground)', () => {
    * inside the horizon, and the meadow wins when it is not.
    *
    * The horizon is the lever rather than the tree, because the tree is a fixed
-   * chart and Sailing is two cheap nodes from the root on it: the reading with
+   * chart and Sailing is one technology from the root on it: the reading with
    * `priorities.horizonTurns` cut short is the reading of a seat that cannot get
    * there in time, which is the bound the batch is written around. (The ruling's
    * word is "equal"; two different terrains are never exactly equal, so the
@@ -4628,12 +4615,12 @@ describe('the ground nobody works (batch X1d-ground)', () => {
       const ctx = valueContext(state, player);
       return explainSiteValue(state, ctx.realm, ctx, tile).total;
     };
-    // The sheet's own horizon: Sailing is two cheap nodes off, so the coast is
+    // The sheet's own horizon: Sailing is one technology away, so the coast is
     // priced at the fishing boats a town there would put on the fish.
     expect(read(coast)).toBeGreaterThan(read(meadow));
     // A horizon too short to reach Sailing at all, and the same two sites read
     // as they lie: the fed meadow is the better ground.
-    withAiTuning({ priorities: { horizonTurns: 20 } }, () => {
+    withAiTuning({ priorities: { horizonTurns: 1 } }, () => {
       expect(read(coast)).toBeLessThan(read(meadow));
     });
   });

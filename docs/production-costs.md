@@ -159,9 +159,9 @@ reading for a once-per-empire row.
 
 | Row | Name | Size | Column | Hammers |
 |---|---|---|---|---|
-| `monument` | Monument | small | 2 | 39 |
+| `monument` | Monument | small | 1 | 30 |
 | `granary` | Granary | small | 1 | 30 |
-| `shrine` | Shrine | small | 2 | 39 |
+| `shrine` | Shrine | small | 1 | 30 |
 | `barracks` | Barracks | small | 2 | 39 |
 | `stable` | Stable | medium | 3 | 68 |
 | `palisade` | Palisade | medium | 2 | 52 |
@@ -176,7 +176,7 @@ reading for a once-per-empire row.
 | `university` | University | large | 9 | 520 |
 | `cathedral` | Cathedral | large | 8 | 397 |
 | `gildedHall` | Gilded Hall | large | 6 | 231 |
-| `hallOfDeeds` | Hall of Deeds | small | 1 | 30 |
+| `hallOfDeeds` | Hall of Deeds | large | 1 | 60 |
 | `bazaar` | Bazaar | medium | 9 | 346 |
 | `harbour` | Harbour | medium | 5 | 117 |
 | `forum` | Forum | large | 6 | 231 |
@@ -190,7 +190,7 @@ reading for a once-per-empire row.
 | `observatory` | Observatory | large | 11 | 893 |
 | `garden` | Garden | medium | 5 | 117 |
 | `publicBath` | Public Bath | medium | 6 | 154 |
-| `lighthouse` | Lighthouse | small | 2 | 39 |
+| `lighthouse` | Lighthouse | small | 1 | 30 |
 | `townCharter` | Town Charter | small | 8 | 198 |
 | `bank` | Bank | large | 11 | 893 |
 | `bourse` | Bourse | large | 9 | 520 |
@@ -264,10 +264,10 @@ reading for a once-per-empire row.
 | `theOracle` | The Oracle | wonder | 2 | 170 |
 | `stonehenge` | Stonehenge | wonder | 2 | 170 |
 | `pyramids` | The Pyramids | wonder | 2 | 170 |
-| `hangingGardens` | The Hanging Gardens | wonder | 2 | 170 |
+| `hangingGardens` | The Hanging Gardens | wonder | 1 | 130 |
 | `wallsOfUruk` | The Walls of Uruk | wonder | 2 | 170 |
 | `greatZiggurat` | The Great Ziggurat | wonder | 3 | 223 |
-| `greatLighthouse` | The Great Lighthouse | wonder | 2 | 170 |
+| `greatLighthouse` | The Great Lighthouse | wonder | 1 | 130 |
 | `templeOfArtemis` | The Temple of Artemis | wonder | 1 | 130 |
 | `greatLibrary` | The Great Library | wonder | 6 | 501 |
 | `colossus` | The Colossus | wonder | 5 | 382 |
@@ -312,7 +312,7 @@ stays whole. See `docs/trade.md`.
 | `settler` | Settler | settler | 1 | 36 |
 | `worker` | Worker | line | 1 | 14 |
 | `trader` | Trader | engine | 4 | 51 |
-| `archer` | Archer | light | 1 | 18 |
+| `archer` | Archer | light | 2 | 23 |
 | `bowman` | Bowman | line | 5 | 73 |
 | `spearman` | Spearman | line | 2 | 32 |
 | `horseman` | Horseman | heavy | 7 | 181 |
@@ -326,7 +326,7 @@ stays whole. See `docs/trade.md`.
 | `knight` | Knight | heavy | 11 | 534 |
 | `longswordsman` | Longswordsman | heavy | 10 | 408 |
 | `trebuchet` | Trebuchet | engine | 10 | 469 |
-| `trireme` | Trireme | line | 2 | 32 |
+| `trireme` | Trireme | line | 1 | 25 |
 | `bireme` | Bireme | line | 5 | 73 |
 | `galley` | Galley | line | 7 | 126 |
 | `caravel` | Caravel | heavy | 11 | 534 |

@@ -645,7 +645,8 @@ import {
 // Version 255 wakes a plain fortified unit for an enemy in sight; see above.
 // Version 256: the Scientific and Devotion decks change seeded offers, research and rites.
 // Version 257 changes where citizens work; see above.
-export const SCHEMA_VERSION = 257;
+// Version 258 changes the first-age build list, research order and culture from combat losses.
+export const SCHEMA_VERSION = 258;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

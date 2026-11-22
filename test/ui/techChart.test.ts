@@ -208,11 +208,9 @@ describe('the shipped lanes', () => {
     // drawing; the annealer survives as the advisor for where a NEW node
     // should sit, never as the authority over an authored row.
     //
-    // Batch TT2 removed Divine Right and gave Castellany its parent. The
-    // shipped lanes still cross once. The naive deal is 71, not 60, because it
-    // deals the rows in file order and the order of column 9 and column 10
-    // changed.
-    expect(before).toBe(71);
+    // The first-age changes kept one crossing in the authored lanes.
+    // Dealing lanes in file order now produces 69 crossings, down from 71.
+    expect(before).toBe(69);
     expect(after).toBe(1);
     expect(after).toBeLessThan(before);
   });
@@ -354,7 +352,7 @@ describe('a column is a price', () => {
       ageColumns(age).map(({ column, costs }) => [column, costs.length] as const),
     );
     expect(populations).toEqual([
-      [0, 1], [1, 4], [2, 5], [3, 2],
+      [0, 1], [1, 5], [2, 4], [3, 2],
       [4, 4], [5, 5],
       [6, 4], [7, 5], [8, 5], [9, 5],
       // Batch TT2: Divine Right left column 9 and Castellany moved into it

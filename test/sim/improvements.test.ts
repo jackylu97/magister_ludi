@@ -141,20 +141,11 @@ function revealIron(state: GameState): void {
   bumpRevision(state);
 }
 
-/**
- * `workerState` with **Siegecraft** in the seat's hand — the lumbermill's gate.
- *
- * The bench withholds every node whose gift is a *rule* (`improvementHelpers.ts`
- * derives the list rather than naming it), and since the user's tree pass of
- * 2026-09-10 Siegecraft is one: it puts a town's own citizens on its walls. The
- * lumbermill's gate is scenery in the three tests below and its subject in the
- * fourth, so it is opened deliberately here rather than by widening a fixture
- * six files share — the floating gardens' bench one screen down, exactly.
- */
+/** These tests need a worker who can build a lumbermill. */
 function sawyerState(col = 5, row = 4): { state: GameState; worker: Unit } {
   const built = workerState(col, row);
   for (const player of built.state.players) {
-    if (!player.techsResearched.includes('siegecraft')) player.techsResearched.push('siegecraft');
+    if (!player.techsResearched.includes('bronzeWorking')) player.techsResearched.push('bronzeWorking');
   }
   bumpRevision(built.state);
   return built;
@@ -674,16 +665,13 @@ describe('buildImprovement', () => {
       expect(foldTile(tile).production).toBe(before.production + 2);
     });
 
-    it('waits for Siegecraft, and says so last', () => {
+    it('checks Bronzeworking after checking the terrain', () => {
       const { state, worker } = workerState();
       const tile = at(state, 5, 4);
       tile.feature = 'forest';
       state.players[0]!.techsResearched = [];
       bumpRevision(state);
-      // Siegecraft since the playtest notes of 2026-09-03 ("lumbermills need to
-      // be way earlier in the tech tree, early age 2 probably") — it had been
-      // Engineering since the re-cut of 2026-09-02 pruned Construction.
-      const said = 'A lumbermill needs Siegecraft';
+      const said = 'A lumbermill needs Bronzeworking';
       expect(improvementError(state, worker.id, 'lumbermill')).toBe(said);
       // The technology is asked *after* every question about the ground, which
       // is what lets the sheet grey a row rather than hide it.

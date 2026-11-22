@@ -213,18 +213,18 @@ adds 4 culture. Each building pays its full yield at any town size.
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Agriculture | 5 | — | Settler, Warrior, Scout, Worker | — | workers may build Farm |
-| Fletching | 11 | Agriculture | Archer | — | workers may build Camp |
-| Husbandry | 11 | Agriculture | — | **The Temple of Artemis** | workers may build Pasture · reveals **Horses** · reveals **Camels** |
+| Agriculture | 5 | — | Settler, Warrior, Scout, Worker | Granary, Hall of Deeds ‡ | workers may build Farm |
+| Calendar | 11 | Agriculture | — | **The Hanging Gardens**, *Tithes* (project) | workers may build Plantation |
+| Husbandry | 11 | Agriculture | — | **The Temple of Artemis**, Shrine | workers may build Pasture · reveals **Horses** · reveals **Camels** |
 | Mining | 11 | Agriculture | — | **The Great Sphinx** | workers may build Mine · Clear Forest · reveals **Copper** |
-| Pottery | 11 | Agriculture | — | Granary | — |
-| Bronzeworking | 24 | Mining | Spearman | Barracks, The School of Mieza, **The Walls of Uruk** | Clear Jungle · Blessing of Arms |
-| Calendar | 24 | Fletching | — | **The Hanging Gardens**, *Tithes* (project) | workers may build Plantation |
-| Divination | 24 | Husbandry | — | Shrine, **The Oracle**, **The Temple of Thoth** | Rite of the Harvest · Omen Reading |
-| Sailing | 24 | Pottery | Trireme | Lighthouse, **The Great Lighthouse** | workers may build Fishing Boat · Embark |
-| Stonecraft | 24 | Pottery | — | Monument, Palisade, **Stonehenge**, **The Pyramids** | workers may build Quarry · Consecration of the Bounds |
+| Pottery | 11 | Agriculture | — | Monument | — |
+| Sailing | 11 | Agriculture | Trireme | Lighthouse, **The Great Lighthouse** | workers may build Fishing Boat · Embark |
+| Bronzeworking | 24 | Mining | Spearman | Barracks, The School of Mieza, **The Walls of Uruk** | workers may build Lumbermill · Clear Jungle · Blessing of Arms |
+| Divination | 24 | Husbandry | — | **The Oracle**, **The Temple of Thoth** | Rite of the Harvest · Omen Reading |
+| Fletching | 24 | Calendar | Archer | — | workers may build Camp |
+| Stonecraft | 24 | Pottery | — | Palisade, **Stonehenge**, **The Pyramids** | workers may build Quarry · Consecration of the Bounds |
 | The Wheel | 50 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses or Camels)*, Chariot Archer *(needs improved Horses or Camels)* | Stable | — |
-| Writing | 50 | Divination, Calendar | — | Library, **The Great Ziggurat**, *Scholarship* (project) | Open Borders |
+| Writing | 50 | Divination, Fletching | — | Library, **The Great Ziggurat**, *Scholarship* (project) | Open Borders |
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
@@ -242,7 +242,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 | Epic Poetry | 100 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
 | Code of Laws | 190 | Chronology | — | Imperial Throne ‡, **The Library of Ashurbanipal**, **The Weiyang Palace**, *Pageants* (project) | — |
 | Irrigation | 190 | Chronology, Bronze Panoply | — | Garden, **Petra** | workers may build Floating Gardens · renewals: Farm +1🌾 on fresh water |
-| Siegecraft | 190 | Bronze Panoply | Bowman | Stone Walls, **The Iron Pillar** | workers may build Lumbermill · Siege |
+| Siegecraft | 190 | Bronze Panoply | Bowman | Stone Walls, **The Iron Pillar** | Siege |
 | The High Temple | 190 | Epic Poetry | Prophet | Temple, The Basilica, High Temple ‡, **Solomon's Temple** | — |
 | Wayfinding | 190 | Sailing, Currency | Bireme, War Galley | Harbour, **The Colossus** | Sea Legs |
 
@@ -316,7 +316,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | Liturgy | III | 6 | 360 | The High Temple | The Call to Prayer | — | — | — |
 | Ciphers | IV | 9 | 1960 | Horology | The Closed Book | — | — | — |
 | Record-Keeping | III | 6 | 360 | Code of Laws | The Archivists' Charter | — | Great Archive ‡ | — |
-| Astronomy | I | 3 | 50 | Calendar | The Observers' Charter | — | — | The Night Watch |
+| Astronomy | I | 2 | 24 | Calendar | The Observers' Charter | — | — | The Night Watch |
 | Smelting | I | 2 | 24 | Mining | The Smelters' Charter | — | — | workers may build Smelter |
 | Herbals | I | 2 | 24 | Pottery | The Herbalists' Charter | — | — | workers may build Physic Garden |
 | Casting | I | 3 | 50 | Bronzeworking | The Bronze-Founders' Charter | — | — | — |

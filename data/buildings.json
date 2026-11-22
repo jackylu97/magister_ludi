@@ -293,7 +293,7 @@
       "gold": 0,
       "science": 0,
       "culture": 0,
-      "faith": 1,
+      "faith": 2,
       "sciencePerPop": 0
     },
     "barracks": {
@@ -1695,20 +1695,27 @@
     "hallOfDeeds": {
       "name": "Hall of Deeds",
       "category": "culture",
-      "size": "small",
-      "column": 1,
+      "size": "large",
       "food": 0,
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 2,
+      "culture": 4,
       "sciencePerPop": 0,
-      "happiness": 1,
-      "renown": {
-        "family": "artist",
-        "perTurn": 1
-      },
-      "awaitsTech": true
+      "authorityCapacity": 2,
+      "oncePerEmpire": true,
+      "empireBuilding": true,
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "culture",
+            "amount": 0.5,
+            "fromOccasion": "strength"
+          }
+        }
+      ]
     },
     "steleOfLaws": {
       "name": "Stele of Laws",

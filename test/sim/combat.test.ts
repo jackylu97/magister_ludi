@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildingDef } from '../../src/sim/buildingData';
-import { foundCityAt } from '../../src/sim/cities';
+import { buildingProductionCost, foundCityAt } from '../../src/sim/cities';
 import {
   advanceFortify,
   applyCombat,
@@ -26,6 +26,9 @@ import {
 } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { type Game, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { nextDraftCost } from '../../src/sim/statecraft/draft';
+import { buildError } from '../../src/sim/tech';
+import { authorityOf } from '../../src/sim/meters';
 import { greatPersonDef } from '../../src/sim/greatPeopleData';
 import {
   type GameMap,
@@ -43,6 +46,7 @@ import { RULES } from '../../src/sim/rulesData';
 import {
   type City,
   type GameState,
+  addBuilding,
   createUnit,
   realPlayers,
   bumpRevision,
@@ -316,6 +320,42 @@ describe('melee', () => {
     expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
     expect(state.units.find((unit) => unit.id === d.id)).toBeUndefined();
     expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
+  });
+
+  it('lets one starting city build the Hall of Deeds for 30 production', () => {
+    const state = flatState();
+    const city = foundCityAt(state, 0, at(state.map, 2, 2));
+    expect(buildError(state, 0, 'building', 'hallOfDeeds', city)).toBeNull();
+    expect(buildingProductionCost('hallOfDeeds', state, 0)).toBe(30);
+    expect(buildingDef('hallOfDeeds').culture).toBe(4);
+    const before = authorityOf(state, 0);
+    addBuilding(state, city, 'hallOfDeeds');
+    bumpRevision(state);
+    expect(authorityOf(state, 0) - before).toBe(2);
+    const other = foundCityAt(state, 0, at(state.map, 10, 4));
+    expect(buildError(state, 0, 'building', 'hallOfDeeds', other)).toContain(city.name);
+  });
+
+  it.each([true, false])('pays the losing Hall owner half strength when it attacks: %s', (lostAttacker) => {
+    const state = flatState();
+    const city = foundCityAt(state, 0, at(state.map, 10, 4));
+    addBuilding(state, city, 'hallOfDeeds');
+    const other = foundCityAt(state, 1, at(state.map, 13, 2));
+    addBuilding(state, other, 'hallOfDeeds');
+    const lost = createUnit(state, 0, 'spearman', 4, 3);
+    const survivor = createUnit(state, 1, 'knight', 5, 3);
+    lost.hp = 1;
+    bumpRevision(state);
+    const before = state.players.map(player => player.culturePool);
+    const offerCost = nextDraftCost(state, state.players[0]!);
+    const attacker = lostAttacker ? lost : survivor;
+    const target = lostAttacker ? survivor : lost;
+    expect(applyCommand(state, attack(attacker.id, target.col, target.row, attacker.ownerId)).ok).toBe(true);
+    expect(state.units.some(unit => unit.id === lost.id)).toBe(false);
+    const owner = state.players[0]!;
+    expect(owner.statecraft.pendingOrder).toBeDefined();
+    expect(owner.culturePool + offerCost - before[0]!).toBe(unitDef('spearman').combatStrength / 2);
+    expect(state.players[1]!.culturePool).toBe(before[1]);
   });
 
   it('settles a kill’s beakers rather than dropping them in the pool (War Chief)', () => {

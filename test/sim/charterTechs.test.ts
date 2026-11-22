@@ -72,7 +72,7 @@ const COLUMN_COSTS = [5, 11, 24, 50, 100, 190, 360, 650, 1150, 1960, 3250, 5150,
  */
 const PLACEMENT: readonly [TechId, number, TechId, number][] = [
   ['smelting', 1, 'mining', 2],
-  ['astronomy', 1, 'calendar', 3],
+  ['astronomy', 1, 'calendar', 2],
   ['recordKeeping', 3, 'kingship', 6],
   ['ciphers', 4, 'horology', 9],
   ['liturgy', 3, 'theHighTemple', 6],

@@ -542,14 +542,7 @@ describe("a building shipped ahead of its age", () => {
     const dormant = BUILDING_IDS.filter(
       (id) => buildingDef(id).awaitsTech === true,
     );
-    // The Bastion joined the Hall of Deeds on 2026-09-02: tree revision 4 cut
-    // Fortification, the node that opened it, and the user's ruling was to keep
-    // the row as an Æra V candidate rather than re-home it. Same shape as the
-    // Hall's — no node names it, and `buildError` and `purchaseError` refuse it
-    // outright, which is what stops "no tech gates it" reading as "available on
-    // turn one". It left again in Scientific batch S4: Military Architecture,
-    // the Military Engineers' charter technology, opens it now.
-    expect(dormant).toEqual(["hallOfDeeds"]);
+    expect(dormant).toEqual([]);
   });
 
   it("is still refused by both the queue and the treasury when a row asks for it", () => {

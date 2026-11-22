@@ -12265,8 +12265,12 @@
   "gildedHall": [],
   "hallOfDeeds": [
    {
-    "raw": "+1 happiness",
-    "text": "+1 happiness"
+    "raw": "losing a unit grants culture equal to 50% of its strength",
+    "text": "losing a unit grants culture equal to 50% of its strength"
+   },
+   {
+    "raw": "+2 authority capacity",
+    "text": "+2 authority capacity"
    }
   ],
   "steleOfLaws": [

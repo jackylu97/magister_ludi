@@ -1444,9 +1444,10 @@ describe('determinism', () => {
   // Schema 257 changes where citizens work. These seats found no town, so only
   // the save version changed: with 257 printed as 256 the two hashes were
   // 92694eec and 925b8ae6 again.
+  // Version 258 changes first-age rules. Neither seat has a city in these games.
   const RANGED_BOARDS: Record<number, string> = {
-    11: '93910d37:190684',
-    2026: '2cd3709d:190844',
+    11: '5704fece:190684',
+    2026: '21e72c84:190844',
   };
 
   for (const seed of [11, 2026]) {

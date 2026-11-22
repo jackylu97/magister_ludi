@@ -61,8 +61,8 @@
       "name": "Astronomy",
       "glyph": "✶",
       "age": 1,
-      "row": 1,
-      "cost": 50,
+      "row": 2,
+      "cost": 24,
       "prereqs": [
         "calendar"
       ],
@@ -100,6 +100,10 @@
           "warrior",
           "scout",
           "worker"
+        ],
+        "buildings": [
+          "granary",
+          "hallOfDeeds"
         ]
       },
       "flavor": "The first furrow is the first calendar."
@@ -115,7 +119,8 @@
       ],
       "unlocks": {
         "buildings": [
-          "templeOfArtemis"
+          "templeOfArtemis",
+          "shrine"
         ]
       },
       "flavor": "A horse is a decision arrived at sooner."
@@ -125,9 +130,9 @@
       "glyph": "🏹",
       "age": 1,
       "row": 1,
-      "cost": 11,
+      "cost": 24,
       "prereqs": [
-        "agriculture"
+        "calendar"
       ],
       "unlocks": {
         "units": [
@@ -141,9 +146,9 @@
       "glyph": "⛵",
       "age": 1,
       "row": 7,
-      "cost": 24,
+      "cost": 11,
       "prereqs": [
-        "earthenware"
+        "agriculture"
       ],
       "unlocks": {
         "abilities": [
@@ -186,7 +191,7 @@
       ],
       "unlocks": {
         "buildings": [
-          "granary"
+          "monument"
         ]
       },
       "flavor": "What the jar keeps, the year forgets."
@@ -227,7 +232,6 @@
       ],
       "unlocks": {
         "buildings": [
-          "monument",
           "palisade",
           "stonehenge",
           "pyramids"
@@ -243,9 +247,9 @@
       "glyph": "🌙",
       "age": 1,
       "row": 1,
-      "cost": 24,
+      "cost": 11,
       "prereqs": [
-        "fletching"
+        "agriculture"
       ],
       "unlocks": {
         "projects": [
@@ -268,7 +272,6 @@
       ],
       "unlocks": {
         "buildings": [
-          "shrine",
           "theOracle",
           "templeOfThoth"
         ],
@@ -291,7 +294,7 @@
       "cost": 50,
       "prereqs": [
         "divination",
-        "calendar"
+        "fletching"
       ],
       "unlocks": {
         "buildings": [

@@ -536,13 +536,7 @@ describe('tech data integrity', () => {
     }
   });
 
-  it('lets the opening kit build the four starting units and no buildings at all', () => {
-    // Agriculture is the sole starting technology since the Age I rework, and
-    // it is the sole *root*: every game now opens on a real choice between four
-    // second-tier nodes instead of on "Agriculture or Pottery". The kit it
-    // hands over is the four units and nothing else — the granary waits for
-    // Earthenware and the monument for Stonecraft, so a first city's first
-    // build is a decision rather than a formality.
+  it('opens the starting units, Granary and Hall of Deeds with Agriculture', () => {
     const state = newGame(config());
     for (const unit of ['settler', 'warrior', 'scout', 'worker'] as UnitTypeId[]) {
       expect(isUnlocked(state, 0, 'unit', unit), unit).toBe(true);
@@ -555,9 +549,20 @@ describe('tech data integrity', () => {
         expect(buildError(state, 0, 'building', id), id).not.toBeNull();
         continue;
       }
-      expect(isUnlocked(state, 0, 'building', id), id).toBe(false);
+      expect(isUnlocked(state, 0, 'building', id), id).toBe(id === 'granary' || id === 'hallOfDeeds');
     }
     expect(isUnlocked(state, 0, 'unit', 'swordsman')).toBe(false);
+  });
+
+  it('opens the two-faith Shrine at Husbandry and the Monument at Pottery', () => {
+    const state = flatState();
+    expect(BUILDING_UNLOCK_TECH.get('shrine')).toBe('husbandry');
+    expect(buildingDef('shrine').faith).toBe(2);
+    expect(BUILDING_UNLOCK_TECH.get('monument')).toBe('earthenware');
+    expect(improvementDef('lumbermill').requiresTech).toBe('bronzeWorking');
+    expect(isUnlocked(state, 0, 'building', 'shrine')).toBe(false);
+    grant(state, 0, 'husbandry');
+    expect(isUnlocked(state, 0, 'building', 'shrine')).toBe(true);
   });
 
   it('keeps the retired Water Clock closed after Horology opens Chichen Itza', () => {
@@ -665,9 +670,9 @@ describe('star chart layout', () => {
   });
 
   it('reports two techs parked in one cell', () => {
-    // Archery and Animal Husbandry share a column (both hang off Agriculture),
+    // Calendar and Husbandry both follow Agriculture,
     // so moving one into the other's lane is the collision this guards.
-    const def = techDef('fletching');
+    const def = techDef('calendar');
     const authored = def.row;
     try {
       def.row = techDef('husbandry').row;
@@ -722,8 +727,8 @@ describe('star chart layout', () => {
 describe('chooseResearch', () => {
   it('aims the pool at a technology whose prerequisites are met', () => {
     const state = flatState();
-    expect(applyCommand(state, choose(0, 'fletching'))).toEqual({ ok: true });
-    expect(state.players[0]!.researching).toBe('fletching');
+    expect(applyCommand(state, choose(0, 'calendar'))).toEqual({ ok: true });
+    expect(state.players[0]!.researching).toBe('calendar');
     // Nothing was spent: the pool is the progress.
     expect(state.players[0]!.sciencePool).toBe(0);
     expect(state.players[1]!.researching).toBe(null);
@@ -732,14 +737,14 @@ describe('chooseResearch', () => {
   it('refuses byte-identically: unknown, held, repeated, bad mode, finished seat', () => {
     const state = flatState();
     state.players[0]!.sciencePool = 40;
-    applyCommand(state, choose(0, 'fletching'));
+    applyCommand(state, choose(0, 'calendar'));
     const before = snapshotState(state);
 
     for (const bad of [
       choose(0, 'the invention of fire'),
       choose(0, 42 as unknown as string),
       choose(0, 'agriculture'), // already researched — it is in the opening kit
-      choose(0, 'fletching'), // already the current choice
+      choose(0, 'calendar'), // already the current choice
       // A mode this build does not know is refused rather than guessed at: the
       // field arrives from a save or a socket like every other one.
       { ...choose(0, 'mining'), queue: 'front' } as unknown as Command,
@@ -823,18 +828,8 @@ describe('chooseResearch', () => {
 
   it('offers exactly the techs whose prerequisites are met', () => {
     const state = flatState();
-    // The five second-tier nodes, in the tree's own order — the whole of a
-    // player's opening choice now that Agriculture is the only root.
-    // The four second-tier nodes, in the tree's own order — the whole of a
-    // player's opening choice now that Agriculture is the only root. Sailing
-    // left this list in the timeline pass of 2026-09-02: it hangs off
-    // Earthenware now (the jar before the voyage), which is what gives the
-    // second column four nodes instead of five and the third column three.
     expect(availableTechs(state, 0)).toEqual([
-      'husbandry',
-      'fletching',
-      'mining',
-      'earthenware',
+      'husbandry', 'sailing', 'mining', 'earthenware', 'calendar',
     ]);
     // The Wheel is Æra I's other two-parent gate under tree revision 4 — the
     // forge and the mason's yard, not the herd — so both of those have to be in
@@ -873,7 +868,7 @@ describe('advanceResearch', () => {
 
   it('completes at most one technology per player per turn', () => {
     const state = flatState();
-    applyCommand(state, choose(0, 'fletching'));
+    applyCommand(state, choose(0, 'calendar'));
     state.players[0]!.sciencePool = 10_000;
 
     advanceResearch(state);
@@ -908,11 +903,11 @@ describe('advanceResearch', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     // Population alone supplies the full price in the first turn.
-    city.population = Math.ceil(techDef('fletching').cost / RULES.cities.sciencePerPop) + 5;
-    applyCommand(state, choose(0, 'fletching'));
+    city.population = Math.ceil(techDef('calendar').cost / RULES.cities.sciencePerPop) + 5;
+    applyCommand(state, choose(0, 'calendar'));
 
     endRound(state);
-    expect(state.players[0]!.techsResearched).toContain('fletching');
+    expect(state.players[0]!.techsResearched).toContain('calendar');
   });
 });
 
@@ -1627,26 +1622,15 @@ describe('the research queue', () => {
     applyCommand(state, choose(0, 'bronzePanoply'));
     const player = state.players[0]!;
 
-    // `replace` blows the plan away — the player changed their mind.
-    // Sailing hangs off Pottery, so naming it names that too — which is the
-    // expansion this command has always done.
-    expect(applyCommand(state, queue(0, 'sailing', 'replace'))).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['earthenware', 'sailing']);
-
-    // `append` is a second destination, and adds only what is missing.
+    expect(applyCommand(state, queue(0, 'stonecraft', 'replace'))).toEqual({ ok: true });
+    expect(researchPlan(player)).toEqual(['earthenware', 'stonecraft']);
     expect(applyCommand(state, queue(0, 'bronzeWorking', 'append'))).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['earthenware', 'sailing', 'mining', 'bronzeWorking']);
-    expect(applyCommand(state, queue(0, 'stonecraft', 'append'))).toEqual({ ok: true });
-    // Pottery is already in the plan and is not queued twice, so Stonecraft
-    // itself is all that is left to add.
+    expect(researchPlan(player)).toEqual(['earthenware', 'stonecraft', 'mining', 'bronzeWorking']);
+    // Both parents of the Wheel are already in the queue.
+    expect(applyCommand(state, queue(0, 'theWheel', 'append'))).toEqual({ ok: true });
     expect(researchPlan(player)).toEqual([
-      'earthenware',
-      'sailing',
-      'mining',
-      'bronzeWorking',
-      'stonecraft',
+      'earthenware', 'stonecraft', 'mining', 'bronzeWorking', 'theWheel',
     ]);
-    // The head never moved: appending is not choosing.
     expect(player.researching).toBe('earthenware');
   });
 
@@ -1963,32 +1947,28 @@ describe('the shape of the tree', () => {
     expect(Object.fromEntries(ageOne.map((id) => [id, techDef(id).cost]))).toEqual({
       agriculture: 5,
       husbandry: 11,
-      fletching: 11,
+      fletching: 24,
       mining: 11,
       earthenware: 11,
-      sailing: 24,
+      sailing: 11,
       bronzeWorking: 24,
       stonecraft: 24,
       divination: 24,
-      calendar: 24,
+      calendar: 11,
       letters: 50,
       theWheel: 50,
     });
-    // Four lines off the root, each one node long, and then the two gates. The
-    // war line reads Fletching → Calendar, the sky line Husbandry → Divination,
-    // the forge line Mining → Bronzeworking and the jar line Pottery →
-    // Stonecraft (with Sailing beside it as the age's one leaf).
     expect(techDef('husbandry').prereqs).toEqual(['agriculture']);
-    expect(techDef('fletching').prereqs).toEqual(['agriculture']);
+    expect(techDef('fletching').prereqs).toEqual(['calendar']);
     expect(techDef('mining').prereqs).toEqual(['agriculture']);
     expect(techDef('earthenware').prereqs).toEqual(['agriculture']);
     expect(techDef('divination').prereqs).toEqual(['husbandry']);
-    expect(techDef('calendar').prereqs).toEqual(['fletching']);
+    expect(techDef('calendar').prereqs).toEqual(['agriculture']);
     expect(techDef('bronzeWorking').prereqs).toEqual(['mining']);
     expect(techDef('stonecraft').prereqs).toEqual(['earthenware']);
-    expect(techDef('sailing').prereqs).toEqual(['earthenware']);
+    expect(techDef('sailing').prereqs).toEqual(['agriculture']);
     // And the two gates the age closes on.
-    expect(techDef('letters').prereqs).toEqual(['divination', 'calendar']);
+    expect(techDef('letters').prereqs).toEqual(['divination', 'fletching']);
     expect(techDef('theWheel').prereqs).toEqual(['bronzeWorking', 'stonecraft']);
     // The old homes. The Hanging Gardens are the Calendar's again — named in
     // the ruling — and the tithes conversion came back with them off
@@ -2073,9 +2053,7 @@ describe('the shape of the tree', () => {
     // Divine Right left the tree in batch TT2, and Castellany took its parent.
     expect(techDef('feudalism').prereqs).toEqual(['artisanry']);
     expect(techDef('theHolyOffice').prereqs).toEqual(['education']);
-    // The Hall of Deeds left the tree with the re-cut and kept its row, so a
-    // save that raised one replays. Nothing unlocks it and nothing may build it.
-    expect(BUILDING_UNLOCK_TECH.get('hallOfDeeds')).toBeUndefined();
+    expect(BUILDING_UNLOCK_TECH.get('hallOfDeeds')).toBe('agriculture');
   });
 
   it('re-chains the spear line, the melee line and the bow line', () => {
