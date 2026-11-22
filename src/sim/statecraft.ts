@@ -251,6 +251,9 @@ export {
   combatSideWords,
   filterWords,
   describeBuildingRow,
+  // The kinds of building a card can name, as links to their pages.
+  BUILDING_KIND_PAGES,
+  markBuildingKinds,
   // The Compendium's unit page: a row's own combat lines and effects, worded.
   describeUnitRow,
   commissionCounterWords,

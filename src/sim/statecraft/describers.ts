@@ -21,6 +21,7 @@ import {
 import {
 } from '../yields/empire';
 import {
+  type BuildingCategory,
   type BuildingId,
   type CompletionGrant,
   BUILDING_IDS,
@@ -1144,7 +1145,91 @@ export function describeCard(id: CardId): CardClause[] {
     clauses.push({ text: `${missing} — not built yet`, deferred: true });
   }
   if (keyword !== null) clauses.unshift({ text: keywordMark(keyword), keyword });
-  return clauses;
+  return clauses.map((clause) => ({ ...clause, text: markBuildingKinds(clause.text) }));
+}
+
+/**
+ * **The page of each kind of building a card can name** (the user,
+ * 2026-11-22: "add sections to the buildings list that break down the types of
+ * building by type ... so that it's clear what certain orders are referring
+ * to"). Each is an entry on the Compendium's Buildings shelf that lists the
+ * buildings of the kind, and these are the ids of those entries. The
+ * Compendium builds the pages from the same table (`src/ui/compendium.ts`), so
+ * a link made here always has a page.
+ */
+export const BUILDING_KIND_PAGES = {
+  publicWork: 'setPublicWorks',
+  empireBuilding: 'setEmpireBuildings',
+  fortification: 'setFortifications',
+  faithHouse: 'setFaithHouses',
+  category: (category: BuildingCategory): string =>
+    `set${category.charAt(0).toUpperCase()}${category.slice(1)}Buildings`,
+  supplies: (voice: string): string => `setSupplies${voice.charAt(0).toUpperCase()}${voice.slice(1)}`,
+} as const;
+
+/** The seven categories a building row can have, as a card's text names them. */
+const BUILDING_CATEGORY_WORDS: readonly BuildingCategory[] = [
+  'food',
+  'production',
+  'gold',
+  'science',
+  'culture',
+  'faith',
+  'military',
+];
+
+/**
+ * The words a card uses for a kind of building, each with the page it links
+ * to. A fortification is linked only where a card counts fortifications
+ * ("per fortification", "or fortification"): the same word also means a unit
+ * that has dug in, which is not a building.
+ */
+const BUILDING_KIND_PATTERNS: readonly (readonly [RegExp, (found: string) => string])[] = [
+  [/\bpublic works?\b/g, () => BUILDING_KIND_PAGES.publicWork],
+  [/\bempire buildings?\b/g, () => BUILDING_KIND_PAGES.empireBuilding],
+  [/(?<=\b(?:per|or) )fortifications?\b/g, () => BUILDING_KIND_PAGES.fortification],
+  [
+    new RegExp(`\\b(?:${BUILDING_CATEGORY_WORDS.join('|')}) buildings?\\b`, 'g'),
+    (found) => BUILDING_KIND_PAGES.category(found.split(' ')[0] as BuildingCategory),
+  ],
+];
+
+/**
+ * A clause with each kind of building it names made a link to that kind's
+ * page: "per [[building:setPublicWorks|public work]] you hold". The project's
+ * rule is that a named thing in a describer is a keyword ref, and a kind of
+ * building is a named thing a player has to look up.
+ *
+ * Done in one place, on a finished clause, and not in each of the many arms
+ * that word a kind: the words are the same everywhere, so one pass cannot miss
+ * an arm. Text that is already inside a mark is left alone, and the plain
+ * reading (`stripRefs`) is the sentence as it was before.
+ */
+export function markBuildingKinds(text: string): string {
+  const marks = new RegExp(REF_PATTERN.source, 'g');
+  let out = '';
+  let from = 0;
+  const plain = (part: string): string => {
+    let marked = part;
+    for (const [pattern, page] of BUILDING_KIND_PATTERNS) {
+      // A part already marked by an earlier pattern is split again, so that no
+      // pattern reads inside a mark.
+      marked = marked
+        .split(/(\[\[[^\]]*\]\])/)
+        .map((piece) =>
+          piece.startsWith('[[')
+            ? piece
+            : piece.replace(new RegExp(pattern.source, 'g'), (found) => ref('building', page(found), found)),
+        )
+        .join('');
+    }
+    return marked;
+  };
+  for (const found of text.matchAll(marks)) {
+    out += plain(text.slice(from, found.index)) + found[0];
+    from = found.index + found[0].length;
+  }
+  return out + plain(text.slice(from));
 }
 
 /**

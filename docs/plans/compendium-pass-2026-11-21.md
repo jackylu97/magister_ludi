@@ -671,3 +671,109 @@ The first run of fourteen files found eight failures. Five were pins of the
 first two rounds that had never been run: the Units shelf headings, the hover
 card's printer, the "first in the world" phrase on the Technology page, the
 "from the start" count, and the note on the Scout. All are fixed.
+
+## The kinds of building, 2026-11-22 (fourth round)
+
+The user: "in the compendium, many of the public works are labelled as food
+buildings. Could we add sections to the buildings list that break down the
+types of building by type (military, science, faith, production, public work,
+etc) so that it's clear what certain orders are referring to". And then: "also,
+defensive buildings".
+
+### The terms a card uses, and how the game decides each
+
+| Term on a card | How the game decides | The function |
+|---|---|---|
+| "food building", "science building" and the other five | The one `category` of the row. A wonder has a category too and counts, unless the card says "other than wonders" | `buildingDef(id).category`, which every category test in `statecraft/evaluator.ts` compares |
+| "public work" | The marker `publicWork` on the row | `isPublicWork` |
+| "empire building" | The marker `empireBuilding` on the row | `isEmpireBuilding` |
+| "fortification" (the cards' word for a defensive building) | A building that adds to its city's defence strength (`cityStat`) or to its city's health (`cityHp`). No marker: the two facts are the rule | `isFortification` |
+| "faith house" | Bought with faith only, and only in a city that follows the religion | `isFaithHouse` |
+| "building that supplies faith" (and the other five yields) | The row's category is that yield, or the row itself pays that yield. A card or a luxury can add more for an empire | `buildingRowSupplies` for the row; `buildingSupplies` in a game |
+| "wonder" | The marker `wonder` | `isWonder`. The Wonders shelf is the list |
+
+- Cards do not say "defensive building" or "walls" for a set of buildings.
+  They say "fortification" (five clauses). "Walls" appears only in two
+  clauses about a city's defence in a fight, which is not a set of buildings.
+  So there is one page, Fortifications, and it says it is the defensive
+  buildings.
+- "Consecrated" is one building (the Cathedral). Its entry says so, and it has
+  no page.
+- A building a charter or a leader opens says so in its opening line.
+
+### What was built
+
+- **A page for each kind**, first on the Buildings shelf under the heading
+  "Kinds of building": 17 pages. Each lists its buildings as links, then the
+  wonders that count, then the rule. The lists are made by the functions in
+  the table, so a new building joins its pages with no edit.
+- **The buildings are under a heading for each category** (Food, Production,
+  Gold, Science, Culture, Faith, Military), then "Not in the game". The
+  headings for a leader's and a card's buildings went: the opening line says
+  who opens a building.
+- **Each building's entry has a row "Kinds"**, each kind a link to its page
+  ("Food building · Public work"), and a row "Supplies". The eyebrow says the
+  same in plain words ("food building · public work"). A wonder's entry has
+  both rows too.
+- **A card's words are links.** `markBuildingKinds` (`describers.ts`) runs over
+  each finished clause of `describeCard` and makes "public work", "empire
+  building", "per fortification" and the seven "... building" terms a link to
+  the page. 132 clauses of the card text fixture changed in their marked form.
+  The plain words of every clause are the same. "Buildings that supply faith"
+  already links the Supplies page, and that page's kind pages are linked from
+  each building.
+- **The hover card of a term lists what counts**: a kind's page is a written
+  page, and its first paragraph is the list.
+- Anchors: `building:setPublicWorks`, `building:setEmpireBuildings`,
+  `building:setFortifications`, `building:setFaithHouses`,
+  `building:setFoodBuildings` (and the six others), `building:setSuppliesFaith`
+  (and the five others). The ids are in `BUILDING_KIND_PAGES`. Every building's
+  own anchor is the same as before.
+
+### The pages and their sizes
+
+| Page | Anchor | Buildings | Wonders | Buildings listed |
+|---|---|---|---|---|
+| Public works | `building:setPublicWorks` | 7 | 0 | The House of Fire, Granary, Aqueduct, Watermill, Harbour, Public Bath, Cistern. |
+| Empire buildings | `building:setEmpireBuildings` | 15 | 0 | Great Archive, Forum, Caravanserai, Bourse, Chart the Stars, The Turning Heavens, The Alchemical Codex, The Magnum Opus, Mouseion, Aldine Press, Bimaristan, Tophane, Heroic Epic, Imperial Throne, High Temple. |
+| Fortifications | `building:setFortifications` | 5 | 1 | The Basilica, Palisade, Stone Walls, Castle, Bastion. |
+| Faith houses | `building:setFaithHouses` | 4 | 0 | Mosque, Wat, Gurdwara, Dar-e Mehr. |
+| Food buildings | `building:setFoodBuildings` | 8 | 2 | Granary, Aqueduct, Harbour, Public Bath, Town Charter, Glasshouse, Bimaristan, Cistern. |
+| Production buildings | `building:setProductionBuildings` | 7 | 2 | The Bottega, Workshop, Watermill, Forge, The Alchemical Society, Smithy, The Commandery. |
+| Gold buildings | `building:setGoldBuildings` | 8 | 6 | Market, Bazaar, Caravanserai, Lighthouse, Bank, Bourse, Plantation House, The Funduq. |
+| Science buildings | `building:setScienceBuildings` | 13 | 3 | Great Archive, The Hall of Worthies, The Külliye, Library, University, Printing House, Observatory, Chart the Stars, The Turning Heavens, Scriptorium, The House of Learning, The Sankore Madrasa, The Museion. |
+| Culture buildings | `building:setCultureBuildings` | 12 | 6 | Monument, Amphitheater, Forum, Courthouse, Garden, The Magnum Opus, Mouseion, Aldine Press, Assembly Hall, Heroic Epic, Imperial Throne, The Tetzcotzinco. |
+| Faith buildings | `building:setFaithBuildings` | 15 | 11 | Bell Tower, The Basilica, The House of Fire, Shrine, Temple, Cathedral, Chapel, Relic, High Temple, Mosque, Wat, Gurdwara, Dar-e Mehr, The Sainte-Chapelle, Cathedral School. |
+| Military buildings | `building:setMilitaryBuildings` | 13 | 4 | The School of Mieza, The Yam, Barracks, Stable, Palisade, Stone Walls, Armoury, Shipyard, Castle, Bastion, The Alchemical Codex, Tophane, War Hall. |
+| Buildings that supply food | `building:setSuppliesFood` | 13 | 2 | The House of Fire, Granary, Aqueduct, Watermill, Harbour, Public Bath, Lighthouse, Town Charter, Glasshouse, Bimaristan, Cistern, Gurdwara, The House of Learning. |
+| Buildings that supply production | `building:setSuppliesProduction` | 12 | 4 | The Bottega, Workshop, Watermill, Armoury, Harbour, Shipyard, Forge, The Alchemical Society, Smithy, War Hall, Mosque, The Commandery. |
+| Buildings that supply gold | `building:setSuppliesGold` | 9 | 6 | Market, Bazaar, Courthouse, Caravanserai, Lighthouse, Bank, Bourse, Plantation House, The Funduq. |
+| Buildings that supply science | `building:setSuppliesScience` | 15 | 4 | Great Archive, The Hall of Worthies, The Külliye, Library, University, Printing House, Observatory, The Alchemical Society, Chart the Stars, The Turning Heavens, The Alchemical Codex, Scriptorium, The House of Learning, The Sankore Madrasa, The Museion. |
+| Buildings that supply culture | `building:setSuppliesCulture` | 17 | 10 | The School of Mieza, Monument, Amphitheater, Cathedral, Forum, Courthouse, Printing House, Garden, Town Charter, The Magnum Opus, Mouseion, Aldine Press, Chapel, Assembly Hall, Heroic Epic, Imperial Throne, The Tetzcotzinco. |
+| Buildings that supply faith | `building:setSuppliesFaith` | 16 | 12 | Bell Tower, The Basilica, The House of Fire, The Külliye, Shrine, Temple, Cathedral, Chapel, Relic, High Temple, Mosque, Wat, Gurdwara, Dar-e Mehr, The Sainte-Chapelle, Cathedral School. |
+
+Rows that are not in the game are not listed.
+
+### Units and improvements
+
+- Units have the same fault. A card says "mounted units", "siege units",
+  "light warships" or "military units", and a unit's entry said only
+  "military unit". Done now, as the small part: each fighting unit's entry has
+  a row "A card calls these" with the card describer's own words for its class
+  (`filterWords`). Not done: a page for each class and links from the cards'
+  words. That is the same job as this one again (about ten classes, and the
+  same kind of pass over the describers), and "military units", "ships" and
+  "scouts" are decided by three more functions.
+- Improvements: "great person's work" has a heading and a sentence on each
+  work. "Tended" and "unique improvement" wait on the rule change of
+  `docs/flags.md`. No page was added.
+
+### Tests
+
+- New: `test/ui/compendiumBuildingKinds.test.ts` (each page lists what the
+  function says; a building of two kinds is on both pages; each entry's Kinds
+  row; the links on every Order have a page; the plain words do not change).
+- Changed: `test/ui/compendium.test.ts` (the shelf's length),
+  `test/sim/statecraft.test.ts`, `test/sim/decks/commerceDoctrines.test.ts`,
+  `test/sim/decks/scientificDoctrines.test.ts` (three comparisons of a marked
+  clause), `test/fixtures/cardText.json` (regenerated).
