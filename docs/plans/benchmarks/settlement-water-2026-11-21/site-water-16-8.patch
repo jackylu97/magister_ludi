@@ -1,0 +1,398 @@
+diff --git a/data/ai.bounds.json b/data/ai.bounds.json
+index 650648c6..87b0dc37 100644
+--- a/data/ai.bounds.json
++++ b/data/ai.bounds.json
+@@ -10,7 +10,8 @@
+   "expansion.escortWaitTurns": { "min": 0, "max": 6, "integer": true },
+   "expansion.escortCallTurns": { "min": 0, "max": 12, "integer": true },
+   "expansion.roadDangerRadius": { "min": 1, "max": 6, "integer": true },
+-  "site.freshWaterBonus": { "min": 0, "max": 20 },
++  "site.freshWaterBonus": { "min": -1, "max": 48 },
++  "site.coastalAccessBonus": { "min": -1, "max": 48, "integer": true },
+   "site.newLuxuryBonus": { "min": 0, "max": 40 },
+   "site.newStrategicBonus": { "min": 0, "max": 40 },
+   "site.strategicCopyValue": { "min": 0, "max": 10 },
+diff --git a/data/ai.json b/data/ai.json
+index 3e7299d6..bc979d3e 100644
+--- a/data/ai.json
++++ b/data/ai.json
+@@ -33,7 +33,8 @@
+     "roadDangerRadius": 2
+   },
+   "site": {
+-    "freshWaterBonus": 6,
++    "freshWaterBonus": -1,
++    "coastalAccessBonus": -1,
+     "newLuxuryBonus": 14,
+     "newStrategicBonus": 10,
+     "strategicCopyValue": 1,
+diff --git a/data/rules.json b/data/rules.json
+index 4ff9dc60..0188fff8 100644
+--- a/data/rules.json
++++ b/data/rules.json
+@@ -515,10 +515,10 @@
+       "culture": 1,
+       "faith": 1
+     },
+-    "freshWater": 6,
++    "freshWater": 16,
+     "luxury": 14,
+     "strategic": 10,
+-    "coast": 4,
++    "coast": 8,
+     "hills": 2,
+     "hillBonusLimit": 3,
+     "campRiskRadius": 2,
+diff --git a/src/ai/aiConfig.ts b/src/ai/aiConfig.ts
+index 607f08c7..3e1d4b4d 100644
+--- a/src/ai/aiConfig.ts
++++ b/src/ai/aiConfig.ts
+@@ -347,20 +347,10 @@ export interface AiConfig {
+    * yields the ring already prints.
+    */
+   site: {
+-    /**
+-     * What a river or a lake beside the town square is worth beyond the yields
+-     * the ring already prints — the farms it waters and the thirst it answers,
+-     * neither of which a hex reading says.
+-     *
+-     * `coastBonus` stood beside it and is **retired** (batch X1e, 2026-09-09).
+-     * It was a flat prior for "a coast is probably useful later", and the site
+-     * now reads that later directly: every ring hex is priced at the best
+-     * improvement a technology inside the horizon would let a town lay on it, so
+-     * a coast is worth the fishing boats a town would actually put on it and a
+-     * coast with nothing in the water is worth the water. A guess and a reading
+-     * of the same thing would have been the coast counted twice.
+-     */
++    /** Use the shared fresh-water score below zero. An explicit non-negative value overrides it for this bot. */
+     freshWaterBonus: number;
++    /** Use the shared coastal-site score below zero. Zero disables this term for this bot. */
++    coastalAccessBonus: number;
+     /**
+      * A luxury **kind** this empire holds none of, standing in the site's rings.
+      * Read off the resource row's `kind` and never off a name, and asked of the
+diff --git a/src/ai/bot.ts b/src/ai/bot.ts
+index 7102e542..44a15864 100644
+--- a/src/ai/bot.ts
++++ b/src/ai/bot.ts
+@@ -332,7 +332,7 @@ import {
+ import { foldTile } from '../sim/yields/hex';
+ // The shared site reading (`docs/flags.md` item (ttttt)): the ring walk, the
+ // weighing of a hex and the seams in reach, which the board's own marker reads.
+-import { explainSite, siteWorth } from '../sim/sites';
++import { explainSite, siteWaterLines, siteWorth } from '../sim/sites';
+ import {
+   explainCity,
+   foldCity,
+@@ -9676,9 +9676,8 @@ function civilianFlight(
+  * comes later, the node's landing or the citizen's arrival. So a coast with four
+  * fish reads four fishing boats before Sailing is chosen, a plain reads its
+  * farm, and a hill reads its mine; a node past the horizon reads nothing, which
+- * is the whole of the bound. `site.coastBonus` **retires** with the guess it
+- * stood in for: a coast is worth the boats a town would actually put on it, and
+- * a coast with nothing in the water is worth the water.
++ * limits the forecast. The bot also uses the site lens's score for access to a
++ * coastal city. A city can use that access even if it has no fish.
+  *
+  * The **centre** takes no promise. A town stands on it, and a town's own hex
+  * takes no improvement at all — the one clause of the hypothetical that the
+@@ -9856,7 +9855,9 @@ export function explainSiteValue(
+       parts: worked,
+     },
+   ];
+-  if (site.freshWater) terms.push({ label: 'fresh water', value: ai.site.freshWaterBonus });
++  const freshPoints = ai.site.freshWaterBonus >= 0 ? ai.site.freshWaterBonus : undefined;
++  const coastPoints = ai.site.coastalAccessBonus >= 0 ? ai.site.coastalAccessBonus : undefined;
++  terms.push(...siteWaterLines(site.freshWater, site.coastDistance, freshPoints, coastPoints));
+   terms.push(...bonuses);
+   return appraise(terms);
+ }
+diff --git a/src/sim/sites.ts b/src/sim/sites.ts
+index 688f8ba2..9ddb596f 100644
+--- a/src/sim/sites.ts
++++ b/src/sim/sites.ts
+@@ -64,7 +64,6 @@ import { slateMemo } from './slate';
+ import type { TileYield } from './terrainData';
+ import { unitDef } from './unitData';
+ import { isExploredBy } from './visibility';
+-import { isCoastal } from './water';
+ import { improvementDef } from './improvementData';
+ import { tileHasFreshWater } from './improvementFields';
+ import {
+@@ -143,6 +142,8 @@ export interface SiteReading {
+   strategics: readonly ResourceId[];
+   freshWater: boolean;
+   coast: boolean;
++  /** Distance to the nearest known coast this town can claim. */
++  coastDistance: number | null;
+   /** How many hexes of the ring are hills — the ground a town works for stone. */
+   hills: number;
+   /** Steps to this empire's nearest town, or `null` when it holds none. */
+@@ -185,6 +186,21 @@ export function siteWorth(yields: TileYield): number {
+   return worth;
+ }
+ 
++/** A bot can override either weight for a trial. Player advice always uses the shared rules. */
++export function siteWaterLines(
++  fresh: boolean,
++  coastDistance: number | null,
++  freshPoints = RULES.sites.freshWater,
++  coastPoints = RULES.sites.coast,
++): SiteLine[] {
++  const lines: SiteLine[] = [];
++  if (fresh) lines.push({ label: 'fresh water', value: freshPoints });
++  if (coastDistance !== null) {
++    lines.push({ label: coastDistance === 1 ? 'on the coast' : 'coast within reach', value: coastPoints });
++  }
++  return lines;
++}
++
+ /** The one sum of a site's list. Rule 5: the total is the fold, never beside it. */
+ export function foldSite(lines: readonly SiteLine[]): number {
+   let total = 0;
+@@ -274,20 +290,34 @@ function appraiseSite(
+   const seen = new Set<ResourceId>();
+   let centre: SiteRingHex | null = null;
+   let hills = 0;
+-  for (const near of mapRange(state.map, here, Math.max(0, knobs.ringRadius))) {
+-    // The player sees only the part of the ring already charted.
++  let coastDistance: number | null = null;
++  const coastReach = RULES.cities.coastalReach;
++  const heldBy = state.tileOwner[tileIndex(state.map, tile.col, tile.row)];
++  const outpostRadius = tile.improvement === undefined ? 0 : improvementDef(tile.improvement).claimsUnowned ?? 0;
++  for (const near of mapRange(state.map, here, Math.max(coastReach, knobs.ringRadius))) {
++    // Only known, claimable coast can justify sending the settler inland.
+     if (chartedYields && !isExploredBy(state, playerId, near.col, near.row)) continue;
++    const steps = wrappedDistance(state.map, here, tileHex(near));
++    const at = tileIndex(state.map, near.col, near.row);
++    if (near.terrain === 'coast' && steps > 0 && steps <= coastReach &&
++      (coastDistance === null || steps < coastDistance) &&
++      (chartedYields || isExploredBy(state, playerId, near.col, near.row))) {
++      const owner = state.tileOwner[at];
++      const inherited = steps <= outpostRadius && owner != null && owner === heldBy &&
++        state.cities.some(city => city.id === owner && city.ownerId === playerId);
++      if (owner == null || inherited) coastDistance = steps;
++    }
++    if (steps > knobs.ringRadius) continue;
+     let yields = chartedYields?.get(near);
+     if (yields === undefined) {
+       yields = foldTileLines(explainTileYield(near, ground));
+       chartedYields?.set(near, yields);
+     }
+-    const steps = wrappedDistance(state.map, here, tileHex(near));
+     const row: SiteRingHex = {
+       col: near.col,
+       row: near.row,
+       steps,
+-      at: tileIndex(state.map, near.col, near.row),
++      at,
+       yields,
+       worth: siteWorth(yields),
+     };
+@@ -323,10 +353,10 @@ function appraiseSite(
+   const lines: SiteLine[] = [
+     { label: `the ground a young town would work (${counted.length} hexes)`, value: groundWorth },
+   ];
+-  const freshWater = tileHasFreshWater(state, tile) && (!chartedYields || tile.freshwater ||
++  const freshWater = tileHasFreshWater(state, tile) && (tile.freshwater ||
+     tileNeighbors(state.map, tile).some(near => isExploredBy(state, playerId, near.col, near.row) &&
+       near.improvement !== undefined && improvementDef(near.improvement).watersAllNeighbours));
+-  if (freshWater) lines.push({ label: 'fresh water', value: knobs.freshWater });
++  lines.push(...siteWaterLines(freshWater, coastDistance));
+   const luxuries: ResourceId[] = [];
+   const strategics: ResourceId[] = [];
+   for (const seam of seams) {
+@@ -344,10 +374,6 @@ function appraiseSite(
+       lines.push({ label: `${def.name} in reach`, value: knobs.strategic });
+     }
+   }
+-  const coast = chartedYields
+-    ? tileNeighbors(state.map, tile).some(near => near.terrain === 'coast' && isExploredBy(state, playerId, near.col, near.row))
+-    : isCoastal(state.map, tile);
+-  if (coast) lines.push({ label: 'on the coast', value: knobs.coast });
+   if (hills > 0) lines.push({ label: `hills in reach (${hills})`, value: Math.min(hills, knobs.hillBonusLimit) * knobs.hills });
+   const nearbyCampDistance = camps[tileIndex(state.map, tile.col, tile.row)];
+   if (nearbyCampDistance !== undefined) {
+@@ -379,7 +405,8 @@ function appraiseSite(
+     luxuries,
+     strategics,
+     freshWater,
+-    coast,
++    coast: coastDistance !== null,
++    coastDistance,
+     nearbyCampDistance,
+     hills,
+     nearestTown,
+diff --git a/src/ui/tileReadout.ts b/src/ui/tileReadout.ts
+index 79889435..4e6a6b2d 100644
+--- a/src/ui/tileReadout.ts
++++ b/src/ui/tileReadout.ts
+@@ -681,7 +681,7 @@ export function siteReasons(state: GameState, playerId: number, tile: Tile): str
+   if (site.freshWater) clauses.push('fresh water');
+   if (site.food >= RULES.sites.strongFood) clauses.push('strong food');
+   if (site.production >= RULES.sites.strongProduction) clauses.push('good ground for work');
+-  if (site.coast) clauses.push('a harbour on the sea');
++  if (site.coast) clauses.push(site.coastDistance === 1 ? 'on the coast' : 'coast within reach');
+   if (site.hills > 0) clauses.push('hills to quarry');
+   return clauses;
+ }
+diff --git a/test/sim/siteWater.test.ts b/test/sim/siteWater.test.ts
+new file mode 100644
+index 00000000..992dbc80
+--- /dev/null
++++ b/test/sim/siteWater.test.ts
+@@ -0,0 +1,126 @@
++import { describe, expect, it } from 'vitest';
++import { withAiTuning } from '../../src/ai/aiConfig';
++import { explainSiteValue, valueContext } from '../../src/ai/bot';
++import { claimTile, foundCityAt, isCoastalCity } from '../../src/sim/cities';
++import { createMap, getTileAt, raiseImprovement, tileIndex } from '../../src/sim/map';
++import { RULES } from '../../src/sim/rulesData';
++import { explainSite, rankSites } from '../../src/sim/sites';
++import { bumpRevision } from '../../src/sim/state';
++import { EXPLORED, HIDDEN, resetVisibility } from '../../src/sim/visibility';
++import { game } from './statecraftHelpers';
++
++function board() {
++  const { state } = game();
++  state.map = createMap({ width: 24, height: 16, terrain: 'grassland' });
++  for (const tile of state.map.tiles) {
++    tile.resource = 'wheat';
++    raiseImprovement(tile, 'farm', state.turn);
++  }
++  state.tileOwner = Array(state.map.tiles.length).fill(null);
++  state.camps = [];
++  resetVisibility(state);
++  state.visibility[0]!.fill(EXPLORED);
++  const site = getTileAt(state.map, 10, 7)!;
++  for (const unit of state.units) {
++    unit.col = unit.ownerId === 0 ? site.col : 19;
++    unit.row = site.row;
++  }
++  bumpRevision(state);
++  const water = (seat = 0) => explainSiteValue(state, new Set(), valueContext(state, state.players[seat]!), site).terms
++    .filter(line => ['fresh water', 'on the coast', 'coast within reach'].includes(line.label));
++  return { state, site, water };
++}
++
++describe('water in a settlement suggestion', () => {
++  it('puts a fresh-water site first on equal ground and gives a bot the same value', () => {
++    const { state, site, water } = board();
++    site.freshwater = true;
++    bumpRevision(state);
++    const lens = rankSites(state, 0)[0]!;
++    expect([lens.col, lens.row]).toEqual([site.col, site.row]);
++    const line = { label: 'fresh water', value: RULES.sites.freshWater };
++    expect(lens.reading.lines).toContainEqual(line);
++    expect(water()).toEqual([line]);
++  });
++
++  it.each([1, 2])('prices coast %i hexes from the site and checks when the town can use it', distance => {
++    const { state, site, water } = board();
++    const sea = getTileAt(state.map, site.col + distance, site.row)!;
++    sea.terrain = 'coast';
++    bumpRevision(state);
++    const label = distance === 1 ? 'on the coast' : 'coast within reach';
++    const line = { label, value: RULES.sites.coast };
++    expect(explainSite(state, 0, site).lines).toContainEqual(line);
++    expect(water()).toEqual([line]);
++    const city = foundCityAt(state, 0, site);
++    expect(isCoastalCity(state, city)).toBe(distance === 1);
++    if (distance === 2) {
++      expect(claimTile(state, city, sea)).toBe(true);
++      expect(isCoastalCity(state, city)).toBe(true);
++    }
++  });
++
++  it('changes both water weights for one seat and keeps the lens and other seat on the shared weights', () => {
++    const { state, site, water } = board();
++    site.freshwater = true;
++    getTileAt(state.map, site.col + 1, site.row)!.terrain = 'coast';
++    state.visibility[1]!.fill(EXPLORED);
++    bumpRevision(state);
++    const defaults = [
++      { label: 'fresh water', value: RULES.sites.freshWater },
++      { label: 'on the coast', value: RULES.sites.coast },
++    ];
++    withAiTuning({ site: { freshWaterBonus: 3, coastalAccessBonus: 0 } }, () => {
++      expect(water(0)).toEqual([{ label: 'fresh water', value: 3 }, { label: 'on the coast', value: 0 }]);
++      expect(water(1)).toEqual(defaults);
++      expect(explainSite(state, 0, site).lines).toEqual(expect.arrayContaining(defaults));
++    }, { playerId: 0 });
++    expect(water(0)).toEqual(defaults);
++  });
++
++  it('counts a known water source and coast together', () => {
++    const { state, site, water } = board();
++    const source = getTileAt(state.map, site.col - 1, site.row)!;
++    const sea = getTileAt(state.map, site.col + 1, site.row)!;
++    sea.terrain = 'coast';
++    raiseImprovement(source, 'qanat', state.turn);
++    const at = tileIndex(state.map, source.col, source.row);
++    state.visibility[0]![at] = HIDDEN;
++    bumpRevision(state);
++    expect(water().map(line => line.label)).toEqual(['on the coast']);
++    state.visibility[0]![at] = EXPLORED;
++    bumpRevision(state);
++    expect(water().map(line => line.label)).toEqual(['fresh water', 'on the coast']);
++  });
++
++  it('uses the coast that a new town inherits from an outpost', () => {
++    const { state, site, water } = board();
++    const home = foundCityAt(state, 0, getTileAt(state.map, 3, 7)!);
++    const sea = getTileAt(state.map, site.col + 1, site.row)!;
++    sea.terrain = 'coast';
++    claimTile(state, home, site);
++    claimTile(state, home, sea);
++    raiseImprovement(site, 'outpost', state.turn);
++    bumpRevision(state);
++    expect(water()).toEqual([{ label: 'on the coast', value: RULES.sites.coast }]);
++    expect(isCoastalCity(state, foundCityAt(state, 0, site))).toBe(true);
++  });
++
++  it('excludes hidden water, water held by another town and lakes', () => {
++    const { state, site, water } = board();
++    const sea = getTileAt(state.map, site.col + 2, site.row)!;
++    const at = tileIndex(state.map, sea.col, sea.row);
++    sea.terrain = 'coast';
++    state.visibility[0]![at] = HIDDEN;
++    expect(water()).toEqual([]);
++    state.visibility[0]![at] = EXPLORED;
++    state.tileOwner[at] = 100;
++    bumpRevision(state);
++    expect(explainSite(state, 0, site).coast).toBe(false);
++    expect(water()).toEqual([]);
++    state.tileOwner[at] = null;
++    sea.terrain = 'lake';
++    bumpRevision(state);
++    expect(water()).toEqual([]);
++  });
++});
+diff --git a/test/sim/sites.test.ts b/test/sim/sites.test.ts
+index 9a684b36..1b82e9a0 100644
+--- a/test/sim/sites.test.ts
++++ b/test/sim/sites.test.ts
+@@ -181,7 +181,10 @@ describe('the sweep', () => {
+     const { state } = game();
+     const tile = openGround(state);
+     const ring = mapRange(state.map, tileHex(tile), RULES.sites.ringRadius);
+-    for (const near of ring) near.hills = true;
++    for (const near of ring) {
++      near.hills = true;
++      near.terrain = 'grassland';
++    }
+     const campTile = ring.find(near => wrappedDistance(state.map, tileHex(near), tileHex(tile)) === 2)!;
+     state.camps = [{ col: campTile.col, row: campTile.row, foundedTurn: 1 }];
+     state.visibility[0]!.fill(HIDDEN);
+diff --git a/test/ui/arenaPage.test.ts b/test/ui/arenaPage.test.ts
+index 901a2a92..986a46f6 100644
+--- a/test/ui/arenaPage.test.ts
++++ b/test/ui/arenaPage.test.ts
+@@ -194,6 +194,7 @@ describe('the configuration panel is generated, not listed', () => {
+     // block.
+     expect(walked.has('workers.planTopN')).toBe(true);
+     expect(walked.has('site.freshWaterBonus')).toBe(true);
++    expect(walked.has('site.coastalAccessBonus')).toBe(true);
+   });
+ 
+   it('groups by the sheet’s own top-level blocks, in the file’s order', () => {

@@ -1,0 +1,22 @@
+
+ RUN  v2.1.9 /private/tmp/webciv-citizen-yields-eeBDFX/guarded
+
+ ✓ test/sim/slateRegister.test.ts (15 tests) 1716ms
+   ✓ the register of announced writes > finds the writes it is a register of 587ms
+   ✓ the register of announced writes > has every write inside a function that announces, or excused by name 480ms
+   ✓ the register of announced writes > keeps every excused row pointing at a write that still exists 341ms
+ ✓ test/sim/citizenSixYields.test.ts (14 tests) 996ms
+   ✓ automatic assignment across the six tile yields > works a academy on equal ground under default focus 420ms
+ ✓ test/sim/cities.test.ts (183 tests) 7214ms
+   ✓ setCitizenFocus > replays a log with a pointed town in it byte for byte 2430ms
+   ✓ the turn pipeline over a live empire > grows a city, builds its queue and pushes its borders out over time 313ms
+   ✓ determinism with cities > round-trips a save with cities and keeps playing in lockstep 695ms
+   ✓ determinism with cities > replays a log with pinned citizens in it byte for byte 487ms
+   ✓ the hoisted city quote > answers exactly as the unhoisted fold does, for every row in the game 309ms
+   ✓ the hoisted city quote > leaves every build estimate where it was, at the front and behind it 531ms
+
+ Test Files  3 passed (3)
+      Tests  212 passed (212)
+   Start at  17:27:06
+   Duration  32.79s (transform 31.90s, setup 0ms, collect 61.37s, tests 9.93s, environment 4ms, prepare 1.85s)
+

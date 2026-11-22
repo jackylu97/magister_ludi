@@ -1,0 +1,370 @@
+diff --git a/data/rules.json b/data/rules.json
+index 880e6783..594d156e 100644
+--- a/data/rules.json
++++ b/data/rules.json
+@@ -235,30 +235,45 @@
+     "citizenWeights": {
+       "food": 3,
+       "production": 2,
+-      "gold": 1
++      "gold": 1,
++      "science": 1,
++      "culture": 1,
++      "faith": 1
+     },
+     "citizenFocusWeights": {
+       "food": {
+         "food": 4,
+         "production": 2,
+-        "gold": 1
++        "gold": 1,
++        "science": 1,
++        "culture": 1,
++        "faith": 1
+       },
+       "production": {
+         "food": 2,
+         "production": 4,
+-        "gold": 1
++        "gold": 1,
++        "science": 1,
++        "culture": 1,
++        "faith": 1
+       },
+       "gold": {
+         "food": 2,
+         "production": 1,
+-        "gold": 4
++        "gold": 4,
++        "science": 1,
++        "culture": 1,
++        "faith": 1
+       }
+     },
+     "expansion": {
+       "yieldWeights": {
+         "food": 3,
+         "production": 2,
+-        "gold": 1
++        "gold": 1,
++        "science": 0,
++        "culture": 0,
++        "faith": 0
+       },
+       "resourceBonus": 6,
+       "bareWaterPenalty": 4,
+diff --git a/src/ai/bot.ts b/src/ai/bot.ts
+index bff2f070..11f030df 100644
+--- a/src/ai/bot.ts
++++ b/src/ai/bot.ts
+@@ -2960,7 +2960,7 @@ function focusTable(
+   // It is the anchor `foodUnder` subtracts, and the reason it is read off the
+   // town's **actual** placement rather than off whichever sheet the town is
+   // pointed at: the sim may be standing the citizens somewhere neither sheet
+-  // predicts (the starvation guard put a focused sheet back, `capFoodSurplus`
++  // predicts (the starvation guard put a focused sheet back, `adjustFoodAssignment`
+   // trimmed a swap, a hex is pinned), and an anchor that guessed would leave the
+   // arithmetic below reading differently before and after its own command.
+   const standingBag = bagOfTiles(workedTilesOf(state, city), ground);
+diff --git a/src/sim/cities.ts b/src/sim/cities.ts
+index 8a84c357..48fda1da 100644
+--- a/src/sim/cities.ts
++++ b/src/sim/cities.ts
+@@ -1536,7 +1536,10 @@ export function yieldScore(
+   return (
+     value.food * weights.food +
+     value.production * weights.production +
+-    value.gold * weights.gold
++    value.gold * weights.gold +
++    value.science * weights.science +
++    value.culture * weights.culture +
++    value.faith * weights.faith
+   );
+ }
+ 
+@@ -2516,7 +2519,7 @@ export function workableSeats(state: GameState, city: City): number {
+  * Avoid growth
+  * ------------
+  * And last, a town told to stop growing has its surplus trimmed toward zero by
+- * `capFoodSurplus` — after the sheet has chosen, because the instruction is
++ * `adjustFoodAssignment` — after the sheet has chosen, because the instruction is
+  * about the *harvest*, not about which hex is better. It is the same refusal
+  * one rung finer: the cap stops at the swap that would put the town into
+  * deficit rather than abandoning the whole arrangement.
+@@ -2537,7 +2540,9 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
+   // discipline; this is the one the profile named.
+   const before = city.workedTiles;
+   const balanced = CITIES.citizenWeights;
+-  writeAssignment(state, city, chooseCitizens(state, city, balanced));
++  const foodCheck = { needed: false };
++  writeAssignment(state, city, chooseCitizens(state, city, balanced, foodCheck));
++  if (foodCheck.needed) adjustFoodAssignment(state, city, balanced, 'coverUpkeep');
+   const lean = citizenLean(city);
+   let weights = balanced;
+   if (lean) {
+@@ -2564,7 +2569,7 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
+   // (`growthSurplus`). The same test as the growth channel's, toward the front
+   // of the queue, so the cap and the basket cannot disagree.
+   if (city.avoidGrowth === true && surplusMoverFor(state, city, city.queue[0]) === null) {
+-    capFoodSurplus(state, city, weights);
++    adjustFoodAssignment(state, city, weights, 'avoidGrowth');
+   }
+   if (!sameAssignment(before, city.workedTiles)) {
+     if (cause === 'citizenFocus') bumpCitizenFocus(state);
+@@ -2636,48 +2641,18 @@ export function citizenFocusError(
+ }
+ 
+ /**
+- * **Avoid growth**: trims a town's food surplus toward nothing, one swapped hex
+- * at a time, and stops the instant the next swap would take the citizens below
+- * what they eat.
+- *
+- * A repair pass rather than a fourth sheet, and that is the whole design. "Work
+- * hammers instead of bushels" is a *weighting* and it is what a focus already
+- * says; "bank no food" is a statement about the town's **surplus**, which no
+- * per-hex weight can express — a sheet that hated food would strip a town of
+- * every farm it has and then be talked out of it by the starvation guard,
+- * leaving the surplus exactly where it started. So the assignment is chosen
+- * first, by whatever sheet is in force, and then the cheapest bushels are
+- * traded away until the basket takes nothing.
+- *
+- * Each step swaps one worked hex for one idle hex that pays less food, choosing
+- * the swap that **costs the least score** by the sheet in force — so a town
+- * avoiding growth while chasing hammers gives up its grain for the best hammers
+- * available, not for whatever happens to be adjacent. Ties go to the larger cut,
+- * then to tile index, so the outcome is a function of the board (rule 2).
+- *
+- * Two things it will not do. It never moves a **pinned** hex: a lock outranks
+- * the focus exactly as it outranks the score, and a player who pinned a wheat
+- * field has already answered this question. And it never leaves the town in
+- * deficit: the swap is written, `foldCity` is asked — the same evaluator the
+- * pipeline banks with — and a harvest below `foodUpkeep` is put straight back.
+- * "Where possible" is the ruling's own phrase; a town whose every hex is a farm
+- * simply grows.
+- *
+- * It is a **trim, not a solver**: one swap at a time, and never through an
+- * arrangement that starves, so a town that could have reached nothing by making
+- * two swaps at once keeps the bushel neither of them could shed alone. That is
+- * the ruling's "where possible" read strictly — a search that walked through
+- * famine to find a better answer would be a search that could be interrupted by
+- * a border move and leave the town in it.
+- *
+- * The cost is one `foldCity` per bushel of surplus, on the towns that opted in
+- * and no others, which is the same order the halted lean has always paid.
+- */
+-function capFoodSurplus(state: GameState, city: City, weights: CitizenWeights): void {
++ * Meet upkeep when a higher-scoring tile displaced food. Avoid Growth uses the
++ * same swaps in the other direction. Both use actual city food, respect locks
++ * and first try the swap that gives up the least tile value.
++ */
++function adjustFoodAssignment(
++  state: GameState, city: City, weights: CitizenWeights, purpose: 'avoidGrowth' | 'coverUpkeep',
++): void {
++  const recovering = purpose === 'coverUpkeep';
+   const { map } = state;
+   const upkeep = foodUpkeep(city);
+   let food = foldCity(state, city).food;
+-  if (food <= upkeep) return;
++  if (recovering ? food >= upkeep : food <= upkeep) return;
+ 
+   const index = (cell: { col: number; row: number }): number => tileIndex(map, cell.col, cell.row);
+   const pinned = new Set(city.lockedTiles.map(index));
+@@ -2703,7 +2678,8 @@ function capFoodSurplus(state: GameState, city: City, weights: CitizenWeights):
+     let best: { out: Tile; into: Tile; cut: number; cost: number } | null = null;
+     for (const leaving of out) {
+       for (const arriving of into) {
+-        const cut = foodOf(leaving) - foodOf(arriving);
++        const change = foodOf(arriving) - foodOf(leaving);
++        const cut = recovering ? change : -change;
+         if (cut <= 0) continue;
+         const cost = scoreOf(leaving) - scoreOf(arriving);
+         if (
+@@ -2731,15 +2707,13 @@ function capFoodSurplus(state: GameState, city: City, weights: CitizenWeights):
+     );
+     writeAssignment(state, city, swapped);
+     const next = foldCity(state, city).food;
+-    // Below what they eat, or no bushel actually left the harvest (a percentage
+-    // and a floor can swallow one): put the hex back and stop. The surplus that
+-    // remains is the surplus this trim can reach.
+-    if (next < upkeep || next >= food) {
++    // Keep a swap only when the city's actual food moves in the requested direction.
++    if (recovering ? next <= food : next < upkeep || next >= food) {
+       city.workedTiles = previous;
+       return;
+     }
+     food = next;
+-    if (food <= upkeep) return;
++    if (recovering ? food >= upkeep : food <= upkeep) return;
+   }
+ }
+ 
+@@ -2761,6 +2735,7 @@ function chooseCitizens(
+   state: GameState,
+   city: City,
+   weights: CitizenWeights,
++  foodCheck?: { needed: boolean },
+ ): Tile[] {
+   const { map } = state;
+   const candidates = assignableTiles(state, city);
+@@ -2812,9 +2787,21 @@ function chooseCitizens(
+   for (const tile of candidates) {
+     const at = index(tile);
+     if (taken.has(at)) continue;
+-    ranked.push({ tile, at, score: yieldScore(foldTile(tile, ctx), weights) });
++    const paid = foldTile(tile, ctx);
++    const scoresExtra = (weights.science > 0 && paid.science > 0) ||
++      (weights.culture > 0 && paid.culture > 0) || (weights.faith > 0 && paid.faith > 0);
++    ranked.push({ tile, at, food: paid.food, scoresExtra, score: yieldScore(paid, weights) });
+   }
+   ranked.sort((a, b) => b.score - a.score || a.at - b.at);
++  if (foodCheck) {
++    // A new yield can displace a food tile. Check the town's actual income only
++    // if a citizen on one of those tiles can move to a better food tile.
++    const seats = cap - worked.length;
++    const lowest = ranked.slice(0, seats).reduce(
++      (food, row) => row.scoresExtra ? Math.min(food, row.food) : food, Infinity,
++    );
++    foodCheck.needed = lowest !== Infinity && ranked.slice(seats).some(row => row.food > lowest);
++  }
+   for (const { tile } of ranked) {
+     if (worked.length >= cap) break;
+     worked.push(tile);
+diff --git a/src/sim/rulesData.ts b/src/sim/rulesData.ts
+index 7866520d..cebb3dc7 100644
+--- a/src/sim/rulesData.ts
++++ b/src/sim/rulesData.ts
+@@ -24,7 +24,7 @@ import type { SpecialistFamily } from './greatPeopleData';
+ import type { CityYieldKey, ResourceYieldBag } from './resourceData';
+ import type { TileCondition } from './statecraftData';
+ import type { TechId } from './techData';
+-import type { TileYieldSpec } from './terrainData';
++import type { TileYield, TileYieldSpec } from './terrainData';
+ import type { UnitSize, UnitTypeId } from './unitData';
+ 
+ interface GameRules {
+@@ -992,11 +992,7 @@ interface BarbarianRules {
+ }
+ 
+ /** Relative desirability of each yield when a citizen picks a tile to work. */
+-export interface CitizenWeights {
+-  food: number;
+-  production: number;
+-  gold: number;
+-}
++export type CitizenWeights = TileYield;
+ 
+ /**
+  * What a town's people are being placed *for* — the player's own instruction,
+diff --git a/src/sim/state.ts b/src/sim/state.ts
+index 78a9bc63..40503e0d 100644
+--- a/src/sim/state.ts
++++ b/src/sim/state.ts
+@@ -2998,7 +2998,7 @@ export interface City {
+    * *surplus* may be (nothing). The two compose — a town may avoid growth while
+    * chasing hammers — and neither may starve the place: the cap is applied by
+    * swapping worked hexes down while the harvest still feeds the citizens, and
+-   * `capFoodSurplus` stops the moment the next swap would not (`cities.ts`).
++   * `adjustFoodAssignment` stops the moment the next swap would not (`cities.ts`).
+    * While a card moves the town's food surplus into production (The
+    * Breadbasket, Expansionist batch E6), the cap does not run: the surplus goes
+    * into production instead, and the basket still gains nothing
+diff --git a/test/sim/citizenSixYields.test.ts b/test/sim/citizenSixYields.test.ts
+new file mode 100644
+index 00000000..c59a6173
+--- /dev/null
++++ b/test/sim/citizenSixYields.test.ts
+@@ -0,0 +1,77 @@
++import { describe, expect, it } from 'vitest';
++import { valueContext } from '../../src/ai/bot';
++import { citizenWouldWork, type PlanEntry } from '../../src/ai/plan';
++import { assignableTiles, assignCitizens, foodUpkeep, foundCityAt, yieldScore } from '../../src/sim/cities';
++import { type ImprovementId } from '../../src/sim/improvementData';
++import { createMap, getTileAt, raiseImprovement, tileIndex } from '../../src/sim/map';
++import { type CitizenFocus, RULES } from '../../src/sim/rulesData';
++import { bumpRevision } from '../../src/sim/state';
++import { resetVisibility } from '../../src/sim/visibility';
++import { cityContext, foldTile } from '../../src/sim/yields/hex';
++import { foldCity } from '../../src/sim/yields/town';
++import { newGame } from './newGameHelpers';
++
++function town(focus: CitizenFocus = 'default') {
++  const state = newGame({seed: 104, sizeName: 'duel', players: [{name: 'West', color: '#900'}, {name: 'East', color: '#049'}]});
++  state.map = createMap({ width: 14, height: 12, terrain: 'grassland' });
++  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
++  state.units = [];
++  resetVisibility(state);
++  const city = foundCityAt(state, 0, getTileAt(state.map, 6, 5)!);
++  if (focus !== 'default') city.focus = focus;
++  const tiles = assignableTiles(state, city).sort((a, b) => tileIndex(state.map, a.col, a.row) - tileIndex(state.map, b.col, b.row));
++  const first = tiles[0]!;
++  const last = tiles[tiles.length - 1]!;
++  assignCitizens(state, city);
++  expect(city.workedTiles).toEqual([{col: first.col, row: first.row}]);
++  return {state, city, first, last};
++}
++
++const cases: [ImprovementId, 'science' | 'culture' | 'faith', number][] = [
++  ['academy','science',4], ['landmark','culture',4], ['stoneCircle','faith',2],
++];
++
++describe('automatic assignment across the six tile yields', () => {
++  for (const focus of ['default','food','production','gold'] as const) {
++    it.each(cases)(`works a %s on equal ground under ${focus} focus`, (work, voice, income) => {
++      const {state, city, first, last} = town(focus);
++      const ground = cityContext(state, city);
++      const improved = foldTile({...last, improvement: work}, ground);
++      const bare = foldTile(first, ground);
++      const entry: PlanEntry = {
++        col:last.col, row:last.row, improvement:work, improved, town:city.id, label:work, value:0, terms:[],
++        seatless:0, seatlessTerms:[], unclaimed:true,
++      };
++      expect(citizenWouldWork(state, valueContext(state,state.players[0]!), entry).works).toBe(true);
++      raiseImprovement(last,work,state.turn);
++      bumpRevision(state);
++      assignCitizens(state,city);
++      expect(city.workedTiles).toEqual([{col:last.col,row:last.row}]);
++      expect(improved[voice]-bare[voice]).toBe(income);
++      expect(yieldScore(improved, RULES.cities.expansion.yieldWeights)).toBe(yieldScore(bare, RULES.cities.expansion.yieldWeights));
++    });
++  }
++  it('works one upgraded Academy when working both would starve the town', () => {
++    const {state, city} = town();
++    city.population=3;
++    state.players[0]!.techsResearched.push('philosophy','education');
++    for(const tile of assignableTiles(state,city).slice(-2)) {
++      tile.terrain='desert';
++      raiseImprovement(tile,'academy',state.turn);
++    }
++    bumpRevision(state);
++    assignCitizens(state,city);
++    const rates=foldCity(state,city);
++    expect(rates.food).toBe(foodUpkeep(city));
++    expect(rates.science).toBe(9.75);
++  });
++
++  it('honours a manual lock even with a four-science Academy on equal ground', () => {
++    const {state,city,first,last} = town();
++    raiseImprovement(last,'academy',state.turn);
++    city.lockedTiles = [{col:first.col,row:first.row}];
++    bumpRevision(state);
++    assignCitizens(state,city);
++    expect(city.workedTiles).toEqual(city.lockedTiles);
++  });
++});
+diff --git a/test/sim/slateRegister.test.ts b/test/sim/slateRegister.test.ts
+index 3529a250..1f0dfe2c 100644
+--- a/test/sim/slateRegister.test.ts
++++ b/test/sim/slateRegister.test.ts
+@@ -466,10 +466,10 @@ const EXCUSED = new Map<string, string>([
+   ],
+   [
+     'cities.ts#writeAssignment',
+-    'assignCitizens’ own half — its only callers are that function and `capFoodSurplus` beneath it, and it announces once, after comparing',
++    'assignCitizens’ own half — its only callers are that function and `adjustFoodAssignment` beneath it, and it announces once, after comparing',
+   ],
+   [
+-    'cities.ts#capFoodSurplus',
++    'cities.ts#adjustFoodAssignment',
+     'called only by `assignCitizens`, before its comparison — see that function',
+   ],
+   [

@@ -15,6 +15,15 @@ weigh a charter). Every knob is a leaf of `data/ai.json` and therefore appears o
 arena A/B, seed sweep and before/after profile — is
 `docs/history/bot-priorities-log.md`.
 
+## Arena tuning
+
+The user set this rule on 2026-11-21. If a bot makes a choice about how much it values an outcome, expose that preference in `data/ai.json`. Give numeric settings a range in `data/ai.bounds.json`. The Arena builds its controls from these files. Keep command legality and the list of effects a bot understands independent of those preferences.
+
+- `weights.science` sets the base price of science in each of the four ages. The current values are 5, 6, 6 and 6.
+- `military.armyPerCity` sets how many combat units the bot aims to have per city. The base is 2. The warmonger persona sets it to 4. `weights.military` controls how much the bot values military production against other uses of a city.
+- When testing a preference, use the same map, starting seat and opponents for both builds. Record the official score, research count and column, culture drafts, each yield rate and city captures. Keep separate seeds for checking the result after choosing a setting.
+- If a study changes the rules for human towns, test it separately from the bot settings.
+
 ## The turn's bot step: plans on a frozen board
 
 Since bot batch BP16, stage C1 (`docs/flags.md`, "Bots after BP16 stage B",

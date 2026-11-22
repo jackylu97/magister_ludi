@@ -1,0 +1,28 @@
+
+ RUN  v2.1.9 /private/tmp/webciv-citizen-yields-eeBDFX/guarded
+
+ ✓ test/sim/aiWorkerClaims.test.ts (16 tests | 4 skipped) 2963ms
+   ✓ the worker's choice shares the city's rule (bot batch BP13b) > walks to the hex a citizen works, not to a nearer one no citizen would work 661ms
+   ✓ the worker's choice shares the city's rule (bot batch BP13b) > offers the same nearby farm as the bot, reports the tile delta and reuses the answer until the board changes 384ms
+   ✓ the worker's choice shares the city's rule (bot batch BP13b) > places Nazca lines beside existing lines and includes the gain on the existing tile 311ms
+   ✓ the worker's choice shares the city's rule (bot batch BP13b) > offers an outpost on known land three hexes beyond the border and values the land it claims 417ms
+   ✓ the focus arm compares all four citizen sheets (bot batch BP13b) > sends the order the table names, and none with the switch at nought 364ms
+ ✓ test/sim/aiEndCheckLoops.test.ts (28 tests | 13 skipped) 22262ms
+   ✓ fault 4: one focus a build (bot batch BP10) > undoes a focus the bot did not give, as before 7592ms
+   ✓ fault 4: one focus a build (bot batch BP10) > with two sheets, sends the town back to the balanced ordering 750ms
+   ✓ fault 4: one focus a build (bot batch BP10) > leaves a town on the focus the bot chose for the build it is on 518ms
+   ✓ fault 4: one focus a build (bot batch BP10) > chooses again once the build is finished: the same head with a basket that fell 655ms
+   ✓ fault 4: one focus a build (bot batch BP10) > chooses again when the build leaves the head of the queue 650ms
+   ✓ fault 4: one focus a build (bot batch BP10) > holds only the focus it chose: a town another hand moved is free 976ms
+   ✓ fault 4: one focus a build (bot batch BP10) > writes down a choice to keep the focus the town has, so the build keeps it 660ms
+   ✓ fault 4: one focus a build (bot batch BP10) > sends no focus order at all with driver.focusOrders at nought 4039ms
+   ✓ the focus changes only by a clear margin (bot batch BP11, driver.focusOrders 2) > with four sheets, moves the town to the best sheet when it leads by more than the margin 3633ms
+   ✓ the focus changes only by a clear margin (bot batch BP11, driver.focusOrders 2) > with four sheets, keeps the town where it is when the best sheet leads by less than the margin 1394ms
+   ✓ the focus changes only by a clear margin (bot batch BP11, driver.focusOrders 2) > sends a leaning town back when the balanced ordering wins by more than the margin 312ms
+   ✓ the focus changes only by a clear margin (bot batch BP11, driver.focusOrders 2) > never changes a focus on a tie, where the other setting does 393ms
+
+ Test Files  2 passed (2)
+      Tests  27 passed | 17 skipped (44)
+   Start at  17:30:22
+   Duration  30.52s (transform 4.32s, setup 0ms, collect 11.35s, tests 25.23s, environment 1ms, prepare 1.33s)
+
