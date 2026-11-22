@@ -1,0 +1,153 @@
+# The wager, simplified: spec for the build (2026-11-22)
+
+Ruled by the user in chat on 2026-11-22. It replaces the larger proposal in
+`docs/plans/wager-proposal-2026-11-22.md`, which the user found too
+complicated: "this feels complicated all of a sudden, i dont want to think
+about this, and i'm sure new players will be confused too. What's the simplest
+form of this that's fun and engaging and feels like a wager".
+
+Owner of the rules and the bots: Astra. Owner of the screens: the Claude
+session.
+
+## 1. The rule
+
+**Age I: one bar, no choice.**
+- Every seat has the same bar: its **score** (section 3).
+- The bar has three marks. Each mark that a seat passes pays **1 bead**, on
+  the turn that it passes it. So age I pays 0 to 3 beads.
+- The bar is there from turn 1. It asks nothing and opens no window.
+- The user: "the wager in age 1 is just awkward, because I don't want a new
+  player to be confused in age 1 ... maybe everyone has to do the total yields
+  wager in age 1 and there isn't an option?" Then: "what about score instead
+  of wager?"
+
+**Ages II, III and IV: pick one wager, and pick a mark.**
+- When the age opens, a seat sees **three wagers: two dealt, and its score.**
+  Score is always on offer, so a seat is never dealt three wagers that it
+  cannot use.
+- Each wager is one number with three marks: **low pays 1 bead, middle pays
+  2, high pays 3.**
+- The seat picks one wager and one mark.
+- If the number reaches the mark before the age ends, the seat gets that
+  mark's beads **on that turn**. If it does not, the seat gets nothing.
+- There is no other cost. No malice follows a missed wager.
+- Score has all three marks for now. The user: "Let's keep the 3 beads on the
+  score for now".
+
+**The door.** 7 beads open the Opus door, as today.
+
+Why these three parts, in the user's words: "you only get 2 shots at earning
+beads (age 2 and age 3 wagers) because you're building the magnum opus in age
+4 ... I'm imagining a situation where you lowroll the wagers, have a strong
+empire and don't have enough beads to win in age 4 even though you reach it
+first." The age I bar gives a fourth chance; paying on the turn makes the age
+IV wager count; score on offer in every age removes the low roll.
+
+## 2. Readings that the Claude session chose (say if one is wrong)
+
+- The two dealt wagers are **the same for every seat** in an age, and they
+  come from two different groups (section 4), so one deal rewards two kinds
+  of play.
+- The pick is made when the age opens and **cannot be changed**. A human seat
+  must pick before it ends its turn (a blocker, as for a draft). A bot picks
+  in the same turn.
+- A seat may pick a mark that its number has already passed. It is paid at
+  once. The marks should be placed so that this is rare.
+- For difficulty tier 13 ("Wager milestones are 40% higher for you"), every
+  mark of the player's bars, the age I bar included, is 40% higher.
+- A wager does not repeat as a dealt wager in the next age.
+- The 24 wagers of today, the secret stake and the malice for a missed stake
+  are retired (`retired: true` rows, kept for saves and the Compendium).
+  Malices from other sources do not change.
+
+## 3. The score
+
+The score is the list in `src/sim/score.ts` (`explainScore`, weights in
+`rules.score`). Four changes, the user's:
+
+1. **Beads leave the score.** "Let's just remove beads from score
+   altogether."
+2. **The card line counts everything on the In play screen.** "What your
+   cards have paid over the game should be all the cards in the 'in play'
+   screen, not just orders." Today `recordDeckTally` adds only the statecraft
+   class of the Ledger (Orders and governments). Add the other sources that In
+   play lists: beliefs, rites and consecrations, wonders, legacies, leaders,
+   luxuries' signatures and technologies' effects, as that screen defines
+   them.
+3. **A new line: rival units and camps defeated.** "ok lets add rival units
+   and camps defeated".
+4. **A new line: army strength.** "total combat strength of entire army, base
+   strength + veterancy level + orders that increase combat strength
+   unconditionally". So: for each military unit, its base strength, plus what
+   its rank adds, plus every card line that adds strength with no condition.
+   Terrain, fortification, a general's aura and conditional card lines do not
+   count. (`armyStrength` exists and leaves out ranks today.)
+
+Not ruled: the Claude session suggested that the "age reached" line should not
+count on the bar, because it pays every seat alike. Leave it in unless the
+user says otherwise.
+
+New weights are Astra's to propose from bot games: what share of a score each
+line makes at the close of each age.
+
+## 4. The dealt wagers
+
+Twelve, all approved by the user. Each reads one number that the player can
+see. A wager marked "over the age" needs a counter that runs from the first
+turn of the age and is shown on the wager.
+
+| Group | Wager | Reads |
+|---|---|---|
+| Engine | The sum of your six yields | Now |
+| Engine | Science and culture gained | Over the age |
+| Engine | Faith and gold gained (gross, not net of spending) | Over the age |
+| Engine | Gold and faith spent | Over the age |
+| Cities | Total population | Now |
+| Cities | The highest production of one city | Now |
+| Cities | Buildings finished | Over the age |
+| Land | Improved hexes | Now |
+| Land | Different luxuries held | Now |
+| Land | The yields of your trade routes | Now |
+| People and arms | The yields from your great people (their hexes and legacies) | Now |
+| People and arms | The total combat strength of your army (the same reading as the score line) | Now |
+
+Guards, each a small rule: spending counts purchases only, and selling or a
+refund subtracts; an improvement that the seat pillaged itself does not count
+again when rebuilt; a "now" wager is reached on the first turn that the
+number is at the mark, and stays reached.
+
+Cut by the user: The Field of Glory, the largest single payout.
+
+## 5. Where the marks go
+
+Nobody sets a mark by hand. The user: "Once we decide on the right format,
+i'd like to do an optimization loop on the bots, and then decide the right
+numbers based on the bots."
+
+- Measure, for the score and for each wager, the figure of every seat at the
+  close of each age, across seeds and seat counts.
+- First rule to try: low at the figure that three seats in four reach, middle
+  at the figure that half reach, high at the figure that one seat in six
+  reaches.
+- Check the result against the door: a seat that plays well and picks the
+  middle mark each age should hold 7 beads during age IV; a seat that picks
+  low every time should fall short.
+
+## 6. Screens (the Claude session)
+
+- The score as one figure in the top row, with `explainScore`'s list on
+  hover.
+- The age I bar: small, with its three marks, and a one-time note when the
+  first mark is passed.
+- The sheet where a seat picks a wager and a mark when an age opens: three
+  cards, each with the number now, the three marks and the beads.
+- The picked wager as the same small bar for the rest of the age.
+- Astra provides the readings: the offer for a seat, each wager's number now
+  and its marks, the pick, and whether a mark was reached.
+
+## 7. Kept for later, not for this build
+
+- Score with two marks only (at most 2 beads), so that the dealt wagers are
+  the way to 3. The user: "i like that as a solution for later."
+- One more bead for beating every rival on the wager that you picked.
+- A soft door: each missing bead adds to the price of the Opus.

@@ -3440,3 +3440,15 @@ The user's comments on the options page are recorded in
 - **The wagers:** a direction only. Do not build.
 Owner: Astra, after its bot tuning run has a stable baseline; both change the
 bots' world.
+
+## The wager, simplified (ruled 2026-11-22, not built)
+
+Spec: `docs/plans/wager-spec-2026-11-22.md`. In short: in age I every seat has
+one bar, its score, and each of three marks that it passes pays a bead; in
+ages II to IV a seat picks one of three wagers (two dealt, and its score) and
+one of three marks worth 1, 2 or 3 beads, and is paid on the turn that it
+reaches the mark, or not at all; 7 beads open the door. The score loses its
+bead line, counts every card on the In play screen, and gains two lines:
+rival units and camps defeated, and army strength. The marks come from bot
+games. Owner: Astra for the rules and bots, the Claude session for the
+screens.
