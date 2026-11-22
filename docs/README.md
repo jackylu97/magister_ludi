@@ -1365,11 +1365,13 @@ Camps (batch BR1, `src/sim/barbarians.ts`; the numbers are `rules.barbarians`):
   guard, the next nearest soldier within `campUnitRadius`. A guard fights what
   comes near and patrols, and never goes farther from the camp than
   `campUnitRadius`.
-- Every other soldier is a raider. It strikes what is next to it, burns the
-  works it stands on, and closes on what it can see within `aggressionRadius`.
-  Otherwise it marches on the nearest town of a real player, human or bot, on
-  land it can walk to (`raidGoal`). A seat at peace with the wild
-  (`barbariansPassive`) is never a target.
+- Every other soldier is a raider. It fights an adjacent soldier first.
+  Before attacking a city, it selects the visible enemy improvement that it
+  can reach this turn for the least movement. The lower tile index breaks a
+  tie. If the march uses its last movement, it can pillage on a later turn.
+  Otherwise it closes on a visible target within `aggressionRadius`, or
+  marches on the nearest town it can reach over land (`raidGoal`).
+  The wild leaves a seat with `barbariansPassive` out of its target list.
 - A camp musters every `unitEveryTurns` turns. A camp short of guards musters a
   guard. A camp with all its guards musters a raider, but only while the world
   holds fewer than `raidersPerCamp` raiders for each camp (thieves and escorts

@@ -1859,27 +1859,20 @@ describe('the turn report', () => {
  *      goes with it and the *victim's* panel is refreshed on the spot. There is
  *      no second razing rule with the wild's name on it, exactly as there is no
  *      second combat evaluator.
- *   2. **Strike, then burn, then march**, in that order and only for a raider.
- *      A blow already in reach outranks a torch; a torch outranks walking on.
+ *   2. A raider fights nearby soldiers, then pillages before attacking a city.
  *   3. **The wild keeps the bandage and forfeits the salvage**, and says why —
  *      `settleCampBounty`'s warning read from the other side.
  */
 describe('the raider’s torch', () => {
-  /**
-   * A raider standing on somebody's farm, two hexes from the town that owns it.
-   *
-   * Two rather than one on purpose: adjacent, the raider would be *in reach of
-   * the city* and the first beat would take it, which is the precedence this
-   * fixture is trying to leave room for rather than assert.
-   */
-  function torchState(): { state: GameState; raider: Unit; cityId: number } {
+  /** A town in column five, with a farm and a raider on the same row. */
+  function torchState(raiderCol = 7, farmCol = 7): { state: GameState; raider: Unit; cityId: number } {
     const state = wildState();
     const city = foundCityAt(state, 0, at(state, 5, 8));
-    const farm = at(state, 7, 8);
+    const farm = at(state, farmCol, 8);
     farm.improvement = 'farm';
     farm.road = 0;
-    state.tileOwner[tileIndex(state.map, 7, 8)] = city.id;
-    const raider = createUnit(state, wildId(state), 'warrior', 7, 8);
+    state.tileOwner[tileIndex(state.map, farmCol, 8)] = city.id;
+    const raider = createUnit(state, wildId(state), 'warrior', raiderCol, 8);
     raider.hp = 40;
     recomputeAllVisibility(state);
     refill(state);
@@ -1942,6 +1935,78 @@ describe('the raider’s torch', () => {
     expect(report.pillages).toEqual([]);
     expect(at(state, 7, 8).improvement).toBe('farm');
     expect(report.combats.length).toBe(1);
+  });
+
+  it.each([6, 7])('pillages the visible farm in column %i before attacking the city', (farmCol) => {
+    const { state, raider, cityId } = torchState(6, farmCol);
+    state.turn = QUIET_TURN;
+    expect(applyCommand(state, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+    const result = applyCommand(state, { type: 'endTurn', playerId: 1 });
+    if (!result.ok) throw new Error(result.error);
+    expect((result.combats ?? []).some(blow => blow.attackerId === raider.id && blow.defenderCityId === cityId)).toBe(false);
+    expect(result.pillages).toEqual([expect.objectContaining({ col: farmCol, row: 8, improvement: 'farm' })]);
+    expect(at(state, farmCol, 8).damagedImprovement?.id).toBe('farm');
+  });
+
+  it('attacks the city when its farm is already pillaged', () => {
+    const { state, raider, cityId } = torchState(6, 7);
+    const farm = at(state, 7, 8);
+    delete farm.improvement;
+    farm.damagedImprovement = { id: 'farm' };
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+    expect(report.combats).toEqual([expect.objectContaining({ attackerId: raider.id, defenderCityId: cityId })]);
+    expect(report.pillages).toEqual([]);
+  });
+
+  it('spends its last movement reaching a farm and burns it on its next turn', () => {
+    const { state, raider } = torchState(6, 7);
+    raider.movesLeft = 1;
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+    expect([raider.col, raider.row, raider.movesLeft]).toEqual([7, 8, 0]);
+    expect(at(state, 7, 8).improvement).toBe('farm');
+    expect(report.pillages).toEqual([]);
+    refill(state);
+    raid(state, [raider.id], report);
+    expect(report.pillages).toEqual([expect.objectContaining({ improvement: 'farm' })]);
+  });
+
+  it('fights an adjacent soldier even when a city and a farm are in reach', () => {
+    const { state, raider } = torchState(6, 7);
+    const soldier = createUnit(state, 0, 'warrior', 6, 9);
+    recomputeAllVisibility(state);
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+    expect(report.combats[0]?.defenderUnitId).toBe(soldier.id);
+    expect(report.pillages).toEqual([]);
+  });
+
+  it('ignores a hidden farm when choosing a target', () => {
+    const { state, raider, cityId } = torchState(6, 7);
+    state.visibility[wildId(state)]![tileIndex(state.map, 7, 8)] = 0;
+    expect(isVisibleTo(state, wildId(state), 7, 8)).toBe(false);
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+    expect(report.combats[0]?.defenderCityId).toBe(cityId);
+    expect(report.pillages).toEqual([]);
+  });
+
+  it('breaks equal movement costs by tile index', () => {
+    const { state, raider, cityId } = torchState(6, 7);
+    const second = at(state, 6, 9);
+    second.improvement = 'farm';
+    state.tileOwner[tileIndex(state.map, second.col, second.row)] = cityId;
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+    expect(report.pillages[0]).toMatchObject({ col: 7, row: 8, improvement: 'farm' });
+    expect(second.improvement).toBe('farm');
+  });
+
+  it('still pillages when the caller requests no report', () => {
+    const { state, raider } = torchState();
+    raid(state, [raider.id]);
+    expect(at(state, 7, 8).damagedImprovement?.id).toBe('farm');
   });
 
   it('marches on with nothing underfoot to burn', () => {

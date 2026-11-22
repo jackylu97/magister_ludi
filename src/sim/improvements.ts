@@ -1990,6 +1990,12 @@ export function prospectAt(state: GameState, unit: Unit, tile: Tile): ProspectRe
 
 // --- pillaging --------------------------------------------------------------
 
+/* A tended improvement survives a raid, even if the road below it is destroyed. */
+export function pillageableImprovement(tile: Tile): ImprovementId | undefined {
+  const id = tile.improvement;
+  return id !== undefined && !isTendedWork(id) ? id : undefined;
+}
+
 /**
  * Why this unit cannot pillage where it stands, or `null` when it can.
  *
@@ -2020,8 +2026,7 @@ export function pillageError(state: GameState, unitId: number): string | null {
   // roads are otherwise permanent (the user's ruling).
   // A tended work cannot be pillaged (`ImprovementDef.tended`), so a tended
   // hex with no road under it offers nothing to burn.
-  const works = tile.improvement !== undefined && !isTendedWork(tile.improvement);
-  if (!works && tile.road === undefined) {
+  if (pillageableImprovement(tile) === undefined && tile.road === undefined) {
     return `There is nothing to pillage on (${tile.col}, ${tile.row})`;
   }
 
@@ -2162,8 +2167,9 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   };
   const previous = { ...tile };
   // Tended works survive a raid on the road beneath them.
-  if (tile.improvement !== undefined && !isTendedWork(tile.improvement)) {
-    report.improvement = tile.improvement;
+  const improvement = pillageableImprovement(tile);
+  if (improvement !== undefined) {
+    report.improvement = improvement;
     damageImprovement(tile, state.turn);
   }
   delete tile.road;

@@ -109,9 +109,9 @@
  */
 
 import { campAt, hasCampAt } from './camps';
-import { tileOwnerPlayerId } from './cities';
+import { cityAt, tileOwnerPlayerId } from './cities';
 import { applyCombat, fortifyError, isCombatant, isFortified } from './combat';
-import { pillageAt, pillageError } from './improvements';
+import { pillageAt, pillageError, pillageableImprovement } from './improvements';
 import type { TurnReport } from './turn';
 import { cardBehaviorRule } from './statecraft';
 // Straight from the evaluator rather than through the `statecraft.ts` index,
@@ -136,6 +136,7 @@ import {
   findPathAround,
   isPassable,
   moveProfile,
+  reachableTiles,
   takesByWalking,
 } from './pathfind';
 import { nextInt } from './rng';
@@ -720,6 +721,7 @@ export function campCadence(state: GameState, camp: { col: number; row: number }
 /** Something a raider would like to be standing next to. */
 interface RaidTarget {
   tile: Tile;
+  unit?: Unit;
   distance: number;
   /** Discovery order — units before cities — as the final tie-break. */
   order: number;
@@ -744,6 +746,8 @@ function insideLeash(map: GameMap, leash: Leash, tile: Tile): boolean {
  * and a call with neither is the reading the warden has always used.
  */
 interface TargetLimits {
+  /** A raider fights an adjacent soldier in the field before it raids a town. */
+  preferAdjacentSoldier?: boolean;
   /** Only targets inside this circle: a guard fights near its camp. */
   leash?: Leash;
   /**
@@ -788,7 +792,7 @@ export function nearestTarget(
 
   const candidates: RaidTarget[] = [];
   let order = 0;
-  const consider = (col: number, row: number, ownerId: number): void => {
+  const consider = (col: number, row: number, ownerId: number, targetUnit?: Unit): void => {
     if (ownerId === wild.id) return;
     const tile = getTileAt(map, col, row);
     if (!tile) return;
@@ -806,10 +810,10 @@ export function nearestTarget(
     // function: the wolves take their share, they just do not come for the
     // spears. See `docs/deprecated/statecraft-cards.md`.
     if (cardBehaviorRule(state, ownerId, 'barbariansPassive')) return;
-    candidates.push({ tile, distance, order: order++ });
+    candidates.push({ tile, distance, order: order++, unit: targetUnit });
   };
 
-  for (const other of state.units) consider(other.col, other.row, other.ownerId);
+  for (const other of state.units) consider(other.col, other.row, other.ownerId, other);
   for (const city of state.cities) consider(city.col, city.row, city.ownerId);
   if (candidates.length === 0) return null;
 
@@ -819,6 +823,12 @@ export function nearestTarget(
       tileIndex(map, a.tile.col, a.tile.row) - tileIndex(map, b.tile.col, b.tile.row) ||
       a.order - b.order,
   );
+  if (limits.preferAdjacentSoldier && candidates[0]!.distance === 1) {
+    const soldier = candidates.find(({ distance, unit, tile }) =>
+      distance === 1 && unit !== undefined && isCombatant(unitDef(unit.type)) && !cityAt(state, tile.col, tile.row),
+    );
+    if (soldier) return soldier;
+  }
   return candidates[0]!;
 }
 
@@ -1583,27 +1593,28 @@ function guardCamp(
 }
 
 /**
- * A raider (batch BR1): it fights what it meets on the way, and otherwise
- * marches on the nearest town of a real player.
- *
- * **Strike, then burn, then close, then march** — and the first three beats are
- * the raid as it was (2026-08-28):
- *
- *   · A target already *in reach* is hit, because a blow is worth more than a
- *     farm and a raider that stopped to burn one while a wounded scout stood
- *     beside it would be reading the board wrong.
- *   · Otherwise, the works underfoot. A raider marching through a farm burns
- *     it rather than walking on, which slows the march and is the point.
- *   · Otherwise, it closes on the nearest thing it can see inside
- *     `aggressionRadius`, on land it can walk to.
- *   · Otherwise it **marches on the nearest town** (`raidGoal`) and strikes it
- *     when it arrives. The wild never takes the town (`capturesCity`).
- *
- * A raider with no town on its land (a camp on an island, or every seat at
- * peace with the wild) drifts round the nearest camp, as every raider did
- * before this batch. The world limit on raiders (`raidersPerCamp`) stops such
- * camps adding raiders for ever.
+ * Choose an owned, visible improvement before striking a city. The movement
+ * range gives legal destinations in tile-index order, which breaks equal-cost
+ * ties. A raider cannot swap with another unit while marching.
  */
+function improvementToRaid(state: GameState, unit: Unit, standing: Tile | null): Tile | null {
+  const eligible = (tile: Tile): boolean => {
+    if (pillageableImprovement(tile) === undefined || !isVisibleTo(state, unit.ownerId, tile.col, tile.row)) return false;
+    const owner = tileOwnerPlayerId(state, tile.col, tile.row);
+    return owner !== null && owner !== unit.ownerId && !cardBehaviorRule(state, owner, 'barbariansPassive');
+  };
+  if (standing && eligible(standing)) return standing;
+  let target: Tile | null = null;
+  let bestCost = Infinity;
+  for (const { tile, cost, swap } of reachableTiles(state, unit)) {
+    if (swap || cost >= bestCost || !eligible(tile)) continue;
+    target = tile;
+    bestCost = cost;
+  }
+  return target;
+}
+
+/** A raider strikes soldiers first, then pillages improvements before fighting cities. */
 function raidTowns(
   state: GameState,
   wild: Player,
@@ -1611,26 +1622,30 @@ function raidTowns(
   field: RaidField,
   report?: TurnReport,
 ): void {
-  const target = nearestTarget(state, wild, unit, { land: field.land });
+  const target = nearestTarget(state, wild, unit, { land: field.land, preferAdjacentSoldier: true });
+  const standing = worksUnderfoot(state, unit);
+  const goal = target?.tile ?? raidGoal(state, unit, field);
+  if (goal && (!target || cityAt(state, goal.col, goal.row))) {
+    const work = improvementToRaid(state, unit, standing);
+    if (work) {
+      if (work !== standing) marchTo(state, unit, work);
+      if (unit.col === work.col && unit.row === work.row && pillageError(state, unit.id) === null) {
+        const damage = pillageAt(state, unit, work);
+        report?.pillages.push(damage);
+      }
+      return;
+    }
+  }
   if (target && isAdjacentTo(state, unit, target.tile)) {
     closeAndStrike(state, unit, target.tile, report);
     return;
   }
-  const works = worksUnderfoot(state, unit);
-  if (works) {
-    // The player's verb, unchanged, so the farm and the road under it go
-    // together and the *victim's* panel is refreshed on the spot
-    // (`refreshTileDerived`). The wild keeps the bandage and forfeits the
-    // salvage — `pillageAt` says so and says why.
-    report?.pillages.push(pillageAt(state, unit, works));
+  if (standing) {
+    const damage = pillageAt(state, unit, standing);
+    report?.pillages.push(damage);
     return;
   }
-  if (target) {
-    closeAndStrike(state, unit, target.tile, report);
-    return;
-  }
-  const town = raidGoal(state, unit, field);
-  if (town) closeAndStrike(state, unit, town, report);
+  if (goal) closeAndStrike(state, unit, goal, report);
   else wander(state, unit);
 }
 
@@ -1652,10 +1667,8 @@ function raidTowns(
  *   · **guard** fights what comes near its camp and otherwise patrols, never
  *     farther from the camp than `campUnitRadius` (`guardCamp`);
  *   · **thief** closes on its chosen civilian and strikes, which captures it;
- *   · **raider** strikes what is already in reach, else **burns the works it is
- *     standing on**, else closes on the nearest visible thing inside
- *     `aggressionRadius`, else marches on the nearest town of a real player
- *     (`raidTowns`).
+ *   · **raider** fights an adjacent soldier first. Before attacking a town,
+ *     it tries to pillage a visible improvement it can reach this turn.
  *
  * Every blow goes through `applyCombat`, so a raid rolls the same dice, obeys
  * the same targeting priority, takes the same counter-attack and triggers the
