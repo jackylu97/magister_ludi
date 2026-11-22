@@ -29,6 +29,7 @@ import { nextBotCommand, valueContext } from '../../src/ai/bot';
 import { type ValueTerm } from '../../src/ai/decision';
 import {
   type ValueContext,
+  explainBeyondStamp,
   explainCommission,
   explainCountStep,
   explainCounted,
@@ -372,6 +373,26 @@ describe('faith that buys buildings', () => {
     const { state, player } = board([6]);
     learn(state, 0, 'divination', 'theHighTemple');
     expect(scoreEffects(effectsOf(GIFTS), valueContext(state, player))).toBe(0);
+  });
+
+  it('prices one faith budget across several building purchase rules', () => {
+    const { state, player } = faithful();
+    learn(state, 0, 'stonecraft');
+    const ctx = valueContext(state, player);
+    const gifts = effectsOf(GIFTS);
+    const separate = gifts.map((effect) => scoreEffects([effect], ctx));
+    expect(separate).toHaveLength(2);
+    expect(Math.min(...separate)).toBeGreaterThan(0);
+    const best = Math.max(...separate);
+    const all: CardEffect = { kind: 'rule', rule: 'faithBuysBuildings' };
+    const unrestricted = scoreEffects([all], ctx);
+    expect(unrestricted).toBeGreaterThanOrEqual(best);
+    for (const choices of [gifts, [...gifts].reverse(), [...gifts, ...gifts]]) {
+      expect(scoreEffects(choices, ctx)).toBe(best);
+      expect(explainBeyondStamp(choices, ctx).total).toBe(best);
+    }
+    expect(scoreEffects([all, ...gifts, all], ctx)).toBe(unrestricted);
+    expect(explainBeyondStamp([...gifts, all], ctx).total).toBe(unrestricted);
   });
 });
 

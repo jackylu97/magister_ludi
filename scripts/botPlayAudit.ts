@@ -2,7 +2,7 @@
  * Run one paired bot experiment. The report in docs/audit/bot-play-2026-11-21.md
  * lists the source revision for each policy and the map and seat assignments.
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { aiConfigFor, clearSeatTuning, setAiTuning, type PersonaOverride } from '../src/ai/aiConfig';
 import { driveBots } from '../src/ai/driver';
 import { createGame } from '../src/sim/game';
@@ -26,14 +26,15 @@ const voices = ['food', 'production', 'gold', 'science', 'culture', 'faith'] as 
 type Rates = Record<typeof voices[number], number>;
 const zeroRates = (): Rates => ({ food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
 
-const [policy, seedInput, limitInput, output, seat = 'all', mapSize = 'duel', roster = 'trio'] = process.argv.slice(2);
+const [policy, seedInput, limitInput, output, seat = 'all', mapSize = 'duel', roster = 'trio', settingsPath] = process.argv.slice(2);
 const seed = Number(seedInput), limit = Number(limitInput);
-if (!['base','workers','fixed','income','target','research','capture','muster','combined'].includes(policy) ||
-    !mapSeats[seed] || !Number.isSafeInteger(limit) || limit < 1 || !output ||
+if (!['base','workers','fixed','income','target','research','capture','muster','combined','custom'].includes(policy) ||
+    !Number.isSafeInteger(seed) || (!mapSeats[seed] && policy !== 'custom') || !Number.isSafeInteger(limit) || limit < 1 || !output ||
+    (policy === 'custom' && !settingsPath) ||
     !['six','trio'].includes(roster)) {
-  throw Error('Pass policy, seed, turn limit, output file, optional seat index, map size and roster (trio or six).');
+  throw Error('Pass policy, seed, turn limit, output file, optional seat index, map size and roster (trio or six). The custom policy also requires a settings JSON file.');
 }
-const [group, rotation] = mapSeats[seed];
+const [group, rotation] = mapSeats[seed] ?? [0, 0];
 const lineup = roster === 'six' ? groups.flat() : groups[group];
 const players = lineup.map((_, index) => {
   const id = lineup[(index + rotation) % lineup.length];
@@ -45,12 +46,22 @@ if (seat !== 'all' && (!Number.isInteger(Number(seat)) || Number(seat) < 0 || Nu
 }
 const game = createGame({ seed, sizeName: mapSize, players, barbarians: true });
 const state = game.state;
+const settings: PersonaOverride | undefined = policy === 'custom'
+  ? JSON.parse(readFileSync(settingsPath!, 'utf8'))
+  : undefined;
+if (policy === 'custom' && (!settings || typeof settings !== 'object' || Array.isArray(settings))) {
+  throw Error('A custom policy needs a JSON object with Arena settings.');
+}
 
 function installOverrides(): void {
   // The fixed and target policies run on their own source revisions.
   if (policy === 'base' || policy === 'fixed' || policy === 'target' || policy === 'combined') return;
   for (const player of realPlayers(state)) {
     if (seat !== 'all' && Number(seat) !== player.id) continue;
+    if (settings !== undefined) {
+      setAiTuning(settings, { playerId: player.id, afterPersona: true });
+      continue;
+    }
     const ai = aiConfigFor(player.persona, player.id);
     const sheet: PersonaOverride = {
       workers: { improvements: [...new Set([...ai.workers.improvements, ...newWorks])] },
@@ -130,7 +141,7 @@ try {
   }
   const late = times.slice(-20).sort((a, b) => a - b);
   const result = {
-    policy, seed, seat, mapSize, roster, turns: completed, winner: state.winnerId,
+    policy, settings, seed, seat, mapSize, roster, turns: completed, winner: state.winnerId,
     warnings: problems.length, problems, lateMedianMs: late[Math.floor(late.length / 2)],
     lateP95Ms: late[Math.ceil(late.length * .95) - 1], checkpoints,
   };

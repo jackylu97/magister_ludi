@@ -1817,7 +1817,7 @@ export function explainEffects(
 /** `explainEffects`' reading, taken fresh. */
 function freshEffects(effects: readonly CardEffect[], ctx: ValueContext, card?: CardId, town?: City): Appraisal {
   const terms: ValueTerm[] = [];
-  for (const effect of effects) {
+  for (const effect of withBestFaithBuildingRule(effects, ctx)) {
     // **One shape is priced as an appraisal rather than as a number** — a
     // counted effect, whose worth is a real reading of the board multiplied by a
     // discounted promise, and whose arithmetic a reader of the feed has to be
@@ -5747,7 +5747,7 @@ export function explainBeyondStamp(
   card?: CardId,
 ): Appraisal {
   const terms: ValueTerm[] = [];
-  for (const effect of effects) {
+  for (const effect of withBestFaithBuildingRule(effects, ctx)) {
     const term = beyondTheStamp(effect, ctx, card);
     if (term !== null && term.value !== 0) terms.push(term);
   }
@@ -8527,10 +8527,16 @@ function lineShare(line: UnitTypeId, ctx: ValueContext): number {
   return Math.max(ctx.ai.score.scientific.traitLine, seen);
 }
 
-/** Forecast only works this seat could lay once it knows the technology. */
+// A technology's unlocks are fixed. The worker list and the player's rights can change.
+const WORK_UNLOCKS = new Map<TechId, ImprovementId[]>();
+
 function worksOpenedBy(tech: TechId, ctx: ValueContext): ImprovementId[] {
-  return IMPROVEMENT_IDS.filter(id =>
-    improvementDef(id).requiresTech === tech &&
+  let unlocks = WORK_UNLOCKS.get(tech);
+  if (!unlocks) {
+    unlocks = IMPROVEMENT_IDS.filter(id => improvementDef(id).requiresTech === tech);
+    WORK_UNLOCKS.set(tech, unlocks);
+  }
+  return unlocks.filter(id =>
     ctx.ai.workers.improvements.includes(id) &&
     improvementLeaderError(ctx.state, ctx.playerId, id) === null &&
     improvementCardError(ctx.state, ctx.playerId, id) === null
@@ -8610,9 +8616,11 @@ export function explainTechWorks(tech: TechId, ctx: ValueContext): Appraisal {
  * With no such effect, this is `explainEffects` of the row, term for term.
  */
 export function explainTechEffects(tech: TechId, ctx: ValueContext): Appraisal {
+  const effects = techDef(tech).effects;
+  if (!effects?.length) return appraise([]);
   const works = worksOpenedBy(tech, ctx);
   const terms: ValueTerm[] = [];
-  for (const effect of techDef(tech).effects ?? []) {
+  for (const effect of effects) {
     const work = countedWork(effect, works);
     const priced =
       work === null
@@ -11694,6 +11702,26 @@ function devotionCountAhead(
  * want (`worthPerCoin`). Remembered for the sitting.
  */
 const FAITH_SHELF_MEMO = new WeakMap<ValueContext, Map<CardEffect, number>>();
+
+function isFaithBuildingRule(
+  effect: CardEffect,
+): effect is Extract<CardEffect, { kind: 'rule' }> & { rule: 'faithBuysBuildings' } {
+  return effect.kind === 'rule' && effect.rule === 'faithBuysBuildings';
+}
+
+/** Each rule adds purchase options. The same faith income can fund only the best available option. */
+function withBestFaithBuildingRule(effects: readonly CardEffect[], ctx: ValueContext): readonly CardEffect[] {
+  if (effects.length < 2 || !effects.some(isFaithBuildingRule)) return effects;
+  const choices = effects.filter(isFaithBuildingRule);
+  if (choices.length === 1) return effects;
+  const best = choices.reduce((held, choice) =>
+    faithShelfWorth(choice, ctx) > faithShelfWorth(held, ctx) ? choice : held,
+  );
+  const priced: CardEffect[] = effects.filter((effect) => !isFaithBuildingRule(effect));
+  priced.splice(effects.indexOf(choices[0]!), 0, best);
+  return priced;
+}
+
 function faithShelfWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueContext): number {
   const held = onContext(FAITH_SHELF_MEMO, ctx, () => new Map<CardEffect, number>());
   const found = held.get(effect);
