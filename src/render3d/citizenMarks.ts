@@ -8,8 +8,10 @@ import type { City, GameState } from '../sim/state';
 import { knowsCell, type FogLevels } from './fog3d';
 import { hexDecal } from './geometry';
 import { disposeInstancedGroup, InstanceCollector, RENDER_ORDER } from './instances';
-import { cellCenter, tileTopY, wrapWidth } from './layout';
+import { cellCenter, tileTopY, worldToCell, wrapWidth } from './layout';
 import { VIEW3D } from './lookData';
+import { frontierRibbon, movementEdges, movementFrontier } from './movementBoundary';
+import { samplePaintedWorld } from './paintedSurface';
 import type { MaterialLibrary } from './toon';
 
 /*
@@ -94,6 +96,81 @@ export function citizenGroundKinds(map: GameMap, cells: CitizenCells): Uint8Arra
   return ground;
 }
 
+// --- the outline around a city's work -------------------------------------------
+
+/** One strip of the outline: a shape, its colour, its opacity, and where it stands in the draw order. */
+export interface OutlineStrip { geometry: BufferGeometry; color: number; opacity: number; order: number }
+
+/**
+ * **One light outline around the whole of a city's work.**
+ *
+ * The user, 2026-11-22: "I think we maybe need a light border to show it more
+ * clearly, i know we cut it earlier. Is there any way we can do the outline in
+ * a way thats less noisy, maybe we do an outline around the entire area so
+ * that shared borders between hexes are not outlined? I think pinned tiles
+ * dont need a special outline."
+ *
+ * So the outline is the edge of the union of `cells` (the worked hexes, the
+ * pinned hexes and the city's own hex). An edge that two of those hexes share
+ * is inside the union and is not drawn. Worked hexes that do not touch the
+ * rest make an island, and each island has its own outline. A pinned hex has
+ * no line of its own.
+ *
+ * It is the movement range's ink (`movementBoundary.ts`): the edge is traced
+ * as closed rings, so the corners join with a mitre and nothing overshoots.
+ * Each ring is then moved inward by `outlineInset` of a hex, so that it does
+ * not sit on the territory border, and its height is read again from the
+ * painted ground under its new place, so that it follows a hill and the shore.
+ *
+ * Two strips, the pale ink over a faint dark backing. The caller owns the
+ * geometries and disposes them. It costs two draws, and it is rebuilt only
+ * when the set of hexes changes.
+ */
+export function workedOutline(map: GameMap, cells: readonly Cell[]): OutlineStrip[] {
+  if (cells.length === 0) return [];
+  const inside = new Set(cells.map((cell) => cell.row * map.width + (((cell.col % map.width) + map.width) % map.width)));
+  const inset = ART.outlineInset * VIEW3D.board.hexRadius;
+  const loops = movementFrontier(map, movementEdges(map, cells)).map(({ stations }) => {
+    const count = stations.length;
+    // The unit normal at each station, as the mitre of the two segments that meet there, and how far the mitre reaches.
+    const normals = stations.map((here, i) => {
+      const before = stations[(i - 1 + count) % count]!, after = stations[(i + 1) % count]!;
+      const a = unit(here.x - before.x, here.z - before.z), b = unit(after.x - here.x, after.z - here.z);
+      const m = unit(-(a.z + b.z), a.x + b.x);
+      const cos = Math.max(0.5, m.x * -a.z + m.z * a.x);
+      return { x: m.x, z: m.z, reach: 1 / cos };
+    });
+    // Which side of the ring is the city's work. A point a little off the ring on one side is in a worked hex or it is not.
+    let votes = 0;
+    stations.forEach((here, i) => {
+      const n = normals[i]!, probe = worldToCell(map, here.x + n.x * inset, here.z + n.z * inset);
+      votes += probe && inside.has(probe.tile.row * map.width + probe.tile.col) ? 1 : -1;
+    });
+    const side = votes >= 0 ? 1 : -1;
+    return {
+      stations: stations.map((here, i) => {
+        const n = normals[i]!, x = here.x + n.x * n.reach * inset * side, z = here.z + n.z * n.reach * inset * side;
+        // The ground under the moved line. A reading a little to each side guards against a seam in the terrain, which reads low.
+        let ground: number | undefined;
+        for (const [dx, dz] of [[0, 0], [n.x * 0.02, n.z * 0.02], [-n.z * 0.02, n.x * 0.02], [n.z * 0.02, -n.x * 0.02]] as const) {
+          const read = samplePaintedWorld(map, x + dx, z + dz);
+          if (read !== undefined && (ground === undefined || read > ground)) ground = read;
+        }
+        return { x, z, y: ground === undefined ? here.y : ground + ART.outlineLift };
+      }),
+    };
+  });
+  return [
+    { geometry: frontierRibbon(loops, ART.outlineWidth + ART.outlineBackingExtra), color: ART.outlineBacking, opacity: ART.outlineBackingOpacity, order: RENDER_ORDER.onTop + 0.1 },
+    { geometry: frontierRibbon(loops, ART.outlineWidth), color: ART.outlineColor, opacity: ART.outlineOpacity, order: RENDER_ORDER.onTop + 0.2 },
+  ];
+}
+
+function unit(x: number, z: number): { x: number; z: number } {
+  const length = Math.hypot(x, z);
+  return length > 1e-9 ? { x: x / length, z: z / length } : { x: 0, z: 0 };
+}
+
 // --- the plaque and the pin head ----------------------------------------------
 
 const PLAQUE = ART.plaque;
@@ -144,9 +221,13 @@ export type PlaqueBack = 'paper' | 'scrim' | 'pill' | 'tag';
  *     long. The quad is deeper than the paper by the foot, and the foot points
  *     at the hex's centre.
  *
+ * `strong` is the scrim for a board that prints yields on every hex (the
+ * player's yields lens): much darker (`plaque.lensOn.scrimOpacity`), so that
+ * the city's hexes stand out from the rest.
+ *
  * Null where there is no canvas.
  */
-export function plaqueBackMaterial(back: PlaqueBack, width: number, depth: number, seat: number | null = null): MeshBasicMaterial | null {
+export function plaqueBackMaterial(back: PlaqueBack, width: number, depth: number, seat: number | null = null, strong = false): MeshBasicMaterial | null {
   if (back === 'paper') return plaqueMaterial(width, depth);
   const px = PLAQUE.pixelsPerUnit, margin = Math.ceil(PLAQUE.shadow * px * 1.6);
   const w = Math.round(width * px), body = Math.round(depth * px), foot = back === 'tag' ? Math.round(PLAQUE.foot * px) : 0;
@@ -155,7 +236,9 @@ export function plaqueBackMaterial(back: PlaqueBack, width: number, depth: numbe
     if (back === 'scrim') {
       ctx.filter = `blur(${Math.max(1, PLAQUE.scrimBlur * px)}px)`;
       ctx.beginPath(); ctx.roundRect(margin, margin, w, body, Math.min(w, body) * 0.35);
-      ctx.globalAlpha = PLAQUE.scrimOpacity; ctx.fillStyle = css(ART.ink); ctx.fill();
+      ctx.globalAlpha = strong ? PLAQUE.lensOn.scrimOpacity : PLAQUE.scrimOpacity; ctx.fillStyle = css(ART.ink); ctx.fill();
+      // The strong scrim is laid twice, so that its middle is nearly solid and only its edge is soft.
+      if (strong) ctx.fill();
       return;
     }
     const outline = (inset: number): void => {

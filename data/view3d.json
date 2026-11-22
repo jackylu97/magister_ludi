@@ -428,9 +428,9 @@
         "rim": "goldLeaf", "rimInset": 0.05, "rimReach": 0.36, "rimWarmth": 0.12, "rimLift": 0.15
       },
       "fallbackFreeOpacity": 0.4, "fallbackFarOpacity": 0.66,
-      "outlineColor": "sand", "outlineInset": 0.27, "outlineRound": 0.2, "outlineLift": 0.012,
-      "outlineWidth": 0.04, "outlineOpacity": 0.95, "doubleGap": 0.09,
-      "outlineBacking": "walnutInk", "outlineBackingExtra": 0.035, "outlineBackingOpacity": 0.38,
+      "outlineColor": "sand", "outlineInset": 0.085, "outlineLift": 0.012,
+      "outlineWidth": 0.036, "outlineOpacity": 0.92,
+      "outlineBacking": "walnutInk", "outlineBackingExtra": 0.03, "outlineBackingOpacity": 0.32,
       "plaque": {
         "padX": 0.07, "padZ": 0.05, "step": 0.04, "pixelsPerUnit": 300,
         "radius": 0.05, "edge": 0.012, "edgeOpacity": 0.7, "shadow": 0.035, "shadowOpacity": 0.45,
@@ -443,7 +443,8 @@
           "d": { "layout": "grid", "back": "tag", "offsetZ": 0, "pin": "top" },
           "e": { "layout": "column", "back": "paper", "offsetZ": -0.1, "pin": "top" }
         },
-        "cellGap": 0.045, "columns": 2, "foot": 0.1, "scrimOpacity": 0.42, "scrimBlur": 0.05, "seatEdge": 0.026
+        "cellGap": 0.045, "columns": 2, "foot": 0.1, "scrimOpacity": 0.42, "scrimBlur": 0.05, "seatEdge": 0.026,
+        "lensOn": { "scrimOpacity": 0.86, "otherOpacity": 0.4 }
       },
       "freeYieldOpacity": 0.72, "nameHeight": 0.27
     }

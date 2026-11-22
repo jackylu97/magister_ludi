@@ -135,7 +135,7 @@ import { type TileIcons, YIELD_KEYS } from './badges3d';
 import { type BoardTileYields, type TileYieldSample, sameTileYieldSamples, seenTileYields } from './boardTileYields';
 export { seenTileYields } from './boardTileYields';
 import { playerColor } from './cities3d';
-import { type PlaqueBack, citizenCells, citizenGroundKinds, CitizenMarks, pinHeadMaterial, plaqueBackMaterial, plaqueMargin } from './citizenMarks';
+import { type OutlineStrip, type PlaqueBack, citizenCells, citizenGroundKinds, CitizenMarks, pinHeadMaterial, plaqueBackMaterial, plaqueMargin, workedOutline } from './citizenMarks';
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
@@ -245,7 +245,8 @@ function sameCells(
 /** Are two lens views asking for the same picture? */
 export function sameLens(a: LensView, b: LensView): boolean {
   if (a.mode !== b.mode || a.playerId !== b.playerId) return false;
-  if (a.citizens?.cityId !== b.citizens?.cityId || a.citizens?.manage !== b.citizens?.manage || a.citizens?.hover !== b.citizens?.hover) return false;
+  if (a.citizens?.cityId !== b.citizens?.cityId || a.citizens?.manage !== b.citizens?.manage || a.citizens?.hover !== b.citizens?.hover
+    || (a.citizens?.lensOn ?? false) !== (b.citizens?.lensOn ?? false)) return false;
   if (a.yields !== b.yields || a.resources !== b.resources) return false;
   if (!sameCells(a.advice ?? null, b.advice ?? null)) return false;
   // A restriction only means anything while the half it scopes is up; comparing
@@ -295,6 +296,10 @@ export class LensLayer {
   settlerGround: Uint8Array | null = null;
   private faintSource: MeshBasicMaterial | null = null;
   private faintGlyphs: MeshBasicMaterial | null = null;
+  /** The quieter figures of a free hex while the player's yields lens is on (`plaque.lensOn.otherOpacity`). */
+  private quietGlyphs: MeshBasicMaterial | null = null;
+  /** The outline around the looked-at city's work (`workedOutline`), kept until the set of hexes changes. */
+  private outline: { key: string; map: GameMap; strips: OutlineStrip[] } | null = null;
   private drawCallCount = 0;
 
   /**
@@ -424,9 +429,14 @@ export class LensLayer {
         // cached per owning city inside, because building one is a fold.
         state,
         lens.playerId,
-        citizens && city ? { kinds: citizens.kinds, seat: playerColor(state, city.ownerId), faintFree: hover === undefined } : undefined,
+        citizens && city ? {
+          kinds: citizens.kinds, seat: playerColor(state, city.ownerId), faintFree: hover === undefined,
+          over: hover === 'over', strong: hover === 'over' || lens.citizens!.lensOn === true,
+        } : undefined,
       );
     }
+    // One light outline around the whole of the looked-at city's work, in all three situations.
+    if (citizens && city) this.addWorkedOutline(map, city.id, citizens.kinds, collector);
 
     this.drawCallCount = collector.flush(this.group, materials, false) + (this.citizenMarks?.group.children.length ?? 0);
   }
@@ -472,7 +482,18 @@ export class LensLayer {
      * it): which of its hexes are worked and pinned, so that their figures get
      * a plaque and a pin head, and the seat's colour for the pin.
      */
-    marks?: { kinds: ReturnType<typeof citizenCells>['kinds']; seat: number; faintFree: boolean },
+    marks?: {
+      kinds: ReturnType<typeof citizenCells>['kinds']; seat: number; faintFree: boolean;
+      /**
+       * True when the pointer rests on a city and the player has the yields
+       * on, so `tiles` is the whole board. Then nothing moves: every hex keeps
+       * the board's own layout and place, and the city's worked hexes only
+       * gain their backing.
+       */
+      over: boolean;
+      /** True when the player's yields lens is on: the worked hexes' scrim is much stronger, and a free hex's figures are quieter. */
+      strong: boolean;
+    },
   ): void {
     const kinds = marks?.kinds;
     const identity = new Quaternion();
@@ -489,22 +510,30 @@ export class LensLayer {
       this.faintGlyphs = icons.material.clone();
       this.faintGlyphs.transparent = true;
       this.faintGlyphs.opacity = VIEW3D.territory.citizens.freeYieldOpacity;
+      this.quietGlyphs?.dispose();
+      this.quietGlyphs = icons.material.clone();
+      this.quietGlyphs.transparent = true;
+      this.quietGlyphs.opacity = VIEW3D.territory.citizens.plaque.lensOn.otherOpacity;
     }
-    const style = kinds ? plaqueStyle() : null;
+    const variant = kinds ? plaqueStyle() : null;
     for (const [index, tile] of tiles.entries()) {
       const value = values[index]!;
       const kind = kinds?.get(tileIndex(state.map, tile.col, tile.row));
-      const material = kind === 'free' && marks!.faintFree ? this.faintGlyphs! : icons.material;
+      const material = kind === 'free' && marks!.faintFree ? (marks!.strong ? this.quietGlyphs! : this.faintGlyphs!) : icons.material;
       const rows = YIELD_KEYS.filter((key) => value[key] > 0);
       if (rows.length === 0) continue;
+      // Only the looked-at city's own hexes take the variant's layout and place. Every other hex on the board is
+      // drawn as it always is. This was a fault: the variant's place was given to every hex while a city was under
+      // the pointer, so with the yields on, the yields of the whole map moved up when the pointer came to a city.
+      const style = kind !== undefined ? variant : null;
 
       const centre = cellCenter(tile.col, tile.row);
       const y = tileTopY(tile) + OVERLAY.lift + LENS.glyphLift;
       // A city's hexes use the plaque variant's layout and place, worked or free, so that all of them line up.
-      const laid = plaqueLayout(style?.layout ?? 'stack', rows.map((key) => value[key]));
-      const anchor = style ? plaqueAnchor(style, laid.depth) : 0;
+      const laid = plaqueLayout(style && !marks!.over ? style.layout : 'stack', rows.map((key) => value[key]));
+      const anchor = style && !marks!.over ? plaqueAnchor(style, laid.depth) : 0;
       if (style && (kind === 'worked' || kind === 'pinned')) {
-        this.addPlaque(collector, centre.x, y, centre.z + anchor, laid, style, kind === 'pinned' ? marks!.seat : null);
+        this.addPlaque(collector, centre.x, y, centre.z + anchor, laid, style, kind === 'pinned' ? marks!.seat : null, marks!.strong);
       }
       rows.forEach((key, rowIndex) => {
         const cell = laid.cells[rowIndex]!;
@@ -525,6 +554,24 @@ export class LensLayer {
   }
 
   /**
+   * The outline around the looked-at city's work: its worked hexes, its pinned
+   * hexes and its own hex, as one shape (`workedOutline` in `citizenMarks.ts`).
+   * The shapes are kept until the set of hexes changes, so a rebuild of the
+   * layer for another reason costs two `add` calls and nothing else.
+   */
+  private addWorkedOutline(map: GameMap, cityId: number, kinds: ReturnType<typeof citizenCells>['kinds'], collector: InstanceCollector): void {
+    const cells = [...kinds].filter(([, kind]) => kind === 'worked' || kind === 'pinned' || kind === 'centre').map(([cell]) => cell).sort((a, b) => a - b);
+    const key = `${cityId}:${cells.join(',')}`;
+    if (!this.outline || this.outline.map !== map || this.outline.key !== key) {
+      this.outline?.strips.forEach((strip) => strip.geometry.dispose());
+      this.outline = { key, map, strips: workedOutline(map, cells.map((cell) => ({ col: cell % map.width, row: Math.floor(cell / map.width) }))) };
+    }
+    for (const strip of this.outline.strips) {
+      collector.add(strip.geometry, [strip.color], new Matrix4(), { onTop: true, opacity: strip.opacity, order: strip.order });
+    }
+  }
+
+  /**
    * The backing under a worked hex's yield figures, and the pin head of a
    * pinned hex (idea e, "the yields are the mark"; see `citizenMarks.ts`).
    *
@@ -536,14 +583,14 @@ export class LensLayer {
    * for the pin heads. Which backing, which layout and where it sits are the
    * variant's (`plaque.styles`, chosen by `plaque.style`).
    */
-  private addPlaque(collector: InstanceCollector, x: number, y: number, z: number, laid: PlaqueLayout, style: PlaqueStyle, pinSeat: number | null): void {
+  private addPlaque(collector: InstanceCollector, x: number, y: number, z: number, laid: PlaqueLayout, style: PlaqueStyle, pinSeat: number | null, strong = false): void {
     const spec = VIEW3D.territory.citizens.plaque;
     const snap = (size: number): number => Math.ceil(size / spec.step - 1e-6) * spec.step;
     const width = snap(laid.width + spec.padX * 2), depth = snap(laid.depth + spec.padZ * 2);
     // Only the pill wears the seat's colour on its edge. The others say "pinned" with the pin head alone.
     const edgeSeat = style.back === 'pill' ? pinSeat : null;
-    const key = `${style.back}:${width.toFixed(3)}x${depth.toFixed(3)}:${edgeSeat ?? ''}`;
-    if (!this.plaques.has(key)) this.plaques.set(key, plaqueBackMaterial(style.back, width, depth, edgeSeat));
+    const key = `${style.back}:${width.toFixed(3)}x${depth.toFixed(3)}:${edgeSeat ?? ''}:${strong ? 'strong' : ''}`;
+    if (!this.plaques.has(key)) this.plaques.set(key, plaqueBackMaterial(style.back, width, depth, edgeSeat, strong));
     const plaque = this.plaques.get(key);
     if (!plaque) return;
     this.plaqueQuad ??= new PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
@@ -1065,6 +1112,9 @@ export class LensLayer {
   dispose(): void {
     this.citizenMarks?.dispose();
     this.faintGlyphs?.dispose();
+    this.quietGlyphs?.dispose();
+    this.outline?.strips.forEach((strip) => strip.geometry.dispose());
+    this.outline = null;
     for (const material of this.plaques.values()) { material?.map?.dispose(); material?.dispose(); }
     this.plaques.clear();
     this.plaqueQuad?.dispose();

@@ -7067,7 +7067,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .citizen-key-mark { display: inline-flex; }
-.citizen-key-plaque { fill: var(--parchment); stroke: var(--ink); stroke-width: 1; filter: drop-shadow(0 1px 1px rgba(29, 26, 32, 0.35)); }
+/* The board's own marks, small: a hex of ground, the light outline around a
+   city's work, and the dark scrim under a worked hex's yield coins. */
+.citizen-key-ground { fill: #6f8f52; stroke: var(--ink); stroke-width: 0.8; }
+.citizen-key-outline { fill: none; stroke: #e6d3a4; stroke-width: 1.3; stroke-linejoin: round; }
+.citizen-key-scrim { fill: rgba(29, 26, 32, 0.62); }
 .citizen-key-disc.is-food { fill: var(--yield-food, #5d9a3c); }
 .citizen-key-disc.is-work { fill: var(--yield-production, #b9762f); }
 .citizen-key-pin { fill: var(--citizen-seat); stroke: var(--ink); stroke-width: 1.1; }

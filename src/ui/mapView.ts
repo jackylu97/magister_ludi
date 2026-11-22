@@ -143,6 +143,12 @@ export interface LensView {
      * and adds the plaques to what already shows.
      */
     hover?: 'only' | 'over';
+    /**
+     * True when a city screen is open and the player's own yields switch is
+     * on. The worked hexes' scrim is then much stronger and a free hex's
+     * figures are quieter, as they are on the main map under that switch.
+     */
+    lensOn?: boolean;
   };
   mode: LensMode;
   /**

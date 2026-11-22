@@ -1995,3 +1995,49 @@ Built on top of the lens build, not committed by the builder:
   - e: the ledger strip. The paper plaque with a coin and a figure a row.
 - The builder's pick is c. The user has not chosen. The pictures are in
   `plaque-variants.html`.
+
+
+## The city's worked hexes: a hover fault, the lens-on look, one outline and the dock's keys (2026-11-22)
+
+The user, after playing with the scrim (plaque style "b"): "the citizen yields
+screen has some issues. When you have yields lens turned on, it lifts all
+yields on the map when you mouse over a city. If the yields lens is on, the
+tiles the city works is also hard to read, i think the shadow needs to be super
+obvious for specifically the yield lens. Also, the indicators on the bottom bar
+is out of date. I think we maybe need a light border to show it more clearly, i
+know we cut it earlier. Is there any way we can do the outline in a way thats
+less noisy, maybe we do an outline around the entire area so that shared
+borders between hexes are not outlined? I think pinned tiles dont need a
+special outline."
+
+Built, not committed by the builder. The pictures are in `city-yields-fix.html`.
+
+- **The hover fault.** A city's hexes print their yields a little above the
+  hex's centre (`plaque.styles.b.offsetZ`). `addYieldGlyphs` (`lens3d.ts`)
+  gave that place to every hex it drew while a city was looked at. With the
+  yields on and the pointer on a city, it draws the whole map, so every yield
+  on the map moved up. Now only the looked-at city's own hexes take the
+  variant's layout and place, and with the yields on (`hover: 'over'`) they do
+  not take them either: the worked hexes gain the scrim and nothing moves.
+- **The lens-on look.** Two numbers in `territory.citizens.plaque.lensOn`:
+  `scrimOpacity` 0.86 for the worked hexes' scrim (0.42 with the lens off; the
+  strong scrim is also laid twice), and `otherOpacity` 0.4 for a free hex's
+  figures in the city screen (0.72 with the lens off). On the main map the
+  other hexes do not change, because the first point forbids it. The city
+  screen learns the player's switch through `LensView.citizens.lensOn`.
+- **One outline** (`workedOutline` in `citizenMarks.ts`, drawn by
+  `addWorkedOutline` in `lens3d.ts`): the edge of the union of the worked
+  hexes, the pinned hexes and the city's own hex. It uses the movement range's
+  tracing (`movementEdges`, `movementFrontier`, `frontierRibbon`), so an edge
+  two hexes share is not drawn, each island has its own ring, and the corners
+  join. The ring is moved inward by `outlineInset` (0.085 of a hex) and its
+  height is read again from the painted ground. Two strips, pale ink
+  (`outlineColor`) over a faint dark backing. It shows in the city screen, in
+  the mode and out of it, and for a city under the pointer. It is rebuilt only
+  when the set of hexes changes.
+- **A pinned hex** has only its pin head. No second line.
+- **The dock's keys** (`renderCitizenKeys`): each is a small hex of ground
+  with the outline, the scrim and two coins. The pinned key adds the pin head.
+- **Removed:** the knobs `outlineRound` and `doubleGap`, and the old key's
+  `.citizen-key-plaque` rule. The plaque styles a, c, d and e stay in the data
+  as options.

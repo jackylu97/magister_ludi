@@ -5021,7 +5021,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // (idea e, the user's choice of 2026-11-21). The pointer on a city on the
       // main map shows the same plaques, with no shade.
       citizens: city
-        ? { cityId: city.id, manage: citizenMode }
+        ? { cityId: city.id, manage: citizenMode, lensOn: yieldsOn }
         : looked
           ? { cityId: looked.id, manage: false, hover: lensShowsYields(mode, yieldsOn, false) ? 'over' : 'only' }
           : undefined,

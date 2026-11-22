@@ -914,9 +914,13 @@ describe('what the panel says at the foot of a list', () => {
     // What the marks mean is two keys in the dock, each one word.
     const keys = fn('cityPanel.ts', 'renderCitizenKeys');
     expect(keys).toContain("[['Worked', false], ['Pinned', true]]");
-    // Each key is the board's own mark: the plaque, and the plaque with the pin head (idea e).
-    expect(keys).toContain('citizen-key-plaque');
+    // Each key is the board's own mark: the outline around the city's work and the scrim, and the same with the pin head.
+    expect(keys).toContain('citizen-key-outline');
+    expect(keys).toContain('citizen-key-scrim');
     expect(keys).toContain('citizen-key-pin');
+    expect(keys).not.toContain('citizen-key-plaque');
+    // No native tooltip on the keys.
+    expect(keys).not.toContain('.title');
   });
 
   it('says what a gold price is, and leaves the treasury to the price columns’ heads', () => {

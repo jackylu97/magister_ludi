@@ -3688,10 +3688,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * The two keys of the Manage citizens mode: what a worked hex and a pinned
    * hex look like on the board (the user, 2026-11-21: "I think just the
    * 'worked' and 'pinned' icons need to exist to show the player what those
-   * mean"). Each is the real mark, small: the parchment plaque a worked hex's
-   * yields sit on, and the same plaque with the pin head in the seat's colour
-   * (idea e, `citizenMarks.ts`). They stand in the dock's row, at its left
-   * end, while the mode is on.
+   * mean"; and 2026-11-22: "the indicators on the bottom bar is out of date").
+   * Each is the board's own mark, small, on a patch of ground: the light
+   * outline around the city's work, and the dark scrim with a hex's yield
+   * coins on it. The pinned key adds the pin head in the seat's colour. A
+   * pinned hex has no outline of its own, so the two keys have the same
+   * outline. They stand in the dock's row, at its left end, while the mode is
+   * on.
    */
   function renderCitizenKeys(city: City): HTMLElement {
     const keys = element('span', 'city-citizen-keys');
@@ -3702,11 +3705,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const key = element('span', 'city-citizen-key');
       const mark = element('span', 'citizen-key-mark');
       mark.setAttribute('aria-hidden', 'true');
-      // A plaque with two yield discs on it, and the pin head on its top edge.
-      mark.innerHTML = '<svg viewBox="0 0 22 26" width="19" height="23">' +
-        '<rect class="citizen-key-plaque" x="3" y="6" width="16" height="18" rx="2.2"/>' +
-        '<circle class="citizen-key-disc is-food" cx="11" cy="12" r="2.6"/><circle class="citizen-key-disc is-work" cx="11" cy="18.4" r="2.6"/>' +
-        (pinned ? '<circle class="citizen-key-pin" cx="11" cy="6" r="3.4"/><circle class="citizen-key-shine" cx="9.9" cy="4.9" r="1"/>' : '') +
+      // A hex of ground, the outline a little inside its edge, the scrim, two coins, and the pin head on the scrim's top edge.
+      mark.innerHTML = '<svg viewBox="0 0 26 28" width="22" height="24">' +
+        '<path class="citizen-key-ground" d="M13 1.5 24 7.8v12.4L13 26.5 2 20.2V7.8Z"/>' +
+        '<path class="citizen-key-outline" d="M13 4.4 21.5 9.3v9.4L13 23.6 4.5 18.7V9.3Z"/>' +
+        '<rect class="citizen-key-scrim" x="8" y="8.4" width="10" height="12.6" rx="3.4"/>' +
+        '<circle class="citizen-key-disc is-food" cx="13" cy="12.2" r="2.5"/><circle class="citizen-key-disc is-work" cx="13" cy="17.6" r="2.5"/>' +
+        (pinned ? '<circle class="citizen-key-pin" cx="13" cy="8.2" r="3.3"/><circle class="citizen-key-shine" cx="11.9" cy="7.1" r="1"/>' : '') +
         '</svg>';
       // The word is hidden on a narrow screen, so the key carries it as well.
       key.setAttribute('aria-label', label);

@@ -553,6 +553,35 @@ function adviceFamily(into: HTMLElement): void {
     cell.append(patch, element('figcaption', '', label));
     row.append(cell);
   }
+  // The one outline around a city's work (`workedOutline`): two hexes that share an edge, drawn as one shape,
+  // with the knobs the board uses for its inset, width and colours.
+  {
+    const cell = element('figure', 'mark-cell');
+    const patch = document.createElement('canvas'); patch.width = patch.height = size * 2; patch.style.width = patch.style.height = `${size}px`;
+    const ink = patch.getContext('2d');
+    if (ink) {
+      const art = VIEW3D.territory.citizens, r = 30, inset = r * art.outlineInset, apart = r * Math.sqrt(3);
+      ink.setTransform(2, 0, 0, 2, 0, 0);
+      ink.fillStyle = '#7c9a56'; ink.fillRect(0, 0, size, size);
+      const corner = (cx: number, k: number, radius: number): [number, number] => [cx + radius * Math.sin((k * Math.PI) / 3), size / 2 + radius * Math.cos((k * Math.PI) / 3)];
+      const left = size / 2 - apart / 2, right = size / 2 + apart / 2, radius = r - inset / Math.cos(Math.PI / 6);
+      // Round the two hexes, leaving out the edge they share. The two notches are where that edge meets the outline.
+      const path: [number, number][] = [
+        corner(left, 0, radius), corner(left, 5, radius), corner(left, 4, radius), corner(left, 3, radius),
+        [size / 2, size / 2 - r / 2 + inset * 0.6],
+        corner(right, 3, radius), corner(right, 2, radius), corner(right, 1, radius), corner(right, 0, radius),
+        [size / 2, size / 2 + r / 2 - inset * 0.6],
+      ];
+      const stroke = (width: number, color: number, alpha: number): void => {
+        ink.beginPath(); path.forEach(([x, y], i) => (i === 0 ? ink.moveTo(x, y) : ink.lineTo(x, y))); ink.closePath();
+        ink.lineJoin = 'miter'; ink.lineWidth = width * r; ink.globalAlpha = alpha; ink.strokeStyle = css(color); ink.stroke(); ink.globalAlpha = 1;
+      };
+      stroke(art.outlineWidth + art.outlineBackingExtra, art.outlineBacking, art.outlineBackingOpacity);
+      stroke(art.outlineWidth, art.outlineColor, art.outlineOpacity);
+    }
+    cell.append(patch, element('figcaption', '', 'the outline around a city\'s work'));
+    row.append(cell);
+  }
 
   slider(
     controls(panel),
