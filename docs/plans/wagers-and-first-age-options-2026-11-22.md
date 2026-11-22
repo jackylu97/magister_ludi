@@ -656,3 +656,111 @@ Tier 0 is the standard game, with the tuned bots.
 ### Question 9: How much do we ship for the beta?
 
 **Recommended.** The First game setting and tiers 0 to 5, all open, with no export. Build the rest of the ladder after the bot loop.
+
+## The user's rulings (2026-11-22, comments on the page)
+
+### The first age: ruled, ready to build
+
+The user: "ok reading through these, i dont think any of these feel that
+satisfying. I think the hall of deeds makes sense, but lets make it much more
+simple: +4 culture +2 authority. Units that fall in combat yield culture equal
+to 50% of their combat strength. Let's make the granary unlock right away,
+with agriculture. Let's swap the order of calendar and fletching, so
+plantations arrive earlier. Let's have monuments unlock with pottery. Lets
+give shrines +2 faith, so they are more worth building early, and move them to
+husbandry. Let's move sailing to the first tier, and have agriculture be its
+only prerequisite. Let's also move lumbermill to bronzeworking. For later, i
+think age 2 could use 2-3 more technologies."
+
+| # | Change | Note |
+|---|---|---|
+| 1 | **The Hall of Deeds:** +4 culture, +2 authority. Units of yours that fall in combat yield culture equal to 50% of their combat strength. | This replaces its present effects. It stays an empire building unless the user says otherwise. The culture is a share of a strength figure, not a change to strength, so the flat-strength rule is not touched. |
+| 2 | **The Granary** unlocks with Agriculture. | |
+| 3 | **Calendar and Fletching swap places** in the order of technologies, so that plantations come earlier. | |
+| 4 | **The Monument** unlocks with Pottery. | |
+| 5 | **The Shrine** gives +2 faith and unlocks with Husbandry. | Read as: a Shrine's faith is raised by 2. To confirm: +2 in all, or +2 more. |
+| 6 | **Sailing** moves to the first column, with Agriculture as its only prerequisite. | |
+| 7 | **The Lumber Mill** unlocks with Bronze Working. | |
+| 8 | Later: age II wants two or three more technologies. | Not designed. |
+
+A second idea, "another idea i'm toying with: adding a new technology that
+adds two buildings": **the Mill,** +2 food and +2 gold, a gold building; and
+**the Public Fountain,** +1 happiness, and +1 more if the town has a garrison
+("maybe some other criteria for the additional happiness?"). Not ruled: the
+technology has no name or place yet, and the Fountain's second clause is open.
+
+The seven options of the page are not adopted.
+
+### Difficulty: the user's ladder
+
+Each comment replaces the line of its tier. On tier 11 the user wrote "rare
+and uncommon orders appear less frequently" and then "lets move this one to
+tier 5 and move everything back". The ladder that results:
+
+| Tier | Rule | The user's words |
+|---|---|---|
+| 1 | Rivals and barbarians gain +2 strength. | "rivals and barbarians gain +2 strength" |
+| 2 | Rivals gain +20% growth and production. | no comment: as proposed |
+| 3 | When an age closes, barbarians spawn across the map, about as at the start of the game, each camp with two units. | "When an age closes, barbarians spawn across the map. (in practice, this should correspond roughly the same as the age 1 barbarian spawn, and they also start with two units)." |
+| 4 | Your buildings and units cost 25% more. | "lets make this 25%" |
+| 5 | Rare and uncommon Orders appear less often. | "rare and uncommon orders appear less frequently", moved here |
+| 6 | Rivals start with one more Warrior and a Settler. | "Rivals start with one more warrior and a settler." |
+| 7 | Rivals gain +30% to all yields. | "Rivals +30% to all yields" |
+| 8 | Your Order drafts and great people cost 30% more. | "your order drafts and great people cost 30% more culture" |
+| 9 | Barbarians and rivals produce units 30% faster. | "barbarians and rivals produce units 30% faster." |
+| 10 | Rivals gain +50% production toward wonders. | "Rivals +50% production towards wonders" |
+| 11 | Buying with faith and gold costs you 30% more. | "purchasing with faith and gold 30% more expensive" |
+| 12 | Rivals gain +25% science and culture. | "+25%" |
+| 13 | Wager milestones are 40% higher for you. | "wager milestones are 40% higher for you" |
+| 14 | Technologies cost 30% more. | "technologies are 30% more expensive" |
+| 15 | Rivals gain +50% to all yields. | "Rivals +50% to all yields." |
+
+Readings to confirm with the user:
+- **Tier 15 against tier 7:** does +50% replace the +30%, or add to it (+80%)?
+  And do tier 2 and tier 12 add on top? The Claude session's reading: every
+  tier adds, as in Slay the Spire, so tier 15 means all yields at +80%, with
+  growth, production, science and culture higher still. If that is too much,
+  tier 15 should read "+50% in place of +30%".
+- **Tier 8:** drafts cost culture; a great person costs renown. Read as: the
+  culture price of a draft and the renown price of a great person each rise
+  by 30%.
+- **Tier 11** is the "buys more" rule in reverse: your gold and faith buy
+  less.
+- **Tier 14:** for the player only, or for every seat? Read as the player
+  only, like tiers 4, 8 and 11.
+- **Tier 5:** how much less often. A first figure for the bots to test: the
+  rarity odds move from 60 / 30 / 10 to 75 / 20 / 5.
+- Also from the user, not a tier: "Not sure if this is in, but barbarians
+  should opt to pillage your improvements before they attack your city." A
+  question for Astra: do they today?
+
+### The wagers: a direction, not yet a ruling
+
+On format B, the ranking: "I like this ranking idea. How about: each wager has
+a fixed goal. If you cross the goal, you gain a bead. If you lead the world at
+age end, you gain an additional bead. you must wager on one of the stakes. If
+you fail to achieve fixed goal (milestone?) you take some kind of penalty. The
+government malice is ok, but maybe there's something better we could do, maybe
+the malice penalizes certain areas, but also unlocks a powerful catch up
+mechanic at the same time? Or maybe if you win a ranking, you actually take a
+penalty in the next age for doing so well?"
+
+On the list of wagers: "let's think about the things that make the game fun,
+and have the wagers reinforce those things. Right now, the parts of the game
+that feel fun: drafting something that fits your empire's goals, seeing
+increasing yields as you accumulate cards in the 'in-play' screen, exploring
+and cultivating the map, building wonders, gaining great people, what others?
+I'd like for the wagers to re-inforce fun gameplay loops, which makes me feel
+like accumulating a sum of all six yields is a good wager, similar to how
+Balatro hands feel. What do you think? Maybe some examples: sum of combat
+strength across all units (veterancy levels count); Sum of all six yields; sum
+of all yields from trade routes; sum of all yields from great people (their
+hex values + legacies)."
+
+On The Field of Glory: "lets' cut, rivals might not have enough soldiers for
+this." Cut.
+
+So the format in the user's words: **a fixed goal for a bead, and one more
+bead for leading the world at the age's end; a seat must stake one wager, and
+a failed stake has a cost.** What the cost is, and what the wagers count, is
+still in discussion.

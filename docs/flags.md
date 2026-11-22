@@ -3422,3 +3422,19 @@ merge it now, astra is just getting started").
   state digests and the slow replay pins need a new recording. The border
   chooser still weighs three yields. No bot game was run.
 - Left for a UI decision: focus buttons for faith, science and culture.
+
+## The first age and the difficulty ladder (ruled 2026-11-22, not built)
+
+The user's comments on the options page are recorded in
+`docs/plans/wagers-and-first-age-options-2026-11-22.md`, "The user's rulings".
+- **The first age, seven changes, ready to build:** the Hall of Deeds becomes
+  +4 culture, +2 authority and culture for your fallen units; the Granary
+  unlocks with Agriculture; Calendar and Fletching swap places; the Monument
+  unlocks with Pottery; the Shrine gives +2 faith and unlocks with Husbandry;
+  Sailing moves to the first column behind Agriculture alone; the Lumber Mill
+  unlocks with Bronze Working.
+- **A difficulty ladder of fifteen tiers,** each adding one rule to all below
+  it. Five readings are open (how the rivals' yield tiers add up, above all).
+- **The wagers:** a direction only. Do not build.
+Owner: Astra, after its bot tuning run has a stable baseline; both change the
+bots' world.
