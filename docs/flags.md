@@ -3471,13 +3471,12 @@ siege."
 - Today a rested unit heals 10 a turn (`rules.healing.perTurnIfRested`),
   plus its cards' lines, in `explainUnitHeal` (`healing.ts`). Where it stands
   does not matter.
-- New lines in that list, each labelled: **+20 on a hex that its owner owns**;
-  **+30 in a city of its owner, in place of the +20,** and not while the city
-  is under siege (`underSiege`, derived). A unit in a besieged city still
-  gets the +20 for its own land.
-- **One reading to confirm with the user:** "+20" and "+30" are read as added
-  to the 10, so a rested unit heals 30 a turn at home and 40 in a city. If the
-  user meant totals, the lines are +10 and +20.
+- **The figures are totals** (the user, 2026-11-22: "totals for healing"): a
+  rested unit heals **10 outside its owner's land, 20 on a hex that its owner
+  owns, and 30 in its owner's city.** So the new labelled lines in that list
+  are +10 for its own land, and +10 more in its own city.
+- The city line does not apply while the city is under siege (`underSiege`,
+  derived). A unit in a besieged city heals 20.
 - Unchanged: a unit heals only if it rested, `noHealAbroad`, the cards' and
   the Keeps' lines, and the cap at full health. The figures go in
   `rules.healing`.

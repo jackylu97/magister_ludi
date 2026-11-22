@@ -274,11 +274,11 @@ the water-site tuning trial are not in this play release.
 ### 0.1g Units heal faster at home and in a city (2026-11-22)
 
 Ruling and detail: `docs/flags.md`, "Units heal faster at home and in a
-city". New labelled lines in `explainUnitHeal`: +20 on a hex that the unit's
-owner owns; +30 in its owner's city in place of the +20, but not while the
-city is under siege (then the +20 still applies). Figures in `rules.healing`.
-One reading is open with the user: whether the figures add to the rested 10
-(30 and 40 a turn) or are totals. Build it as added unless the flag changes.
+city". The figures are totals, confirmed by the user: a rested unit heals 10
+outside its owner's land, 20 on a hex that its owner owns, and 30 in its
+owner's city. New labelled lines in `explainUnitHeal`: +10 for its own land,
+and +10 more in its own city, but not while the city is under siege (then it
+heals 20). Figures in `rules.healing`.
 
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
