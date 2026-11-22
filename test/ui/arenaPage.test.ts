@@ -344,6 +344,29 @@ describe('a headless run', () => {
     }
   });
 
+  it('uses the selected leaders and reports the game objectives', () => {
+    const reading = runArenaGame({
+      ...spec,
+      seats: [{ ...spec.seats[0]!, leader: 'alexanderTheGreat' }, spec.seats[1]!],
+    });
+    const [leader, unnamed] = reading.seats;
+    expect(leader!.name).toBe('Alexander the Great');
+    expect(unnamed!.name).toBe('Teal');
+    expect(leader!.score).toBeGreaterThan(0);
+    expect(leader!.totalYield).toBe(leader!.food + leader!.production + leader!.goldPerTurn +
+      leader!.science + leader!.culture + leader!.faith);
+    expect(leader!.captures).toBe(0);
+  });
+
+  it('applies an experimental setting only to the chosen seat and restores the setting afterwards', () => {
+    runArenaGame({ ...spec, tuningSeat: 1, tuning: { military: { armyPerCity: 17 } } }, () => {
+      expect(aiConfigFor('balanced', 0).military.armyPerCity).toBe(AI.military.armyPerCity);
+      expect(aiConfigFor('warmonger', 1).military.armyPerCity).toBe(17);
+      expect(aiConfigFor('warmonger', 0).military.armyPerCity).toBe(aiConfigFor('warmonger').military.armyPerCity);
+    });
+    expect(aiConfigFor('balanced', 1).military.armyPerCity).toBe(AI.military.armyPerCity);
+  });
+
   it('is deterministic: the same spec twice is the same table', () => {
     const first = runArenaGame(spec);
     const second = runArenaGame(spec);

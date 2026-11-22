@@ -25,10 +25,13 @@ import { type Game, createGame } from '../sim/game';
 import { type PlayerSpec, realPlayers } from '../sim/state';
 import { readEmpireRates, readMeter } from '../sim/readings';
 import { isCombatant, isExplorer, unitDef } from '../sim/unitData';
-import { seatName } from '../sim/leaderData';
+import { type LeaderId, seatName } from '../sim/leaderData';
+import { explainScore, foldScore } from '../sim/score';
+import { techColumn } from '../sim/techData';
 
 /** What one seat is, as the page hands it over: a name, an ink, a persona. */
 export interface ArenaSeat {
+  leader?: LeaderId;
   name: string;
   color: string;
   /** A `PERSONA_IDS` entry. `balanced` is written as no key at all in the spec. */
@@ -44,6 +47,8 @@ export interface ArenaSpec {
   barbarians: boolean;
   /** The panel's sparse sheet, or `null` for `data/ai.json` exactly as it is. */
   tuning: PersonaOverride | null;
+  /** Leave empty to apply the sheet to every seat. */
+  tuningSeat?: number;
 }
 
 /** Food and production in the base rates are the sums of the cities' current yields. */
@@ -68,6 +73,11 @@ interface SeatReading {
   soldiers: number;
   scouts: number;
   workers: number;
+  score: number;
+  totalYield: number;
+  captures: number;
+  drafts: number;
+  column: number;
   techs: number;
   beads: number;
 }
@@ -96,6 +106,11 @@ export interface GameReading {
  * and the table averages it, or it does not and the table says so.
  */
 export const READING_COLUMNS = [
+  'score',
+  'totalYield',
+  'captures',
+  'drafts',
+  'column',
   'cities',
   'population',
   'food',
@@ -132,6 +147,7 @@ export function runArenaGame(spec: ArenaSpec, onTurn?: (turn: number) => void): 
     const players: PlayerSpec[] = spec.seats.map((seat) => ({
       name: seat.name,
       color: seat.color,
+      ...(seat.leader ? { leader: seat.leader } : {}),
       // Balanced is written as *no key at all*, exactly as the landing screen and
       // the spectate page write it — so an untuned balanced arena game is
       // byte-identical to one from before personas existed.
@@ -170,7 +186,7 @@ export function runArenaGame(spec: ArenaSpec, onTurn?: (turn: number) => void): 
       stalled,
       ms: performance.now() - started,
     };
-  });
+  }, { playerId: spec.tuningSeat, afterPersona: true });
 }
 
 function readSeat(game: Game, playerId: number): SeatReading {
@@ -199,23 +215,35 @@ function readSeat(game: Game, playerId: number): SeatReading {
     if (isBuilder(def)) workers += 1;
   }
 
+  const food = rates.foodPerTurn ?? 0;
+  const production = rates.productionPerTurn ?? 0;
+  const goldPerTurn = rates.goldPerTurn ?? 0;
+  const science = rates.sciencePerTurn ?? 0;
+  const culture = rates.culturePerTurn ?? 0;
+  const faith = rates.faithPerTurn ?? 0;
+
   return {
     playerId,
+    score: foldScore(explainScore(state, playerId)),
+    totalYield: food + production + goldPerTurn + science + culture + faith,
+    captures: player.citiesCaptured ?? 0,
+    drafts: player.statecraft.drafts,
+    column: Math.max(0, ...player.techsResearched.map(techColumn)),
     name: seatName(state, playerId),
     persona: player.persona ?? 'balanced',
     color: player.color,
     eliminated: player.eliminated === true,
     cities,
     population,
-    food: rates.foodPerTurn ?? 0,
-    production: rates.productionPerTurn ?? 0,
+    food,
+    production,
     gold: player.gold,
     // `EmpireRates`'s voices are optional — a reading may be asked of a shape
     // that banks nothing — so a missing line is nought rather than a hole.
-    goldPerTurn: rates.goldPerTurn ?? 0,
-    science: rates.sciencePerTurn ?? 0,
-    culture: rates.culturePerTurn ?? 0,
-    faith: rates.faithPerTurn ?? 0,
+    goldPerTurn,
+    science,
+    culture,
+    faith,
     happiness: readMeter(state, playerId, 'happiness').total,
     authority: readMeter(state, playerId, 'authority').total,
     units,

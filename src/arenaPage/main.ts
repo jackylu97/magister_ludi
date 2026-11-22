@@ -37,10 +37,11 @@
 import './style.css';
 
 import { DEFAULT_PERSONA, PERSONA_IDS, personaLabel } from '../ai/aiConfig';
-import { type KnobEdit, describeRunEdits, knobKey, sheetOfEdits } from './knobs';
+import { type KnobEdit, describeEdit, describeRunEdits, knobKey, sheetOfEdits } from './knobs';
 import { buildKnobPanel } from './panel';
 import { READING_COLUMNS, type ArenaSeat, type GameReading, type ReadingColumn } from './run';
 import type { ArenaMessage, ArenaTask } from './protocol';
+import { isLeaderId, leaderDef, LEADER_IDS } from '../sim/leaderData';
 import { MAP_SIZE_NAMES } from '../sim/mapgenData';
 import { RULES } from '../sim/rulesData';
 import { playerPieceColor } from '../render3d/lookData';
@@ -67,6 +68,7 @@ const cancelButton = need<HTMLButtonElement>('run-cancel');
 const statusEl = need<HTMLElement>('run-status');
 const progressEl = need<HTMLElement>('progress');
 const dirtyEl = need<HTMLElement>('dirty');
+const tuningSeatSelect = need<HTMLSelectElement>('tuning-seat');
 const runsEl = need<HTMLElement>('runs');
 const panelGroupsEl = need<HTMLElement>('panel-groups');
 const panelResetButton = need<HTMLButtonElement>('panel-reset');
@@ -110,50 +112,67 @@ for (let seats = Math.max(2, RULES.game.minPlayers); seats <= RULES.game.maxPlay
 }
 seatsSelect.value = '2';
 
-/** One persona picker per seat. Rebuilt on a seat-count change, choices kept. */
+/** Keep the seats already configured when the number of opponents changes. */
 function buildSeatPickers(): void {
   const wanted = Number(seatsSelect.value) || 2;
-  const held = [...seatPersonasEl.querySelectorAll('select')].map((select) => select.value);
+  const held = seatSpecs();
+  const oldTarget = tuningSeatSelect.value;
+  tuningSeatSelect.replaceChildren(new Option('All seats', ''));
   seatPersonasEl.replaceChildren();
   for (let index = 0; index < wanted; index++) {
-    const field = element('label', 'field seat-field');
-    const label = element('span', 'field-label', seatName(index));
-    // **The pair, not the colour** (batch H7): the chip before a seat's name is
-    // its primary with its secondary ringed inside, through the one door that
-    // decides what a seat with no second ink of its own wears. The arena seats
-    // nobody's figures, so today that trim is the board's own ink — and it will
-    // be the figure's the day this page casts one, with no edit here.
+    const name = seatName(index);
+    tuningSeatSelect.append(new Option(name, String(index)));
+    const field = element('div', 'field seat-field');
+    const label = element('span', 'field-label seat-label', name);
     const inks = seatInks({ color: seatColor(index) });
-    (label as HTMLElement).style.setProperty('--seat-ink', inks.primary);
-    (label as HTMLElement).style.setProperty('--seat-trim', inks.secondary);
-    label.classList.add('seat-label');
-    const select = element('select');
-    // The persona ids, in the data file's own order — this page reads the sheet
-    // itself, so there is nothing to launder them through.
-    for (const id of PERSONA_IDS) {
-      const option = element('option', undefined, personaLabel(id));
-      option.value = id;
-      select.append(option);
-    }
-    select.value = held[index] ?? DEFAULT_PERSONA;
-    field.append(label, select);
+    label.style.setProperty('--seat-ink', inks.primary);
+    label.style.setProperty('--seat-trim', inks.secondary);
+    const leader = element('select', 'arena-leader');
+    leader.setAttribute('aria-label', name + ' leader');
+    leader.append(new Option('All decks (no leader)', ''));
+    for (const id of LEADER_IDS) leader.append(new Option(leaderDef(id).name, id));
+    leader.value = held[index]?.leader ?? '';
+
+    const persona = element('select', 'arena-persona');
+    persona.setAttribute('aria-label', name + ' persona');
+    for (const id of PERSONA_IDS) persona.append(new Option(personaLabel(id), id));
+    persona.value = held[index]?.persona ?? DEFAULT_PERSONA;
+    leader.addEventListener('change', () => {
+      persona.value = isLeaderId(leader.value) ? leaderDef(leader.value).persona : DEFAULT_PERSONA;
+    });
+    field.append(label, leader, persona);
     seatPersonasEl.append(field);
   }
+  if (oldTarget !== '' && Number(oldTarget) < wanted) tuningSeatSelect.value = oldTarget;
 }
 
 seatsSelect.addEventListener('change', () => {
   buildSeatPickers();
-  refreshPanel();
+  refreshSeatPanel();
 });
-seatPersonasEl.addEventListener('change', () => refreshPanel());
+seatPersonasEl.addEventListener('change', refreshSeatPanel);
+tuningSeatSelect.addEventListener('change', refreshSeatPanel);
 buildSeatPickers();
 
 function seatSpecs(): ArenaSeat[] {
-  return [...seatPersonasEl.querySelectorAll('select')].map((select, index) => ({
-    name: seatName(index),
-    color: seatColor(index),
-    persona: select.value,
-  }));
+  return [...seatPersonasEl.querySelectorAll('.seat-field')].map((field, index) => {
+    const leader = field.querySelector<HTMLSelectElement>('.arena-leader')!.value;
+    return {
+      name: seatName(index),
+      color: seatColor(index),
+      persona: field.querySelector<HTMLSelectElement>('.arena-persona')!.value,
+      ...(isLeaderId(leader) ? { leader } : {}),
+    };
+  });
+}
+
+function tuningSeat(): number | undefined {
+  return tuningSeatSelect.value === '' ? undefined : Number(tuningSeatSelect.value);
+}
+
+function editLabels(edits: readonly KnobEdit[], seats: readonly ArenaSeat[], target?: number): string[] {
+  if (target === undefined) return describeRunEdits(edits, seats.map(seat => seat.persona));
+  return edits.map(edit => seats[target]!.name + ' · ' + describeEdit(edit));
 }
 
 // --- the generated panel ------------------------------------------------------
@@ -164,7 +183,22 @@ function seatSpecs(): ArenaSeat[] {
  * that says the configuration is not the data file any more, and the button that
  * puts it back.
  */
-const panel = buildKnobPanel(panelGroupsEl, () => refreshPanel());
+let panel = buildKnobPanel(panelGroupsEl, refreshPanel);
+let panelPersona: string | undefined;
+
+function refreshSeatPanel(): void {
+  const target = tuningSeat();
+  const persona = target === undefined ? undefined : seatSpecs()[target]?.persona;
+  if (persona === panelPersona) {
+    refreshPanel();
+    return;
+  }
+  const held = Object.fromEntries(panel.edits().map(edit => [knobKey(edit.knob.path), edit.to]));
+  panelGroupsEl.replaceChildren();
+  panelPersona = persona;
+  panel = buildKnobPanel(panelGroupsEl, refreshPanel, persona);
+  panel.apply(held);
+}
 
 function currentEdits(): KnobEdit[] {
   return panel.edits();
@@ -247,7 +281,7 @@ function refreshPanel(): void {
   const edits = currentEdits();
   panelResetButton.disabled = edits.length === 0;
   panelStatusEl.textContent =
-    edits.length === 0 ? 'at data' : `${edits.length} edit${edits.length === 1 ? '' : 's'}`;
+    edits.length === 0 ? 'at defaults' : `${edits.length} edit${edits.length === 1 ? '' : 's'}`;
   showDirty(edits);
 }
 
@@ -261,9 +295,9 @@ function showDirty(edits: readonly KnobEdit[]): void {
   dirtyEl.replaceChildren();
   dirtyEl.hidden = edits.length === 0;
   if (edits.length === 0) return;
-  dirtyEl.append(element('p', 'dirty-head', 'Configuration differs from data/ai.json'));
+  dirtyEl.append(element('p', 'dirty-head', 'Edited settings'));
   const list = element('ul', 'dirty-list');
-  const labels = describeRunEdits(edits, seatSpecs().map((seat) => seat.persona));
+  const labels = editLabels(edits, seatSpecs(), tuningSeat());
   for (const label of labels) list.append(element('li', undefined, label));
   dirtyEl.append(list);
 }
@@ -294,6 +328,7 @@ function start(): void {
   const games = Math.max(1, Math.trunc(Number(gamesInput.value) || 1));
   const baseSeed = Math.trunc(Number(seedInput.value) || 0);
   const seats = seatSpecs();
+  const target = tuningSeat();
   const sizeName = sizeSelect.value;
   const edits = currentEdits();
   const tuning = sheetOfEdits(edits);
@@ -336,7 +371,7 @@ function start(): void {
         setRunning(false);
         live = [];
         statusEl.textContent = `done in ${((performance.now() - started) / 1000).toFixed(1)}s`;
-        publish({ turns, games, baseSeed, sizeName, seats, edits, wall: performance.now() - started });
+        publish({ turns, games, baseSeed, sizeName, seats, edits, target, wall: performance.now() - started });
       }
     });
     const task: ArenaTask = {
@@ -349,6 +384,7 @@ function start(): void {
         seats,
         barbarians: barbariansToggle.checked,
         tuning,
+        tuningSeat: target,
       },
       progressEvery: 3,
     };
@@ -376,11 +412,17 @@ interface RunHeader {
   sizeName: string;
   seats: readonly ArenaSeat[];
   edits: readonly KnobEdit[];
+  target?: number;
   wall: number;
 }
 
 /** The short heads the table wears. Reading columns, not knobs — see `run.ts`. */
 const COLUMN_LABELS: Record<ReadingColumn, string> = {
+  score: 'score',
+  totalYield: 'yield/t',
+  captures: 'captures',
+  drafts: 'drafts',
+  column: 'tech column',
   cities: 'cities',
   population: 'pop',
   food: 'food',
@@ -424,7 +466,7 @@ function publish(header: RunHeader): void {
     header.edits.length === 0 ? 'run-sheet' : 'run-sheet is-dirty',
     header.edits.length === 0
       ? 'data/ai.json, untouched'
-      : describeRunEdits(header.edits, header.seats.map((seat) => seat.persona)).join(' · '),
+      : editLabels(header.edits, header.seats, header.target).join(' · '),
   );
   block.append(sheet);
 

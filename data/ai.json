@@ -123,7 +123,7 @@
     "mixBonus": 45,
     "healBelowHealth": 0.5,
     "rangedDeferral": 25,
-    "cityCaptureRisk": 0,
+    "cityCaptureValue": 0,
     "strikeFloor": 1,
     "hardTargetMargin": 1.2,
     "siegeStrikeFloor": 0,

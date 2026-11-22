@@ -20,7 +20,7 @@
  * into a sparse sheet (`sheetOfEdits`), and the sheet is what a run carries.
  */
 
-import { AI } from '../ai/aiConfig';
+import { AI, aiConfigFor } from '../ai/aiConfig';
 import {
   type Knob,
   type KnobEdit,
@@ -55,20 +55,21 @@ interface KnobPanel {
  * on that knob. That is the game's own precedence, not a second rule invented
  * for this page.
  */
-const KNOBS: Knob[] = knobsOf(AI);
+const BASE_KNOBS = knobsOf(AI);
 
 /**
  * Renders every knob into `root`, and calls `onChange` whenever a box is typed
  * in — which is how the page keeps its marker and its reset button honest
  * without this module knowing either exists.
  */
-export function buildKnobPanel(root: HTMLElement, onChange: () => void): KnobPanel {
+export function buildKnobPanel(root: HTMLElement, onChange: () => void, persona?: string): KnobPanel {
+  const knobs = persona === undefined ? BASE_KNOBS : knobsOf(aiConfigFor(persona));
   /** The inputs for one knob — one for a number, one per band for a row. */
   const inputs = new Map<string, HTMLInputElement[]>();
   /** The row element, so an edited knob is marked where the eye already is. */
   const rows = new Map<string, HTMLElement>();
 
-  for (const block of blocksOf(KNOBS)) {
+  for (const block of blocksOf(knobs)) {
     const wrap = make('div', 'knob-group');
     const head = make('h3', undefined, block.name);
     head.append(make('span', 'knob-count', String(block.knobs.length)));
@@ -92,14 +93,14 @@ export function buildKnobPanel(root: HTMLElement, onChange: () => void): KnobPan
   }
 
   function edits(): KnobEdit[] {
-    const found = editsOf(KNOBS, readKnob);
+    const found = editsOf(knobs, readKnob);
     const marked = new Set(found.map((edit) => knobKey(edit.knob.path)));
     for (const [key, row] of rows) row.classList.toggle('is-dirty', marked.has(key));
     return found;
   }
 
   function reset(): void {
-    for (const knob of KNOBS) {
+    for (const knob of knobs) {
       const held = inputs.get(knobKey(knob.path)) ?? [];
       if (knob.kind === 'number') {
         if (held[0] !== undefined) held[0].value = String(knob.value as number);
@@ -114,7 +115,7 @@ export function buildKnobPanel(root: HTMLElement, onChange: () => void): KnobPan
 
   function apply(values: Readonly<Record<string, number | readonly number[]>>): void {
     reset();
-    for (const knob of KNOBS) {
+    for (const knob of knobs) {
       const saved = values[knobKey(knob.path)];
       if (saved === undefined) continue;
       const held = inputs.get(knobKey(knob.path)) ?? [];

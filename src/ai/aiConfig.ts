@@ -719,8 +719,8 @@ export interface AiConfig {
      * charge is what the candidate table shows — unless it kills or captures.
      */
     rangedDeferral: number;
-    /** Above zero, prefer a certain city capture if the worst counter costs at most this share of current health. */
-    cityCaptureRisk: number;
+    /** Extra combat score for a guaranteed city capture when another target is available. */
+    cityCaptureValue: number;
     /**
      * **The least a blow in the field must deal for every point it takes**
      * (ruled 2026-09-15, `docs/flags.md` (nnnnn): *"we should really tune its
@@ -2480,7 +2480,7 @@ let TUNED: AiConfig = AI;
  * reads `TUNED` **by identity**, which is what keeps the untuned path the path
  * that existed before this map did.
  */
-const SEATS = new Map<number, PersonaOverride>();
+const SEATS = new Map<number, { sheet: PersonaOverride; afterPersona: boolean }>();
 const SEAT_BASES = new Map<number, AiConfig>();
 
 /** The base one seat's persona is merged over: the page's sheet, plus the seat's. */
@@ -2490,7 +2490,7 @@ function seatBase(playerId?: number): AiConfig {
   if (sheet === undefined) return TUNED;
   const held = SEAT_BASES.get(playerId);
   if (held !== undefined) return held;
-  const merged = deepMerge(TUNED, sheet);
+  const merged = deepMerge(TUNED, sheet.sheet);
   SEAT_BASES.set(playerId, merged);
   return merged;
 }
@@ -2579,7 +2579,10 @@ export function aiConfigFor(persona?: string, playerId?: number): AiConfig {
   const key = `${seatKey(playerId)}|${persona}`;
   const held = MERGED.get(key);
   if (held !== undefined) return held;
-  const merged = deepMerge(base, PERSONAS[persona]);
+  const seat = playerId === undefined ? undefined : SEATS.get(playerId);
+  const merged = seat?.afterPersona
+    ? deepMerge(deepMerge(TUNED, PERSONAS[persona]), seat.sheet)
+    : deepMerge(base, PERSONAS[persona]);
   MERGED.set(key, merged);
   return merged;
 }
@@ -2682,7 +2685,7 @@ export function setAiTuning(sheet: PersonaOverride | null, options: TuningScope 
   } else if (live === null) {
     SEATS.delete(options.playerId);
   } else {
-    SEATS.set(options.playerId, live);
+    SEATS.set(options.playerId, { sheet: live, afterPersona: options.afterPersona === true });
   }
   clearMemos();
 }
@@ -2690,6 +2693,8 @@ export function setAiTuning(sheet: PersonaOverride | null, options: TuningScope 
 /** Which seat a sheet is for. Absent is the page-level dial every seat reads. */
 interface TuningScope {
   playerId?: number;
+  /** A named Arena opponent can try a value its persona normally sets. */
+  afterPersona?: boolean;
 }
 
 /**
@@ -2698,7 +2703,7 @@ interface TuningScope {
  */
 export function aiTuning(options: TuningScope = {}): PersonaOverride | null {
   if (options.playerId === undefined) return TUNING;
-  return SEATS.get(options.playerId) ?? null;
+  return SEATS.get(options.playerId)?.sheet ?? null;
 }
 
 /**
@@ -2716,11 +2721,12 @@ export function withAiTuning<T>(
   options: TuningScope = {},
 ): T {
   const held = aiTuning(options);
+  const afterPersona = options.playerId === undefined ? undefined : SEATS.get(options.playerId)?.afterPersona;
   setAiTuning(sheet, options);
   try {
     return run();
   } finally {
-    setAiTuning(held, options);
+    setAiTuning(held, { playerId: options.playerId, afterPersona });
   }
 }
 

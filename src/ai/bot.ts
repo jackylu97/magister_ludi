@@ -10333,25 +10333,9 @@ function soldierCommand(
   // **A full force at a camp** (batch BP8, P5) takes the assault's exchange
   // against the guard beside the camp, through the siege appetite's door: the
   // next piece of the force finishes what this one starts. See `campAssault`.
-  const blow = stays
-    ? null
-    : preferredCityCapture(state, player, unit, ai.military.cityCaptureRisk) ?? favourableBlow(
-        state,
-        player,
-        unit,
-        holdsWild,
-        ai.military.wildAggression,
-        strikes,
-        campAssault(state, player, unit),
-      );
-  if (blow !== null) {
-    return {
-      command: { type: 'attack', playerId: player.id, unitId: unit.id, target: blow.at },
-      summary: blow.summary,
-      candidates: blow.candidates,
-      focus: blow.at,
-    };
-  }
+  const wildBlow = stays ? null : favourableBlow(
+    state, player, unit, holdsWild, ai.military.wildAggression, strikes, campAssault(state, player, unit),
+  );
   // **A seat at war swings at what is beside it, whatever its temperament**, and
   // since §13.2 that is *all* the appetite decides. It used to decide two
   // things: how bad an exchange a piece would accept, and whether the empire
@@ -10365,7 +10349,7 @@ function soldierCommand(
   //
   // A seat with no war on has nothing to swing at: `holdsRival` is gated on
   // `atWar`, and `previewCombat` refuses a peacetime blow besides.
-  const strike = stays ? null : favourableBlow(
+  const firstBlow = wildBlow ?? (stays ? null : favourableBlow(
     state,
     player,
     unit,
@@ -10379,7 +10363,10 @@ function soldierCommand(
     plan !== null && plan.pushing
       ? { appetite: ai.war.siegeExchange, at: plan.target, within: ai.war.siegeWithin }
       : undefined,
-  );
+  ));
+  const strike = !stays && ai.military.cityCaptureValue > 0
+    ? preferredCityCapture(state, player, unit, ai.military.cityCaptureValue, firstBlow)
+    : firstBlow;
   if (strike !== null) {
     return {
       command: { type: 'attack', playerId: player.id, unitId: unit.id, target: strike.at },
@@ -10482,12 +10469,14 @@ interface UnitTarget {
  * If the seat prefers a capture over its first ordinary attack, use the same
  * forecast as the player. A possible kill at the middle roll is insufficient.
  */
-function preferredCityCapture(state: GameState, player: Player, unit: Unit, risk: number): UnitTarget | null {
-  if (risk <= 0 || isRanged(unitDef(unit.type))) return null;
+function preferredCityCapture(
+  state: GameState, player: Player, unit: Unit, value: number, first: UnitTarget | null,
+): UnitTarget | null {
+  if (isRanged(unitDef(unit.type))) return first;
   const here = getTileAt(state.map, unit.col, unit.row);
-  if (!here) return null;
-  let best: UnitTarget | null = null;
-  let leastDamage = Infinity;
+  if (!here) return first;
+  let best = first;
+  let bestScore = first?.candidates.find(row => row.chosen)?.score ?? -Infinity;
   for (const near of mapRange(state.map, tileHex(here), 1)) {
     const city = cityAt(state, near.col, near.row);
     if (!city || city.ownerId === player.id || !atWar(state, player.id, city.ownerId)) continue;
@@ -10495,13 +10484,21 @@ function preferredCityCapture(state: GameState, player: Player, unit: Unit, risk
     const preview = previewCombat(state, unit.id, at);
     if (!preview.ok) continue;
     const certain = preview.capturesCity || (preview.capturesCityOnKill && preview.damageToDefenderMin >= preview.defenderHp);
-    const counter = preview.damageToAttackerMax;
-    if (!certain || counter >= unit.hp || counter > unit.hp * risk || counter >= leastDamage) continue;
-    leastDamage = counter;
+    if (!certain || preview.damageToAttackerMax >= unit.hp) continue;
+    const terms: ValueTerm[] = [
+      { label: 'Certain city capture', value },
+      { label: 'Minimum damage dealt', value: preview.damageToDefenderMin },
+      { label: 'Maximum damage taken', value: preview.damageToAttackerMax, op: 'sub' },
+    ];
+    const score = foldTerms(terms);
+    if (score <= bestScore) continue;
+    bestScore = score;
     const label = `Take ${city.name}`;
-    const terms = [{ label: 'Health remaining after the strongest counterattack', value: unit.hp - counter }];
-    best = { at, summary: `${label}. The strongest counterattack costs ${counter} of ${unit.hp} health.`,
-      candidates: [{ label, terms, chosen: true, score: foldTerms(terms) }] };
+    const other = first?.candidates.filter(row => !row.chosen || first.at.col !== at.col || first.at.row !== at.row) ?? [];
+    best = {
+      at, summary: `${label}. This seat values a certain capture at ${value} points.`,
+      candidates: [...other.map(row => ({ ...row, chosen: false })), { label, terms, chosen: true, score }],
+    };
   }
   return best;
 }
@@ -10692,12 +10689,14 @@ function favourableBlow(
       tried.push(exchange);
       continue;
     }
-    if (kills || preview.damageToDefender > bar) {
+    if (decisive || preview.damageToDefender > bar) {
       exchange.chosen = true;
       tried.push(exchange);
       return {
         at: { col: near.col, row: near.row },
-        summary: kills
+        summary: preview.capturesCity || preview.capturesUnit
+          ? `Captures ${preview.defenderName}.`
+          : kills
           ? `The blow kills: ${preview.damageToDefender} damage against ${preview.defenderHp} hit points left.`
           : besieging
             ? `The force is at the walls: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} ` +

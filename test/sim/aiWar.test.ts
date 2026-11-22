@@ -1336,15 +1336,14 @@ describe('the three tactics', () => {
   });
 
   it('lets the Arena give a certain city capture priority over a nearby raider', () => {
-    function opportunity(risk: number) {
-      return withAiTuning({ military: { cityCaptureRisk: risk } }, () => {
+    function opportunity(value: number, addRaider = true) {
+      return withAiTuning({ military: { cityCaptureValue: value } }, () => {
         const { state } = front(true);
         const city = foundCityAt(state, 1, at(state.map, 8, 5));
         city.hp = 1;
         const spear = createUnit(state, 0, 'spearman', 7, 5);
         const wild = state.players.find(p => p.barbarian)!;
-        const raider = createUnit(state, wild.id, 'warrior', 7, 4);
-        raider.hp = 1;
+        if (addRaider) createUnit(state, wild.id, 'warrior', 7, 4).hp = 1;
         recomputeAllVisibility(state);
         bumpRevision(state);
         const forecast = previewCombat(state, spear.id, { col: city.col, row: city.row });
@@ -1356,7 +1355,8 @@ describe('the three tactics', () => {
       });
     }
     expect(opportunity(0)).toEqual({ target: { col: 7, row: 4 }, owner: 1 });
-    expect(opportunity(.5)).toEqual({ target: { col: 8, row: 5 }, owner: 0 });
+    expect(opportunity(0, false)).toEqual({ target: { col: 8, row: 5 }, owner: 0 });
+    expect(opportunity(50)).toEqual({ target: { col: 8, row: 5 }, owner: 0 });
   });
 
   it('takes the blow once the bowman has already shot', () => {
