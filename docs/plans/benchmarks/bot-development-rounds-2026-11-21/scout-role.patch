@@ -1,0 +1,105 @@
+diff --git a/src/ai/bot.ts b/src/ai/bot.ts
+index 09ec6f96..7424a1b8 100644
+--- a/src/ai/bot.ts
++++ b/src/ai/bot.ts
+@@ -6155,19 +6155,9 @@ function wageRefusal(id: UnitTypeId, support: ArmySupport, ai: AiConfig): string
+  * on turn one is a weight that goes on winning on turn forty, and a ruling that
+  * says *first* is not a statement about how much a scout is worth.
+  *
+- * Three clauses, and each closes a way the book could go on firing after the
+- * opening: the empire holds **one** town (so it is the first city), that town's
+- * queue is **empty** (so nothing has been decided for it yet), and the empire
+- * **owns or has queued no ranging piece at all**. The third is what makes it an
+- * opening rather than a habit — and it is deliberately not "has this empire
+- * built anything", because `unitsBuilt` only counts rows that carry an
+- * `escalation` ladder (`realiseItem`) and a scout carries none, so a book asking
+- * that question would order a scout, watch the counter stay empty, and order
+- * another one for ever.
+- *
+- * `state.turn` bounds it too, with the same knob the early-scout weight uses: a
+- * one-town empire that loses its ranger in the first decade may well want
+- * another, and one that loses it in the fifth is not opening any more.
++ * This rule applies only on the capital's founding turn, when its queue is
++ * empty and it has no explorer. Later replacements use the scored table. A
++ * lost scout must not force another opening build ahead of food and production.
+  *
+  * `buildError` is still the gate: a roster with no ranging piece in it, or one
+  * gated behind a technology, simply falls through to the scored table. The piece
+@@ -6175,6 +6165,7 @@ function wageRefusal(id: UnitTypeId, support: ArmySupport, ai: AiConfig): string
+  * name "scout", which is the discipline `src/sim/` keeps.
+  */
+ function openingScout(state: GameState, player: Player, city: City): QueueItem | null {
++  if (state.turn !== city.foundedTurn) return null;
+   if (city.queue.length > 0) return null;
+   if (countCities(state, player.id) !== 1) return null;
+   if (state.turn >= aiFor(player).military.scoutEarlyTurns) return null;
+diff --git a/src/ai/value.ts b/src/ai/value.ts
+index 040ea4d6..fb44b459 100644
+--- a/src/ai/value.ts
++++ b/src/ai/value.ts
+@@ -460,6 +460,7 @@ import {
+   UNIT_TYPE_IDS,
+   type UnitTypeId,
+   isCombatant,
++  isExplorer,
+   isNaval,
+   isUnitTypeId,
+   unitDef,
+@@ -1745,8 +1746,11 @@ export function explainSoldier(id: UnitTypeId, ctx: ValueContext): Appraisal {
+   return appraise([
+     { label: `${strength} strength × ${ctx.ai.weights.military}`, value: strength * ctx.ai.weights.military },
+     {
+-      label: `${round(ctx.threat)} enemy pieces near a town × ${ctx.ai.threat.militaryBonus}`,
+-      value: ctx.threat * ctx.ai.threat.militaryBonus,
++      // Explorers leave the city and do not count toward its defensive army.
++      label: isExplorer(def)
++        ? 'explorers receive no city-defense emergency value'
++        : `${round(ctx.threat)} enemy pieces near a town × ${ctx.ai.threat.militaryBonus}`,
++      value: isExplorer(def) ? 0 : ctx.threat * ctx.ai.threat.militaryBonus,
+     },
+   ]);
+ }
+diff --git a/test/sim/aiAppraisal.test.ts b/test/sim/aiAppraisal.test.ts
+index 218c92cd..9b0ea309 100644
+--- a/test/sim/aiAppraisal.test.ts
++++ b/test/sim/aiAppraisal.test.ts
+@@ -91,6 +91,7 @@ import {
+   BUILDING_ROW_SILENT,
+   type ValueContext,
+   explainBuildingRow,
++  explainSoldier,
+   explainCounted,
+   explainEffects,
+   explainProjectRow,
+@@ -671,6 +672,31 @@ describe('a further scout', () => {
+     return candidate(decision!, 'Scout');
+   }
+ 
++  it('keeps emergency defense value on soldiers without adding it to explorers', () => {
++    const state = ranging(1, 10);
++    const ctx = valueContext(state, seat(state, 0));
++    const quiet = { ...ctx, threat: 0 };
++    const threatened = { ...ctx, threat: 4 };
++    expect(explainSoldier('scout', threatened).total).toBe(explainSoldier('scout', quiet).total);
++    expect(explainSoldier('warrior', threatened).total - explainSoldier('warrior', quiet).total)
++      .toBe(4 * ctx.ai.threat.militaryBonus);
++  });
++
++  it('forces a missing opening scout only on the founding turn', () => {
++    const state = ranging(0, 1);
++    const city = state.cities[0]!;
++    state.turn = city.foundedTurn!;
++    bumpRevision(state);
++    const first = decisionOfType(state, 0, 'setCityProduction')!;
++    expect(first.candidates).toHaveLength(1);
++    expect(labelsOf(first.candidates[0]!.terms)).toContain('Opening book');
++    state.turn += 1;
++    bumpRevision(state);
++    const replacement = decisionOfType(state, 0, 'setCityProduction')!;
++    expect(replacement.candidates.length).toBeGreaterThan(1);
++    expect(replacement.candidates.some(row => labelsOf(row.terms).includes('Opening book'))).toBe(false);
++  });
++
+   it('is charged a printed penalty once the empire is already at the cap', () => {
+     const cap = aiJson.military.scoutCap;
+     const glutted = scoutRow(ranging(cap + 1, 0));

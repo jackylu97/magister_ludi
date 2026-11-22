@@ -1,0 +1,110 @@
+diff --git a/src/ai/bot.ts b/src/ai/bot.ts
+index 09ec6f96..eaf68c5f 100644
+--- a/src/ai/bot.ts
++++ b/src/ai/bot.ts
+@@ -6717,8 +6717,8 @@ function unitRoleValue(
+     // spears this levy is short, and a chain that computed its own "wanted"
+     // would be a bot that aims at a soldier its towns would then decline to
+     // build. One reading, two callers, and the leaf is under both.
+-    const levy = levyReading(ctx);
+-    const { wanted, held } = levy;
++    const levy = levyReading(ctx, city.id);
++    const { wanted, held, queued } = levy;
+     // **The loose sanity cap** (batch 4, dated 2026-09-05). The hard `held >=
+     // wanted` refusal became the craving below, and a soft comparison has no
+     // ceiling of its own — a board that talked this empire into forty spears
+@@ -6760,7 +6760,7 @@ function unitRoleValue(
+       {
+         label:
+           `this empire wants ${round1(wanted)} soldier${wanted === 1 ? '' : 's'} and holds ` +
+-          `${held} — ${round1(surplus * 100)}% of a levy already standing (${levy.note})`,
++          `${held} with ${queued} queued elsewhere — ${round1(surplus * 100)}% of a levy already standing or committed (${levy.note})`,
+         // `military.levySurplusSlope` (E1a): how hard a standing levy charges
+         // the next piece. One is the old unit slope.
+         value: -soldier.total * surplus * ai.military.levySurplusSlope,
+diff --git a/src/ai/campaign.ts b/src/ai/campaign.ts
+index 80f0e171..7373fa72 100644
+--- a/src/ai/campaign.ts
++++ b/src/ai/campaign.ts
+@@ -271,15 +271,17 @@ export interface LevyReading {
+   wanted: number;
+   /** Field soldiers it actually holds — `isFieldSoldier`'s count. */
+   held: number;
+-  /** `wanted − held`, floored at nothing: the pieces the levy is short. */
++  /** Field soldiers already at the front of another city’s production queue. */
++  queued: number;
++  /** Demand after standing and queued soldiers, floored at zero. */
+   shortfall: number;
+-  /** `held ÷ wanted` — the share of the levy already standing. */
++  /** The share of demand already covered by standing and queued soldiers. */
+   standing: number;
+   /** What the sighted half is asking for, in the words the feed prints. */
+   note: string;
+ }
+ 
+-export function levyReading(ctx: ValueContext): LevyReading {
++export function levyReading(ctx: ValueContext, replacingCityId?: number): LevyReading {
+   const ai = ctx.ai;
+   let towns = 0;
+   for (const city of ctx.state.cities) if (city.ownerId === ctx.playerId) towns += 1;
+@@ -289,11 +291,20 @@ export function levyReading(ctx: ValueContext): LevyReading {
+   const standing = towns * Math.max(1, ai.military.armyPerCity);
+   const wanted = standing + ctx.threat * ai.threat.extraArmyPerThreat + sighted.extra;
+   const held = fieldSoldiersOf(ctx.state, ctx.playerId).length;
++  // Front rows are committed production. A replacement comparison must not
++  // count the row it could replace. Scouts and later queue rows are not supply.
++  let queued = 0;
++  for (const city of ctx.state.cities) {
++    if (city.ownerId !== ctx.playerId || city.id === replacingCityId) continue;
++    const front = city.queue[0];
++    if (front?.kind === 'unit' && isFieldSoldier(unitDef(front.id))) queued++;
++  }
+   return {
+     wanted,
+     held,
+-    shortfall: Math.max(0, wanted - held),
+-    standing: wanted <= 0 ? 1 : held / wanted,
++    queued,
++    shortfall: Math.max(0, wanted - held - queued),
++    standing: wanted <= 0 ? 1 : (held + queued) / wanted,
+     note: sighted.note,
+   };
+ }
+diff --git a/test/sim/aiAppraisal.test.ts b/test/sim/aiAppraisal.test.ts
+index 218c92cd..820f41d4 100644
+--- a/test/sim/aiAppraisal.test.ts
++++ b/test/sim/aiAppraisal.test.ts
+@@ -844,6 +844,24 @@ describe('the wanted army reads what the seat has sighted', () => {
+    * standing takes the soldier's own worth back off it, and what the assertion
+    * checks is the charge rather than the absence.
+    */
++  it('counts committed soldiers once, excluding scouts, later rows and the replaced city', () => {
++    const state = levy([]);
++    const city = state.cities[0]!;
++    const other = foundCityAt(state, 0, at(state.map, 12, 5));
++    city.queue = [{ kind: 'unit', id: 'warrior' }, { kind: 'unit', id: 'warrior' }];
++    other.queue = [{ kind: 'unit', id: 'scout' }];
++    bumpRevision(state);
++    const ctx = valueContext(state, seat(state, 0));
++    const all = levyReading(ctx);
++    expect(all.held).toBe(2);
++    expect(all.queued).toBe(1);
++    expect(all.shortfall).toBe(Math.max(0, all.wanted - 3));
++    expect(levyReading(ctx, city.id).queued).toBe(0);
++    other.queue[0] = { kind: 'unit', id: 'archer' };
++    bumpRevision(state);
++    expect(levyReading(valueContext(state, seat(state, 0)), city.id).queued).toBe(1);
++  });
++
+   it('charges a soldier the levy it already has, in a quiet world', () => {
+     // Two towns' worth of levy for one town is exactly what is standing, so the
+     // whole of the piece's worth is charged back and it is worth nothing at all.
+@@ -2270,7 +2288,7 @@ describe('the wage-aware levy', () => {
+     // stands in the table and a reader can see what it was charged.
+     const row = warrior(levied(2, 200));
+     expect(row).toBeDefined();
+-    expect(labelsOf(row.terms)).toMatch(/wants \d[\d.]* soldiers? and holds 2 — 100% of a levy already standing/);
++    expect(labelsOf(row.terms)).toMatch(/wants \d[\d.]* soldiers? and holds 2 with 0 queued elsewhere — 100% of a levy already standing or committed/);
+     expect(foldTerms(row.terms)).toBe(row.score);
+   });
+ 

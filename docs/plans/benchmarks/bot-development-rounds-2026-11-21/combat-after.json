@@ -1,0 +1,316 @@
+[
+  {
+    "scenario": "idle",
+    "fired": false,
+    "forecast": {
+      "ok": true,
+      "kind": "melee",
+      "attackerId": 3,
+      "defenderUnitId": 5,
+      "defenderCityId": null,
+      "attackerName": "Spearman",
+      "defenderName": "Warrior",
+      "attackerStrength": 27,
+      "defenderStrength": 20,
+      "attackerLines": [
+        {
+          "source": "Spearman",
+          "amount": 25
+        },
+        {
+          "source": "Against barbarians",
+          "amount": 2
+        }
+      ],
+      "defenderLines": [
+        {
+          "source": "Warrior",
+          "amount": 20
+        }
+      ],
+      "terrainBonus": 0,
+      "fortifyBonus": 0,
+      "bonuses": [
+        {
+          "source": "Against barbarians",
+          "side": "attacker",
+          "amount": 2
+        }
+      ],
+      "acrossRiver": false,
+      "damageToDefender": 40,
+      "damageToAttacker": 23,
+      "damageToDefenderMin": 32,
+      "damageToDefenderMax": 48,
+      "damageToAttackerMin": 18,
+      "damageToAttackerMax": 27,
+      "attackerHp": 100,
+      "attackerMaxHp": 100,
+      "defenderHp": 100,
+      "defenderMaxHp": 100,
+      "capturesUnit": false,
+      "plundersUnit": false,
+      "capturesCity": false,
+      "capturesCityOnKill": false
+    },
+    "melee": {
+      "hp": 100
+    },
+    "decision": {
+      "kind": "unitOrder",
+      "command": {
+        "type": "fortify",
+        "playerId": 0,
+        "unitId": 3
+      },
+      "subject": "Spearman 3",
+      "summary": "A bowman of ours can take the same target and has not shot yet, so this piece holds; no camp near a town worth marching on, and every town is held. Digs in.",
+      "candidates": [
+        {
+          "label": "strike (6,5)",
+          "score": -8,
+          "chosen": false,
+          "terms": [
+            {
+              "label": "40 damage dealt (defender on 100)",
+              "value": 40
+            },
+            {
+              "label": "23 damage taken",
+              "value": 23,
+              "op": "sub"
+            },
+            {
+              "label": "Archer 4 can hit it and has not shot yet — the melee piece holds",
+              "value": 25,
+              "op": "sub"
+            }
+          ]
+        },
+        {
+          "label": "sleep",
+          "score": 0,
+          "chosen": false,
+          "terms": [],
+          "rejected": "A Spearman keeps watch — fortify instead"
+        },
+        {
+          "label": "fortify",
+          "score": -1,
+          "chosen": true,
+          "terms": [
+            {
+              "label": "position 2 in the order this bot tries them",
+              "value": 1,
+              "op": "sub"
+            }
+          ]
+        }
+      ],
+      "focus": {
+        "col": 5,
+        "row": 5
+      }
+    },
+    "trail": [
+      {
+        "type": "fortify",
+        "playerId": 0,
+        "unitId": 3
+      }
+    ]
+  },
+  {
+    "scenario": "fired",
+    "fired": true,
+    "forecast": {
+      "ok": true,
+      "kind": "melee",
+      "attackerId": 3,
+      "defenderUnitId": 5,
+      "defenderCityId": null,
+      "attackerName": "Spearman",
+      "defenderName": "Warrior",
+      "attackerStrength": 27,
+      "defenderStrength": 20,
+      "attackerLines": [
+        {
+          "source": "Spearman",
+          "amount": 25
+        },
+        {
+          "source": "Against barbarians",
+          "amount": 2
+        }
+      ],
+      "defenderLines": [
+        {
+          "source": "Warrior",
+          "amount": 20
+        }
+      ],
+      "terrainBonus": 0,
+      "fortifyBonus": 0,
+      "bonuses": [
+        {
+          "source": "Against barbarians",
+          "side": "attacker",
+          "amount": 2
+        }
+      ],
+      "acrossRiver": false,
+      "damageToDefender": 40,
+      "damageToAttacker": 23,
+      "damageToDefenderMin": 32,
+      "damageToDefenderMax": 48,
+      "damageToAttackerMin": 18,
+      "damageToAttackerMax": 27,
+      "attackerHp": 100,
+      "attackerMaxHp": 100,
+      "defenderHp": 100,
+      "defenderMaxHp": 100,
+      "capturesUnit": false,
+      "plundersUnit": false,
+      "capturesCity": false,
+      "capturesCityOnKill": false
+    },
+    "melee": {
+      "hp": 100
+    },
+    "decision": {
+      "kind": "unitOrder",
+      "command": {
+        "type": "attack",
+        "playerId": 0,
+        "unitId": 3,
+        "target": {
+          "col": 6,
+          "row": 5
+        }
+      },
+      "subject": "Spearman 3",
+      "summary": "A favourable exchange: 40 dealt against 23 taken.",
+      "candidates": [
+        {
+          "label": "strike (6,5)",
+          "score": 17,
+          "chosen": true,
+          "terms": [
+            {
+              "label": "40 damage dealt (defender on 100)",
+              "value": 40
+            },
+            {
+              "label": "23 damage taken",
+              "value": 23,
+              "op": "sub"
+            }
+          ]
+        }
+      ],
+      "focus": {
+        "col": 6,
+        "row": 5
+      }
+    },
+    "trail": [
+      {
+        "type": "attack",
+        "playerId": 0,
+        "unitId": 3,
+        "target": {
+          "col": 6,
+          "row": 5
+        }
+      }
+    ]
+  },
+  {
+    "scenario": "fortified",
+    "fired": false,
+    "forecast": {
+      "ok": true,
+      "kind": "melee",
+      "attackerId": 3,
+      "defenderUnitId": 5,
+      "defenderCityId": null,
+      "attackerName": "Spearman",
+      "defenderName": "Warrior",
+      "attackerStrength": 27,
+      "defenderStrength": 20,
+      "attackerLines": [
+        {
+          "source": "Spearman",
+          "amount": 25
+        },
+        {
+          "source": "Against barbarians",
+          "amount": 2
+        }
+      ],
+      "defenderLines": [
+        {
+          "source": "Warrior",
+          "amount": 20
+        }
+      ],
+      "terrainBonus": 0,
+      "fortifyBonus": 0,
+      "bonuses": [
+        {
+          "source": "Against barbarians",
+          "side": "attacker",
+          "amount": 2
+        }
+      ],
+      "acrossRiver": false,
+      "damageToDefender": 40,
+      "damageToAttacker": 23,
+      "damageToDefenderMin": 32,
+      "damageToDefenderMax": 48,
+      "damageToAttackerMin": 18,
+      "damageToAttackerMax": 27,
+      "attackerHp": 100,
+      "attackerMaxHp": 100,
+      "defenderHp": 100,
+      "defenderMaxHp": 100,
+      "capturesUnit": false,
+      "plundersUnit": false,
+      "capturesCity": false,
+      "capturesCityOnKill": false
+    },
+    "melee": {
+      "fortifiedTurns": 2,
+      "hp": 100
+    },
+    "decision": null,
+    "trail": [
+      {
+        "type": "attack",
+        "playerId": 0,
+        "unitId": 4,
+        "target": {
+          "col": 6,
+          "row": 5
+        }
+      },
+      {
+        "type": "setCityProduction",
+        "playerId": 0,
+        "cityId": 1,
+        "queue": [
+          {
+            "kind": "unit",
+            "id": "scout"
+          }
+        ]
+      },
+      {
+        "type": "chooseResearch",
+        "playerId": 0,
+        "techId": "sailing",
+        "queue": "replace"
+      }
+    ]
+  }
+]

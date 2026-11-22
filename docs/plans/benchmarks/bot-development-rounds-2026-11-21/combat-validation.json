@@ -1,0 +1,235 @@
+{
+  "sourceCommit": "74c0f029",
+  "rollbackTag": "codex/bot-local-defense-2026-11-21",
+  "reviewedTag": "codex/bot-combat-reviewed-2026-11-21",
+  "liveServerChanged": false,
+  "checks": [
+    {
+      "command": "npm run typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test:all",
+      "exitCode": 0,
+      "files": 615,
+      "tests": 13006,
+      "durationSeconds": 450.3
+    }
+  ],
+  "earlyOutcomeReplays": [
+    {
+      "policy": "focus-preview",
+      "seed": 42,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "focus-preview",
+      "seed": 2026,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "focus-preview",
+      "seed": 314,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "scout-role",
+      "seed": 42,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "scout-role",
+      "seed": 2026,
+      "turn": 96,
+      "matched": true
+    },
+    {
+      "policy": "scout-role",
+      "seed": 314,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "scout-role",
+      "seed": 7,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "scout-role",
+      "seed": 999,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "scout-role",
+      "seed": 2025,
+      "turn": 95,
+      "matched": true
+    },
+    {
+      "policy": "queued-army",
+      "seed": 42,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "queued-army",
+      "seed": 2026,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "queued-army",
+      "seed": 314,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "early-routine",
+      "seed": 42,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "early-routine",
+      "seed": 2026,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "early-routine",
+      "seed": 314,
+      "turn": 100,
+      "matched": true
+    }
+  ],
+  "combatOutcomeReplays": [
+    {
+      "policy": "ranged-defense",
+      "seed": 42,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "ranged-defense",
+      "seed": 2026,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "ranged-defense",
+      "seed": 314,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "ranged-defense",
+      "seed": 7,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "ranged-defense",
+      "seed": 999,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "ranged-defense",
+      "seed": 2025,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "screen-defense",
+      "seed": 42,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "screen-defense",
+      "seed": 2026,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "screen-defense",
+      "seed": 314,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "small-defense",
+      "seed": 42,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "small-defense",
+      "seed": 2026,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "small-defense",
+      "seed": 314,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "small-defense",
+      "seed": 7,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "small-defense",
+      "seed": 999,
+      "turn": 100,
+      "matched": true
+    },
+    {
+      "policy": "small-defense",
+      "seed": 2025,
+      "turn": 100,
+      "matched": true
+    }
+  ],
+  "strictStateReplays": {
+    "before": {
+      "duel": "000a4464:364669",
+      "standard": "83f56a0b:1099866"
+    },
+    "after": {
+      "duel": "c24d0512:361085",
+      "standard": "85584be0:1093391"
+    },
+    "warnings": 0,
+    "stalls": 0,
+    "turns": 120,
+    "matchedFullState": true
+  },
+  "neutralRoutineArmyControl": {
+    "seed": 42,
+    "matchedConfig": true,
+    "matchedCommands": 5588
+  },
+  "experimentDefaults": {
+    "military.routineArmyShareByAge": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "military.screenHoldExchange": 0
+  }
+}

@@ -1,0 +1,283 @@
+diff --git a/src/ai/bot.ts b/src/ai/bot.ts
+index 09ec6f96..bc58e5f1 100644
+--- a/src/ai/bot.ts
++++ b/src/ai/bot.ts
+@@ -313,6 +313,7 @@ import type { City, GameState, Player, Unit } from '../sim/state';
+ import {
+   assignableTiles,
+   citizenFocusError,
++  previewCitizenFocus,
+   citizenWeightsFor,
+   cityFocus,
+   cityTile,
+@@ -3165,56 +3166,17 @@ const SHEET_LABELS: Record<CitizenLean, string> = {
+ function sheetTable(state: GameState, city: City, ctx: ValueContext): FocusTable {
+   const balanced = citizenWeightsFor(state, city.ownerId);
+   const tiles = assignableTiles(state, city);
+-  // The setup is `focusTable`'s, line for line, and its docblock says why each
+-  // reading is the one it is: the ring's context hoisted, the town's books taken
+-  // once, the seats to fill counted off the town's people, and the anchor read
+-  // off the town's actual placement.
+   const ground = tileContextField(state, city.ownerId);
+-  const books = readCity(state, city);
+-  const seats = Math.min(
+-    Math.max(0, city.population - totalSpecialists(city)) + cardGarrisonSeats(state, city),
+-    tiles.length,
++  const plain = previewCitizenFocus(state, city, 'default');
++  const nextHex = rankTiles(state, tiles, balanced, ground).find(tile =>
++    !plain.workedTiles.some(cell => cell.col === tile.col && cell.row === tile.row),
+   );
+-  const standingBag = bagOfTiles(workedTilesOf(state, city), ground);
+-  // **Each hex folded once for the four sheets.** `rankTiles` and `bagOfTiles`
+-  // each fold every hex again, and four sheets would fold the ring eight times.
+-  // The ranking and the bags read the same `foldTile` answer here, in the same
+-  // order and with the same tie-break, so the figures are the same ones.
+-  const read = tiles.map((tile) => {
+-    const folded = foldTile(tile, ground(tile));
+-    return { tile, at: tileIndex(state.map, tile.col, tile.row), folded, bag: bagOfTileYield(folded) };
+-  });
+-  const rankBy = (weights: typeof balanced): typeof read =>
+-    read
+-      .map((row) => ({ row, score: yieldScore(row.folded, weights) }))
+-      .sort((a, b) => b.score - a.score || a.row.at - b.row.at)
+-      .map((scored) => scored.row);
+-  const under = (order: typeof read): YieldBag => {
+-    const bag: YieldBag = {};
+-    for (const row of order.slice(0, Math.max(0, seats))) {
+-      for (const voice of VOICES) bag[voice] = (bag[voice] ?? 0) + (row.bag[voice] ?? 0);
+-    }
+-    return bag;
+-  };
+-  const plainRank = rankBy(balanced);
+-  const plainBag = under(plainRank);
+-  // The town's food under a sheet is a function of the food the sheet's hexes
+-  // make, so it is read once for each figure the sheets reach.
+-  const fed = new Map<number, number>();
+-  const foodUnder = (bag: YieldBag): number => {
+-    const shift = (bag.food ?? 0) - (standingBag.food ?? 0);
+-    const held = fed.get(shift);
+-    if (held !== undefined) return held;
+-    const quote =
+-      shift === 0 ? books : { ...books, flats: { ...books.flats, food: books.flats.food + shift } };
+-    const food = foldCity(state, city, [], null, quote).food;
+-    fed.set(shift, food);
+-    return food;
+-  };
++  const plainBag: YieldBag = plain.yields;
+ 
+   const rows: { focus: CitizenLean; candidate: BotCandidate; gated: boolean }[] = [];
+   for (const focus of LEAN_SHEETS) {
+-    const bag = under(rankBy(RULES.cities.citizenFocusWeights[focus]));
++    const forecast = previewCitizenFocus(state, city, focus);
++    const bag: YieldBag = forecast.yields;
+     const delta: YieldBag = {};
+     for (const voice of VOICES) delta[voice] = (bag[voice] ?? 0) - (plainBag[voice] ?? 0);
+     const terms: ValueTerm[] = [nest('what the people would make on the other hexes', explainYields(delta, ctx))];
+@@ -3223,20 +3185,21 @@ function sheetTable(state: GameState, city: City, ctx: ValueContext): FocusTable
+     if (hammers !== null) terms.push(hammers);
+     let gated = false;
+     if (foldTerms(terms) > 0 || (bag.food ?? 0) > (plainBag.food ?? 0)) {
+-      const growth = growthTerm(state, city, ctx, plainRank[seats]?.tile, plainBag, bag, foodUnder);
++      const growth = growthTerm(state, city, ctx, nextHex, plainBag, bag, value => value.food ?? 0,
++        { plain: plain.growth, lean: forecast.growth });
+       if (growth !== null) terms.push(growth);
+       if (focus === 'production' && (hammers === null || hammers.value <= 0)) {
+         gated = true;
+         terms.push({ label: '× 0: nothing this empire is raising is waiting on hammers', value: 0, op: 'mul' });
+       }
+-      if (foldTerms(terms) > 0 && foodUnder(bag) < foodUpkeep(city)) {
++      if (foldTerms(terms) > 0 && (bag.food ?? 0) < foodUpkeep(city)) {
+         gated = true;
+         terms.push({ label: `× 0: ${city.name} would not feed itself on the ${focus} sheet`, value: 0, op: 'mul' });
+       }
+     }
+     rows.push({ focus, gated, candidate: { label: SHEET_LABELS[focus], score: foldTerms(terms), chosen: false, terms } });
+   }
+-  const plain: BotCandidate = {
++  const plainCandidate: BotCandidate = {
+     label: 'the balanced ordering',
+     score: 0,
+     chosen: false,
+@@ -3255,13 +3218,13 @@ function sheetTable(state: GameState, city: City, ctx: ValueContext): FocusTable
+     sheets[row.focus] = { score: row.candidate.score, gated: row.gated };
+     if (row.focus === best) row.candidate.chosen = true;
+   }
+-  if (best === 'default') plain.chosen = true;
++  if (best === 'default') plainCandidate.chosen = true;
+   const lean = rows.find((row) => row.focus === 'production')!;
+   return {
+     best,
+     edge: lean.candidate.score,
+     gated: lean.gated,
+-    candidates: [...rows.map((row) => row.candidate), plain],
++    candidates: [...rows.map((row) => row.candidate), plainCandidate],
+     sheets,
+     four: true,
+   };
+@@ -3333,6 +3296,7 @@ function growthTerm(
+   leanBag: YieldBag,
+   /** `focusTable`'s reading of the town's food under a given sheet's hexes. */
+   foodUnder: (bag: YieldBag) => number,
++  growthRates?: { plain: number; lean: number },
+ ): ValueTerm | null {
+   // **What the next citizen is worth, read off the balanced ordering** rather
+   // than off `explainCitizen`. The two agree about the clause that matters — the
+@@ -3364,7 +3328,7 @@ function growthTerm(
+   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+   const upkeep = foodUpkeep(city);
+   const turnsAt = (bag: YieldBag): number => {
+-    const rate = foodUnder(bag) - upkeep;
++    const rate = growthRates === undefined ? foodUnder(bag) - upkeep : bag === plainBag ? growthRates.plain : growthRates.lean;
+     return rate <= 0 ? horizon : Math.ceil(remaining / rate);
+   };
+   const sooner = delayDiscount(turnsAt(leanBag), ctx) - delayDiscount(turnsAt(plainBag), ctx);
+diff --git a/src/sim/cities.ts b/src/sim/cities.ts
+index f188930b..f84ffc58 100644
+--- a/src/sim/cities.ts
++++ b/src/sim/cities.ts
+@@ -2590,6 +2590,15 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
+   // Any other helper whose write is idempotent turn to turn keeps the same
+   // discipline; this is the one the profile named.
+   const before = city.workedTiles;
++  placeCitizens(state, city);
++  if (!sameAssignment(before, city.workedTiles)) {
++    if (cause === 'citizenFocus') bumpCitizenFocus(state);
++    else bumpEconomy(state);
++  }
++}
++
++/** Both the live assignment and previews use the same food and focus rules. */
++function placeCitizens(state: GameState, city: City): void {
+   const balanced = citizenWeightsFor(state, city.ownerId);
+   const plain = chooseCitizens(state, city, balanced);
+   writeAssignment(state, city, plain.worked);
+@@ -2630,10 +2639,23 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
+   if (city.avoidGrowth === true && surplusMoverFor(state, city, city.queue[0]) === null) {
+     capFoodSurplus(state, city, weights);
+   }
+-  if (!sameAssignment(before, city.workedTiles)) {
+-    if (cause === 'citizenFocus') bumpCitizenFocus(state);
+-    else bumpEconomy(state);
+-  }
++}
++
++/**
++ * Evaluate a focus on a private city and state so the live board and its caches
++ * stay unchanged. Shared placement keeps the forecast aligned with commands.
++ */
++export function previewCitizenFocus(
++  state: GameState,
++  city: City,
++  focus: CitizenFocus,
++): { workedTiles: City['workedTiles']; yields: CityYields; growth: number } {
++  const town = { ...city, focus };
++  const preview = { ...state, cities: state.cities.map(held => held.id === city.id ? town : held) };
++  placeCitizens(preview, town);
++  bumpEconomy(preview);
++  const yields = foldCity(preview, town, [], town.queue[0]);
++  return { workedTiles: town.workedTiles, yields, growth: growthSurplus(preview, town, yields) };
+ }
+ 
+ /** writeAssignment stores a new sorted list, so equal coordinates mean the same citizens stayed in place. */
+diff --git a/test/sim/citizenWeights.test.ts b/test/sim/citizenWeights.test.ts
+index 7529719c..fe127551 100644
+--- a/test/sim/citizenWeights.test.ts
++++ b/test/sim/citizenWeights.test.ts
+@@ -21,8 +21,13 @@ import {
+   citizenWeightsAt,
+   citizenWeightsFor,
+   foundCityAt,
++  foodUpkeep,
++  growthSurplus,
++  previewCitizenFocus,
+   yieldScore,
+ } from '../../src/sim/cities';
++import { applyCommand } from '../../src/sim/commands';
++import { readCurrentTown, readEmpireRates } from '../../src/sim/readings';
+ import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
+ import { CITIZEN_FOCUSES, type CitizenWeights, RULES } from '../../src/sim/rulesData';
+ import { type City, type GameState, bumpRevision } from '../../src/sim/state';
+@@ -307,6 +312,54 @@ describe('a town short of food', () => {
+     return { state, city, farms, schools };
+   }
+ 
++  it.each(CITIZEN_FOCUSES)('predicts the actual %s command without changing live state or readings', (focus) => {
++    const { state, city } = hungry();
++    // Arrears change the final science and culture rates, after tile assignment.
++    state.players[0]!.gold = -50;
++    place(state, city);
++    const before = JSON.stringify(state);
++    const townBefore = readCurrentTown(state, city);
++    const empireBefore = readEmpireRates(state, 0);
++    const preview = previewCitizenFocus(state, city, focus);
++    expect(JSON.stringify(state)).toBe(before);
++    expect(readCurrentTown(state, city)).toBe(townBefore);
++    expect(readEmpireRates(state, 0)).toBe(empireBefore);
++
++    const actual: GameState = JSON.parse(before);
++    const changed = actual.cities.find(held => held.id === city.id)!;
++    expect(applyCommand(actual, { type: 'setCitizenFocus', playerId: 0, cityId: city.id, focus }).ok).toBe(true);
++    expect(preview.workedTiles).toEqual(changed.workedTiles);
++    expect(preview.yields).toEqual(readCurrentTown(actual, changed).total);
++    expect(preview.growth).toEqual(growthSurplus(actual, changed));
++    expect(preview.yields.food).toBeGreaterThanOrEqual(foodUpkeep(city));
++  });
++
++  it('includes starvation swaps in the default forecast instead of pricing all academies', () => {
++    const { state, city, schools } = hungry();
++    place(state, city);
++    const preview = previewCitizenFocus(state, city, 'default');
++    expect(preview.workedTiles.filter(cell => schools.some(tile => tile.col === cell.col && tile.row === cell.row))).toHaveLength(1);
++    expect(preview.yields.food).toBeGreaterThanOrEqual(foodUpkeep(city));
++    expect(previewCitizenFocus(state, city, 'food').yields.science).toBeLessThan(preview.yields.science);
++  });
++
++  it.each([false, true])('keeps locked tiles and the avoid-growth setting (%s) in each forecast', (avoidGrowth) => {
++    const { state, city, schools } = hungry();
++    city.lockedTiles = [{ col: schools[0]!.col, row: schools[0]!.row }];
++    city.avoidGrowth = avoidGrowth;
++    place(state, city);
++    for (const focus of CITIZEN_FOCUSES) {
++      const preview = previewCitizenFocus(state, city, focus);
++      const actual: GameState = JSON.parse(JSON.stringify(state));
++      const changed = actual.cities.find(held => held.id === city.id)!;
++      expect(applyCommand(actual, { type: 'setCitizenFocus', playerId: 0, cityId: city.id, focus }).ok).toBe(true);
++      expect(preview.workedTiles).toContainEqual(city.lockedTiles[0]);
++      expect(preview.workedTiles).toEqual(changed.workedTiles);
++      expect(preview.yields).toEqual(readCurrentTown(actual, changed).total);
++      expect(preview.growth).toEqual(growthSurplus(actual, changed));
++    }
++  });
++
+   it('swaps toward food until the town is fed, and keeps what it can', () => {
+     const { state, city, farms, schools } = hungry();
+     const sheet = citizenWeightsFor(state, 0);
+diff --git a/test/sim/slateRegister.test.ts b/test/sim/slateRegister.test.ts
+index 4466deb4..8e039010 100644
+--- a/test/sim/slateRegister.test.ts
++++ b/test/sim/slateRegister.test.ts
+@@ -464,17 +464,21 @@ const EXCUSED = new Map<string, string>([
+     'evaluator.ts#cardFoundingRider',
+     'builds a rider descriptor; `foundCityAt` is what puts the citizens and the stones in the town',
+   ],
++  [
++    'cities.ts#placeCitizens',
++    'assignCitizens announces the live placement after comparing. previewCitizenFocus passes a private city and state.',
++  ],
+   [
+     'cities.ts#writeAssignment',
+-    'assignCitizens’ own half — its only callers are that function and the two trims beneath it (`feedTown`, `capFoodSurplus`), and it announces once, after comparing',
++    'placeCitizens and its food safeguards use this writer. assignCitizens announces the live change; previews write only to a private city.',
+   ],
+   [
+     'cities.ts#capFoodSurplus',
+-    'called only by `assignCitizens`, before its comparison — see that function',
++    'placeCitizens calls this before assignCitizens announces, or on a private preview city.',
+   ],
+   [
+     'cities.ts#feedTown',
+-    'called only by `assignCitizens`, before its comparison, as `capFoodSurplus` is. See that function',
++    'placeCitizens calls this before assignCitizens announces, or on a private preview city.',
+   ],
+   [
+     'movement.ts#hangLandfall',
