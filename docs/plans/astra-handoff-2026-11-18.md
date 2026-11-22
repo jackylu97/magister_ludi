@@ -211,7 +211,7 @@ Both six-seat version 258 games finished 120 turns and reloaded exactly. The due
 
 The difficulty rules for tiers zero through five are on `codex/beta-difficulty`, based on the first-age candidate. The tier is part of the save (version 259). Tier five uses the proposed 75/20/5 rarity weights before bonuses. Claude can set `GameConfig.tier` on the setup screen, read `game.state.tier ?? 0` on the ending screen and use `DIFFICULTY_RULES` for the rules list. The current draw and pass preview both use the acting player's odds. Higher tiers and the separate “First game” setting are outside this beta candidate.
 
-The first full difficulty run found failures in 18 files. After the fixes, all 537 tests in those files passed. The repaired candidate is `ad26311a`. A full run on that revision is still due before release. The bot-strength comparisons use normal difficulty on the separate version 257 branch.
+The first full difficulty run found failures in 18 files. After the fixes, all 537 tests in those files passed. The repaired candidate is `ad26311a`. That candidate is included in the combined release below, which passed the full suite. The bot-strength comparisons use normal difficulty on the separate version 257 branch.
 
 ### 0.1f The wager is ruled and ready to build (2026-11-22)
 
@@ -236,6 +236,40 @@ The first full difficulty run found failures in 18 files. After the fixes, all 5
 - The screens are the Claude session's. It needs readings for: a seat's
   offer, each wager's number now and its marks, the pick, and a mark reached.
 - Difficulty tier 13 raises every mark of the player's bars by 40%.
+
+### Combined play release, 2026-11-22
+
+The user asked to merge the tested bot work, Age I changes and other ready
+handoff items for a fresh game on port 5199. The branch is
+`codex/bot-play-integration`, at save version 260. Camps now unlock at
+Husbandry instead of Fletching. The Camp permission tests check both sides.
+
+This combines the seven Age I changes, the raiders' pillage preference,
+difficulty rules zero through five, and the reviewed bot worker, purchasing,
+local-defense and ranged-combat fixes. The Arena leader picker also handles
+leaders with no persona override. The difficulty setup and ending-screen
+controls remain Claude's UI work. Normal setup still selects tier zero.
+
+The full release check exposed a pre-existing bot pricing error: relief from
+town losses was counted both in the happiness change and in a separate
+forecast. It now uses the card stamp, as unit-loss relief already did. The
+new core test checks both kinds of loss. The 120-turn duel and Standard games
+kept the same commands after that correction and replayed exactly. Their
+final digests are `4172463b:393230` and `64733584:1087655`.
+
+The combined test run also found text expectations left behind by the new
+unit-class links and labels. Those expectations and the reference documents
+now use the current descriptions. Short card faces say "strength" on an
+unconditional class-strength line; the full description keeps "combat
+strength". Every live card still has to pass the existing fit test.
+
+Release validation passed: typecheck, all 618 test files and 13,046 tests
+(core and slow), and the production build. The rollback tag is
+`codex/play-before-age1-2026-11-22`; the release tag is
+`codex/age1-play-2026-11-22`. The separate score-accounting agent
+uses `codex/wager-score-accounting` for section 0.1f. Wager marks and score
+weights still need measurements. The science/Order planning experiments and
+the water-site tuning trial are not in this play release.
 
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 

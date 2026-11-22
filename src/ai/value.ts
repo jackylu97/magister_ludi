@@ -6056,27 +6056,16 @@ function surplusMovedShare(ctx: ValueContext): number {
 }
 
 /**
- * **Does the empire's books carry what this rewritten rule changes?** The army's
- * wages and the citizens' demand are lines on the books now, and so is the war
- * weariness lost units add: it is part of the seat's contentment for as long as
- * the losses are in the weariness window. Every other rule changes a price, a
- * pace, a range or a cost still to be paid, which no turn's books show.
- *
- * The unit-loss rule moved here in bot batch BP10. Its games held a position
- * (seat 2 of the duel at turn 121, at war with losses in the window) where The
- * Glorious Dead's rule moved the stamp's books by 32 points, so the stamp sees
- * it, and the stand-in the bot priced beside the stamp counted a share of the
- * same relief twice. Now the stamp's figure is the price, as it is for the
- * army's wages, and the stand-in counts only as a promise beyond today
- * (`beyondTheStamp`). The town-loss rule should read the same way, but no
- * recorded position holds a lost town, so the slow check cannot hold it to the
- * books, and it stays a stand-in.
+ * Current upkeep, happiness demand and war-loss relief already affect the
+ * empire's totals. Price them through the card stamp so the forecast does not
+ * count the same benefit twice. Both unit losses and town losses use this path.
  */
 function rulePercentInBooks(rule: Extract<CardEffect, { kind: 'rulePercent' }>['rule']): boolean {
   switch (rule) {
     case 'unitUpkeep':
     case 'happinessDemand':
     case 'unitLossWeariness':
+    case 'townLossWeariness':
       return true;
     case 'defeatedShipJoins':
     case 'roadStepCost':
@@ -6097,7 +6086,6 @@ function rulePercentInBooks(rule: Extract<CardEffect, { kind: 'rulePercent' }>['
     case 'pacificationRate':
     case 'campMuster':
     case 'siegeDamage':
-    case 'townLossWeariness':
     case 'unitCost':
     case 'charterTechCost':
     case 'charterPremium':

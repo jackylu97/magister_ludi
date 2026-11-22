@@ -329,7 +329,7 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Wang Xizhi | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +1 culture per building in your cities that supplies science |  |
 | Cai Yan | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +4 culture per great person called by another empire |  |
 | Julius Caesar | General | ● defining | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | capturing a city grants +200 gold · capturing a city grants +200 culture |  |
-| Zhuge Liang | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength for ranged units · +2 food in every city with a unit standing in it |  |
+| Zhuge Liang | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength for units with a ranged attack · +2 food in every city with a unit standing in it |  |
 | Trưng Trắc | General | ○ situational | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +6 combat strength when defending against an empire with more cities than you |  |
 | Lü Buwei | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +2 authority capacity · gain culture equal to 10% of your gold gained per turn |  |
 | Cai Lun | Engineer | ◆ strong | 60 production × age | Manufactory (+4 production) | +2 science in every city per Library there · +1 culture in every city per Library there |  |
@@ -371,7 +371,7 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Marco Polo | Merchant | ○ situational | 8 turns of gold | Customs House (+4 gold) | +1 gold per 5 hexes between the two cities |  |
 | Francesco Datini | Merchant | ◆ strong | 8 turns of gold | Customs House (+4 gold) | +2 gold on every hex carrying a resource, in every city with a Bank |  |
 | Subutai | General | ● defining | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | mounted units: +1 movement · +2 combat strength for mounted units |  |
-| Tomoe Gozen | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength for mounted units · +3 combat strength for ranged units |  |
+| Tomoe Gozen | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength for mounted units · +3 combat strength for units with a ranged attack |  |
 | Jan Žižka | General | ○ situational | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +5 combat strength when defending while fortified |  |
 | El Cid | General | ○ situational | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +6 combat strength inside the borders of a city you captured |  |
 | Mimar Sinan | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | +2 production, +2 culture in every city with a Temple |  |
@@ -419,7 +419,7 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 | Bashō | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +1 culture on every forest or jungle hex |  |
 | Sor Juana | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +1 science, +1 culture on every hex carrying a resource, in every city with a University |  |
 | Vaucanson | Engineer | ○ situational | 60 production × age | Manufactory (+4 production) | newly created workers gain +2 charges |  |
-| Gustavus Adolphus | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength for ranged units · siege units: +1 movement |  |
+| Gustavus Adolphus | General | ◆ strong | Heal units within 2 hexes and give them +3 strength for 5 turns | Citadel (+3 production, +8 defence, claims nearby hexes) | +3 combat strength for units with a ranged attack · siege units: +1 movement |  |
 
 ## Extension rules
 

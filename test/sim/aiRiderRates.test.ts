@@ -28,7 +28,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { valueContext } from '../../src/ai/bot';
-import { type ValueContext, scoreEffects } from '../../src/ai/value';
+import { type ValueContext, scoreEffects, stampSight, explainCardStamp, explainCardEffects } from '../../src/ai/value';
 import { voiceWeight } from '../../src/ai/prices';
 import aiJson from '../../data/ai.json';
 
@@ -46,6 +46,7 @@ import {
 import type { CardEffect } from '../../src/sim/statecraftData';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { newGame } from './newGameHelpers';
+import { lendCardEffects } from './aiCardStampHelpers';
 
 const HORIZON = aiJson.priorities.horizonTurns;
 const PACE = aiJson.score.warPace;
@@ -262,5 +263,30 @@ describe('a building rider reads the recent window too', () => {
     home.capturedOn = 72;
     bumpRevision(state);
     expect(rate(valueContext(state, player), 'buildingCompletion')).toBeCloseTo(2 / RECENT, 10);
+  });
+});
+
+
+describe('war-loss relief in a card appraisal', () => {
+  it.each(['unit', 'town'] as const)('counts existing %s losses through the stamp only', kind => {
+    const { state, player } = board(3);
+    war(state);
+    losses(state, 0, 1, kind, [38, 39, 40]);
+    const effect: CardEffect = {
+      kind: 'rulePercent',
+      rule: kind === 'unit' ? 'unitLossWeariness' : 'townLossWeariness',
+      percent: -50,
+    };
+    const restore = lendCardEffects('theGloriousDead', [effect]);
+    try {
+      const ctx = valueContext(state, player);
+      const stamp = explainCardStamp(ctx, 'theGloriousDead');
+      expect(stampSight(effect)).toBe('books');
+      expect(stamp?.total).toBeGreaterThan(0);
+      expect(explainCardEffects('theGloriousDead', [effect], ctx, 'stamp').total)
+        .toBeCloseTo(stamp!.total, 9);
+    } finally {
+      restore();
+    }
   });
 });

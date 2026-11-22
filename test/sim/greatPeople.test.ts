@@ -1340,7 +1340,7 @@ describe('the legacies this pass built', () => {
     ]);
     expect(printed('tomoeGozen')).toEqual([
       '+3 combat strength for mounted units',
-      '+3 combat strength for ranged units',
+      '+3 combat strength for units with a ranged attack',
     ]);
   });
 

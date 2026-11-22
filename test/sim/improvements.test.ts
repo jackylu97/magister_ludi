@@ -1177,6 +1177,21 @@ describe('buildImprovement', () => {
    * a game instead of arriving whole on turn one.
    */
   describe('the technology gate', () => {
+    it('lets Husbandry unlock a Camp without Fletching', () => {
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.feature = 'forest';
+      tile.resource = 'deer';
+      state.players[0]!.techsResearched = ['agriculture', 'calendar', 'fletching'];
+      bumpRevision(state);
+      expect(improvementError(state, worker.id, 'camp')).toBe('A camp needs Husbandry');
+      state.players[0]!.techsResearched = ['agriculture', 'husbandry'];
+      bumpRevision(state);
+      expect(improvementError(state, worker.id, 'camp')).toBeNull();
+      expect(applyCommand(state, build(0, worker.id, 'camp')).ok).toBe(true);
+      expect(tile.improvement).toBe('camp');
+    });
+
     it('refuses an ungated build by name, and takes it the moment the tech lands', () => {
       const { state, worker } = workerState();
       const tile = at(state, 5, 4);

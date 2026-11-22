@@ -303,7 +303,7 @@
       "name": "Camp",
       "emoji": "⛺",
       "chargeCost": 1,
-      "requiresTech": "fletching",
+      "requiresTech": "husbandry",
       "yields": {
         "food": 1,
         "production": 0,

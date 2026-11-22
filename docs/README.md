@@ -24,6 +24,8 @@ mythologised, never historically over-specific.
 Single-player against bots is the product; hot-seat is the dev harness; netcode
 comes after a playable core and a good AI.
 
+Camps unlock with Husbandry. Their resource requirements, yields and charge cost are unchanged.
+
 ## Beta difficulty
 
 A game's optional `GameConfig.tier` selects the cumulative rules in

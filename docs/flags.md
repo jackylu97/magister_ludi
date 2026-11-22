@@ -3452,3 +3452,11 @@ bead line, counts every card on the In play screen, and gains two lines:
 rival units and camps defeated, and army strength. The marks come from bot
 games. Owner: Astra for the rules and bots, the Claude session for the
 screens.
+
+## Camps unlock with Husbandry (2026-11-21)
+
+The user asked: "could you make camps unlock at animal husbandry instead of fletching".
+Move the Camp's required technology from Fletching to Husbandry. Keep its
+resource requirements, yields and worker charge cost. Include this with the
+first-age changes in the next play build. The changed unlock requires a new
+save version.

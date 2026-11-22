@@ -48,16 +48,15 @@ section. When an item is done, mark it `[x]` and give the commit.
   - It touches the tech tree, the world clock, the card bands and the unit
     lines, so it needs its own plan before any build.
 
-- [ ] **Age 1 pacing.** Added 2026-11-18.
-  - The user wants the pace of the first age looked at. No detail yet: ask the
-    user what feels wrong (too slow, too few decisions, too long before the
-    first draft or the first war).
-  - Evidence to use: the first age ran to about turn 70 in the user's game and
-    to turn 87 in a test game; culture is about 3 a turn in age 1
-    (`card-design` skill, power bar), and culture pays for the drafts.
-  - Related and already ruled: the world clock turns over sooner
-    (`docs/flags.md`, "Age turn-over: a missing plate, the abacus motion, and a
-    faster clock"). Measure the first age again after that rule is built.
+- [ ] **Age 1 pacing.** Added 2026-11-18; implementation updated 2026-11-21.
+  - The seven approved changes are built: the Hall of Deeds, the earlier
+    Granary and Monument, Calendar before Fletching, the Shrine at Husbandry
+    with two faith in total, first-column Sailing and the earlier Lumber Mill.
+  - Camps also unlock at Husbandry, following the user's latest ruling.
+  - The regular Age I chart has no crossings. The full chart keeps one.
+  - Measure the opening again with these rules. The earlier bot benchmarks
+    used version 257 and are not a comparison of this new opening.
+  - The remaining Age II technologies and buildings need a finished design.
 
 ## Cards and decks
 
@@ -130,10 +129,12 @@ section. When an item is done, mark it `[x]` and give the commit.
 
 ## Game setup
 
-- [ ] **Difficulty levels.** Added 2026-11-18.
-  - The game has no difficulty setting. No design yet.
-  - The levers that exist: the bot knobs and five personas in `data/ai.json`,
-    and the arena page that measures them. A level can change how well a bot
-    plays, what bonuses it gets, or both.
-  - Wait for the bot speed work and the tuner, so the levels are set against
-    bots that are stable.
+- [ ] **Difficulty levels.** Added 2026-11-18; implementation updated 2026-11-21.
+  - Tiers zero through five are built in the simulation and saved with the
+    game. Each tier includes the earlier rules. Values live in
+    `data/difficulty.json`.
+  - Claude owns the setup selector and the ending-screen tier label. The
+    normal play setup still selects tier zero until that UI is connected.
+  - Higher tiers and the separate First game setting are not in this build.
+    Tier thirteen depends on the new wager rework, now in progress separately.
+  - Measure bot improvements at normal difficulty, as the user requested.

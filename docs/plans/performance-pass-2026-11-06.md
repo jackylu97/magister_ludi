@@ -4021,3 +4021,36 @@ The isolated path check ran ten sweeps of all goals for all six seats per board,
 Opening the settler lens ranks sites on the player's chart. The renderer and hover panel reuse that list until the game revision changes. On the archived turn 73 map, the first call in a fresh Node process took 10.8 ms. Across seven further copies of the same board it took 2.6 to 5.9 ms. Reading the same list again took at most 0.004 ms. Each of the eight lists matched a fresh calculation, including scores and order. These timings exclude browser rendering. Selecting a soldier with the settler lens closed does not ask for this list.
 
 Worker advice uses the bot's improvement planner. The [turn 73 measurement](benchmarks/turn73-worker-advice-2026-11-21.md) records that cost separately.
+
+
+## Combined bot and Age I play release, 22 November
+
+The user requested the reviewed bot work and ready handoff items on port 5199.
+The release uses save version 260 and is tagged `codex/age1-play-2026-11-22`.
+The previous play build is tagged `codex/play-before-age1-2026-11-22`.
+
+- Integrated charter improvement planning, repeatable unit actions and legal
+  zero-damage captures; the Arena can select named leaders.
+- Integrated shared faith-purchase budgeting and research-unlock reuse.
+- Priced city defenses from local threats and let fortified ranged units fire.
+  The optional army-growth and melee-screen settings retain neutral defaults.
+- Added the seven approved Age I changes, Camp at Husbandry, raiders choosing
+  reachable improvements before cities, and difficulty rules zero through five.
+  The difficulty selector remains Claude's UI work; normal setup uses tier zero.
+- Fixed an existing double count in the bot price of town-loss weariness relief.
+  The actual happiness change now supplies its value, as for unit-loss relief.
+  The new regression checks both kinds of loss.
+
+Typecheck exited zero. The full suite passed all 618 files and 13,046 tests at
+three workers. The production build exited zero, with the existing large-chunk
+warning. Both fresh 120-turn games reported no warnings or stalls and their
+saved command logs replayed exactly. Duel: 6,966 commands and
+`4172463b:393230`. Standard: 7,293 commands and `64733584:1087655`.
+The town-loss valuation correction changed neither log in these two games.
+The 60-turn worker and page comparison also matched every command and state.
+
+This is an integration and correctness result, not a new bot-strength or FPS
+measurement. The science/Order forecast experiments and the settlement-water
+trial remain separate. Rebase further strength comparisons on this new opening.
+The newly approved wager redesign also stays separate until its score weights
+and marks have been measured.

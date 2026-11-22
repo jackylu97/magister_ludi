@@ -1342,9 +1342,13 @@ import { digestOfState, type Played } from './aiDigestHelpers';
 // The first changes are legal shots by healthy awake archers on turns 47 (duel)
 // and 61 (standard). Both full games replay exactly with no warning or stall.
 // The new recruitment and screen-holding settings keep neutral defaults.
+// Versions 258–260 move first-age unlocks and yields, including Camps at Husbandry.
+// Raiders prefer reachable improvements before cities. Optional difficulty is saved;
+// these boards use tier zero. Bot prices also include balanced-focus production.
+// Both combined 120-turn games saved and replayed exactly, with no warning or stall.
 const DIGESTS = {
-  duel: 'c24d0512:361085',
-  standard: '85584be0:1093391',
+  duel: '4172463b:393230',
+  standard: '64733584:1087655',
 };
 
 /** Check driver errors before comparing the state digest. */

@@ -138,7 +138,7 @@ function buildSeatPickers(): void {
     for (const id of PERSONA_IDS) persona.append(new Option(personaLabel(id), id));
     persona.value = held[index]?.persona ?? DEFAULT_PERSONA;
     leader.addEventListener('change', () => {
-      persona.value = isLeaderId(leader.value) ? leaderDef(leader.value).persona : DEFAULT_PERSONA;
+      persona.value = isLeaderId(leader.value) ? leaderDef(leader.value).persona ?? DEFAULT_PERSONA : DEFAULT_PERSONA;
     });
     field.append(label, leader, persona);
     seatPersonasEl.append(field);

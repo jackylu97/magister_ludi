@@ -535,7 +535,9 @@ describe('a live Commerce row is a card', () => {
       // only a plain card prints its effects word for word from the start.
       if (orderKeyword(id) === null) {
         const printed = describeEffects(orderDef(id).effects);
-        expect(said.slice(0, printed.length), id).toEqual(printed);
+        // Card descriptions add keyword links; their visible rules stay the same.
+        const plain = (clauses: typeof said) => clauses.map(clause => ({ ...clause, text: stripRefs(clause.text) }));
+        expect(plain(said.slice(0, printed.length)), id).toEqual(plain(printed));
       }
       for (const clause of said) {
         expect(clause.text.length, `${id}: "${clause.text}"`).toBeGreaterThan(0);

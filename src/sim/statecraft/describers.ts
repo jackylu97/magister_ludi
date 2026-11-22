@@ -2904,8 +2904,13 @@ function describeEffect(
       // `combatWhenWords`, the one place a condition is put into words. The
       // side of the fight is said with it (batch DS8): "when defending".
       const when = combatSideWords(effect.side, effect.when);
+      const text = `${each} combat strength${who}${against}${scale} ${when}`.trim();
       out.push({
-        text: `${each} combat strength${who}${against}${scale} ${when}`.trim(),
+        text,
+        // Class labels use wider type on the card. Keep the full term in the description.
+        ...(effect.when.test === 'always' && effect.class !== undefined
+          ? { faceText: markBuildingKinds(text.replace('combat strength', 'strength')) }
+          : {}),
       });
       return;
     }

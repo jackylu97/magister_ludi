@@ -215,13 +215,13 @@ adds 4 culture. Each building pays its full yield at any town size.
 |---|---|---|---|---|---|
 | Agriculture | 5 | — | Settler, Warrior, Scout, Worker | Granary, Hall of Deeds ‡ | workers may build Farm |
 | Calendar | 11 | Agriculture | — | **The Hanging Gardens**, *Tithes* (project) | workers may build Plantation |
-| Husbandry | 11 | Agriculture | — | **The Temple of Artemis**, Shrine | workers may build Pasture · reveals **Horses** · reveals **Camels** |
+| Husbandry | 11 | Agriculture | — | **The Temple of Artemis**, Shrine | workers may build Pasture · workers may build Camp · reveals **Horses** · reveals **Camels** |
 | Mining | 11 | Agriculture | — | **The Great Sphinx** | workers may build Mine · Clear Forest · reveals **Copper** |
 | Pottery | 11 | Agriculture | — | Monument | — |
 | Sailing | 11 | Agriculture | Trireme | Lighthouse, **The Great Lighthouse** | workers may build Fishing Boat · Embark |
 | Bronzeworking | 24 | Mining | Spearman | Barracks, The School of Mieza, **The Walls of Uruk** | workers may build Lumbermill · Clear Jungle · Blessing of Arms |
 | Divination | 24 | Husbandry | — | **The Oracle**, **The Temple of Thoth** | Rite of the Harvest · Omen Reading |
-| Fletching | 24 | Calendar | Archer | — | workers may build Camp |
+| Fletching | 24 | Calendar | Archer | — | — |
 | Stonecraft | 24 | Pottery | — | Palisade, **Stonehenge**, **The Pyramids** | workers may build Quarry · Consecration of the Bounds |
 | The Wheel | 50 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses or Camels)*, Chariot Archer *(needs improved Horses or Camels)* | Stable | — |
 | Writing | 50 | Divination, Fletching | — | Library, **The Great Ziggurat**, *Scholarship* (project) | Open Borders |

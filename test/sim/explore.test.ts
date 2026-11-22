@@ -1446,9 +1446,11 @@ describe('determinism', () => {
   // 92694eec and 925b8ae6 again.
   // Version 258 changes first-age rules. Neither seat has a city in these games.
   // Version 259 adds optional difficulty. Both of these games use tier zero.
+  // Version 260 moves the Camp unlock. Neither seat builds improvements here.
+  // Printing version 259 restores both previous hashes exactly.
   const RANGED_BOARDS: Record<number, string> = {
-    11: '2aa99109:190684',
-    2026: '6769a3f3:190844',
+    11: 'bb316119:190684',
+    2026: 'd14b59a3:190844',
   };
 
   for (const seed of [11, 2026]) {

@@ -72,6 +72,12 @@ describe('techGifts', () => {
     ]);
   });
 
+  it('lists Camps under Husbandry instead of Fletching', () => {
+    expect(improvementDef('camp').requiresTech).toBe('husbandry');
+    expect(techGifts('husbandry').some(gift => gift.kind === 'improvement' && gift.id === 'camp')).toBe(true);
+    expect(techGifts('fletching').some(gift => gift.id === 'camp')).toBe(false);
+  });
+
   it('puts the node’s own bonuses first, as its headline (batch TT1)', () => {
     // The user's ruling (`docs/flags.md` (iiiiiii)): a kept passive bonus is the
     // technology's headline, printed where an unlock is printed. So the
