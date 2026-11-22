@@ -213,6 +213,30 @@ The difficulty rules for tiers zero through five are on `codex/beta-difficulty`,
 
 The first full difficulty run found failures in 18 files. After the fixes, all 537 tests in those files passed. The repaired candidate is `ad26311a`. A full run on that revision is still due before release. The bot-strength comparisons use normal difficulty on the separate version 257 branch.
 
+### 0.1f The wager is ruled and ready to build (2026-11-22)
+
+**Spec: `docs/plans/wager-spec-2026-11-22.md`.** It replaces the note in
+0.1e that the wagers are not ready. Read the spec; this is the short form.
+
+- **Age I:** every seat has one bar, its score, from turn 1. Each of three
+  marks that it passes pays 1 bead on that turn. No choice.
+- **Ages II to IV:** when the age opens, a seat picks one of three wagers
+  (two dealt, the same for every seat, and its score) and one of three marks:
+  low 1 bead, middle 2, high 3. It is paid on the turn that its number reaches
+  the mark, or not at all. No malice for a miss.
+- **7 beads** open the door, as today.
+- **The score changes:** the bead line goes; the card line counts every source
+  on the In play screen, not Orders alone; two new lines: rival units and
+  camps defeated, and army strength (base strength, plus rank, plus card lines
+  that add strength with no condition).
+- **Twelve dealt wagers** in four groups; the 24 of today, the secret stake
+  and its malice retire.
+- **You place the marks from bot games** (section 5 of the spec), and propose
+  the weights of the two new score lines.
+- The screens are the Claude session's. It needs readings for: a seat's
+  offer, each wager's number now and its marks, the pick, and a mark reached.
+- Difficulty tier 13 raises every mark of the player's bars by 40%.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
