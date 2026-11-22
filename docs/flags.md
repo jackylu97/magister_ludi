@@ -3397,3 +3397,28 @@ handoff doc, astra should be keeping an eye on it."
 - Later, not now: the coast could count for more when the seat's own decks
   use the sea.
 - Owner: Astra.
+
+## Towns count all six yields when they place citizens (built 2026-11-22, save version 257)
+
+The user: "#2 we should fix, delegate a subagent. Let's have it use the bot's
+curve so that food is important early and less important late." Built by the
+Claude session at the user's word, and merged on the user's word ("you can
+merge it now, astra is just getting started").
+
+- `rules.cities.citizenWeights` holds a weight for each of the six yields at
+  each age. It is a COPY of the bots' `weights` in `data/ai.json` as they
+  stood on 2026-11-22, times five: food 49 / 42 / 35 / 28, production 28,
+  gold 15 / 15 / 20 / 20, science 25 / 30 / 30 / 30, culture 25, faith
+  15 / 20 / 15 / 10. Tuning the bots does not move it.
+- The three focus sheets keep 4 / 2 / 1 for their own yield first, with
+  science, culture and faith at 1 each.
+- A new guard, `feedTown`, swaps a town's cheapest hex for one with more food
+  if the default placement leaves it short. It never moves a pinned hex.
+- **To watch in play:** in the last age food is level with production, so a
+  town on the default sheet can stop growing (in the worked example a town of
+  eight ended at no food surplus).
+- **For Astra:** `src/ai/bot.ts`, `plan.ts` and `wants.ts` were edited so
+  that they read the new sheet; some bot test benches were reworked; the
+  state digests and the slow replay pins need a new recording. The border
+  chooser still weighs three yields. No bot game was run.
+- Left for a UI decision: focus buttons for faith, science and culture.
