@@ -207,6 +207,10 @@ read the new sheet; the digests and slow replay pins need a new recording.
 
 The seven first-age changes and the barbarian change are on `codex/first-age-handoff` (save version 258). The Shrine gives two faith per turn in total. The regular Age I tree has no crossings. The whole chart keeps one crossing. Astronomy keeps Calendar as a prerequisite and moves one lane on the Scientific charter shelf to clear Smelting. Raiders fight adjacent soldiers first, then prefer a reachable, visible improvement over attacking a city. The [bot study](../audit/bot-play-2026-11-21.md) uses version 257 and records its replay checks separately.
 
+Both six-seat version 258 games finished 120 turns and reloaded exactly. The duel used 6,291 commands and ended at `09201022:384334`. The standard board used 6,923 commands and ended at `7cc2deb2:1061977`. Neither driver reported a warning or a stall.
+
+The difficulty rules for tiers zero through five are on `codex/beta-difficulty`, based on the first-age candidate. The tier is part of the save (version 259). Tier five uses the proposed 75/20/5 rarity weights before bonuses. Claude can set `GameConfig.tier` on the setup screen, read `game.state.tier ?? 0` on the ending screen and use `DIFFICULTY_RULES` for the rules list. The current draw and pass preview both use the acting player's odds. Higher tiers and the separate “First game” setting are outside this beta candidate.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
