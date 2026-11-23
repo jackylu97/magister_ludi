@@ -24,7 +24,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { aiConfigFor, withAiTuning } from '../../src/ai/aiConfig';
+import { aiConfigFor, aiTuning, withAiTuning } from '../../src/ai/aiConfig';
 import { nextBotDecision } from '../../src/ai/bot';
 import { type BotDecision, type ValueTerm, foldTerms } from '../../src/ai/decision';
 import { applyCombat, foldCombatStrength, previewCombat } from '../../src/sim/combat';
@@ -534,7 +534,7 @@ describe('experience stays with the unit', () => {
 
 /**
  * The simulation's sources, read as text: a writer and a caller are facts
- * about the file, which is how `weariness.test.ts` pins its own register.
+ * about the file, which is how `warLosses.test.ts` pins its own register.
  */
 const SOURCES = {
   ...import.meta.glob('../../src/sim/*.ts', { eager: true, query: '?raw', import: 'default' }),
@@ -645,7 +645,7 @@ describe('the unit panel’s figures', () => {
 
 // --- the bots ---------------------------------------------------------------
 
-describe('the bots keep a wounded veteran out of a fight it is likely to lose', () => {
+describe('the original policy veteran caution setting', () => {
   /**
    * A bot seat with a held town far from the action, at war with its neighbour,
    * and a spearman of its own on open ground with an enemy swordsman next to
@@ -672,7 +672,7 @@ describe('the bots keep a wounded veteran out of a fight it is likely to lose', 
     state.nextEntityId = 1;
     const city = foundCityAt(state, 0, at(state, 2, 2));
     const garrison = createUnit(state, 0, 'warrior', city.col, city.row);
-    garrison.fortifiedTurns = 0;
+    garrison.fortified = true;
     state.players[0]!.gold = 120;
     openWar(state, 0, 1);
     const piece = createUnit(state, 0, 'spearman', 8, 6);
@@ -688,7 +688,7 @@ describe('the bots keep a wounded veteran out of a fight it is likely to lose', 
   /** The seat's decisions, driven until one is an order to this piece. */
   function orderFor(state: GameState, unitId: number, budget = 8): BotDecision | null {
     for (let guard = 0; guard < budget; guard++) {
-      const decision = nextBotDecision(state, 0);
+      const decision = withAiTuning({ ...aiTuning(), tactics: { enabled: 0 } }, () => nextBotDecision(state, 0));
       if (decision === null) return null;
       if ((decision.command as { unitId?: number }).unitId === unitId) return decision;
       if (!applyCommand(state, decision.command).ok) return null;

@@ -12,6 +12,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { botSitting, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { withAiTuning } from '../../src/ai/aiConfig';
 import { type BotDecision, foldTerms } from '../../src/ai/decision';
 import { buildImprovementPlan, explainWorkerCraving } from '../../src/ai/plan';
 import { explainLump } from '../../src/ai/prices';
@@ -89,7 +90,7 @@ function slotOrder(state: GameState, playerId: number, id: OrderId): void {
 function campAt(state: GameState, col: number, row: number, guards: { type: string; col: number; row: number }[] = []): void {
   state.camps.push({ col, row, foundedTurn: state.turn });
   const warden = createUnit(state, wildId(state), 'warrior', col, row);
-  warden.fortifiedTurns = 2;
+  warden.fortified = true;
   for (const guard of guards) createUnit(state, wildId(state), guard.type as never, guard.col, guard.row);
   recomputeAllVisibility(state);
   bumpRevision(state);
@@ -122,7 +123,7 @@ function twoTowns(state: GameState): { home: City; rival: City } {
   seat(state, 0).gold = 500;
   seat(state, 1).gold = 500;
   for (const city of [home, rival]) {
-    city.purchasedUnitTurns = { militaryGold: state.turn, civilianGold: state.turn, faith: state.turn };
+    city.purchasedUnitTurn = state.turn;
   }
   recomputeAllVisibility(state);
   bumpRevision(state);
@@ -224,13 +225,13 @@ describe('a force sized to the camp', () => {
     expect(foldTerms(chosen.terms)).toBe(chosen.score);
   });
 
-  it('strikes at the assault exchange once the whole force stands beside the camp', () => {
+  it('uses the original policy assault exchange when the whole force reaches the camp', () => {
     // Warriors at the camp's door: one is short of the force, four are whole.
     const short = bench();
     twoTowns(short);
     campAt(short, 8, 8);
     const alone = createUnit(short, 0, 'warrior', 7, 8);
-    const lone = orderFor(short, 0, alone.id);
+    const lone = withAiTuning({ tactics: { enabled: 0 } }, () => orderFor(short, 0, alone.id));
     // Alone, the blow deals less than it takes, and the seat's own exchange
     // holds it back.
     expect(lone?.command.type).not.toBe('attack');
@@ -242,14 +243,14 @@ describe('a force sized to the camp', () => {
     for (const [col, row] of [[8, 7], [9, 8], [8, 9]] as const) createUnit(whole, 0, 'warrior', col, row);
     recomputeAllVisibility(whole);
     bumpRevision(whole);
-    const strike = orderFor(whole, 0, first.id);
+    const strike = withAiTuning({ tactics: { enabled: 0 } }, () => orderFor(whole, 0, first.id));
     expect(strike?.command.type).toBe('attack');
     expect(strike!.command).toMatchObject({ target: { col: 8, row: 8 } });
   });
 
   it('calls a dug-in piece out for the hunt, once a turn', () => {
     const { state, pieces } = guarded(4);
-    for (const piece of pieces) piece.fortifiedTurns = 3;
+    for (const piece of pieces) piece.fortified = true;
     bumpRevision(state);
     const sitting = botSitting(0);
     const order = orderFor(state, 0, pieces[0]!.id, sitting);
@@ -260,7 +261,7 @@ describe('a force sized to the camp', () => {
     const quiet = bench();
     twoTowns(quiet);
     const dug = createUnit(quiet, 0, 'warrior', 4, 6);
-    dug.fortifiedTurns = 3;
+    dug.fortified = true;
     bumpRevision(quiet);
     expect(orderFor(quiet, 0, dug.id)).toBeNull();
   });
@@ -273,7 +274,7 @@ describe('a force sized to the camp', () => {
    */
   it('leaves a hurt piece dug in on its own ground to mend, and calls the others out', () => {
     const { state, pieces } = guarded(5);
-    for (const piece of pieces) piece.fortifiedTurns = 3;
+    for (const piece of pieces) piece.fortified = true;
     const home = state.cities.find((city) => city.ownerId === 0)!;
     const hurt = pieces[0]!;
     hurt.hp = 30;
@@ -291,7 +292,7 @@ describe('a force sized to the camp', () => {
     expect(sent.some((decision) => /^Calls a dug-in piece out for the hunt/.test(decision.summary))).toBe(true);
     // The hurt one is sent nothing, and it is still dug in.
     expect(sent.filter((decision) => (decision.command as { unitId?: number }).unitId === hurt.id)).toEqual([]);
-    expect(hurt.fortifiedTurns).not.toBeUndefined();
+    expect(hurt.fortified).not.toBeUndefined();
   });
 });
 

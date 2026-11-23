@@ -625,10 +625,10 @@ interface AttackCommand extends PlayerCommand {
  * Digs a unit in where it stands.
  *
  * The cheapest possible order and the most valuable: it costs nothing, it can be
- * given with no movement left, and it pays `combat.fortifyBonusPerTurn` of
- * defence for every turn the unit then stays put, up to `combat.fortifyMax`. It
- * breaks the moment the unit moves or attacks (see `breakFortify`), so it is a
- * standing decision rather than a toggle to be micromanaged.
+ * given with no movement left, and it pays a flat `combat.fortifyBonus` of
+ * defence from the first turn, which does not grow. It breaks the moment the
+ * unit moves or attacks (see `breakFortify`), so it is a standing decision
+ * rather than a toggle to be micromanaged.
  *
  * It does *not* require movement, unlike founding a city. Fortifying is what a
  * unit that has already marched does with the rest of its turn, and requiring
@@ -3121,11 +3121,10 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
   const problem = untilHealed ? fortifyUntilHealedError(unit, state) : fortifyError(unit, state);
   if (problem) return fail(problem);
 
-  // Zero, not one: the bonus is paid for turns *survived* dug in, and
-  // `advanceFortify` raises this at the end of every turn the unit stays put.
-  // A unit already dug in keeps its count, so an awake unit told to fortify
-  // again, or a fortified one told to wait until healed, keeps its bonus.
-  if (unit.fortifiedTurns === undefined) unit.fortifiedTurns = 0;
+  // The bonus is flat from this turn on (`fortifyBonus`). A unit already dug
+  // in stays dug in, so an awake unit told to fortify again, or a fortified one
+  // told to wait until healed, keeps its bonus.
+  unit.fortified = true;
   // What the unit does about orders (`Unit.dugIn`). Written here and nowhere
   // else in a command: `applyCommand`'s seam clears it for every other order,
   // and leaves it alone for this one. A plain fortify makes the unit quiet.
@@ -3309,19 +3308,21 @@ function applyChopFeature(state: GameState, command: ChopFeatureCommand): Comman
   // lookup the mechanism and the preview use, so all three name one city.
   const paid = chopCity(state, tile);
   chopFeatureAt(state, unit, tile);
-  const done = paid ? settleProductionWindfall(state, paid) : null;
+  const done = paid ? settleProductionWindfall(state, paid) : [];
   // Timber can finish a **wonder**, and a wonder finishing is news to the whole
   // world (`CommandResult.wonders`) — including to the empires whose baskets it
   // has just turned into gold. Reported here rather than only from `endTurn`
   // because a windfall completion is a completion: the claim is made and the
   // refunds are paid by the same routine either way, and a channel that only
   // carried the end-of-turn half would be a silence nobody could explain.
+  // The timber can finish several rows (the ruling of 2026-11-23), and every
+  // one of them is reported, in the order they completed.
   return ok(
     undefined,
     undefined,
-    done?.wonder ? [done.wonder] : undefined,
+    done.flatMap((completed) => (completed.wonder ? [completed.wonder] : [])),
     undefined,
-    done?.grants,
+    done.flatMap((completed) => completed.grants ?? []),
   );
 }
 
@@ -3884,8 +3885,17 @@ function applyContribute(state: GameState, command: ContributeCommand): CommandR
 
   const city = cityById(state, command.cityId)!;
   const done = contributeAt(state, actor, city, command.currency as PurchaseCurrency);
-  const result = ok();
-  if (result.ok && done?.consecration) result.consecrations = [done.consecration];
+  // A contribution can finish more than one row (the ruling of 2026-11-23):
+  // every wonder, grant and dedication among them rides out on the result.
+  const result = ok(
+    undefined,
+    undefined,
+    done.flatMap((completed) => (completed.wonder ? [completed.wonder] : [])),
+    undefined,
+    done.flatMap((completed) => completed.grants ?? []),
+  );
+  const consecrations = done.flatMap((completed) => (completed.consecration ? [completed.consecration] : []));
+  if (result.ok && consecrations.length > 0) result.consecrations = consecrations;
   return result;
 }
 

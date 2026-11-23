@@ -175,6 +175,8 @@ export function freshGuards(): SeatGuards {
 export interface Asked {
   command: Command;
   decision: BotDecision | null;
+  /** Execution guards need this even when the caller drops the score tree. */
+  tacticalOrigin?: BotDecision['tacticalOrigin'];
 }
 
 /** The policy, asked for one command. */
@@ -335,9 +337,15 @@ export const askTheBot: SittingAsk = (state, playerId, sitting) => {
   return decision === null ? null : { command: decision.command, decision };
 };
 
-/** Ordinary games need only the command. Release its score tree before recording the step. */
+/** Keep execution metadata while releasing scores that ordinary games do not display. */
 export function askForCommands(decide = nextBotCommand): SittingAsk {
   return (state, playerId, sitting) => {
+    if (decide === nextBotCommand) {
+      const decision = nextBotDecision(state, playerId, sitting);
+      return decision === null ? null : {
+        command: decision.command, decision: null, tacticalOrigin: decision.tacticalOrigin,
+      };
+    }
     const command = decide(state, playerId, sitting);
     return command === null ? null : { command, decision: null };
   };
@@ -367,15 +375,16 @@ export function planSeat(
     asks += 1;
     return ask(at, seat, held);
   };
-  const put = ({ command, decision }: Asked): CommandResult => {
+  const put = ({ command, decision, tacticalOrigin }: Asked): CommandResult => {
     const firstMinted = state.nextEntityId;
     const offer = choosesFromAnOffer(command) ? offerPrint(state, playerId) : null;
     const combat = command.type === 'attack' ? combatFactsFor(state, command) : null;
     const ai = aiConfigFor(state.players[playerId]?.persona, playerId);
-    const tactics = ai.tactics.enabled > 0 && (decision?.tacticalOrigin || command.type === 'attack')
+    const origin = tacticalOrigin ?? decision?.tacticalOrigin;
+    const tactics = ai.tactics.enabled > 0 && (origin || command.type === 'attack')
       ? tacticalDependencies(state, playerId, command, ai.tactics.radius,
-        decision?.tacticalOrigin ? [decision.tacticalOrigin, ...('target' in command ? [command.target] : [])] : undefined,
-        ai.tactics.perUnit > 0 && decision?.tacticalOrigin !== undefined)
+        origin ? [origin, ...('target' in command ? [command.target] : [])] : undefined,
+        ai.tactics.perUnit > 0 && origin !== undefined)
       : null;
     const result = applyCommand(state, command);
     if (result.ok) {

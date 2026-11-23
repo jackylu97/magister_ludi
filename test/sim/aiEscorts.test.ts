@@ -29,6 +29,7 @@ import type { BotDecision } from '../../src/ai/decision';
 import { foundCityAt } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
+import { findPath } from '../../src/sim/pathfind';
 import type { TerrainId } from '../../src/sim/terrainData';
 import { type GameState, type Unit, bumpRevision, createUnit } from '../../src/sim/state';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
@@ -201,6 +202,48 @@ describe('a settler leaves its town with a soldier when it can', () => {
 });
 
 describe('the pair walks together', () => {
+  it('does not repeat a blocked escort move when a different settler needs the same tile', () => {
+    const state = bench();
+    const town = homeTown(state);
+    const escort = createUnit(state, 0, 'warrior', 4, 5);
+    escort.movesLeft = 1 / 3;
+    createUnit(state, 0, 'settler', town.col, town.row);
+    recomputeAllVisibility(state);
+    const job = escortJobs(state, 0).find(row => row.soldierId === escort.id)!;
+    expect(job?.kind).toBe('meet');
+    const sitting = botSitting(0);
+    let sent = false;
+    for (let step = 0; step < 60; step++) {
+      const decision = nextBotDecision(state, 0, sitting);
+      if (decision === null) break;
+      const command = decision.command;
+      if (command.type === 'moveUnit' && command.unitId === escort.id) {
+        expect(command.target).toEqual(job.at);
+        // Install the accepted route without advancing, as happens when a
+        // friendly unit blocks the first stopping tile. Movement has its own tests.
+        escort.path = findPath(state, escort, at(state.map, job.at.col, job.at.row))!;
+        expect(escort.path.length).toBeGreaterThan(0);
+        sent = true;
+        break;
+      }
+      expect(applyCommand(state, command).ok).toBe(true);
+    }
+    expect(sent).toBe(true);
+    expect({ col: escort.col, row: escort.row }).toEqual({ col: 4, row: 5 });
+    const other = createUnit(state, 0, 'settler', job.at.col, job.at.row);
+    bumpRevision(state);
+    recomputeAllVisibility(state);
+    expect(escortJobs(state, 0)).toContainEqual(expect.objectContaining({
+      kind: 'chase', soldierId: escort.id, settlerId: other.id, at: job.at,
+    }));
+    for (let step = 0; step < 60; step++) {
+      const decision = nextBotDecision(state, 0, sitting);
+      if (decision === null) break;
+      expect(decision.command).not.toEqual({ type: 'moveUnit', playerId: 0, unitId: escort.id, target: job.at });
+      expect(applyCommand(state, decision.command).ok).toBe(true);
+    }
+  });
+
   it('when the settler marches, its soldier walks after it in the same turn', () => {
     const state = bench();
     homeTown(state);

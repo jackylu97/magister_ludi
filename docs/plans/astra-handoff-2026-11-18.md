@@ -325,6 +325,56 @@ unit" and "Barbarians: a slower muster and a reach of eight hexes".
   at any distance; a camp more than eight hexes away is now no threat, and a
   muster comes half as often.
 
+### 0.1k Two builds by the Claude session (2026-11-23)
+
+**A queue completes as much as it can pay for in one turn.** The ruling is the
+last section of `docs/flags.md`. Save version 263.
+
+- `settleProductionQueue` (`src/sim/cities.ts`) and `settleResearchQueue`
+  (`src/sim/tech.ts`) are the loops. Each one calls the old routine for one
+  row until the basket or pool cannot pay, a row holds, a project pays once,
+  or the queue is empty. The windfall paths chain too, and they now return
+  lists.
+- The Common Purse doubles the remainder once in each settlement, on the
+  first completion.
+- `queueTurns` in `tech.ts` no longer forces one turn for each queued
+  technology.
+- For you: record `aiDigestPins.ts` and the slow replay pins again. I recorded
+  only the two boards in `test/sim/explore.test.ts`. I did not run
+  `test/ui/botWorker.test.ts` or `test/sim/aiSittingPhases.test.ts`. The bots
+  were not changed: a bot that plans one row a turn for each city, or one
+  technology a turn, now under-counts a large basket or pool.
+- About twenty callers of `settleProductionWindfall` and
+  `settleResearchWindfall` ignore the returned list, as they ignored the one
+  value before. A wonder that such a windfall finishes still has no news line.
+- The user is finishing a game on the play server, so this build is not on
+  it. Do not pull the play clone past `12947dfb` until the user says so.
+
+**A spent unit's badge is faint** (`12947dfb`, section in `docs/flags.md`).
+`badgeIsSpent` in `src/render3d/pieces.ts`; one new bit in `signUnits`
+(`unitAwaitsOrders`); a second disc material, `UnitBadges.spentMaterial`, at
+`badges.spentOpacity`. I could not look at it in a browser. If your rendering
+work finds a blending fault on the faint badge, the fix is yours to make.
+
+### 0.1l Unrest lasts three turns in every town: built by the Claude session (2026-11-23)
+
+The ruling is the last section of `docs/flags.md`. Save version 264.
+
+- `rules.war.unrest` is now `turns` (3), `rebelEveryTurns` (0, so no rebels)
+  and `halts`. The per-citizen target and the garrison, general and building
+  rates are gone, and so is `BuildingDef.easesUnrest`.
+- Two small edits in your files, both to keep the build whole:
+  `unrestSettleTurns` in `src/ai/diplomacy.ts` now reads the flat figure at a
+  rate of 1, and the `easesUnrest` entry left `BUILDING_ROW_SILENT` in
+  `src/ai/value.ts`.
+- For you: the docblocks of `unrestSettleTurns` and `razeDecision` describe
+  the old rule. At the default figures the bot never razes a town for unrest
+  now (3 turns against `razeUnrestTurns` 6); decide whether that arm stays.
+  Record the replay pins again; I recorded only `test/sim/explore.test.ts`.
+- Also on `decks` since 0.1k: every leader has thirty city names
+  (`5a3cbe63`), data and `docs/leaders.md` only.
+- The play clone still stays at `12947dfb` until the user says so.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
@@ -374,6 +424,59 @@ The board and the hover panel read the same answer from `createWorkerAdviceReade
   order and the unit panel; it may raise `SCHEMA_VERSION` to 253), and the
   Compendium pass (`src/ui/compendium*.ts`, `describers.ts`: a new
   `describeUnitRow`).
+
+
+## 0.1m Bot trade prices, and strategic copies in a quantity (2026-11-23)
+
+Two rulings in `docs/flags.md`: "How a bot values and writes a trade" and
+"Strategic resources are traded in a quantity". Read both; the user's words
+are there.
+
+**Yours (bots, `src/ai/diplomacy.ts`, `data/ai.json`):**
+- `explainSide` prices a coin a turn at `luxuryGoldBaseline ÷
+  luxuryGptBaseline` = 24, over a 20 turn deal. The user wants gold now to be
+  worth more than gold over time, so the rate goes below 20 (start at 15).
+- A resource that arrives is 120 or 0 today. Price it by the seat's
+  happiness (luxury) or by what the seat can build (strategic), with a
+  smaller price for a duplicate.
+- Accept a swap of one duplicate for one duplicate.
+- A town is `weights.city` (145 to 273). The user wants much more, from a
+  formula that reads the town.
+- `writeSwap` must not write a paper that the bot would refuse with the seats
+  exchanged: no duplicate for the human's last copy, no single strategic copy
+  for a luxury. The human's last-copy check and price must be the same code
+  the bot uses on itself.
+
+**The Claude session's (rule and screen):** `DealTerms.strategics` will carry
+a count for each resource in place of one copy a row, and the foreign courts
+screen gets a stepper. That build has not started. When it lands it will
+change `loanedResources`, `dealSideError` and `tradeSupply`'s callers, and
+this note will name the commit. Price strategic copies one by one from then.
+
+**Also landing today (rules, version 265):** eight simpler rules, see
+"Eight simpler rules" in `docs/flags.md`. War weariness is removed, so
+`war.wearinessWeight`, `war.unhappyWearinessWeight` and `wearinessTerms` go.
+The digest pins and the slow replays need a new record after it.
+
+**The bot's hex price (the user, 2026-11-23).** A hex now costs 30 gold, or
+60 in the outer ring, times the buyer's age (`explainTilePurchaseCost` or its
+current name in `src/sim/cities.ts`). `src/ai/value.ts` reads only
+`ringBase[0]` (30) and no age. The user: "is 30 the right value for the bots,
+i think it should probably value it based on the yields the tile provides".
+So: the bot's cost of a hex is the sim's own price, and its worth is the
+yields the hex gives the town.
+
+The eight rules landed at `c971330a` on `decks`. The strategic copies build landed
+at `30bef026` (version 266): `DealTerms.strategics` is a list of
+`{ id, copies }` rows, the bots price each copy as one copy and still write
+one copy in their own papers (`oneCopyTerms`). The follow-up build landed
+after it: Inquisition is live again, unhappiness at −10 lowers gold, science,
+culture and faith, the growth penalty multiplies as its own step, and the
+tide now applies `rivalPressurePercent` in towns without a temple. The digest
+pins and the slow replays need a new record on this head.
+
+The lines in 0.1k and 0.1l that say the play clone stays at `12947dfb` are
+out of date. The user allowed the pull, and the clone follows `decks` again.
 
 ## 1. Who owns what
 

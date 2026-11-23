@@ -16,7 +16,7 @@
  *      what the treasury moves by, and the two per-item lists are what a hover
  *      prints;
  *   4. **The palace is a line**, in the capital and nowhere else;
- *   5. **Debt is an Entry XVII line, not a multiplication.** The −25% joins
+ *   5. **Debt is an Entry XVII line, not a multiplication.** The −20% joins
  *      `cityYieldPercents` at the empire stage so it *sums* with a meter tier
  *      before one rounding;
  *   6. **The creditors take one piece a turn**, the dearest first, and never
@@ -484,6 +484,10 @@ describe('the palace', () => {
 
 describe('a treasury under water', () => {
   it('joins the percent list at the empire stage, on science and culture only', () => {
+    // The user's ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules",
+    // item 6): "In debt: -20% yields". Pinned literally, because the ruling is
+    // the number.
+    expect(UPKEEP.debtPercent).toBe(-20);
     const { state, city } = world();
     const player = state.players[0]!;
     player.gold = -1;

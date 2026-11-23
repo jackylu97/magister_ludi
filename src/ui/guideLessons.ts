@@ -431,18 +431,6 @@ export const GUIDE_LESSONS = [
     workingTitle: 'Capture',
   },
   {
-    id: 'weariness',
-    kind: 'firstContact',
-    switch: 'lessons',
-    newcomer: 'full',
-    civ: 'full',
-    group: 'war',
-    hosts: ['board'],
-    trigger: { kind: 'holds', when: flag('wearinessShowing') },
-    completes: [{ by: 'acknowledge' }],
-    workingTitle: 'Weariness',
-  },
-  {
     id: 'ranks',
     kind: 'firstContact',
     switch: 'lessons',

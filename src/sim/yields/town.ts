@@ -946,11 +946,12 @@ export function empirePercents(state: GameState, playerId: number): EmpirePercen
   const difficulty = rivalGrowthAndProduction(state, playerId);
   if (difficulty) meters.push({ source: 'Difficulty', yield: 'production', percent: difficulty, stage: 'empire' });
   // **Arrears** (the maintenance ruling, 2026-08-28). A treasury under water
-  // costs the empire a quarter of its science and its culture, and it joins
-  // `cityYieldPercents` at the **empire** stage rather than being a
-  // multiplication somewhere downstream — which is the whole of Entry XVII and
-  // the whole reason the ruling asked for it there: −25% arrears on top of a
-  // −15% authority tier is −40% of base, once, and never ×0.75 × 0.85.
+  // costs the empire a fifth of its science and its culture (a quarter until
+  // the user's ruling of 2026-11-23), and it joins `cityYieldPercents` at the
+  // **empire** stage rather than being a multiplication somewhere downstream —
+  // which is the whole of Entry XVII and the whole reason the ruling asked for
+  // it there: −20% arrears on top of a −20% authority tier is −40% of base,
+  // once, and never ×0.8 × 0.8.
   //
   // Science and culture and nothing else. Gold is untouched on purpose — an
   // empire in debt must be able to earn its way out — and so are food and

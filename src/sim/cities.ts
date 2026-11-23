@@ -59,6 +59,11 @@
  * on the player's behalf; the one exception is starvation, which empties the
  * food basket outright because a negative basket that survived would starve the
  * city again next turn for the same debt.
+ *
+ * A queue completes as many rows in one settlement as its basket pays for (the
+ * ruling of 2026-11-23, `docs/flags.md`). The remainder of each row pays for the
+ * next row at once, and the chain stops at the first row it cannot finish. See
+ * `settleProductionQueue`.
  */
 
 import { difficultyBuildCost, rivalGrowthAndProduction } from './difficulty';
@@ -272,13 +277,11 @@ import type { TurnReport } from './turn';
 import { type TileYield, isWaterTerrain, isWorkableTerrain } from './terrainData';
 import {
   BUILDING_UNLOCK_TECH,
-  TECH_IDS,
   type TechAge,
   type TechId,
   UNIT_UNLOCK_TECH,
+  eraNumeral,
   highestAge,
-  isCharterTech,
-  isTechId,
   techColumn,
 } from './techData';
 // **A function-level cycle, and the mirror of one that already existed**:
@@ -655,8 +658,9 @@ function lentHoldings(state: GameState, playerId: number): ResourceHolding[] {
  *   · **the tiles** are `openedResource` asked of every hex this empire owns, so
  *     a pillaged silver mine stops being a copy at exactly the moment it stops
  *     being a holding;
- *   · **minus what was promised** — one per deal row naming the kind (flags
- *     (tt), the user's two amber). Floored, because a save hand-edited into
+ *   · **minus what was promised** — one per deal row naming a luxury (flags
+ *     (tt), the user's two amber), and a strategic row's own count of copies
+ *     (the ruling of 2026-11-23). Floored, because a save hand-edited into
  *     promising three amber from two seams must not lend the third out of a
  *     negative number;
  *   · **plus what was promised to it**, which is a fact about a table and never
@@ -3593,6 +3597,12 @@ interface GrowthPercentLine {
   /** "No fresh water", "Building · Aqueduct", "Happiness" — printed verbatim. */
   source: string;
   percent: number;
+  /**
+   * True for the happiness stifle, which is its own step: it multiplies the
+   * surplus that the sum of every other line leaves (`foldGrowthFactor`).
+   * Absent on every other line, which joins the one sum.
+   */
+  ownStep?: true;
 }
 
 /**
@@ -3621,9 +3631,17 @@ interface GrowthPercentLine {
  *   3. **the meters' stifle**, summed into one Happiness line as the panel has
  *      always printed it.
  *
- * Summed and never compounded, exactly as Entry XVII's stages are additive
- * within a stage: a −30% site and a +30% of anything have to read as nothing at
- * all, which they do not if they are multiplied one after the other.
+ * The first two (and the difficulty line) are summed and never compounded,
+ * exactly as Entry XVII's stages are additive within a stage: a −30% site and a
+ * +30% of anything have to read as nothing at all, which they do not if they
+ * are multiplied one after the other.
+ *
+ * **The stifle is its own step** (`ownStep`), after that sum. The user's ruling
+ * of 2026-11-23 ("Follow-ups to the eight simpler rules", `docs/flags.md`): "it
+ * should probably be a multiplication (0.7 * 0.75) even though that breaks the
+ * convention of the game, maybe this is the one instance where its fine". So a
+ * dry town (−30%) in an empire below zero (−75%) banks 0.7 × 0.25 of its
+ * surplus, where the sum would have left it nothing.
  */
 export function explainGrowthPercent(state: GameState, city: City): GrowthPercentLine[] {
   const lines: GrowthPercentLine[] = [];
@@ -3639,15 +3657,33 @@ export function explainGrowthPercent(state: GameState, city: City): GrowthPercen
     lines.push({ source: line.source, percent: line.percent });
   }
   const stifle = growthPercent(meterEffects(state, city.ownerId));
-  if (stifle !== 0) lines.push({ source: 'Happiness', percent: stifle });
+  if (stifle !== 0) lines.push({ source: 'Happiness', percent: stifle, ownStep: true });
   return lines;
 }
 
-/** The fold of a growth-percentage list: summed, applied once. */
+/**
+ * The first step of a growth-percentage list: every line but the `ownStep`
+ * lines, summed.
+ */
 export function foldGrowthPercent(lines: readonly GrowthPercentLine[]): number {
   let percent = 0;
-  for (const line of lines) percent += line.percent;
+  for (const line of lines) if (line.ownStep !== true) percent += line.percent;
   return percent;
+}
+
+/**
+ * The fold of a growth-percentage list: what the surplus is multiplied by.
+ *
+ * Two steps. The first is `foldGrowthPercent` plus `extraPercent` (see
+ * `channelSurplus`), and the second is the `ownStep` lines (the happiness
+ * stifle) summed. Each step is floored at zero for `growthFactor`'s reason: the
+ * worst any of this may do is stall a city, never eat it.
+ */
+export function foldGrowthFactor(lines: readonly GrowthPercentLine[], extraPercent = 0): number {
+  let own = 0;
+  for (const line of lines) if (line.ownStep === true) own += line.percent;
+  const first = Math.max(0, 1 + (foldGrowthPercent(lines) + extraPercent) / 100);
+  return first * Math.max(0, 1 + own / 100);
 }
 
 /**
@@ -3660,8 +3696,9 @@ export function foldGrowthPercent(lines: readonly GrowthPercentLine[]): number {
  *   1. the citizens eat (`foodUpkeep`), which is what makes this a *surplus*;
  *   2. a settler at the front of the queue eats the growth (`growthIsHalted`) —
  *      the city banks nothing positive, and a deficit still bites;
- *   3. every percentage on the channel throttles what is left — the dry site,
- *      the cards, the happiness stifle, folded once (`explainGrowthPercent`).
+ *   3. every percentage on the channel throttles what is left — the dry site
+ *      and the cards summed, then the happiness stifle as its own step
+ *      (`explainGrowthPercent`, `foldGrowthFactor`).
  *
  * The stifle multiplies the **surplus and only the surplus**, never the food
  * yield itself (design ledger, Entry XIV.D.4). That is the difference between an
@@ -3828,7 +3865,8 @@ export function otherCarryingRoutes(state: GameState, from: City, to: City): num
  * one number.
  *
  * `extraPercent` is a growth percentage that is not in the town's list, added to
- * the list's sum before the one multiplication. It is nought for every rule of
+ * the sum of the first step, before the happiness stifle multiplies it
+ * (`foldGrowthFactor`). It is nought for every rule of
  * the game. The bot asks it (bot batch BP5) to read what a card or a rite that
  * changes the growth channel would change in this town, with the channel's own
  * floor, so that it does not restate the arithmetic here.
@@ -3842,11 +3880,11 @@ export function channelSurplus(
   let surplus = yields.food - foodUpkeep(city);
   if (growthIsHalted(city)) surplus = Math.min(0, surplus);
   if (surplus <= 0) return surplus;
-  // **One channel, one sum, one multiplication**, and the sum is the fold of a
+  // **One channel, one list, two steps**, and the factor is the fold of the
   // *list* (hard rule 5) — see `explainGrowthPercent`, which the city panel
-  // prints line by line. Floored at zero for `growthFactor`'s reason: the worst
-  // any of this may do is stall a city, never eat it.
-  const factor = Math.max(0, 1 + (foldGrowthPercent(explainGrowthPercent(state, city)) + extraPercent) / 100);
+  // prints line by line: the summed lines first, then the happiness stifle as
+  // its own multiplication (`foldGrowthFactor`).
+  const factor = foldGrowthFactor(explainGrowthPercent(state, city), extraPercent);
   // **Exact** since batch X. It used to floor, on the argument that "a fraction
   // of a bushel banked forever eventually decides a growth turn nobody can
   // account for" — which had it backwards: the fraction is *earned*, and a −25%
@@ -5481,14 +5519,16 @@ interface WonderRefund {
 }
 
 /**
- * Completes **at most one** item at the front of this city's queue, if the
- * basket covers it. The one production-completion routine in the game.
+ * Completes **one** item at the front of this city's queue, if the basket
+ * covers it. The one production-completion routine in the game.
+ * `settleProductionQueue` calls it again and again until the queue stops, so a
+ * settlement can finish several rows. This function still settles one row.
  *
  * Extracted from `advanceProduction` (Entry XVIII.1) so that the end-of-turn
  * phase and a mid-turn windfall are the same code: spawn tile, escalation
  * ladder, overflow and the queue pop all happen here, once, or the two paths
- * drift the first time one of them is touched. The phase is now a sweep of this
- * over `state.cities`; a chop that covers the front item calls it for one city.
+ * drift the first time one of them is touched. Both paths reach it through
+ * `settleProductionQueue`.
  *
  * Overflow is "whatever the basket keeps": the cost is subtracted, nothing is
  * zeroed, and the remainder pays for the next item. A windfall therefore behaves
@@ -5562,13 +5602,23 @@ function payProject(state: GameState, playerId: number, id: ProjectId): void {
 
 export function settleProduction(state: GameState, city: City): ProductionCompletion | null {
   const plan = planProduction(state, city);
-  return plan === null ? null : settleProductionPlan(state, city, plan);
+  return plan === null ? null : settleProductionPlan(state, city, plan, true);
 }
 
+/**
+ * Settles one planned row.
+ *
+ * `doubles` says whether The Common Purse may double the remainder of this
+ * completion. A settlement that finishes several rows doubles only the first
+ * one (`settleProductionQueue`), so the chain passes true for its first
+ * completion and false after that. If it doubled every row, the basket would
+ * grow with each completion and empty any queue in one turn.
+ */
 function settleProductionPlan(
   state: GameState,
   city: City,
   plan: ProductionPlan,
+  doubles: boolean,
 ): ProductionCompletion | null {
   // What the basket is aimed at going in. Every arm below that changes the queue
   // hands this to `reaimProduction`, which is the one seam a town's hammers may
@@ -5625,7 +5675,7 @@ function settleProductionPlan(
         name: queueItemName(plan.item),
         cost: plan.cost,
       };
-      if (city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
+      if (doubles && city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
         city.hammerBasket += city.hammerBasket;
       }
       reaimProduction(city, before, false);
@@ -5652,7 +5702,8 @@ function settleProductionPlan(
   // the one completion routine, so a windfall-completed item overflows by the
   // same rule an end-of-turn one does. What is left in the basket after the cost
   // is subtracted is the overflow, so doubling it is one addition of itself.
-  if (city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
+  // Only the first completion of a settlement doubles (`doubles`).
+  if (doubles && city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
     city.hammerBasket += city.hammerBasket;
   }
   // The overflow follows the queue to whatever came up, and that row's own
@@ -5673,6 +5724,59 @@ function settleProductionPlan(
     id: plan.id,
     tile: plan.tile,
   }).unitId;
+  return done;
+}
+
+/**
+ * **Settles this city's queue as far as its basket pays** (the ruling of
+ * 2026-11-23, `docs/flags.md`). This is the loop around
+ * `settleProductionPlan`, which settles one row. The end-of-turn phase and
+ * every windfall reach the queue through here.
+ *
+ * Each step plans the front again (`planProduction`), so each row is priced
+ * when the chain reaches it. A unit that completes raises the escalation price
+ * of the next unit of its type, and the next step reads the new price.
+ *
+ * The chain stops:
+ *   - at a row the basket cannot pay for, or a row that holds for another
+ *     reason (population too low, a missing resource, nowhere for the unit
+ *     to stand). `planProduction` returns `null` for these;
+ *   - at an empty queue, where `planProduction` also returns `null`;
+ *   - after a project that stays in the queue. The project pays once and the
+ *     chain ends, because a project never leaves the queue. A loop over it
+ *     would turn the whole basket into its payout;
+ *   - after as many steps as the queue had rows at the start. Every step
+ *     that goes on removes one row (a completion or a `drop`), so an ordinary
+ *     game never reaches this limit. It is the guard that stops the loop if
+ *     a completion ever adds a row to the queue.
+ *
+ * A `drop` (a building the town already has, a wonder someone else claimed)
+ * is not a completion and is not reported, but the chain continues after it.
+ *
+ * The Common Purse doubles the remainder of the first completion only. The
+ * second argument of `settleProductionPlan` carries that.
+ *
+ * `first` is a plan the caller has already made (the Order grant that
+ * completes the front row of every town, in `raiseOnDraft`). The chain
+ * settles it first and then plans the rest.
+ *
+ * Returns every completion in order, a project's payment included. The list
+ * is empty when nothing completed.
+ */
+export function settleProductionQueue(
+  state: GameState,
+  city: City,
+  first?: ProductionPlan,
+): ProductionCompletion[] {
+  const done: ProductionCompletion[] = [];
+  const steps = city.queue.length;
+  for (let step = 0; step < steps; step++) {
+    const plan = step === 0 && first !== undefined ? first : planProduction(state, city);
+    if (plan === null) break;
+    const completed = settleProductionPlan(state, city, plan, done.length === 0);
+    if (completed !== null) done.push(completed);
+    if (plan.kind === 'project' && !projectFinishes(plan.id)) break;
+  }
   return done;
 }
 
@@ -5823,6 +5927,12 @@ export interface CompletionGrantReport {
   done: boolean;
   /** The unit that arrived, for a `unit` grant that landed. */
   unitId?: number;
+  /**
+   * For a `tech` grant: the technologies the research queue completed after
+   * the granted one, in order, with the science that was left over (the
+   * ruling of 2026-11-23). Absent when there were none.
+   */
+  then?: string[];
 }
 
 /**
@@ -6163,8 +6273,8 @@ export function realiseItem(
  * **One exception:** a unit gained already holding a rank is earned inside a
  * completion (`realiseItem`, which passes `insideCompletion`), and there the
  * hammers wait for the next production step, for `payCompletionRiders`'
- * reason: `settleProduction` completes at most one item for each town in each
- * call. Culture settles the draft basket.
+ * reason: a completion is already settling that town's queue. Culture settles
+ * the draft basket.
  */
 export function settleRanksEarned(
   state: GameState,
@@ -6429,12 +6539,17 @@ export function payGrants(
       continue;
     }
     if (grant.grant === 'tech') {
-      const done = completeCurrentResearch(state, player);
-      reports.push({
+      // The first completion is the granted technology. Any after it are the
+      // research queue, paid for by the science that was left over, and they
+      // ride on the same report so no completion goes unannounced.
+      const [granted, ...then] = completeCurrentResearch(state, player);
+      const report: CompletionGrantReport = {
         grant: 'tech',
-        name: done?.name ?? 'a technology',
-        done: done !== null,
-      });
+        name: granted?.name ?? 'a technology',
+        done: granted !== undefined,
+      };
+      if (then.length > 0) report.then = then.map((done) => done.name);
+      reports.push(report);
       continue;
     }
     if (grant.grant === 'building') {
@@ -7010,10 +7125,12 @@ function payCompletionRiders(
     // science toward a technology, a free draft (Dominion batch D5) or The
     // Coming of the Water's marks (Expansionist batch E3) is paid too.
     if (windfallPayoutIsEmpty(payout)) continue;
-    // Food a rider pays settles into growth; hammers deliberately do **not**
-    // settle here, because this *is* a completion and `settleProduction` allows
-    // at most one item per city per call — a rider that finished the next item
-    // in the same breath would break the phase's own rule.
+    // Food a rider pays settles into growth. Hammers do **not** settle here,
+    // because this is a completion: the chain in `settleProductionQueue` is
+    // settling this town's queue, and its next step spends hammers a rider put
+    // in this town's basket. A settlement started here would run one chain
+    // inside another. Hammers paid into another town wait for that town's next
+    // settlement.
     for (const paid of payWindfallGrants(state, player, payout, at)) {
       settleGrowthWindfall(state, paid);
     }
@@ -7038,17 +7155,23 @@ function payCompletionRiders(
  * Every future windfall that pays hammers calls **this**, never
  * `settleProduction` directly, so that "what does a mid-turn completion owe the
  * interface" is answered in one place.
+ *
+ * A windfall settles the queue as far as the basket pays, as the end-of-turn
+ * phase does (`settleProductionQueue`). It returns every completion in order,
+ * and an empty list when nothing completed.
  */
 export function settleProductionWindfall(
   state: GameState,
   city: City,
   plan?: ProductionPlan,
-): ProductionCompletion | null {
-  const done = plan === undefined ? settleProduction(state, city) : settleProductionPlan(state, city, plan);
+): ProductionCompletion[] {
+  const done = settleProductionQueue(state, city, plan);
   // A completed building can change what a citizen is worth on a tile, so the
   // dots are re-seated before the panel next reads them — through the one
   // helper every mid-turn mutation goes through. See `refreshCityDerived`.
-  if (done) refreshCityDerived(state, city);
+  // Once after the whole chain is enough, because the plan of each step does
+  // not read the citizens.
+  if (done.length > 0) refreshCityDerived(state, city);
   return done;
 }
 
@@ -7072,19 +7195,20 @@ export function productionSettledBy(
 }
 
 /**
- * `advanceProduction`: finish the front of every city's queue, if it can.
+ * `advanceProduction`: settle every city's queue as far as its basket pays.
  *
- * At most one item completes per city per turn, exactly as Civ does it — a city
- * that banks four hundred hammers does not empty its whole queue in one turn.
- * The remainder stays in the basket and pays for the next item, which is the
- * only kind of overflow this game has.
+ * A city completes as many rows in one turn as its basket pays for (the ruling
+ * of 2026-11-23, `docs/flags.md`). The remainder of each row pays for the next
+ * row at once, and the chain stops at the first row it cannot finish. Nothing
+ * is dropped: what is left stays in the basket for the next turn.
  *
- * The completion itself is `settleProduction`, which is deliberately *not*
- * inlined here any more: a windfall settles the same queue by the same rules
- * mid-turn (Entry XVIII), and two implementations of "finish the front item"
- * would disagree about a spawn tile or an escalation ladder within a month.
- * This phase is the sweep — one city at a time, in `state.cities` order, at most
- * one item each — and nothing else.
+ * The completion itself is `settleProduction`'s one-row routine, and the chain
+ * is `settleProductionQueue`. Neither is inlined here: a windfall settles the
+ * same queue by the same rules mid-turn (Entry XVIII), and two implementations
+ * of "finish the front item" would disagree about a spawn tile or an
+ * escalation ladder within a month. This phase is the sweep, and nothing else.
+ * It takes one city at a time, in `state.cities` order, and finishes that
+ * city's whole chain before it goes to the next city.
  *
  * Four things make production *hold* rather than fail, and all four keep the
  * basket: too few hammers, a population below the item's `minCityPop` (a settler
@@ -7121,25 +7245,30 @@ export function productionSettledBy(
 export function advanceProduction(state: GameState, report?: TurnReport): void {
   releaseOpusBanks(state);
   for (const city of state.cities) {
-    const done = settleProduction(state, city);
-    // A wonder is the one completion that is news to seats who had nothing to do
-    // with it, so it rides out on the pipeline's report exactly as a blow the
-    // wild landed does. **Contention is settled by this loop and nothing else**:
-    // two empires finishing the same wonder on the same turn are two cities in
-    // one sweep, the earlier one in `state.cities` order claims it, and by the
-    // time the later one is reached the row is no longer in its queue (see
-    // `refundBeatenWonders`) — so "first in the sweep wins" is a property of the
-    // state's own order, which is founding order, and not of the wall clock.
-    if (done?.wonder) report?.wonders.push(done.wonder);
-    // What a finished building handed over — a free sword, a technology, a
-    // Doctrine draft. News to its owner alone, unlike a wonder, but news that
-    // stops existing the instant the resolution is over: by the time anybody
-    // reads it the piece is on the board and the offer is on the seat.
-    if (done?.grants) report?.grants.push(...done.grants);
-    // And the saint a finished cathedral was dedicated to. `grants`' sibling —
-    // news to its owner alone, and a difference that stops existing the moment
-    // the resolution is over.
-    if (done?.consecration) report?.consecrations.push(done.consecration);
+    // Every completion of the chain is reported, in the order it happened.
+    for (const done of settleProductionQueue(state, city)) {
+      // A wonder is the one completion that is news to seats who had nothing to
+      // do with it, so it rides out on the pipeline's report exactly as a blow
+      // the wild landed does. **Contention is settled by this loop and nothing
+      // else**: two empires finishing the same wonder on the same turn are two
+      // cities in one sweep, the earlier one in `state.cities` order claims it,
+      // and by the time the later one is reached the row is no longer in its
+      // queue (see `refundBeatenWonders`) — so "first in the sweep wins" is a
+      // property of the state's own order, which is founding order, and not of
+      // the wall clock. A city finishes its whole chain first, so a wonder at
+      // the third row of an earlier city still beats the front row of a later
+      // city.
+      if (done.wonder) report?.wonders.push(done.wonder);
+      // What a finished building handed over — a free sword, a technology, a
+      // Doctrine draft. News to its owner alone, unlike a wonder, but news that
+      // stops existing the instant the resolution is over: by the time anybody
+      // reads it the piece is on the board and the offer is on the seat.
+      if (done.grants) report?.grants.push(...done.grants);
+      // And the saint a finished cathedral was dedicated to. `grants`' sibling —
+      // news to its owner alone, and a difference that stops existing the moment
+      // the resolution is over.
+      if (done.consecration) report?.consecrations.push(done.consecration);
+    }
   }
 }
 
@@ -7387,37 +7516,6 @@ export function settleBorderWindfall(state: GameState, city: City): BorderComple
 
 // --- buying ground ----------------------------------------------------------
 
-/**
- * How far through the game the world is, as a fraction in `[0, 1]`: the share of
- * the technology tree this player has researched.
- *
- * The tile price's era term, and it is *this player's* progress rather than the
- * world's on purpose. A runaway empire pays runaway prices for land while the
- * empire it left behind can still afford a hex, which is the only reading of a
- * gold sink that does not punish the player who is losing. It is also the only
- * reading that is cheap to compute deterministically — a world-wide figure would
- * make one player's research change another player's prices mid-turn.
- *
- * Counted off `TECH_IDS`, so a tech added to `data/techs.json` re-scales the
- * curve rather than breaking it, and the starting techs count: an empire that
- * opens holding agriculture has already come a little way.
- *
- * **Ordinary technologies only, on both sides of the share** (Scientific batch
- * S0). `TECH_IDS` is the sky and leaves the charter rows out, so the count
- * leaves out the charter technologies the seat knows too. A charter path is
- * not progress through the tree (reading 1), and counting it above a
- * denominator that does not hold it would be a share of nothing.
- */
-export function gameProgress(state: GameState, playerId: number): number {
-  const player = playerById(state, playerId);
-  if (!player || TECH_IDS.length === 0) return 0;
-  let known = 0;
-  for (const id of player.techsResearched) {
-    if (isTechId(id) && !isCharterTech(id)) known += 1;
-  }
-  return Math.min(1, known / TECH_IDS.length);
-}
-
 /** Hex distance from a city's centre to a cell — the ring a tile stands in. */
 export function ringOf(state: GameState, city: City, cell: Cell): number {
   const { map } = state;
@@ -7456,22 +7554,22 @@ interface TilePriceLine {
  * Rule 5 at the till: the price tag the Buy Tiles overlay paints on a hex is
  * this list summed, the reducer charges this list summed, and there is no second
  * implementation of the arithmetic anywhere. A player who wonders why the hex
- * across the river costs 95 gets four lines that add up to 95.
+ * across the river costs 90 gets lines that add up to 90.
  *
- * The lines, in the order they are read:
+ * The price is `ringBase[ring] × the buyer's age` (the user's ruling of
+ * 2026-11-23, `docs/flags.md`, "Eight simpler rules": "30 gold, 60 in the
+ * outer ring, multiplied by age"). The age counts from 1 and is `highestAge`,
+ * the one age reading of a player. The lines, in the order they are read:
  *
  *   1. **Ring** — `ringBase` for how far out the tile is: the near rings are one
  *      price and the outer one dearer, which is Civ 6's shape (a tile you can
  *      almost reach is cheaper than a tile at the edge of what a town can ever
  *      hold).
- *   2. **Era** — what the world's progress adds to that base. Folded into the
- *      *rounded* figure rather than being rounded on its own, so the two lines
- *      always sum to a tidy multiple of `roundTo` and the tag never reads 97.
- *   3. **Prior purchases** — `perPriorPurchase` per tile this player has ever
- *      bought. Added *after* the rounding, deliberately: the escalation is a
- *      flat surcharge on a habit, not part of the price of the ground, and
- *      rounding it in would make the first purchase silently free.
- *   4. Resource and card buying power add together before rounding the price.
+ *   2. **Age** — what the buyer's age adds to that base: `base × (age − 1)`, so
+ *      the two lines sum to `base × age`. An empire in the first age has no age
+ *      line.
+ *   3. Resource and card buying power, added together and taken off the sum of
+ *      the two lines above.
  *
  * A cell outside the city, or one this function is asked about before the city
  * exists, still gets a price — this evaluator prices ground and refuses nothing.
@@ -7491,22 +7589,10 @@ export function explainTilePurchase(
   const index = Math.max(0, Math.min(table.length - 1, Math.round(ring)));
   const base = table[index] ?? 0;
 
-  // Rounded once, over base *and* era together — see the docblock.
-  const scaled = base * (1 + rules.progressFactor * gameProgress(state, playerId));
-  const step = rules.roundTo > 0 ? rules.roundTo : 1;
-  const rounded = Math.round(scaled / step) * step;
-
   const lines: TilePriceLine[] = [{ source: `Ring ${index}`, amount: base }];
-  if (rounded !== base) lines.push({ source: 'Era', amount: rounded - base });
-
   const player = playerById(state, playerId);
-  const prior = player?.tilesPurchased ?? 0;
-  if (prior > 0 && rules.perPriorPurchase !== 0) {
-    lines.push({
-      source: `${prior} hexes bought before`,
-      amount: rules.perPriorPurchase * prior,
-    });
-  }
+  const age = player ? highestAge(player.techsResearched) : 1;
+  if (age > 1 && base !== 0) lines.push({ source: `Æra ${eraNumeral(age)}`, amount: base * (age - 1) });
 
   const local = city?.ownerId === playerId ? buildingPurchaseDiscount(townShelf(state, city)) : [];
   const modifiers = [
@@ -7579,7 +7665,7 @@ export function tilePurchasePrice(
  * on exactly the terms a farming town buys its hill, and the *distance* and
  * *frontier* clauses are what keep a seat from buying the open ocean — the same
  * two that keep it from buying a mountain range three rings out. Nothing in the
- * ladder is land-only (`explainTilePurchase` prices ring, era, habit and furs),
+ * ladder is land-only (`explainTilePurchase` prices ring, age and furs),
  * so no clause was owed a water reading.
  *
  * Adjacency is to the *player's* territory rather than to this city's, and that
@@ -7820,8 +7906,9 @@ export function purchasableTiles(state: GameState, city: City): TileOffer[] {
  * to the *culture* curve, and a tile bought with gold must not make the next
  * tile a city's own culture earns any dearer — the two ladders are separate in
  * Civ 6 and separate here, and folding them together would turn the gold sink
- * into a tax on border growth. The purchase has its own ladder,
- * `Player.tilesPurchased`, which is what `explainTilePurchase` climbs.
+ * into a tax on border growth. The purchase keeps its own lifetime count,
+ * `Player.tilesPurchased`, which the beads and the bots read. The price itself
+ * no longer climbs with it (`explainTilePurchase`).
  *
  * The citizens are re-assigned on the spot, through `refreshCityDerived` — the
  * register `setLockedTiles` opened and the trap in CLAUDE.md names: a player who

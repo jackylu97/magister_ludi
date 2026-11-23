@@ -7,11 +7,15 @@ import {
   capitalCityOf,
   cityTile,
   controlledResources,
+  explainGrowthPercent,
+  foldGrowthFactor,
+  foldGrowthPercent,
   foundCityAt,
   growthSurplus,
   isCoastalCity,
 } from '../../src/sim/cities';
 import {
+  cityYieldPercents,
   explainCity,
   foldCity,
 } from '../../src/sim/yields/town';
@@ -275,10 +279,26 @@ describe('the ladders', () => {
     expect(tierPercent(5)).toBe(first);
     expect(tierPercent(9)).toBe(first);
     expect(tierPercent(10)).toBe(second);
+    // One malus rung since the user's ruling of 2026-11-23: nothing until −10,
+    // then the deep rung. The step at −5 is gone.
     expect(tierPercent(-4)).toBe(0);
-    expect(tierPercent(-5)).toBe(-first);
-    expect(tierPercent(-9)).toBe(-first);
+    expect(tierPercent(-5)).toBe(0);
+    expect(tierPercent(-9)).toBe(0);
     expect(tierPercent(-10)).toBe(-second);
+  });
+
+  it('holds the ladders the 2026-11-23 ruling names', () => {
+    // `docs/flags.md`, "Eight simpler rules", item 2, pinned literally because
+    // the ruling is the number.
+    expect(METERS.tiers).toEqual([
+      { whenAtOrAbove: 5, percent: 10 },
+      { whenAtOrAbove: 10, percent: 20 },
+      { whenAtOrBelow: -10, percent: -20 },
+    ]);
+    expect(METERS.growthStifle).toEqual([
+      { whenBelow: 0, percent: -75 },
+      { whenAtOrBelow: -10, percent: -100 },
+    ]);
   });
 
   it('clamps a tier however deep the value goes', () => {
@@ -287,18 +307,19 @@ describe('the ladders', () => {
   });
 
   it('puts every growth-stifle boundary on its own steeper rung', () => {
-    // −1 / −10 / −20, and the first rung is `< 0` rather than `≤ 0`: an empire
-    // in exact balance is balanced (design ledger, Entry XIV.D.4).
+    // Below 0 and −10, and the first rung is `< 0` rather than `≤ 0`: an empire
+    // in exact balance is balanced (design ledger, Entry XIV.D.4). The deep rung
+    // stops growth outright (the user's ruling of 2026-11-23).
     const rungs = METERS.growthStifle.map((step) => step.percent);
+    expect(rungs).toHaveLength(2);
     expect(growthStiflePercent(1)).toBe(0);
     expect(growthStiflePercent(0)).toBe(0);
     expect(growthStiflePercent(-0.5)).toBe(rungs[0]);
     expect(growthStiflePercent(-1)).toBe(rungs[0]);
     expect(growthStiflePercent(-9.9)).toBe(rungs[0]);
     expect(growthStiflePercent(-10)).toBe(rungs[1]);
-    expect(growthStiflePercent(-19)).toBe(rungs[1]);
-    expect(growthStiflePercent(-20)).toBe(rungs[2]);
-    expect(growthStiflePercent(-99)).toBe(rungs[2]);
+    expect(growthStiflePercent(-10)).toBe(-100);
+    expect(growthStiflePercent(-99)).toBe(rungs[1]);
   });
 
   it('takes the deepest rung that applies, whatever order the table is in', () => {
@@ -616,12 +637,13 @@ describe('what the meters do to the economy', () => {
     expect(yieldFactor(effects, 'science')).toBe(1 + bonus.percent / 100);
   });
 
-  it('stifles growth and only growth when the people are not', () => {
+  it('stifles growth and only growth while the deficit is shallow', () => {
     const state = empire(1);
     const city = state.cities[0]!;
     city.population = HAPPY.palace + 4;
     const happiness = happinessOf(state, 0);
     expect(happiness).toBeLessThan(0);
+    expect(happiness).toBeGreaterThan(METERS.tiers[2]!.whenAtOrBelow!);
 
     const effects = meterEffects(state, 0);
     // **Re-aimed 2026-09-08 (ruling ddd — the writ).** The palace's six
@@ -634,11 +656,50 @@ describe('what the meters do to the economy', () => {
     expect(effects.filter((effect) => effect.meter !== 'happiness').map((effect) => effect.yields))
       .toEqual([['production']]);
     expect(unhappy.filter((effect) => effect.growth)).toHaveLength(1);
-    // A happiness deficit is a growth problem and nothing else.
+    // A shallow happiness deficit is a growth problem and nothing else.
     expect(yieldFactor(unhappy, 'production')).toBe(1);
     expect(yieldFactor(unhappy, 'science')).toBe(1);
     expect(yieldFactor(unhappy, 'culture')).toBe(1);
-    expect(growthFactor(effects)).toBeLessThan(1);
+    expect(growthFactor(effects)).toBe(1 + METERS.growthStifle[0]!.percent / 100);
+    expect(growthFactor(effects)).toBeCloseTo(0.25, 10);
+  });
+
+  it('stops growth and lowers yields at −10 or below', () => {
+    // The user's ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules",
+    // item 2): "Below 10, no growth, 20% reduction in yields". Its follow-up
+    // of the same day: "unhappiness should lower all yields except production
+    // and food". So the malus lowers gold, science, culture and faith.
+    const state = empire(1);
+    const city = state.cities[0]!;
+    city.population = HAPPY.palace + 10;
+    expect(happinessOf(state, 0)).toBe(-10);
+
+    const effects = meterEffects(state, 0);
+    const unhappy = effects.filter((effect) => effect.meter === 'happiness');
+    const malus = unhappy.find((effect) => !effect.growth)!;
+    expect(malus.percent).toBe(-20);
+    expect(malus.yields).toEqual(['gold', 'science', 'culture', 'faith']);
+    expect(yieldFactor(unhappy, 'production')).toBe(1);
+    expect(yieldFactor(unhappy, 'gold')).toBeCloseTo(0.8, 10);
+    expect(yieldFactor(unhappy, 'science')).toBeCloseTo(0.8, 10);
+    expect(yieldFactor(unhappy, 'culture')).toBeCloseTo(0.8, 10);
+    expect(yieldFactor(unhappy, 'faith')).toBeCloseTo(0.8, 10);
+    expect(growthFactor(effects)).toBe(0);
+
+    // Each lowered yield is a labelled line at the empire stage of the town's
+    // percent list, and production and food have no happiness line.
+    const lines = cityYieldPercents(state, city).filter((line) => line.meter === 'happiness');
+    expect(lines.map((line) => line.yield)).toEqual(['gold', 'science', 'culture', 'faith']);
+    for (const line of lines) {
+      expect(line).toMatchObject({ source: 'Happiness', percent: -20, stage: 'empire' });
+    }
+
+    // One step shallower and the yields are whole again, and growth is slowed.
+    city.population = HAPPY.palace + 9;
+    bumpRevision(state);
+    const shallow = meterEffects(state, 0).filter((effect) => effect.meter === 'happiness');
+    expect(shallow.some((effect) => !effect.growth)).toBe(false);
+    expect(growthFactor(shallow)).toBeCloseTo(0.25, 10);
   });
 
   it('takes the stifle out of the surplus and never out of the harvest', () => {
@@ -660,7 +721,9 @@ describe('what the meters do to the economy', () => {
 
     const factor = growthFactor(meterEffects(state, 0));
     expect(factor).toBeLessThan(1);
-    expect(growthSurplus(state, city)).toBe(Math.floor(raw * factor));
+    // Exact, with no floor (batch X): the old `Math.floor` here was a no-op
+    // while the first rung was a half, and stopped being one at −75%.
+    expect(growthSurplus(state, city)).toBeCloseTo(raw * factor, 9);
 
     // The harvest itself is untouched: a stifled city keeps feeding itself, and
     // what the phase banks is exactly what the evaluator promised.
@@ -669,6 +732,37 @@ describe('what the meters do to the economy', () => {
     collectYields(state);
     expect(foldCity(state, city).food).toBe(yields.food);
     expect(city.foodBasket - before).toBe(promised);
+  });
+
+  it('multiplies the growth of a dry town by the stifle as its own step', () => {
+    // The user's ruling of 2026-11-23 ("Follow-ups to the eight simpler rules",
+    // `docs/flags.md`): the stifle multiplies "(0.7 * 0.75)" rather than adding
+    // to the dry-town line. So a dry town in a shallow deficit banks
+    // 0.7 × 0.25 of its surplus, where the sum would have left it nothing.
+    const state = empire(1);
+    const city = state.cities[0]!;
+    city.population = HAPPY.palace + 1;
+    cityTile(state.map, city).freshwater = false;
+    growTerritory(state, city);
+    collectYields(state);
+    expect(happinessOf(state, 0)).toBeLessThan(0);
+    expect(happinessOf(state, 0)).toBeGreaterThan(METERS.tiers[2]!.whenAtOrBelow!);
+
+    const lines = explainGrowthPercent(state, city);
+    expect(lines).toEqual([
+      { source: 'No fresh water', percent: RULES.cities.drySettlePercent },
+      { source: 'Happiness', percent: METERS.growthStifle[0]!.percent, ownStep: true },
+    ]);
+    // The first step holds the dry line alone; the stifle is the second.
+    expect(foldGrowthPercent(lines)).toBe(RULES.cities.drySettlePercent);
+    const factor =
+      (1 + RULES.cities.drySettlePercent / 100) * (1 + METERS.growthStifle[0]!.percent / 100);
+    expect(factor).toBeCloseTo(0.7 * 0.25, 10);
+    expect(foldGrowthFactor(lines)).toBeCloseTo(factor, 10);
+
+    const raw = foldCity(state, city).food - city.population * RULES.cities.foodPerCitizen;
+    expect(raw).toBeGreaterThan(0);
+    expect(growthSurplus(state, city)).toBeCloseTo(raw * factor, 9);
   });
 
   it('never turns a deficit into a deeper one: a stifle cannot starve', () => {
@@ -690,8 +784,10 @@ describe('what the meters do to the economy', () => {
     const good = meterEffects(state, 0).find((effect) => effect.meter === 'authority')!;
     expect(good.yields).toEqual(['production']);
 
-    const wide = empire(6);
-    expect(authorityOf(wide, 0)).toBeLessThanOrEqual(-5);
+    // Seven towns: the writ's one malus rung starts at −10 (the ruling of
+    // 2026-11-23 removed the step at −5).
+    const wide = empire(7);
+    expect(authorityOf(wide, 0)).toBeLessThanOrEqual(-10);
     const bad = meterEffects(wide, 0).find((effect) => effect.meter === 'authority')!;
     expect(bad.percent).toBeLessThan(0);
     // Over-extension is the one thing in this game that taxes the whole economy.
@@ -727,7 +823,8 @@ describe('what the meters do to the economy', () => {
   });
 
   it('folds the modifiers into the one evaluator every surface reads', () => {
-    const state = empire(6);
+    // Seven towns, deep enough for the writ's malus at −10.
+    const state = empire(7);
     const city = state.cities[0]!;
     const effects = meterEffects(state, 0);
     const factor = yieldFactor(effects, 'production');

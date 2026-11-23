@@ -271,8 +271,6 @@ export interface GuideFlags {
   readonly happinessBelowZero: boolean;
   /** The seat is at war with another empire, whichever side declared. */
   readonly atWar: boolean;
-  /** War weariness is one of the lines in the seat's happiness. */
-  readonly wearinessShowing: boolean;
   /** The seat may begin the Magnum Opus. */
   readonly opusBuildable: boolean;
 }
@@ -341,7 +339,6 @@ export const EMPTY_FLAGS: GuideFlags = {
   secondTownInProspect: false,
   happinessBelowZero: false,
   atWar: false,
-  wearinessShowing: false,
   opusBuildable: false,
 };
 

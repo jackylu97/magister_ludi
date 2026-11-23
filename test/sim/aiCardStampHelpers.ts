@@ -36,7 +36,7 @@ import {
   isOrderId,
   orderDef,
 } from '../../src/sim/statecraftData';
-import { recordWarLoss } from '../../src/sim/weariness';
+import { recordWarLoss } from '../../src/sim/warLosses';
 import { at, bareState } from './improvementHelpers';
 
 const VOICES = ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const;

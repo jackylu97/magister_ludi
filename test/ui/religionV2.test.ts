@@ -295,11 +295,11 @@ describe('the pressure ledger a hover prints', () => {
   it('sums to the figure the bank receives', () => {
     const lines = [
       { religion: 0, source: 'Holy site', amount: 6 },
-      { religion: 0, source: 'Road', amount: 4 },
-      { religion: 0, source: 'Temple', amount: -5 },
+      { religion: 0, source: 'Trade route', amount: 3 },
+      { religion: 0, source: 'Temple', amount: 9 },
     ];
     expect(pressureLedgerText(lines)).toBe(
-      'Holy site +6 · Road +4 · Temple -5 — 5 a turn',
+      'Holy site +6 · Trade route +3 · Temple +9 — 18 a turn',
     );
   });
 

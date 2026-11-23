@@ -28,6 +28,13 @@ describe('techSplashReading', () => {
     expect(reading).toEqual({ name: 'Mathematics', notes: [], eyebrow: null });
   });
 
+  it('names every technology a turn completed, in order', () => {
+    // The ruling of 2026-11-23: a full pool can finish several in one turn.
+    const reading = techSplashReading(report({ techs: ['mining', 'earthenware', 'mathematics'] }));
+    expect(reading?.name).toBe('Mining, Pottery and Mathematics');
+    expect(reading?.eyebrow).toBeNull();
+  });
+
   it('wears the eyebrow for a charter technology, and lists the trait tally after the upgrades', () => {
     const reading = techSplashReading(
       report({

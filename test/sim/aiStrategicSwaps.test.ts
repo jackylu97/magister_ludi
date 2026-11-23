@@ -49,9 +49,9 @@ describe('bot trades of strategic resources', () => {
   it('offers a spare strategic for a missing strategic, reserves its last copy, and signs the legal swap', () => {
     const state = partners(2, 2);
     const offer = decision(state);
-    expect(offer).toMatchObject({ type: 'proposeDeal', playerId: 0, give: { strategics: ['iron'] } });
+    expect(offer).toMatchObject({ type: 'proposeDeal', playerId: 0, give: { strategics: [{ id: 'iron', copies: 1 }] } });
     if (offer?.type !== 'proposeDeal') throw new Error('Expected a swap');
-    const received = offer.take.strategics![0]!;
+    const received = offer.take.strategics![0]!.id;
     expect(received).toBe(offer.targetId === 1 ? 'horses' : 'obsidian');
     expect(applyCommand(state, offer).ok).toBe(true);
     // Two potential partners, but only one uncommitted copy to offer.
@@ -81,7 +81,38 @@ describe('bot trades of strategic resources', () => {
     createUnit(state, 1, 'horseman', 12, 4);
     bumpRevision(state);
     expect(availableCopies(state, 1, 'horses')).toBe(1);
-    expect(decision(state)).toMatchObject({ type: 'proposeDeal', targetId: 2, take: { strategics: ['obsidian'] } });
+    expect(decision(state)).toMatchObject({ type: 'proposeDeal', targetId: 2, take: { strategics: [{ id: 'obsidian', copies: 1 }] } });
+  });
+});
+
+/**
+ * The ruling of 2026-11-23: a strategic row carries a number of copies. Until
+ * the repricing in `docs/plans/astra-handoff-2026-11-18.md` (section 0.1m), a
+ * bot prices each copy as it priced one, and keeps at least one free copy of
+ * its own after the paper.
+ */
+describe('a bot reads a strategic row of several copies', () => {
+  const iron = (copies: number): DealTerms => ({ strategics: [{ id: 'iron', copies }] });
+  const horses = (copies: number): DealTerms => ({ strategics: [{ id: 'horses', copies }] });
+  /** Ada puts the paper to the Bors, and the Bors answer it. */
+  const answer = (state: GameState, give: DealTerms, take: DealTerms) => {
+    expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give, take }).ok).toBe(true);
+    const bors = state.players[1]!;
+    const paper = state.dealProposals[state.dealProposals.length - 1]!;
+    return answerProposal(state, bors, paper, valueContext(state, bors));
+  };
+
+  it('prices each copy that arrives or leaves as one copy', () => {
+    // One iron in for two horses out costs more than it brings.
+    expect(answer(partners(2, 3), iron(1), horses(2)).command.type).toBe('declineDeal');
+    // Two for two is even, and the Bors keep one horse free.
+    expect(answer(partners(2, 3), iron(2), horses(2)).command.type).toBe('acceptDeal');
+  });
+
+  it('refuses a row that would leave it no free copy', () => {
+    const decision = answer(partners(2, 3), iron(2), horses(3));
+    expect(decision.command.type).toBe('declineDeal');
+    expect(decision.summary).toContain('the only horses');
   });
 });
 
@@ -92,12 +123,12 @@ describe('strategic counteroffers and refusals', () => {
     const recipient = state.players[1]!;
     giver.gold = 1000;
     recipient.gold = 1000;
-    const give: DealTerms = { strategics: ['iron'] };
-    const take: DealTerms = { strategics: ['horses'], gold: 10 };
+    const give: DealTerms = { strategics: [{ id: 'iron', copies: 1 }] };
+    const take: DealTerms = { strategics: [{ id: 'horses', copies: 1 }], gold: 10 };
     const counter = counterTerms(state, 1, 0, give, take, valueContext(state, recipient));
     expect(counter).not.toBeNull();
-    expect(counter!.give.strategics).toEqual(['iron']);
-    expect(counter!.take.strategics).toEqual(['horses']);
+    expect(counter!.give.strategics).toEqual([{ id: 'iron', copies: 1 }]);
+    expect(counter!.take.strategics).toEqual([{ id: 'horses', copies: 1 }]);
     expect(counter!.give.strategics).not.toBe(give.strategics);
     expect(counter!.take.strategics).not.toBe(take.strategics);
     expect(counter!.give.gold).toBeGreaterThan(0);
@@ -111,11 +142,11 @@ describe('strategic counteroffers and refusals', () => {
     const state = partners(4, 2);
     const buyer = state.players[1]!;
     buyer.gold = 1000;
-    openDeal(state, 91, 0, 1, { strategics: ['iron'] }, {});
+    openDeal(state, 91, 0, 1, { strategics: [{ id: 'iron', copies: 1 }] }, {});
     bumpRevision(state);
     const price = valueContext(state, buyer).ai.war.luxuryGoldBaseline;
     const proposal = applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1,
-      give: { strategics: ['iron'] }, take: { gold: price } });
+      give: { strategics: [{ id: 'iron', copies: 1 }] }, take: { gold: price } });
     expect(proposal.ok, JSON.stringify(proposal)).toBe(true);
     const row = state.dealProposals[0]!;
     const answer = () => answerProposal(state, buyer, row, valueContext(state, buyer)).command.type;
@@ -130,8 +161,8 @@ describe('strategic counteroffers and refusals', () => {
   it('remembers only the refused strategic terms and reconsiders when military commitments change', () => {
     const state = partners(2, 2);
     state.players[0]!.gold = 10;
-    const give: DealTerms = { strategics: ['iron'], gold: 1 };
-    const take: DealTerms = { strategics: ['horses'] };
+    const give: DealTerms = { strategics: [{ id: 'iron', copies: 1 }], gold: 1 };
+    const take: DealTerms = { strategics: [{ id: 'horses', copies: 1 }] };
     expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give, take }).ok).toBe(true);
     const decline = { type: 'declineDeal', playerId: 1, dealId: state.dealProposals[0]!.id } as const;
     const pending = pendingDealRefusal(state, decline);
@@ -141,8 +172,8 @@ describe('strategic counteroffers and refusals', () => {
     const read = (offer: DealTerms, ask: DealTerms) => readDealRefusal(state, 0, 1, offer, ask, 10);
     expect(read(give, take)).toEqual({ refusedTurn: state.turn, sweetenedTurn: state.turn });
     expect(read({ ...give, gold: 2 }, take)).toEqual({ refusedTurn: null, sweetenedTurn: state.turn });
-    expect(read({ gold: 1, strategics: ['obsidian'] }, take)).toEqual({ refusedTurn: null, sweetenedTurn: null });
-    expect(read(give, { strategics: ['obsidian'] })).toEqual({ refusedTurn: null, sweetenedTurn: null });
+    expect(read({ gold: 1, strategics: [{ id: 'obsidian', copies: 1 }] }, take)).toEqual({ refusedTurn: null, sweetenedTurn: null });
+    expect(read(give, { strategics: [{ id: 'obsidian', copies: 1 }] })).toEqual({ refusedTurn: null, sweetenedTurn: null });
     state.cities[1]!.queue = [{ kind: 'unit', id: 'horseman' }];
     bumpRevision(state);
     expect(resourceCopies(state, 1, 'horses')).toBe(2);

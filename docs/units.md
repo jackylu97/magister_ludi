@@ -82,8 +82,10 @@ blow read the same plan.
 - **Terrain** — the ground's own defence, summed from terrain, feature and hills;
   `src/sim/terrainData.ts` itemises it. A city takes none: the walls are the
   terrain.
-- **Fortification** — turns dug in × `rules.combat.fortifyBonusPerTurn`, capped
-  at `fortifyMax` (`fortifyBonus`). Presence of the counter *is* the state.
+- **Fortification**: a flat `rules.combat.fortifyBonus` (+4) from the first
+  turn a unit is fortified, and it does not grow (`fortifyBonus`; ruled
+  2026-11-23, `docs/flags.md`, "Eight simpler rules"). `Unit.fortified` is
+  present or absent, and presence *is* the state.
 - **A dug-in unit wakes** (ruled 2026-11-21, `docs/flags.md`, "Rulings
   before the beta"; schema 255). A fortified unit, plain or not, asks for
   orders again when a foreign soldier comes into its own sight
@@ -118,13 +120,14 @@ blow read the same plan.
   soldier of the same side within `generalAuraRange`, on both sides of a fight,
   naming the general (`generalAuraLines`). It does **not** stack: the sweep
   returns at the first general in reach. A standing inquisitor's aura is its twin.
-- **The naval triangle is three data rows and three folds**, with no branch
-  anywhere in the damage curve: the rows' own lines (the table below), **the line
-  of battle** — `rules.naval.lineBonusPerHull` per adjacent friendly heavy hull,
-  capped at `lineBonusMax`, read off the `blockades` marker (`navalLineLines`) —
-  and the water, on the defender only.
+- **The naval triangle is data rows and two folds**, with no branch anywhere in
+  the damage curve: the rows' own lines (the table below) and the water, on the
+  defender only. There is no line of battle: the bonus for each friendly heavy
+  hull beside a heavy hull was removed on 2026-11-23 (`docs/flags.md`, "Eight
+  simpler rules").
 - **At sea** — a land piece caught on water defends at
-  −`rules.naval.atSeaPenalty`, unless a friendly light hull shares the hex, in
+  −`rules.naval.atSeaPenalty` (−15 since 2026-11-23), unless a friendly light
+  hull shares the hex, in
   which case it defends at the hull's strength instead (`seaDefenceLines`, read
   off the `hitAndRun` marker). Exactly one of the two lines, never both, and
   never anything for a hull.
@@ -303,8 +306,7 @@ trench). This is the whole of the naval triangle in the simulation.
 | `baseDamage` | 30 |
 | `strengthExponent` | 0.04 |
 | `rollBand` | 0.2 |
-| `fortifyBonusPerTurn` | 3 |
-| `fortifyMax` | 6 |
+| `fortifyBonus` | 4 |
 | `riverAttackPenaltyPoints` | 3 |
 | `flankingBonus` | 0 |
 | `cityBaseHp` | 100 |
@@ -327,8 +329,6 @@ trench). This is the whole of the naval triangle in the simulation.
 | Figure | Value |
 |---|---|
 | `hitAndRunCost` | 1 |
-| `lineBonusPerHull` | 4 |
-| `lineBonusMax` | 8 |
-| `atSeaPenalty` | 20 |
+| `atSeaPenalty` | 15 |
 | `landRangedVsShipPoints` | -6 |
 | `landSiegeVsShipPoints` | 6 |

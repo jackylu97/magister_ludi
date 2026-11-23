@@ -1579,6 +1579,13 @@ interface BadgeSpec {
   byUnitType: Readonly<Record<string, string>>;
   /** `shade` amount applied to the rim of the selected unit's badge. */
   selectedRimShade: number;
+  /**
+   * How solid the badge of a unit with nothing left to do this turn is drawn,
+   * from 0 to 1 (the user, 2026-11-23: fade the icons of units that have
+   * completed their turns). It applies to the viewing seat's own units, on the
+   * board and in a town's garrison row.
+   */
+  spentOpacity: number;
   /** Atlas cell size in pixels, and how many cells per row. */
   atlasCell: number;
   atlasColumns: number;
@@ -3346,6 +3353,7 @@ export const VIEW3D: View3DData = {
     wildRimColor: named(viewJson.badges.wildRimColor, 'badges.wildRimColor'),
     byUnitType: viewJson.badges.byUnitType,
     selectedRimShade: viewJson.badges.selectedRimShade,
+    spentOpacity: viewJson.badges.spentOpacity,
     atlasCell: viewJson.badges.atlasCell,
     atlasColumns: viewJson.badges.atlasColumns,
     iconScale: viewJson.badges.iconScale,

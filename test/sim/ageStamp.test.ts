@@ -6,7 +6,7 @@
  *
  * The discipline is this codebase's one rule about time, stated three ways
  * already (`TimedEffect.expiresTurn`, `SlottedOrder.sealedUntil`,
- * `City.purchasedUnitTurns`) and a fourth time here: **an absolute turn written
+ * `City.purchasedUnitTurn`) and a fourth time here: **an absolute turn written
  * once and compared against `state.turn`**. So every claim below is a
  * subtraction, and the tests that matter most are the ones that show the number
  * on the state does not move when the world does.

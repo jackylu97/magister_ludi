@@ -2,6 +2,7 @@ import { bumpEconomy } from '../../src/sim/slate';
 import { describe, expect, it, vi } from 'vitest';
 import { BUILDING_IDS, type BuildingId, buildingDef, isBuildingId } from '../../src/sim/buildingData';
 import { improvementDef } from '../../src/sim/improvementData';
+import { happinessOf } from '../../src/sim/meters';
 import {
   foundCityAt,
   tileOwnerPlayerId,
@@ -866,16 +867,19 @@ describe('advanceResearch', () => {
     expect(state.players[0]!.techsResearched).toEqual(RESEARCH.startingTechs);
   });
 
-  it('completes at most one technology per player per turn', () => {
+  it('keeps the rest of the pool when the queue runs out, however full it is', () => {
     const state = flatState();
     applyCommand(state, choose(0, 'calendar'));
     state.players[0]!.sciencePool = 10_000;
 
     advanceResearch(state);
     expect(state.players[0]!.techsResearched).toHaveLength(RESEARCH.startingTechs.length + 1);
+    expect(state.players[0]!.researching).toBe(null);
+    expect(state.players[0]!.sciencePool).toBe(10_000 - techDef('calendar').cost);
     advanceResearch(state);
     // Nothing chosen, so nothing else completes however full the pool is.
     expect(state.players[0]!.techsResearched).toHaveLength(RESEARCH.startingTechs.length + 1);
+    expect(state.players[0]!.sciencePool).toBe(10_000 - techDef('calendar').cost);
   });
 
   it('banks science for a player who has chosen nothing', () => {
@@ -904,6 +908,12 @@ describe('advanceResearch', () => {
     const city = plant(state, 0, 8, 5);
     // Population alone supplies the full price in the first turn.
     city.population = Math.ceil(techDef('calendar').cost / RULES.cities.sciencePerPop) + 5;
+    bumpRevision(state);
+    // Keep population's science independent of the new unhappiness penalty.
+    state.players[0]!.timed = [{ card: 'theRoyalHousehold', effect: {
+      kind: 'happiness', amount: -happinessOf(state, 0),
+    }, expiresTurn: state.turn + 2 }];
+    bumpRevision(state);
     applyCommand(state, choose(0, 'calendar'));
 
     endRound(state);
@@ -1736,6 +1746,48 @@ describe('the research queue', () => {
     expect(player.researchQueue).toEqual(['bronzeWorking', 'stonecraft', 'theWheel']);
   });
 
+  it('completes two queued technologies in one turn and keeps the exact remainder', () => {
+    // The ruling of 2026-11-23: the remainder pays for the next node at once.
+    const state = flatState();
+    applyCommand(state, choose(0, 'theWheel'));
+    const player = state.players[0]!;
+    const before = researchSnapshot(state, 0);
+    player.sciencePool = techDef('mining').cost + techDef('earthenware').cost + 3;
+
+    advanceResearch(state);
+    expect(player.techsResearched.slice(-2)).toEqual(['mining', 'earthenware']);
+    expect(player.researching).toBe('bronzeWorking');
+    expect(player.sciencePool).toBe(3);
+    expect(player.researchQueue).toEqual(['stonecraft', 'theWheel']);
+    // Both are in the turn's research news.
+    expect(researchSince(state, 0, before).techs).toEqual(['mining', 'earthenware']);
+  });
+
+  it('stops at the first queued technology the pool cannot pay for', () => {
+    const state = flatState();
+    applyCommand(state, choose(0, 'theWheel'));
+    const player = state.players[0]!;
+    player.sciencePool = techDef('mining').cost + techDef('earthenware').cost - 1;
+
+    advanceResearch(state);
+    expect(player.techsResearched).toContain('mining');
+    expect(player.techsResearched).not.toContain('earthenware');
+    expect(player.researching).toBe('earthenware');
+    expect(player.sciencePool).toBe(techDef('earthenware').cost - 1);
+  });
+
+  it('settles a research windfall as a chain, and returns every technology in order', () => {
+    const state = flatState();
+    applyCommand(state, choose(0, 'theWheel'));
+    const player = state.players[0]!;
+    player.sciencePool = techDef('mining').cost + techDef('earthenware').cost + techDef('bronzeWorking').cost;
+
+    const done = settleResearchWindfall(state, player);
+    expect(done.map((landed) => landed.techId)).toEqual(['mining', 'earthenware', 'bronzeWorking']);
+    expect(player.researching).toBe('stonecraft');
+    expect(player.sciencePool).toBe(0);
+  });
+
   it('drops a queued node the empire came by some other way', () => {
     const state = flatState();
     applyCommand(state, choose(0, 'theWheel'));
@@ -1756,12 +1808,13 @@ describe('the research queue', () => {
     // Star tablets: the pool is filled outside the pipeline and settled at once.
     player.sciencePool = techDef('mining').cost;
     const done = settleResearchWindfall(state, player);
-    expect(done?.techId).toBe('mining');
+    // Bronzeworking is the aim now, and nothing is left in the pool to pay it.
+    expect(done.map((landed) => landed.techId)).toEqual(['mining']);
     expect(player.researching).toBe('bronzeWorking');
     expect('researchQueue' in player).toBe(false);
   });
 
-  it('schedules the plan cumulatively, one technology per turn at the floor', () => {
+  it('schedules the plan cumulatively, and a full pool lands the whole plan this turn', () => {
     const game = researchingGame();
     const state = game.state;
     for (const city of state.cities) city.population = 12;
@@ -1772,13 +1825,12 @@ describe('the research queue', () => {
     for (let i = 1; i < steps.length; i++) {
       expect(steps[i]!.turns!).toBeGreaterThanOrEqual(steps[i - 1]!.turns!);
     }
-    // And nothing lands sooner than its place in the queue, however full the
-    // pool is — `settleResearch` completes at most one a resolution.
+    // A pool that covers the whole plan finishes all of it at the end of this
+    // turn (the ruling of 2026-11-23), so every entry says one turn. The
+    // Panoply's lattice under tree revision 4 is Mining and Pottery, then
+    // Bronzeworking and Stonecraft, then The Wheel, then itself.
     state.players[0]!.sciencePool = 100_000;
-    // One a turn, all six of them, however full the pool is — the Panoply's
-    // lattice under tree revision 4 is Mining and Pottery, then Bronzeworking
-    // and Stonecraft, then The Wheel, then itself.
-    expect(queueTurns(state, 0).map((step) => step.turns)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(queueTurns(state, 0).map((step) => step.turns)).toEqual([1, 1, 1, 1, 1, 1]);
   });
 
   it('replays a queued game byte-identically', () => {

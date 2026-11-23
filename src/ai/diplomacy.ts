@@ -71,10 +71,9 @@
  * window. `explainStanding` applies the existing unit and town weights.
  * Barbarian losses and other wars do not enter this exchange.
  *
- * **And a third since batch WC2: war weariness.** Every peace decision reads
- * `explainPeaceScore`, which is the warscore less what this seat's own
- * weariness against the enemy is costing it. Only the weary side is moved, and
- * the warscore itself stays an exact mirror; see that function for why.
+ * Every peace decision reads `explainPeaceScore`. From batch WC2 it also took
+ * off this seat's war weariness; since weariness was removed (2026-11-23) it is
+ * the warscore itself.
  */
 
 import { type AiConfig, aiConfigFor } from './aiConfig';
@@ -107,6 +106,8 @@ import {
   dealPartnerSeats,
   proposalsFor,
   termsAreEmpty,
+  loanedCopies,
+  loanedCopiesOf,
   loanedResources,
 } from '../sim/deals';
 import {
@@ -132,10 +133,7 @@ import { hasPeaceOffer, peaceTermsOn, warBetween } from '../sim/wars';
 import { round as round1 } from './decision';
 import { seatName, seatPeople } from '../sim/leaderData';
 import { turnsToFill } from '../sim/cities';
-import { RULES } from '../sim/rulesData';
 import { pacificationTurnsLeft, unrestTarget } from '../sim/unrest';
-import { happinessOf } from '../sim/meters';
-import { wearinessBetween } from '../sim/weariness';
 
 /**
  * The one entry point: what this seat wants to say to somebody else, or `null`
@@ -313,12 +311,9 @@ function townsTaken(state: GameState, playerId: number): number {
  * weight in `data/ai.json` and every line printed. See the module docblock for
  * what "losses" is actually read off, and why.
  *
- * **War weariness is deliberately not one of the lines** (batch WC2). The
- * warscore is an exact mirror between the two empires, and it is read for more
- * than peace: `campaignEnemy` (`bot.ts`) stops a seat campaigning once it reads
- * under `war.sueFloor`. Weariness is a cost only the weary side pays, so it is
- * weighed beside this reading and only where a peace is decided
- * (`explainPeaceScore`).
+ * The warscore is an exact mirror between the two empires, and it is read for
+ * more than peace: `campaignEnemy` (`bot.ts`) stops a seat campaigning once it
+ * reads under `war.sueFloor`.
  */
 export function explainWarScore(
   state: GameState,
@@ -361,36 +356,17 @@ export function explainWarScore(
 }
 
 /**
- * **The war as this seat weighs a peace**: the warscore, less what the war's
- * weariness is costing this seat (batch WC2, `docs/flags.md` (rrrrrr) part 2:
- * *"Bots weigh weariness when offering and answering peace"*).
+ * **The war as this seat weighs a peace**: the warscore itself.
  *
- * Every peace decision reads this rather than the bare warscore: the sue arm
- * and the tribute it offers (`peaceDecision`), the answer to a paper
- * (`readPeaceOffer`, `answerPeaceOffer`), and the table's counter
- * (`counterRefusal`, `counterTerms`). So a weary seat falls under
- * `war.sueFloor` sooner, reads as winning (`war.acceptCeiling`) later, owes
- * more for a peace and so accepts a worse paper, and offers more coin when it
- * sues.
+ * Every peace decision reads this: the sue arm and the tribute it offers
+ * (`peaceDecision`), the answer to a paper (`readPeaceOffer`,
+ * `answerPeaceOffer`), and the table's counter (`counterRefusal`,
+ * `counterTerms`). `campaignEnemy` (`bot.ts`) reads the warscore directly.
  *
- * **Only this seat's own weariness, and never the enemy's.** The design intent
- * is that weariness ends wars sooner and never later. If the enemy's weariness
- * counted in this seat's favour, a seat winning against a weary enemy would
- * read its war as better, press on longer and ask more, which is a war ending
- * later. So the winner reads exactly the war it read before weariness existed,
- * and only the side paying the weariness is moved.
- *
- * **Beside the warscore rather than inside it.** The warscore is an exact mirror
- * between the two empires, and `campaignEnemy` (`bot.ts`) reads it to decide
- * whether a seat is losing badly enough to stop campaigning. A cost only one
- * side pays cannot sit in a mirror, and putting it there also changed the
- * campaign: in `aiWar.slow.test.ts`' war loop the loser's one point of
- * weariness put it one point under its floor, it stopped campaigning, and the
- * counter-attack that used to even the exchange and bring the peace never
- * came. Here, weariness moves the peace and nothing else.
- *
- * No weariness, no new lines: the reading is then the warscore itself, so a
- * war without recorded losses prints and decides exactly as before.
+ * From batch WC2 this reading also took off what the seat's own war weariness
+ * cost it. War weariness was removed by the user's ruling of 2026-11-23
+ * (`docs/flags.md`, "Eight simpler rules"), and its two weights went with it.
+ * The function stays so that the peace readers keep one name to ask.
  */
 export function explainPeaceScore(
   state: GameState,
@@ -398,55 +374,7 @@ export function explainPeaceScore(
   enemy: Player,
   ai: AiConfig,
 ): Appraisal {
-  const score = explainWarScore(state, player, enemy, ai);
-  const weary = wearinessTerms(state, player, enemy, ai);
-  if (weary.length === 0) return score;
-  // Flat rather than nested: the warscore's lines are adds and subtracts, so
-  // appending to them folds to exactly the warscore less the weariness.
-  return appraise([...score.terms, ...weary]);
-}
-
-/**
- * What this seat's own war weariness against this enemy costs it, as warscore
- * points, for `explainPeaceScore`. Empty when it has none.
- *
- * Weariness is the happiness an empire pays because it has lost more to one
- * enemy than it has taken from it over the last turns (`wearinessBetween`,
- * `src/sim/weariness.ts`). Making peace does not refund it, but it stops it
- * growing, which is the reason to weigh it when deciding whether to stop.
- *
- * Two knobs, both in `data/ai.json`:
- *
- *   · `war.wearinessWeight` — points per point of happiness the war's losses
- *     cost. It is always paid while there is weariness.
- *   · `war.unhappyWearinessWeight` — further points per point of that
- *     weariness that sits below nought, where it stops the empire growing. An
- *     empire with happiness to spare can absorb weariness; one already in
- *     deficit is paying for the war in growth, and this is what makes it sue
- *     sooner.
- */
-function wearinessTerms(state: GameState, player: Player, enemy: Player, ai: AiConfig): ValueTerm[] {
-  const { wearinessWeight, unhappyWearinessWeight } = ai.war;
-  const happiness = wearinessBetween(state, player.id, enemy.id).happiness;
-  if (happiness <= 0) return [];
-  const terms: ValueTerm[] = [
-    {
-      label: `our losses to them cost us ${round1(happiness)} happiness in war weariness × ${wearinessWeight}`,
-      value: happiness * wearinessWeight,
-      op: 'sub',
-    },
-  ];
-  // Only asked when there is weariness, so a war with none never walks the
-  // happiness list.
-  const below = Math.min(happiness, Math.max(0, -happinessOf(state, player.id)));
-  if (below > 0) {
-    terms.push({
-      label: `${round1(below)} of it is below nought, where it stops growth × ${unhappyWearinessWeight}`,
-      value: below * unhappyWearinessWeight,
-      op: 'sub',
-    });
-  }
-  return terms;
+  return explainWarScore(state, player, enemy, ai);
 }
 
 // --- how this war is actually going -----------------------------------------
@@ -694,15 +622,20 @@ function explainSide(
       value: perTurn * rate,
     });
   }
-  for (const id of loanedResources(terms)) {
+  for (const { id, copies } of loanedCopies(terms)) {
     // `null` is the giving side: what leaves is priced at the baseline whatever
     // this empire already holds, because that is what a seam costs.
     const wanted = lacking === null || lacking(id);
+    // **Each copy is priced as one copy is** (the ruling of 2026-11-23: a
+    // strategic row carries a count). A placeholder until the repricing in
+    // `docs/plans/astra-handoff-2026-11-18.md`, section 0.1m. One copy keeps
+    // its old label, so the bots' own one-copy papers read as before.
+    const name = copies === 1 ? resourceDef(id).name : `${copies} copies of ${resourceDef(id).name}`;
     lines.push({
       label: wanted
-        ? `${resourceDef(id).name} ${what} — at this seat's price for a seam`
-        : `${resourceDef(id).name} ${what} — this seat already has a spare copy`,
-      value: wanted ? ai.war.luxuryGoldBaseline : 0,
+        ? `${name} ${what} — at this seat's price for a seam${copies === 1 ? '' : ', for each copy'}`
+        : `${name} ${what} — this seat already has a spare copy`,
+      value: wanted ? ai.war.luxuryGoldBaseline * copies : 0,
     });
   }
   const lent = terms.luxuries ?? [];
@@ -800,8 +733,13 @@ function resourcesForTrade(state: GameState, playerId: number): ResourceId[] {
   return [...luxuries, ...controlledResources(state, playerId, 'strategic')];
 }
 
-function loanField(id: ResourceId): 'luxuries' | 'strategics' {
-  return resourceDef(id).kind === 'strategic' ? 'strategics' : 'luxuries';
+/**
+ * One copy of one resource as a half of a paper. The bots' own papers lend one
+ * copy of a strategic resource, as before the ruling of 2026-11-23 let a row
+ * carry more.
+ */
+function oneCopyTerms(id: ResourceId): DealTerms {
+  return resourceDef(id).kind === 'strategic' ? { strategics: [{ id, copies: 1 }] } : { luxuries: [id] };
 }
 
 /**
@@ -858,8 +796,10 @@ function asksOurLastCopy(
   player: Player,
   asked: DealTerms,
 ): ResourceId | null {
-  for (const id of loanedResources(asked)) {
-    if (tradeSupply(state, player.id, id) <= 1) return id;
+  // The seat keeps at least one free copy after the paper: a row of several
+  // strategic copies asks that many (the ruling of 2026-11-23).
+  for (const { id, copies } of loanedCopies(asked)) {
+    if (tradeSupply(state, player.id, id) - copies < 1) return id;
   }
   return null;
 }
@@ -922,7 +862,8 @@ function standingRefusal(
   const them = seatPeople(state, receiver.id);
   let asked = 0;
   for (const row of others) {
-    if (loanedResources(row.take).includes(wanted)) asked += 1;
+    // Copies, not papers: another seat's paper may ask for several.
+    asked += loanedCopiesOf(row.take, wanted);
     if (loanedResources(row.give).includes(offered)) {
       return `another empire's paper already offers the ${them} ${resourceDef(offered).name.toLowerCase()}`;
     }
@@ -1557,8 +1498,10 @@ export function counterTerms(
       // ruling of 2026-11-17), and the gate below would refuse the counter.
       if (lendableCopies(state, botSeat, id) < 1) continue;
       if (!resourceIsVisibleTo(id, asker.techsResearched) || tradeSupply(state, askerSeat, id) > 0) continue;
-      const field = loanField(id);
-      counter.take[field] = [...(counter.take[field] ?? []), id];
+      // One copy, as the bot's own papers lend.
+      const one = oneCopyTerms(id);
+      if (one.strategics) counter.take.strategics = [...(counter.take.strategics ?? []), ...one.strategics];
+      else counter.take.luxuries = [...(counter.take.luxuries ?? []), id];
       budget -= ai.war.luxuryGoldBaseline;
     }
     if (termsAreEmpty(counter.take)) return null;
@@ -1620,7 +1563,7 @@ function copyTerms(terms: DealTerms): DealTerms {
   if ((terms.gold ?? 0) > 0) copy.gold = terms.gold;
   if ((terms.goldPerTurn ?? 0) > 0) copy.goldPerTurn = terms.goldPerTurn;
   if ((terms.luxuries ?? []).length > 0) copy.luxuries = [...terms.luxuries!];
-  if (terms.strategics?.length) copy.strategics = [...terms.strategics];
+  if (terms.strategics?.length) copy.strategics = terms.strategics.map((row) => ({ id: row.id, copies: row.copies }));
   if (terms.openBorders === true) copy.openBorders = true;
   if ((terms.cities ?? []).length > 0) copy.cities = [...terms.cities!];
   return copy;
@@ -2055,8 +1998,7 @@ function explainExpedition(
  * `explainPacification`, which reads the town's current owner's pieces.
  */
 function unrestSettleTurns(population: number): number | null {
-  const rules = RULES.war.unrest;
-  return turnsToFill(unrestTarget(population), rules.baseRate + rules.garrisonRate);
+  return turnsToFill(unrestTarget(population), 1);
 }
 
 /**
@@ -2266,7 +2208,7 @@ function swapDecision(
   // gone), and the seat kept no copy of its own.
   const standing = state.dealProposals.filter((row) => row.by === player.id);
   const promised = (id: ResourceId): number =>
-    standing.reduce((count, row) => count + (loanedResources(row.give).includes(id) ? 1 : 0), 0);
+    standing.reduce((count, row) => count + loanedCopiesOf(row.give, id), 0);
   // A spare is a kind held twice, of which one copy is its own and not yet
   // promised: a borrowed copy can be used and not lent (the ruling of
   // 2026-11-17), so a seat holding a kind only on loan offers none of it.
@@ -2295,8 +2237,8 @@ function swapDecision(
       if (asked.has(wanted)) continue;
       for (const offered of spare) {
         if (!resourceIsVisibleTo(offered, enemy.techsResearched) || tradeSupply(state, enemy.id, offered) > 0) continue;
-        const give: DealTerms = { [loanField(offered)]: [offered] };
-        const take: DealTerms = { [loanField(wanted)]: [wanted] };
+        const give = oneCopyTerms(offered);
+        const take = oneCopyTerms(wanted);
         const label = `${resourceDef(offered).name} for the ${seatPeople(state, enemy.id)}' ${resourceDef(wanted).name.toLowerCase()}`;
         if (reader !== null) {
           const crowded = standingRefusal(state, enemy, wanted, offered, others);

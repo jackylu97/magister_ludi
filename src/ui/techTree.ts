@@ -1687,8 +1687,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * six stars scattered over four columns to read it.
    *
    *   · **The schedule is `queueTurns`**, not `turnsToTech` per row. The costs
-   *     accumulate against one pool and at most one technology lands per turn,
-   *     so a per-node reading would promise the whole plan arriving at once.
+   *     accumulate against one pool, so a per-node reading would promise the
+   *     whole plan arriving at once.
    *   · **Every × carries what it would take with it** (`dequeueTitle`), because
    *     `dequeueResearch` cascades and a button that removed four rows having
    *     said it would remove one is a button nobody presses twice.

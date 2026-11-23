@@ -2750,12 +2750,28 @@ export class UnitBadges {
   private readonly wildTexture: CanvasTexture;
   readonly material: MeshBasicMaterial;
   readonly wildMaterial: MeshBasicMaterial;
+  /**
+   * The nation's print again, drawn faint: the badge of a unit that has nothing
+   * left to do this turn (`badges.spentOpacity`). A second material over the
+   * same texture, because a printed bucket takes no tint for each instance.
+   * The cutout threshold is scaled by the same figure: three compares it with
+   * the alpha after the opacity is applied, so an unscaled threshold would cut
+   * the whole disc away.
+   */
+  readonly spentMaterial: MeshBasicMaterial;
 
   private constructor(texture: CanvasTexture, wildTexture: CanvasTexture) {
     this.texture = texture;
     this.wildTexture = wildTexture;
     this.material = UnitBadges.discMaterial(texture);
     this.wildMaterial = UnitBadges.discMaterial(wildTexture);
+    this.spentMaterial = UnitBadges.discMaterial(texture);
+    this.spentMaterial.opacity = BADGE.spentOpacity;
+    this.spentMaterial.alphaTest *= BADGE.spentOpacity;
+    // Alpha to coverage would turn the faint disc into a dither pattern.
+    this.spentMaterial.alphaToCoverage = false;
+    // The faint disc must not hide the rim behind it by depth alone.
+    this.spentMaterial.depthWrite = false;
   }
 
   private static discMaterial(map: CanvasTexture): MeshBasicMaterial {
@@ -2785,13 +2801,15 @@ export class UnitBadges {
    * the sim's register for the wild, and this file has no business re-deriving
    * it from a colour or a name.
    */
-  materialFor(wild: boolean): MeshBasicMaterial {
-    return wild ? this.wildMaterial : this.material;
+  materialFor(wild: boolean, spent = false): MeshBasicMaterial {
+    if (wild) return this.wildMaterial;
+    return spent ? this.spentMaterial : this.material;
   }
 
   dispose(): void {
     this.material.dispose();
     this.wildMaterial.dispose();
+    this.spentMaterial.dispose();
     this.texture.dispose();
     this.wildTexture.dispose();
   }

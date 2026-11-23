@@ -100,9 +100,13 @@ and removed the counter from an embarked unit.
 - A **ship attacking an embarked piece** takes no counter-blow
   (`boardsAtSea`, a clause of `counters` in `planCombat`). The forecast shows
   no damage to the ship, as it does for a ranged shot.
-- The at-sea penalty is separate: `rules.naval.atSeaPenalty` is a *strength*
-  line on the defender, so the passenger is easier to kill, and a light hull
-  escort cancels it.
+- The at-sea penalty is separate: `rules.naval.atSeaPenalty` (15 since
+  2026-11-23, was 20) is a *strength* line on the defender, so the passenger is
+  easier to kill, and a light hull escort cancels it.
+- Ships get no bonus for friendly ships beside them. The line of battle
+  (`lineBonusPerHull`, `lineBonusMax`) was removed on 2026-11-23 (`docs/flags.md`,
+  "Eight simpler rules", item 5). Hit and run and the escort stay: they belong
+  to the unit rows.
 - **The scale everything here is measured on is the strength ladder** (batch U9,
   `docs/flags.md` (ttt); re-cut at the user's own figures by U9b, (yyy), which
   also raised every hull): every `combatStrength` and `rangedStrength` is Civ 6's
@@ -162,16 +166,15 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
 
 - A basket filled each turn, compared against a target; when it reaches the
   target the record is deleted and the town works again.
-- The target is `targetPerCitizen` (2) × the town's population at the moment it
-  was taken.
+- The target is `turns` (3), the same for every town whatever its size (the
+  user's ruling of 2026-11-23, `docs/flags.md`).
 - The rate is a labelled list (`explainPacification`, rule 5):
-  - `baseRate` (1) every turn;
-  - `garrisonRate` (1) while a military unit of the owner stands in the town
-    (`isFieldSoldier`: a scout or a ship does not count);
-  - `generalRate` (1) while a great general of the owner stands in the town or
-    within `generalReach` (1) hexes of it;
-  - `buildingRate` (1) for each building carrying the `easesUnrest` marker (the
-    Courthouse).
+  - one every turn;
+  - a line for each card percentage on the rate (`pacificationRate`, The
+    Satraps, retired): its +100% in a garrisoned town makes the rate two, so
+    the town settles in two turns.
+- A garrison, a great general and the Courthouse do not change the length. The
+  Courthouse keeps its gold and its authority.
 - The `unrest` phase runs after `resetMovement` and before `wakeSleepers`: after
   every phase that reads unrest (the yields, the borders) and every phase that
   moves a piece, so the turn a town is pacified is still a turn of unrest, and
@@ -182,7 +185,9 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
 - A town still in unrest at the phase with no military unit of its owner inside
   counts the turn as unguarded (`CityUnrest.unguarded`). A turn with a soldier
   inside adds nothing and takes nothing away.
-- On every turn that count reaches a multiple of `rebelEveryTurns` (3), a rebel
+- Rebels are off: `rebelEveryTurns` is 0, because no town stays in unrest long
+  enough for one now. The code stays, so a figure above 0 brings them back.
+- On every turn that count reaches a multiple of `rebelEveryTurns`, a rebel
   rises: a barbarian of the kind a camp standing on the town's hex would raise
   that turn (`barbarianUnitType`), on a free hex beside the town drawn with
   `state.rng`. None rises when no hex is free or the world has no wild seat.
@@ -193,9 +198,10 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
 **Interface**
 
 - The town panel's unrest card: the bar, the reasons with their figures, the
-  turns left, and a warning while an unguarded town will raise a rebel before
-  it settles. The yields hover prints the gate as one line under the stages;
-  the band carries an "In unrest" badge; the borders row says "in unrest".
+  turns left, and, only while rebels are on, a warning while an unguarded town
+  will raise a rebel before it settles. The yields hover prints the gate as one
+  line under the stages; the band carries an "In unrest" badge; the borders row
+  says "in unrest".
 - The 3D banner flies a torch under its fly (`CityLook.unrest`; the yoke hangs
   under the hoist), and the DOM banner carries the same mark beside the name.
 - The capture sheet says the town is in unrest under both answers that keep it,
@@ -212,22 +218,32 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
   `1 − war.unrestDrag × turns` the target would sit in unrest once garrisoned.
 - A town of the bot's own in unrest is razed when no soldier of its stands in
   it or within `war.razeReach` hexes and it would sit in unrest at least
-  `war.razeUnrestTurns` more turns.
+  `war.razeUnrestTurns` more turns. At the default figures this never happens:
+  unrest lasts three turns, and `razeUnrestTurns` is six.
 
 ## 6. War costs
 
-- ▢ War weariness in v1: (a) none, defer for later after playtesting if needed
-- **Ruled 2026-10-14:** three costs of war, in this order: unrest in captured
-  towns (built, §5c), war weariness from net losses (built, §6a below), and unit
-  ranks (built, §6b below). The spec is `docs/flags.md` item (rrrrrr).
+- **Ruled 2026-10-14:** three costs of war: unrest in captured towns (built,
+  §5c), war weariness from net losses, and unit ranks (built, §6b below). The
+  spec is `docs/flags.md` item (rrrrrr).
+- **Ruled 2026-11-23:** war weariness is removed (`docs/flags.md`, "Eight
+  simpler rules", item 1; schema 265). A lost unit or town costs no happiness.
+  Two costs of war stay: unrest and ranks. The list of war losses stays, for
+  the bots (§6a).
 - ▢ Warmonger reputation / opinions: not v1 (there are no opinions without
   diplomacy AI). Confirmed
 
-## 6a. War weariness (as built, batch WC2, schema 126)
+## 6a. The war losses the game keeps
 
-The second of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
-(rrrrrr) part 2). The code is `src/sim/weariness.ts`; every figure is in
-`data/rules.json` under `rules.war.weariness`.
+War weariness (batch WC2, schema 126) was built on this list and removed on
+2026-11-23. Its rules (`rules.war.weariness`), its happiness line, the line on
+the foreign courts screen, its lesson, its Compendium entry, the two card rules
+(`unitLossWeariness`, `townLossWeariness`) and the bots' two peace weights
+(`war.wearinessWeight`, `war.unhappyWearinessWeight`) went with it. The list
+stays because the bots read their recent fighting from it: their kills, the
+towns they took and the units they lost (`warOutlook`, `src/ai/bot.ts`). No
+rule of the game reads it. The code is `src/sim/warLosses.ts`, and the window is
+`rules.war.lossWindowTurns` (20).
 
 **What counts as a loss**
 
@@ -247,70 +263,28 @@ The second of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
   `unit` or `town`. Absent until the first loss.
 - `recordWarLoss` is the only writer. It ignores a loss to oneself and any loss
   involving the barbarians. Its callers are pinned by a source test
-  (`test/sim/weariness.test.ts`): three in `applyCombat` (a caravan plundered,
-  a defender killed, an attacker killed by the counter-blow), one in
+  (`test/sim/warLosses.test.ts`): five in `applyCombat` (a caravan plundered, a
+  defender killed, an attacker killed by the counter-blow, a defender turned to
+  the attacker's side, and a ship that joins the defender), one in
   `captureCity`, and two in `arriveOnTile` (a caravan plundered, a civilian
   captured).
-- Nothing counts down. A loss counts while `state.turn − turn <
-  windowTurns`, so a loss on turn `t` counts on turns `t` to `t + 19`.
+- Nothing counts down. A loss is kept while `state.turn − turn <
+  lossWindowTurns`, so a loss on turn `t` is kept on turns `t` to `t + 19`.
 - The `settleDiplomacy` phase prunes losses that have left the window, beside
-  the truce broom. Deleting them changes no reading.
-
-**The rule**
-
-- Weariness against one enemy is the points you lost to it inside the window
-  minus the points it lost to you inside the window, never below zero. A unit
-  is `unitLoss` (1) point and a town is `townLoss` (8) points.
-- A war you are winning, or an even one, costs nothing.
-- Peace does not erase losses. They keep counting until they leave the window.
-- Each point costs `happinessPerPoint` (1) happiness. Total weariness is the
-  sum over enemies.
-
-**What it costs**
-
-- One cost line per enemy in the happiness list (`explainHappiness`,
-  `meters.ts`), labelled with the enemy's name ("War weariness · the Inca"),
-  after every town's line. An enemy you have no weariness against has no line.
-- Nothing else. Lower happiness slows growth and can cost the bonus a happy
-  empire gets, but weariness never touches a unit's strength or any combat
-  figure.
-- The meters are remembered on the economy clock (`slate.ts`). `recordWarLoss`
-  moves that clock after it writes, and the turn change moves it, which is when
-  a loss leaves the window. `Player.warLosses` is a row of the slate register
-  (`test/sim/slateRegister.test.ts`).
-
-**Interface**
-
-- The happiness hover and ledger on the top bar print the line per enemy.
-- The foreign courts screen prints "War weariness −N happiness" under the
-  status in that empire's table head, whatever the relation, because a peace
-  does not erase recent losses.
-- The Compendium has a concept entry, "War weariness".
+  the truce broom.
+- No clock moves when a loss is written: no slate tenant on the economy clock
+  reads the list, and the bots' reading is on the revision clock, which every
+  command and phase moves.
 
 **Bots**
 
-- Every peace decision reads `explainPeaceScore` (`src/ai/diplomacy.ts`): the
-  warscore less `war.wearinessWeight` (1) points per point of happiness this
-  seat's own weariness costs, and `war.unhappyWearinessWeight` (2) more per
-  point of that weariness that sits below nought. The terms are printed, and a
-  seat with no weariness reads the bare warscore.
-- The readers are the sue arm and its tribute (`peaceDecision`), the answer to
-  a paper (`answerPeaceOffer`), and the table's counter (`counterRefusal`,
-  `counterTerms`). So a weary seat sues sooner (`war.sueFloor`), stops reading
-  as winning sooner (`war.acceptCeiling`), owes more for a peace and so signs a
-  worse paper, and offers more coin when it sues.
-- **Only the weary side is moved.** The enemy's weariness never counts for a
-  seat, so a winner facing a weary enemy reads exactly the war it read before
-  WC2 and is never harder to make peace with. Weariness ends wars sooner, never
-  later.
-- **The warscore itself is unchanged**: six lines, an exact mirror between the
-  two empires. It also decides whether a seat campaigns (`campaignEnemy`,
-  `bot.ts`: a seat under its `sueFloor` stops campaigning), and weariness must
-  not change that. A first version put weariness inside the warscore and broke
-  the slow war loop (`aiWar.slow.test.ts`): the loser's one point of weariness
-  put it one point under its floor, it stopped campaigning, the counter-attack
-  that evened the exchange never came, and the winner, still ahead on the
-  exchange, never signed.
+- Every peace decision reads `explainPeaceScore` (`src/ai/diplomacy.ts`), which
+  is the warscore itself. The readers are the sue arm and its tribute
+  (`peaceDecision`), the answer to a paper (`answerPeaceOffer`), and the
+  table's counter (`counterRefusal`, `counterTerms`).
+- The warscore is six lines, an exact mirror between the two empires. It also
+  decides whether a seat campaigns (`campaignEnemy`, `bot.ts`: a seat under its
+  `sueFloor` stops campaigning).
 
 ## 6b. Unit ranks (as built, batch WC3, schema 127)
 
@@ -414,7 +388,8 @@ more than the hammers. The code is `src/sim/ranks.ts`; every figure is in
   bot integration below. *(the cut, unless you widen it)*
 - ▢ Anything else you want IN v1: open borders, trade cities/resources/gold/gpt, these can all be used in peace deals or normal trades
 - **The Forbidden Silks** (batch DT7): a seat that holds it may name no luxury it would give, in a deal or in a peace (`luxuryLendingBan`, `diplomacy.ts`). `dealSideError` refuses with the one sentence, and the Deal panel greys the rows with it. A deal already signed runs out.
-- A deal can lend a luxury or a strategic resource. Each promise transfers one available copy for the term. A borrowed strategic copy can supply a unit. At expiry, existing units keep fighting. Further recruitment needs a free copy. Luxury bonuses only count luxury loans.
+- A deal can lend a luxury or a strategic resource. A luxury row transfers one available copy for the term. A borrowed strategic copy can supply a unit. At expiry, existing units keep fighting. Further recruitment needs a free copy. Luxury bonuses only count luxury loans.
+- **A strategic row carries a number of copies** (ruled 2026-11-23, `docs/flags.md`, "Strategic resources are traded in a quantity"). `DealTerms.strategics` is a list of `{ id, copies }` rows (`CopyLoan`, `deals.ts`), each resource at most once. `copies` is a whole number from 1 to the giver's `lendableCopies`; `dealSideError` refuses any other count in a plain sentence, before any state changes. For the deal's life the receiver holds that many more copies and the giver that many fewer (`lentCopiesAwayBy`, `lentCopiesToPlayer`). At expiry all of them go home: the receiver's units built with them keep fighting, and its free copies floor at nothing until it has more. The bots price each copy as they priced one copy, refuse a row that would leave them no free copy, and write one copy on their own papers, until the repricing in `docs/plans/astra-handoff-2026-11-18.md` (section 0.1m).
 - **A borrowed resource cannot be lent on**. An empire lends only the copies it owns: `dealSideError` reads `lendableCopies` (`cities.ts`), its own copies less the ones it lends already. A copy lent to it can be used and not lent. Both seats must still have the promised copy when an ordinary deal is signed. A peace offer checks strategic supply and the Colleganza’s borrower limit again before the second seat signs. `docs/luxuries.md` has the copy arithmetic.
 - trade deals: ai players should accept trades for 1:1 luxuries for copies that it has duplicates of. Figure out a good baseline for gpt/gold for luxuries. Other types of trades can come later.
 - sidebar: Should resource access from other players happen through trade routes? civ 7 has an interesting take on this but i don't want to build their whole resource slotting system.
@@ -487,7 +462,8 @@ more than the hammers. The code is `src/sim/ranks.ts`; every figure is in
 - City trading in PEACE DEALS ONLY (v1).
 - Deal durations: 20 turns, absolute expiry, auto-cancel on declaration.
 - No route-based resource access (the Silk Exchange order owns that space).
-- Losing-war happiness toll: parked in flags.
+- Losing-war happiness toll: built as war weariness (batch WC2), then removed
+  on 2026-11-23 (§6).
 
 ## The milestone — three phases
 

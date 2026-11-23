@@ -56,12 +56,12 @@ describe('the plate on a town that follows you', () => {
   it('is the device, the banner mark, the congregation and the tide', () => {
     const { state } = faithWorld();
     const plate = plateAt(faithPlates(state, 0), 4, 4)!;
-    expect(plate.text).toBe('G ✶ 3 of 5 · +10 a turn');
+    expect(plate.text).toBe('G ✶ 3 of 5 · +6 a turn');
     // Azure's ink — the founder's, which is how every other surface colours a
     // faith (`cityFaithRows.founderColor`).
     expect(plate.ink).toBe('#2a4d8f');
     expect(plate.spoken).toBe(
-      'Uruk follows the Grain Cult · 3 of 5 citizens · the Grain Cult presses +10 a turn',
+      'Uruk follows the Grain Cult · 3 of 5 citizens · the Grain Cult presses +6 a turn',
     );
     // A caption, never a button: `inert` is what makes the hover card underneath
     // still reachable.
@@ -211,7 +211,7 @@ describe('the holy site’s own plate', () => {
     getTileAt(state.map, 4, 4)!.improvement = 'holySite';
     const here = faithPlates(state, 0).filter((plate) => plate.col === 4 && plate.row === 4);
     expect(here).toHaveLength(1);
-    expect(here[0]!.text).toBe('G ✶ 3 of 5 · +16 a turn · Holy site · +6 · range 6');
+    expect(here[0]!.text).toBe('G ✶ 3 of 5 · +12 a turn · Holy site · +6 · range 6');
   });
 });
 
@@ -231,7 +231,7 @@ describe('cityFaithHeadline', () => {
   it('names the faith, the banner mark, the congregation and the tide', () => {
     const { state } = faithWorld();
     const head = cityFaithHeadline(state, state.cities[0]!, 0)!;
-    expect(head.text).toBe('Following the Grain Cult ✶ · 3 of 5 citizens · +10 a turn');
+    expect(head.text).toBe('Following the Grain Cult ✶ · 3 of 5 citizens · +6 a turn');
     expect(head.majority).toBe(true);
     expect(head.founderColor).toBe('#2a4d8f');
   });
@@ -246,9 +246,9 @@ describe('cityFaithHeadline', () => {
     // Nobody flies a banner in Uruk: five citizens, two of them converted.
     state.cities[0]!.followers = { 0: 1, 1: 1 };
     const head = cityFaithHeadline(state, state.cities[0]!, 0)!;
-    expect(head.text).toBe('Follows no religion · the Grain Cult presses +10 a turn');
+    expect(head.text).toBe('Follows no religion · the Grain Cult presses +6 a turn');
     expect(head.majority).toBe(false);
-    expect(head.pressure).toBe(10);
+    expect(head.pressure).toBe(6);
   });
 
   it('is the bare sentence when nothing at all is pulling', () => {
@@ -302,7 +302,7 @@ describe('the following-cities list', () => {
     const { state } = faithWorld();
     const rows = religionReading(state, 0).following;
     const uruk = rows.find((row) => row.name.startsWith('Uruk'))!;
-    expect(uruk.pressure).toBe(10);
+    expect(uruk.pressure).toBe(6);
     expect(uruk.pressure).toBe(uruk.ledger.reduce((sum, line) => sum + line.amount, 0));
     // Only towns that actually hold a follower are listed, which is the pane's
     // own rule and is why Nippur — pressed, unconverted — is not on it.

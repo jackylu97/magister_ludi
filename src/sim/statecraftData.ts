@@ -364,8 +364,8 @@ export const SLOT_TYPES: readonly SlotType[] = ['military', 'economic', 'wildcar
  *   · **military**: combat strength, movement and unit rules, ranks and
  *     experience, units gained, and unit upkeep;
  *   · **economic**: food, production, gold, land and growth;
- *   · **civic**: science, culture, faith, happiness, authority, unrest, war
- *     weariness, renown and great people;
+ *   · **civic**: science, culture, faith, happiness, authority, unrest, renown
+ *     and great people;
  *   · **wildcard**: commissions, and cards that act on other cards.
  *
  * The type decides two things. Its face is printed in its type's ink
@@ -706,11 +706,10 @@ export type CityScope =
   | { test: 'garrisonRank'; rank: RankId }
   /**
    * **A great general of this town's owner stands on the town's own hex**: The
-   * Bakufu (Dominion batch D4). The general's reach for pacification
-   * (`rules.war.unrest.generalReach`) does not count here, because the card
-   * says "standing in a town". Read through `generalPresent` in the evaluator,
-   * which asks the unit's own `greatWork` marker and family, as
-   * `unrestGeneral` does.
+   * Bakufu (Dominion batch D4). A general beside the town does not count,
+   * because the card says "standing in a town". Read through `generalPresent`
+   * in the evaluator, which asks the unit's own `greatWork` marker and family,
+   * never a type name.
    */
   | { test: 'generalPresent' }
   /**
@@ -1570,7 +1569,7 @@ export type CombatCondition =
    */
   | { test: 'coastal' }
   /**
-   * This piece is dug in (`Unit.fortifiedTurns`) — Jan Žižka's wagon fort.
+   * This piece is dug in (`Unit.fortified`) — Jan Žižka's wagon fort.
    *
    * A fact about the *piece* rather than about its type, which is precisely why
    * it is a condition and not a `UnitFilter` field: see that interface's
@@ -2389,7 +2388,11 @@ export type CountKind =
   | 'puppetPopulation'
   /** Combat units standing in this city (city-scoped). */
   | 'garrison'
-  /** Fortified garrison, each worth 1 + its fortification level (city-scoped). */
+  /**
+   * Fortified units in the city's garrison, each worth 1 (city-scoped). Each
+   * was worth 1 more for every turn it had been fortified, up to two, until the
+   * user's ruling of 2026-11-23 made fortification flat.
+   */
   | 'garrisonWatch'
   /**
    * **Fortified military units** of this empire inside its borders (Dominion
@@ -4043,19 +4046,6 @@ export type CardRule =
   | 'campMuster'
   | 'siegeDamage'
   /**
-   * **What the units this empire loses count toward its war weariness**
-   * (Dominion batch D7, The Funeral Oration's half and The Glorious Dead's
-   * nothing). A negative percentage counts them for less. Only this empire's
-   * own losses are changed, never what its enemies lost to it (the triage's
-   * reading 24). Read in `wearinessBetween` (`weariness.ts`).
-   */
-  | 'unitLossWeariness'
-  /**
-   * What the **towns** this empire loses count toward its war weariness: The
-   * Glorious Dead's nothing. `unitLossWeariness`' sibling for towns.
-   */
-  | 'townLossWeariness'
-  /**
    * **What a unit of the row's `class` costs this empire to build** (Dominion
    * batch D8, The Servian Reforms: military units 25% cheaper). A negative
    * percentage is cheaper. It is a line of `explainUnitCost`, so a purchase,
@@ -4311,7 +4301,7 @@ export type ActionRuleId =
    * **The capital may buy as many units in a turn as it can pay for** — The
    * Capital Arsenal (batch C2).
    *
-   * The one-buy-per-class-per-turn stamp (`City.purchasedUnitTurns`) is
+   * The one-unit-a-turn stamp (`City.purchasedUnitTurn`) is
    * compared against in exactly one place, and this rule is a clause beside
    * that comparison. Nothing else changes: the stamp is still written by
    * `purchaseItemAt`, so a town that loses the card is back under the limit the
@@ -4508,10 +4498,12 @@ export type ActionRuleId =
    * Garrison (Commerce, Tier IV).
    *
    * `capitalBuysWithoutLimit`'s sibling, read beside it at the one comparison
-   * against `City.purchasedUnitTurns` (`purchaseError`). It lifts the limit for
-   * the military gold bucket only, and only while the front row is a wonder or
-   * the Opus, so a town that finishes the wonder is back under the limit the
-   * same turn.
+   * against `City.purchasedUnitTurn` (`purchaseError`). It lifts the limit for
+   * military units bought with gold only, and only while the front row is a
+   * wonder or the Opus, so a town that finishes the wonder is back under the
+   * limit the same turn. Since the town has one stamp for every unit (the
+   * ruling of 2026-11-23), a soldier bought under this rule still writes the
+   * stamp, and any other unit is refused in that town for the rest of the turn.
    */
   | 'wonderTownBuysWithoutLimit'
   /**
@@ -5067,11 +5059,10 @@ export type BehaviorRuleId =
    * `class`.
    *
    * Read through `blockades(state, unit)` (`blockade.ts`), which asks the row's
-   * own `UnitDef.blockades` marker first and this rule second. So the four
-   * places that ask whether a piece blockades (the harbour mouth, the sea lane
-   * in `siegeField`, and both halves of the line of battle) give a card's hulls
-   * what the marker gives the heavy line. Only a ship can blockade: the rule
-   * says nothing about a land piece.
+   * own `UnitDef.blockades` marker first and this rule second. So the places
+   * that ask whether a piece blockades (the harbour mouth and the sea lane in
+   * `siegeField`) give a card's hulls what the marker gives the heavy line. Only
+   * a ship can blockade: the rule says nothing about a land piece.
    */
   | 'blockades'
   /**
@@ -7609,7 +7600,7 @@ interface CardUnitStatEffect {
    *   · `'embarked'` — on water, which for a piece that is on the board at all
    *     means it embarked to get there (`isEmbarkableTerrain`, Entry XXVII).
    *     The Great Lighthouse's extra point of movement at sea.
-   *   · `'fortified'` — the piece has dug in (`Unit.fortifiedTurns`, presence is
+   *   · `'fortified'` — the piece has dug in (`Unit.fortified`, presence is
    *     the state). The Alchemical Codex's extra mending, and the only one of
    *     the three that is a fact about the *posture* rather than the ground.
    *   · `'grassOrPlains'` — **the open country**: flat or hilled grassland and
@@ -8183,7 +8174,7 @@ export interface CardWindfallRiderEffect {
    *
    * An **absolute stamp and never a counter that resets**, which is this
    * codebase's one discipline about time (`TimedEffect`, `SlottedOrder.
-   * sealedUntil`, `City.purchasedUnitTurns`): `PlayerStatecraft.riderTurns`
+   * sealedUntil`, `City.purchasedUnitTurn`): `PlayerStatecraft.riderTurns`
    * holds the turn this card last rode, the rider is dropped while that turn is
    * the current one, and nothing anywhere ticks it down or sweeps it clean. A
    * turn arriving is the whole of the reset.
@@ -9848,25 +9839,8 @@ export type PressureRuleId =
   | 'siteStrength'
   | 'cityRange'
   | 'cityStrength'
-  | 'roadStrength'
   | 'routeStrength'
-  | 'capitalStrength'
-  /**
-   * **How far the seat of the faith carries** — Pilgrims' (the user's orders
-   * pass, `docs/flags.md` (xxx) mark 18).
-   *
-   * `capitalStrength`'s missing twin. Every other source in the tide is a pair —
-   * a strength and a reach — and the founder's capital had only the first: it
-   * held *itself* and drifted nowhere, which is `explainPressure`'s "a founder's
-   * capital does not drift". So `rules.religion.capitalRange` is **0** in every
-   * game nothing says otherwise, meaning the capital's own hex and nothing
-   * further, and the fold is byte-identical to the day before this existed.
-   * A card that shifts it gives the seat a reach, which is the whole of what
-   * Pilgrims is.
-   */
-  | 'capitalRange'
   | 'templeOwnPercent'
-  | 'templeForeignPercent'
   | 'bombRange'
   | 'bombRangePercent'
   | 'foreignBombPercent'
@@ -9874,10 +9848,10 @@ export type PressureRuleId =
   | 'routeBothWays'
   /**
    * A percentage on **rival** pressure entering this empire's own towns, read
-   * for the town's owner in `templeShare` (tide and proclamation alike). −100
-   * shuts it out (The Peace of God, retired in batch DS1 and kept for saves).
-   * The Holy Inquisition's −40 went in batch DS5. Not a key of
-   * `rules.religion`: its base is nought.
+   * for the town's owner in `rivalShare` (tide and proclamation alike, with or
+   * without a Temple). The belief Inquisition says −30 and the Order The Holy
+   * Inquisition −80. −100 shuts it out (The Peace of God, retired in batch DS1
+   * and kept for saves). Not a key of `rules.religion`: its base is nought.
    */
   | 'rivalPressurePercent';
 

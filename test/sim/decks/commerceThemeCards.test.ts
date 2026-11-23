@@ -170,6 +170,11 @@ function earning(card: string): { state: GameState; one: City; two: City } {
   slot(state, 0, 'marketDay');
   one.population = 45;
   bumpRevision(state);
+  // Isolate the gold conversions from the large town's unhappiness penalty.
+  state.players[0]!.timed = [{ card: 'theRoyalHousehold', effect: {
+    kind: 'happiness', amount: -happinessOf(state, 0),
+  }, expiresTurn: state.turn + 1 }];
+  bumpRevision(state);
   return { state, one, two };
 }
 

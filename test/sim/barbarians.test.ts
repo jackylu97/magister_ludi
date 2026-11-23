@@ -23,7 +23,6 @@ import {
 import { campAt, hasCampAt, settleCampBounty } from '../../src/sim/camps';
 import { assignCitizens, foundCityAt, growthThreshold } from '../../src/sim/cities';
 import {
-  advanceFortify,
   applyCombat,
   cityAttackPhase,
   cityMaxHp,
@@ -1352,7 +1351,7 @@ describe('escorting', () => {
  *
  *   1. **A camp's first piece stays home and digs in.** It is mustered onto the
  *      camp hex — which is the seat `musterTileFor` already preferred — and
- *      fortifies through `Unit.fortifiedTurns`, the field a player's Fortify
+ *      fortifies through `Unit.fortified`, the field a player's Fortify
  *      writes, so the trench is on `planCombat`'s ledger as an ordinary labelled
  *      line and the wild gets no entrenchment rule of its own.
  *   2. **It is derived, not remembered** — the nearest unspoken-for soldier
@@ -1379,13 +1378,12 @@ describe('the warden', () => {
     const band = bandOf(state);
     expect(band).toHaveLength(1);
     expect({ col: band[0]!.col, row: band[0]!.row }).toEqual({ col: 8, row: 8 });
-    // Zero, not one — `applyFortify`'s own value, because the bonus is paid for
-    // turns *survived* dug in and `advanceFortify` raises it at the turn's end.
-    expect(band[0]!.fortifiedTurns).toBe(0);
+    // `applyFortify`'s own value: the wild digs in through the player's field.
+    expect(band[0]!.fortified).toBe(true);
     expect(isFortified(band[0]!)).toBe(true);
   }));
 
-  it('holds the hex across turns and digs deeper, never wandering off it', () => {
+  it('holds the hex across turns, dug in, never wandering off it', () => {
     const state = wildState();
     state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
     const warden = createUnit(state, wildId(state), 'warrior', 8, 8);
@@ -1399,14 +1397,11 @@ describe('the warden', () => {
     for (let step = 0; step < 6; step++) {
       refill(state);
       barbarianTurn(state);
-      // The phase that follows `barbarians` in the resolution, so the trench
-      // deepens on the ordinary schedule rather than by a rule of the wild's.
-      advanceFortify(state);
       expect({ col: warden.col, row: warden.row }).toEqual({ col: 8, row: 8 });
     }
     // A raider with nothing in reach would have drifted (see `wander`); this one
-    // has not moved a hex, and it is dug in to the cap.
-    expect(fortifyBonus(warden)).toBe(RULES.combat.fortifyMax);
+    // has not moved a hex, and it is dug in with the flat bonus.
+    expect(fortifyBonus(warden)).toBe(RULES.combat.fortifyBonus);
   });
 
   it('keeps the second muster as a guard, sends the third out to raid, and the warden keeps the hex', () => withMusterChance(100, () => {
@@ -1543,7 +1538,7 @@ describe('the warden', () => {
     foundCityAt(state, 0, at(state, 4, 5));
     state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
     const warden = createUnit(state, wildId(state), 'warrior', 9, 5);
-    warden.fortifiedTurns = 2;
+    warden.fortified = true;
     const soldier = createUnit(state, 0, 'swordsman', 8, 5);
     recomputeAllVisibility(state);
 

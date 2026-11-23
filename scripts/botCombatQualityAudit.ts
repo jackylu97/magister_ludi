@@ -22,7 +22,7 @@ function unitReading(state: GameState, unit: Unit) {
     id: unit.id, ownerId: unit.ownerId, type: unit.type, hp: unit.hp,
     col: unit.col, row: unit.row, terrain: tile.terrain, feature: tile.feature,
     hills: tile.hills, ranged: isRanged(unitDef(unit.type)),
-    military: isCombatant(unitDef(unit.type)), fortifiedTurns: unit.fortifiedTurns,
+    military: isCombatant(unitDef(unit.type)), fortified: unit.fortified,
   };
 }
 type UnitReading = ReturnType<typeof unitReading>;

@@ -105,7 +105,7 @@ describe('the disbandUnit command', () => {
     const state = flatState();
     const warrior = createUnit(state, 0, 'warrior', 5, 5);
     warrior.movesLeft = 0;
-    warrior.fortifiedTurns = 3;
+    warrior.fortified = true;
     warrior.hp = 12;
     expect(applyCommand(state, disband(warrior.id)).ok).toBe(true);
     expect(state.units).toHaveLength(0);

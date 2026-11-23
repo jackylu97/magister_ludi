@@ -8,6 +8,13 @@
  * grow; food, gold and faith are untouched, and so is buying things in it.
  * Unrest ends when the town's pacification reaches its target.
  *
+ * Since the user's ruling of 2026-11-23 (`docs/flags.md`, "Unrest lasts three
+ * turns in every town"), the target is `rules.war.unrest.turns` for every
+ * town, and each turn adds one. A garrison, a great general and a Courthouse
+ * no longer change the length; only a card does. Rebels are switched off
+ * (`rebelEveryTurns` is 0), and their code stays so the figure can bring them
+ * back.
+ *
  * Where each part of the rule lives:
  *
  *   · **the record** is `City.unrest` (`state.ts`), written by `startUnrest`
@@ -25,7 +32,8 @@
  *   · **pacification** is this file: a labelled rate (`explainPacification`,
  *     rule 5) folded into a basket each turn by `runUnrest`.
  *   · **rebels** are this file too: an unguarded town in unrest raises a
- *     barbarian beside itself on every third unguarded turn (`runUnrest`).
+ *     barbarian beside itself on every `rebelEveryTurns`-th unguarded turn
+ *     (`runUnrest`), when that figure is above 0.
  *
  * Every figure is in `rules.war.unrest`. Nothing here counts down: the target
  * and the basket are compared, and the rebel cadence counts the turns that
@@ -37,11 +45,8 @@
  * not hold a town.
  */
 
-import { buildingDef } from './buildingData';
-import { buildingsEasingUnrest } from './buildingEffects';
 import { settleGrowthWindfall, settleProductionWindfall, turnsToFill } from './cities';
-import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
-import { type Tile, getTileAt, tileHex, tileIndex, tileNeighbors, wrappedDistance } from './map';
+import { type Tile, getTileAt, tileIndex, tileNeighbors } from './map';
 import { isPassable } from './pathfind';
 import { nextInt } from './rng';
 import { RULES } from './rulesData';
@@ -65,8 +70,6 @@ import {
   windfallPayoutIsEmpty,
 } from './statecraft/evaluator';
 import { settleCultureWindfall } from './statecraft/draft';
-// Expansionist batch E12: what a town holds, a card's grants included.
-import { townShelf } from './statecraft/evaluator';
 import { settleResearchWindfall } from './tech';
 import { type UnitTypeId, isFieldSoldier, unitDef } from './unitData';
 
@@ -79,18 +82,21 @@ export function inUnrest(city: City): boolean {
 }
 
 /**
- * The pacification a town of this many citizens needs.
+ * The pacification a taken town needs: `rules.war.unrest.turns`, the same for
+ * every town.
  *
  * Exported because the bot reads it before a town is taken: it weighs how long
- * a target would sit in unrest when deciding whether to go after it.
+ * a target would sit in unrest when deciding whether to go after it. The
+ * town's size no longer changes the figure. The argument stays so that the
+ * bot's caller, which passes the size, needs no change.
  */
-export function unrestTarget(population: number): number {
-  return Math.max(0, UNREST.targetPerCitizen * population);
+export function unrestTarget(_population: number): number {
+  return Math.max(0, UNREST.turns);
 }
 
 /**
- * Puts a town into unrest: a fresh record, with the target read off the
- * population it has now.
+ * Puts a town into unrest: a fresh record, with the target read off the rules
+ * now (`unrestTarget`).
  *
  * Two callers:
  *
@@ -110,8 +116,10 @@ export function startUnrest(city: City): void {
 /**
  * The first military unit of the town's owner standing in the town, or `null`.
  *
- * `state.units` order, which is the log's, so the unit named on the panel's
- * garrison line is the same unit on every machine.
+ * It no longer speeds pacification. It decides whether a turn counts toward a
+ * rebel, whether The Harrying can throw a town into unrest, and whether the
+ * panel says a soldier holds the town. `state.units` order, which is the log's,
+ * so every machine names the same unit.
  */
 export function unrestGarrison(state: GameState, city: City): Unit | null {
   for (const unit of state.units) {
@@ -122,35 +130,9 @@ export function unrestGarrison(state: GameState, city: City): Unit | null {
   return null;
 }
 
-/**
- * The first great general of the town's owner standing in the town or within
- * `rules.war.unrest.generalReach` of it, or `null`.
- *
- * Read the way the general's combat aura reads one (`generalAuraLines` in
- * `combat.ts`): the piece's own `greatWork` marker and the person's family,
- * never a type name, and the first in `state.units` order.
- */
-function unrestGeneral(state: GameState, city: City): Unit | null {
-  const here = getTileAt(state.map, city.col, city.row);
-  if (!here) return null;
-  const centre = tileHex(here);
-  for (const unit of state.units) {
-    if (unit.ownerId !== city.ownerId) continue;
-    if (unitDef(unit.type).greatWork !== true) continue;
-    const person = unit.person;
-    if (person === undefined || !isGreatPersonId(person)) continue;
-    if (greatPersonDef(person).family !== 'general') continue;
-    const stands = getTileAt(state.map, unit.col, unit.row);
-    if (!stands) continue;
-    if (wrappedDistance(state.map, centre, tileHex(stands)) > UNREST.generalReach) continue;
-    return unit;
-  }
-  return null;
-}
-
 /** One reason a town's pacification fills, and how much it adds each turn. */
 interface PacificationLine {
-  /** What the city panel prints: "Every turn", "Garrison · Spearman", "Courthouse". */
+  /** What the city panel prints: "Every turn", or the name of a card. */
   source: string;
   /** Pacification this reason adds each turn. */
   amount: number;
@@ -159,45 +141,26 @@ interface PacificationLine {
 /**
  * **How fast this town's unrest settles**, one line per reason (rule 5).
  *
- * Four reasons, in the order the panel prints them: every turn adds the base
- * rate; a military unit of the owner standing in the town adds the garrison
- * rate; a great general of the owner in or beside the town adds the general's
- * rate; and each building carrying the `easesUnrest` marker adds the building
- * rate. One garrison line however many soldiers stand there, and one general
- * line however many generals do. A reason worth nothing prints no line.
+ * The first line is the turn itself: every turn adds one, so a town with no
+ * card settles in exactly `rules.war.unrest.turns` turns. It is a fixed 1 and
+ * not a figure in the rules, because the length of unrest is `turns` alone;
+ * a second figure for the rate would let the two disagree.
  *
- * A fifth reason since Dominion batch D4: a card's percentage on the rate
- * (`CardRule` `pacificationRate`, The Satraps' "twice as fast" in garrisoned
- * towns). Each card adds one line, worth its percentage of the four reasons
- * above, rounded down. The row's scope is asked of this town.
+ * Then a line for each card's percentage on the rate (`CardRule`
+ * `pacificationRate`, The Satraps' "twice as fast" in garrisoned towns,
+ * Dominion batch D4). Each is worth its percentage of the turn's one, rounded
+ * down, so The Satraps' +100% adds one more and a town of three turns settles
+ * in two. The row's scope is asked of this town.
  *
  * It reads the board as it stands and does not ask whether the town is in
  * unrest; `runUnrest` and the panel only ask it of a town that is.
  */
 export function explainPacification(state: GameState, city: City): PacificationLine[] {
-  const lines: PacificationLine[] = [];
-  if (UNREST.baseRate !== 0) lines.push({ source: 'Every turn', amount: UNREST.baseRate });
-  const garrison = unrestGarrison(state, city);
-  if (garrison !== null && UNREST.garrisonRate !== 0) {
-    lines.push({ source: `Garrison · ${unitDef(garrison.type).name}`, amount: UNREST.garrisonRate });
-  }
-  const general = unrestGeneral(state, city);
-  if (general !== null && general.person !== undefined && UNREST.generalRate !== 0) {
-    const name = isGreatPersonId(general.person) ? greatPersonDef(general.person).name : 'A general';
-    lines.push({ source: `Great general · ${name}`, amount: UNREST.generalRate });
-  }
-  if (UNREST.buildingRate !== 0) {
-    // What the town holds (`townShelf`, Expansionist batch E12).
-    for (const id of buildingsEasingUnrest(townShelf(state, city))) {
-      lines.push({ source: buildingDef(id).name, amount: UNREST.buildingRate });
-    }
-  }
+  const lines: PacificationLine[] = [{ source: 'Every turn', amount: 1 }];
   const base = foldPacification(lines);
-  if (base > 0) {
-    for (const rule of cardRulePercent(state, city.ownerId, 'pacificationRate', city)) {
-      const amount = Math.floor((base * rule.percent) / 100);
-      if (amount !== 0) lines.push({ source: rule.source, amount });
-    }
+  for (const rule of cardRulePercent(state, city.ownerId, 'pacificationRate', city)) {
+    const amount = Math.floor((base * rule.percent) / 100);
+    if (amount !== 0) lines.push({ source: rule.source, amount });
   }
   return lines;
 }
@@ -356,14 +319,15 @@ export function endUnrest(state: GameState, city: City, reports?: UnrestReport[]
  * this order:
  *
  *   1. **Pacification.** If a card pacifies the town at once (`CityRuleId`
- *      `pacified`, Dominion batch D4: The Bakufu and The Consular Roads), the
- *      unrest ends now; this is the triage's reading 27, the end of the turn
+ *      `pacified`, Dominion batch D4: The Consular Roads), the unrest ends
+ *      now; this is the triage's reading 27, the end of the turn
  *      in which the card's condition holds. Otherwise the basket gains the
  *      fold of `explainPacification`. When it reaches the target the unrest
  *      ends (`endUnrest`), and nothing else happens to the town this turn.
  *   2. **Rebels.** A town still in unrest with no military unit of its owner
  *      inside counts the turn as unguarded. When that count reaches a multiple
  *      of `rules.war.unrest.rebelEveryTurns`, a rebel rises beside the town.
+ *      That figure is 0 by default, and then no rebel rises.
  *
  * Pacification goes first so that a town settled this turn raises no rebel on
  * the same turn: the turn it is pacified is the turn its unrest is over.

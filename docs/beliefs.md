@@ -123,8 +123,8 @@ world-scale counts live here.
 | Belief | Axis | Effect |
 |---|---|---|
 | Reliquaries | stone | +1 culture for every 3 faith you make each turn. |
-| Inquisition | war | Rival religions press your towns with a Temple at half strength. |
-| The Long Road | road | Your religion presses 2 harder along roads and trade routes. |
+| Inquisition | war | Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion. |
+| The Long Road | road | Your religion presses 2 harder along trade routes. |
 | Itinerant Preachers | road | Towns that follow press your religion 5 hexes further. |
 | The Pulse of Bells | sky | A proclamation reaches 4 hexes further and presses 20 faith harder. |
 | Ecclesia | stone | Each holy site gives +1 faith for each town in the world that follows your religion. |

@@ -48,7 +48,7 @@ import {
   puppetProduction,
   valueContext,
 } from '../../src/ai/bot';
-import { aiConfigFor, aiConfigForPuppet, withAiTuning } from '../../src/ai/aiConfig';
+import { aiConfigFor, aiConfigForPuppet, aiTuning, withAiTuning } from '../../src/ai/aiConfig';
 import {
   answerPeaceOffer,
   armyStrength,
@@ -81,7 +81,7 @@ import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { type DoctrineId, slotLayout } from '../../src/sim/statecraftData';
 import { chairMisfitRefusal } from '../../src/sim/statecraft';
 import { closeWar, openWar, setPeaceOffer } from '../../src/sim/wars';
-import { lossTurnsCounted, pruneWarLosses, recordWarLoss } from '../../src/sim/weariness';
+import { lossTurnsCounted, pruneWarLosses, recordWarLoss } from '../../src/sim/warLosses';
 import { readWarExchange } from '../../src/ai/warLedger';
 import { newGame } from './newGameHelpers';
 import { typeRowsByOldOffice } from './statecraftHelpers';
@@ -210,9 +210,7 @@ describe('the warscore', () => {
     // Rule: a score is the fold of its terms, exactly.
     expect(foldTerms(ours.terms)).toBe(ours.total);
     expect(foldTerms(theirsRead.terms)).toBe(theirsRead.total);
-    // Six lines and no more — the doc's whole specification. War weariness is
-    // never one of them: batch WC2 weighs it beside the warscore, in the peace
-    // reading (`explainPeaceScore`, covered by `weariness.test.ts`).
+    // Six lines and no more, the doc's whole specification.
     expect(ours.terms).toHaveLength(6);
     // The same war from the other side is the same number negated.
     expect(theirsRead.total).toBeCloseTo(-ours.total, 9);
@@ -1244,7 +1242,7 @@ describe('slotting is scored rather than first-fit', () => {
  * the same way. Every piece but the one under test is fortified, so it is not
  * idle (`unitAwaitsOrders`) and the blocker names the piece the claim is about.
  */
-describe('the three tactics', () => {
+describe('the original policy combat tactics', () => {
   /**
    * A seat, a held town far from the action, and a war with the neighbour.
    *
@@ -1257,7 +1255,7 @@ describe('the three tactics', () => {
     const state = bench(2, { barbarians });
     const city = foundCityAt(state, 0, at(state.map, 2, 2));
     const garrison = createUnit(state, 0, 'warrior', city.col, city.row);
-    garrison.fortifiedTurns = 0;
+    garrison.fortified = true;
     seat(state, 0).gold = 120;
     bumpRevision(state);
     openWar(state, 0, 1);
@@ -1267,7 +1265,8 @@ describe('the three tactics', () => {
   /** The seat's decisions, driven until one is an order to this piece. */
   function orderFor(state: GameState, playerId: number, unitId: number, budget = 8): BotDecision | null {
     for (let guard = 0; guard < budget; guard++) {
-      const decision = nextBotDecision(state, playerId);
+      // Preserve coverage of the control policy's own settings and explanations.
+      const decision = withAiTuning({ ...aiTuning(), tactics: { enabled: 0 } }, () => nextBotDecision(state, playerId));
       if (decision === null) return null;
       if ((decision.command as { unitId?: number }).unitId === unitId) return decision;
       if (!applyCommand(state, decision.command).ok) return null;
@@ -1526,7 +1525,7 @@ describe('the three tactics', () => {
     const { state } = front();
     const bow = createUnit(state, 0, 'archer', 5, 5);
     const defended = createUnit(state, 1, 'warrior', 5, 4);
-    defended.fortifiedTurns = 2;
+    defended.fortified = true;
     at(state.map, 5, 4).feature = 'forest';
     const exposed = createUnit(state, 1, 'warrior', 6, 5);
     recomputeAllVisibility(state);
@@ -1582,9 +1581,9 @@ describe('the three tactics', () => {
   it('uses the range granted by Mechanics when looking for a siege shot', () => {
     const { state } = front();
     const catapult = createUnit(state, 0, 'catapult', 5, 5);
-    catapult.fortifiedTurns = 2;
+    catapult.fortified = true;
     catapult.dugIn = 'awake';
-    createUnit(state, 0, 'warrior', 6, 5).fortifiedTurns = 2;
+    createUnit(state, 0, 'warrior', 6, 5).fortified = true;
     const enemy = createUnit(state, 1, 'warrior', 8, 5);
     recomputeAllVisibility(state);
     bumpRevision(state);
@@ -1602,7 +1601,7 @@ describe('the three tactics', () => {
     const city = foundCityAt(state, 0, at(state.map, 5, 5));
     seat(state, 0).gold = 120;
     const bow = createUnit(state, 0, 'archer', city.col, city.row);
-    bow.fortifiedTurns = 2;
+    bow.fortified = true;
     bow.dugIn = 'awake';
     const wild = state.players.find(p => p.barbarian)!;
     const target = createUnit(state, wild.id, 'warrior', 7, 5);
@@ -1623,7 +1622,7 @@ describe('the three tactics', () => {
   it('gives a fortified archer its legal shot before an idle melee unit acts', () => {
     const { state, spear } = bothCanHit();
     const bow = state.units.find(unit => unit.type === 'archer')!;
-    bow.fortifiedTurns = 2;
+    bow.fortified = true;
     bow.dugIn = 'awake';
     bumpRevision(state);
     const decision = nextBotDecision(state, 0);
@@ -1634,7 +1633,7 @@ describe('the three tactics', () => {
   it('keeps a wounded fortified archer healing when no shot can finish the enemy', () => {
     const { state, city } = front(true);
     const bow = createUnit(state, 0, 'archer', city.col + 1, city.row);
-    bow.fortifiedTurns = 2;
+    bow.fortified = true;
     bow.dugIn = 'awake';
     bow.hp = 10;
     const wild = state.players.find(p => p.barbarian)!;
@@ -1726,7 +1725,7 @@ describe('the three tactics', () => {
     // `military.screenRadius`, and lit for this seat by the spearman's own eyes.
     const bow = createUnit(state, 0, 'archer', 6, 5);
     const shield = createUnit(state, 0, 'warrior', 8, 5);
-    shield.fortifiedTurns = 0;
+    shield.fortified = true;
     createUnit(state, 1, 'warrior', 9, 5);
     recomputeAllVisibility(state);
     expect(isVisibleTo(state, 0, 9, 5)).toBe(true);
@@ -1754,7 +1753,7 @@ describe('the three tactics', () => {
     const { state } = front();
     const bow = createUnit(state, 0, 'archer', 7, 5);
     const shield = createUnit(state, 0, 'warrior', 8, 5);
-    shield.fortifiedTurns = 0;
+    shield.fortified = true;
     createUnit(state, 1, 'warrior', 9, 5);
     recomputeAllVisibility(state);
     const decision = orderFor(state, 0, bow.id);
@@ -1768,7 +1767,7 @@ describe('the three tactics', () => {
     const { state } = front();
     const bow = createUnit(state, 0, 'archer', 6, 5);
     const shield = createUnit(state, 0, 'warrior', 8, 5);
-    shield.fortifiedTurns = 0;
+    shield.fortified = true;
     recomputeAllVisibility(state);
     const decision = orderFor(state, 0, bow.id);
     expect(decision).not.toBeNull();
@@ -1790,7 +1789,7 @@ describe('the three tactics', () => {
  * the whole thing (`aiWar.slow.test.ts`, the two-seat war) and measures what
  * arrives.
  */
-describe('the campaign', () => {
+describe('the original policy campaign', () => {
   /**
    * Two empires twelve hexes apart, at war, with the attacker's towns held.
    *
@@ -1812,9 +1811,9 @@ describe('the campaign', () => {
     const ours = foundCityAt(state, 0, at(state.map, 2, 5));
     const theirs = foundCityAt(state, 1, at(state.map, 10, 5));
     const garrison = createUnit(state, 0, 'warrior', ours.col, ours.row);
-    garrison.fortifiedTurns = 0;
+    garrison.fortified = true;
     const theirGarrison = createUnit(state, 1, 'warrior', theirs.col, theirs.row);
-    theirGarrison.fortifiedTurns = 0;
+    theirGarrison.fortified = true;
     const column: ReturnType<typeof createUnit>[] = [];
     for (let index = 0; index < soldiers; index++) {
       column.push(createUnit(state, 0, 'warrior', from[0], from[1] + index));
@@ -1829,7 +1828,7 @@ describe('the campaign', () => {
   /** The seat's decisions, driven until one is an order to this piece. */
   function orderFor(state: GameState, playerId: number, unitId: number, budget = 10): BotDecision | null {
     for (let guard = 0; guard < budget; guard++) {
-      const decision = nextBotDecision(state, playerId);
+      const decision = withAiTuning({ ...aiTuning(), tactics: { enabled: 0 } }, () => nextBotDecision(state, playerId));
       if (decision === null) return null;
       if ((decision.command as { unitId?: number }).unitId === unitId) return decision;
       if (!applyCommand(state, decision.command).ok) return null;
@@ -1912,7 +1911,7 @@ describe('the campaign', () => {
    */
   it('leaves a hurt piece dug in on its own ground to mend, and calls the healthy ones', () => {
     const { state, ours, column } = frontier({ soldiers: 3, bow: false });
-    for (const piece of column) piece.fortifiedTurns = 2;
+    for (const piece of column) piece.fortified = true;
     const hurt = column[0]!;
     hurt.hp = 30;
     state.tileOwner[tileIndex(state.map, hurt.col, hurt.row)] = ours.id;
@@ -1927,7 +1926,7 @@ describe('the campaign', () => {
     }
     expect(sent.some((decision) => /^Calls a dug-in piece back to the colours/.test(decision.summary))).toBe(true);
     expect(sent.filter((decision) => (decision.command as { unitId?: number }).unitId === hurt.id)).toEqual([]);
-    expect(hurt.fortifiedTurns).not.toBeUndefined();
+    expect(hurt.fortified).not.toBeUndefined();
   });
 
   // --- (b) the push, and the siege exchange ---------------------------------
@@ -2012,7 +2011,7 @@ describe('the campaign', () => {
     const built = atTheWalls();
     const { state, theirs, column } = built;
     const screen = createUnit(state, 1, 'warrior', theirs.col, theirs.row - 1);
-    screen.fortifiedTurns = 3;
+    screen.fortified = true;
     recomputeAllVisibility(state);
     bumpRevision(state);
     // The piece standing beside it already, rather than a fresh one: the whole
@@ -2179,7 +2178,7 @@ describe('the campaign', () => {
     foundCityAt(state, 0, at(state.map, 1, 9));
     foundCityAt(state, 1, at(state.map, 12, 5));
     const garrison = createUnit(state, 0, 'warrior', ours.col, ours.row);
-    garrison.fortifiedTurns = 0;
+    garrison.fortified = true;
     // Their column, inside `threat.radius` of our town — the whole of what
     // `ValueContext.threat` reads.
     for (const [col, row] of [

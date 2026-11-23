@@ -71,9 +71,8 @@ import {
   rosterNote,
   standingAndDeals,
   stripStep,
-  wearinessLine,
 } from '../../src/ui/diplomacyScreen';
-import { recordWarLoss, wearinessBetween } from '../../src/sim/weariness';
+import { recordWarLoss } from '../../src/sim/warLosses';
 import { newGame } from '../sim/newGameHelpers';
 
 function bench(seats = 2, wild = false): GameState {
@@ -177,46 +176,21 @@ describe('the sheet’s rows', () => {
   });
 });
 
-describe('the war weariness line (batch WC2)', () => {
-  it('carries the happiness your losses to them cost, and says nothing when they cost none', () => {
-    const state = bench();
-    openWar(state, 0, 1);
-    expect(diplomacyRows(state, 0)[0]!.weariness).toBe(0);
-    expect(wearinessLine(diplomacyRows(state, 0)[0]!)).toBeNull();
-
-    recordWarLoss(state, 0, 1, 'town');
-    const row = diplomacyRows(state, 0)[0]!;
-    // The same figure the happiness breakdown prints on their line.
-    expect(row.weariness).toBe(wearinessBetween(state, 0, 1).happiness);
-    expect(row.weariness).toBeGreaterThan(0);
-    expect(wearinessLine(row)).toBe(`War weariness −${row.weariness} happiness`);
-    // A war the other side is losing costs them, and costs us nothing.
-    expect(diplomacyRows(state, 1)[0]!.weariness).toBe(0);
-  });
-
-  it('keeps the line through a peace, because a peace does not erase recent losses', () => {
-    const state = bench();
-    openWar(state, 0, 1);
-    recordWarLoss(state, 0, 1, 'unit');
-    closeWar(state, 0, 1);
-    const row = diplomacyRows(state, 0)[0]!;
-    expect(row.relation).toBe('truce');
-    expect(wearinessLine(row)).not.toBeNull();
-  });
-
-  it('lists the line under where you stand, in the Standing and deals drawer', () => {
+describe('no war weariness line (removed 2026-11-23)', () => {
+  it('prints nothing about weariness, however the war has gone', () => {
+    // The user's ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules",
+    // item 1): a lost unit or town costs no happiness, so the courts screen has
+    // no line for it.
     const state = bench();
     openWar(state, 0, 1);
     recordWarLoss(state, 0, 1, 'town');
     const row = diplomacyRows(state, 0)[0]!;
+    expect('weariness' in row).toBe(false);
     const read = standingAndDeals(state, 0, row, dealPanel(state, 0, 1));
-    expect(read.weariness).toBe(wearinessLine(row));
-    expect(read.weariness).not.toBeNull();
+    expect('weariness' in read).toBe(false);
     const screen = uiSource('diplomacyScreen.ts');
-    expect(braceBody(screen, 'function standingAndDeals(')).toContain('weariness: wearinessLine(row)');
-    expect(braceBody(screen, '  function drawDrawer(')).toContain(
-      "if (read.weariness !== null) drawer.append(element('p', 'dp-weary', read.weariness));",
-    );
+    expect(screen).not.toMatch(/weariness/i);
+    expect(screen).not.toContain('dp-weary');
   });
 });
 
@@ -667,7 +641,6 @@ describe('the Standing and deals drawer', () => {
     expect(read.standing[1]!.value).toBe('Open to you');
     expect(read.inForce).toEqual(model.active);
     expect(read.inForce).toHaveLength(1);
-    expect(read.weariness).toBeNull();
     expect(read.waiting).toEqual([]);
     expect(read.mine).toEqual([]);
     // The drawer's words carry no figure (hard rule 7).
@@ -720,7 +693,7 @@ describe('the Standing and deals drawer', () => {
     const screen = uiSource('diplomacyScreen.ts');
     const drawer = braceBody(screen, '  function drawDrawer(');
     expect(drawer).toContain('const read = standingAndDeals(state, options.getPlayerId(), row, model);');
-    for (const reading of ['bordersOpenTo(', 'dealsBetween(', 'wearinessLine(', 'model.proposals', 'model.active']) {
+    for (const reading of ['bordersOpenTo(', 'dealsBetween(', 'model.proposals', 'model.active']) {
       expect(drawer, reading).not.toContain(reading);
     }
   });

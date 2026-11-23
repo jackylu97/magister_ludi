@@ -121,6 +121,8 @@ import {
 } from '../../src/sim/beadData';
 import type { City, GameState } from '../../src/sim/state';
 import { bumpRevision, playerById } from '../../src/sim/state';
+import { happinessOf, tierPercent } from '../../src/sim/meters';
+import { RULES } from '../../src/sim/rulesData';
 import { found, game } from '../sim/statecraftHelpers';
 
 const SOURCES = {
@@ -613,20 +615,28 @@ describe('the gain, and who supplied it', () => {
 
   it('leaves the empire’s own thumb — a meter, the arrears — in “other”', () => {
     // Arrears is the one percentage a test can force from outside: a treasury
-    // under water costs the empire a quarter of its science, at the empire
-    // stage, and the loss belongs to nobody a player could have built.
+    // under water costs the empire a fifth of its science, at the empire
+    // stage, and the loss belongs to nobody a player could have built. Since
+    // the ruling of 2026-11-23 that fifth alone no longer outweighs the deck's
+    // quarter, so the town is also grown until happiness reaches −10, where the
+    // meter takes another fifth.
     const { state, playerId } = bench();
     const town = state.cities.find((city) => city.ownerId === playerId)!;
     const player = playerById(state, playerId)!;
+    while (happinessOf(state, playerId) > -10) {
+      town.population += 1;
+      bumpRevision(state);
+    }
     const solvent = explainLedger(state, playerId).find((voice) => voice.key === 'science')!;
     player.gold = -40;
     bumpRevision(state);
     const owing = explainLedger(state, playerId).find((voice) => voice.key === 'science')!;
     const weights = percentWeights(state, town, explainCity(state, town), 'science');
-    expect(weights).toContainEqual({ into: 'other', percent: -25 });
+    expect(weights).toContainEqual({ into: 'other', percent: RULES.upkeep.debtPercent });
+    expect(weights).toContainEqual({ into: 'other', percent: tierPercent(happinessOf(state, playerId)) });
     // The empire makes less science than it did, and the town now banks less
     // than its own flats — a **negative** gain, which the same-sign rule hands
-    // whole to the line that took it. The deck's +25% earns none of a loss.
+    // whole to the lines that took it. The deck's +25% earns none of a loss.
     expect(owing.total).toBeLessThan(solvent.total);
     const gain = gainOf(state, town, 'science');
     expect(gain).toBeLessThan(0);

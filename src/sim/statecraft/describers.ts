@@ -5002,10 +5002,8 @@ export function periodicProbe(effect: CardPeriodicEffect): CardPaysEffect {
 
 /**
  * The rules of the tide, as **formatters** rather than as stems — `AMPLIFIER_WORDS`'
- * bargain, and for its reason: a range and a resistance do not take the same
- * sentence, and `templeForeignPercent` reads *backwards* (a smaller number is a
- * stronger temple), so a shared "+N to X" would have printed the one clause in
- * the pool that a player could misread as a weakening.
+ * bargain, and for its reason: a range, a strength and a percentage do not take
+ * the same sentence, so a shared "+N to X" would print some of them wrongly.
  */
 const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
   siteRange: (delta) => `holy sites reach ${signed(delta)} hexes further`,
@@ -5014,18 +5012,8 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
   cityRange: (delta) => `cities that follow press your religion ${signed(delta)} hexes further`,
   cityStrength: (delta) => `cities that follow spread ${signed(delta)} faith`,
   // Batch B1: The Long Road's words, which say that the pressure is stronger.
-  roadStrength: (delta) => `your religion presses ${signed(delta)} harder along roads`,
   routeStrength: (delta) => `your religion presses ${signed(delta)} harder along trade routes`,
-  capitalStrength: (delta) => `your capital holds ${signed(delta)} faith of its own`,
-  // The seat's reach. It says *carries* rather than "reaches further", because
-  // the capital had no reach at all before a card gave it one — "further" would
-  // be an increment on a distance the player has never been told about.
-  capitalRange: (delta) => `your capital carries its faith ${signed(delta)} hexes`,
   templeOwnPercent: (delta) => `a Temple holds its own faith ${signed(delta)}% harder`,
-  // Batch B1: Inquisition's words give the strength that gets through, which
-  // is the rule's own share with the change applied (75% less 25 is 50%).
-  templeForeignPercent: (delta) =>
-    `rival religions press your cities with a Temple at ${Math.max(0, RULES.religion.templeForeignPercent + delta)}% strength`,
   bombRangePercent: (delta) => `proclamations reach ${delta}% farther`,
   foreignBombPercent: (delta) => `proclamations press ${delta}% harder in foreign towns`,
   bombRange: (delta) => `a proclamation reaches ${signed(delta)} hexes further`,
@@ -5571,8 +5559,8 @@ const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> 
     many: `combat units standing ${at}`,
   }),
   garrisonWatch: (at) => ({
-    one: `fortification level among the units ${at}`,
-    many: `fortification levels among the units ${at}`,
+    one: `fortified unit ${at}`,
+    many: `fortified units ${at}`,
   }),
   // The Fortress Empire (Dominion batch D7): a town's own borders, or the realm's.
   fortifiedUnits: (at) => {
@@ -7099,21 +7087,7 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
       ? `barbarian camps ${near} raise their units ${-percent}% slower`
       : `barbarian camps ${near} raise their units ${percent}% faster`;
   },
-  // The Funeral Oration and The Glorious Dead (Dominion batch D7). Said as what
-  // a loss adds, and "nothing" at the whole cut.
   siegeDamage: (percent) => `a city under siege by your units takes ${percent}% more siege damage`,
-  unitLossWeariness: (percent) =>
-    percent <= -100
-      ? 'units you lose add nothing to war weariness'
-      : percent < 0
-        ? `units you lose add ${-percent}% less war weariness`
-        : `units you lose add ${percent}% more war weariness`,
-  townLossWeariness: (percent) =>
-    percent <= -100
-      ? 'towns you lose add nothing to war weariness'
-      : percent < 0
-        ? `towns you lose add ${-percent}% less war weariness`
-        : `towns you lose add ${percent}% more war weariness`,
   // The Commonplace Book (Scientific batch S0). A price, said as the saving.
   charterTechCost: (percent) =>
     percent < 0
@@ -7682,8 +7656,8 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // `garrisonOf` keeps only combatants, and the words say so.
   garrison: { one: 'combat unit standing in the city', many: 'combat units standing in the city' },
   garrisonWatch: {
-    one: 'fortification level among the units in the city',
-    many: 'fortification levels among the units in the city',
+    one: 'fortified unit in the city',
+    many: 'fortified units in the city',
   },
   fortifiedUnits: {
     one: 'fortified military unit inside your borders',

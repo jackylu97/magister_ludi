@@ -51,6 +51,7 @@ import { buildingProductionCost, foodUpkeep, foundCityAt, ownedTiles, refreshCit
 import { explainGuildInflow, foldGuildInflow } from '../../src/sim/guilds';
 import { type GameMap, type Tile, createMap, getTileAt, raiseImprovement } from '../../src/sim/map';
 import { layRoad } from '../../src/sim/roads';
+import { happinessOf } from '../../src/sim/meters';
 import { RULES } from '../../src/sim/rulesData';
 import {
   type City,
@@ -240,6 +241,11 @@ describe('a price for each Expansionist shape of E9 to E12 (E13)', () => {
 
   it('prices The Cura Aquarum as the Aqueduct in each town joined by road', () => {
     const { state, player, cities } = board(3, 20);
+    // The growth bonus needs a town whose growth is not stopped by unhappiness.
+    player.timed = [{ card: 'theRoyalHousehold', effect: {
+      kind: 'happiness', amount: -happinessOf(state, player.id),
+    }, expiresTurn: state.turn + 1 }];
+    bumpRevision(state);
     const cura = [effectOf('theCuraAquarum')];
     // The Aqueduct pays a share of each town's food surplus (bot batch BP5), so
     // the citizens are seated on their hexes and the towns have one.

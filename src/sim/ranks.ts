@@ -72,11 +72,11 @@
  * nothing raises a unit's experience while the law holds. What the unit had
  * already earned is kept.
  *
- * Over the rule book, the unit table, the slate's clock and `state.ts`, like
- * `weariness.ts`: `combat.ts`, the renderer and the interface all read it, and
- * it imports none of them. Since D8 it asks the evaluator one question, the
- * `noExperience` rule, through a function-level cycle of the kind
- * `weariness.ts` documents.
+ * Over the rule book, the unit table, the slate's clock and `state.ts`:
+ * `combat.ts`, the renderer and the interface all read it, and it imports none
+ * of them. Since D8 it asks the evaluator one question, the `noExperience`
+ * rule, through a function-level cycle: nothing is read from the evaluator
+ * while the modules load.
  */
 
 import { type RankId, RULES } from './rulesData';

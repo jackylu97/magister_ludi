@@ -817,7 +817,7 @@ describe('the wanted army reads what the seat has sighted', () => {
       [city.col + 1, city.row],
     ] as const) {
       const piece = createUnit(state, 0, 'warrior', col, row);
-      piece.fortifiedTurns = 0;
+      piece.fortified = true;
     }
     for (const [col, row] of camps) state.camps.push({ col, row, foundedTurn: 0 });
     // **A treasury that pays the levy** (batch BP1, `docs/flags.md` (ooooooo)
@@ -929,7 +929,7 @@ describe('the levy craves the trade it lacks', () => {
     bumpRevision(state);
     for (let index = 0; index < 3; index++) {
       const piece = createUnit(state, 0, kind, city.col, city.row + 1 + index);
-      piece.fortifiedTurns = 0;
+      piece.fortified = true;
     }
     recomputeAllVisibility(state);
     return state;
@@ -2240,7 +2240,7 @@ describe('the wage-aware levy', () => {
    * four hundred gold and a soldier want that no longer vanishes at the garrison
    * would buy a warrior before the queue was ever consulted, and the levy the
    * queue then read would be the test's fixture plus one. The stamp is the
-   * simulation's own one-a-turn rule (`City.purchasedUnitTurns`), which is
+   * simulation's own one-a-turn rule (`City.purchasedUnitTurn`), which is
    * exactly the sentence wanted here: the purse has had its go, and what is left
    * to decide is what the town *builds*.
    */
@@ -2249,11 +2249,11 @@ describe('the wage-aware levy', () => {
     state.turn = 50;
     const city = foundCityAt(state, 0, at(state.map, 5, 5));
     city.population = 5;
-    city.purchasedUnitTurns = { militaryGold: state.turn, civilianGold: state.turn };
+    city.purchasedUnitTurn = state.turn;
     refreshCityDerived(state, city);
     for (let index = 0; index < soldiers; index++) {
       const piece = createUnit(state, 0, 'warrior', city.col, city.row + index);
-      piece.fortifiedTurns = 0;
+      piece.fortified = true;
     }
     seat(state, 0).gold = gold;
     bumpRevision(state);
@@ -2918,7 +2918,7 @@ describe('the whole deck, priced (batch H2)', () => {
     );
     expect(scoreEffects([{ kind: 'pressure', amount: 4, range: 8 }], ctx)).toBe(stand);
     expect(
-      scoreEffects([{ kind: 'pressureRule', rule: 'roadStrength', delta: 2 }], ctx),
+      scoreEffects([{ kind: 'pressureRule', rule: 'routeStrength', delta: 2 }], ctx),
     ).toBe(stand);
     expect(scoreEffects([{ kind: 'rule', rule: 'freshwater' }], ctx)).toBe(stand);
     expect(scoreEffects([{ kind: 'rule', rule: 'freeChop' }], ctx)).toBe(stand);

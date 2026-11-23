@@ -84,7 +84,6 @@ function seats(state: GameState): Player[] {
 describe('the bot prices a card by its stamp', () => {
   it.each([
     ['theGoodYears', 'happinessTierBoost'],
-    ['theGloriousDead', 'rulePercent/townLossWeariness'],
   ] as const)('measures %s in the controlled meter position', (id, shape) => {
     const state = meterAuditPosition();
     const player = state.players[0]!;
@@ -99,6 +98,14 @@ describe('the bot prices a card by its stamp', () => {
     expect(sim).not.toBeNull();
     expect(stamp!.total).toBeCloseTo(sim!.worth, 9);
     expect(sim!.meterLinesOff).toEqual([]);
+  });
+
+  it('does not price a future death grant as recurring income', () => {
+    const state = meterAuditPosition();
+    const ctx = valueContext(state, state.players[0]!);
+    const effect = effectsOf('theGloriousDead').find(entry => entry.kind === 'windfallRider')!;
+    expect(stampSight(effect)).toBe('none');
+    expect(footprintOf(ctx, 'theGloriousDead', effect)).toBe(0);
   });
 
   it('reads every card it stamps as the sim’s own stamp, card by card', () => {

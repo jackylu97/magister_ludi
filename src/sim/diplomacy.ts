@@ -78,7 +78,7 @@ import {
   dealIsOngoing,
   dealsBetween,
   lendsLuxuryToAnother,
-  loanedResources,
+  loanedCopies,
   openDeal,
   proposalById,
   seatsMayBargain,
@@ -403,10 +403,13 @@ function reseatEmpire(state: GameState, playerId: number): void {
  *     A tribute is not: an empire may promise more per turn than it earns and
  *     go into arrears for it, which is a real decision the creditors already
  *     price (`upkeep.ts`);
- *   · **resources they can lend**: each side can lend one available copy of a
- *     luxury or strategic resource per offer. `lendableCopies` excludes copies
- *     the giver borrowed, already lent or needs for units. A separate offer can
- *     lend another available copy of the same resource;
+ *   · **resources they can lend**: each side names a resource once per offer.
+ *     A luxury row lends one copy. A strategic row lends a number of copies,
+ *     a whole number from 1 to the giver's `lendableCopies` (the ruling of
+ *     2026-11-23, "Strategic resources are traded in a quantity").
+ *     `lendableCopies` excludes copies the giver borrowed, already lent or
+ *     needs for units. A separate offer can lend another available copy of
+ *     the same luxury;
  *   · **no law against lending**: a seat under The Forbidden Silks may name no
  *     luxury (`luxuryLendingBan`, batch DT7);
  *   · **a right of way both may write** — the mutual technology gate below;
@@ -444,13 +447,26 @@ export function dealSideError(
     return 'A tribute must be a whole number of coins a turn';
   }
 
-  const named = loanedResources(terms);
+  // A strategic row off the wire must be an object before anything reads its
+  // fields (`readTerms` in `commands.ts` checks only that the list is a list).
+  for (const row of (terms.strategics ?? []) as unknown[]) {
+    if (typeof row !== 'object' || row === null || Array.isArray(row)) {
+      return 'A strategic resource on loan needs a name and a number of copies';
+    }
+  }
   const seen: string[] = [];
-  for (const id of named) {
+  for (const { id, copies } of loanedCopies(terms)) {
     if (!isResourceId(id)) return `There is no such thing as ${String(id)}`;
     const kind = resourceDef(id).kind;
     if (terms.luxuries?.includes(id) && kind !== 'luxury') return `${resourceDef(id).name} is not a luxury`;
-    if (terms.strategics?.includes(id) && kind !== 'strategic') return `${resourceDef(id).name} is not a strategic resource`;
+    if (terms.strategics?.some((row) => row.id === id) && kind !== 'strategic') {
+      return `${resourceDef(id).name} is not a strategic resource`;
+    }
+    // **A count of copies** (the ruling of 2026-11-23, "Strategic resources
+    // are traded in a quantity"): a whole number, at least one. A luxury row
+    // is always one copy (`loanedCopies`), so this refuses only a strategic row.
+    if (!Number.isInteger(copies)) return `A loan of ${resourceDef(id).name.toLowerCase()} must be a whole number of copies`;
+    if (copies < 1) return `A loan of ${resourceDef(id).name.toLowerCase()} must lend at least one copy`;
     if (kind === 'luxury') {
       const banned = luxuryLendingBan(state, giverId);
       if (banned !== null) return banned;
@@ -468,13 +484,19 @@ export function dealSideError(
     // cannot lend the same copy twice, lend one a unit is using, or lend one
     // somebody lent it. Before the ruling this asked `availableCopies`, which
     // counts the copies lent in.
-    if (lendableCopies(state, giverId, id) < 1) {
+    const lendable = lendableCopies(state, giverId, id);
+    if (lendable < 1) {
       const name = resourceDef(id).name.toLowerCase();
       if (resourceCopies(state, giverId, id) === 0) return `The ${giver.name} have no ${name} to lend`;
       if (availableCopies(state, giverId, id) < 1) {
         return `The ${giver.name} have no ${name} to spare — every copy is already spoken for`;
       }
       return `The ${giver.name} have ${name} only on loan, and a borrowed ${kind === 'luxury' ? 'luxury' : 'strategic resource'} cannot be lent to another empire`;
+    }
+    // A row of several copies asks for that many free copies. The sentence
+    // has no figure, as the coin sentence above has none: the chip prints it.
+    if (lendable < copies) {
+      return `The ${giver.name} do not have that many free copies of ${resourceDef(id).name.toLowerCase()} to lend`;
     }
   }
 

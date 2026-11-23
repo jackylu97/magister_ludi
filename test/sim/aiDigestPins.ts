@@ -1361,9 +1361,15 @@ import { digestOfState, type Played } from './aiDigestHelpers';
 // Both 120-turn games completed without warnings or stalls and replayed exactly.
 // Rules, RNG and preference values are unchanged. The original failures and
 // all-leader comparison are in docs/audit/bot-combat-targets-2026-11-22.md.
+// Version 266 combines the current gameplay rules with the enabled per-unit
+// tactical planner. Command-only callers keep tactical execution metadata,
+// and an idle escort records its move before a later job can repeat it.
+// Both six-seat games completed 120 turns without warnings
+// or stalls, and their saved logs replayed exactly. The release record is
+// docs/audit/bot-play-release-2026-11-23.md.
 const DIGESTS = {
-  duel: '31b35234:419471',
-  standard: '5539315b:1102660',
+  duel: 'c86d21d1:430323',
+  standard: '3c17801f:1173951',
 };
 
 /** Check driver errors before comparing the state digest. */

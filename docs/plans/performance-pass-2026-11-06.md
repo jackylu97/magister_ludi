@@ -4054,3 +4054,22 @@ measurement. The science/Order forecast experiments and the settlement-water
 trial remain separate. Rebase further strength comparisons on this new opening.
 The newly approved wager redesign also stays separate until its score weights
 and marks have been measured.
+
+## Per-unit combat play release, 23 November
+
+The user accepted the current bot strength and approved the combat changes
+for playtesting. The integrated build enables `tactics.enabled: 1` with
+`tactics.perUnit: 1` on the version 266 rules. Combat weights and economy
+settings stay at their tested values. The original policy remains available
+through `tactics.enabled: 0`.
+
+The [release record](../audit/bot-play-release-2026-11-23.md) contains the
+integration details, validation results and remaining bot work. The rollback
+tag `codex/play-before-combat-2026-11-23` preserves the previous play build
+at `a033e91c`, which reads version 264 saves.
+
+Typecheck, core tests, the full suite and the production build exited zero.
+Core passed 575 files and 13,045 tests. The full suite passed 625 files and
+13,217 tests. Both 120-turn games completed without warnings or stalls and
+replayed exactly: duel `c86d21d1:430323`, standard `3c17801f:1173951`.
+The full suite also confirmed identical spectator/driver and worker/page play.

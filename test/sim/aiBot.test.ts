@@ -16,6 +16,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { driveBots } from '../../src/ai/driver';
+import { withAiTuning } from '../../src/ai/aiConfig';
 import {
   AI,
   bestTechGoal,
@@ -583,7 +584,7 @@ describe('the bot defends itself', () => {
     expect(['moveUnit', 'attack', 'fortify']).toContain(order!.type);
   });
 
-  it('marches a free soldier to the door of a held camp', () => {
+  it('keeps the original policy march to the door of a held camp', () => {
     // A single visible camp keeps the choice of target independent of the opening economy.
     const state = bareState(16, 10, true);
     const game: Game = { config: CONFIG, state, log: [] };
@@ -598,12 +599,12 @@ describe('the bot defends itself', () => {
     const campTile = at(state, 8, 5);
     state.camps = [{ col: campTile.col, row: campTile.row, foundedTurn: state.turn }];
     const wild = state.players.find((player) => player.barbarian)!;
-    createUnit(state, wild.id, 'warrior', campTile.col, campTile.row).fortifiedTurns = 2;
+    createUnit(state, wild.id, 'warrior', campTile.col, campTile.row).fortified = true;
     recomputeAllVisibility(state);
     bumpRevision(state);
     expect(findPath(state, free, campTile)).toBeNull();
 
-    const order = nextBotCommandFor(game, 0, free.id);
+    const order = withAiTuning({ tactics: { enabled: 0 } }, () => nextBotCommandFor(game, 0, free.id));
     expect(order?.type).toBe('moveUnit');
     if (order?.type !== 'moveUnit') throw new Error('The free soldier needs a move order');
     const door = at(state, order.target.col, order.target.row);

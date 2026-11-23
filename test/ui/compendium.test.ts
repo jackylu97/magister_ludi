@@ -1108,7 +1108,7 @@ describe('never hand-written prose about a number', () => {
     const prose = combat.clauses.map((clause) => clause.text).join(' ');
     expect(prose).not.toContain('%');
     expect(prose).toContain('Hills and forests add to a defender');
-    expect(prose).toContain('fortifying adds more each turn it stays');
+    expect(prose).toContain('fortifying adds a fixed amount from the first turn');
     // The order of 2026-11-21, said without a number (hard rule 7).
     expect(prose).toContain('can fortify until healed');
     // Plain fortify wakes for an enemy (the ruling before the beta, 2026-11-21).

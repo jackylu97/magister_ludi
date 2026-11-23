@@ -40,10 +40,10 @@
  *     the caps its beads pay, its technologies, and the religions whose holy
  *     city it holds), the city-local half of that law (`cityLocalEffects` — a
  *     town's rites and its followers' beliefs), every owned town's `buildings`,
- *     `population`, `puppet`, `captured`, `name` and centre hex, the ages it
- *     has advanced (`techsResearched`), and since batch WC2 the war losses it
- *     and every other empire have suffered (`Player.warLosses`, the war
- *     weariness lines).
+ *     `population`, `puppet`, `captured`, `name` and centre hex, and the ages
+ *     it has advanced (`techsResearched`). From batch WC2 until war weariness
+ *     was removed (2026-11-23) it also read the war losses
+ *     (`Player.warLosses`); no tenant reads them now, so they are not a row.
  *   · **the pieces**, and this is the correction batch M3 made to M2's table.
  *     M2 put `meterEffects` on a clock a march could not move, on the claim that
  *     `meters.ts` never opens `state.units`. It does not — but the *card
@@ -181,11 +181,8 @@ const WRITES: { field: string; pattern: RegExp }[] = [
     pattern:
       /\.followers\s*=[^=]|delete\s+\w+(\.\w+)*\.followers|\bfollowers\[[^\]]*\]\s*=[^=]|delete\s+followers\[/,
   },
-  // Batch WC2: the war losses the happiness meter's weariness lines count.
-  {
-    field: 'warLosses',
-    pattern: /\.warLosses\s*=[^=]|\.warLosses\.(push|splice)\(|delete\s+\w+(\.\w+)*\.warLosses/,
-  },
+  // Batch WC2 had a row here for the war losses (`Player.warLosses`). War
+  // weariness was removed on 2026-11-23, and no tenant reads the list now.
   // Dominion batch D1: the ranks an empire's units have earned, which the
   // `ranksEarned` count reads. A new count kind is a new row of this register.
   { field: 'ranksEarned', pattern: /\.ranksEarned\s*(=[^=]|\+=)/ },
@@ -220,8 +217,8 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // count (The Fortress Empire) and the `fortifiedUnit` hex test (The Farming
   // Garrisons, The Castra) read.
   {
-    field: 'fortifiedTurns',
-    pattern: /\.fortifiedTurns\s*=[^=]|delete\s+\w+(\.\w+)*\.fortifiedTurns/,
+    field: 'fortified',
+    pattern: /\.fortified\s*=[^=]|delete\s+\w+(\.\w+)*\.fortified\b/,
   },
   // Dominion batch D7: the empires a seat has met, which The Defiant Kingdom's
   // condition (`rivalHoldsMoreTowns`) reads. `recordMeetings` writes it through
@@ -374,9 +371,6 @@ const ANNOUNCING = new Set([
   // **And for culture** (Magisterial batch MG11): Magnificence buys a wonder
   // with culture from the draft pool, and `purchaseItemAt` spends it here.
   'state.ts#spendCulture',
-  // Batch WC2: the one writer of `Player.warLosses`, which the happiness
-  // meter's war weariness lines count.
-  'weariness.ts#recordWarLoss',
   // Dominion batch D1: the one writer of `Player.ranksEarned`, which the
   // `ranksEarned` count reads.
   'cities.ts#settleRanksEarned',
@@ -409,12 +403,12 @@ const ANNOUNCING = new Set([
   'state.ts#createUnit',
   'state.ts#removeUnit',
   'tech.ts#settleResearch',
-  // Dominion batch D7: the three writers of `Unit.fortifiedTurns` that hold the
-  // state: a unit told to fortify, the wild's warden digging in, and every
-  // fortified unit digging a turn deeper.
+  // Dominion batch D7: the two writers of `Unit.fortified` that hold the
+  // state: a unit told to fortify, and the wild's warden digging in. A third,
+  // `advanceFortify`, raised a turn count until the bonus became flat
+  // (2026-11-23).
   'commands.ts#applyFortify',
   'barbarians.ts#digIn',
-  'combat.ts#advanceFortify',
 ]);
 
 /**
@@ -560,10 +554,6 @@ const EXCUSED = new Map<string, string>([
   [
     'council.ts#reseatCouncil',
     'takes no state and writes the council it is handed (batch C2): `adoptGovernmentAt` announces after it on the live seat, and `cardImpact.ts` hands it a ghost seat that no tenant reads',
-  ],
-  [
-    'weariness.ts#pruneWarLosses',
-    'the broom: it deletes only war losses that are already outside the weariness window on this turn and every later one, and the weariness reading skips those, so no answer changes',
   ],
   // Dominion batch D7.
   // Batch P1.

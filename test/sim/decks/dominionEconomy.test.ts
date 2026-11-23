@@ -17,7 +17,8 @@
  *     `docs/yields.md` (The Laws of Lord Shang);
  *   · the end-of-turn harvest of enemy hexes (War Feeds Itself);
  *   · the disband moment (The Legions' Labour);
- *   · the weariness rules (The Funeral Oration, The Glorious Dead);
+ *   · The Funeral Oration and The Glorious Dead after war weariness was
+ *     removed (2026-11-23);
  *   · Double Time's repeats, for Orders only, and its two tiers.
  *
  * And one fix from the coordinator's notes: a completion rider that pays only
@@ -71,7 +72,6 @@ import {
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../../../src/sim/unitData';
 import { explainUnitUpkeepRebate, unitUpkeepTotal } from '../../../src/sim/upkeep';
 import { resetVisibility } from '../../../src/sim/visibility';
-import { recordWarLoss, wearinessBetween } from '../../../src/sim/weariness';
 import { openWar } from '../../../src/sim/wars';
 import { explainTileYield, foldTile, yieldContextFor } from '../../../src/sim/yields/hex';
 import {
@@ -280,8 +280,8 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     const garrison = createUnit(state, 0, 'warrior', city.col, city.row);
     touch(state);
     expect(hexPaid(state, field, 'theFarmingGarrisons')).toEqual({ food: 0, production: 0, science: 0 });
-    out.fortifiedTurns = 0;
-    garrison.fortifiedTurns = 0;
+    out.fortified = true;
+    garrison.fortified = true;
     touch(state);
     expect(hexPaid(state, field, 'theFarmingGarrisons')).toEqual({ food: 1, production: 1, science: 0 });
     // The town's centre counts too (the triage's reading 25).
@@ -293,7 +293,7 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     // A civilian is not a military unit, and another empire's unit is not yours.
     const empty = at(state, 4, 5);
     createUnit(state, 0, 'worker', empty.col, empty.row);
-    createUnit(state, 1, 'warrior', empty.col, empty.row).fortifiedTurns = 0;
+    createUnit(state, 1, 'warrior', empty.col, empty.row).fortified = true;
     touch(state);
     expect(hexPaid(state, empty, 'theFarmingGarrisons')).toEqual({ food: 0, production: 0, science: 0 });
   });
@@ -306,7 +306,7 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     slot(state, 0, 'theFarmingGarrisons');
     const defender = createUnit(state, 0, 'warrior', city.col + 2, city.row);
     const attacker = createUnit(state, 1, 'warrior', city.col + 3, city.row);
-    defender.fortifiedTurns = 0;
+    defender.fortified = true;
     touch(state);
     const view = previewCombat(state, attacker.id, { col: defender.col, row: defender.row });
     if (!view.ok) throw new Error(view.error);
@@ -321,7 +321,7 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     foundCityAt(state, 0, at(state, 4, 4));
     slot(state, 0, 'theCastra');
     const field = at(state, 5, 4);
-    createUnit(state, 0, 'warrior', field.col, field.row).fortifiedTurns = 0;
+    createUnit(state, 0, 'warrior', field.col, field.row).fortified = true;
     const keep = at(state, 3, 4);
     raiseImprovement(keep, 'citadel', state.turn);
     touch(state);
@@ -342,16 +342,16 @@ describe('The Fortress Empire: the fortified-units count', () => {
     expect(percent('science')).toBe(0);
     // Two fortified on the town's ground, one not fortified, one outside.
     const ground = [at(state, 4, 4), at(state, 5, 4)];
-    for (const tile of ground) createUnit(state, 0, 'warrior', tile.col, tile.row).fortifiedTurns = 0;
+    for (const tile of ground) createUnit(state, 0, 'warrior', tile.col, tile.row).fortified = true;
     createUnit(state, 0, 'warrior', 4, 5);
     const outside = createUnit(state, 0, 'warrior', 12, 8);
-    outside.fortifiedTurns = 0;
+    outside.fortified = true;
     expect(state.tileOwner[tileIndex(state.map, 12, 8)]).toBeNull();
     touch(state);
     expect(percent('science')).toBe(10);
     expect(percent('production')).toBe(10);
     // Seven more fortified at home: the ceiling is six helpings.
-    for (let n = 0; n < 7; n++) createUnit(state, 0, 'warrior', 4, 4).fortifiedTurns = 0;
+    for (let n = 0; n < 7; n++) createUnit(state, 0, 'warrior', 4, 4).fortified = true;
     touch(state);
     expect(percent('science')).toBe(30);
   });
@@ -539,30 +539,23 @@ describe('The Legions’ Labour: the disband moment', () => {
   });
 });
 
-describe('The Funeral Oration and The Glorious Dead: the weariness rules', () => {
-  it('counts your unit losses at half, rounded down, and leaves the enemy’s reading whole', () => {
-    const state = flat();
-    for (let n = 0; n < 3; n++) recordWarLoss(state, 0, 1, 'unit');
-    recordWarLoss(state, 1, 0, 'unit');
-    expect(wearinessBetween(state, 0, 1).suffered).toBe(3);
-    slot(state, 0, 'theFuneralOration');
-    expect(wearinessBetween(state, 0, 1).suffered).toBe(1);
-    expect(wearinessBetween(state, 0, 1).points).toBe(0);
-    // The enemy's line still counts this empire's losses whole as its offset.
-    expect(wearinessBetween(state, 1, 0).inflicted).toBe(3);
-    // A town lost still counts in full.
-    recordWarLoss(state, 0, 1, 'town');
-    expect(wearinessBetween(state, 0, 1).suffered).toBe(1 + 8);
+describe('The Funeral Oration and The Glorious Dead, with war weariness removed', () => {
+  // The user's ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules",
+  // item 1): war weariness is gone, and so are the two card rules that changed
+  // it.
+  it('keeps The Glorious Dead’s production for a lost unit and nothing else', () => {
+    const def = orderDef('theGloriousDead' as OrderId);
+    expect(def.text).toBe('Losing a unit grants production equal to half its cost in your capital.');
+    expect(def.effects.map((effect) => effect.kind)).toEqual(['windfallRider']);
+    expect(orderIsDealt('theGloriousDead' as OrderId)).toBe(true);
   });
 
-  it('counts none of your losses under The Glorious Dead', () => {
-    const state = flat();
-    recordWarLoss(state, 0, 1, 'unit');
-    recordWarLoss(state, 0, 1, 'town');
-    slot(state, 0, 'theGloriousDead');
-    expect(wearinessBetween(state, 0, 1).suffered).toBe(0);
-    expect(wearinessBetween(state, 0, 1).happiness).toBe(0);
-    expect(wearinessBetween(state, 1, 0).inflicted).toBe(9);
+  it('keeps The Funeral Oration’s row for saves, retired, with nothing to do', () => {
+    const def = orderDef('theFuneralOration' as OrderId);
+    expect(def.retired).toBe(true);
+    expect(def.effects).toEqual([]);
+    expect(def.deferred?.length).toBe(1);
+    expect(orderIsDealt('theFuneralOration' as OrderId)).toBe(false);
   });
 });
 

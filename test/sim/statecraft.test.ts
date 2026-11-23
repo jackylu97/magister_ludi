@@ -1507,7 +1507,10 @@ describe("every hook family, end to end", () => {
     slot(g.state, 0, "landGrants");
     const after = tilePurchasePrice(g.state, 0, city.id, cell);
     expect(after).toBeLessThan(before);
-    expect(after).toBe(Math.max(1, Math.floor((before * 75) / 100)));
+    // Rounded up, as every buying-power line is (`purchaseDiscountLines`). The
+    // old ring prices were multiples of four, where up and down agreed; the
+    // base of 30 since the ruling of 2026-11-23 is not.
+    expect(after).toBe(Math.max(1, Math.ceil((before * 75) / 100)));
   });
 
   it("happiness and authority — cards are lines in both ledgers", () => {

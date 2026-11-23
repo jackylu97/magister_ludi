@@ -184,7 +184,7 @@ describe('a worker stays home while its work is in danger (bot batch BP15)', () 
       if (guarded) {
         // A second soldier, so the town keeps its garrison, dug in on the hex.
         const guard = createUnit(state, 0, 'warrior', 6, 7);
-        guard.fortifiedTurns = 1;
+        guard.fortified = true;
       }
       recomputeAllVisibility(state);
       return { state, worker };

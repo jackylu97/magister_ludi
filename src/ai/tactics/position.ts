@@ -105,7 +105,7 @@ export function projectAction(
   let finished = before.finished;
   if (action.kind === 'hold') {
     if (fortifyError(actor, state) === null) {
-      actor.fortifiedTurns ??= 0;
+      actor.fortified = true;
       delete actor.dugIn;
     }
     finished = [...finished, actor.id];

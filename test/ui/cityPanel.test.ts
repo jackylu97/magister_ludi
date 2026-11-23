@@ -576,25 +576,57 @@ describe('the unrest card (batch WC1)', () => {
     expect(parts.guarded).toBe(false);
   });
 
-  it('warns of a rebel only while the town is unguarded and would not settle first', () => {
+  /** Runs the body with rebels switched on at this cadence, then puts the rule back. */
+  function withRebelsEvery(every: number, body: () => void): void {
+    const before = UNREST.rebelEveryTurns;
+    UNREST.rebelEveryTurns = every;
+    try {
+      body();
+    } finally {
+      UNREST.rebelEveryTurns = before;
+    }
+  }
+
+  it('says nothing about rebels when the rules raise none, which is the default', () => {
     const { state, city } = restless(true);
-    expect(unrestCardParts(state, city)!.rebelIn).toBe(UNREST.rebelEveryTurns - 1);
-    // A soldier in the gate: no rebels, and the garrison joins the reasons.
+    expect(UNREST.rebelEveryTurns).toBe(0);
+    const parts = unrestCardParts(state, city)!;
+    expect(parts.rebels).toBe(false);
+    expect(parts.rebelIn).toBeNull();
+    // A soldier in the gate changes neither the reasons nor the rebel lines.
     createUnit(state, 0, 'warrior', city.col, city.row);
     bumpRevision(state);
     const held = unrestCardParts(state, city)!;
     expect(held.guarded).toBe(true);
-    expect(held.rebelIn).toBeNull();
-    expect(held.reasons).toHaveLength(2);
-    // A town that settles before the next rebel is due warns of none.
-    state.units = [];
-    city.unrest = { target: 12, progress: 11, unguarded: 1 };
-    expect(unrestCardParts(state, city)!.rebelIn).toBeNull();
+    expect(held.rebels).toBe(false);
+    expect(held.reasons).toEqual(parts.reasons);
+  });
+
+  it('warns of a rebel only while the town is unguarded and would not settle first', () => {
+    withRebelsEvery(3, () => {
+      const { state, city } = restless(true);
+      expect(unrestCardParts(state, city)!.rebels).toBe(true);
+      expect(unrestCardParts(state, city)!.rebelIn).toBe(2);
+      // A soldier in the gate: no rebels, and the reasons stay the same.
+      createUnit(state, 0, 'warrior', city.col, city.row);
+      bumpRevision(state);
+      const held = unrestCardParts(state, city)!;
+      expect(held.guarded).toBe(true);
+      expect(held.rebelIn).toBeNull();
+      expect(held.reasons).toHaveLength(1);
+      // A town that settles before the next rebel is due warns of none.
+      state.units = [];
+      city.unrest = { target: 12, progress: 11, unguarded: 1 };
+      expect(unrestCardParts(state, city)!.rebelIn).toBeNull();
+    });
   });
 
   it('warns of no rebel in a world with no wild seat', () => {
-    const { state, city } = restless(false);
-    expect(unrestCardParts(state, city)!.rebelIn).toBeNull();
+    withRebelsEvery(3, () => {
+      const { state, city } = restless(false);
+      expect(unrestCardParts(state, city)!.rebels).toBe(false);
+      expect(unrestCardParts(state, city)!.rebelIn).toBeNull();
+    });
   });
 
   it('keeps every number out of its sentences', () => {

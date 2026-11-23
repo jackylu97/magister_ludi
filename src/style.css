@@ -5562,6 +5562,14 @@ body.has-diplomatic-offers .end-turn-list {
   box-shadow: 0 0 0 1px rgba(29, 26, 32, 0.55), 2px 2px 0 rgba(29, 26, 32, 0.35);
 }
 
+/* Your own unit with nothing left to do this turn: its roundel is faint, as its
+   badge is on the board. The figure is `badges.spentOpacity`, written on the
+   row by `buildGarrisonRow`. The hit bar under it stays solid. */
+.city-banner-piece.is-spent .city-banner-piece-disc,
+.city-banner-piece.is-spent .city-banner-piece-rank {
+  opacity: var(--roundel-spent, 0.45);
+}
+
 /* Your own pieces are controls; everybody else's is a reading. The pill takes
    the pointer away on a rival's banner, so the roundel claims it back here. */
 .city-banner-piece.is-own {

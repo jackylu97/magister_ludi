@@ -187,14 +187,13 @@ interface CombatRules {
   /** Half-width of the random band: the roll is uniform in `[1 − b, 1 + b]`. */
   rollBand: number;
   /**
-   * **Strength points** added per turn spent fortified, and points is the whole
-   * of the 2026-08-28 ruling: terrain, the trench, a card and a wall are one
-   * kind of number on one ledger (Civ VI's form), so nothing here is a fraction
-   * of a unit's own strength any more.
+   * **Strength points** a fortified unit gains when it defends. Flat, from the
+   * first turn the unit is fortified, and it does not grow (the user's ruling
+   * of 2026-11-23: "Fortify flat +4"). Points, as the 2026-08-28 ruling has it:
+   * terrain, the trench, a card and a wall are one kind of number on one
+   * ledger, so nothing here is a fraction of a unit's own strength.
    */
-  fortifyBonusPerTurn: number;
-  /** Cap on the fortify bonus in points, however long a unit sits still. */
-  fortifyMax: number;
+  fortifyBonus: number;
   /**
    * **Strength points** a melee attacker loses when it attacks across a river,
    * as one flat line on its side of the ledger (`planCombat`). A positive
@@ -306,19 +305,21 @@ interface RankRung {
 }
 
 /**
- * The six numbers the naval line spends. There were seven until the user's
+ * The four numbers the naval line spends. There were seven until the user's
  * ruling of 2026-11-21 removed the ship's share of the counter-blow from an
  * embarked unit (`embarkedCounterPercent`): an embarked unit does not hit back
- * at a ship now, so there is no figure to tune.
+ * at a ship now, so there is no figure to tune. The ruling of 2026-11-23
+ * removed the line of battle and its two numbers (`lineBonusPerHull`,
+ * `lineBonusMax`).
  *
  * Every *other* fact about a ship is on its roster row — the strengths, the
  * movement, the range, the labelled lines the triangle is made of — because they
  * describe *a hull* rather than the system, which is the same split `combat`
  * makes with `data/units.json` and the reason a thirteenth ship is a JSON row.
  * What is left here is what the **rules** say about being at sea at all: what an
- * attack costs a hull that keeps going, what a line of battle is worth, what a
- * soldier caught on the water loses, and — since the shore pass of 2026-09-09 —
- * what it costs to fight across the waterline in either direction.
+ * attack costs a hull that keeps going, what a soldier caught on the water
+ * loses, and (since the shore pass of 2026-09-09) what it costs to fight
+ * across the waterline in either direction.
  */
 interface NavalRules {
   /**
@@ -328,10 +329,6 @@ interface NavalRules {
    * anywhere to go.
    */
   hitAndRunCost: number;
-  /** Strength points a heavy hull gains per adjacent friendly heavy hull. */
-  lineBonusPerHull: number;
-  /** The most **the line** is ever worth, in strength points. */
-  lineBonusMax: number;
   /**
    * Strength points an **embarked** piece loses defending itself on the water,
    * unless a friendly light hull is sharing its hex. One labelled line, "At
@@ -746,75 +743,39 @@ interface WarRules {
    */
   unrest: UnrestRules;
   /**
-   * War weariness (batch WC2, `docs/flags.md` (rrrrrr) part 2). Every figure
-   * the rule is made of; the rule itself is `src/sim/weariness.ts`.
+   * How many turns the game keeps a war loss (`Player.warLosses`). A loss on
+   * turn `t` is kept on turns `t` to `t + lossWindowTurns − 1`. After that the
+   * broom deletes it (`pruneWarLosses`, `src/sim/warLosses.ts`).
+   *
+   * War weariness read this window until the user removed it (2026-11-23,
+   * `docs/flags.md`, "Eight simpler rules"). The list stays because the bots
+   * read their recent fighting from it (`warOutlook`, `src/ai/bot.ts`).
    */
-  weariness: WearinessRules;
+  lossWindowTurns: number;
 }
 
 /**
- * The numbers of war weariness: how long a loss counts, what a unit and a town
- * are worth, and what a point of weariness costs.
+ * The numbers of unrest: how long a taken town stays in unrest, how often an
+ * unguarded town raises a rebel, and which yields it stops.
  *
- * Weariness against one enemy is the points this empire lost to that enemy
- * inside the window, minus the points that enemy lost to this empire inside
- * the same window, never below zero.
- */
-interface WearinessRules {
-  /**
-   * How many turns a loss counts for. A loss on turn `t` counts on turns `t`
-   * to `t + windowTurns − 1` and not after. Making peace does not end it early.
-   */
-  windowTurns: number;
-  /** Points of weariness for a unit destroyed or captured by an enemy. */
-  unitLoss: number;
-  /**
-   * Points of weariness for a town taken by force (the user, 2026-10-14:
-   * *"losing a town counts as losing 8 units"*).
-   */
-  townLoss: number;
-  /** Happiness one point of weariness costs. */
-  happinessPerPoint: number;
-}
-
-/**
- * The numbers of unrest: how much pacification a taken town needs, how fast it
- * fills, how often an unguarded town raises a rebel, and which yields it stops.
- *
- * Pacification works like a production basket: it fills by a rate each turn and
- * unrest ends when it reaches the target. The rate is a labelled list
- * (`explainPacification`), one line per reason, and each line's figure is one of
- * the rates below.
+ * Pacification works like a production basket: it fills by one each turn, and
+ * unrest ends when it reaches `turns`. The rate is a labelled list
+ * (`explainPacification`): the one line for the turn, and a line for each card
+ * that speeds it up.
  */
 interface UnrestRules {
   /**
-   * Pacification a town needs per citizen it had on the turn it was taken. The
-   * target is this times that population, so a large town takes longer to
-   * settle than a small one.
+   * How many turns a town taken by force stays in unrest. The same for every
+   * town, whatever its size, and nothing but a card shortens it (the user's
+   * ruling of 2026-11-23, `docs/flags.md`).
    */
-  targetPerCitizen: number;
-  /** Pacification every town in unrest gains each turn, whatever stands in it. */
-  baseRate: number;
-  /**
-   * Extra pacification while at least one military unit of the town's owner
-   * stands in the town. One line however many stand there.
-   */
-  garrisonRate: number;
-  /**
-   * Extra pacification while one of the owner's great generals stands in the
-   * town or within `generalReach` of it. One line however many generals do.
-   */
-  generalRate: number;
-  /** How far from the town, in hexes, a great general still counts. */
-  generalReach: number;
-  /**
-   * Extra pacification for each building in the town that carries the
-   * `easesUnrest` marker (the Courthouse today).
-   */
-  buildingRate: number;
+  turns: number;
   /**
    * An unguarded town in unrest raises a rebel on every turn whose count of
-   * unguarded turns is a multiple of this. Zero or less raises none.
+   * unguarded turns is a multiple of this. Zero or less raises none. It is 0
+   * since 2026-11-23: a rebel rose after three unguarded turns, and no town
+   * stays in unrest that long now. The code stays so the figure can bring
+   * rebels back.
    */
   rebelEveryTurns: number;
   /**
@@ -1074,16 +1035,14 @@ export function isCitizenFocus(value: unknown): value is CitizenFocus {
 }
 
 /**
- * The tile-purchase price, which is Civ 6's shape with this game's numbers in
- * it: a base that depends only on how far out the tile is, a premium that rises
- * with how far the *world* has come, and a flat escalation per tile this player
- * has already bought.
+ * The tile-purchase price: the ring's base times the buyer's age, counted from
+ * 1 (the user's ruling of 2026-11-23, `docs/flags.md`, "Eight simpler rules":
+ * "30 gold, 60 in the outer ring, multiplied by age").
  *
- * Three terms rather than one curve because each answers a different question a
- * player asks — "how far away is it", "how late is it", "how greedy have I
- * been" — and rule 5 means the price is *shown* as those three lines
- * (`explainTilePrice` in `cities.ts`). A single opaque formula could not be
- * printed honestly.
+ * The world's progress, the rounding and the surcharge for each hex bought
+ * before were removed by the same ruling. Rule 5 still holds: the price is
+ * shown as its lines (`explainTilePurchase` in `cities.ts`), the ring's base
+ * and what the age adds, and then any card or building discount.
  */
 interface TilePurchaseRules {
   /**
@@ -1093,22 +1052,6 @@ interface TilePurchaseRules {
    * the index and the ring the same number.
    */
   ringBase: number[];
-  /**
-   * How much the base grows across a whole game: the multiplier is
-   * `1 + progressFactor · gameProgress`, where progress is the fraction of the
-   * tech tree this player has researched. At 2 a tile at the end of the tree
-   * costs three times its opening price, which is what stops a late empire
-   * buying a province out of pocket change.
-   */
-  progressFactor: number;
-  /** The scaled base is rounded to a multiple of this. Civ's tidy price tags. */
-  roundTo: number;
-  /**
-   * Added per tile this player has *ever* bought, anywhere. Per player and not
-   * per city, exactly as Civ 6 has it: the escalation is meant to price a
-   * strategy of buying land, and a strategy is an empire's, not a town's.
-   */
-  perPriorPurchase: number;
 }
 
 /**
@@ -1525,7 +1468,7 @@ interface AuthorityRules {
  *
  * Three optional comparators rather than one, because the two ladders this game
  * has do not agree on their boundaries: the bonus/malus tiers are inclusive
- * (`≥ +5`, `≤ −5`) while the growth stifle's first rung is "any deficit at all",
+ * (`≥ +5`, `≤ −10`) while the growth stifle's first rung is "any deficit at all",
  * which is `< 0` and is *not* `≤ 0` — a happiness of exactly zero is a balanced
  * empire, not a starving one. A rung applies when any comparator it declares is
  * satisfied; `stepPercent` takes the deepest rung that applies.
@@ -1543,8 +1486,9 @@ interface MeterRules {
   authority: AuthorityRules;
   /**
    * The bonus/malus ladder both meters read: `≥ +5 → +10%`, `≥ +10 → +20%`, and
-   * the mirror image below zero. *Which* yields each side of each meter moves is
-   * a design rule and lives in `meters.ts`; this is only how far.
+   * one malus rung, `≤ −10 → −20%` (the user's ruling of 2026-11-23: the step at
+   * −5 went). *Which* yields each side of each meter moves is a design rule and
+   * lives in `meters.ts`; this is only how far.
    */
   tiers: MeterStep[];
   /** Magnitude cap on a tier, however deep the table grows. */
@@ -1968,11 +1912,14 @@ interface OfferRules {
  * Every number the **tide of belief** is made of (`docs/religion-v2.md`).
  *
  * The pressure sources are quoted in *faith a turn*, and one convert costs
- * `pressurePerConvert` of it — so the whole model is two figures a designer can
- * reason about together: a holy site pressing 6 turns a size-4 town inside five
- * turns at 10 a convert, and a road pressing 4 does it in eight. The user's
- * ruling of 2026-08-27 was "make religion spread more aggressive than in Civ",
- * and those two sentences are what that means in numbers.
+ * `pressurePerConvert` of it. So a holy site pressing 6 turns a size-4 town
+ * inside five turns at 10 a convert. The user's ruling of 2026-08-27 was "make
+ * religion spread more aggressive than in Civ".
+ *
+ * There are three sources: the holy site, each city that follows, and each
+ * trade route (the user's ruling of 2026-11-23, `docs/flags.md` "Eight simpler
+ * rules"). Pressure along roads and the capital's own pressure were removed
+ * then, with their three numbers.
  *
  * Every one of these may be shifted by an enhancer belief through one shape
  * (`pressureRule`) read in one place (`explainPressure`).
@@ -1986,34 +1933,16 @@ interface ReligionRules {
   /** How far a following city reaches, and what it presses. */
   cityRange: number;
   cityStrength: number;
-  /** What a following city joined to this one by road presses, at any distance. */
-  roadStrength: number;
   /** What a caravan from a following city presses on its destination. */
   routeStrength: number;
-  /** What a founder's own capital presses for its own faith. A seat does not drift. */
-  capitalStrength: number;
   /**
-   * How far the seat of a faith carries, in hexes. **Zero** as shipped: the
-   * capital holds its own hex and nothing further, which is exactly the line
-   * `explainPressure` printed before this number existed. A card that gives the
-   * seat a reach shifts it (`PressureRuleId`'s `capitalRange`, Pilgrims').
-   */
-  capitalRange: number;
-  /**
-   * What a Temple does to the pressure on the town it stands in, in whole
-   * percent: `templeOwnPercent` to the faith the town already keeps and
-   * `templeForeignPercent` to everybody else's. Twice for its own, and a
-   * quarter off everybody else's — the defensive building, with no combat
-   * anywhere near it.
-   *
-   * The foreign figure was *half* until the tree re-cut of 2026-09-02, whose
-   * worksheet rules the Temple at "foreign religious pressure −25%". It is
-   * quoted as **what gets through** rather than as what is turned away, which
-   * is why the ruling reads here as 75 and not as 25: a smaller number is a
-   * stronger temple, and this is the one number in the file that runs backwards.
+   * What a Temple does to the pressure of the faith its town already follows,
+   * in whole percent: 200 doubles it. Other religions press a town with a
+   * Temple at full strength. The rival half of the rule (`templeForeignPercent`,
+   * 75) was removed by the user's ruling of 2026-11-23: "lets remove the
+   * temples' 75% to rival strength."
    */
   templeOwnPercent: number;
-  templeForeignPercent: number;
   /**
    * A prophet's proclamation: how far it reaches, and what it presses **once**.
    *
@@ -2023,8 +1952,8 @@ interface ReligionRules {
    * spot. So it is quoted in the same currency as `pressurePerConvert` rather
    * than in faith-a-turn like every source above it — 60 against 10 a convert is
    * six citizens, which is a majority in a town of eleven and half of one in a
-   * town of twelve. A temple takes a quarter off it (`templeForeignPercent`),
-   * which is the one number that decides whether a bomb lands.
+   * town of twelve. A temple does not weaken it, but a temple doubles a bomb
+   * of the faith its town already follows (`templeOwnPercent`).
    */
   bombRange: number;
   bombLump: number;

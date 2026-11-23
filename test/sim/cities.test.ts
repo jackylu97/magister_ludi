@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   advanceProduction,
@@ -113,7 +113,7 @@ import {
 } from '../../src/sim/terrainData';
 import { beliefDef } from '../../src/sim/religionData';
 import { emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
-import { PROJECT_IDS } from '../../src/sim/projectData';
+import { PROJECT_IDS, projectDef } from '../../src/sim/projectData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { roundYield } from '../../src/sim/yieldFormat';
@@ -2185,7 +2185,7 @@ describe('growth off fresh water', () => {
 });
 
 describe('production', () => {
-  it('completes one item per turn and carries the overflow to the next', () => {
+  it('completes the front item and carries the overflow to the next', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.queue = [
@@ -2197,7 +2197,7 @@ describe('production', () => {
     advanceProduction(state);
     expect(state.units).toHaveLength(1);
     expect(state.units[0]).toMatchObject({ type: 'scout', ownerId: 0, col: 8, row: 5 });
-    // The monument did not also finish, and the change is in the basket.
+    // The change does not pay for the monument, so it waits in the basket.
     expect(city.hammerBasket).toBe(7);
     expect(city.queue).toEqual([{ kind: 'building', id: 'monument' }]);
   });
@@ -2261,6 +2261,174 @@ describe('production', () => {
     advanceProduction(state);
     expect(state.units).toHaveLength(1);
     expect(city.hammerBasket).toBe(500 - price);
+  });
+});
+
+/**
+ * The ruling of 2026-11-23 (`docs/flags.md`, last section): a queue completes
+ * as much as it can pay for in one turn. The remainder of each row pays for the
+ * next row at once, and the chain stops at the first row it cannot finish.
+ */
+describe('a queue completes as much as it can pay for in one turn', () => {
+  const building = (id: BuildingId): QueueItem => ({ kind: 'building', id });
+  const price = (state: GameState, id: BuildingId): number => buildingProductionCost(id, state, 0);
+
+  it('completes two rows in one turn and keeps the exact remainder', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.queue = [building('shrine'), building('monument'), building('library')];
+    city.hammerBasket = price(state, 'shrine') + price(state, 'monument') + 3;
+
+    advanceProduction(state);
+    expect(city.buildings).toEqual(['shrine', 'monument']);
+    expect(city.queue).toEqual([building('library')]);
+    expect(city.hammerBasket).toBe(3);
+  });
+
+  it('completes three rows in one turn, a unit among them, and keeps the exact remainder', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.queue = [{ kind: 'unit', id: 'scout' }, building('shrine'), building('monument'), building('library')];
+    city.hammerBasket =
+      unitProductionCost(state, 0, 'scout') + price(state, 'shrine') + price(state, 'monument') + 5;
+
+    advanceProduction(state);
+    expect(state.units.map((unit) => unit.type)).toEqual(['scout']);
+    expect(city.buildings).toEqual(['shrine', 'monument']);
+    expect(city.queue).toEqual([building('library')]);
+    expect(city.hammerBasket).toBe(5);
+  });
+
+  it('stops at the first row the basket cannot pay for, and does not skip it', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.queue = [building('shrine'), building('library'), { kind: 'unit', id: 'warrior' }];
+    const left = price(state, 'library') - 1;
+    // The warrior behind the library is cheaper than what is left, so a chain
+    // that skipped the library would finish it.
+    expect(unitProductionCost(state, 0, 'warrior')).toBeLessThanOrEqual(left);
+    city.hammerBasket = price(state, 'shrine') + left;
+
+    advanceProduction(state);
+    expect(city.buildings).toEqual(['shrine']);
+    expect(city.queue).toEqual([building('library'), { kind: 'unit', id: 'warrior' }]);
+    expect(state.units).toHaveLength(0);
+    expect(city.hammerBasket).toBe(left);
+  });
+
+  it('stops at a row that holds, and keeps the basket for it', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    // A settler in a town too small to send one out holds, so the monument
+    // behind it waits too.
+    expect(city.population).toBeLessThan(unitDef('settler').minCityPop);
+    city.queue = [building('shrine'), { kind: 'unit', id: 'settler' }, building('monument')];
+    city.hammerBasket = 500;
+
+    advanceProduction(state);
+    expect(city.buildings).toEqual(['shrine']);
+    expect(city.queue).toEqual([{ kind: 'unit', id: 'settler' }, building('monument')]);
+    expect(state.units).toHaveLength(0);
+    expect(city.hammerBasket).toBe(500 - price(state, 'shrine'));
+  });
+
+  it('pays a project once and stops there', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    const tithes = projectDef('tithes');
+    city.queue = [building('shrine'), { kind: 'project', id: 'tithes' }, building('monument')];
+    city.hammerBasket = price(state, 'shrine') + 3 * tithes.cost;
+    const gold = playerById(state, 0)!.gold;
+
+    advanceProduction(state);
+    expect(city.buildings).toEqual(['shrine']);
+    expect(city.queue).toEqual([{ kind: 'project', id: 'tithes' }, building('monument')]);
+    expect(city.hammerBasket).toBe(2 * tithes.cost);
+    expect(playerById(state, 0)!.gold).toBe(gold + tithes.pays.gold!);
+  });
+
+  it('pays a project at the front once, however full the basket is', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    const tithes = projectDef('tithes');
+    city.queue = [{ kind: 'project', id: 'tithes' }];
+    city.hammerBasket = 5 * tithes.cost;
+
+    const done = settleProductionWindfall(state, city);
+    expect(done.map((completed) => completed.name)).toEqual([tithes.name]);
+    expect(city.hammerBasket).toBe(4 * tithes.cost);
+  });
+
+  it('goes on past a row the town can never build', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.buildings = ['granary'];
+    bumpRevision(state);
+    city.queue = [building('granary'), building('shrine')];
+    city.hammerBasket = price(state, 'shrine') + 4;
+
+    const done = settleProductionWindfall(state, city);
+    // The granary is dropped and is no completion. The shrine is.
+    expect(done.map((completed) => completed.name)).toEqual([buildingDef('shrine').name]);
+    expect(city.queue).toEqual([]);
+    expect(city.hammerBasket).toBe(4);
+  });
+
+  it('asks the price of each unit again, so a settler raises the price of the next one', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.population = unitDef('settler').minCityPop;
+    const opening = unitProductionCost(state, 0, 'settler');
+    city.queue = [{ kind: 'unit', id: 'settler' }, { kind: 'unit', id: 'settler' }];
+    city.hammerBasket = 2 * opening;
+
+    advanceProduction(state);
+    // The first settler is paid at the opening price. The second now costs
+    // more than what is left, so it waits.
+    const next = unitProductionCost(state, 0, 'settler');
+    expect(next).toBeGreaterThan(opening);
+    expect(state.units.filter((unit) => unit.type === 'settler')).toHaveLength(1);
+    expect(city.queue).toEqual([{ kind: 'unit', id: 'settler' }]);
+    expect(city.hammerBasket).toBe(opening);
+  });
+
+  it('settles a production windfall as a chain, and returns every completion in order', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.queue = [building('shrine'), building('monument'), building('library')];
+    city.hammerBasket = price(state, 'shrine') + price(state, 'monument') + 2;
+
+    const done = settleProductionWindfall(state, city);
+    expect(done.map((completed) => completed.name)).toEqual([
+      buildingDef('shrine').name,
+      buildingDef('monument').name,
+    ]);
+    expect(done.map((completed) => completed.cost)).toEqual([price(state, 'shrine'), price(state, 'monument')]);
+    expect(city.queue).toEqual([building('library')]);
+    expect(city.hammerBasket).toBe(2);
+  });
+
+  it('doubles the remainder under The Common Purse once, on the first completion', () => {
+    const run = (held: boolean): number => {
+      const state = flatState();
+      const city = plant(state, 0, 8, 5);
+      if (held) {
+        const sc = playerById(state, 0)!.statecraft;
+        sc.orders.push('theCommonPurse');
+        sc.slots.push({ card: 'theCommonPurse', sealedUntil: state.turn });
+        bumpRevision(state);
+      }
+      city.queue = [building('shrine'), building('monument')];
+      city.hammerBasket = price(state, 'shrine') + price(state, 'monument') + 7;
+      advanceProduction(state);
+      expect(city.buildings).toEqual(['shrine', 'monument']);
+      return city.hammerBasket;
+    };
+    const monument = price(flatState(), 'monument');
+    expect(run(false)).toBe(7);
+    // The shrine leaves the monument's price and 7, and the card doubles that.
+    // The monument then takes its price, and its own remainder is not doubled.
+    expect(run(true)).toBe(monument + 14);
   });
 });
 
@@ -2345,9 +2513,29 @@ describe('windfall settlement (Entry XVIII)', () => {
 
     expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
     expect(city.buildings).toEqual(['shrine']);
-    // At most one item, exactly as the phase does it — the monument is still
-    // queued and the change is in the basket.
+    // The change does not pay for the monument, so the chain stops there and
+    // the change waits in the basket, exactly as the phase does it.
     expect(city.queue).toEqual([{ kind: 'building', id: 'monument' }]);
+    expect(city.hammerBasket).toBe(over);
+  });
+
+  it('finishes every row the timber now pays for, in one chop', () => {
+    // The ruling of 2026-11-23: a windfall settles the queue as a chain, as
+    // the end of the turn does.
+    const { state, city, worker } = chopper();
+    const over = 4;
+    const both = buildingProductionCost('shrine', state, 0) + buildingProductionCost('monument', state, 0);
+    expect(both).toBeGreaterThan(TIMBER);
+    city.queue = [
+      { kind: 'building', id: 'shrine' },
+      { kind: 'building', id: 'monument' },
+      { kind: 'building', id: 'university' },
+    ];
+    city.hammerBasket = both - TIMBER + over;
+
+    expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
+    expect(city.buildings).toEqual(['shrine', 'monument']);
+    expect(city.queue).toEqual([{ kind: 'building', id: 'university' }]);
     expect(city.hammerBasket).toBe(over);
   });
 
@@ -2474,7 +2662,7 @@ describe('windfall settlement (Entry XVIII)', () => {
   });
 
   describe('the shared routine', () => {
-    it('is what the phase is made of: one item per city, then stop', () => {
+    it('settles one row a call, and the phase calls it in a chain', () => {
       const state = flatState();
       const city = plant(state, 0, 8, 5);
       city.queue = [
@@ -2487,8 +2675,8 @@ describe('windfall settlement (Entry XVIII)', () => {
       expect(done?.name).toBe(buildingDef('shrine').name);
       expect(done?.cost).toBe(buildingProductionCost('shrine'));
       expect(city.queue).toEqual([{ kind: 'building', id: 'monument' }]);
-      // A second call takes the second item — which is exactly why the phase
-      // calls it once per city per turn and not in a loop.
+      // A second call takes the second item. `settleProductionQueue` makes
+      // these calls in a loop, which is how one turn finishes several rows.
       expect(settleProduction(state, city)?.name).toBe(buildingDef('monument').name);
     });
 
@@ -2537,7 +2725,7 @@ describe('windfall settlement (Entry XVIII)', () => {
       city.queue = [{ kind: 'building', id: 'granary' }];
       city.hammerBasket = 500;
 
-      expect(settleProductionWindfall(state, city)).toBeNull();
+      expect(settleProductionWindfall(state, city)).toEqual([]);
       expect(city.queue).toEqual([]);
       expect(city.buildings).toEqual(['granary']);
       expect(city.hammerBasket).toBe(500);

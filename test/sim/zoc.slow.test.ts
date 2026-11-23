@@ -79,7 +79,7 @@ describe('one evaluator: the sweep, the route and the walk agree', () => {
           mover.col = home.col;
           mover.row = home.row;
           mover.movesLeft = home.movesLeft;
-          delete mover.fortifiedTurns;
+          delete mover.fortified;
         }
       }
     }

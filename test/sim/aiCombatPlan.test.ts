@@ -1,8 +1,8 @@
 /** A legal attack must still use the combat facts the bot selected. */
 import { describe, expect, it } from 'vitest';
 import { driveBots } from '../../src/ai/driver';
-import { withAiTuning } from '../../src/ai/aiConfig';
-import { applyNextStep, freezeBoard, planSeat, startPlanRun } from '../../src/ai/frozenBoard';
+import { aiTuning, withAiTuning } from '../../src/ai/aiConfig';
+import { applyNextStep, askForCommands, freezeBoard, planSeat, startPlanRun } from '../../src/ai/frozenBoard';
 import { foundCityAt } from '../../src/sim/cities';
 import { applyCommand, type Command } from '../../src/sim/commands';
 import { isFortified, previewCombat } from '../../src/sim/combat';
@@ -47,7 +47,8 @@ function front() {
 
 function oneAttack(state: GameState, command: Extract<Command, { type: 'attack' }>, tacticalOrigin?: { col: number; row: number }) {
   let asked = false;
-  return planSeat(freezeBoard(state), command.playerId, {
+  // Test the original combat guard unless the case selects tactical guards.
+  return withAiTuning({ tactics: { enabled: 0 }, ...aiTuning() }, () => planSeat(freezeBoard(state), command.playerId, {
     ask: () => {
       if (asked) return null;
       asked = true;
@@ -56,7 +57,7 @@ function oneAttack(state: GameState, command: Extract<Command, { type: 'attack' 
       } : null };
     },
     warn: message => { throw Error(message); },
-  });
+  }));
 }
 
 function checkCut(state: GameState, run: ReturnType<typeof startPlanRun>, reason: 'combat' | 'unmapped') {
@@ -74,6 +75,19 @@ function checkCut(state: GameState, run: ReturnType<typeof startPlanRun>, reason
 }
 
 describe('planned combat facts', () => {
+  it('keeps identical tactical guards when the regular game drops the explanations', () => {
+    withAiTuning({ tactics: { enabled: 1, perUnit: 1 } }, () => {
+      const { state } = front();
+      const board = freezeBoard(state);
+      const explained = planSeat(board, 1);
+      const compact = planSeat(board, 1, { ask: askForCommands() });
+      expect(explained.steps.some(step => step.decision?.tacticalOrigin !== undefined)).toBe(true);
+      expect(compact.steps.every(step => step.decision === null)).toBe(true);
+      expect(compact.steps.map(step => step.command)).toEqual(explained.steps.map(step => step.command));
+      expect(compact.steps.map(step => step.tactics)).toEqual(explained.steps.map(step => step.tactics));
+    });
+  });
+
   it('keeps a per-unit plan when only an enemy attack allowance was spent', () => {
     withAiTuning({ tactics: { enabled: 1, perUnit: 1 } }, () => {
       const { state, command, defender } = front();
@@ -190,7 +204,7 @@ describe('planned combat facts', () => {
     const { state, command, attacker, defender, earlier } = front();
     defender.type = 'archer';
     defender.hp = 100;
-    defender.fortifiedTurns = 2;
+    defender.fortified = true;
     recomputeAllVisibility(state);
     bumpRevision(state);
     const plan = oneAttack(state, command);

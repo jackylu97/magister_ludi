@@ -1075,7 +1075,7 @@ describe('the legacies this pass built', () => {
     const unit = createUnit(g.state, 0, 'warrior', city.col, city.row);
     const tile = getTileAt(g.state.map, unit.col, unit.row)!;
     expect(fight(g.state, unit, tile, 'defend')).toBe(0);
-    unit.fortifiedTurns = 0;
+    unit.fortified = true;
     // Halved by the user's hand edits to `docs/great-people.md` (2026-09-14).
     expect(fight(g.state, unit, tile, 'defend')).toBe(5);
     // Defence only. A fort that charged would not be a fort.

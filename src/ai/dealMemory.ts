@@ -106,7 +106,11 @@ function termsKey(terms: DealTerms): string {
     gold: terms.gold ?? 0,
     goldPerTurn: terms.goldPerTurn ?? 0,
     luxuries: [...(terms.luxuries ?? [])].sort(),
-    ...(terms.strategics?.length ? { strategics: [...terms.strategics].sort() } : {}),
+    // Each strategic row with its copies, so a paper of four iron and a paper
+    // of three are two papers (the ruling of 2026-11-23).
+    ...(terms.strategics?.length
+      ? { strategics: terms.strategics.map((row) => `${row.id}*${row.copies}`).sort() }
+      : {}),
     openBorders: terms.openBorders === true,
     cities: [...(terms.cities ?? [])].sort((a, b) => a - b),
   });
@@ -163,11 +167,11 @@ function holdingsKey(state: GameState, refuserId: number, give: DealTerms, take:
   const refuser = playerById(state, refuserId);
   for (const id of named) {
     parts.push(`${id}=${resourceCopies(state, refuserId, id)}${hasResource(state, refuserId, id) ? '+' : '-'}`);
-    if (give.strategics?.includes(id) || take.strategics?.includes(id)) {
+    if (give.strategics?.some((row) => row.id === id) || take.strategics?.some((row) => row.id === id)) {
       // A unit or its queue can use the last free copy without changing the total.
       parts.push(`free:${availableCopies(state, refuserId, id)}`);
       parts.push(`revealed:${refuser !== undefined && resourceIsVisibleTo(id, refuser.techsResearched)}`);
-      if (take.strategics?.includes(id)) parts.push(`canLend:${lendableCopies(state, refuserId, id)}`);
+      if (take.strategics?.some((row) => row.id === id)) parts.push(`canLend:${lendableCopies(state, refuserId, id)}`);
     }
   }
   const coin = take.gold ?? 0;

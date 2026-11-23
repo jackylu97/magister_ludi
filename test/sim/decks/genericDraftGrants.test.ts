@@ -55,13 +55,14 @@ describe('Generic Boons that pay a scaled grant on draft', () => {
     expect(second.population).toBe(5);
     expect(home.buildings).toContain('monument');
     expect(second.buildings).toContain('monument');
+    expect(second.buildings).toContain('granary');
     expect(home.queue).toEqual([{ kind: 'building', id: 'granary' }]);
-    expect(second.queue).toEqual([{ kind: 'building', id: 'granary' }]);
+    expect(second.queue).toEqual([]);
     expect(home.hammerBasket).toBe(15);
-    expect(second.hammerBasket).toBe(35);
+    expect(second.hammerBasket).toBe(35 - buildingProductionCost('granary', state, 0));
     expect(idle.hammerBasket).toBe(12);
     expect(rival.hammerBasket).toBe(3);
-    expect(tallyOf(player.statecraft, 'theBrickKilns')).toBe(2);
+    expect(tallyOf(player.statecraft, 'theBrickKilns')).toBe(3);
   });
 
   it('adds the grant to a queued wonder', () => {

@@ -655,7 +655,23 @@ import {
 // attack only within `campAttackRadius` (8) of their camp, and camps are founded
 // every three turns instead of every two (`campEveryTurns`). Nothing was released
 // between these changes, so they share the version.
-export const SCHEMA_VERSION = 262;
+// Version 263: a queue completes every row and technology its basket or pool pays for in one turn.
+// Version 264: unrest lasts three turns in every town, and no rebels rise (the user's ruling of 2026-11-23).
+// Version 265: five of the user's simpler rules of 2026-11-23 (`docs/flags.md`,
+// "Eight simpler rules", items 1, 2, 3, 6 and 8). War weariness is gone. A
+// happiness deficit slows growth by 75%, and at −10 or below stops it and
+// lowers production, science and culture by 20%. A hex costs its ring's base
+// times the buyer's age. Debt lowers science and culture by 20%. A town buys
+// one unit a turn in any currency: `City.purchasedUnitTurns` (a stamp for each
+// of three classes) becomes `City.purchasedUnitTurn` (one turn number). A v264
+// log replays to a different state. Nothing is migrated.
+// Version 266: a strategic resource in a deal carries a number of copies (the
+// user's ruling of 2026-11-23, `docs/flags.md`, "Strategic resources are traded
+// in a quantity"). `DealTerms.strategics` changes from a list of ids, one copy
+// each, to a list of `{ id, copies }` rows (`CopyLoan`, `deals.ts`). A v265 log
+// names strategic loans in the old shape, which the deal gate now refuses.
+// Nothing is migrated.
+export const SCHEMA_VERSION = 266;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1061,9 +1077,9 @@ export interface Player {
   /**
    * How many tiles this player has ever bought with gold (`purchaseTile`).
    *
-   * The escalation ladder in `explainTilePurchase` (`cities.ts`), and per
-   * *player* rather than per city because that is what it is meant to price: Civ
-   * 6 escalates a habit of buying land, and a habit belongs to an empire. Kept
+   * A lifetime count that the beads and the bots read. It no longer raises the
+   * price of a hex: the surcharge for each hex bought before was removed by the
+   * user's ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules"). Kept
    * on the player for `unitsBuilt`'s reason — it can never be derived from
    * the board, because a bought tile is indistinguishable from a tile culture
    * claimed the moment the gold has left the treasury.
@@ -1559,15 +1575,18 @@ export interface Player {
   enemiesKilled?: number;
   /**
    * **The losses this empire has suffered to other empires in war**, oldest
-   * first (batch WC2, `docs/flags.md` (rrrrrr) part 2). War weariness is read
-   * off this list (`src/sim/weariness.ts`).
+   * first (batch WC2, `docs/flags.md` (rrrrrr) part 2; `src/sim/warLosses.ts`).
+   * No rule of the game reads it. The bots read their recent fighting from it
+   * (`warOutlook`, `src/ai/bot.ts`). War weariness read it until the user
+   * removed weariness on 2026-11-23.
    *
    * One record per unit another empire destroyed or captured, and one per town
    * another empire took by force. Each record carries the turn it happened on
    * and who did it. The list is only appended to, and only by `recordWarLoss`;
-   * readers count the records whose turn is inside the weariness window, so
-   * nothing here counts down. `pruneWarLosses` deletes records that have left
-   * the window, which changes no reading.
+   * readers count the records whose turn is inside the loss window
+   * (`rules.war.lossWindowTurns`), so nothing here counts down.
+   * `pruneWarLosses` deletes records that have left the window, which changes no
+   * reading.
    *
    * Stored rather than derived because a loss leaves nothing on the board: a
    * dead unit is gone, and a captured town looks the same as any other town of
@@ -2129,7 +2148,7 @@ export interface Unit {
    * alongside the movement allowance, because they are the same allowance: one
    * attack per unit per turn, exactly as Civ V has it.
    *
-   * Always present rather than optional, unlike `path` and `fortifiedTurns`. It
+   * Always present rather than optional, unlike `path` and `fortified`. It
    * is a fact about every unit on every turn — a warrior that has not attacked
    * has *not attacked*, which is a real state and not an absent one — and the
    * healing rule reads it on every unit in the game every turn.
@@ -2165,7 +2184,7 @@ export interface Unit {
   /**
    * The rest of a march this unit has been ordered on, or the key is **absent**
    * when it is standing where it was put. Presence is the state, like
-   * `sleeping`'s and `fortifiedTurns`'.
+   * `sleeping`'s and `fortified`'s.
    *
    * Walked at the **end** of a turn, on the points that turn granted
    * (`spendLeftoverMovement` in `turn.ts`, and only there since 2026-09-08 —
@@ -2175,22 +2194,24 @@ export interface Unit {
    */
   path?: { col: number; row: number }[];
   /**
-   * How many turns this unit has been fortified, or the key is absent when it is
-   * not fortified at all.
+   * This unit is fortified, or the key is absent when it is not.
    *
    * Presence *is* the fortified state, which is `path`'s convention (see its
    * docblock) and it is here for the same reason: a unit that has never dug in
    * and a unit that has just been shaken out of a trench must serialise
    * identically, or two states that are the same game would not compare equal.
-   * Zero is a real value and means "fortified this turn, no bonus yet" — the
-   * `advanceFortify` phase raises it, capped by `combat.fortifyMax`.
+   *
+   * There is no turn count. The bonus is a flat `combat.fortifyBonus` from the
+   * first turn and does not grow (the user's ruling of 2026-11-23), so a unit
+   * is fortified or it is not. The field was `fortifiedTurns`, a count raised
+   * each turn by a phase, until then.
    */
-  fortifiedTurns?: number;
+  fortified?: true;
   /**
    * Improvement charges this unit has left, or the key is **absent** on
    * everything that never had any.
    *
-   * Presence *is* "this is a builder", which is `path`'s and `fortifiedTurns`'
+   * Presence *is* "this is a builder", which is `path`'s and `fortified`'s
    * convention and is here for the third time for the same reason: a warrior
    * and a worker must serialise differently in kind rather than by a zero, or a
    * state that gave every soldier `chargesLeft: 0` would be a state claiming
@@ -2209,7 +2230,7 @@ export interface Unit {
   /**
    * This unit has been told to sleep, or the key is **absent** when it has not.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`' and
+   * Presence is the state, which is `path`'s, `fortified`'s and
    * `chargesLeft`' convention and is here for the fourth time for the same
    * reason: a unit that has never slept and a unit just shaken awake must
    * serialise identically, or two states that are the same game would not
@@ -2236,7 +2257,7 @@ export interface Unit {
   /**
    * What a dug-in unit does about orders, or the key is **absent** for a plain
    * fortified unit that is quiet (and for every unit not dug in). It is only
-   * ever present beside `fortifiedTurns`.
+   * ever present beside `fortified`.
    *
    *   · `'untilHealed'`: told to fortify until healed. The unit is quiet while
    *     it heals and wakes at full health. The `fortify` command writes it
@@ -2247,7 +2268,7 @@ export interface Unit {
    *
    * Why a field of its own and not a value of `sleeping`: a dug-in unit can be
    * awake, and a field named `sleeping` cannot say that. A quiet fortified unit
-   * (`fortifiedTurns` alone) never asks for orders, so the awake state needs a
+   * (`fortified` alone) never asks for orders, so the awake state needs a
    * mark of its own. It was `untilHealed: 'waiting' | 'woken'` at schema 253
    * and 254, when only that order could wake.
    *
@@ -2286,7 +2307,7 @@ export interface Unit {
    * Effects that run out — a Blessing of Arms on this piece — or the key is
    * **absent**, which it is for every unit almost all of the time.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s
    * and `sleeping`'s convention and is here for the fifth time for the same
    * reason: a warrior that was never blessed and one whose blessing has been
    * swept away must serialise identically. See `TimedEffect` for why an expiry
@@ -2300,7 +2321,7 @@ export interface Unit {
    * **Which** great person this piece is, or the key is **absent** on every
    * ordinary unit — which is all of them but a handful in a whole game.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s,
    * `sleeping`'s and `timed`'s convention and is here for the sixth time for the
    * same reason: a warrior and Archimedes must serialise differently in kind.
    *
@@ -2353,7 +2374,7 @@ export interface Unit {
    * The trade route this piece is **carrying**, or the key is **absent** on
    * every unit that is not on the road — which is all of them but a handful.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s,
    * `sleeping`'s, `timed`'s and `person`'s convention and is here for the
    * seventh time for the same reason: a trader idling at home and one that has
    * never been sent must serialise identically, or two states that are the same
@@ -2377,7 +2398,7 @@ export interface Unit {
    * or the key is **absent**, which it is for every unit that was built, bought
    * or seated at the start.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s,
    * `sleeping`'s, `timed`'s, `person`'s and `trade`'s convention and is here for
    * the eighth time for the same reason: a warrior a city built and a warrior a
    * wonder handed over must serialise differently in kind rather than by a
@@ -2457,7 +2478,7 @@ export interface Unit {
    * or the key is **absent**, which it is for every unit born under a council
    * that had stamped nothing.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s,
    * `sleeping`'s, `timed`'s, `person`'s, `trade`'s and `freeUpkeep`'s convention
    * and is here for the ninth time for the same reason: a warrior raised before
    * The Muster Roll and one raised after it must serialise differently in kind,
@@ -2672,35 +2693,15 @@ export type QueueKind = QueueItem["kind"];
  */
 
 /**
- * Which "one a turn" a bought unit spends (`City.purchasedUnitTurns`).
- *
- * The user's widening of the one-unit-a-turn rule (2026-09-02): *faith buying,
- * buying a civilian unit, and buying a military unit all counted separately*. So
- * the bucket is a pair of questions asked in order — **which bank paid**, and
- * then **is the piece a combatant** — because the faith bank is the one a town
- * calls an augur or a prophet out of and that call has never competed with a
- * garrison for the same afternoon.
- *
- * Read off `UnitDef` through `isCivilian` rather than off a name, exactly as
- * every other class question in this codebase is: nothing here compares a type
- * against `"settler"`, so a caravan is bought out of the civilian bucket for
- * being a non-combatant and not for being called a trader.
- *
- * Declared here beside `City` rather than in `purchase.ts` because the field is
- * the city's; `purchase.ts` imports this module and an import the other way
- * would be the runtime cycle `moduleCycles.test.ts` exists to catch.
- */
-export type UnitPurchaseBucket = "militaryGold" | "civilianGold" | "faith";
-
-/**
  * The banks a purchase is paid from: the treasury, the faith pool and, since
  * Magisterial batch MG11, the culture pool, from which Magnificence buys the
  * world wonder at the front of a town's queue.
  *
- * Declared here beside `City` rather than in `purchase.ts` for the reason
- * `UnitPurchaseBucket` gives: `City.buildingBanks` records which bank paid for
- * a building, and `purchase.ts` imports this module. `purchase.ts` re-exports
- * it by name, so every caller still imports it from there.
+ * Declared here beside `City` rather than in `purchase.ts` because
+ * `City.buildingBanks` records which bank paid for a building, and
+ * `purchase.ts` imports this module: an import the other way would be the
+ * runtime cycle `moduleCycles.test.ts` exists to catch. `purchase.ts`
+ * re-exports it by name, so every caller still imports it from there.
  */
 export type PurchaseCurrency = 'faith' | 'gold' | 'culture';
 
@@ -2770,7 +2771,7 @@ export interface City {
    *
    * `Tile.improvedOn` one scale up and the same discipline: an **absolute** turn
    * compared against `state.turn`, never a countdown — `TimedEffect.expiresTurn`'s
-   * rule, `SlottedOrder.sealedUntil`'s and `purchasedUnitTurns`' below. Nothing
+   * rule, `SlottedOrder.sealedUntil`'s and `purchasedUnitTurn`'s below. Nothing
    * decrements it and no phase sweeps it; the whole reading is
    * `state.turn - buildingTurns[id] >= turns`, which is what lets a card say "a
    * Library that has stood twenty turns" without anything anywhere ticking.
@@ -3073,32 +3074,30 @@ export interface City {
    */
   posts?: CommercialPost[];
   /**
-   * The turn this town last bought a unit **of each class**, or the key is
+   * The turn this town last bought a unit, in any currency, or the key is
    * **absent** on a town that never has (user, 2026-08-28 playtest: "cities can
-   * only purchase a single unit per turn"; widened 2026-09-02: "cities should be
-   * able to only buy one unit of each *type* — faith buying, buying a civilian
-   * unit, and buying a military unit all counted separately").
+   * only purchase a single unit per turn"; and the ruling of 2026-11-23,
+   * `docs/flags.md`, "Eight simpler rules": "One bought unit each turn").
    *
-   * One record with one stamp per `UnitPurchaseBucket` rather than three fields,
-   * because the rule is one rule asked of three buckets: `purchaseError` looks up
-   * the bucket the thing being bought falls in and `purchaseItemAt` writes the
-   * same one, so a fourth class is a member of that union and nothing else.
+   * One number for the town. From 2026-09-02 to schema 264 it was a record with
+   * one stamp for each of three classes (military units for gold, civilian units
+   * for gold, and units for faith), so a town could buy one of each in a turn.
    *
-   * Each entry is an **absolute** turn compared against `state.turn`, never a
-   * countdown — `TimedEffect`'s rule and `SlottedOrder.sealedUntil`'s, applied to
-   * the shortest-lived fact in the game. The whole reading is
-   * `city.purchasedUnitTurns?.[bucket] === state.turn`, so nothing decrements it,
-   * no phase clears it and the entry is *already* meaningless the moment the turn
-   * rolls over. That is what makes the rule safe under simultaneous turns: there
-   * is no moment in the pipeline where it has to have been reset.
+   * An **absolute** turn compared against `state.turn`, never a countdown —
+   * `TimedEffect`'s rule and `SlottedOrder.sealedUntil`'s, applied to the
+   * shortest-lived fact in the game. The whole reading is
+   * `city.purchasedUnitTurn === state.turn`, so nothing decrements it, no phase
+   * clears it and the value is *already* meaningless the moment the turn rolls
+   * over. That is what makes the rule safe under simultaneous turns: there is no
+   * moment in the pipeline where it has to have been reset.
    *
    * **Units only.** A treasury that can turn coin into a garrison as fast as it
    * can click is the thing the note is about; a town that buys a granary and a
    * library on the same afternoon has bought two things it then has to feed.
    * Written by `purchaseItemAt` and read by `purchaseError`, and by nothing
-   * else.
+   * else in the simulation.
    */
-  purchasedUnitTurns?: Partial<Record<UnitPurchaseBucket, number>>;
+  purchasedUnitTurn?: number;
   /**
    * How many of this town's citizens follow each religion, or the key is
    * **absent** on a town nobody has preached to — which is every town for most
@@ -3290,14 +3289,16 @@ interface CityLevyRecord {
  * Two of the three are counts rather than turns, and neither is a countdown.
  * `progress` is a basket, filled like a food basket and compared against
  * `target`. `unguarded` counts the turns that qualified, so the rebel cadence
- * is "every third such turn" however the unguarded turns are spread out; a turn
- * with a garrison in the town adds nothing to it and takes nothing from it.
+ * counts such turns however they are spread out; a turn with a garrison in the
+ * town adds nothing to it and takes nothing from it. Rebels are off by default
+ * (`rules.war.unrest.rebelEveryTurns` is 0), and the count is still kept.
  */
 interface CityUnrest {
   /**
-   * Pacification needed to end the unrest: `rules.war.unrest.targetPerCitizen`
-   * times the town's population at the moment it was taken. Stored rather than
-   * derived because the population moves afterwards and the target must not.
+   * Pacification needed to end the unrest: `rules.war.unrest.turns`, read at
+   * the moment the town was taken. It is the same for every town now. It stays
+   * on the record, as it was when the target depended on the town's size, so
+   * the panel's bar and the phase compare `progress` against the record alone.
    */
   target: number;
   /** Pacification banked so far. Unrest ends the turn this reaches `target`. */
@@ -3316,9 +3317,8 @@ export type WarLossKind = 'unit' | 'town';
 /**
  * One loss an empire suffered to another empire. See `Player.warLosses`.
  *
- * The record says what was lost and not what it costs: how many points of
- * weariness a unit or a town is worth is read from `rules.war.weariness` when
- * the list is counted, so the figures stay in the data.
+ * The record says what was lost and not what it costs. A loss costs no
+ * happiness since war weariness was removed (2026-11-23).
  */
 export interface WarLoss {
   /** `state.turn` when the loss happened. Compared against the window. */
@@ -4827,8 +4827,8 @@ export function removeUnit(state: GameState, unitId: number): boolean {
 /**
  * Shakes a unit out of its trench. Returns whether it was in one.
  *
- * The key is *deleted* rather than zeroed, because presence is the state (see
- * `Unit.fortifiedTurns`) and a unit that never fortified must serialise
+ * The key is *deleted* rather than set false, because presence is the state
+ * (see `Unit.fortified`) and a unit that never fortified must serialise
  * identically to one that just stopped.
  *
  * It lives here, beside the other three one-line facts about a unit's existence,
@@ -4841,8 +4841,8 @@ export function removeUnit(state: GameState, unitId: number): boolean {
  * `applyCombat` when it attacks, and now a change of owner).
  */
 export function breakFortify(unit: Unit): boolean {
-  if (unit.fortifiedTurns === undefined) return false;
-  delete unit.fortifiedTurns;
+  if (unit.fortified === undefined) return false;
+  delete unit.fortified;
   // What the unit does about orders, and what it last saw, live in the trench.
   // Without a trench neither is left (see `Unit.dugIn`, `Unit.enemyInSight`).
   delete unit.dugIn;
@@ -4862,7 +4862,7 @@ export function breakFortify(unit: Unit): boolean {
  * it (`applyCombat`, `combat.ts`).
  */
 export function wakeInTrench(unit: Unit): boolean {
-  if (unit.fortifiedTurns === undefined || unit.dugIn === 'awake') return false;
+  if (unit.fortified === undefined || unit.dugIn === 'awake') return false;
   unit.dugIn = 'awake';
   return true;
 }

@@ -58,8 +58,8 @@
  * up. A percentage of the defender's own strength made a hill worth twice as
  * much to a longswordsman as to a warrior, which is a hill improved by Iron
  * Working. Terrain defence is summed from terrain, feature and hills (see
- * `terrainData.ts`, which itemises it); the fortify bonus is `turns × perTurn`
- * points, capped at `fortifyMax`.
+ * `terrainData.ts`, which itemises it); the fortify bonus is a flat
+ * `fortifyBonus` points from the first turn a unit is fortified.
  *
  * "Every flat line" is a list and not a fixed set: the wild's tax, the empire's
  * law, a citadel under the defender's feet, and — since 2026-08-28 — a **great
@@ -288,11 +288,11 @@
  *     fight, so there is no capacity, no loading, and no hold to sink. What
  *     crossing the waterline costs either side is *Across the waterline* above,
  *     and it is four clauses rather than a transport system.
- *   · **Happiness changing how a fight goes.** War weariness exists since batch
- *     WC2 (`weariness.ts`), but it lowers the losing empire's happiness and
- *     never a unit's strength. All a fight does for it is record each unit or
- *     town one empire loses to another (`recordWarLoss`, called here and from
- *     `arriveOnTile`).
+ *   · **Happiness changing how a fight goes.** Happiness never changes a unit's
+ *     strength. A fight records each unit or town one empire loses to another
+ *     (`recordWarLoss`, `warLosses.ts`, called here and from `arriveOnTile`),
+ *     and only the bots read that record. War weariness was removed on
+ *     2026-11-23.
  *   · **Damage scaling with health.** A unit at 10 hit points hits exactly as
  *     hard as one at full, so a fight is a grind rather than an avalanche.
  *
@@ -424,8 +424,8 @@ import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
 import { bumpEconomy } from './slate';
 import { endUnrest, startUnrest } from './unrest';
-import { recordWarLoss } from './weariness';
-// A leaf over the rule book and `state.ts`, like `weariness.ts`, so this edge
+import { recordWarLoss } from './warLosses';
+// A leaf over the rule book and `state.ts`, like `warLosses.ts`, so this edge
 // cannot make a cycle either.
 import { awardExperience, experienceAfterCombat, rankStrengthLines } from './ranks';
 
@@ -448,34 +448,23 @@ export { isCivilian, isCombatant, isRanged };
 
 // --- fortifying -------------------------------------------------------------
 
-/** Is this unit dug in? Presence of the counter *is* the state; see `Unit`. */
+/** Is this unit dug in? Presence of the flag *is* the state; see `Unit.fortified`. */
 export function isFortified(unit: Unit): boolean {
-  return unit.fortifiedTurns !== undefined;
+  return unit.fortified !== undefined;
 }
 
 /**
- * How many turns of fortification are worth counting: the point at which
- * `fortifyMax` is reached, and never more, so the stored counter cannot drift
- * upward for a hundred turns behind a bonus that stopped growing on turn two.
- */
-function maxFortifyTurns(): number {
-  const perTurn = COMBAT.fortifyBonusPerTurn;
-  if (perTurn <= 0) return 0;
-  return Math.ceil(COMBAT.fortifyMax / perTurn);
-}
-
-/**
- * The **strength points** this unit's entrenchment is worth right now.
+ * The **strength points** this unit's entrenchment is worth: a flat
+ * `combat.fortifyBonus` for a fortified unit, from the first turn, and nothing
+ * for one that is not.
  *
- * Points rather than the fraction this returned until 2026-08-28: a trench and a
- * hill are the same kind of advantage and belong on the same ledger (module
- * docblock). `maxFortifyTurns` is unchanged by the switch — `fortifyMax /
- * perTurn` is still 2 — so a save written before it deserialises identically.
+ * Points rather than a fraction since 2026-08-28: a trench and a hill are the
+ * same kind of advantage and belong on the same ledger (module docblock). Flat
+ * since the user's ruling of 2026-11-23 ("Fortify flat +4"); before it the bonus
+ * grew each turn up to a cap.
  */
 export function fortifyBonus(unit: Unit): number {
-  const turns = unit.fortifiedTurns;
-  if (turns === undefined) return 0;
-  return Math.min(turns * COMBAT.fortifyBonusPerTurn, COMBAT.fortifyMax);
+  return isFortified(unit) ? COMBAT.fortifyBonus : 0;
 }
 
 /**
@@ -1262,8 +1251,7 @@ function clampCityHp(state: GameState, city: City, shelf: BuildingShelf): void {
  * Rule 5 applied to violence, and the shape the *next* such bonus joins rather
  * than a barbarian special case: a rank or a great general says "so many
  * points, to this side, because of that" and belongs in this list (a rank since
- * batch WC3, `ranks.ts`). War weariness does not: since batch WC2 it costs
- * happiness and nothing in a fight, see `weariness.ts`.
+ * batch WC3, `ranks.ts`).
  *
  * Flat points rather than a fraction, and added **after** the multipliers, which
  * is a rules decision and not a rounding one. Terrain and fortification multiply
@@ -1472,52 +1460,6 @@ function rowCombatLines(
 }
 
 /**
- * **The line of battle**: what standing shoulder to shoulder with other heavy
- * hulls is worth, as the one labelled line it adds — or nothing.
- *
- * `generalAuraLines`' shape at sea, and the resemblance is the design rather
- * than a copy: a fact about *where the piece is standing* is a flat labelled
- * point total, never a term in a multiplier. What differs is that this one
- * *counts* — `rules.naval.lineBonusPerHull` per neighbour, capped at
- * `lineBonusMax` — because a line of battle is a formation and a general is a
- * person, so one of them stacks and the other cannot.
- *
- * Four clauses, each a sentence. **Heavy hulls only**, asked of `blockades` —
- * the roster's own marker for the heavy line — so nothing here compares a type
- * against a name or switches on a model class, which is art. Since Scientific
- * batch S1 the question is about a piece, so a hull that blockades by a card
- * (the Galleass trait's Gun Galleys) stands in the line as well. **Its own side**,
- * the reading everything in this file gives "friendly". **Adjacent**, the six
- * neighbours and nothing further: a formation is contact, and a fleet spread
- * over a sea is not a line. **`state.units` in array order**, never a `Map`,
- * because the count reaches an outcome (hard rule 2).
- *
- * Read on both sides by `planCombat`, like every other flat line: a wall of
- * hulls is worth the same closing as it is holding.
- */
-export function navalLineLines(state: GameState, unit: Unit): CombatStrengthLine[] {
-  const per = RULES.naval.lineBonusPerHull;
-  if (per === 0) return [];
-  if (!blockades(state, unit)) return [];
-  const here = getTileAt(state.map, unit.col, unit.row);
-  if (!here) return [];
-  const eye = tileHex(here);
-  let neighbours = 0;
-  for (const other of state.units) {
-    if (other.id === unit.id) continue;
-    if (other.ownerId !== unit.ownerId) continue;
-    if (!blockades(state, other)) continue;
-    const stands = getTileAt(state.map, other.col, other.row);
-    if (!stands) continue;
-    if (wrappedDistance(state.map, eye, tileHex(stands)) !== 1) continue;
-    neighbours += 1;
-  }
-  if (neighbours === 0) return [];
-  const amount = Math.min(RULES.naval.lineBonusMax, neighbours * per);
-  return [{ source: 'The line', amount }];
-}
-
-/**
  * What being **on the water** is worth to a piece that does not belong there —
  * the escort's shelter, or the price of having none.
  *
@@ -1536,10 +1478,9 @@ export function navalLineLines(state: GameState, unit: Unit): CombatStrengthLine
  *     crossing is a column that cannot form up, and it is the whole reason a
  *     light hull is worth building alongside an invasion.
  *
- * The escort is asked of `hitAndRun`, the light line's own marker, for
- * `navalLineLines`' reason: the roster says what a hull is for, and a model
- * class is art. `stacksFreely` pieces are skipped so a caravan sharing the hex
- * is neither an escort nor in the way.
+ * The escort is asked of `hitAndRun`, the light line's own marker: the roster
+ * says what a hull is for, and a model class is art. `stacksFreely` pieces are
+ * skipped so a caravan sharing the hex is neither an escort nor in the way.
  */
 export function seaDefenceLines(
   state: GameState,
@@ -2174,14 +2115,15 @@ function planCombat(
    * The roster's own lines first (`rowCombatLines`) — the light hull's edge over
    * a gun deck, the ranged hull's fragility when a melee catches it, the
    * frigate's bombardment — read on whichever side the row is on, so one table
-   * answers for an attack and for a defence. Then **the line of battle**, both
-   * sides, beside the general's aura it is modelled on. Then the water, on the
-   * defender only: a piece caught crossing is worth less unless a light hull is
-   * standing over it, which is what `seaDefenceLines` is.
+   * answers for an attack and for a defence. Then the water, on the defender
+   * only: a piece caught crossing is worth less unless a light hull is standing
+   * over it, which is what `seaDefenceLines` is. The line of battle (a bonus for
+   * each friendly heavy ship beside a heavy ship) was removed by the user's
+   * ruling of 2026-11-23.
    *
    * That is the whole of the triangle in the simulation. There is no naval
    * branch in the damage curve, no second evaluator and no clause anywhere that
-   * asks whether a fight is at sea — three data rows and three folds, which is
+   * asks whether a fight is at sea — data rows and two folds, which is
    * the same bargain a luxury's signature and a card's effect make.
    */
   for (const line of rowCombatLines(
@@ -2193,9 +2135,6 @@ function planCombat(
   )) {
     bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
   }
-  for (const line of navalLineLines(state, attacker)) {
-    bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
-  }
   if (target.unit) {
     for (const line of rowCombatLines(
       unitDef(target.unit.type),
@@ -2204,9 +2143,6 @@ function planCombat(
       attacker.type,
       false,
     )) {
-      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
-    }
-    for (const line of navalLineLines(state, target.unit)) {
       bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
     for (const line of seaDefenceLines(state, target.unit, tile)) {
@@ -2975,7 +2911,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         // ground, once a turn for each card (`turningCardFor`). The disposal
         // is the same capture, so it pays no kill or death riders and writes
         // no kill or loss tallies either. The one record it does write is the
-        // war's: an empire lost a soldier, so its war weariness counts it.
+        // war's: an empire lost a soldier, so its war losses list it.
         //
         // One clause serves both rules, so `combat.ts` still holds one
         // `captureUnit` call (pinned in `combat.test.ts`).
@@ -3000,9 +2936,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           // whatever took the piece. The capture arm above deliberately writes
           // neither: nothing died.
           tallyFall(state, attacker.ownerId, fallenOwner);
-          // And the war's own record of it, for war weariness (batch WC2). The
-          // same death read per enemy and over a window; nothing is written
-          // when either side is the wild.
+          // And the war's own record of it (batch WC2, `warLosses.ts`), which
+          // the bots read. Nothing is written when either side is the wild.
           recordWarLoss(state, fallenOwner, attacker.ownerId, 'unit');
           // Two riders on one death, and they belong to two empires: the killer's
           // `kill` and the fallen's `death`. Both are paid, in that order, because
@@ -3511,8 +3446,8 @@ function payBattleRiders(
  * WC1: only a town taken by force enters it). Those are the conquest, and they
  * stay in `captureCity`. A town ceded while it is in unrest keeps its record as
  * it stands, because nothing here touches it. The same goes for the war loss
- * (batch WC2): a town handed over at a treaty table adds nothing to its old
- * owner's war weariness, so `recordWarLoss` is called from `captureCity` only.
+ * (batch WC2): a town handed over at a treaty table is not a war loss of its old
+ * owner, so `recordWarLoss` is called from `captureCity` only.
  */
 export function handOverCity(state: GameState, city: City, ownerId: number): void {
   const loser = city.ownerId;
@@ -3649,15 +3584,14 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // and not in `handOverCity`, for `capturedOn`'s reason: a town handed over at
   // a treaty table was not taken by force. A fresh record every time, so a town
   // taken again while still in unrest starts over for its new owner, and a
-  // founder who takes its own town back is in unrest too. Written after the
-  // handover, because the target is read off the population the captor holds.
+  // founder who takes its own town back is in unrest too.
   startUnrest(city);
   // **Pax Romana** (Dominion batch D4, the triage's reading 27): a captor
   // whose law pacifies a captured town ends the unrest at the moment of
   // capture, so the pacified moment pays now (The Provincial Census).
   if (cardActionRule(state, ownerId, 'pacifyOnCapture')) endUnrest(state, city);
-  // **War weariness** (batch WC2, `docs/flags.md` (rrrrrr) part 2): a town
-  // taken by force is a loss to the empire that held it. Here and not in
+  // **The war loss** (batch WC2, `warLosses.ts`): a town taken by force is a
+  // loss to the empire that held it. Here and not in
   // `handOverCity`, for `capturedOn`'s reason: a town handed over in a peace
   // deal was not taken by force, and is not a loss.
   recordWarLoss(state, loser, ownerId, 'town');
@@ -4076,25 +4010,4 @@ export function healCities(state: GameState, report?: { sieges: SiegeReport[] })
     }
     city.hp = Math.min(max, city.hp + amount);
   }
-}
-
-/**
- * `advanceFortify`: everybody still dug in digs a little deeper.
- *
- * The counter is capped at `maxFortifyTurns()` rather than left to climb, so
- * that a unit sitting on a hill for a hundred turns serialises the same as one
- * that has been there for three — the bonus stopped growing at two, and a number
- * that only differs where nothing differs is a number that breaks snapshot
- * comparison for no reason.
- */
-export function advanceFortify(state: GameState): void {
-  const cap = maxFortifyTurns();
-  for (const unit of state.units) {
-    const turns = unit.fortifiedTurns;
-    if (turns === undefined) continue;
-    unit.fortifiedTurns = Math.min(cap, turns + 1);
-  }
-  // A fortification is a line of the cards' counts (Dominion batch D7,
-  // `slate.ts`), so the phase announces after its writes.
-  bumpEconomy(state);
 }

@@ -24,6 +24,7 @@
  * the board underneath stays draggable while a splash is up.
  */
 
+import { listWords } from './faithReading';
 import { prefersReducedMotion } from './motion';
 import { type ResearchReport, describeTraitGain, describeUpgrade } from '../sim/tech';
 import { isCharterTech, techDef } from '../sim/techData';
@@ -50,19 +51,22 @@ interface TechSplashReading {
 }
 
 /**
- * The splash for the first technology a resolution completed, or `null` when
- * it completed none and the turn card is shown instead.
+ * The splash for the technologies a resolution completed, or `null` when it
+ * completed none and the turn card is shown instead.
+ *
+ * A full pool can finish several technologies in one turn (the ruling of
+ * 2026-11-23), so the name names all of them: "Mining and Pottery". The
+ * eyebrow shows when any of them is a charter technology.
  *
  * Pure, so the suite can pin the words. The tallies are the simulation's own
  * sentences (`describeUpgrade`, `describeTraitGain`).
  */
 export function techSplashReading(report: ResearchReport): TechSplashReading | null {
-  const tech = report.techs[0];
-  if (tech === undefined) return null;
+  if (report.techs.length === 0) return null;
   return {
-    name: techDef(tech).name,
+    name: listWords(report.techs.map((tech) => techDef(tech).name)),
     notes: [...report.upgrades.map(describeUpgrade), ...report.traits.map(describeTraitGain)],
-    eyebrow: isCharterTech(tech) ? CHARTER_SPLASH_EYEBROW : null,
+    eyebrow: report.techs.some(isCharterTech) ? CHARTER_SPLASH_EYEBROW : null,
   };
 }
 

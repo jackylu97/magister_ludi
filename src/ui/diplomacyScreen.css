@@ -971,12 +971,6 @@ button.dp-chip:hover {
   color: var(--deep-gilt);
 }
 
-.dp-weary {
-  margin: 4px 0 0;
-  font-size: var(--size-label);
-  color: var(--war-red);
-}
-
 .dp-deal {
   flex: none;
   display: flex;

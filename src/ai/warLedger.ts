@@ -2,16 +2,16 @@
  * Recent losses to one opponent, used when deciding whether to make peace.
  *
  * Lifetime counters mix opponents and include some barbarian losses. The
- * simulation's weariness records name who caused each loss, and survive saves
+ * simulation's war-loss records name who caused each loss, and survive saves
  * and worker copies. Read those records without keeping a second history.
  *
- * The simulation retains only the weariness window. Start at the later of
+ * The simulation retains only the loss window. Start at the later of
  * that window and this war's declaration. Town counts describe capture events,
  * not current ownership; taking a third empire's city does not count here.
  */
 import type { GameState, Player, WarLoss } from '../sim/state';
 import { warBetween } from '../sim/wars';
-import { lossTurnsCounted } from '../sim/weariness';
+import { lossTurnsCounted } from '../sim/warLosses';
 
 interface WarExchange {
   /** Enemy units lost to this player, including captured civilians. */

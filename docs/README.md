@@ -232,17 +232,61 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   (`City.itemProgress`); switching starts the new thing at nought and the old
   thing is still standing when you come back. Overflow is the opposite rule and
   follows the *queue*.
+- **A queue completes as much as it can pay for in one turn** (ruled
+  2026-11-23, `docs/flags.md`). `settleProductionQueue` (`cities.ts`) and
+  `settleResearchQueue` (`tech.ts`) are loops around the one-row routines
+  (`settleProductionPlan`, `settleResearch`). The remainder of each row pays
+  for the next row at once.
+  - Production stops at a row the basket cannot pay for, at a hold (population,
+    resource, no hex for the unit), after a project (it pays once), or at an
+    empty queue. A guard ends the loop after as many steps as the queue had
+    rows.
+  - Research stops when the pool cannot pay or the queue is empty. With an
+    empty queue the pool is kept.
+  - The end-of-turn phases and every windfall (`settleProductionWindfall`,
+    `settleResearchWindfall`) go through the loops, and both return every
+    completion as a list. Each completion is reported.
+  - The Common Purse doubles the remainder of the first completion of a
+    settlement only.
 - **A lost wonder race** pays back, as gold, what each losing town banked
   toward the wonder, at any position of its queue (`refundBeatenWonders`).
   Since Magisterial batch MG9 a town whose owner holds `wonderHammersMoveOn`
   (The Envious Eye) and lost to a rival keeps the hammers toward its new front
   row instead, and settles through `settleProductionWindfall`. A town with an
   empty queue still takes the gold.
+- **Five simpler rules** (the user's ruling of 2026-11-23, `docs/flags.md`,
+  "Eight simpler rules", items 1, 2, 3, 6 and 8; schema 265). War weariness and
+  the one-unit stamp are described below; the other three are:
+  - **A hex costs its ring's base times the buyer's age.**
+    `rules.cities.tilePurchase.ringBase` is 30, 30, 30 and 60 (the outer ring),
+    and the age counts from 1 (`highestAge`). `explainTilePurchase` lists the
+    ring's base and what the age adds, then any card or building discount. The
+    era term, the rounding and the surcharge for each hex bought before are
+    gone. `Player.tilesPurchased` is still counted for the beads and the bots.
+  - **Unhappiness has two steps.** Below 0, towns grow 75% slower
+    (`meters.growthStifle`). At −10 or below, towns do not grow, and gold,
+    science, culture and faith are 20% lower: the one malus rung of
+    `meters.tiers`, which a happiness deficit now reads (`meterEffects`).
+    Production and food are not lowered (the follow-up ruling of the same
+    day); the writ's deficit still lowers production, science and culture.
+    The bonus steps stay (+10% at 5, +20% at 10), and the old −10% step at −5
+    is gone for both meters.
+  - **The growth stifle is its own step.** `explainGrowthPercent` sums the
+    difficulty, dry-town and card lines, and the happiness stifle (its line
+    carries `ownStep`) then multiplies what is left (`foldGrowthFactor`). So a
+    dry town (−30%) below zero (−75%) grows at 0.7 × 0.25 of its surplus. The
+    city panel prints the stifle as a multiplier ("Happiness ×0.25"). The user
+    allowed this one break of the rule that percentages in one stage add.
+  - **Debt lowers science and culture by 20%** (`rules.upkeep.debtPercent`,
+    was 25%). Units still disband below −10 gold.
 - **Purchases** (`purchase.ts`): `purchaseItem {cityId, item, currency}`, gated by
   `explainPurchaseCost` + `purchaseError`. A row naming its own bank sells only
   there; everything else sells for gold at `goldPerHammer` × the full production
-  cost. **A city buys one unit per class per turn** (military-gold, civilian-gold,
-  faith), by absolute stamp. Buildings are uncounted.
+  cost. **A city buys one unit per turn**, in any currency, by one absolute
+  stamp (`City.purchasedUnitTurn`; the user's ruling of 2026-11-23, schema
+  265). Buildings are uncounted. The Capital Arsenal and The Hired Garrison
+  (both retired) lift the limit: the first in the capital, the second for
+  military units bought with gold in a town raising a wonder.
   - A purchased unit takes its free city slot. If that slot is full, the
     city needs a legal adjacent tile and must be free of siege. The game
     checks in map neighbour order before payment and applies arrival effects.
@@ -468,6 +512,10 @@ Reference: **`docs/units.md`** (the roster; generated) and
   shot at a ship all add labelled strength lines. Cards use the same sum.
   Damage is an exponential in the *difference* of two effective strengths, so an
   edge is worth the same multiplier at any rung.
+- **Fortify is a flat bonus** (ruled 2026-11-23, `docs/flags.md`, "Eight
+  simpler rules"): `rules.combat.fortifyBonus` (+4) from the first turn, and it
+  does not grow. `Unit.fortified` is present or absent; there is no turn count
+  and no `advanceFortify` phase.
 - **A town is attacked in three beats** — walls → garrison → capture, off the
   plan. A **melee** kill on the garrison beat takes the town in the same blow; a
   ranged kill leaves it to be walked into. City strength is the best unit its
@@ -479,45 +527,49 @@ Reference: **`docs/units.md`** (the roster; generated) and
   over for its new owner; a town handed over at a treaty table enters none. In
   unrest a town makes no production, science or culture (the unrest gate, yield
   step 13) and its borders do not grow; food, gold, faith and purchases are
-  untouched. **Pacification** fills a basket toward `2 × the population when
-  taken`, at a rate that is a labelled list (`explainPacification`): every turn,
-  a soldier of the owner's inside, a great general in or beside the town, and
-  each building with the `easesUnrest` marker (the Courthouse). The `unrest`
-  phase, after `resetMovement` and before `wakeSleepers`, fills it and ends the
-  unrest at the target; a town still in unrest with no soldier inside counts the
-  turn, and every third such turn a **rebel** rises on a free hex beside it — a
-  barbarian of the kind a camp there would raise, ordinary from then on. A town
-  in unrest raises no production blocker. Every figure is `rules.war.unrest`.
+  untouched. **Unrest lasts `rules.war.unrest.turns` (3) turns in every town**
+  (the user's ruling of 2026-11-23): pacification fills a basket toward that
+  target by one each turn, as a labelled list (`explainPacification`) of the
+  turn's one line and any card line. A garrison, a great general and the
+  Courthouse do not change the length. The `unrest` phase, after
+  `resetMovement` and before `wakeSleepers`, fills it and ends the unrest at the
+  target. A town still in unrest with no soldier inside counts the turn as
+  unguarded. **Rebels are off** (`rebelEveryTurns` 0); with a figure above 0, a
+  rebel rises on a free hex beside the town on every such turn that reaches a
+  multiple of it. The rebel is a barbarian of the kind a camp there would raise,
+  and ordinary from then on. A town in unrest raises no production blocker.
+  Every figure is `rules.war.unrest`.
   The town panel shows the bar, the reasons and the turns left; the banner and
   the flag fly a torch (`CityLook.unrest`). Bots keep a soldier in such a town
   (`military.unrestGarrison`), weigh a target's unrest in a declaration
-  (`war.unrestDrag`) and raze one they cannot hold (`war.razeUnrestTurns`).
+  (`war.unrestDrag`) and raze one they cannot hold (`war.razeUnrestTurns`). At
+  the default figures the raze never happens: a town settles in three turns,
+  under the six that `razeUnrestTurns` waits out.
   - **Cards that touch unrest** (Dominion batches D3 and D4):
     - The Harrying's pillage puts an ungarrisoned enemy town into unrest
       (`startUnrest`'s second caller).
     - A card can add a line to pacification (`CardRule` `pacificationRate`, The
-      Satraps).
+      Satraps, retired): its +100% makes a garrisoned town settle in two turns.
     - A card can end the unrest at once: in the `unrest` phase for a town its
-      scope admits (`CityRuleId` `pacified`, The Bakufu and The Consular Roads),
+      scope admits (`CityRuleId` `pacified`, The Consular Roads),
       or at the moment of capture (`ActionRuleId` `pacifyOnCapture`, Pax
       Romana).
     - Every way unrest ends goes through `endUnrest`, which pays the `pacified`
       windfall occasion with the town's population (The Provincial Census).
-- **Losing a war costs happiness** (batch WC2, `src/sim/weariness.ts`;
-  reference `docs/war-diplomacy.md` §6a). Every unit an empire loses to another
-  empire (killed, captured, or a caravan plundered) and every town taken from it
-  by force is recorded on `Player.warLosses` with the turn and the empire that
-  caused it. `recordWarLoss` is the one writer; its callers are `applyCombat`,
-  `captureCity` and `arriveOnTile`, pinned by `test/sim/weariness.test.ts`. War
-  weariness against one enemy is your losses to it minus its losses to you over
-  the last `windowTurns` (20) turns, never below zero, with a town worth
-  `townLoss` (8) units. The barbarians never count, a town ceded in a peace deal
-  is not a loss, and peace erases nothing: losses age out. Each enemy with
-  weariness is one cost line in the happiness list (`explainHappiness`), at
-  `happinessPerPoint` (1) a point, and weariness touches nothing else. The
-  `settleDiplomacy` phase prunes losses that have left the window. Every figure
-  is `rules.war.weariness`. The foreign courts screen shows the line in that
-  court's "Standing and deals" drawer, and the Compendium has a concept entry.
+- **A lost war costs no happiness.** War weariness was removed by the user's
+  ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules", item 1; schema
+  265), with its rules, its happiness line, its courts-screen line, its lesson
+  and its Compendium entry.
+- **The war losses are still kept** (`src/sim/warLosses.ts`; reference
+  `docs/war-diplomacy.md` §6a), because the bots read their recent fighting
+  from them (`warOutlook`, `bot.ts`). No rule of the game reads them. Every unit
+  an empire loses to another empire (killed, captured, or a caravan plundered)
+  and every town taken from it by force is recorded on `Player.warLosses` with
+  the turn and the empire that caused it. `recordWarLoss` is the one writer; its
+  callers are `applyCombat`, `captureCity` and `arriveOnTile`, pinned by
+  `test/sim/warLosses.test.ts`. The barbarians never count, and a town ceded in a
+  peace deal is not a loss. The `settleDiplomacy` phase prunes losses older than
+  `rules.war.lossWindowTurns` (20).
 - **Units earn ranks in combat** (batch WC3, `src/sim/ranks.ts`; reference
   `docs/war-diplomacy.md` §6b). A blow is a fight when it is struck at a unit
   that is not a civilian or at a town whose walls still stand; each side that
@@ -547,7 +599,10 @@ Reference: **`docs/units.md`** (the roster; generated) and
 - **The waterline**: a land piece that closes may not strike a water hex; an
   embarked piece may not strike a ship; a land bow shooting a ship takes a flat
   loss of strength and land siege a flat gain (`rules.naval`); a ship that
-  attacks an embarked unit takes no counter-blow.
+  attacks an embarked unit takes no counter-blow. An embarked land unit defends
+  at `rules.naval.atSeaPenalty` (−15) unless a light ship shares its hex
+  (`seaDefenceLines`). Ships get no bonus for friendly ships beside them: the
+  line of battle was removed on 2026-11-23.
 - Auto-upgrade (`upgradesTo`) is gated on the strategic resource. A unit whose
   successor the empire could field today is refused by `buildError` and hidden
   from the build list, but a row already queued builds out.
@@ -1016,7 +1071,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   - A hex test asks whether a **fortified military unit** of the empire stands
     on the hex (`fortifiedUnit`), answered through the context's `GroundFacts`;
     the `fortifiedUnits` count counts those units inside a town's borders. A write
-    of `Unit.fortifiedTurns` moves the economy clock, in the writer or in its caller
+    of `Unit.fortified` moves the economy clock, in the writer or in its caller
     (`test/sim/slateRegister.test.ts`). An order to fortify and a step out of a
     trench move it only when the owner's law can read a trench (`lawReadsTrenches`).
   - **Disbanding a unit is a moment** (`disband`, paid in `applyDisbandUnit`):
@@ -1027,9 +1082,10 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     hex of an empire its owner is at war with yields its owner that hex's
     yields, through `payWindfallGrants`.
   - A camp near the towns of an empire whose law speeds it musters sooner
-    (`campMuster`, `musterCamps`), and an empire's law can count its own war
-    losses for less (`unitLossWeariness`, `townLossWeariness`, read in
-    `wearinessBetween`).
+    (`campMuster`, `musterCamps`). The two war-loss rules
+    (`unitLossWeariness`, `townLossWeariness`) left with war weariness on
+    2026-11-23: The Glorious Dead keeps only its production for a lost unit,
+    and The Funeral Oration (retired) keeps its row with no effects.
   - **Double Time** (`turnEffectRepeats`): an Order's periodic boons, musters,
     drills and harvests happen twice; a Doctrine's do not (the user's ruling of
     2026-10-16). It was dealt in bands 2 and 3 (`OrderDef.lastBand`) until
@@ -1123,6 +1179,22 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
 Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
 (every row, sync-tested) · code: `src/sim/religion.ts`.
 
+- **Pressure has three sources** (ruled 2026-11-23, `docs/flags.md`, "Eight
+  simpler rules"): the holy site, each city that follows, and each trade route
+  from a city that follows (`explainPressure`). Roads and the founder's capital
+  press nothing. A wonder can add a line. A Temple doubles the pressure of the
+  faith its city follows, and other religions press it at full strength.
+- **The enhancer belief Inquisition** (ruled 2026-11-23, `docs/flags.md`,
+  "Follow-ups to the eight simpler rules"): rival religions press the holder's
+  towns at 70% strength (`pressureRule rivalPressurePercent` −30, read by
+  `rivalShare`), with or without a Temple, in the tide and in every lump. In
+  `explainPressure` it is the "Resisted" line, before the Temple's line. Its
+  second effect is +1 authority for every two of the holder's cities that
+  follow the holder's religion (`pays` count `citiesAdmitted` on
+  `ownersFaith`, `per` 2), a labelled line in `explainAuthority`. "Your" is
+  the holder of the holy site, as for every enhancer belief. The Order The
+  Holy Inquisition's −80% now also applies in the tide in towns with no Temple,
+  as its text says; before, the tide applied it only in towns with a Temple.
 - **Religion is a tide, not a verb.** A city's religion is derived (the faith
   more than half its citizens follow), never stored. `spreadReligion` measures
   every town against one board, then moves every town; `bankPressure` has exactly
@@ -1470,14 +1542,17 @@ checks and limits. The [planned-attack review](audit/bot-combat-targets-2026-11-
 checks attacks whose defender, health or strength changed before execution.
 Combat quality includes defense, safe positions and
 civilian protection. Capture totals alone do not decide whether it is better.
-The experimental combat policy has not been put on port 5199.
+The user approved the per-unit combat policy for playtesting on 2026-11-23.
+The [release record](audit/bot-play-release-2026-11-23.md) tracks its integration
+and checks on the current gameplay rules.
 
-The next design is a shared tactical evaluator for attack, movement and holding.
+The shared tactical evaluator compares attack, movement and holding.
 The [combat research and plan](audit/bot-combat-research-2026-11-23.md) compares
 primary sources with the current code and specifies bounded group planning.
 The [implementation and validation record](audit/bot-tactical-planner-2026-11-23.md)
 describes the new local planner and its limits. The `tactics.enabled` setting
-keeps the stable policy available while the new planner is tested.
+keeps the original policy available for comparisons. The playtest default
+uses `tactics.enabled: 1` and `tactics.perUnit: 1`.
 The [combat trade review](audit/bot-combat-trades-2026-11-23.md) checks whether
 lost attackers had useful alternatives. It also records the civilian protection
 changes. A sacrifice can be useful if it adds damage or advances a city capture.
@@ -1506,14 +1581,10 @@ it pushes, blows that must be favourable (a melee piece never walks into a wall
 at a loss — the bows go first), and hurt pieces that walk home. It ends on the
 warscore or on **this war's own exchange** — what it has cost against what it has
 taken. `warLedger.ts` reads recent, opponent-specific unit and town losses
-from the saved weariness records. Every
-peace decision also weighs the seat's own **war weariness** (batch WC2,
-`explainPeaceScore`: the warscore less `war.wearinessWeight` a point of
-happiness it costs, and `war.unhappyWearinessWeight` more for the part below
-nought), so a weary seat sues sooner, signs sooner and pays more to stop. The
-enemy's weariness never counts, so a winner is never harder to make peace with,
-and the warscore itself (which also decides whether a seat campaigns) is
-unchanged. A **wounded veteran** (batch WC3: a ranked piece below
+from the saved war-loss records. Peace decisions use `explainPeaceScore`,
+which is the warscore itself since war weariness was removed on 2026-11-23.
+Its two weariness weights were also removed. A **wounded veteran**
+(batch WC3: a ranked piece below
 `military.veteranCautionBelow` of its health) refuses a blow that is not
 decisive when the counter could kill it or the blow deals no more than it
 takes, whatever the seat's appetite or the siege appetite says.
@@ -2161,8 +2232,8 @@ Eight root pages, all named in `vite.config.ts` inputs:
     Accept, Decline, "Change the terms" and "Back to your paper" in place of
     the questions.
   - **"Standing and deals"** opens a drawer over the desk
-    (`standingAndDeals`): the relation, both borders and the war weariness
-    line, the deals in force with their turns left, the offers waiting for
+    (`standingAndDeals`): the relation and both borders, the deals in force
+    with their turns left, the offers waiting for
     your answer (Read opens one on the table) and your own offers (Withdraw).
     Its × and Escape close it back to the trays. Every command the screen
     sends is the same as before.
@@ -2174,10 +2245,21 @@ Eight root pages, all named in `vite.config.ts` inputs:
     (`lendableCopies`, the reading `dealSideError` asks). A chip with no free
     copy is struck through, with the sim's refusal on hover. A chip the
     receiver cannot use yet (no reveal technology) can still be offered, and
-    its hover says so. "last free" marks the last copy free to build with, and
-    the paper warns when it is offered. Unlike a luxury, no strategic row is
-    hidden when both sides hold it. The paper, the drawer, the peace terms and
-    the offers list name a strategic loan as they name a luxury (`termItems`).
+    its hover says so. Unlike a luxury, no strategic row is hidden when both
+    sides hold it.
+  - **A strategic row carries a number of copies** (the ruling in
+    `docs/flags.md`, "Strategic resources are traded in a quantity";
+    `DealTerms.strategics` is a list of `{ id, copies }`, `CopyLoan` in
+    `deals.ts`). A chip that is picked puts `strategicStartCopies` on the
+    table: 4 copies, or every free copy when the side has fewer. A chip on the
+    table opens a stepper (`copiesChip`: minus, the count, plus) with the open
+    gold chip's classes. It runs from 1 to the free copies
+    (`stepStrategicCopies`), and pressing the name takes the row off. The
+    paper, the drawer, the peace terms and the offers list print the count
+    ("Iron ×4", `termItems`), one copy too ("Iron ×1"). "last free" marks a
+    chip with one copy free to build with (`DealChoice.free`,
+    `availableCopies`), and the paper warns when the copies offered take every
+    free copy (`takesEveryFreeCopy`). A luxury row stays at one copy.
 - **The simpler city screen** (`docs/plans/ui-critique-2026-10-16.md`,
   "City screen: simpler"; the fourth-pass frame is `city4` in
   `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/build.py`). The

@@ -21,6 +21,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
+import { happinessOf } from '../../src/sim/meters';
 import { readEmpire } from '../../src/sim/readings';
 import { setSlateShadow, slateShadow } from '../../src/sim/slate';
 import { type City, type GameState, bumpRevision, realPlayers } from '../../src/sim/state';
@@ -53,6 +54,11 @@ function realm(): GameState {
   town(state, 3, 3, 12, ['bourse', 'market', 'mint', 'gildedHall', 'colossus', 'petra', 'mausoleum']);
   town(state, 11, 3, 6, ['market', 'mint']);
   town(state, 19, 3, 4, []);
+  bumpRevision(state);
+  // Keep enough income for the Bourse line after the new unhappiness rules.
+  state.players[0]!.timed = [{ card: 'theRoyalHousehold', effect: {
+    kind: 'happiness', amount: -happinessOf(state, 0),
+  }, expiresTurn: state.turn + 1 }];
   bumpRevision(state);
   return state;
 }

@@ -445,7 +445,7 @@ import { unitHealthBonus } from '../sim/resourceEffects';
 import { fullMovement, sleepError, unitOfferedForOrders } from '../sim/units';
 import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { atWar } from '../sim/wars';
-import { lossTurnsCounted } from '../sim/weariness';
+import { lossTurnsCounted } from '../sim/warLosses';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 import { wagerBlocker } from '../sim/wagers';
 import { appraiseWagers, wagerLeanOf } from './wager';
@@ -1731,11 +1731,11 @@ function threatWeights(state: GameState, player: Player): readonly number[] {
  *     zealot seat, whose bar cannot be reached, leans at nearly nothing.
  *   · **The army it would march**: the soldiers spare of the garrisons its towns
  *     are owed (`strikeForce`), the force the declaration itself reads.
- *   · **The fighting**: the war losses the game keeps for war weariness
- *     (`Player.warLosses`). Each record names who destroyed or took the piece or
- *     town, so this seat's kills and captures are the records on the other seats'
- *     lists, and its own losses are the records on its list. Read over the last
- *     `score.recentTurns` turns, never more than the weariness window the records
+ *   · **The fighting**: the war losses the game keeps (`Player.warLosses`,
+ *     `src/sim/warLosses.ts`). Each record names who destroyed or took the piece
+ *     or town, so this seat's kills and captures are the records on the other
+ *     seats' lists, and its own losses are the records on its list. Read over the
+ *     last `score.recentTurns` turns, never more than the loss window the records
  *     are kept for, and never more than the turns played.
  *
  * Kept on the revision clock, `threatWeights`' bargain: the lean reads both
@@ -3582,7 +3582,7 @@ function wakeIdleWorker(state: GameState, player: Player, sitting?: BotSitting):
  * a blow ends one**: `breakFortify` (`state.ts`) has exactly three callers —
  * `advanceAlongPath` when a position changes, `applyCombat` when a piece swings,
  * and `captureUnit` — and `unitAwaitsOrders` answers *false* for anything
- * carrying `fortifiedTurns`. So a soldier that stood down once is a soldier
+ * carrying `fortified`. So a soldier that stood down once is a soldier
  * `firstBlocker` never names again, and this bot only ever hears about a piece
  * through `firstBlocker`. Every stand-down in this file therefore used to be
  * permanent, which is most of what the user was actually looking at
@@ -3630,11 +3630,11 @@ function wakeTheCampaign(
     if (unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
     if (!isFieldSoldier(unitDef(unit.type))) continue;
     // **The two ways a soldier stops asking**, and neither of them is a decision
-    // this bot ever took: a trench (`fortifiedTurns`) and a march to a hex it
+    // this bot ever took: a trench (`fortified`) and a march to a hex it
     // will never be allowed to stand on (`marchIsStalled`). Both make
     // `unitAwaitsOrders` answer *false* for ever. Asked last of these tests because
     // `canStopOn` is the dear one, and the order of pure tests changes no answer.
-    if (unit.fortifiedTurns === undefined && !marchIsStalled(state, unit)) continue;
+    if (unit.fortified === undefined && !marchIsStalled(state, unit)) continue;
     // **One call a piece a turn.** A march that takes no step does not break the
     // trench (`breakFortify` runs only when a piece changes hex), so a dug-in
     // piece that cannot take its first step (the hex it would have to stop on
@@ -3709,7 +3709,7 @@ function wakeTheHunt(state: GameState, player: Player, sitting?: BotSitting): Bo
   if (hunt.short.length === 0 && hunt.whole.length === 0) return null;
   for (const unit of state.units) {
     if (unit.ownerId !== player.id) continue;
-    if (unit.fortifiedTurns === undefined && unit.sleeping !== true) continue;
+    if (unit.fortified === undefined && unit.sleeping !== true) continue;
     if (unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
     if (own.called.has(unit.id)) continue;
     if (!isFieldSoldier(unitDef(unit.type))) continue;
@@ -5253,7 +5253,7 @@ function readBankSpend(
   // **The rules are asked again at the moment of firing** — the other half of the
   // sitting's bargain (`BotSitting`). A book built once per turn can offer a row
   // this seat has *since bought*: the building now stands, or the town has spent
-  // its one purchase of that class this turn (`City.purchasedUnitTurns`). Asking
+  // its one unit purchase this turn (`City.purchasedUnitTurn`). Asking
   // `purchaseError` of the live state before proposing keeps the driver's rule
   // that a refusal is a bug, and a struck row simply hands the bank to the next
   // best want rather than ending the arm.
@@ -8875,6 +8875,13 @@ function escortDuty(state: GameState, player: Player, unit: Unit, sitting?: BotS
       value: 0,
     },
   ];
+  // An idle soldier can receive this order before the escort housekeeping
+  // runs. Remember it there too, so a blocked march is not sent again when
+  // another settler takes over the same meeting tile.
+  if (sitting?.playerId === player.id) {
+    sitting.escortOrders.add(`${unit.id}>${job.at.col},${job.at.row}`);
+    sitting.called.add(unit.id);
+  }
   return {
     command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: job.at },
     summary:
@@ -10544,7 +10551,7 @@ interface UnitTarget {
  */
 function fortifiedRangedAttack(state: GameState, player: Player): BotDecision | null {
   for (const unit of state.units) {
-    if (unit.ownerId !== player.id || unit.fortifiedTurns === undefined) continue;
+    if (unit.ownerId !== player.id || unit.fortified === undefined) continue;
     if (!isRanged(unitDef(unit.type)) || unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
     if (aiFor(player).tactics.enabled > 0) {
       // This early interrupt handles nearby shots. Campaign and defense jobs

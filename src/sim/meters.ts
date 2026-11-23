@@ -21,13 +21,8 @@
  * because a captured town is indistinguishable from a founded one the turn
  * after — hence `City.captured`, the only state Milestone 10 added.
  *
- * The second stored input is the losses an empire has suffered in war
- * (`Player.warLosses`, batch WC2), for the same reason: a unit that died or a
- * town that changed hands leaves nothing on the board to count. War weariness
- * is read from that list through `explainWeariness` (`weariness.ts`), and each
- * enemy that has cost this empire more than it has lost becomes one cost line
- * in the happiness list. The list is only appended to, and each loss counts for
- * a fixed number of turns after it happened, compared against `state.turn`.
+ * A war loss costs no happiness. War weariness was removed by the user's ruling
+ * of 2026-11-23 (`docs/flags.md`, "Eight simpler rules").
  *
  * Happiness = supply − demand
  * ---------------------------
@@ -39,8 +34,6 @@
  *            (`docs/flags.md` item (kkk)): what a town costs is now a figure a
  *            player can count off the board, and the vertical limiter is the
  *            citizens themselves against the happiness there is to feed them.
- *   weariness one cost line per enemy whose war has cost this empire more than
- *            it has cost them over the last turns (batch WC2, `weariness.ts`).
  *
  * Authority = capacity − used
  * ---------------------------
@@ -75,7 +68,6 @@
 import { BUILDING_IDS, buildingDef, buildingPlural } from './buildingData';
 import { buildingDemandRelief, buildingHappiness } from './buildingEffects';
 import { improvementDef } from './improvementData';
-import { seatPeople } from './leaderData';
 import {
   type ResourceHolding,
   capitalCityOf,
@@ -118,7 +110,6 @@ import {
 } from './statecraft/evaluator';
 import { type City, type GameState, playerById } from './state';
 import { eraNumeral, highestAge } from './techData';
-import { explainWeariness } from './weariness';
 
 const METERS = RULES.meters;
 const WAR = RULES.war;
@@ -519,26 +510,6 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
         list.push({ source: `${city.name} · puppet`, part: 'gain', value: relief });
       }
     }
-  }
-
-  /**
-   * **War weariness** (batch WC2, `docs/flags.md` (rrrrrr) part 2): one cost
-   * line per enemy whose war has cost this empire more than it has cost them
-   * over the last turns, after every town's line.
-   *
-   * One line per enemy rather than one total, so a player at war with two
-   * empires can see which war is wearing their people down. The label names the
-   * enemy and nothing else; the figure is the line's value. A war that has cost
-   * both sides the same, or that this empire is winning, has no line, because
-   * it costs nothing. The arithmetic is `wearinessBetween`'s.
-   */
-  for (const line of explainWeariness(state, playerId)) {
-    if (line.happiness <= 0) continue;
-    list.push({
-      source: `War weariness · the ${seatPeople(state, line.enemyId)}`,
-      part: 'cost',
-      value: -line.happiness,
-    });
   }
 
   return list;
@@ -987,7 +958,9 @@ export function stepPercent(
 }
 
 /**
- * The bonus/malus tier a meter total earns: ±5 → ±10%, ±10 → ±20%.
+ * The bonus/malus tier a meter total earns: +5 → +10%, +10 → +20%, and −10 or
+ * below → −20%. The −10% step at −5 was removed on 2026-11-23 (`docs/flags.md`,
+ * "Eight simpler rules"), so a deficit costs nothing until it reaches −10.
  *
  * `boost` raises a **positive** rung by so many percentage points and is applied
  * *after* the clamp, which is the whole of amber's signature and the reason it
@@ -1020,8 +993,10 @@ export function uncappedTierPercent(value: number): number {
 }
 
 /**
- * The growth stifle a happiness total earns, on its own steeper ladder:
- * any deficit −50%, −10 → −80%, −20 → −100% (design ledger, Entry XIV.D.4).
+ * The growth stifle a happiness total earns, on its own steeper ladder: any
+ * deficit −75%, and −10 or below −100%, so a town does not grow at all (the
+ * user's ruling of 2026-11-23, `docs/flags.md`, "Eight simpler rules"; design
+ * ledger, Entry XIV.D.4).
  *
  * Not the tier table, deliberately. A happiness deficit is meant to stop a wide
  * empire *growing* rather than to shave a tenth off it, and the first rung is
@@ -1041,15 +1016,22 @@ export function growthStiflePercent(value: number): number {
  * *spreading*. Same `< 0` boundary for the same reason: balance is balance.
  *
  * Separate from `tierPercent` because the two answer different questions. The
- * tier asks how well the writ runs (±10/20% from ±5); this asks whether it runs
- * at all, and it bites four points earlier than the first malus rung does.
+ * tier asks how well the writ runs; this asks whether it runs at all, and it
+ * bites at any deficit, well before the malus rung at −10 does.
  */
 export function borderFreezePercent(value: number): number {
   return stepPercent(METERS.borderFreeze, value);
 }
 
-/** The yields a meter can multiply. Food is not among them — see `growth`. */
-export type ModifiedYield = 'production' | 'science' | 'culture';
+/**
+ * The yields a meter can multiply. Food is not among them — see `growth`.
+ * Gold and faith joined on 2026-11-23 for the happiness malus alone (the
+ * user's ruling, `docs/flags.md`, "Follow-ups to the eight simpler rules").
+ * Every member reaches the empire stage of the town's basket
+ * (`empirePercents`, `yields/town.ts`) and of the empire's own lines
+ * (`stageEmpireFold`, `yields/empire.ts`) as a labelled line.
+ */
+export type ModifiedYield = 'production' | 'gold' | 'science' | 'culture' | 'faith';
 
 export type MeterId = 'happiness' | 'authority';
 
@@ -1096,18 +1078,21 @@ export interface MeterEffect {
  * (Entry XIV.D.4):
  *
  *   happiness ≥ +5   science and culture — contentment buys thought, not iron.
- *   happiness < 0    growth, on its own steep ladder, and *nothing else*: an
- *                    unhappy empire stops growing rather than getting worse at
- *                    everything.
+ *   happiness < 0    growth, on its own steep ladder, applied after every other
+ *                    growth percentage (`explainGrowthPercent`).
+ *   happiness ≤ −10  growth stops, and gold, science, culture and faith fall by
+ *                    the tier's malus (the user's rulings of 2026-11-23,
+ *                    `docs/flags.md`, "Eight simpler rules" and its
+ *                    follow-ups). Production and food are not lowered. Before
+ *                    those rulings an unhappy empire only grew more slowly.
  *   authority ≥ +5   production *and border growth* — a writ that runs is a writ
  *                    that builds and claims.
- *   authority < 0    borders freeze outright, four points before any malus rung
- *                    is reached: land follows the writ (playable.md item 2), and
+ *   authority < 0    borders freeze outright, well before the malus rung is
+ *                    reached: land follows the writ (playable.md item 2), and
  *                    the same test bars buying land with gold.
- *   authority ≤ −5   production, science and culture together: over-extension
- *                    is the one thing in this game that taxes the whole economy,
- *                    because it is the only lawful width tax (Entry I's third
- *                    commitment).
+ *   authority ≤ −10  production, science and culture together: over-extension
+ *                    taxes the whole economy, because it is the only lawful
+ *                    width tax (Entry I's third commitment).
  *
  * The two authority deficits are two separate entries and not one, because they
  * begin at different totals and mean different things — an empire at −2 is still
@@ -1155,6 +1140,21 @@ function meterEffectsOf(state: GameState, playerId: number): MeterEffect[] {
       value: happiness,
       percent: bonus,
       yields: ['science', 'culture'],
+      growth: false,
+      borders: false,
+    });
+  } else if (bonus < 0) {
+    // **A deep deficit lowers yields too** (the user's ruling of 2026-11-23,
+    // `docs/flags.md`, "Eight simpler rules"). The tier's malus rung starts at
+    // −10. It lowers every yield except production and food: "unhappiness
+    // should lower all yields except production and food (growth already
+    // penalized)" (the user, "Follow-ups to the eight simpler rules"). The
+    // bonus above moves only science and culture.
+    effects.push({
+      meter: 'happiness',
+      value: happiness,
+      percent: bonus,
+      yields: ['gold', 'science', 'culture', 'faith'],
       growth: false,
       borders: false,
     });

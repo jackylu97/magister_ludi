@@ -1603,6 +1603,9 @@ export function maxHpLedger(city: City, state?: GameState): string {
  * of when it would rise before the town settles, because the `unrest` phase
  * fills the basket first and a town pacified on the turn a rebel was due
  * raises none. A world with no wild seat raises no rebels, so it warns of none.
+ * Since 2026-11-23 the rules raise no rebels by default
+ * (`rules.war.unrest.rebelEveryTurns` is 0), so `rebels` is false and the card
+ * says nothing about rebels or about the soldier that would stop them.
  *
  * Pure and module-level for `defenseRows`' reason: a suite with no jsdom can
  * read what the card says.
@@ -1615,10 +1618,12 @@ interface UnrestCardParts {
   rate: number;
   /** Turns until it settles at that rate, or `null` when it is not settling. */
   turns: number | null;
-  /** One row per reason, in the simulation's order: "Garrison · Warrior", "+1". */
+  /** One row per reason, in the simulation's order: "Every turn", "+1". */
   reasons: { label: string; figure: string }[];
   /** A soldier of the owner stands in the town. */
   guarded: boolean;
+  /** Rebels can rise in this world: the rules raise them and the wild has a seat. */
+  rebels: boolean;
   /**
    * Turns until the next rebel rises, when one will rise before the town
    * settles — or `null` when none will (a garrison, a town that settles
@@ -1636,8 +1641,9 @@ export function unrestCardParts(state: GameState, city: City): UnrestCardParts |
   const guarded = unrestGarrison(state, city) !== null;
   const nextRebel = rebelTurnsLeft(city);
   const wild = barbarianPlayer(state) !== undefined;
+  const rebels = wild && nextRebel !== null;
   const rebelIn =
-    guarded || !wild || nextRebel === null || (turns !== null && nextRebel >= turns)
+    guarded || !rebels || nextRebel === null || (turns !== null && nextRebel >= turns)
       ? null
       : nextRebel;
   return {
@@ -1647,6 +1653,7 @@ export function unrestCardParts(state: GameState, city: City): UnrestCardParts |
     turns,
     reasons: lines.map((line) => ({ label: line.source, figure: signedFigure(line.amount) })),
     guarded,
+    rebels,
     rebelIn,
   };
 }
@@ -3020,8 +3027,6 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const { stat, amount } = def.cityStat;
       notes.append(note(`${amount > 0 ? '+' : ''}${amount} city ${stat}`));
     }
-    // The unrest marker (batch WC1), off the row's own field like the rest.
-    if (def.easesUnrest === true) notes.append(note('A town in unrest settles faster with this'));
     // **No renewal line** (the renewals axe, 2026-09-04). A card used to promise
     // every technology that would one day make this building pay more; the rows
     // that promised it are gone, and a building is worth what the figures above
@@ -3448,10 +3453,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *
    * The Growth and Borders rows' shape, because it is the same kind of thing: a
    * basket filling toward a mark at a rate. Under the bar, the reasons it fills
-   * at, one row each with its figure — shown rather than tucked into a hover,
-   * because they are what the player can change (a soldier in the gate, a
-   * general beside it, a Courthouse). Then the one line about rebels. Every
-   * figure is `unrestCardParts`', and no figure is in the prose.
+   * at, one row each with its figure: the turn itself, and any card that speeds
+   * it up. Then the one line about rebels, only in a world where rebels can
+   * rise. Every figure is `unrestCardParts`', and no figure is in the prose.
    */
   function renderUnrest(city: City): HTMLElement | null {
     const parts = unrestCardParts(getGame().state, city);
@@ -3498,7 +3502,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           'and its borders hold still. Food, gold and faith are untouched.',
       ),
     );
-    if (parts.guarded) {
+    if (parts.rebels && parts.guarded) {
       card.append(element('p', 'hint', 'A soldier of yours holds the town, so no rebels rise.'));
     } else if (parts.rebelIn !== null) {
       // The wanting voice, because this is the one line on the card that is a
@@ -3572,7 +3576,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // twin, and since the dry-settle ruling it is the fold's own list rather
     // than the one line the panel happened to know about: a town that cannot
     // drink, an aqueduct, a wonder and the happiness stifle all print here
-    // because `growthSurplus` is the sum of exactly these (rule 5).
+    // because `growthSurplus` is the fold of exactly these (rule 5).
     //
     // **On the row's hover rather than under it** since the mode landed, which
     // is the same move the yield chips made and the same promise: the list is
@@ -3587,7 +3591,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const modifiers: string[] = [];
     if (channelSurplus(state, city, made) > 0) {
       for (const line of explainGrowthPercent(state, city)) {
-        modifiers.push(`${line.source} ${percentFigure(line.percent)}`);
+        // The happiness stifle is its own step after the sum of the others
+        // (`foldGrowthFactor`), so it prints as the multiplier it is.
+        modifiers.push(
+          line.ownStep === true
+            ? `${line.source} ×${Math.max(0, 1 + line.percent / 100).toFixed(2)}`
+            : `${line.source} ${percentFigure(line.percent)}`,
+        );
       }
     }
     for (const line of carried) {

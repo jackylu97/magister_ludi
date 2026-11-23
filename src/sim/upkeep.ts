@@ -499,7 +499,8 @@ function upkeepRebateRowWords(): string {
  * predicate exists rather than a clamp at zero: an empire that overbuilds its
  * army is *allowed* to, and what happens to it is a penalty it can read on its
  * own screen and dig out of. The warning on the turn bar reads it. Since batch
- * R1 the −25% on science and culture reads `treasuryInArrears` below, because
+ * R1 the debt penalty on science and culture (−20% since the user's ruling of
+ * 2026-11-23, −25% before) reads `treasuryInArrears` below, because
  * Letters of Credit lifts the loss down to its floor, and the disband sweep
  * reads `disbandFloor`.
  */
@@ -521,7 +522,7 @@ export function arrearsFloor(state: GameState, playerId: number): number {
 }
 
 /**
- * True while this empire's treasury is below its arrears floor, so the −25% on
+ * True while this empire's treasury is below its arrears floor, so the −20% on
  * science and culture applies (`rules.upkeep.debtPercent`, read in
  * `cityYieldPercents`). Without Letters of Credit it is `treasuryInDebt`.
  */

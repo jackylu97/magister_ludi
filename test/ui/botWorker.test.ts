@@ -15,7 +15,7 @@ import { answerAudience, driveBots } from '../../src/ai/driver';
 import { dealMemorySize } from '../../src/ai/dealMemory';
 import { readHarnessMemory } from '../../src/ai/harnessMemory';
 import { readWarExchange } from '../../src/ai/warLedger';
-import { recordWarLoss } from '../../src/sim/weariness';
+import { recordWarLoss } from '../../src/sim/warLosses';
 import { type Command } from '../../src/sim/commands';
 import { type Game, dispatch } from '../../src/sim/game';
 import { bumpRevision, playerById } from '../../src/sim/state';

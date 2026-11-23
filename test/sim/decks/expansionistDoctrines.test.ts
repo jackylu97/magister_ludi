@@ -1563,7 +1563,7 @@ describe('The Planted Towns (batch DT12)', () => {
     const state = bareState();
     hold(state, 'thePlantedTowns');
     const city = raising(state, 5, 'settler');
-    expect(settleProductionWindfall(state, city)?.unitId).toBeDefined();
+    expect(settleProductionWindfall(state, city)[0]?.unitId).toBeDefined();
     expect(city.population).toBe(4);
     expect(city.workedTiles).toHaveLength(4);
   });

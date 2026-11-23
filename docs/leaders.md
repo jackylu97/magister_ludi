@@ -748,29 +748,29 @@ colours it always wore.
 
 ## The cities (2026-09-11, `docs/flags.md` (pppp))
 
-Each leader has at least six names. A founded town takes the next name no standing
+Each leader has thirty names (the user, 2026-11-23: "lets give them each like 30"). A founded town takes the next name no standing
 town anywhere wears, then the plain list, then a number. `data/leaders.json`'s
 `cities` mirrors this table and a sync test holds the two together; the rows
 are the user's to retune. Names are separated by ` · `.
 
 | Leader | Cities, in order |
 |---|---|
-| Alexander the Great | Pella · Aigai · Amphipolis · Alexandria Eschate · Bucephala · Kandahar |
-| Genghis Khan | Karakorum · Avarga · Almaliq · Samarkand · Zhongdu · Sarai |
-| Joan of Arc | Orléans · Reims · Paris · Bourges · Chinon · Rouen · Tours · Poitiers · Blois · Compiègne · Troyes · Lyon · Bordeaux · Avignon · Domrémy |
-| Mehmed the Conqueror | Istanbul · Edirne · Bursa · Thessalonica · Trebizond · Sarajevo |
-| Qin Shi Huang | Xianyang · Yong · Yueyang · Handan · Linzi · Langya |
-| Pachacuti | Cusco · Quito · Tumebamba · Cajamarca · Vilcashuamán · Huánuco Pampa · Hatun Xauxa · Machu Picchu · Ollantaytambo · Pisac · Pachacamac · Chan Chan · Vilcabamba · Choquequirao · Raqchi |
-| Jayavarman VII | Angkor Thom · Phimai · Banteay Chhmar · Lavo · Beng Mealea · Koh Ker |
-| Nezahualcoyotl | Texcoco · Tenochtitlan · Tlacopan · Huexotla · Coatlinchan · Teotihuacan · Otumba · Chimalhuacan · Acolman · Tepetlaoztoc · Chiconauhtla · Papalotla · Chiautla · Calpulalpan · Tepechpan |
-| Cyrus the Great | Pasargadae · Ecbatana · Susa · Babylon · Sardis · Anshan |
-| Mansa Musa | Niani · Timbuktu · Djenné · Gao · Walata · Kumbi Saleh · Kangaba · Taghaza · Tadmekka · Kukiya · Awdaghost · Takedda · Dia · Ségou · Bamako |
-| Cleopatra | Alexandria · Cyrene · Ptolemais · Naucratis · Canopus · Pelusium |
-| Lorenzo de' Medici | Florence · Pisa · Arezzo · Volterra · Prato · Pistoia |
-| Harun al-Rashid | Baghdad · Raqqa · Kufa · Basra · Merv · Rayy |
-| Justinian | Constantinople · Ravenna · Carthage · Thessalonica · Antioch · Justiniana Prima |
-| Sejong the Great | Hanseong · Gaeseong · Pyongyang · Gyeongju · Jeonju · Hamhung |
-| Ibn Battuta | Tangier · Fez · Marrakesh · Sijilmasa · Ceuta · Tlemcen · Tunis · Salé · Rabat · Meknes · Oujda · Bougie · Algiers · Tripoli · Kairouan |
+| Alexander the Great | Pella · Aigai · Amphipolis · Alexandria Eschate · Bucephala · Kandahar · Dion · Pydna · Edessa · Beroea · Mieza · Philippi · Stagira · Olynthus · Methone · Heraclea Lyncestis · Alexandropolis · Alexandria Troas · Alexandria Ariana · Alexandria on the Oxus · Alexandria Carmania · Alexandria Susiana · Nicaea · Pattala · Gordium · Issus · Halicarnassus · Ephesus · Tyre · Maracanda |
+| Genghis Khan | Karakorum · Avarga · Almaliq · Samarkand · Zhongdu · Sarai · Khanbaliq · Shangdu · Otrar · Urgench · Bukhara · Balasagun · Kashgar · Beshbalik · Qayaliq · Emil · Khara-Khoto · Xingqing · Kaifeng · Tabriz · Maragha · Sultaniyya · Herat · Balkh · Nishapur · Talas · Khotan · Bolghar · Kiev · Kherlen |
+| Joan of Arc | Orléans · Reims · Paris · Bourges · Chinon · Rouen · Tours · Poitiers · Blois · Compiègne · Troyes · Lyon · Bordeaux · Avignon · Domrémy · Vaucouleurs · Jargeau · Meung · Beaugency · Patay · Auxerre · Châlons · Sens · Angers · Le Mans · Nantes · Toulouse · Dijon · Chartres · Amiens |
+| Mehmed the Conqueror | Istanbul · Edirne · Bursa · Thessalonica · Trebizond · Sarajevo · Ankara · Konya · Amasya · Manisa · Kütahya · Sinop · Gallipoli · Smederevo · Skopje · Sofia · Filibe · Athens · Belgrade · Izmir · Kastamonu · Karaman · Kayseri · Sivas · Tokat · Antalya · Iznik · Izmit · Varna · Mostar |
+| Qin Shi Huang | Xianyang · Yong · Yueyang · Handan · Linzi · Langya · Chencang · Lantian · Hangu · Hanzhong · Chengdu · Jiangzhou · Ying · Daliang · Xinzheng · Ji · Shouchun · Pengcheng · Kuaiji · Jiuyuan · Longxi · Yunzhong · Panyu · Guilin · Nanyang · Yingchuan · Julu · Dai · Shangjun · Xiangping |
+| Pachacuti | Cusco · Quito · Tumebamba · Cajamarca · Vilcashuamán · Huánuco Pampa · Hatun Xauxa · Machu Picchu · Ollantaytambo · Pisac · Pachacamac · Chan Chan · Vilcabamba · Choquequirao · Raqchi · Chinchero · Yucay · Calca · Tipón · Limatambo · Tambo Colorado · Incahuasi · Huaytará · Ingapirca · Hatuncolla · Chucuito · Copacabana · Paria · Samaipata · Cochabamba |
+| Jayavarman VII | Angkor Thom · Phimai · Banteay Chhmar · Lavo · Beng Mealea · Koh Ker · Yasodharapura · Hariharalaya · Mahendraparvata · Preah Khan · Ta Prohm · Banteay Srei · Sambor Prei Kuk · Vyadhapura · Angkor Borei · Indrapura · Preah Vihear · Phanom Rung · Muang Tam · Wat Phu · Muang Sing · Si Thep · Sukhothai · Si Satchanalai · Sakon Nakhon · Vijaya · Bakan · Battambang · Longvek · Chaturmukh |
+| Nezahualcoyotl | Texcoco · Tenochtitlan · Tlacopan · Huexotla · Coatlinchan · Teotihuacan · Otumba · Chimalhuacan · Acolman · Tepetlaoztoc · Chiconauhtla · Papalotla · Chiautla · Calpulalpan · Tepechpan · Tlatelolco · Azcapotzalco · Culhuacan · Xochimilco · Chalco · Coyoacan · Iztapalapa · Tenayuca · Cuauhtitlan · Tollan · Cholula · Tulancingo · Huexotzinco · Tepeyacac · Xaltocan |
+| Cyrus the Great | Pasargadae · Ecbatana · Susa · Babylon · Sardis · Anshan · Persepolis · Cyropolis · Bactra · Arbela · Opis · Sippar · Rhagae · Zadracarta · Artacoana · Phrada · Gabae · Taoce · Dascylium · Celaenae · Sidon · Damascus · Tarsus · Nineveh · Ur · Uruk · Nippur · Borsippa · Margiana · Kapisa |
+| Mansa Musa | Niani · Timbuktu · Djenné · Gao · Walata · Kumbi Saleh · Kangaba · Taghaza · Tadmekka · Kukiya · Awdaghost · Takedda · Dia · Ségou · Bamako · Kirina · Dakadjalan · Jenne-Jeno · Tirekka · Kabara · Kita · Kankan · Siguiri · Sibi · Nioro · Diara · Silla · Takrur · Araouane · Tichitt |
+| Cleopatra | Alexandria · Cyrene · Ptolemais · Naucratis · Canopus · Pelusium · Memphis · Thebes · Arsinoe · Berenice · Myos Hormos · Philae · Oxyrhynchus · Leontopolis · Taposiris Magna · Heracleion · Paraetonium · Apollonia · Paphos · Salamis · Hermopolis · Apollinopolis · Tentyra · Coptos · Syene · Sais · Tanis · Athribis · Heracleopolis · Panopolis |
+| Lorenzo de' Medici | Florence · Pisa · Arezzo · Volterra · Prato · Pistoia · Livorno · Cortona · Empoli · San Gimignano · Fiesole · Lucca · Montepulciano · Sansepolcro · Pescia · Colle di Val d'Elsa · San Miniato · Certaldo · Poggibonsi · Montevarchi · Scarperia · Pietrasanta · Sarzana · Fivizzano · Cafaggiolo · Careggi · Poggio a Caiano · Vinci · Fucecchio · Anghiari |
+| Harun al-Rashid | Baghdad · Raqqa · Kufa · Basra · Merv · Rayy · Mosul · Wasit · Samarra · Isfahan · Fustat · Aleppo · Tus · Hira · Anbar · Harran · Rafiqa · Qom · Hamadan · Shiraz · Siraf · Ahvaz · Jundishapur · Massisa · Medina · Mecca · Sana'a · Qazvin · Zaranj · Tirmidh |
+| Justinian | Constantinople · Ravenna · Carthage · Thessalonica · Antioch · Justiniana Prima · Nicomedia · Chalcedon · Adrianople · Philippopolis · Serdica · Naissus · Dyrrhachium · Corinth · Patras · Smyrna · Pergamon · Ancyra · Caesarea · Dara · Amida · Theodosiopolis · Cherson · Syracuse · Naples · Rome · Septem · Hippo Regius · Jerusalem · Berytus |
+| Sejong the Great | Hanseong · Gaeseong · Pyongyang · Gyeongju · Jeonju · Hamhung · Suwon · Gongju · Buyeo · Daegu · Andong · Sangju · Jinju · Naju · Gwangju · Cheongju · Chungju · Wonju · Gangneung · Chuncheon · Haeju · Hwangju · Uiju · Anju · Yeongbyeon · Gyeongseong · Hoeryeong · Dongnae · Jeju · Ganghwa |
+| Ibn Battuta | Tangier · Fez · Marrakesh · Sijilmasa · Ceuta · Tlemcen · Tunis · Salé · Rabat · Meknes · Oujda · Bougie · Algiers · Tripoli · Kairouan · Asilah · Tetouan · Taza · Safi · Azemmour · Aghmat · Constantine · Sfax · Mahdia · Gabès · Tozeur · Oran · Honaine · Ksar el-Kebir · Sousse |
 
 Notes on the choices: Akhetaten leads Egypt's list because it is the city
 Akhenaten built and ruled from, with Thebes and Memphis behind it. The

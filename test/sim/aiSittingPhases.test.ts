@@ -157,9 +157,9 @@ describe('the end check', () => {
     expect(JSON.stringify(checked.log)).toBe(JSON.stringify(plain.log));
     expect(digestOfState(checked.state)).toBe(digestOfState(plain.state));
     expect(phaseTally.endChecks - checks).toBeGreaterThan(100);
-    // What the old pass would still have done: only a beeline re-aimed, which
-    // waits for the next sitting (accepted and counted in the plan file).
+    // Research changes and a newly available resource swap can wait for the
+    // next sitting. The check must not reveal an unfinished unit or city order.
     const kinds = Object.keys(phaseTally.endFound).filter((key) => added(found, phaseTally.endFound, key) > 0);
-    for (const kind of kinds) expect(kind).toMatch(/^chooseResearch: /);
+    for (const kind of kinds) expect(kind).toMatch(/^(chooseResearch|proposeDeal): /);
   }, 240_000);
 });

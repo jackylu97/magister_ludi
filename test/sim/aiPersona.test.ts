@@ -679,7 +679,7 @@ describe('the warmonger’s one capability', () => {
     }
   });
 
-  it('strikes and marches once the appetite is set', () => {
+  it('uses the original policy appetite for strikes and marches', () => {
     const game = grownGame(12);
     // **The war is declared for it** (schema 56, the war ruling). A bot does
     // not declare yet — that is P3, the warmonger's declaration policy — so the
@@ -693,7 +693,7 @@ describe('the warmonger’s one capability', () => {
     createUnit(game.state, 0, 'warrior', city.col, city.row);
     const free = createUnit(game.state, 0, 'warrior', city.col + 1, city.row);
     const rival = createUnit(game.state, 1, 'warrior', city.col + 2, city.row);
-    const order = decisionFor(game, 0, free.id);
+    const order = withAiTuning({ tactics: { enabled: 0 } }, () => decisionFor(game, 0, free.id));
     expect(order).not.toBeNull();
     // It swings at the piece next door, walks at it, or joins the column that
     // is going to take a town; what it must not do is stand down beside a rival

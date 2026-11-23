@@ -77,7 +77,6 @@ import {
   type PurchaseCurrency,
   type QueueItem,
   type Unit,
-  type UnitPurchaseBucket,
   bankedTowardItem,
   capitalCityOf,
   cityById,
@@ -169,39 +168,17 @@ import { usedRouteSlots } from './trade';
 export type { PurchaseCurrency } from './state';
 
 /**
- * Which "one a turn" this purchase spends — **the** rule, asked in exactly two
- * places (`purchaseError` reads the bucket, `purchaseItemAt` writes it).
+ * Is this unit purchase a military unit bought with gold? The Hired Garrison
+ * lifts the one-unit-a-turn limit for these purchases only, in a town raising a
+ * wonder (`wonderTownBuysWithoutLimit`, read in `purchaseError`).
  *
- * Two questions in order, which is the user's own sentence read literally
- * (2026-09-02: "faith buying, buying a civilian unit, and buying a military
- * unit all counted separately"):
- *
- *   1. **which bank paid** — everything out of faith is one bucket, because a
- *      town calling an augur or a prophet has not spent the afternoon it would
- *      otherwise have given a garrison, and the two banks never compete; then
- *   2. **is the piece a combatant** — `isCivilian`, the roster's own reading,
- *      so a caravan is bought out of the civilian bucket for being a
- *      non-combatant and not for being called a trader. Nothing here compares a
- *      type against a name.
- *
- * A fourth class is a member of `UnitPurchaseBucket` and one more clause here;
- * there is deliberately nowhere else the question is asked.
+ * `isCivilian` is the roster's own reading, so nothing here compares a type
+ * against a name. Until the user's ruling of 2026-11-23 this was one of three
+ * classes of purchase, each with its own stamp (military for gold, civilian
+ * for gold, and faith). Now a town has one stamp for every unit it buys.
  */
-function unitPurchaseBucket(
-  type: UnitTypeId,
-  currency: PurchaseCurrency,
-): UnitPurchaseBucket {
-  if (currency === 'faith') return 'faith';
-  return isCivilian(unitDef(type)) ? 'civilianGold' : 'militaryGold';
-}
-
-/**
- * What a spent bucket is called in the refusal. Plain words (hard rule 7): a
- * player is told what they have already done, not which field holds it.
- */
-function bucketWords(bucket: UnitPurchaseBucket): string {
-  if (bucket === 'faith') return 'a unit with faith';
-  return bucket === 'civilianGold' ? 'a civilian unit' : 'a military unit';
+function isMilitaryGoldPurchase(type: UnitTypeId, currency: PurchaseCurrency): boolean {
+  return currency === 'gold' && !isCivilian(unitDef(type));
 }
 
 /**
@@ -675,9 +652,8 @@ function faithBankOpen(
   if (cardActionRuleAt(state, city, 'faithBuysUnits', item.id)) return true;
   // **A fourth narrowing since the charters** (2026-09-04): the marker is a word
   // now, and the Almshouse's word is `'civilian'` — settlers, workers, caravans
-  // and nothing that fights. Asked of `isCivilian`, the same predicate
-  // `unitPurchaseBucket` sorts the purchase by, so the bank that opened and the
-  // bucket that gets stamped cannot disagree about what a civilian is. Any one
+  // and nothing that fights. Asked of `isCivilian`, the roster's own reading of
+  // what a civilian is. Any one
   // building in the town may open the bank, which is why this is a walk and not
   // a fold: a Reliquary beside an Almshouse sells everything, as both rows say.
   // What the town holds (`townBuildings`, Expansionist batch E12).
@@ -1375,21 +1351,20 @@ function clausesBeforeTheBank(
     }
   }
 
-  // **One unit *of each class* per city per turn** (user, 2026-08-28: "cities
-  // can only purchase a single unit per turn"; widened 2026-09-02: "faith
-  // buying, buying a civilian unit, and buying a military unit all counted
-  // separately"). Asked here rather than of the price, because it is not about
-  // affordability at all: an empire with the coin for four warriors may still
-  // only take delivery of one in this town today, and the other three are a
-  // decision about *where*. The reading is a comparison against an absolute
-  // turn (`City.purchasedUnitTurns`) — nothing counts down, so there is no phase
-  // that has to clear it before the next resolution.
+  // **One unit per city per turn** (user, 2026-08-28: "cities can only
+  // purchase a single unit per turn"; and again on 2026-11-23, `docs/flags.md`,
+  // "Eight simpler rules": "One bought unit each turn"). From 2026-09-02 to
+  // 2026-11-23 military units for gold, civilian units for gold and units for
+  // faith each had their own stamp. Now one stamp counts every unit, in any
+  // currency.
   //
-  // Three buckets rather than one, and the widening is the whole of the change:
-  // a town calling an augur has not spent the afternoon it would have given a
-  // spearman, and a worker is not a garrison. `unitPurchaseBucket` is the one
-  // place that decision is made, and `purchaseItemAt` writes the bucket this
-  // clause read.
+  // Asked here rather than of the price, because it is not about affordability
+  // at all: an empire with the coin for four warriors may still only take
+  // delivery of one in this town today, and the other three are a decision
+  // about *where*. The reading is a comparison against an absolute turn
+  // (`City.purchasedUnitTurn`), so nothing counts down and no phase has to
+  // clear it before the next resolution. `purchaseItemAt` writes the stamp this
+  // clause reads.
   //
   // Buildings are deliberately untouched: a granary and a library bought on one
   // afternoon are two things the town then has to justify, where two bought
@@ -1399,18 +1374,18 @@ function clausesBeforeTheBank(
   // `ActionRuleId`'s `capitalBuysWithoutLimit`): the stamp is still written, so
   // a seat that loses the card is back under the limit the same turn.
   if (bought.kind === 'unit') {
-    const bucket = unitPurchaseBucket(bought.id, currency);
     const arsenal =
       (capitalCityOf(state, playerId)?.id === city.id &&
         cardActionRule(state, playerId, 'capitalBuysWithoutLimit')) ||
       // **The Hired Garrison** (`ActionRuleId`'s `wonderTownBuysWithoutLimit`):
       // military units for gold, without limit, in a town whose front row is
-      // a world wonder or the Magnum Opus.
-      (bucket === 'militaryGold' &&
+      // a world wonder or the Magnum Opus. Any other unit in that town is
+      // still refused once the town has bought a unit this turn.
+      (isMilitaryGoldPurchase(bought.id, currency) &&
         isRaisingWonderOrOpus(city) &&
         cardActionRule(state, playerId, 'wonderTownBuysWithoutLimit'));
-    if (!arsenal && city.purchasedUnitTurns?.[bucket] === state.turn) {
-      return `${city.name} has already bought ${bucketWords(bucket)} this turn`;
+    if (!arsenal && city.purchasedUnitTurn === state.turn) {
+      return `${city.name} has already bought a unit this turn`;
     }
   }
   const delivery = purchaseDelivery(state, city, bought);
@@ -1541,15 +1516,10 @@ export function purchaseItemAt(
     player.faithOnHolyOrders += price.total;
   }
   // The town's day is spent on units, and stamped as an absolute turn so nothing
-  // has to unstamp it. Written for every unit including the augur — a faith
-  // purchase is still a purchase — but into the **bucket** the purchase falls
-  // in, which is the one `purchaseError` compared against. The record is created
-  // on first use so a town that has never bought anything serialises like one
-  // that never will.
-  if (item.kind === 'unit') {
-    const bucket = unitPurchaseBucket(item.id, price.currency);
-    (city.purchasedUnitTurns ??= {})[bucket] = state.turn;
-  }
+  // has to unstamp it. Written for every unit in every currency, which is the
+  // one stamp `purchaseError` compares against. The key is written on first use
+  // so a town that has never bought a unit serialises like one that never will.
+  if (item.kind === 'unit') city.purchasedUnitTurn = state.turn;
 
   const born = realiseItem(state, city, item, { bought: price.currency });
   const arrival = item.kind === 'unit'
@@ -1869,7 +1839,7 @@ export function contributeAt(
   player: Player,
   city: City,
   currency: PurchaseCurrency,
-): ProductionCompletion | null {
+): ProductionCompletion[] {
   const offer = explainContribution(state, player.id, city.id, currency)!;
   if (currency === 'faith') {
     // Through the one subtraction (Devotion batch DV3), so faith poured into a

@@ -304,7 +304,7 @@ import { seatInks } from '../art/seatInks';
 import { type BadgeClass, cssHex } from '../render3d/badges3d';
 import { badgeClassFor } from '../render3d/board3d';
 import { VIEW3D, shade } from '../render3d/lookData';
-import { hpBarFill, hpBarFillWidth, signUnits, unitColor } from '../render3d/pieces';
+import { badgeIsSpent, hpBarFill, hpBarFillWidth, signUnits, unitColor } from '../render3d/pieces';
 import { dressRoundel, roundelZoom } from './unitRoundels';
 import type { MapView, ScreenPoint } from './mapView';
 
@@ -714,6 +714,8 @@ interface GarrisonPiece {
   selected: boolean;
   /** This seat may command it, so its roundel is a control. See `commandable`. */
   mine: boolean;
+  /** The seat's own unit with nothing left to do this turn: drawn faint, as on the board (`badgeIsSpent`). */
+  spent: boolean;
   /** What it is, in plain words, for the tooltip and the screen reader. */
   label: string;
   /**
@@ -819,6 +821,7 @@ export function garrisonRow(
       hurt,
       selected,
       mine: commandable(unit, seat),
+      spent: badgeIsSpent(unit, seat),
       // The figures follow the town's own hover (`healthBar`): the same order,
       // the same words, one hover away from a drawing that is only a glance.
       label: hurt === null ? named : `${named} · ${unitHp(unit, bonus)}/${unitMaxHp(unit, bonus)} hp`,
@@ -1251,6 +1254,8 @@ export function buildGarrisonRow(): HTMLElement {
   // on, written once per row from the atlas's own overlap rather than typed into
   // the stylesheet. See `roundelZoom`.
   root.style.setProperty('--roundel-zoom', `${(roundelZoom() * 100).toFixed(2)}%`);
+  // How faint a spent unit's roundel is: the board's own figure.
+  root.style.setProperty('--roundel-spent', String(VIEW3D.badges.spentOpacity));
   return root;
 }
 
@@ -1286,6 +1291,7 @@ export function paintGarrisonRow(
     seat.className = 'city-banner-piece';
     seat.classList.toggle('is-selected', piece.selected);
     seat.classList.toggle('is-wild', piece.wild);
+    seat.classList.toggle('is-spent', piece.spent);
     seat.style.setProperty('--roundel-ink', piece.ink);
     // The drawing is a glance and the name is one hover away — the ring's
     // bargain, and the bar's. `role="img"` is what makes a label on a span
@@ -1375,7 +1381,7 @@ export function garrisonSignature(row: GarrisonRow | null): string {
       (piece) =>
         `${piece.unitId}:${piece.badge}:${piece.ink}:${piece.hurt?.toFixed(3) ?? ''}:${
           piece.selected ? 1 : 0
-        }:${piece.mine ? 1 : 0}:${piece.rank ?? ''}`,
+        }:${piece.mine ? 1 : 0}:${piece.spent ? 1 : 0}:${piece.rank ?? ''}`,
     )
     .join(',');
   return `${pieces}+${row.more}${row.fanned ? 'f' : ''}`;

@@ -155,7 +155,7 @@ interface AdvanceResult {
  *
  *   1. **A fortified piece leaves its trench, and its owner's law reads trenches.**
  *      The `fortifiedUnits` and `garrisonWatch` counts and the `fortifiedUnit` hex
- *      test read `Unit.fortifiedTurns`, and a position only for a piece that has one
+ *      test read `Unit.fortified`, and a position only for a piece that has one
  *      (`lawReadsTrenches`).
  *   2. **Either hex is a town, and the piece is one a town can count.** The
  *      `garrison` count and the `garrisoned` and `garrisonRank` scopes count soldiers
@@ -183,7 +183,7 @@ interface AdvanceResult {
 function stepIsSeen(
   state: GameState, unit: Unit, from: Tile, to: Tile,
 ): boolean | { cityId: number; entering: boolean } {
-  if (unit.fortifiedTurns !== undefined && lawReadsTrenches(state, unit.ownerId)) return true;
+  if (unit.fortified !== undefined && lawReadsTrenches(state, unit.ownerId)) return true;
   const def = unitDef(unit.type);
   const soldier = isCombatant(def);
   const left = cityAt(state, from.col, from.row);

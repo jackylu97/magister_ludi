@@ -84,8 +84,11 @@ import { newGame } from './newGameHelpers';
  * proves the rule; the second proves the pipeline is wired to it.
  */
 
-/** The three yields a meter tier can touch. The whole of the global stage today. */
-const MODIFIED_YIELDS: readonly ModifiedYield[] = ['production', 'science', 'culture'];
+/**
+ * The five yields a meter tier can touch. Gold and faith joined on 2026-11-23,
+ * for the happiness malus alone. Food is never one of them.
+ */
+const MODIFIED_YIELDS: readonly ModifiedYield[] = ['production', 'gold', 'science', 'culture', 'faith'];
 
 const UNIT: QueueItem = { kind: 'unit', id: 'warrior' };
 const BUILDING: QueueItem = { kind: 'building', id: 'granary' };
@@ -307,7 +310,7 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     }
     // Which is the same figure `yieldFactor` reports for the meters alone: the
     // global stage *is* the meters today, and the two readings cannot drift. The
-    // meters touch three yields, so the other three must come back untouched.
+    // meters never touch food, so food must come back untouched.
     const effects = meterEffects(state, 0);
     const sums = foldCityStages(state, city, UNIT);
     for (const key of MODIFIED_YIELDS) {

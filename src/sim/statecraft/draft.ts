@@ -636,7 +636,7 @@ export interface PlayerStatecraft {
    *
    * An **absolute stamp and never a counter that resets**, the discipline this
    * codebase keeps everywhere it keeps time (`TimedEffect.expiresTurn`,
-   * `SlottedOrder.sealedUntil`, `City.purchasedUnitTurns`): the entry says
+   * `SlottedOrder.sealedUntil`, `City.purchasedUnitTurn`): the entry says
    * *when*, the rider compares it against `state.turn`, and a turn arriving is
    * the whole of the reset. Nothing ticks it, nothing sweeps it, and a phase
    * that zeroed it would be a phase that can be run twice.

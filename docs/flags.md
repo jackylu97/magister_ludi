@@ -3558,3 +3558,234 @@ do 3 camps every 5 turns." So `campEveryTurns` goes from 2 to 5.
 
 **Corrected a moment later:** the user: "oh shoot, let's make it every 3
 turns." So `campEveryTurns` is **3**, not 5: three camps every three turns.
+
+## A spent unit's badge is faint (ruled and built 2026-11-23)
+
+The user: "can we fade the icons of units that have completed their turns/no
+moves left?"
+
+- The badge of the local seat's own unit is drawn faint when the unit has
+  nothing left to do this turn. The test is `unitAwaitsOrders` turned round
+  (`badgeIsSpent` in `src/render3d/pieces.ts`): no movement left, or a
+  standing order (a march in progress, fortified, asleep, exploring, a trade
+  route). So the solid badges are the units that End Turn stops for.
+- The disc, the rim and the trim ring fade together, to
+  `badges.spentOpacity` (0.45) in `data/view3d.json`. The hit bar, the charge
+  number and the rank mark stay solid. The unit's figure does not change.
+- A unit in a town has its badge on the city banner. That roundel fades the
+  same way.
+- Another seat's units and the barbarians never fade.
+- One bit joined the unit fingerprint (`signUnits`), so the layer redraws when
+  a unit fortifies or sleeps without moving.
+
+## A queue completes as much as it can pay for in one turn (ruled 2026-11-23)
+
+The user: "what are the overflow rules? If a city has enough production to
+complete multiple things in the queue, it should complete all of them in a
+single turn. We should not drop any overflow, same goes with technologies, it
+should clear multiple things in the queue if able."
+
+The rule before this ruling: a city completes at most one queue row a turn and
+an empire at most one technology a turn. The remainder is kept in the basket
+or the pool and pays toward the next row. Nothing is dropped, but a large
+remainder waits a turn for each row.
+
+The new rule:
+
+- **Production.** When a city's basket covers the front row, the row
+  completes, the remainder moves to the next row, and the city tries again.
+  It stops at the first row that the basket cannot pay for, or that holds for
+  another reason (population too low, a missing resource, nowhere for the
+  unit to stand), or at a project, or at an empty queue. This applies at the
+  end of the turn and when a windfall of production lands during a turn.
+- **Research.** When the pool covers the current technology, it completes,
+  the next technology in the research queue becomes the aim, and the empire
+  tries again. It stops when the pool cannot pay, or when the queue is empty.
+  With an empty queue the pool is kept, as today.
+- **Each completion is reported.** The turn report, the grants and the
+  wonder news carry every row that completed, not only the first.
+- **The Common Purse (the remainder is doubled) doubles once in each
+  settlement, on the first completion.** My reading, not the user's words.
+  Doubling at every completion in the chain grows the basket without limit
+  and empties any queue each turn. The user can rule otherwise.
+- **Do not put this on the play server until the user says so.** The user:
+  "Don't move this to the playtest server, i want to finish my game".
+
+## Unrest lasts three turns in every town (ruled 2026-11-23)
+
+The user, after the table of the old rule (two points for each citizen, so a
+town of twelve took 24 turns with no help): "let's just keep it way easier.
+Could you make it 3 turns everywhere. I'm realizing the game has so many
+mechanics, i'd love to simplify wherever we can."
+
+- **A town taken by force is in unrest for three turns.** The figure is
+  `rules.war.unrest.turns` (3). The town's size does not change it.
+- **Nothing shortens it but a card.** A garrison, a great general and the
+  Courthouse no longer change the length. Their three rates leave the rules,
+  and the Courthouse loses its `easesUnrest` marker. It keeps its gold and
+  its authority.
+- **The cards stay.** The two Dominion cards that pacify a town at once work
+  as before. The Satraps ("Garrisoned towns in unrest pacify twice as fast")
+  still doubles the speed, so its town takes two turns. That card is weak
+  now, and its text is the user's to change in a card pass.
+- **Rebels are switched off** (`rebelEveryTurns` 0). My reading: a rebel rose
+  after three turns without a garrison, and no town is in unrest that long
+  now. The code for rebels stays, so the number can bring them back.
+- What unrest does to a town does not change: no production, science or
+  culture, and the borders do not grow.
+- Do not put this on the play server until the user's game is over.
+
+## Eight simpler rules (ruled 2026-11-23)
+
+The user, after a list of rules that could be simpler: "ok let's remove war
+weariness. Unhappiness should be very penalizing - let's simplify to two
+tiers. Below zero: -75% growth. Below 10, no growth, 20% reduction in yields.
+Puppets are fine. Let's simplify buying a hex, 30 gold, 60 in the outer ring,
+multiplied by age. trade routes are fine as is. Religious pressure: holy
+site, each city that follows, trade routes. Temples raise pressure in cities.
+Naval combot: -15 for embarked units. -6 for land bow +6 for land siege. In
+debt: -20% yields, units disband below -10. Fortify flat +4. One bought unit
+each turn."
+
+Puppets and trade routes do not change. The eight changes:
+
+1. **War weariness is removed.** A lost unit or town costs no happiness.
+   `rules.war.weariness`, `src/sim/weariness.ts`, the happiness line, the line
+   on the foreign courts screen and the lesson text all go. The two card
+   rules `unitLossWeariness` and `townLossWeariness` go. The Glorious Dead
+   keeps its production for a lost unit and loses its first sentence. The
+   Funeral Oration is already retired, and its row stays for saves. The bot's
+   two peace weights (`war.wearinessWeight`, `war.unhappyWearinessWeight`)
+   have nothing to read and go too.
+2. **Unhappiness has two steps.**
+   - Below 0: towns grow 75% slower.
+   - At −10 or below: towns do not grow, and yields are 20% lower.
+   - My readings, not the user's words. "Below 10" means −10, and the step
+     starts at −10 itself, as the old table did. The bonus for a happy
+     empire stays (+10% at 5, +20% at 10). The old −10% step at −5 and the
+     growth step at −20 go. If authority reads the same yield table
+     (`meters.tiers`), authority follows it.
+   - The user, later the same day: "borders are unaffected by happiness
+     (authority does that currently)". So `meters.borderFreeze` is
+     authority's rule and does not change.
+3. **A hex costs 30 gold, or 60 in the outer ring, times the buyer's age.**
+   The age counts from 1. `progressFactor`, `perPriorPurchase` and `roundTo`
+   leave the rules. A card that changes the price still applies after.
+4. **Religious pressure has three sources:** the holy site, each city that
+   follows the religion, and each trade route. Pressure along roads and the
+   capital's own pressure go (`roadStrength`, `capitalStrength`,
+   `capitalRange`, and the card rules of the same names). The Long Road
+   keeps its trade route half: "Your religion presses 2 harder along trade
+   routes." A temple doubles the founder's own pressure in its town
+   (`templeOwnPercent` 200). The user, later the same day: "lets remove the
+   temples' 75% to rival strength." So `templeForeignPercent` goes, a rival
+   presses a town with a temple at full strength, and the belief Inquisition
+   has no effect and is retired until the user gives it a new one.
+5. **Naval combat.** An embarked land unit fights at −15 (was −20). A land
+   bow against a ship stays at −6 and land siege against a ship at +6. The
+   line bonus for adjacent ships goes. My reading: hit and run (a light ship
+   attacks for one movement point and keeps the rest) is a unit ability and
+   not a penalty, and it stays.
+6. **Debt.** Yields are 20% lower in debt (was 25%). Units still disband
+   below −10 gold.
+7. **Fortify is a flat +4** from the first turn. It does not grow.
+   `fortifyBonusPerTurn` and `fortifyMax` become one number.
+8. **A city buys one unit each turn.** The three classes (military for gold,
+   civilian for gold, faith) become one stamp. Buildings stay uncounted.
+
+Also ruled in the same message, not yet designed: "trading strategic
+resources should give a quantity of resource, you almost never want just a
+single copy of a strategic resource."
+
+## Strategic resources are traded in a quantity (ruled 2026-11-23)
+
+The user: "trading strategic resources should give a quantity of resource,
+you almost never want just a single copy of a strategic resource." On the
+proposal below: "Your strategic resource changes look good."
+
+- **A strategic row in an offer carries a number of copies**, from 1 to the
+  free copies of the side that gives. A luxury row stays at one copy.
+- **The foreign courts screen** puts a stepper on a strategic chip. The
+  user: "let's have max(4,available copies) as the starting number". My
+  reading: a new row starts at 4 copies, or at all the free copies if the
+  side has fewer than 4 (the smaller of the two, because a row cannot hold
+  more copies than the side has).
+- **The bot prices each copy** (see the next section).
+
+## How a bot values and writes a trade (ruled 2026-11-23)
+
+The user, after the table of the bot's prices (gold at face value, 24 coin
+for a coin a turn, 120 for a resource it lacks and 0 for a second copy, 60
+for open borders, 145 to 273 for a town): "How long is a gold per turn trade?
+there should be some premium to getting gold up front instead of over time.
+bot's should value resources based on their current happiness and the value
+of the resource, less for duplicate copies. A 1:1 trade of duplicates should
+generally always be accepted. A town should probably be worth way more gold,
+we probably need to adjust the formula for how that's calculated. Also, a
+bot should not try to trade things that it would not accept itself, trading
+a duplicate for the player's last copy or trading a single strategic for a
+luxury is tedious to decline."
+
+- **Gold now is worth more than gold over time.** A deal lasts 20 turns
+  (`rules.war.dealTurns`). Today the bot prices one coin a turn at 24 coin,
+  which is more than the 20 it pays. The price must be below 20. My starting
+  figure: 15.
+- **A resource is priced by what it does for this seat now.** A luxury is
+  worth more to an unhappy empire and less to a happy one. A strategic copy
+  is worth what the seat can build with it. A duplicate is worth less than a
+  first copy, and more than nothing.
+- **A swap of one duplicate for one duplicate is accepted** in general.
+- **A town is worth much more gold.** The price needs a new formula that
+  reads the town (its citizens, its buildings, the age), in place of one
+  weight for every town.
+- **A bot does not write an offer that it would refuse if the seats were
+  exchanged.** Two named cases: a duplicate for the other side's last copy,
+  and one strategic copy for a luxury.
+- This is bot work, so it is Astra's. The handoff has the note.
+
+## Follow-ups to the eight simpler rules (ruled 2026-11-23)
+
+The user, after the build report: "Let's give it the ability: rival
+religions press your towns at 70% strength. +1 authority for every two of
+your cities that follow your religion. I'm kind of liking this
+authority-based religious play. unhappiness should lower all yields except
+production and food (growth already penalized). please hand off #5 for
+astra. is 30 the right value for the bots, i think it should probably value
+it based on the yields the tile provides, now that i think about it. Please
+delegate the strategic copies pass. Dry towns, i'm not sure, it should
+probably be a multiplication (0.7 * 0.75) even though that breaks the
+convention of the game, maybe this is the one instance where its fine."
+
+- **Inquisition comes back with a new effect.** Text: "Rival religions
+  press your towns at 70% strength. +1 authority for every two of your
+  cities that follow your religion." It does not need a temple. Two effects
+  on one belief is the user's choice here.
+- **Unhappiness at −10 or below lowers gold, science, culture and faith by
+  20%.** Production and food are not lowered. (The first build lowered
+  production, science and culture.) The authority penalty does not change.
+- **The growth penalty for unhappiness multiplies.** It applies after every
+  other growth percentage, as its own step, and does not add to them. My
+  reading of "0.7 * 0.75": a dry town (30% slower) with happiness below 0
+  (75% slower) grows at 0.7 × 0.25 = 17.5% of the normal speed. The user
+  allowed this one break of the rule that percentages in one stage add.
+- **The bot values a hex by the yields the hex gives**, not by a flat 30.
+  Astra's work, in the handoff.
+- **The strategic copies build is delegated** (see "Strategic resources are
+  traded in a quantity").
+
+## Deck direction review: the user's comments (2026-11-23)
+
+The user commented on the review page. Every comment is recorded in the user's
+own words in `docs/plans/deck-direction-review-2026-11-23.md`, section "The
+user's comments, 2026-11-23". That section is the specification for the build.
+It holds:
+
+- twenty settled points (The Mausoleum doubles a work's own yields only, the
+  nerfs to six Magisterial cards, the tier moves, Pax Romana, The Armoury
+  Patterns, and discounts on great people rewritten as more renown);
+- three new cards in the user's words (unseated Orders pay the capital culture,
+  a card that gains on each reroll, a card that gains on each swap);
+- six open points that wait for the user;
+- four reviews the user asked for (Dominion, Commerce, Devotion, Scientific).
+
+No card data has changed.

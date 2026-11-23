@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { buildingDef } from '../../src/sim/buildingData';
 import { buildingProductionCost, foundCityAt } from '../../src/sim/cities';
 import {
-  advanceFortify,
   applyCombat,
   attackTargetAt,
   cityAttackPhase,
@@ -828,25 +827,22 @@ describe('terrain and fortification', () => {
     expect(view.attackerStrength).toBe(unitDef('archer').rangedStrength);
   });
 
-  it('grows the fortify bonus each turn and caps it', () => {
+  it('gives a flat fortify bonus from the first turn, which does not grow', () => {
     const state = flatState();
     const d = createUnit(state, 1, 'warrior', 4, 3);
+    expect(fortifyBonus(d)).toBe(0);
 
     expect(applyCommand(state, fortify(d.id, 1))).toEqual({ ok: true });
     expect(isFortified(d)).toBe(true);
-    expect(d.fortifiedTurns).toBe(0);
-    expect(fortifyBonus(d)).toBe(0);
-
-    advanceFortify(state);
-    // Strength **points**, since 2026-08-28: +3 a turn, capped at +6 (U9's
-    // figures, Civ 6's, rescaled with the ladder).
-    expect(fortifyBonus(d)).toBe(COMBAT.fortifyBonusPerTurn);
-    advanceFortify(state);
-    expect(fortifyBonus(d)).toBe(COMBAT.fortifyMax);
-    // Capped: another five turns buy nothing, and the stored counter stops too.
-    for (let i = 0; i < 5; i++) advanceFortify(state);
-    expect(fortifyBonus(d)).toBe(COMBAT.fortifyMax);
-    expect(d.fortifiedTurns).toBe(2);
+    expect(d.fortified).toBe(true);
+    // Strength **points**, flat from the first turn (the user's ruling of
+    // 2026-11-23, "Fortify flat +4").
+    expect(COMBAT.fortifyBonus).toBe(4);
+    expect(fortifyBonus(d)).toBe(COMBAT.fortifyBonus);
+    // Turns pass and the bonus stays where it was.
+    for (let i = 0; i < 3; i++) endRound(state);
+    expect(isFortified(d)).toBe(true);
+    expect(fortifyBonus(d)).toBe(COMBAT.fortifyBonus);
   });
 
   it('counts the fortify bonus in the defender’s strength', () => {
@@ -854,23 +850,20 @@ describe('terrain and fortification', () => {
     const a = createUnit(state, 0, 'warrior', 3, 3);
     const d = createUnit(state, 1, 'warrior', 4, 3);
     applyCommand(state, fortify(d.id, 1));
-    advanceFortify(state);
-    advanceFortify(state);
 
-    // 20 + 6 = 26 defending against 20: 30 · e^(0.04 · −6) = 23.6 → 24.
+    // 20 + 4 = 24 defending against 20: 30 · e^(0.04 · −4) = 25.6 → 26.
     const view = forecast(state, a.id, 4, 3);
-    expect(view.fortifyBonus).toBe(6);
-    expect(view.defenderStrength).toBe(26);
-    expect(view.damageToDefender).toBe(24);
+    expect(view.fortifyBonus).toBe(4);
+    expect(view.defenderStrength).toBe(24);
+    expect(view.damageToDefender).toBe(26);
     // One line, named for the trench and not for a percentage of anything.
-    expect(view.defenderLines).toContainEqual({ source: 'Fortified', amount: 6 });
+    expect(view.defenderLines).toContainEqual({ source: 'Fortified', amount: 4 });
   });
 
   it('breaks fortification when the unit moves', () => {
     const state = flatState();
     const u = createUnit(state, 0, 'warrior', 3, 3);
     applyCommand(state, fortify(u.id));
-    advanceFortify(state);
     expect(isFortified(u)).toBe(true);
 
     expect(
@@ -878,7 +871,7 @@ describe('terrain and fortification', () => {
     ).toEqual({ ok: true });
     expect(isFortified(u)).toBe(false);
     // Deleted, not zeroed: an idle unit serialises one way only.
-    expect(Object.prototype.hasOwnProperty.call(u, 'fortifiedTurns')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(u, 'fortified')).toBe(false);
   });
 
   it('breaks fortification when the unit attacks', () => {
@@ -886,7 +879,6 @@ describe('terrain and fortification', () => {
     const a = createUnit(state, 0, 'warrior', 3, 3);
     createUnit(state, 1, 'warrior', 4, 3);
     applyCommand(state, fortify(a.id));
-    advanceFortify(state);
 
     applyCommand(state, attack(a.id, 4, 3));
     expect(isFortified(a)).toBe(false);
@@ -2737,8 +2729,8 @@ describe('the strength breakdown', () => {
     const a = createUnit(state, 0, 'warrior', 3, 3);
     const d = createUnit(state, 1, 'warrior', 4, 3);
     setRiverEdge(state.map, at(state.map, 3, 3), 0);
-    // Two turns of digging in, so the fortification line is a real one.
-    d.fortifiedTurns = 2;
+    // Dug in, so the fortification line is a real one.
+    d.fortified = true;
 
     const view = forecast(state, a.id, 4, 3);
     expect(view.acrossRiver).toBe(true);
@@ -2750,7 +2742,7 @@ describe('the strength breakdown', () => {
     const ford = view.attackerLines.find((line) => line.source === 'Across a river');
     expect(ford).toEqual({ source: 'Across a river', amount: -COMBAT.riverAttackPenaltyPoints });
     // The defender's two reasons are apart, because they are two decisions: the
-    // hex it stands on, and the turns it spent standing there.
+    // hex it stands on, and the order to dig in there.
     const sources = view.defenderLines.map((line) => line.source);
     expect(sources).toContain('Forest');
     expect(sources).toContain('Hills');

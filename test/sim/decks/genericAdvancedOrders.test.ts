@@ -204,9 +204,12 @@ describe('The Great Raising', () => {
 
     draft(state, RAISING);
     expect(home.buildings).toContain('monument');
-    expect(home.queue).toEqual([granary]);
-    expect(home.hammerBasket).toBe(33);
-    expect(tallyOf(player.statecraft, KILNS)).toBe(1);
+    // The basket left after the monument also pays for the granary, so the
+    // queue completes both in the one settlement (chained completions).
+    expect(home.buildings).toContain('granary');
+    expect(home.queue).toEqual([]);
+    expect(home.hammerBasket).toBe(33 - buildingProductionCost('granary', state, 0));
+    expect(tallyOf(player.statecraft, KILNS)).toBe(2);
     expect(train.queue).toEqual([worker]);
     expect(train.hammerBasket).toBe(0);
     expect(state.units.find((unit) => unit.col === train.col && unit.row === train.row))

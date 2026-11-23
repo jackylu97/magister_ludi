@@ -171,8 +171,8 @@ describe('the Magnum Opus narrowing and the two counter rules', () => {
       const musa = playerById(g.state, 0)!;
       musa.gold = 99999;
       city.queue = [{ kind: 'building', id: wonder }] as never;
-      // As if one military unit had already been bought here this turn.
-      city.purchasedUnitTurns = { ...(city.purchasedUnitTurns ?? {}), militaryGold: g.state.turn };
+      // As if one unit had already been bought here this turn.
+      city.purchasedUnitTurn = g.state.turn;
       bumpRevision(g.state);
       const error = purchaseError(g.state, 0, city.id, { kind: 'unit', id: 'warrior' }, 'gold');
       if (held) {
@@ -180,6 +180,11 @@ describe('the Magnum Opus narrowing and the two counter rules', () => {
       } else {
         expect(error).toContain('already bought');
       }
+      // The rule lifts the limit for soldiers bought with gold only: a
+      // civilian unit is still refused once the town has bought a unit today
+      // (one stamp for every unit since the ruling of 2026-11-23).
+      const civilian = purchaseError(g.state, 0, city.id, { kind: 'unit', id: 'worker' }, 'gold');
+      expect(civilian).toContain('already bought');
     }
   });
 

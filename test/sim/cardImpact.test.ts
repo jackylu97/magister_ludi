@@ -55,7 +55,7 @@ import { isCoastal } from '../../src/sim/water';
 import { terrainDef } from '../../src/sim/terrainData';
 import type { GameState } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
-import { authorityOf, happinessOf } from '../../src/sim/meters';
+import { authorityOf, happinessOf, tierPercent } from '../../src/sim/meters';
 import { renownPerTurn } from '../../src/sim/renown';
 import {
   type CardEffect,
@@ -740,7 +740,12 @@ describe('a belief', () => {
     expect(city.population).toBe(12);
     expect(other.population).toBe(14);
     const fold = foldCardImpact(explainCardImpact(state, 0, { kind: 'belief', id: 'choirs' }));
-    expect(fold.culture).toBe(3);
+    // The congregation's three notes, less what the meter takes: two towns of
+    // this size leave the empire at −10 happiness or below, and since the
+    // ruling of 2026-11-23 that lowers culture by the tier's malus.
+    const happiness = happinessOf(state, 0);
+    expect(happiness).toBeLessThanOrEqual(-10);
+    expect(fold.culture).toBeCloseTo(3 * (1 + tierPercent(happiness) / 100), 9);
   });
 
   /** And it is the difference the turn resolution would bank, drafted for real. */

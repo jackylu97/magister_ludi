@@ -992,6 +992,7 @@ describe('The Grand Canal (batch DT18)', () => {
     const next = { from: towns[0]!, to: towns[1]!, mode: 'land' as const, pay: appraise([]) };
     const ctx: ValueContext = { ...base, routes: { ...base.routes, open: next } };
     const surplus = channelSurplus(state, towns[0]!);
+    expect(surplus).toBeGreaterThan(0);
     expect(scoreEffects(CANAL, ctx)).toBeCloseTo((surplus / 2) * perFood(ctx), 8);
   });
 
@@ -1023,6 +1024,8 @@ describe('The Grand Canal (batch DT18)', () => {
     const farm = towns[1]!;
     farm.population = 2;
     refreshCityDerived(state, farm);
+    bumpRevision(state);
+    expect(channelSurplus(state, farm)).toBeGreaterThan(0);
     caravan(state, farm, towns[2]!);
     const ctx = () => valueContext(state, player);
     holdCanal(state);

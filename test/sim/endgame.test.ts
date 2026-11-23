@@ -484,7 +484,7 @@ describe('the three great works pay what their rows say', () => {
 
     // Presence is the state: no key, no extra mending.
     expect(cardUnitStat(g.state, soldier, 'heal')).toBe(0);
-    soldier.fortifiedTurns = 0;
+    soldier.fortified = true;
     expect(cardUnitStat(g.state, soldier, 'heal')).toBe(5);
   });
 
@@ -714,7 +714,7 @@ describe('the Opus closes the age by every road into a town', () => {
     town.hammerBasket += 5;
     const done = settleProductionWindfall(g.state, town);
 
-    expect(done).not.toBeNull();
+    expect(done).toHaveLength(1);
     expect(town.buildings).toContain(OPUS);
     expect(g.state.winnerId).toBe(0);
   });

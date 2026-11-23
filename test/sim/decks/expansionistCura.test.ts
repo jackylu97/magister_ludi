@@ -351,7 +351,6 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
   'buildingEffects.ts › buildingDemandRelief': { reads: 1, why: 'shelf' },
   'buildingEffects.ts › buildingRitePay': { reads: 1, why: 'shelf' },
   'buildingEffects.ts › buildingUnitUpkeepRebate': { reads: 1, why: 'shelf' },
-  'buildingEffects.ts › buildingsEasingUnrest': { reads: 1, why: 'shelf' },
   'buildingEffects.ts › buildingTileLines': { reads: 1, why: 'shelf' },
   // The Council screen, stage 2: the card stamp of a wonder finds the town
   // that holds it, then reads that town without it.
@@ -477,7 +476,6 @@ const MOVED_READERS: Record<string, string> = {
   'statecraft/evaluator.ts › cardPressureSources': 'a building\'s pressure',
   'trade.ts › explainRouteSlots': 'the route slots',
   'healing.ts › keepHealLines': 'the heal beside a town',
-  'unrest.ts › explainPacification': 'the buildings that ease unrest',
   'visibility.ts › sightSources': 'the sight',
   'yields/hex.ts › cityContext': 'the ground\'s lines and the irrigation',
   'yields/town.ts › explainCityBuildings': 'the building lines of the town fold (steps 8 and 9)',
@@ -501,7 +499,6 @@ const SHELF_READINGS = [
   'buildingDemandRelief',
   'buildingRitePay',
   'buildingUnitUpkeepRebate',
-  'buildingsEasingUnrest',
   'buildingTileLines',
   'explainCityRenown',
   'explainCityMaxHp',

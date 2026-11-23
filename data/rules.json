@@ -31,8 +31,7 @@
     "baseDamage": 30,
     "strengthExponent": 0.04,
     "rollBand": 0.2,
-    "fortifyBonusPerTurn": 3,
-    "fortifyMax": 6,
+    "fortifyBonus": 4,
     "riverAttackPenaltyPoints": 3,
     "flankingBonus": 0,
     "cityBaseHp": 100,
@@ -54,9 +53,7 @@
   },
   "naval": {
     "hitAndRunCost": 1,
-    "lineBonusPerHull": 4,
-    "lineBonusMax": 8,
-    "atSeaPenalty": 20,
+    "atSeaPenalty": 15,
     "landRangedVsShipPoints": -6,
     "landSiegeVsShipPoints": 6
   },
@@ -127,21 +124,11 @@
     "puppetAuthorityRelief": 1,
     "puppetHappinessPercent": 75,
     "unrest": {
-      "targetPerCitizen": 2,
-      "baseRate": 1,
-      "garrisonRate": 1,
-      "generalRate": 1,
-      "generalReach": 1,
-      "buildingRate": 1,
-      "rebelEveryTurns": 3,
+      "turns": 3,
+      "rebelEveryTurns": 0,
       "halts": ["production", "science", "culture"]
     },
-    "weariness": {
-      "windowTurns": 20,
-      "unitLoss": 1,
-      "townLoss": 8,
-      "happinessPerPoint": 1
-    }
+    "lossWindowTurns": 20
   },
   "barbarians": {
     "firstCampTurn": 6,
@@ -196,14 +183,11 @@
     "borderCostExponent": 1.45,
     "tilePurchase": {
       "ringBase": [
-        40,
-        40,
-        40,
+        30,
+        30,
+        30,
         60
-      ],
-      "progressFactor": 2,
-      "roundTo": 5,
-      "perPriorPurchase": 4
+      ]
     },
     "levy": {
       "everyTurns": 5,
@@ -368,10 +352,6 @@
         "percent": 20
       },
       {
-        "whenAtOrBelow": -5,
-        "percent": -10
-      },
-      {
         "whenAtOrBelow": -10,
         "percent": -20
       }
@@ -380,14 +360,10 @@
     "growthStifle": [
       {
         "whenBelow": 0,
-        "percent": -50
+        "percent": -75
       },
       {
         "whenAtOrBelow": -10,
-        "percent": -80
-      },
-      {
-        "whenAtOrBelow": -20,
         "percent": -100
       }
     ],
@@ -410,12 +386,8 @@
     "siteStrength": 6,
     "cityRange": 3,
     "cityStrength": 2,
-    "roadStrength": 4,
     "routeStrength": 3,
-    "capitalStrength": 4,
-    "capitalRange": 0,
     "templeOwnPercent": 200,
-    "templeForeignPercent": 75,
     "bombRange": 10,
     "bombLump": 60,
     "purgeRange": 5,
@@ -490,7 +462,7 @@
   "upkeep": {
     "goldPerUnitAge": 1,
     "goldPerBuildingAge": 1,
-    "debtPercent": -25,
+    "debtPercent": -20,
     "disbandBelow": -10
   },
   "wager": {

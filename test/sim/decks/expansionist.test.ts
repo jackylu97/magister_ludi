@@ -847,7 +847,7 @@ describe('the deck’s other shapes', () => {
       };
     };
     expect(paid()).toEqual({ food: 0, production: 0 });
-    spear.fortifiedTurns = 0;
+    spear.fortified = true;
     bumpRevision(state);
     expect(paid()).toEqual({ food: 1, production: 1 });
   });

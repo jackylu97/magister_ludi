@@ -38,9 +38,12 @@
  *     chosen next rather than being parked. The interface nags (see the tech
  *     screen); the simulation does not confiscate.
  *
- * One tech per player per turn, like production: a player who banks four hundred
- * beakers does not empty an age in one resolution. The overflow pays for the
- * next one the moment it is chosen.
+ * An empire completes as many technologies in one settlement as its pool pays
+ * for (the ruling of 2026-11-23, `docs/flags.md`). When a technology lands, the
+ * next one in the research queue becomes the aim and the remainder pays toward
+ * it at once. The chain stops when the pool cannot pay or the queue is empty.
+ * With nothing aimed at, the remainder stays in the pool for the next choice.
+ * See `settleResearchQueue`.
  *
  * The queue (playtest batch two)
  * ------------------------------
@@ -2080,7 +2083,9 @@ export function availableTechs(state: GameState, playerId: number): TechId[] {
  * lost, only postponed. A completed tech is pushed onto `techsResearched` in
  * completion order (the array is the record of *when*, not just *what*), the
  * remainder stays in the pool as overflow, and `researching` is cleared so the
- * next choice is the player's.
+ * next choice is the player's. If the research queue names a next technology,
+ * the remainder pays for it in the same turn (`settleResearchQueue`). Each
+ * player finishes its whole chain before the next player in the sweep.
  */
 export function advanceResearch(state: GameState): void {
   for (const player of state.players) {
@@ -2089,7 +2094,7 @@ export function advanceResearch(state: GameState): void {
     // (`barbarianTier` in `barbarians.ts`), so a barbarian seat in this sweep
     // would be a no-op that invited somebody to give it a starting kit.
     if (player.barbarian) continue;
-    settleResearch(state, player);
+    settleResearchQueue(state, player);
     // The retooling sweep runs **every** turn, not only on the turn a technology
     // lands, because since 2026-08-29 an upgrade can also be waiting on a
     // resource (`upgradeTargetFor`): the warriors an empire held at Iron
@@ -2264,8 +2269,10 @@ interface ResearchCompletion {
 }
 
 /**
- * Completes **at most one** technology for this player, if the pool covers it.
- * The one research-completion routine in the game.
+ * Completes **one** technology for this player, if the pool covers it. The one
+ * research-completion routine in the game. `settleResearchQueue` calls it
+ * again and again until the pool or the queue runs out, so a settlement can
+ * finish several technologies. This function still settles one.
  *
  * Entry XVIII's deliberately-unbuilt seam, built (Entry XX) on the day a windfall
  * existed to serve it: a ruin's star tablets pay a flat 15🔬, and a boon that
@@ -2423,6 +2430,37 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   return { player, techId: plan.techId, name: techDef(plan.techId).name, cost: plan.cost };
 }
 
+/**
+ * **Settles this player's research as far as the pool pays** (the ruling of
+ * 2026-11-23, `docs/flags.md`). This is the loop around `settleResearch`, which
+ * completes one technology. The end-of-turn phase and every windfall reach the
+ * research through here.
+ *
+ * `settleResearch` promotes the next node of the research queue when a
+ * technology lands, and the remainder of the pool carries into it. Each step
+ * prices the new aim again. The chain stops:
+ *   - when the pool cannot pay for the aim;
+ *   - when the queue is empty, so nothing is aimed at. The remainder stays in
+ *     the pool for the next choice, as before the ruling;
+ *   - after as many steps as the plan had nodes at the start. Every step that
+ *     goes on completes the aim and takes the next node off the queue, so an
+ *     ordinary game never reaches this limit. It is the guard that stops the
+ *     loop if a completion ever adds a node to the plan.
+ *
+ * Returns every technology that landed, in order. The list is empty when none
+ * did.
+ */
+export function settleResearchQueue(state: GameState, player: Player): ResearchCompletion[] {
+  const done: ResearchCompletion[] = [];
+  const steps = researchPlan(player).length;
+  for (let step = 0; step < steps; step++) {
+    const landed = settleResearch(state, player);
+    if (landed === null) break;
+    done.push(landed);
+  }
+  return done;
+}
+
 /** Preserve research already put into the current plan when a captured city supplies another technology. */
 export function grantCapturedTechnology(state: GameState, player: Player, tech: TechId): void {
   if (player.techsResearched.includes(tech)) return;
@@ -2438,10 +2476,15 @@ export function grantCapturedTechnology(state: GameState, player: Player, tech: 
   completeCurrentResearch(state, player);
 }
 
-/** Cover only the remaining cost. The usual settlement advances the queue and pays its rewards. */
-export function completeCurrentResearch(state: GameState, player: Player): ResearchCompletion | null {
+/**
+ * Cover only the remaining cost. The usual settlement advances the queue and
+ * pays its rewards. The first completion in the list is the current
+ * technology. Any after it are the queue, paid for by what was left in the
+ * pool. The list is empty when nothing was aimed at.
+ */
+export function completeCurrentResearch(state: GameState, player: Player): ResearchCompletion[] {
   const id = player.researching;
-  if (!id || !isTechId(id)) return null;
+  if (!id || !isTechId(id)) return [];
   const cost = foldTechCost(explainTechCost(state, player, id));
   if (player.sciencePool < cost) {
     player.sciencePool = cost;
@@ -2490,13 +2533,18 @@ function lastAgeTechCount(player: Player): number {
  *
  * Every future windfall that pays beakers calls **this**, never `settleResearch`
  * directly.
+ *
+ * A windfall settles the research as far as the pool pays, as the end-of-turn
+ * phase does (`settleResearchQueue`). It returns every technology that landed,
+ * in order, and an empty list when none did. The cities are re-seated once,
+ * after the whole chain.
  */
 export function settleResearchWindfall(
   state: GameState,
   player: Player,
-): ResearchCompletion | null {
-  const done = settleResearch(state, player);
-  if (!done) return null;
+): ResearchCompletion[] {
+  const done = settleResearchQueue(state, player);
+  if (done.length === 0) return done;
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     refreshCityDerived(state, city);
@@ -2799,11 +2847,10 @@ interface ResearchQueueStep {
  *     once. Since schema 111 each node's own bucket comes off its own price
  *     before the running total takes it, which is the same sum said honestly for
  *     a plan whose middle node has been visited before.
- *   · **one technology per player per turn.** `settleResearch` completes at most
- *     one, however full the pool is (see its docblock), so the *n*-th entry can
- *     never land sooner than *n* turns from now however cheap it is. That floor
- *     is what keeps a banked four hundred beakers from printing "3 techs, 1
- *     turn" against a resolution that will hand over exactly one.
+ *   · **nothing lands before the end of this turn.** A full pool can finish
+ *     several entries in one settlement (`settleResearchQueue`, the ruling of
+ *     2026-11-23), so several entries can say one turn. None says less than
+ *     one, because research settles at the end of the turn.
  *
  * `rate` is `turnsToTech`'s parameter and it is here for its reason: the star
  * chart draws the strip along its foot in the same breath as the nodes above
@@ -2822,7 +2869,7 @@ export function queueTurns(
   for (const techId of researchPlan(player)) {
     owed += foldTechCost(explainTechCost(state, player, techId)) - bankedTowardTech(player, techId);
     const turns = turnsToFill(owed, at);
-    steps.push({ techId, turns: turns === null ? null : Math.max(steps.length + 1, turns) });
+    steps.push({ techId, turns: turns === null ? null : Math.max(1, turns) });
   }
   return steps;
 }

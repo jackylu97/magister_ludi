@@ -17,6 +17,15 @@ arena A/B, seed sweep and before/after profile — is
 
 ## Arena tuning
 
+The user approved the current combat policy for playtesting on 2026-11-23.
+The default is `tactics.enabled: 1` and `tactics.perUnit: 1`. Each unit ranks
+nearby positions and forecasts a small set of attacks. Enemy reach is reused
+while its dependencies stay unchanged. The original policy remains available
+through `tactics.enabled: 0`; `perUnit: 0` selects the older group planner.
+The [release record](audit/bot-play-release-2026-11-23.md) lists the checks
+and remaining work. Useful sacrifices are allowed; survival alone does not
+decide which action is best.
+
 The user set this rule on 2026-11-21. If a bot makes a choice about how much it values an outcome, expose that preference in `data/ai.json`. Give numeric settings a range in `data/ai.bounds.json`. The Arena builds its controls from these files. Keep command legality and the list of effects a bot understands independent of those preferences.
 
 - `weights.science` sets the base price of science in each of the four ages. The current values are 5, 6, 6 and 6.

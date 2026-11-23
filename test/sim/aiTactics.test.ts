@@ -223,17 +223,17 @@ describe('shared tactical positions', () => {
   it('preserves fortification on a hold and breaks it on a move', () => {
     const state = board();
     const mine = createUnit(state, 0, 'spearman', 5, 5);
-    mine.fortifiedTurns = 2;
+    mine.fortified = true;
     mine.dugIn = 'awake';
     const root = initialPosition(state);
     const held = projectAction(root, holdAction(state, mine))!.position.state.units[0]!;
-    expect(held.fortifiedTurns).toBe(2);
+    expect(held.fortified).toBe(true);
     expect(held.dugIn).toBeUndefined();
     const move = movementActions(state, mine)[0]!;
     const moved = projectAction(root, move)!.position.state.units[0]!;
-    expect(moved.fortifiedTurns).toBeUndefined();
+    expect(moved.fortified).toBeUndefined();
     expect(moved.movesLeft).toBeLessThan(mine.movesLeft);
-    expect(mine.fortifiedTurns).toBe(2);
+    expect(mine.fortified).toBe(true);
   });
 
   it('does not offer a friendly occupied destination as an ordinary move', () => {
@@ -359,8 +359,8 @@ describe('bounded tactical planning', () => {
     const state = board();
     const spear = createUnit(state, 0, 'spearman', 5, 5);
     const archer = createUnit(state, 0, 'archer', 4, 5);
-    spear.fortifiedTurns = 2;
-    archer.fortifiedTurns = 2;
+    spear.fortified = true;
+    archer.fortified = true;
     createUnit(state, 1, 'warrior', 6, 5);
     recomputeAllVisibility(state);
     const plan = planTacticalCombat(state, 0, spear.id, groupConfig(), { locked: [spear.id] })!;

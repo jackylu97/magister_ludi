@@ -293,7 +293,7 @@ export function isRested(unit: Unit, state?: GameState): boolean {
  * during resolution, not the moment it arrives — so the first four clauses
  * alone would flag it idle on every turn the route runs. But a
  * caravan carrying a route is not a piece the player positions; `Unit.trade`
- * present *is* its standing order, the same way `fortifiedTurns` and
+ * present *is* its standing order, the same way `fortified` and
  * `sleeping` are standing orders for a soldier and a civilian. Presence is
  * again the state, so this reads `unit.trade !== undefined` rather than
  * anything about where the route currently points.
@@ -330,7 +330,7 @@ export function unitAwaitsOrders(unit: Unit): boolean {
   // an enemy came into its sight, it was attacked, or it healed after
   // "fortify until healed"). Such a unit is still dug in, but it has no orders
   // and asks for them. One waiting to heal is quiet like any fortified unit.
-  if (unit.fortifiedTurns !== undefined && unit.dugIn !== 'awake') return false;
+  if (unit.fortified !== undefined && unit.dugIn !== 'awake') return false;
   if (unit.sleeping === true) return false;
   // Ranging ahead is a standing order the resolution itself renews
   // (`marchExplorers` in `turn.ts`), so the piece is busy even on the turn it
@@ -378,7 +378,7 @@ export function unitAwaitsOrders(unit: Unit): boolean {
  * carrying a route, a scout ranging ahead, a sleeper and a fortified soldier
  * all hold a `path` or a standing order of their own from time to time, and not
  * one of them is a piece the player should be handed: `Unit.trade`,
- * `autoExplore`, `sleeping` and `fortifiedTurns` say so once, over there.
+ * `autoExplore`, `sleeping` and `fortified` say so once, over there.
  *
  * `movesLeft > 0` comes along in the same breath, and it is the ruling's own
  * reason: a piece that spent its allowance getting here has nothing to be

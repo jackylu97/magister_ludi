@@ -172,8 +172,6 @@
     "unitLossWeight": 3,
     "cityWeight": 25,
     "strengthWeight": 0.4,
-    "wearinessWeight": 1,
-    "unhappyWearinessWeight": 2,
     "luxuryGoldBaseline": 120,
     "luxuryGptBaseline": 5,
     "openBordersPrice": 60,
@@ -427,7 +425,7 @@
     "strandWeight": 0.5
   },
   "tactics": {
-    "enabled": 0,
+    "enabled": 1,
     "perUnit": 1,
     "finalists": 2,
     "attacks": 2,

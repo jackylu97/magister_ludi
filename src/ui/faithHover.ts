@@ -45,6 +45,8 @@
  *   who cannot see the place does not know. Dropping the line rather than the
  *   ledger keeps rule 5 intact, because the total this card prints is the fold
  *   of the lines this card shows (`pressureLedgerText` folds what it is given).
+ *   The "Resisted" line (the town owner's cards on a rival religion, such as
+ *   the belief Inquisition) is dropped for the same reason.
  *
  * Unexplored ground has no card at all — the readout's own Terra Incognita rule,
  * and a card floating over a hex nobody has walked would be the fog leaking
@@ -69,7 +71,7 @@ import {
   playerById,
   unconvertedCitizens,
 } from '../sim/state';
-import { type PressureLine, explainPressure } from '../sim/religion';
+import { type PressureLine, RESISTED_LINE, TEMPLE_LINE, explainPressure } from '../sim/religion';
 import { citySightingOf, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityFaithRows } from './cityPanel';
 import { cityDisplayName } from './cityDisplay';
@@ -195,13 +197,11 @@ export function faithHoverReading(
   };
 }
 
-/** The label of the one line a seat who cannot see a town may not read. */
-const TEMPLE_LINE = 'Temple';
-
 /**
  * The seat's own faith's lines on a town it cannot currently see, minus the
- * temple's. See the module docblock — the temple is a fact about the *town*,
- * and every other source on the list is a fact about the seat's own board.
+ * temple's and the "Resisted" line. See the module docblock: both are facts
+ * about the *town* and its owner, and every other source on the list is a fact
+ * about the seat's own board.
  *
  * `cityFaithRows` is deliberately not reused here: it reads `followerCount` and
  * `cityReligion` off the live town, which is precisely what memory does not
@@ -213,7 +213,7 @@ function ownPressureLines(
   religion: ReligionId,
 ): PressureLine[] {
   return explainPressure(state, city).filter(
-    (line) => line.religion === religion && line.source !== TEMPLE_LINE,
+    (line) => line.religion === religion && line.source !== TEMPLE_LINE && line.source !== RESISTED_LINE,
   );
 }
 

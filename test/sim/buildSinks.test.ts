@@ -134,14 +134,14 @@ describe('a project is a queue row that never leaves', () => {
     city.hammerBasket = cost;
     const before = state.players[0]!.gold;
     const done = settleProductionWindfall(state, city);
-    expect(done?.name).toBe('Tithes');
+    expect(done.map((completed) => completed.name)).toEqual(['Tithes']);
     expect(city.queue).toEqual([{ kind: 'project', id: 'tithes' }]);
     expect(city.hammerBasket).toBe(0);
     expect(state.players[0]!.gold).toBe(before + projectDef('tithes').pays.gold!);
 
     // And again, from a fresh basket, with no re-queueing anywhere.
     city.hammerBasket = cost;
-    expect(settleProductionWindfall(state, city)?.name).toBe('Tithes');
+    expect(settleProductionWindfall(state, city).map((completed) => completed.name)).toEqual(['Tithes']);
     expect(city.queue).toHaveLength(1);
     expect(state.players[0]!.gold).toBe(before + 2 * projectDef('tithes').pays.gold!);
   });
@@ -158,7 +158,7 @@ describe('a project is a queue row that never leaves', () => {
     city.queue = [{ kind: 'project', id: 'pageants' }];
     city.hammerBasket = projectDef('pageants').cost;
     const before = player.culturePool;
-    expect(settleProductionWindfall(state, city)?.name).toBe('Pageants');
+    expect(settleProductionWindfall(state, city).map((completed) => completed.name)).toEqual(['Pageants']);
     expect(city.queue).toEqual([{ kind: 'project', id: 'pageants' }]);
     expect(player.culturePool).toBe(before + projectDef('pageants').pays.culture!);
     // Gold, science and faith are untouched: the row names one voice.

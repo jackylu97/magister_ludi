@@ -22,7 +22,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { bestTechGoal } from '../../src/ai/bot';
-import { gameProgress } from '../../src/sim/cities';
 import { dispatch } from '../../src/sim/game';
 import { type GameState, bumpRevision, playerById } from '../../src/sim/state';
 import { describeCard, stripRefs } from '../../src/sim/statecraft';
@@ -431,17 +430,14 @@ describe('what completing one does not do', () => {
     expect(g.state.firsts.some((record) => record.key === 'herbals')).toBe(false);
   });
 
-  it('leaves the age and the share of the tree where they were', () => {
+  it('leaves the age where it was', () => {
+    // The share of the tree (`gameProgress`) was read only by the hex price,
+    // and it left with that price's era term on 2026-11-23. The hex price reads
+    // the age now, which these lines pin.
     expect(highestAge(['agriculture', 'gunfounding', 'navalGunnery'])).toBe(1);
     expect(highestAge(['agriculture', 'theWheel', 'surveying'])).toBe(1);
     expect(highestAge(['agriculture', 'theWheel', 'currency', 'surveying'])).toBe(2);
-    const g = researchingGame();
-    const player = playerById(g.state, 0)!;
-    player.techsResearched = ['agriculture', 'earthenware'];
-    const before = gameProgress(g.state, 0);
-    player.techsResearched.push('herbals');
-    expect(gameProgress(g.state, 0)).toBe(before);
-    expect(before).toBe(2 / TECH_IDS.length);
+    expect(highestAge(['agriculture', 'earthenware', 'herbals'])).toBe(highestAge(['agriculture', 'earthenware']));
   });
 });
 

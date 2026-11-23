@@ -130,12 +130,11 @@ import {
   controlledHoldings,
   resourceCopies,
 } from '../sim/cities';
-import { lentCopiesToPlayer, loanedResources } from '../sim/deals';
+import { lentCopiesToPlayer, loanedCopiesOf, loanedResources } from '../sim/deals';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from '../sim/resourceData';
 import { techDef } from '../sim/techData';
-import { wearinessBetween } from '../sim/weariness';
 import { RULES } from '../sim/rulesData';
-import { figure, signedMeterFigure } from './figures';
+import { figure } from './figures';
 import type { ConfirmRequest } from './confirmCard';
 import { element } from './dom';
 import { leaderFaces, leaderPortraitNode } from './leaderSelect';
@@ -198,13 +197,6 @@ interface DiplomacyRow {
    */
   waiting: number;
   /**
-   * The happiness your losses to them are costing you in war weariness, or
-   * nought (`wearinessBetween`, `src/sim/weariness.ts`; batch WC2). The same
-   * figure as their line in the happiness breakdown. It can be above nought at
-   * peace, because making peace does not erase recent losses.
-   */
-  weariness: number;
-  /**
    * You have met them: seen their land, their town or their pieces, or signed
    * something with them (`hasMetSeat`, `src/sim/diplomacy.ts`).
    *
@@ -256,7 +248,6 @@ export function diplomacyRows(state: GameState, seat: number): DiplomacyRow[] {
       waiting:
         state.dealProposals.filter((paper) => paper.by === id && paper.to === seat).length +
         (hasPeaceOffer(state, id, seat) && !hasPeaceOffer(state, seat, id) ? 1 : 0),
-      weariness: wearinessBetween(state, seat, id).happiness,
       met: hasMetSeat(state, seat, id),
     });
   }
@@ -320,19 +311,6 @@ export function relationSentence(
     return truceLeft === 1 ? 'Truce — one turn left' : `Truce — ${figure(truceLeft)} turns left`;
   }
   return 'At peace';
-}
-
-/**
- * The line under the status that says what your losses to this empire are
- * costing you in war weariness, or `null` when they cost nothing (batch WC2).
- *
- * Shown whatever the relation, because a peace does not erase recent losses:
- * they keep costing happiness until they are old enough to stop counting. The
- * figure is the same one the happiness breakdown prints on this empire's line.
- */
-export function wearinessLine(row: DiplomacyRow): string | null {
-  if (row.weariness <= 0) return null;
-  return `War weariness ${signedMeterFigure(-row.weariness)} happiness`;
 }
 
 /**
@@ -412,11 +390,13 @@ interface DealChoice {
    */
   unusable?: string;
   /**
-   * A strategic row whose giver has exactly one copy free to build with
-   * (`availableCopies`), so lending it stops the next unit that needs it.
-   * Units already built keep fighting. Absent on every other row.
+   * A strategic row's copies free to build with (`availableCopies`). A chip
+   * with one free copy is marked "last free", and the paper warns when the
+   * copies on the table take every free copy (`takesEveryFreeCopy`): units
+   * already built keep fighting, but no new unit that needs it can be raised
+   * while the loan runs. Absent on every other row.
    */
-  lastFree?: true;
+  free?: number;
 }
 
 /** What one column of the panel offers — one empire's side of the bargain. */
@@ -866,9 +846,13 @@ function dealSide(
  * - **A receiver that cannot use it yet** (no reveal technology) may still be
  *   lent it, because the reducer takes the loan. The chip says so on hover
  *   (`unusable`).
- * - **The last copy free to build with** is marked (`lastFree`), and the paper
- *   warns when it is offered: units already built keep fighting, but the next
- *   one cannot be raised while the loan runs.
+ * - **The copies free to build with** are `free` (`availableCopies`). A chip
+ *   with one is marked "last free", and the paper warns when an offer takes
+ *   every free copy: units already built keep fighting, but the next one
+ *   cannot be raised while the loan runs.
+ * - **The copies on the table** are the row's own count (the ruling of
+ *   2026-11-23, "Strategic resources are traded in a quantity"). A picked
+ *   chip starts at `strategicStartCopies` and steps from 1 to `spare`.
  */
 function strategicChoices(
   state: GameState,
@@ -885,11 +869,13 @@ function strategicChoices(
     const id = holding.id;
     if (!viewer || !resourceIsVisibleTo(id, viewer.techsResearched)) continue;
     const copies = resourceCopies(state, giverId, id);
-    const error = dealSideError(state, giverId, receiverId, { strategics: [id] }, war);
+    // Asked of one copy: whether the row can be picked at all. The count on
+    // the table is checked again, at its own figure, by the paper's gate.
+    const error = dealSideError(state, giverId, receiverId, { strategics: [{ id, copies: 1 }] }, war);
     const spare = error !== null ? 0 : lendableCopies(state, giverId, id);
-    // A borrowed copy can be built with but not lent, so the last copy to lend
-    // is not always the last one to build with: ask the build gate's reading.
-    const lastFree = spare >= 1 && availableCopies(state, giverId, id) === 1;
+    // A borrowed copy can be built with but not lent, so the copies to lend
+    // are not always the copies to build with: ask the build gate's reading.
+    const free = availableCopies(state, giverId, id);
     const mine = resourceHold(state, giverId, id);
     const gate = resourceDef(id).requiresTech;
     const blind = receiver !== undefined && !resourceIsVisibleTo(id, receiver.techsResearched);
@@ -901,7 +887,7 @@ function strategicChoices(
       note: null,
       error,
       ...(blind && gate !== undefined ? { unusable: unusableNote(state, receiverId, seat, id, gate) } : {}),
-      ...(lastFree ? { lastFree: true as const } : {}),
+      free,
       ...(mine.own === 0 && mine.loans.length > 0
         ? {
             borrowed: loanNote(state, seat, other, giverId, mine.loans, 'giver'),
@@ -920,15 +906,71 @@ export const STRATEGIC_WORDS = {
 } as const;
 
 /**
- * The warning under the paper when this seat offers its last free copy of a
- * strategic resource. Units already built keep fighting; what the seat loses
- * is the copy a new unit would need.
+ * The warning under the paper when this seat offers every copy of a strategic
+ * resource it has free to build with (`takesEveryFreeCopy`). Units already
+ * built keep fighting; what the seat loses is the copy a new unit would need.
  */
 export function lastFreeCopyLine(names: readonly string[]): string {
   return (
-    `You are offering your last free copy of ${names.join(', ')}. ` +
+    `You are offering every free copy of ${names.join(', ')}. ` +
     'You cannot build more units that need it while the exchange runs.'
   );
+}
+
+/**
+ * The copies a strategic chip puts on the table when it is picked (the user,
+ * 2026-11-23: "let's have max(4,available copies) as the starting number").
+ * The reading in `docs/flags.md` ("Strategic resources are traded in a
+ * quantity") takes the smaller of the two, because a row cannot hold more
+ * copies than the side can lend. An interface default, not a rule, as
+ * `AMOUNT_STEP` is: the stepper moves it.
+ */
+export const STRATEGIC_START_COPIES = 4;
+
+/** The copies a new strategic row starts at: four, or every copy the side can lend when it has fewer. */
+export function strategicStartCopies(spare: number): number {
+  return Math.max(1, Math.min(STRATEGIC_START_COPIES, spare));
+}
+
+/**
+ * The stepper's next figure: one more or one fewer, kept from 1 to the copies
+ * the side can lend (`DealChoice.spare`). A figure already above them (a
+ * counter written before a unit took a copy) comes down to them on either
+ * press.
+ */
+export function stepStrategicCopies(current: number, step: 1 | -1, spare: number): number {
+  return Math.max(1, Math.min(spare, current + step));
+}
+
+/**
+ * Puts a strategic row on a side's terms at this many copies, or takes it off
+ * at fewer than one: the chip, its stepper and the × on the paper. A row
+ * already there keeps its place. Presence is the state, as in the register:
+ * a side with no row left has the line deleted.
+ */
+export function writeStrategicCopies(terms: DealTerms, id: ResourceId, copies: number): void {
+  const rows = (terms.strategics ?? []).map((row) => ({ id: row.id, copies: row.copies }));
+  const at = rows.findIndex((row) => row.id === id);
+  if (copies >= 1) {
+    if (at >= 0) rows[at]!.copies = copies;
+    else rows.push({ id, copies });
+  } else if (at >= 0) {
+    rows.splice(at, 1);
+  }
+  if (rows.length > 0) terms.strategics = rows;
+  else delete terms.strategics;
+}
+
+/**
+ * True when the copies of this strategic row on the table take every copy the
+ * side has free to build with (`DealChoice.free`), so the paper warns
+ * (`lastFreeCopyLine`). One copy offered of one free copy is the case the
+ * warning had before the counts.
+ */
+export function takesEveryFreeCopy(choice: DealChoice, terms: DealTerms): boolean {
+  if (choice.id === undefined || choice.free === undefined || choice.error !== null) return false;
+  const copies = loanedCopiesOf(terms, choice.id);
+  return copies >= 1 && copies >= choice.free;
 }
 
 /**
@@ -990,7 +1032,11 @@ export function termItems(state: GameState, terms: DealTerms): TermItem[] {
   const perTurn = terms.goldPerTurn ?? 0;
   if (perTurn > 0) items.push({ key: 'goldPerTurn', text: `${figure(perTurn)} gold a turn` });
   for (const id of terms.luxuries ?? []) items.push({ key: `luxury:${id}`, text: resourceDef(id).name });
-  for (const id of terms.strategics ?? []) items.push({ key: `strategic:${id}`, text: resourceDef(id).name });
+  // A strategic row always prints its count, one copy too ("Iron ×1"), so a
+  // reader never takes a row of one for a row of several.
+  for (const row of terms.strategics ?? []) {
+    items.push({ key: `strategic:${row.id}`, text: `${resourceDef(row.id).name} ×${figure(row.copies)}` });
+  }
   if (terms.openBorders === true) items.push({ key: 'openBorders', text: 'Open borders' });
   for (const cityId of terms.cities ?? []) {
     items.push({
@@ -1010,12 +1056,13 @@ export function removeTerm(terms: DealTerms, key: string): void {
   if (key === 'gold') delete terms.gold;
   else if (key === 'goldPerTurn') delete terms.goldPerTurn;
   else if (key === 'openBorders') delete terms.openBorders;
-  else if (key.startsWith('luxury:') || key.startsWith('strategic:')) {
-    const group = key.startsWith('luxury:') ? 'luxuries' : 'strategics';
-    const id = key.slice(key.indexOf(':') + 1);
-    const kept = (terms[group] ?? []).filter((held) => held !== id);
-    if (kept.length > 0) terms[group] = kept;
-    else delete terms[group];
+  else if (key.startsWith('luxury:')) {
+    const id = key.slice('luxury:'.length);
+    const kept = (terms.luxuries ?? []).filter((held) => held !== id);
+    if (kept.length > 0) terms.luxuries = kept;
+    else delete terms.luxuries;
+  } else if (key.startsWith('strategic:')) {
+    writeStrategicCopies(terms, key.slice('strategic:'.length) as ResourceId, 0);
   } else if (key.startsWith('city:')) {
     const id = Number(key.slice('city:'.length));
     const kept = (terms.cities ?? []).filter((held) => held !== id);
@@ -1186,7 +1233,7 @@ export function audienceCopy(answer: EnvoyAnswer): { quote: string; detail: stri
     ? {quote:'Let the fighting end. We have an agreement.',detail:'Peace agreed. The war has ended and the agreed terms have taken effect.'}
     : {quote:'A fair exchange. My merchants will see it done.',detail:'Agreement signed. Its terms are listed under In force.'};
   if(answer.peace) return {quote:'Not yet. I am not ready to end this war.',detail:'Peace declined. You remain at war; revise the terms below or return later.'};
-  if(answer.lastCopy) return {quote:`I will not part with our last ${answer.lastCopy.toLowerCase()}. Ask for something we can spare.`,detail:`They have only one copy of ${answer.lastCopy} to spare. Choose another resource or ask for revised terms.`};
+  if(answer.lastCopy) return {quote:`I will not part with our last ${answer.lastCopy.toLowerCase()}. Ask for something we can spare.`,detail:`They keep at least one copy of ${answer.lastCopy} for themselves. Choose another resource or ask for revised terms.`};
   return {quote:'These terms do not suit us. What else can you offer?',detail:'Offer declined. Add something they need, reduce your request, or ask what would make this work.'};
 }
 
@@ -1354,13 +1401,11 @@ export interface OwnOfferLine extends OfferLine {
 /**
  * Everything the "Standing and deals" drawer lists for one court. Every part
  * is a reading the sheet already had: the relation sentence, `bordersOpenTo`
- * both ways, `wearinessLine`, and the deal panel's own deals in force,
- * offers and peace paper (`dealPanel`). Nothing here is a new figure.
+ * both ways, and the deal panel's own deals in force, offers and peace paper
+ * (`dealPanel`). Nothing here is a new figure.
  */
 export interface StandingAndDeals {
   standing: StandingLine[];
-  /** The war weariness line, or `null` when your losses to them cost nothing. */
-  weariness: string | null;
   inForce: ActiveDealRow[];
   waiting: OfferLine[];
   mine: OwnOfferLine[];
@@ -1411,7 +1456,7 @@ export function standingAndDeals(
       : ['Your offer of peace stands.', ''];
     mine.push({ paper: 'peace', head, text, action: peaceButtonLabel(row), error: row.peaceError });
   }
-  return { standing, weariness: wearinessLine(row), inForce: model.active, waiting, mine };
+  return { standing, inForce: model.active, waiting, mine };
 }
 
 /**
@@ -1853,7 +1898,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     let quote = model.peace ? 'You have my attention. Speak.' : 'Let us put something useful on the table.';
     let detail = model.peace
       ? 'You may include towns in the terms. Nothing changes hands until peace is agreed.'
-      : 'Choose a luxury or a strategic resource on either side to add one copy to the offer.';
+      : 'Choose a luxury or a strategic resource on either side to add it to the offer. For a strategic resource, you choose how many copies.';
     let declined = false;
     if (offerOpen) {
       label = DRAWER_WORDS.waiting;
@@ -2044,21 +2089,24 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     // The strategic resources: their own short group after the luxuries, with
     // no heading because the luxuries have none. The chips carry the free
     // copies, and a chip with none is struck through (`strategicChoices`).
+    // A chip on the table opens a stepper for its copies (`copiesChip`).
     const ores = group(null, null, 'is-strategics');
     ores.block.title =
-      `One copy, lent ${figure(RULES.war.dealTurns)} turns. ` +
-      'Units built with it keep fighting when the loan ends.';
+      `Copies lent ${figure(RULES.war.dealTurns)} turns. ` +
+      'Units built with them keep fighting when the loan ends.';
     ores.chips.dataset.scroll = `strategics:${half}`;
     if (side.strategics.length === 0) ores.chips.append(element('p', 'dp-hid', STRATEGIC_WORDS.none));
     for (const choice of side.strategics) {
       const id = choice.id;
       if (id === undefined) continue;
+      const onTable = loanedCopiesOf(terms, id) > 0;
+      if (onTable && choice.error === null) {
+        ores.chips.append(copiesChip(row, model, side, half, choice, terms));
+        continue;
+      }
       ores.chips.append(
-        choiceChip(row, half, choice, `strategic:${id}`, (terms.strategics ?? []).includes(id), null, (on) => {
-          const held = (terms.strategics ?? []).filter((kept) => kept !== id);
-          if (on) held.push(id);
-          if (held.length > 0) terms.strategics = held;
-          else delete terms.strategics;
+        choiceChip(row, half, choice, `strategic:${id}`, onTable, null, (on) => {
+          writeStrategicCopies(terms, id, on ? strategicStartCopies(choice.spare ?? 0) : 0);
         }),
       );
     }
@@ -2150,7 +2198,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       // A strategic chip marks the last *free* copy: units already built hold
       // the others, and lending this one stops the next unit, not the army.
       if (key.startsWith('strategic:')) {
-        if (choice.lastFree === true && choice.error === null) short = 'last free';
+        if (choice.free === 1 && choice.error === null) short = 'last free';
       } else if (choice.copies === 1 && choice.error === null) short = 'last';
       // A receiver that has not revealed it can take it and use it later.
       if (choice.unusable !== undefined) titles.push(choice.unusable);
@@ -2193,6 +2241,72 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       });
     }
     return chip;
+  }
+
+  /**
+   * A strategic chip that is on the table: its mark, its name (press it to
+   * take the row back), and a stepper around the copies on the table (the
+   * ruling of 2026-11-23, "Strategic resources are traded in a quantity").
+   *
+   * The open gold chip's shape and classes, with the figure printed rather
+   * than typed, so nothing new is drawn. The stepper runs from 1 to the copies
+   * the side can lend (`DealChoice.spare`, `stepStrategicCopies`). A count the
+   * reducer refuses (a unit took a copy after the row was written) dashes the
+   * edge and carries `dealSideError`'s sentence, as a refused gold figure does.
+   */
+  function copiesChip(
+    row: DiplomacyRow,
+    model: DealPanelModel,
+    side: DealSideModel,
+    half: 'give' | 'take',
+    choice: DealChoice,
+    terms: DealTerms,
+  ): HTMLElement {
+    const id = choice.id!;
+    const key = `strategic:${id}`;
+    const copies = loanedCopiesOf(terms, id);
+    const spare = choice.spare ?? 0;
+    const word = choice.label.toLowerCase();
+    const receiver = half === 'give' ? row.playerId : options.getPlayerId();
+    const error = dealSideError(options.getState(), side.playerId, receiver, { strategics: [{ id, copies }] }, model.peace);
+    const wrap = element('span', `dp-chip is-on is-open${error !== null ? ' is-refused' : ''}`);
+    // One group for the name and its stepper, so a screen reader hears what
+    // the figure counts.
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', `Copies of ${word} on the table`);
+    const titles: string[] = [error ?? `${figure(spare)} free to lend`];
+    if (choice.unusable !== undefined) titles.push(choice.unusable);
+    if (choice.borrowed) titles.push(loanSentence(choice.borrowed));
+    wrap.title = titles.join('. ');
+
+    const name = button('dp-chip-toggle', choice.label);
+    name.dataset.focus = `chip:${half}:${key}`;
+    name.setAttribute('aria-pressed', 'true');
+    name.title = 'Take it off the table';
+    name.addEventListener('click', () => {
+      takeOffer();
+      writeStrategicCopies(terms, id, 0);
+      refusal = null;
+      draw();
+    });
+    const step = (by: 1 | -1): void => {
+      takeOffer();
+      writeStrategicCopies(terms, id, stepStrategicCopies(loanedCopiesOf(terms, id), by, spare));
+      draw();
+    };
+    const less = button('dp-step', '−');
+    less.setAttribute('aria-label', `Fewer copies of ${word}`);
+    less.dataset.focus = `less:${half}:${key}`;
+    less.disabled = copies <= 1;
+    less.addEventListener('click', () => step(-1));
+    const count = element('b', 'dp-chip-count', figure(copies));
+    const more = button('dp-step', '+');
+    more.setAttribute('aria-label', `More copies of ${word}`);
+    more.dataset.focus = `more:${half}:${key}`;
+    more.disabled = copies >= spare;
+    more.addEventListener('click', () => step(1));
+    wrap.append(resourceMarkNode(id), name, less, count, more);
+    return wrap;
   }
 
   /**
@@ -2426,9 +2540,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         ),
       );
     }
-    const lastFree = model.yours.strategics.filter(
-      (c) => c.lastFree === true && c.id !== undefined && (draft.give.strategics ?? []).includes(c.id),
-    );
+    // The warning reads the count: it shows when the copies offered take every
+    // copy free to build with, one of one or four of four.
+    const lastFree = model.yours.strategics.filter((c) => takesEveryFreeCopy(c, draft.give));
     if (lastFree.length) table.append(element('p', 'dp-warn', lastFreeCopyLine(lastFree.map((c) => c.label))));
 
     const ask = element('div', 'dp-ask');
@@ -2709,12 +2823,12 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       .dealProposals.filter((paper) => paper.by === seat && paper.to === targetId);
     const paper = papers[papers.length - 1];
     if (!paper) return;
-    // A luxury they hold one copy of, or a strategic resource they have one
-    // free copy of: the copy the envoy's refusal is most likely about.
+    // A luxury they hold one copy of, or a strategic row that asks for every
+    // copy they can lend: the copy the envoy's refusal is most likely about.
     const state = options.getState();
     const lastCopy =
       (paper.take.luxuries ?? []).find((id) => resourceCopies(state, targetId, id) === 1) ??
-      (paper.take.strategics ?? []).find((id) => lendableCopies(state, targetId, id) === 1);
+      (paper.take.strategics ?? []).find((row) => lendableCopies(state, targetId, row.id) <= row.copies)?.id;
     hear(
       targetId,
       ask(targetId, paper.id),
@@ -2822,7 +2936,6 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       node.append(element('span', '', line.label), element('b', '', line.value));
       drawer.append(node);
     }
-    if (read.weariness !== null) drawer.append(element('p', 'dp-weary', read.weariness));
 
     const force = heading(DRAWER_WORDS.inForce, DRAWER_WORDS.turnsLeft);
     force.title = dealFootSentence();
