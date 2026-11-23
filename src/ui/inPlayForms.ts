@@ -35,6 +35,7 @@ import { beliefWindowNode } from './beliefPictures';
 import { element } from './dom';
 import type { InPlayEntry, InPlayForm } from './inPlayPieces';
 import { IN_PLAY_WORDS } from './inPlayPieces';
+import { turnsLeftNode, turnsLeftWords } from './turnsLeft';
 import { setDescriptorText } from './keywords';
 import { type PlateFigure, orderFaceModel, plateFigureNode } from './orderFace';
 import { suitMarkDataUri } from './suitFace';
@@ -143,10 +144,14 @@ function figuresNode(plate: readonly PlateFigure[] | undefined, className = 'ip-
   return node;
 }
 
-/** The small line a temporary piece carries: the turn it ends on, as a figure. */
-function endsNode(endsTurn: number): HTMLElement {
-  const node = element('span', 'ip-ends');
-  node.append(element('small', undefined, IN_PLAY_WORDS.endsTurn), element('b', undefined, String(endsTurn)));
+/**
+ * The small line a piece with a duration carries: "6 turns left", the number
+ * in the tabular figures (the user, 2026-11-22). The turn it ends on is the
+ * tooltip. Derived from the absolute turn each time the screen is built.
+ */
+function endsNode(entry: InPlayEntry): HTMLElement {
+  const node = turnsLeftNode(entry.turnsLeft ?? 0, 'ip-ends');
+  if (entry.endsTurn !== undefined) node.title = `${turnsLeftWords(entry.turnsLeft ?? 0)}: ${IN_PLAY_WORDS.endsTurn} ${entry.endsTurn}`;
   return node;
 }
 
@@ -187,7 +192,8 @@ export function edgeNode(entry: InPlayEntry, plate: readonly PlateFigure[] | und
   // beside it they take the next line, and wrap between whole figures; the
   // edge grows taller rather than cut or shrink a figure.
   const foot = element('span', 'ip-edge-foot');
-  if (entry.endsTurn !== undefined) foot.append(endsNode(entry.endsTurn));
+  if (entry.endsTurn !== undefined) foot.append(endsNode(entry));
+  else if (entry.waiting !== undefined) foot.append(element('small', 'ip-edge-sub ip-waiting', entry.waiting));
   else if (entry.sub !== null && entry.form !== 'order') foot.append(element('small', 'ip-edge-sub', entry.sub));
   foot.append(figuresNode(entry.form === 'chair' ? [] : plate));
   text.append(foot);
@@ -280,8 +286,7 @@ export function legacyMedalNode(entry: InPlayEntry, plate: readonly PlateFigure[
 /** **A temporary effect's tag**: the turn it ends on, the name, where it hangs and its figure. */
 export function temporaryTagNode(entry: InPlayEntry, plate: readonly PlateFigure[] | undefined, options: FormOptions & { text?: boolean } = {}): HTMLElement {
   const form = dress(element('div', 'ip-tag'), entry, options);
-  const turn = element('div', 'ip-turn');
-  turn.append(element('small', undefined, IN_PLAY_WORDS.endsTurn), element('b', undefined, String(entry.endsTurn ?? '')));
+  const turn = turnsLeftNode(entry.turnsLeft ?? 0, 'ip-turn');
   form.append(turn, element('b', 'ip-name', entry.name));
   if (entry.sub !== null) form.append(element('small', 'ip-sub', entry.sub));
   if (options.text === true) {

@@ -772,12 +772,12 @@
   ],
   "theScourgeOfGod": [
    {
-    "raw": "pillaging grants +100% production in your capital for the next 5 turns, however often it happens",
-    "text": "pillaging grants +100% production in your capital for the next 5 turns, however often it happens"
+    "raw": "pillaging grants +100% production in your capital for 5 turns, restarted each time",
+    "text": "pillaging grants +100% production in your capital for 5 turns, restarted each time"
    },
    {
-    "raw": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so",
-    "text": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so"
+    "raw": "pillaging gives the unit +6 combat strength for 5 turns, restarted each time",
+    "text": "pillaging gives the unit +6 combat strength for 5 turns, restarted each time"
    }
   ],
   "theCitizenPhalanx": [
@@ -3240,12 +3240,8 @@
   ],
   "dominionTheCampChaplains": [
    {
-    "raw": "killing a unit grants faith equal to its strength",
-    "text": "killing a unit grants faith equal to its strength"
-   },
-   {
-    "raw": "losing a unit grants faith equal to its strength",
-    "text": "losing a unit grants faith equal to its strength"
+    "raw": "killing a unit or losing a unit grants faith equal to its strength",
+    "text": "killing a unit or losing a unit grants faith equal to its strength"
    }
   ],
   "theGrainTribute": [
@@ -3274,8 +3270,8 @@
   ],
   "theCattleRaid": [
    {
-    "raw": "clearing a barbarian camp grants +3 food in every city for the next 10 turns, however often it happens",
-    "text": "clearing a barbarian camp grants +3 food in every city for the next 10 turns, however often it happens"
+    "raw": "clearing a barbarian camp grants +3 food in every city for 10 turns, restarted each time",
+    "text": "clearing a barbarian camp grants +3 food in every city for 10 turns, restarted each time"
    }
   ],
   "theDrillGrounds": [
@@ -4200,8 +4196,8 @@
   ],
   "theArriereBan": [
    {
-    "raw": "declaring war grants +50% production in every city for the next 10 turns, however often it happens",
-    "text": "declaring war grants +50% production in every city for the next 10 turns, however often it happens"
+    "raw": "declaring war grants +50% production in every city for 10 turns, restarted each time",
+    "text": "declaring war grants +50% production in every city for 10 turns, restarted each time"
    }
   ],
   "theVictoryMint": [
@@ -4610,8 +4606,8 @@
   ],
   "theOvation": [
    {
-    "raw": "completing a commission grants +30% production in every city for the next 10 turns, however often it happens",
-    "text": "completing a commission grants +30% production in every city for the next 10 turns, however often it happens"
+    "raw": "completing a commission grants +30% production in every city for 10 turns, restarted each time",
+    "text": "completing a commission grants +30% production in every city for 10 turns, restarted each time"
    }
   ],
   "theResGestae": [
@@ -6529,8 +6525,8 @@
     "text": "you may still buy hexes while your authority is overdrawn"
    },
    {
-    "raw": "buying a hex grants +1 happiness in every city for the next 5 turns, however often it happens",
-    "text": "buying a hex grants +1 happiness in every city for the next 5 turns, however often it happens"
+    "raw": "buying a hex grants +1 happiness in every city for 5 turns, restarted each time",
+    "text": "buying a hex grants +1 happiness in every city for 5 turns, restarted each time"
    }
   ],
   "civicMarkets": [
@@ -8773,12 +8769,8 @@
   ],
   "theProspectorsNotes": [
    {
-    "raw": "building a [[improvement:mine|Mine]] grants +25 production",
-    "text": "building a Mine grants +25 production"
-   },
-   {
-    "raw": "building a [[improvement:quarry|Quarry]] grants +25 production",
-    "text": "building a Quarry grants +25 production"
+    "raw": "building a [[improvement:mine|Mine]] or building a [[improvement:quarry|Quarry]] grants +25 production",
+    "text": "building a Mine or building a Quarry grants +25 production"
    }
   ],
   "theFoundingGift": [
@@ -9689,12 +9681,8 @@
   ],
   "theGoldenAge": [
    {
-    "raw": "completing a wonder grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens",
-    "text": "completing a wonder grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens"
-   },
-   {
-    "raw": "gaining a great person grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens",
-    "text": "gaining a great person grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens"
+    "raw": "completing a wonder or gaining a great person grants +25% production and +25% culture in every city for 10 turns, restarted each time",
+    "text": "completing a wonder or gaining a great person grants +25% production and +25% culture in every city for 10 turns, restarted each time"
    }
   ],
   "theLaureateCities": [
@@ -13137,8 +13125,8 @@
   ],
   "rogerBacon": [
    {
-    "raw": "completing a technology grants +15% food in every city; +15% production in every city for 3 turns",
-    "text": "completing a technology grants +15% food in every city; +15% production in every city for 3 turns"
+    "raw": "completing a technology grants +15% food and +15% production in every city for 3 turns",
+    "text": "completing a technology grants +15% food and +15% production in every city for 3 turns"
    }
   ],
   "shenKuo": [

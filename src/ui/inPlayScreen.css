@@ -605,7 +605,9 @@
 }
 
 .ip-ends b {
-  margin-left: 4px;
+  /* The number stands before its words since 2026-11-22: "6 turns left". */
+  margin-right: 4px;
+  font-variant-numeric: tabular-nums;
   color: var(--rubric);
   font-family: var(--face-num);
   font-size: 11px;
@@ -911,6 +913,10 @@
   border-radius: 50%;
   background: #1e1b22;
   content: '';
+}
+
+.ip-turn {
+  display: block;
 }
 
 .ip-turn small {

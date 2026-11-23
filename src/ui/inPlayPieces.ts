@@ -59,6 +59,7 @@ import { isMaliceId, maliceDef, type MaliceId } from '../sim/maliceData';
 import { beliefDef, type BeliefId, isRiteId } from '../sim/religionData';
 import { type GameState, cityById, playerById } from '../sim/state';
 import { anyCardDef, buildingOpensChairs, EMPIRE_BUILDING_WORDS, heldReligions, oneOfAKind } from '../sim/statecraft';
+import { turnsLeftOn } from './turnsLeft';
 import {
   type CardId,
   type DoctrineId,
@@ -102,6 +103,7 @@ export const IN_PLAY_WORDS = {
   commission: 'commission',
   malice: 'malice',
   endsTurn: 'ends turn',
+  bonusIsTemporary: 'Its bonus shows under Temporary while it runs',
   onSeat: 'your realm',
   more: (count: number) => `${count} more`,
   moreHint: 'click to open the stack',
@@ -161,6 +163,16 @@ export interface InPlayEntry {
   subject: CardImpactSubject | null;
   /** A temporary piece's last turn: it is in force until this turn begins. */
   endsTurn?: number;
+  /**
+   * The turns a piece with a duration has left, derived from `endsTurn` on the
+   * turn the screen was built. Nothing stores it.
+   */
+  turnsLeft?: number;
+  /**
+   * The one quiet line of a seated card whose whole effect is a timed bonus:
+   * it says where the bonus shows. A row with this is never blank.
+   */
+  waiting?: string;
   /** A council edge's chair, counted from nought. */
   chair?: number;
   /** A wonder's town, for its picture window and its link. */
@@ -190,6 +202,23 @@ export interface InPlayLayout {
    * effects of the unique piece, which ride the leader's law).
    */
   hidden: InPlayPiece[];
+}
+
+/**
+ * Is every effect of this Order a moment that starts a timed bonus? Such a
+ * card pays nothing each turn itself: its bonus is a piece of the Temporary
+ * stack while it runs.
+ */
+function startsOnlyTimedBonuses(id: OrderId): boolean {
+  const effects = orderDef(id).effects;
+  return (
+    effects.length > 0 &&
+    effects.every(
+      (effect) =>
+        effect.kind === 'windfallRider' &&
+        (effect.grant?.timed !== undefined || effect.grant?.actorTimed !== undefined),
+    )
+  );
 }
 
 /** A piece's reading by the stamp of one piece. */
@@ -277,6 +306,13 @@ export function inPlayLayout(state: GameState, seat: number): InPlayLayout {
     }
     if (slot !== null && isOrderId(slot.card)) {
       const id = slot.card;
+      // **A card whose whole effect is a timed bonus points at where the bonus
+      // shows** (the user, 2026-11-22: "it's added as a temporary ability ...
+      // That's fine, we can keep it like this. I like this better actually, in
+      // that it implies the bonus will persist even if i take the card out").
+      // The bonus is its own piece in the Temporary stack. The card's row has
+      // no figure each turn, so it carries one quiet line and is not blank.
+      const waiting = startsOnlyTimedBonuses(id) ? IN_PLAY_WORDS.bonusIsTemporary : null;
       council.push({
         key: `order:${id}`,
         stack: 'council',
@@ -286,6 +322,7 @@ export function inPlayLayout(state: GameState, seat: number): InPlayLayout {
         card: id,
         piece: { kind: 'order', chair },
         subject: { kind: 'order', id },
+        ...(waiting === null ? {} : { waiting }),
         chair,
         link: { kind: 'council', card: id },
       });
@@ -450,6 +487,7 @@ export function inPlayLayout(state: GameState, seat: number): InPlayLayout {
         piece: { kind: 'timed', card, holder },
         subject: { kind: 'timed', card, holder },
         endsTurn,
+        turnsLeft: turnsLeftOn(state.turn, endsTurn),
         link,
       });
     }

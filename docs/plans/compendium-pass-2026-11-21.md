@@ -866,3 +866,98 @@ Rows that are not in the game are not listed.
 - Seven card clauses changed their plain words ("ranged units" to "units with
   a ranged attack"). `test/sim/decks/dominionUnits.test.ts` and
   `test/sim/decks/scientificCards.test.ts` pinned two of them and were updated.
+
+## The Golden Age, turns left, and combined clauses, 2026-11-22 (sixth round)
+
+The user, from a playtest: "'the golden age' is showing no yields in my
+playtest, is it applying properly? Also, for cards that have a time duration,
+could we add an indicator for how much longer it will be active ("6 turns
+left"). I'd also like to combine card effect clauses, the golden age should
+probably just read "Completing a wonder or great person grants +25% production
+and +25% culture for 10 turns""
+
+### Part 1: is it applying?
+
+- **Yes, by every route.** A wonder a city finishes with its production, and
+  a great person gained, each hang two timed effects on the seat
+  (`Player.timed`). Every city then has +25% production and +25% culture,
+  credited to the card. A second moment restarts the ten turns and adds
+  nothing.
+- A wonder cannot be bought. A wonder finished by any other means goes through
+  the same function (`realiseItem`), which pays the card.
+- A called great person, a bought one and one a card or a wonder grants all
+  end in an offer. `settleGreatPersonChoice` is the one function that settles
+  an offer, and it announces the moment.
+- **The card must be in a chair when the wonder is finished.** A wonder that
+  already stands starts nothing.
+- **The bonus stays for its ten turns when the card leaves the council.** A
+  test holds this.
+- **Why the user saw no yields**: the bonus is its own piece in the Temporary
+  stack of the In play screen, under the card's name, and the card's own row
+  has no figure each turn. The user found it and ruled: "oh i see it, it's
+  added as a temporary ability, and i see it ends turn 54. That's fine, we can
+  keep it like this. I like this better actually, in that it implies the bonus
+  will persist even if itake the card out."
+- So nothing is credited to the card's row, and no save field was added
+  (`TimedEffect.card` already names the card). The one change: the row of a
+  card whose whole effect is a timed bonus carries a quiet line, "Its bonus
+  shows under Temporary while it runs", so it is not blank.
+- Other rows that grant a timed effect: The Scourge of God (a Doctrine), Hold
+  the Capitals (a commission), Mercenary Contracts, and the legacies of Hero
+  of Alexandria, Crassus and Roger Bacon. Each shows its running bonus as a
+  temporary piece the same way.
+
+### Part 2: turns left
+
+- One helper, `src/ui/turnsLeft.ts`: `turnsLeftOn(turn, expiresTurn)` and
+  `turnsLeftWords` ("1 turn left", "6 turns left"). Nothing is stored.
+- In play: a temporary piece says "6 turns left", the number in the tabular
+  figures, in place of "ends turn 54". The turn it ends on is the tooltip. The
+  piece is named for the card that started it.
+- The Faith sheet's rites already said it, and now read the same helper.
+- The Ledger and a city's yield breakdown label a timed line "(6 turns left)"
+  through `timedLive` (`statecraft/evaluator.ts`). That label said "1 turns
+  left" for one turn, and is fixed.
+- Not done: a sealed Order (the chair's tab already shows its turns), and the
+  hover card of a card, which has no game to read.
+
+### Part 3: combined clauses
+
+Three rules in `describers.ts`, none of them about one card:
+
+1. **Two moments that grant the same thing are one sentence**
+   (`describeSharedGrant`). Two riders next to each other, whose clauses are
+   the same from the verb on, join their moments with "or". Left apart when
+   the result would pass 28 words.
+2. **The yields of one timed grant are one phrase** where they share their
+   cities: "+25% production and +25% culture in every city". The scope stays,
+   because a sibling card grants "in your capital", and the words must tell
+   the two apart.
+3. **One wording for a grant that restarts**: "for 10 turns, restarted each
+   time", in place of "for the next 10 turns, however often it happens".
+
+The Golden Age now reads: "completing a wonder or gaining a great person
+grants +25% production and +25% culture in every city for 10 turns, restarted
+each time". A card clause starts with a small letter, as every clause does.
+
+Every text that changed (old clauses, then new):
+
+| Before | After |
+|---|---|
+| pillaging grants +100% production in your capital for the next 5 turns, however often it happens | pillaging grants +100% production in your capital for 5 turns, restarted each time |
+| pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so | pillaging gives the unit +6 combat strength for 5 turns, restarted each time |
+| killing a unit grants faith equal to its strength / losing a unit grants faith equal to its strength | killing a unit or losing a unit grants faith equal to its strength |
+| clearing a barbarian camp grants +3 food in every city for the next 10 turns, however often it happens | clearing a barbarian camp grants +3 food in every city for 10 turns, restarted each time |
+| declaring war grants +50% production in every city for the next 10 turns, however often it happens | declaring war grants +50% production in every city for 10 turns, restarted each time |
+| completing a commission grants +30% production in every city for the next 10 turns, however often it happens | completing a commission grants +30% production in every city for 10 turns, restarted each time |
+| buying a hex grants +1 happiness in every city for the next 5 turns, however often it happens | buying a hex grants +1 happiness in every city for 5 turns, restarted each time |
+| building a Mine grants +25 production / building a Quarry grants +25 production | building a Mine or building a Quarry grants +25 production |
+| completing a wonder grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens / gaining a great person grants +25% production in every city; +25% culture in every city for the next 10 turns, however often it happens | completing a wonder or gaining a great person grants +25% production and +25% culture in every city for 10 turns, restarted each time |
+| completing a technology grants +15% food in every city; +15% production in every city for 3 turns | completing a technology grants +15% food and +15% production in every city for 3 turns |
+
+### Tests
+
+- New: `test/ui/timedGrants.test.ts` (each route, the card seated after the
+  wonder, the bonus after the card leaves, the temporary piece and its turns
+  left, the helper, the card's sentence).
+- `test/fixtures/cardText.json` regenerated.

@@ -1756,7 +1756,9 @@ function timedLive(
     // same mechanism, and the only thing that differs is what to call it. One
     // question, in the one place the label is written.
     // A levy's aftermath (Seasonal Levies) is hung by an Order, and says so.
-    const word = `${timedSourceWords(entry.card)} (${timedTurnsLeft(state, entry)} turns left)`;
+    // "1 turn left", "6 turns left": the one wording every surface uses.
+    const left = timedTurnsLeft(state, entry);
+    const word = `${timedSourceWords(entry.card)} (${left} ${left === 1 ? 'turn' : 'turns'} left)`;
     // The label is already whole, so the walk is handed a word that produces it:
     // `pushEffects` writes `word · name`, and a rite's name is in the word.
     const push = (card: CardId, _word: string, effects: readonly CardEffect[]): void => {

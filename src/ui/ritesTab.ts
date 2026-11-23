@@ -107,6 +107,7 @@ import { setDescriptorText } from './keywords';
 import { type PriceLook, priceCellElement, priceLook } from './priceCell';
 import { type RefusalHeadLine, type RefusalPlace, planRefusals, refusalLineElement } from './refusalLine';
 import { setYieldText, yieldMarkNode } from './yieldMark';
+import { turnsLeftWords } from './turnsLeft';
 import {
   riteClauseWords,
   riteSays,
@@ -1409,11 +1410,6 @@ function drawFreeRow(town: FreeTown, model: RitesTabModel, handlers: RitesTabHan
   const out: HTMLElement[] = [row];
   if (town.refusal?.at === 'row') out.push(refusalLineElement(town.refusal.text, 'row'));
   return out;
-}
-
-/** "1 turn left", "4 turns left". */
-function turnsLeftWords(turns: number): string {
-  return `${turns} ${turns === 1 ? 'turn' : 'turns'} left`;
 }
 
 /** One kept rite: its name, a bar of the turns left, and the turns left. */

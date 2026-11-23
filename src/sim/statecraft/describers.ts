@@ -531,10 +531,84 @@ export function describeEffects(
       at += folded;
       continue;
     }
+    const joined = describeSharedGrant(effects, at, clauses, subject);
+    if (joined > 0) {
+      at += joined;
+      continue;
+    }
     describeEffect(effects[at]!, clauses, subject);
     at += 1;
   }
   return joinSharedCities(collapseClauses(clauses));
+}
+
+/** The verbs a rider's sentence turns on: the words before one are the moment, and the words from it on are the grant. */
+const GRANT_VERBS: readonly string[] = [' grants ', ' gives ', ' costs your empire ', ' heals ', ' pays '];
+
+/** The longest sentence two moments are joined into. A longer one stays two clauses. */
+const SHARED_GRANT_WORDS = 28;
+
+/**
+ * **Two moments that grant the same thing are one sentence** (the user,
+ * 2026-11-22: "I'd also like to combine card effect clauses, the golden age
+ * should probably just read 'Completing a wonder or great person grants +25%
+ * production and +25% culture for 10 turns'").
+ *
+ * A row written as two `windfallRider` effects that differ only in their
+ * moment printed the whole grant two times. This reads the two effects as they
+ * would print alone. If each clause of the first matches a clause of the second
+ * from its verb to its end, the two moments are joined with "or" and the grant
+ * is said one time: "completing a wonder or gaining a great person grants …".
+ *
+ * It is a rule and not a special case: it asks nothing about which card or
+ * which moment. It leaves the clauses apart when they differ anywhere after the
+ * verb, when either is a part not built yet, and when the joined sentence
+ * would run past `SHARED_GRANT_WORDS` words.
+ *
+ * Returns how many effects it consumed: two, or nought.
+ */
+function describeSharedGrant(
+  effects: readonly CardEffect[],
+  at: number,
+  into: CardClause[],
+  subject: ClauseSubject,
+): number {
+  const first = effects[at];
+  const second = effects[at + 1];
+  if (first?.kind !== 'windfallRider' || second?.kind !== 'windfallRider') return 0;
+  const a: CardClause[] = [];
+  const b: CardClause[] = [];
+  describeEffect(first, a, subject);
+  describeEffect(second, b, subject);
+  if (a.length === 0 || a.length !== b.length) return 0;
+  const joined: CardClause[] = [];
+  for (let line = 0; line < a.length; line++) {
+    const one = a[line]!;
+    const other = b[line]!;
+    if (one.deferred === true || other.deferred === true) return 0;
+    const verb = GRANT_VERBS.find((word) => one.text.includes(word) && other.text.includes(word));
+    if (verb === undefined) return 0;
+    const grant = one.text.slice(one.text.indexOf(verb));
+    if (other.text.slice(other.text.indexOf(verb)) !== grant) return 0;
+    const moments = [one.text.slice(0, one.text.indexOf(verb)), other.text.slice(0, other.text.indexOf(verb))];
+    if (moments[0] === moments[1]) return 0;
+    const text = `${moments[0]} or ${moments[1]}${grant}`;
+    if (stripRefs(text).split(' ').length > SHARED_GRANT_WORDS) return 0;
+    joined.push({ ...one, text });
+  }
+  into.push(...joined);
+  return 2;
+}
+
+/**
+ * **How long a timed grant lasts, in one wording** (2026-11-22). A grant that
+ * `renews` does not stack: a later moment starts the turns again. That is said
+ * in three words after the length, in place of "for the next 10 turns, however
+ * often it happens".
+ */
+function timedLengthWords(turns: number, renews: boolean): string {
+  const length = `for ${turns} ${turns === 1 ? 'turn' : 'turns'}`;
+  return renews ? `${length}, restarted each time` : length;
 }
 
 /** A plain figure and what it is of: "+3 happiness", "+30% production toward buildings", "+1 food, +1 gold". */
@@ -3528,8 +3602,9 @@ function describeEffect(
         // this arm being touched. The duration trails, because a player reads
         // *what happens* first and *how long* second — a rite's label does the
         // same thing from the other end.
-        const inner: CardClause[] = [];
-        for (const nested of grant.timed.effects) describeEffect(nested, inner, subject);
+        // Through `describeEffects`, so two yields that share their cities are
+        // one phrase: "+25% production and +25% culture in every city".
+        const inner: CardClause[] = describeEffects(grant.timed.effects, subject);
         const turns = Math.max(1, grant.timed.turns);
         // **A bill and a blessing are the same shape and not the same
         // sentence.** Crassus hangs a penalty on the realm and The Triumphal Way
@@ -3566,10 +3641,7 @@ function describeEffect(
         // renews`). "for 5 turns" and "for the next 5 turns, however often it
         // happens" promise different things — one stacks and one does not — and
         // a player who was not told which would plan around the wrong one.
-        const howLong =
-          grant.timed.renews === true
-            ? `for the next ${turns} turns, however often it happens`
-            : `for ${turns} turns`;
+        const howLong = timedLengthWords(turns, grant.timed.renews === true);
         out.push({
           text:
             `${occasion} ${pays ? 'grants' : 'costs your empire'} ` +
@@ -3611,13 +3683,9 @@ function describeEffect(
       // Dominion batch D8, The Scourge of God: the effects hung on the unit
       // that acted, in the nested clauses' own words, as `timed` above.
       if (grant?.actorTimed !== undefined && grant.actorTimed.effects.length > 0) {
-        const inner: CardClause[] = [];
-        for (const nested of grant.actorTimed.effects) describeEffect(nested, inner, subject);
+        const inner: CardClause[] = describeEffects(grant.actorTimed.effects, subject);
         const turns = Math.max(1, grant.actorTimed.turns);
-        const howLong =
-          grant.actorTimed.renews === true
-            ? `for the next ${turns} turns, however often it does so`
-            : `for ${turns} turns`;
+        const howLong = timedLengthWords(turns, grant.actorTimed.renews === true);
         out.push({
           text:
             `${occasion} gives the unit ${inner.map((clause) => clause.text).join('; ')} ` +
