@@ -63,15 +63,19 @@ export function positionTerms(ctx: TacticalContext, position: TacticalPosition, 
       op: friendly ? 'sub' : 'add',
     });
   }
-  for (const before of ctx.root.cities) {
-    const after = position.state.cities.find(city => city.id === before.id);
-    if (!after) continue;
-    const friendly = before.ownerId === ctx.playerId;
-    if (!friendly && !ctx.cities.includes(before.id)) continue;
-    if (before.ownerId !== after.ownerId) {
-      terms.push({ label: `${friendly ? 'Loss' : 'Capture'} of ${before.name}`, value: ctx.ai.tactics.city + ctx.ai.military.cityCaptureValue, op: friendly ? 'sub' : 'add' });
-    } else if (before.hp !== after.hp) {
-      terms.push({ label: `Wall damage at ${before.name}`, value: before.hp - after.hp, op: friendly ? 'sub' : 'add' });
+  // Projections keep unchanged city records. Most field exchanges therefore
+  // need no city walk, and a siege only needs the records it actually changed.
+  if (ctx.root.cities !== position.state.cities) {
+    for (const before of ctx.root.cities) {
+      const friendly = before.ownerId === ctx.playerId;
+      if (!friendly && !ctx.cities.includes(before.id)) continue;
+      const after = position.state.cities.find(city => city.id === before.id);
+      if (!after || after === before) continue;
+      if (before.ownerId !== after.ownerId) {
+        terms.push({ label: `${friendly ? 'Loss' : 'Capture'} of ${before.name}`, value: ctx.ai.tactics.city + ctx.ai.military.cityCaptureValue, op: friendly ? 'sub' : 'add' });
+      } else if (before.hp !== after.hp) {
+        terms.push({ label: `Wall damage at ${before.name}`, value: before.hp - after.hp, op: friendly ? 'sub' : 'add' });
+      }
     }
   }
   if (position.camps) terms.push({ label: 'Camps cleared', value: position.camps * ctx.ai.tactics.camp });

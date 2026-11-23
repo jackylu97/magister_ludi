@@ -5,6 +5,11 @@ The user approved implementation of the
 on `codex/bot-position-262`. Port 5199 is unchanged. The stable runtime control
 is `1b596864`; existing economy, production and diplomacy weights stay fixed.
 
+The implementation and five-map experiment are complete. Keep `tactics.enabled`
+at zero. The planner improves some combat results, but development is less
+consistent and large battles cost much more to plan. It is not promoted as
+the default policy.
+
 ## Implementation
 
 - `src/ai/tactics/position.ts` constructs private positions. It uses the sim's
@@ -160,6 +165,115 @@ The remaining `a7abe4cc` games were stopped during seed 48017. Its partial
 output is not a completed game. The completed seed and the captured decision
 remain under `tactics-shared` and `tactics-spearman554` in the artifact folder.
 
+## Completed five-map comparison
+
+The policy checkpoint is `6de2429f`. The
+[evidence file](bot-tactical-evidence-2026-11-23.json) contains all thirty paired
+seats, the fifteen-leader coverage check, counters, timings and input hashes.
+Every leader appears twice on the unchanged
+[five-map schedule](bot-combat-schedule-2026-11-22.json). These are the same
+maps used in earlier iterations, not a new holdout sample. All six seats use
+the same policy in each game; this is not a head-to-head tournament.
+
+All five games passed exact combat replay and reported no live-driver
+warnings. Frozen plans still reject changed positions before dispatch. For
+example, seed 67153 cut and replanned 217 times because local combat facts
+changed. Its preflight checks also refused eleven planned commands. These
+are safe plan corrections, not eleven rejected commands in the saved game.
+
+Qin won seed 39827 on turn 93. The control had no winner through turn 100.
+For this pair, the control was rerun to turn 93. Its complete 5,954-command
+prefix matched the original control, and its combat replay passed. The table
+below uses turn 93 for both sides of that pair and turn 100 for the others.
+
+| Result across thirty matched seats | Control | Local planner |
+| --- | ---: | ---: |
+| Losses to barbarians | 244 | 148 |
+| City captures | 8 | 11 |
+| Advances followed by death by the next turn | 31 / 333 (9.3%) | 36 / 465 (7.7%) |
+| Total unit losses | 383 | 475 |
+| Civilian losses in combat and arrivals | 74 | 75 |
+| Deaths to an immediate counterattack | 0 | 2 |
+| Mean researched nodes | 30.37 | 29.57 |
+| Mean Order drafts | 20.43 | 20.90 |
+| Median score | 1,011 | 961 |
+| Mean score | 1,365 | 1,519 |
+
+The planner fights more often. Total attacks rise from 1,945 to 2,909. The
+advance-loss rate improves, but the number of deaths after advances rises.
+The better barbarian result does not establish equally good defense against
+other civilizations. More captures and a higher mean score are not sufficient
+to call this a stronger general policy.
+
+The turn-100 benchmark excludes the early-finished pair from both sides. It
+therefore covers twenty-four seats on four maps:
+
+| Turn-100 development | Control | Local planner |
+| --- | ---: | ---: |
+| Seats with at least 800 combined recurring yields | 20 / 24 | 14 / 24 |
+| Median combined recurring yields | 1,300 | 1,145 |
+| Mean combined recurring yields | 2,459 | 2,054 |
+| Mean researched nodes | 30.71 | 29.25 |
+| Mean Order drafts | 20.25 | 20.25 |
+
+Qin's early win is a useful result, but it is separate from that benchmark.
+His 27,761 yields at turn 93 also make the mean across all final observations
+look much better than the median. Different wars and card histories contribute
+to these differences. The comparison does not isolate a change in economic
+valuation or establish a new content balance verdict.
+
+## Cost and exact-result optimization
+
+These are headless game durations, including planning, simulation and audit
+capture. They are not rendering FPS or controlled per-operation speed ratios.
+
+| Seed | Last completed turn | Planner duration |
+| --- | ---: | ---: |
+| 72839 | 100 | 571 seconds |
+| 48017 | 100 | 744 seconds |
+| 85211 | 100 | 232 seconds |
+| 39827 | 93 | 428 seconds |
+| 67153 | 100 | 1,537 seconds |
+
+The largest case made 36,670 local searches, 2,546,853 friendly projections
+and 2,091,429 combat forecasts. Genghis ended with 156 military units and four
+captures. The configured position limit bounded each friendly search; it did
+not make repeated searches across a large army cheap.
+
+After the cohort, the scorer gained one exact-result shortcut: if a projection
+keeps the original city array, no city changed and the city score needs no
+walk. If the array changed, unchanged city records still need no comparison.
+This uses the projection's existing immutable records and adds no new cache.
+
+A saved late turn was measured in before/after/after/before order. The two
+control runs took 17,981 and 18,003 ms; the shortcut took 17,445 and 17,761 ms.
+That is about a 2.2% mean saving in this fixture. All 237 query results, the
+complete final state and the search counters matched. This small optimization
+does not resolve the large-battle cost. The five-map policy results above
+come from the frozen checkpoint before this shortcut.
+
+The final source, including the shortcut, passes typecheck, the production
+build, and all 574 core files with 12,987 tests. No full slow-tier sweep or
+deployment was performed for this experiment.
+
+## Work needed before promotion
+
+1. Add swaps and allow one unit to replace another in a required garrison.
+   Two recorded counterattack deaths have no ordinary visible move available,
+   but do have legal swaps on the actual pre-command board. Legionary 404 at
+   turn 94 on seed 48017 has seven swaps; legionary 204 at turn 92 on seed
+   67153 has three. Several replacement units have full health. This is a
+   missing option to assess, not proof every swap is safe.
+2. Reduce repeated local searches and enemy-response work. The expensive
+   case needs an engagement-entry and reuse review before a larger budget.
+   Keep deterministic work limits; do not let machine speed choose an action.
+3. Review weak defensive games and the conservative reply assumptions.
+   A lower local score must not force a sacrifice merely because a useful
+   retreat, rotation or support action was omitted from the shortlist.
+4. Compare mixed old/new seats and additional maps after those corrections.
+   Keep the previous economy and production weights fixed until the combat
+   effects are understood.
+
 ## Limits
 
 - This is a bounded local search, not an exhaustive combat solver. It keeps
@@ -167,6 +281,12 @@ remain under `tactics-shared` and `tactics-spearman554` in the artifact folder.
 - Enemy responses are greedy sequences. They can miss a combination whose
   first attack looks bad alone. Full allowances are a conservative next
   opportunity, not an exact model of simultaneous turn timing.
+- The reply grants enemies sight of the friendly targets in the assessment.
+  This avoids reading hidden enemy spotters, but can overstate their firing
+  opportunities. It is a conservative information assumption, not an exact
+  reconstruction of enemy sight after every projected move.
+- Unit value uses relative combat strength and role weights. It does not yet
+  price production replacement time or the scarcity of a particular unit.
 - Economic rewards from fighting are not fully simulated inside a sequence.
   The real command resolves them before the next decision. Rank strength and
   kill healing are included; a new rank's wider economic rewards are not.

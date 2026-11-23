@@ -372,3 +372,29 @@ samples. It changes no balance row.
 The [planned-attack review](bot-combat-targets-2026-11-22.md) keeps the combat
 failures, original decisions and comparison controls. Do not infer a new
 Order, Doctrine or wonder verdict from the changed game results.
+
+### Context from the shared tactical planner
+
+The [23 November tactical experiment](bot-tactical-planner-2026-11-23.md) uses
+the same five maps and unchanged economic preferences. It supplies another
+policy comparison on those starts, not new independent samples. Its mixed
+results do not justify a balance change.
+
+- **Qin** wins on turn 93 on seed 39827, with about 27,761 combined recurring
+  yields and twenty-one cities. The control has no winner through turn 100.
+  Keep his high-ceiling interaction review open. This does not isolate his
+  leader ability from his Orders, Doctrines and wonders.
+- **Sejong** reaches about 10,755 yields on seed 85211 and 523 on seed 67153.
+  He loses three cities in the weaker game. The low result is not evidence
+  for a general buff, and the high result is not an isolated ability test.
+- **Genghis** captures four cities on seed 67153 and ends with twenty-six
+  cities and 156 military units. This gives his conquest kit more exercise,
+  but does not show that such a large army is efficient.
+- **Harun** and **Pachacuti** fall below 800 yields on that contested map.
+  They lose two cities and one city respectively. Keep military pressure in
+  the explanation of those weak outcomes.
+
+The tactical report separates the turn-93 finish from the turn-100 benchmark
+and records the lower median and the remaining defensive gaps. Keep the
+existing Order, Doctrine and wonder candidates open; none was isolated in
+this experiment.
