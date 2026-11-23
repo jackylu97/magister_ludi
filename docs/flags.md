@@ -3555,3 +3555,6 @@ of 8 that it will attack." The user gave this build to the Claude session
 two turns from turn 6: "oh i didn't realize camp sapwns were so quick. Let's
 do 3 camps every 5 turns." So `campEveryTurns` goes from 2 to 5.
 `campsPerSpawn` 3, `firstCampTurn` 6 and `maxCamps` 24 do not change.
+
+**Corrected a moment later:** the user: "oh shoot, let's make it every 3
+turns." So `campEveryTurns` is **3**, not 5: three camps every three turns.
