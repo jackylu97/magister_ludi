@@ -174,12 +174,26 @@ loop. Do not send a known stale attack merely to get a reducer response.
 Keep entity-id remapping, command budgets and accepted sitting marks intact.
 Use the same check for workers, ordinary play and the spectator.
 
-Start with this proven target-replacement failure. Changes in a target's
-health, strength or surrounding threats can also change the decision, but
-require a separate check before broadening invalidation. Record the number
-of replans and compare original fights on the same map. A target check must
-not scan the whole map or invalidate plans for unrelated city changes.
+The first target-only trial reproduces that failure and fortifies instead.
+It then exposes stale health: on turn 61 the same warrior plans with 61 health,
+takes damage down to one health, and still sends its planned attack. A second
+swordsman on turn 71 plans with seventy health and attacks with one left.
+Both die to the counter. The original accepted decisions and actual replay
+establish the health difference.
+
+Extend the check to both combatants' health and strength from the shared
+forecast. Replan when these combat facts change. Keep surrounding threats as
+a separate position question. Record the number of replans and compare
+original fights on the same map. This check must not scan the whole map or
+invalidate plans solely because an unrelated city or bank changed.
 
 Tests must cover a replaced unit, a changed siege phase, valid unchanged
 targets, new ids, no mutation before a cut and completion through the live
 loop. Preserve exact replay and worker/coordinator parity.
+
+The completed check is on `codex/bot-combat-target-262`. The
+[planned-attack report](../audit/bot-combat-targets-2026-11-22.md) records all
+five games, original decisions, defensive exchanges, limits and passed tests.
+Keep this as a separate checkpoint before changing position choice. The next
+comparison must judge useful attacks, holding and retreat together, including
+the tile a unit actually reaches this turn. Keep earlier preferences fixed.

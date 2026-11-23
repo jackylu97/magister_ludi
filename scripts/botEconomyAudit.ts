@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { setAiTuning, type PersonaOverride } from '../src/ai/aiConfig';
 import { driveBots, runBotTurn } from '../src/ai/driver';
+import { frozenTally } from '../src/ai/frozenBoard';
 import type { BotDecision } from '../src/ai/decision';
 import { createGame, saveGame } from '../src/sim/game';
 import { leaderDef, type LeaderId } from '../src/sim/leaderData';
@@ -125,5 +126,6 @@ while (state.turn <= limit && state.winnerId === null) {
 }
 writeFileSync(`${output}/${seed}.json`, JSON.stringify({
   metricVersion: 2, seed, tuning, scenario, turn: state.turn, winner: state.winnerId, checkpoints, warnings,
+  planning: structuredClone(frozenTally),
   ...(decisionsThrough > 0 || recordWars || recordCombat ? { decisions } : {}),
 }) + '\n');

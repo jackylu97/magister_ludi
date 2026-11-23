@@ -346,3 +346,29 @@ additional independent maps.
 
 Keep the existing strong and weak candidates open. This combat batch does
 not supply an isolated balance verdict or authorize a balance change.
+
+### Context from live combat validation
+
+The combat-facts candidate uses the same five version-262 maps and unchanged
+AI preferences. These are still two starts per leader, not new independent
+samples. It changes no balance row.
+
+- **Cyrus** remains strong in both starts: about 7,023 income with twenty-six
+  cities and 3,746 with twenty-three. Neither lost a city. Keep the existing
+  interaction review open; this does not isolate his leader ability.
+- **Qin** reaches about 2,451 and 23,868 income. **Sejong** reaches about
+  20,107 and 1,562. These large outliers strongly affect averages. Their
+  different starts remain necessary context. Sejong lost one city in the
+  lower-income start.
+- Twenty-five of thirty seats reach 800 income. Three below the target lost
+  cities: Mansa on seed 48017, Lorenzo on 39827 and Harun on 67153.
+- Two below the target lost no cities: **Pachacuti** on seed 48017 has about
+  278 income, nine cities and thirty military units. **Nezahualcoyotl** on the
+  same map has about 267 income, five cities and eighteen military units.
+  These positions need a development and valuation review. No city loss does
+  not mean no military pressure. Do not call their content weak from these
+  outcomes alone.
+
+The [planned-attack review](bot-combat-targets-2026-11-22.md) keeps the combat
+failures, original decisions and comparison controls. Do not infer a new
+Order, Doctrine or wonder verdict from the changed game results.

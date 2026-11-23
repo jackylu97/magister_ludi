@@ -1356,9 +1356,14 @@ import { digestOfState, type Played } from './aiDigestHelpers';
 // withdrawal use those bounds, and negative lethal-counter gambles can hold.
 // Both 120-turn games replay exactly without warnings. Rules and RNG are
 // unchanged. Combat-quality limits are in bot-counter-risk-2026-11-22.md.
+// Planned attacks now recheck the defender, siege phase, health and strength.
+// Changed combat facts resume the live policy before sending a stale attack.
+// Both 120-turn games completed without warnings or stalls and replayed exactly.
+// Rules, RNG and preference values are unchanged. The original failures and
+// all-leader comparison are in docs/audit/bot-combat-targets-2026-11-22.md.
 const DIGESTS = {
-  duel: 'f4252d13:414938',
-  standard: 'fd817247:1126826',
+  duel: '31b35234:419471',
+  standard: '5539315b:1102660',
 };
 
 /** Check driver errors before comparing the state digest. */

@@ -38,7 +38,7 @@
  * stage). That sitting carries the plan's budget and landed orders
  * (`SeatGuards`) and the plan's marks at its last landed command
  * (`liveSittingAfter`), so it goes on where the plan stopped and does not ask a
- * piece again that the plan had already asked. It also stops in four cases
+ * piece again that the plan had already asked. It also stops in five cases
  * where the command would be accepted but would not do what the copy did:
  *
  *   - **a new id it cannot name.** Units, towns, deals and papers take their
@@ -57,11 +57,15 @@
  *     choice, so the applier compares the offer first.
  *   - **a great person already called.** Ask the live policy for its next
  *     choice so it can take a remaining name or request a fresh offer.
+ *   - **changed combat facts.** An attack names a coordinate. If the defender,
+ *     owner, siege phase, health or strength changed, choose again before
+ *     sending a legal command whose combat no longer matches the plan.
  *
  * What does not stop a plan: a blow that came out differently (the roll is
  * drawn from the real state's stream at the moment the command lands), or a
  * march that stopped short. Both are counted (`frozenTally.unlike`). Later
- * commands that depend on them are refused and stop the plan there.
+ * attacks check their combat facts before dispatch. Other dependent
+ * commands can still stop the plan through a reducer refusal.
  *
  * Determinism
  * -----------
@@ -82,8 +86,9 @@ import { type FocusChoice, adoptFocusRoll, copyFocusRoll } from './focusRoll';
 import { type HarnessMemory, adoptHarnessMemory, readHarnessMemory } from './harnessMemory';
 import { markMusterTurn } from './musterRoll';
 import { type Command, type CommandResult, applyCommand } from '../sim/commands';
+import { type CityAttackPhase, previewCombat } from '../sim/combat';
 import { greatPersonChoiceError } from '../sim/greatPeople';
-import { type GameState, playerById, unitById } from '../sim/state';
+import { type GameState, cityById, playerById, unitById } from '../sim/state';
 
 // --- the guards of one seat's loop ------------------------------------------
 
@@ -263,6 +268,18 @@ export function freezeBoard(state: GameState): FrozenBoard {
 
 // --- the plan ---------------------------------------------------------------
 
+/** A legal attack can face a different defender or use health and strength that changed after planning. */
+interface PlannedCombat {
+  unitId: number | null;
+  cityId: number | null;
+  ownerId: number;
+  phase: CityAttackPhase | null;
+  attackerHp: number;
+  defenderHp: number;
+  attackerStrength: number;
+  defenderStrength: number;
+}
+
 /** One command a seat's sitting sent on its copy, and what the applier checks it against. */
 export interface PlannedStep {
   command: Command;
@@ -274,6 +291,8 @@ export interface PlannedStep {
   minted: number;
   /** For a choice from an offer: the offers the seat held on the copy just before. */
   offer: string | null;
+  /** The direct combat facts on the planning copy, before an attack changes them. */
+  combat: PlannedCombat | null;
   /**
    * For a march or a blow: what it left on the copy (`outcomePrint`), for the
    * tally of commands that landed and did not do what the copy did.
@@ -349,6 +368,7 @@ export function planSeat(
   const put = ({ command, decision }: Asked): CommandResult => {
     const firstMinted = state.nextEntityId;
     const offer = choosesFromAnOffer(command) ? offerPrint(state, playerId) : null;
+    const combat = command.type === 'attack' ? combatFactsFor(state, command) : null;
     const result = applyCommand(state, command);
     if (result.ok) {
       steps.push({
@@ -357,6 +377,7 @@ export function planSeat(
         firstMinted,
         minted: state.nextEntityId - firstMinted,
         offer,
+        combat,
         after: outcomePrint(state, command, board.firstNewId),
         marks: sittingMarks(sitting),
       });
@@ -434,7 +455,7 @@ function outcomePrint(state: GameState, command: Command, firstNewId: number): s
 // --- the applier ------------------------------------------------------------
 
 /** Why a plan stopped before its end. */
-export type CutReason = 'refused' | 'unmapped' | 'offer' | 'taken' | 'minted';
+export type CutReason = 'refused' | 'unmapped' | 'offer' | 'taken' | 'minted' | 'combat';
 
 /** One plan being put to the real state. */
 export interface PlanRun {
@@ -505,6 +526,24 @@ export function applyNextStep(
     const taken = greatPersonChoiceError(state, playerId, command.optionIndex);
     if (taken !== null) return cut(run, 'taken', taken);
   }
+  if (command.type === 'attack') {
+    const expected = step.combat;
+    const actual = combatFactsFor(state, command);
+    if (!expected || actual === null) return cut(run, 'combat', 'attack target is unavailable');
+    const unitId = expected.unitId === null ? null : mappedEntityId(run, expected.unitId);
+    const cityId = expected.cityId === null ? null : mappedEntityId(run, expected.cityId);
+    if ((expected.unitId !== null && unitId === null) || (expected.cityId !== null && cityId === null)) {
+      return cut(run, 'unmapped', 'attack target');
+    }
+    if (unitId !== actual.unitId || cityId !== actual.cityId ||
+        expected.ownerId !== actual.ownerId || expected.phase !== actual.phase) {
+      return cut(run, 'combat', 'defender or siege phase changed');
+    }
+    if (expected.attackerHp !== actual.attackerHp || expected.defenderHp !== actual.defenderHp ||
+        expected.attackerStrength !== actual.attackerStrength || expected.defenderStrength !== actual.defenderStrength) {
+      return cut(run, 'combat', 'health or strength changed');
+    }
+  }
   const firstMinted = state.nextEntityId;
   const refusal = pendingDealRefusal(state, command);
   const key = orderAttemptKey(state, command);
@@ -553,6 +592,27 @@ function offerDifference(planned: string, real: string): string {
   return names.filter((_, index) => JSON.stringify(a[index]) !== JSON.stringify(b[index])).join(', ');
 }
 
+/** Use the reducer's target selection and strength calculation, including all siege phases. */
+function combatFactsFor(state: GameState, command: Extract<Command, { type: 'attack' }>): PlannedCombat | null {
+  const forecast = previewCombat(state, command.unitId, command.target);
+  if (!forecast.ok) return null;
+  const unitId = forecast.defenderUnitId;
+  const cityId = forecast.defenderCityId;
+  const ownerId = unitId !== null ? unitById(state, unitId)?.ownerId
+    : cityId !== null ? cityById(state, cityId)?.ownerId : undefined;
+  if (ownerId === undefined) return null;
+  return {
+    unitId, cityId, ownerId, phase: forecast.cityPhase ?? null,
+    attackerHp: forecast.attackerHp, defenderHp: forecast.defenderHp,
+    attackerStrength: forecast.attackerStrength, defenderStrength: forecast.defenderStrength,
+  };
+}
+
+/** Commands and their planned targets must use the same mapping for new entities. */
+function mappedEntityId(run: PlanRun, id: number): number | null {
+  return id < run.plan.firstNewId ? id : (run.ids.get(id) ?? null);
+}
+
 /** The id fields a command may carry. Every entity id comes from the one counter. */
 const ID_FIELDS = ['unitId', 'settlerUnitId', 'cityId', 'fromCityId', 'toCityId', 'dealId'] as const;
 
@@ -562,8 +622,7 @@ const ID_FIELDS = ['unitId', 'settlerUnitId', 'cityId', 'fromCityId', 'toCityId'
  * frozen counter names the same thing on both boards and is kept.
  */
 function withRealIds(command: Command, run: PlanRun): Command | null {
-  const first = run.plan.firstNewId;
-  const real = (id: number): number | null => (id < first ? id : (run.ids.get(id) ?? null));
+  const real = (id: number): number | null => mappedEntityId(run, id);
   let out: Record<string, unknown> | null = null;
   const fields = command as unknown as Record<string, unknown>;
   for (const field of ID_FIELDS) {

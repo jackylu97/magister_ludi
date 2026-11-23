@@ -1462,10 +1462,13 @@ earned).
 
 Reference: **`docs/bot-priorities.md`** — the spec of record. Code: `src/ai/`.
 
-The current combat experiment is on `codex/bot-combat-262`. The
+The combat experiments are on `codex/bot-combat-262` and
+`codex/bot-combat-target-262`. The
 [combat comparison](audit/bot-combat-results-2026-11-22.md) and
 [counter-risk review](audit/bot-counter-risk-2026-11-22.md) record its games,
-checks and limits. Combat quality includes defense, safe positions and
+checks and limits. The [planned-attack review](audit/bot-combat-targets-2026-11-22.md)
+checks attacks whose defender, health or strength changed before execution.
+Combat quality includes defense, safe positions and
 civilian protection. Capture totals alone do not decide whether it is better.
 The experimental combat policy has not been put on port 5199.
 
