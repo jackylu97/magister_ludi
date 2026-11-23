@@ -1472,6 +1472,11 @@ Combat quality includes defense, safe positions and
 civilian protection. Capture totals alone do not decide whether it is better.
 The experimental combat policy has not been put on port 5199.
 
+The next design is a shared tactical evaluator for attack, movement and holding.
+The [combat research and plan](audit/bot-combat-research-2026-11-23.md) compares
+primary sources with the current code and specifies bounded group planning.
+It is not yet an enabled policy.
+
 The bot prices things before it picks them. Each turn it builds a **want book**
 (`wants.ts`): one entry per thing a currency could be spent on, each carrying its
 cost, its worth (the fold of the simulation's own explainers) and its delay. From

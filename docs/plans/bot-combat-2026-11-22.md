@@ -197,3 +197,86 @@ five games, original decisions, defensive exchanges, limits and passed tests.
 Keep this as a separate checkpoint before changing position choice. The next
 comparison must judge useful attacks, holding and retreat together, including
 the tile a unit actually reaches this turn. Keep earlier preferences fixed.
+
+## Position experiment after `1b596864`
+
+The user approved continued work and explicitly said not to update port 5199.
+Use `codex/bot-position-262`, with `1b596864` as the unchanged control.
+
+Start by reproducing retreat losses from the original private planning boards.
+Compare the chosen stopping tile with reachable alternatives and holding.
+Use the shared movement and combat rules. Only enemies visible to the bot
+at the original decision can supply threats. Give those enemies their next
+full movement allowance. Treat a potential firing position as able to see the
+target, so stale enemy visibility does not falsely mark a retreat safe. This
+is a conservative threat bound, not a forecast of the enemy's chosen action.
+Do not add independent attacks as if every enemy can use the same firing tile.
+
+If a clear failure is reproduced, first improve the retreat destination.
+Keep normal attack preferences and the healing thresholds unchanged. Bound
+the local search, explain the selected position, and check actual games before
+extending the same assessment to attacks or ranged positioning.
+
+The first five reproduced retreats have no destination outside the possible
+attacks of the visible enemies. Start with the earlier advance instead.
+On seed 48017, turn 43, warrior 184 leaves a fortified position to finish a
+five-health spearman. It spends forty health and an archer kills it that turn.
+The original private capture matches the complete accepted command prefix.
+
+An initial prototype added a narrow exposure penalty for certain field kills
+and civilian captures. It compared holding with the landing tile after the
+worst counter, including healing from a kill. It used the strongest independent
+enemy attack, not a sum of attacks that might need the same firing tile.
+It penalized newly lethal exposure and excluded city captures and units that
+could act again after attacking. Its new penalty and limits were tunable;
+existing preferences stayed fixed. This prototype is set aside, not enabled.
+
+## Shared tactical evaluation: design discussion
+
+The user proposed scoring tiles by accessibility, available attacks and enemy
+attacks, including next-turn threats, with different priorities for ranged,
+siege and melee units. Pause the narrow advance penalty while specifying this
+shared structure. Its prototype and focused results are preserved separately;
+the runtime and AI sheet remain at `1b596864`. Port 5199 stays unchanged.
+
+The proposed evaluation scores an action sequence and its ending position.
+A tile has reusable movement and threat facts, but its value also depends on
+the unit, remaining health, attack target and job.
+
+The user approved consolidation and research on 23 November. The
+[research and implementation plan](../audit/bot-combat-research-2026-11-23.md)
+now specifies the shared evaluator, bounded group search, enemy responses,
+cache dependencies and validation sequence. It replaces the narrow advance
+penalty as the implementation direction. Runtime remains at `1b596864`.
+
+1. Keep the existing operational job: defend a city, escort, clear a camp or
+   attack a city. Tactical choices must preserve an essential garrison or escort.
+2. Generate legal choices from the shared movement rules: hold or fortify,
+   move, attack, move then attack, and attack then move when allowed. Evaluate
+   the forced advance after a melee kill. Unreachable choices are excluded.
+3. Build reusable facts about possible firing positions and movement. For a
+   small candidate set, use the shared combat forecast for exact strength,
+   terrain, rivers, fortification and damage. Do not add terrain a second time.
+4. Evaluate useful damage, removal of threats, damage received, loss risk,
+   protection of allies, healing, progress toward the job and blocked allies.
+   Do not reward a count of targets without considering their value or danger.
+5. Use shared terms with data-driven role weights. Melee values holding a
+   defensive position and safe finishing attacks. Ranged values useful shots
+   from protected positions. Siege values wall damage, firing access and cover.
+6. Choose and execute a useful action, then update affected facts before the
+   next choice. Reuse geometry and unchanged readings within this lifetime.
+   Enemy movement, deaths, health, fortification and line-of-sight changes must
+   invalidate the affected assessment. The existing live attack checks remain.
+
+Bound enemy responses. Only originally visible enemies enter the assessment.
+Distinguish independent possible attacks from a feasible sequence: one enemy
+cannot attack every friendly unit, and two enemies may need the same firing
+tile. Use a small response search for close decisions rather than adding all
+possible damage as though every attack happens. Record uncertainty explicitly.
+
+Build and validate in stages: position facts; melee hold/attack/retreat;
+ranged shot and move choices; siege positions and group action ordering.
+Retain the current bot as a fixed control. Use exact tactical scenarios plus
+the original-decision captures and the same all-leader games. Review useful
+trades, city defense, civilian protection and ranged support as well as totals.
+Tune role weights only after these structural comparisons are sound.
