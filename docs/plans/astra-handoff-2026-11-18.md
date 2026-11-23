@@ -280,6 +280,13 @@ owner's city. New labelled lines in `explainUnitHeal`: +10 for its own land,
 and +10 more in its own city, but not while the city is under siege (then it
 heals 20). Figures in `rules.healing`.
 
+### 0.1h A city hex counts as a road for movement (2026-11-22)
+
+Ruling and detail: `docs/flags.md`, "A city hex counts as a road for
+movement". A step between a city's hex and a paved neighbour is a road step.
+Make it one derived reading in `stepCost` and `cheapestStepCostFor`; do not
+write `Tile.road` on a city's hex.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and

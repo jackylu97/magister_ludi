@@ -3484,3 +3484,28 @@ siege."
   bots should know that home ground heals faster when they choose where to
   rest.
 - Owner: Astra.
+
+## A city hex counts as a road for movement (ruled 2026-11-22, not built)
+
+The user: "right now cities don't count as having roads, so walking from a
+city to a road costs full movement. ideally, moving from the city tile and
+following the road should gain the road bonus, visually they're connected
+too".
+
+- Today a step is a road step only if both hexes are paved (`Tile.road`), and
+  a city's hex carries no road. So the step out of a city onto a road, and
+  the step into a city from a road, cost the full price.
+- New rule: **a city's hex counts as paved for `stepCost`,** for every seat
+  that may use roads there, as a real road on that hex would. A step between
+  a city and a paved neighbour is a road step. A step between two adjacent
+  cities is one too.
+- Make it one derived reading (the hex is paved if it has a road or holds a
+  city), asked in the two places that read a road step today (`stepCost` and
+  `cheapestStepCostFor`). Do not write `Tile.road` on a city's hex: the field
+  has one writer (`layRoad`), it names a builder, and road maintenance counts
+  it.
+- Check what else reads "paved" and decide each on purpose: road maintenance
+  (a city's hex should cost nothing), city connections, trade routes, and the
+  path preview and reachable highlight, which must show the cheaper step.
+- The bots' pathing reads `stepCost`, so they gain it too.
+- Owner: Astra.
