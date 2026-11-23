@@ -3509,3 +3509,20 @@ too".
   path preview and reachable highlight, which must show the cheaper step.
 - The bots' pathing reads `stepCost`, so they gain it too.
 - Owner: Astra.
+
+## A barbarian camp starts with one unit (ruled 2026-11-22, not built)
+
+The user: "ok with all the changes, i think we need to slightly tone down the
+barbarians, lets have them start with 1 unit instead of 2."
+
+- Today a new camp starts with one or two units, rolled
+  (`rules.barbarians.campStartUnitsMin` 1, `campStartUnitsMax` 2).
+- New: **`campStartUnitsMax` 1,** so every new camp starts with one unit.
+- Read as the starting count only. A camp still trains a unit every five
+  turns up to `maxUnitsPerCamp` 2, and sends `raidersPerCamp` 2. Say if the
+  user wants those lower too.
+- Difficulty tier 3 keeps its own figure: the camps of its wave start with
+  two units (`data/difficulty.json`, `campWave.unitsPerCamp` 2), as the user
+  wrote for that tier.
+- The roll changes every seeded game, so the recorded replays need a new
+  recording. Owner: Astra.

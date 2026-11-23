@@ -304,6 +304,13 @@ one sentence per rule key lives in that UI file, with every number read from
 the data row. Please move the sentences into the data, or give each rule a
 describer, so that a change to a rule changes its words too.
 
+### 0.1j A barbarian camp starts with one unit (2026-11-22)
+
+Ruling: `docs/flags.md`, "A barbarian camp starts with one unit". Set
+`rules.barbarians.campStartUnitsMax` to 1. The cap of two units a camp and
+the tier 3 wave's two units do not change. It changes every seeded game:
+record the replays again, and take it before your next bot baseline.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
