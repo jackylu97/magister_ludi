@@ -127,13 +127,8 @@
     "puppetAuthorityRelief": 1,
     "puppetHappinessPercent": 75,
     "unrest": {
-      "targetPerCitizen": 2,
-      "baseRate": 1,
-      "garrisonRate": 1,
-      "generalRate": 1,
-      "generalReach": 1,
-      "buildingRate": 1,
-      "rebelEveryTurns": 3,
+      "turns": 3,
+      "rebelEveryTurns": 0,
       "halts": ["production", "science", "culture"]
     },
     "weariness": {

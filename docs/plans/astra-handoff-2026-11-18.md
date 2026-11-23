@@ -356,6 +356,25 @@ last section of `docs/flags.md`. Save version 263.
 `badges.spentOpacity`. I could not look at it in a browser. If your rendering
 work finds a blending fault on the faint badge, the fix is yours to make.
 
+### 0.1l Unrest lasts three turns in every town: built by the Claude session (2026-11-23)
+
+The ruling is the last section of `docs/flags.md`. Save version 264.
+
+- `rules.war.unrest` is now `turns` (3), `rebelEveryTurns` (0, so no rebels)
+  and `halts`. The per-citizen target and the garrison, general and building
+  rates are gone, and so is `BuildingDef.easesUnrest`.
+- Two small edits in your files, both to keep the build whole:
+  `unrestSettleTurns` in `src/ai/diplomacy.ts` now reads the flat figure at a
+  rate of 1, and the `easesUnrest` entry left `BUILDING_ROW_SILENT` in
+  `src/ai/value.ts`.
+- For you: the docblocks of `unrestSettleTurns` and `razeDecision` describe
+  the old rule. At the default figures the bot never razes a town for unrest
+  now (3 turns against `razeUnrestTurns` 6); decide whether that arm stays.
+  Record the replay pins again; I recorded only `test/sim/explore.test.ts`.
+- Also on `decks` since 0.1k: every leader has thirty city names
+  (`5a3cbe63`), data and `docs/leaders.md` only.
+- The play clone still stays at `12947dfb` until the user says so.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and

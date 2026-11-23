@@ -706,11 +706,10 @@ export type CityScope =
   | { test: 'garrisonRank'; rank: RankId }
   /**
    * **A great general of this town's owner stands on the town's own hex**: The
-   * Bakufu (Dominion batch D4). The general's reach for pacification
-   * (`rules.war.unrest.generalReach`) does not count here, because the card
-   * says "standing in a town". Read through `generalPresent` in the evaluator,
-   * which asks the unit's own `greatWork` marker and family, as
-   * `unrestGeneral` does.
+   * Bakufu (Dominion batch D4). A general beside the town does not count,
+   * because the card says "standing in a town". Read through `generalPresent`
+   * in the evaluator, which asks the unit's own `greatWork` marker and family,
+   * never a type name.
    */
   | { test: 'generalPresent' }
   /**

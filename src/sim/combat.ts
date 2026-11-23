@@ -3587,8 +3587,7 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // and not in `handOverCity`, for `capturedOn`'s reason: a town handed over at
   // a treaty table was not taken by force. A fresh record every time, so a town
   // taken again while still in unrest starts over for its new owner, and a
-  // founder who takes its own town back is in unrest too. Written after the
-  // handover, because the target is read off the population the captor holds.
+  // founder who takes its own town back is in unrest too.
   startUnrest(city);
   // **Pax Romana** (Dominion batch D4, the triage's reading 27): a captor
   // whose law pacifies a captured town ends the unrest at the moment of

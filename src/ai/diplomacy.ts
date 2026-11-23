@@ -136,7 +136,6 @@ import { hasPeaceOffer, peaceTermsOn, warBetween } from '../sim/wars';
 import { round as round1 } from './decision';
 import { seatName, seatPeople } from '../sim/leaderData';
 import { turnsToFill } from '../sim/cities';
-import { RULES } from '../sim/rulesData';
 import { pacificationTurnsLeft, unrestTarget } from '../sim/unrest';
 import { happinessOf } from '../sim/meters';
 import { wearinessBetween } from '../sim/weariness';
@@ -2052,8 +2051,7 @@ function explainExpedition(
  * `explainPacification`, which reads the town's current owner's pieces.
  */
 function unrestSettleTurns(population: number): number | null {
-  const rules = RULES.war.unrest;
-  return turnsToFill(unrestTarget(population), rules.baseRate + rules.garrisonRate);
+  return turnsToFill(unrestTarget(population), 1);
 }
 
 /**

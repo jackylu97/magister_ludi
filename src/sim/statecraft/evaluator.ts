@@ -4619,8 +4619,8 @@ function improvedResources(
 /**
  * Does a great general of this town's owner stand on the town's own hex? The
  * `generalPresent` scope (The Bakufu, Dominion batch D4). It reads a unit the
- * way `unrestGeneral` (`unrest.ts`) does: by the row's `greatWork` marker and
- * the person's family, never by a type name.
+ * way the general's combat aura does (`generalAuraLines` in `combat.ts`): by
+ * the row's `greatWork` marker and the person's family, never by a type name.
  */
 function generalPresent(state: GameState, city: City): boolean {
   for (const unit of state.units) {

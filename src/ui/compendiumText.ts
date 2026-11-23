@@ -425,6 +425,8 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
   // Batch WC1 (`docs/flags.md` (rrrrrr) part 1): what happens to a city taken by
   // force. Plain words and no figures — the city screen and the capture sheet
   // print how long and why.
+  // Since the user's ruling of 2026-11-23 (`docs/flags.md`), unrest lasts the
+  // same number of turns in every city, and only a card shortens it.
   written(
     'concept',
     'unrest',
@@ -433,8 +435,8 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     '⚑',
     [
       'When you take a city by force, you decide what becomes of it. You can annex it and govern it like any city of your own, hold it as a puppet that chooses its own production and asks less of your empire, or raze it to the ground.',
-      'A city taken by force is in unrest, whichever of the first two you choose. While it is in unrest it makes no production, science or culture, and its borders do not grow; its food, gold and faith are untouched. It settles a little every turn, and when it has settled enough the unrest is over. Keep one of your military units inside it: the city settles faster, and an empty city in unrest raises rebels, barbarian units that appear beside it every few turns.',
-      'Details: how long a city stays in unrest depends on how many citizens it had when it was taken. It settles faster with one of your military units inside, with one of your great generals inside or next to it, and once it has a Courthouse. The city screen shows how far it has settled, the reasons, and the turns left, and the city\'s banner carries a torch until it is over. Annexing a puppet neither restarts nor ends its unrest. A city taken back by the empire that founded it is in unrest too, and a city taken again while still in unrest starts over for its new owner. A razed city leaves nothing to settle. Buying things in a city in unrest works as it always does.',
+      'A city taken by force is in unrest, whichever of the first two you choose. While it is in unrest it makes no production, science or culture, and its borders do not grow; its food, gold and faith are untouched. The unrest lasts a few turns and then ends by itself.',
+      'Details: unrest lasts the same number of turns in every city, whatever its size. Only an Order or a Doctrine can end it sooner. The city screen shows how far it has settled and the turns left, and the city\'s banner carries a torch until it is over. Annexing a puppet neither restarts nor ends its unrest. A city taken back by the empire that founded it is in unrest too, and a city taken again while still in unrest starts over for its new owner. A razed city leaves nothing to settle. Buying things in a city in unrest works as it always does.',
     ],
   ),
   // Batch WC2 (`docs/flags.md` (rrrrrr) part 2): what a losing war costs at

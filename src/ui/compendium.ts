@@ -1683,9 +1683,6 @@ function buildingMarkers(id: BuildingId): CompendiumClause[] {
       note: true,
     });
   }
-  if (def.easesUnrest === true) {
-    out.push({ text: 'A city in unrest that holds this settles faster.', note: true });
-  }
   if (def.consecrated === true) {
     out.push({
       text: 'When it is finished, the city gets one consecration, picked at random. The consecrations are at the end of the Beliefs shelf.',

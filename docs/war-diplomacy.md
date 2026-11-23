@@ -162,16 +162,15 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
 
 - A basket filled each turn, compared against a target; when it reaches the
   target the record is deleted and the town works again.
-- The target is `targetPerCitizen` (2) × the town's population at the moment it
-  was taken.
+- The target is `turns` (3), the same for every town whatever its size (the
+  user's ruling of 2026-11-23, `docs/flags.md`).
 - The rate is a labelled list (`explainPacification`, rule 5):
-  - `baseRate` (1) every turn;
-  - `garrisonRate` (1) while a military unit of the owner stands in the town
-    (`isFieldSoldier`: a scout or a ship does not count);
-  - `generalRate` (1) while a great general of the owner stands in the town or
-    within `generalReach` (1) hexes of it;
-  - `buildingRate` (1) for each building carrying the `easesUnrest` marker (the
-    Courthouse).
+  - one every turn;
+  - a line for each card percentage on the rate (`pacificationRate`, The
+    Satraps, retired): its +100% in a garrisoned town makes the rate two, so
+    the town settles in two turns.
+- A garrison, a great general and the Courthouse do not change the length. The
+  Courthouse keeps its gold and its authority.
 - The `unrest` phase runs after `resetMovement` and before `wakeSleepers`: after
   every phase that reads unrest (the yields, the borders) and every phase that
   moves a piece, so the turn a town is pacified is still a turn of unrest, and
@@ -182,7 +181,9 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
 - A town still in unrest at the phase with no military unit of its owner inside
   counts the turn as unguarded (`CityUnrest.unguarded`). A turn with a soldier
   inside adds nothing and takes nothing away.
-- On every turn that count reaches a multiple of `rebelEveryTurns` (3), a rebel
+- Rebels are off: `rebelEveryTurns` is 0, because no town stays in unrest long
+  enough for one now. The code stays, so a figure above 0 brings them back.
+- On every turn that count reaches a multiple of `rebelEveryTurns`, a rebel
   rises: a barbarian of the kind a camp standing on the town's hex would raise
   that turn (`barbarianUnitType`), on a free hex beside the town drawn with
   `state.rng`. None rises when no hex is free or the world has no wild seat.
@@ -193,9 +194,10 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
 **Interface**
 
 - The town panel's unrest card: the bar, the reasons with their figures, the
-  turns left, and a warning while an unguarded town will raise a rebel before
-  it settles. The yields hover prints the gate as one line under the stages;
-  the band carries an "In unrest" badge; the borders row says "in unrest".
+  turns left, and, only while rebels are on, a warning while an unguarded town
+  will raise a rebel before it settles. The yields hover prints the gate as one
+  line under the stages; the band carries an "In unrest" badge; the borders row
+  says "in unrest".
 - The 3D banner flies a torch under its fly (`CityLook.unrest`; the yoke hangs
   under the hoist), and the DOM banner carries the same mark beside the name.
 - The capture sheet says the town is in unrest under both answers that keep it,
@@ -212,7 +214,8 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
   `1 − war.unrestDrag × turns` the target would sit in unrest once garrisoned.
 - A town of the bot's own in unrest is razed when no soldier of its stands in
   it or within `war.razeReach` hexes and it would sit in unrest at least
-  `war.razeUnrestTurns` more turns.
+  `war.razeUnrestTurns` more turns. At the default figures this never happens:
+  unrest lasts three turns, and `razeUnrestTurns` is six.
 
 ## 6. War costs
 

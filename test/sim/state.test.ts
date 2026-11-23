@@ -713,7 +713,7 @@ describe("the research queue field", () => {
   });
 
   it('uses the current save schema version', () => {
-    expect(SCHEMA_VERSION).toBe(263);
+    expect(SCHEMA_VERSION).toBe(264);
   });
 });
 

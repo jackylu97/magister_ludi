@@ -269,7 +269,7 @@ describe('Dominion D4: pacification', () => {
     expect(card).toHaveLength(1);
     const rest = foldPacification(lines.filter((line) => !line.source.includes('The Satraps')));
     expect(card[0]!.amount).toBe(rest);
-    // The garrison walks out: no garrison line and no card line.
+    // The garrison walks out, and the card line goes with it.
     const warrior = state.units.find((unit) => unit.col === city.col && unit.row === city.row)!;
     warrior.col = 7;
     touch(state);

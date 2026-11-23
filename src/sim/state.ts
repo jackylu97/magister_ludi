@@ -656,7 +656,8 @@ import {
 // every three turns instead of every two (`campEveryTurns`). Nothing was released
 // between these changes, so they share the version.
 // Version 263: a queue completes every row and technology its basket or pool pays for in one turn.
-export const SCHEMA_VERSION = 263;
+// Version 264: unrest lasts three turns in every town, and no rebels rise (the user's ruling of 2026-11-23).
+export const SCHEMA_VERSION = 264;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3291,14 +3292,16 @@ interface CityLevyRecord {
  * Two of the three are counts rather than turns, and neither is a countdown.
  * `progress` is a basket, filled like a food basket and compared against
  * `target`. `unguarded` counts the turns that qualified, so the rebel cadence
- * is "every third such turn" however the unguarded turns are spread out; a turn
- * with a garrison in the town adds nothing to it and takes nothing from it.
+ * counts such turns however they are spread out; a turn with a garrison in the
+ * town adds nothing to it and takes nothing from it. Rebels are off by default
+ * (`rules.war.unrest.rebelEveryTurns` is 0), and the count is still kept.
  */
 interface CityUnrest {
   /**
-   * Pacification needed to end the unrest: `rules.war.unrest.targetPerCitizen`
-   * times the town's population at the moment it was taken. Stored rather than
-   * derived because the population moves afterwards and the target must not.
+   * Pacification needed to end the unrest: `rules.war.unrest.turns`, read at
+   * the moment the town was taken. It is the same for every town now. It stays
+   * on the record, as it was when the target depended on the town's size, so
+   * the panel's bar and the phase compare `progress` against the record alone.
    */
   target: number;
   /** Pacification banked so far. Unrest ends the turn this reaches `target`. */

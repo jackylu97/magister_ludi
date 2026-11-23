@@ -1,11 +1,14 @@
 /**
- * Unrest in a town taken by force (batch WC1, `docs/flags.md` (rrrrrr) part 1).
+ * Unrest in a town taken by force (batch WC1, `docs/flags.md` (rrrrrr) part 1),
+ * as the user's ruling of 2026-11-23 changed it ("Unrest lasts three turns in
+ * every town", the last section of `docs/flags.md`).
  *
  * The rule, part by part, on a small flat board: who enters unrest and when it
- * starts over, what a town in unrest makes, that its borders hold still, how
- * fast it settles and why, when it ends, when an unguarded town raises a rebel,
- * that a bot keeps a soldier in it, and that a game with all of this in it
- * replays from its log.
+ * starts over, what a town in unrest makes, that its borders hold still, that
+ * every town settles in the same number of turns whatever stands in it, that
+ * The Satraps shortens it, that no rebel rises by default and that one still
+ * can when a test sets the cadence, that a bot keeps a soldier in such a town,
+ * and that a game with all of this in it replays from its log.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -14,7 +17,6 @@ import { nextBotDecision, valueContext } from '../../src/ai/bot';
 import type { BotDecision, ValueTerm } from '../../src/ai/decision';
 import { explainDeclaration } from '../../src/ai/diplomacy';
 import { barbarianUnitType } from '../../src/sim/barbarians';
-import { buildingDef } from '../../src/sim/buildingData';
 import { applyCombat } from '../../src/sim/combat';
 import { applyCommand } from '../../src/sim/commands';
 import {
@@ -24,9 +26,9 @@ import {
   settleBorderWindfall,
 } from '../../src/sim/cities';
 import { dispatch, replay, snapshotState } from '../../src/sim/game';
-import { greatPersonDef } from '../../src/sim/greatPeopleData';
 import { type Tile, createMap, getTileAt, tileHex, wrappedDistance } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
+import { bumpEconomy } from '../../src/sim/slate';
 import {
   type City,
   type GameState,
@@ -37,6 +39,7 @@ import {
   createUnit,
   playerById,
 } from '../../src/sim/state';
+import type { OrderId } from '../../src/sim/statecraftData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { fullMovement } from '../../src/sim/units';
 import { unitDef } from '../../src/sim/unitData';
@@ -57,6 +60,26 @@ import { UNREST_SOURCE, explainUnrestGate, foldCity } from '../../src/sim/yields
 import { createGame, newGame } from './newGameHelpers';
 
 const UNREST = RULES.war.unrest;
+
+/**
+ * Runs the body with some figures of `rules.war.unrest` changed, then puts the
+ * rules back. Set the figures before the town is taken, because the target is
+ * read at the moment of capture.
+ */
+function withUnrestRules(
+  patch: { turns?: number; rebelEveryTurns?: number },
+  body: () => void,
+): void {
+  const before = { turns: UNREST.turns, rebelEveryTurns: UNREST.rebelEveryTurns };
+  if (patch.turns !== undefined) UNREST.turns = patch.turns;
+  if (patch.rebelEveryTurns !== undefined) UNREST.rebelEveryTurns = patch.rebelEveryTurns;
+  try {
+    body();
+  } finally {
+    UNREST.turns = before.turns;
+    UNREST.rebelEveryTurns = before.rebelEveryTurns;
+  }
+}
 
 /**
  * A blank flat board with two empires and, when asked, the wild — war.test's
@@ -118,6 +141,21 @@ function lift(state: GameState, unit: Unit): void {
   state.units = state.units.filter((other) => other.id !== unit.id);
 }
 
+/** Re-reads the board after a write the test made by hand. */
+function touch(state: GameState): void {
+  bumpRevision(state);
+  bumpEconomy(state);
+}
+
+/** Puts an Order in a chair for this seat, the way the reading sees it. */
+function slot(state: GameState, playerId: number, id: string): void {
+  const statecraft = playerById(state, playerId)!.statecraft;
+  const card = id as OrderId;
+  if (!statecraft.orders.includes(card)) statecraft.orders.push(card);
+  statecraft.slots.push({ card, sealedUntil: state.turn });
+  touch(state);
+}
+
 /** Seat 1 storms the town back with a fresh warrior from (7,4). */
 function retake(state: GameState, city: City): void {
   city.hp = 1;
@@ -138,8 +176,11 @@ describe('who enters unrest', () => {
     const { city } = captured({ population: 3 });
     expect(city.puppet).toBe(true);
     expect(inUnrest(city)).toBe(true);
-    expect(city.unrest).toEqual({ target: unrestTarget(3), progress: 0, unguarded: 0 });
-    expect(unrestTarget(3)).toBe(UNREST.targetPerCitizen * 3);
+    expect(city.unrest).toEqual({ target: UNREST.turns, progress: 0, unguarded: 0 });
+    // The ruling's figure, the same for a town of any size.
+    expect(UNREST.turns).toBe(3);
+    expect(unrestTarget(1)).toBe(UNREST.turns);
+    expect(unrestTarget(12)).toBe(UNREST.turns);
   });
 
   it('keeps an annexed town in unrest: annexing neither restarts nor ends it', () => {
@@ -158,11 +199,7 @@ describe('who enters unrest', () => {
     expect(city.unrest?.progress).toBeGreaterThan(0);
     lift(state, raider);
     retake(state, city);
-    expect(city.unrest).toEqual({
-      target: unrestTarget(city.population),
-      progress: 0,
-      unguarded: 0,
-    });
+    expect(city.unrest).toEqual({ target: UNREST.turns, progress: 0, unguarded: 0 });
   });
 
   it('leaves a founded town with no unrest key at all', () => {
@@ -231,60 +268,99 @@ describe('what a town in unrest makes', () => {
 });
 
 describe('pacification', () => {
-  it('fills by a labelled rate: every turn, a garrison, a general, a courthouse', () => {
-    const { state, city, raider } = captured({ population: 4 });
-    const warrior = `Garrison · ${unitDef('warrior').name}`;
-    expect(explainPacification(state, city)).toEqual([
-      { source: 'Every turn', amount: UNREST.baseRate },
-      { source: warrior, amount: UNREST.garrisonRate },
-    ]);
-    const target = unrestTarget(4);
-    expect(pacificationTurnsLeft(state, city)).toBe(
-      Math.ceil(target / (UNREST.baseRate + UNREST.garrisonRate)),
-    );
+  /**
+   * Ends the turn until the town is pacified, and returns how many end-of-turn
+   * settlements that took. Checks the basket on every turn before the last.
+   */
+  function turnsToPacify(state: GameState, city: City): number {
+    for (let turn = 1; turn <= 10; turn++) {
+      const report = runEndOfTurn(state);
+      if (city.unrest === undefined) {
+        expect(report.unrest).toEqual([
+          { kind: 'pacified', cityId: city.id, ownerId: city.ownerId, col: city.col, row: city.row },
+        ]);
+        return turn;
+      }
+      expect(report.unrest).toEqual([]);
+      expect(city.unrest.progress).toBe(turn);
+    }
+    throw new Error('the town was still in unrest after ten turns');
+  }
 
-    // A general beside the town counts; one two hexes off does not.
-    createUnit(state, 0, 'greatPerson', 8, 4, 'hannibal');
-    expect(explainPacification(state, city)).toHaveLength(2);
-    createUnit(state, 0, 'greatPerson', 7, 4, 'hannibal');
-    city.buildings.push('courthouse');
-    const lines = explainPacification(state, city);
-    expect(lines.map((line) => line.source)).toEqual([
-      'Every turn',
-      warrior,
-      `Great general · ${greatPersonDef('hannibal').name}`,
-      buildingDef('courthouse').name,
-    ]);
-    const rate =
-      UNREST.baseRate + UNREST.garrisonRate + UNREST.generalRate + UNREST.buildingRate;
-    expect(foldPacification(lines)).toBe(rate);
-    expect(pacificationTurnsLeft(state, city)).toBe(Math.ceil(target / rate));
-
-    // The garrison walks out and its line goes with it.
-    lift(state, raider);
-    expect(explainPacification(state, city).map((line) => line.source)).not.toContain(warrior);
+  it('ends after exactly three settlements in a small town and in a large town alike', () => {
+    for (const population of [1, 12]) {
+      const { state, city } = captured({ population });
+      expect(city.population).toBe(population);
+      expect(pacificationTurnsLeft(state, city)).toBe(3);
+      expect(turnsToPacify(state, city)).toBe(3);
+    }
   });
 
   it('ends the turn the basket reaches the target, after that turn’s yields', () => {
     const { state, city } = captured({ population: 2 });
-    const rate = UNREST.baseRate + UNREST.garrisonRate;
-    const turns = Math.ceil(unrestTarget(2) / rate);
-    expect(pacificationTurnsLeft(state, city)).toBe(turns);
-    for (let turn = 1; turn < turns; turn++) {
-      const report = runEndOfTurn(state);
-      expect(report.unrest).toEqual([]);
-      expect(city.unrest?.progress).toBe(rate * turn);
-    }
-    const last = runEndOfTurn(state);
-    expect(city.unrest).toBeUndefined();
-    expect(last.unrest).toEqual([
-      { kind: 'pacified', cityId: city.id, ownerId: 0, col: city.col, row: city.row },
-    ]);
+    expect(turnsToPacify(state, city)).toBe(UNREST.turns);
     // Every turn of it was a turn of unrest: not a hammer was banked, and the
     // next resolution banks the town's production again.
     expect(city.hammerBasket).toBe(0);
     runEndOfTurn(state);
     expect(city.hammerBasket).toBeGreaterThan(0);
+  });
+
+  it('gives one reason, the turn itself, whatever stands in or beside the town', () => {
+    const { state, city, raider } = captured({ population: 4 });
+    const alone = [{ source: 'Every turn', amount: 1 }];
+    // The captor stands in the town, and there is no garrison line.
+    expect(explainPacification(state, city)).toEqual(alone);
+    // A great general in the town and one beside it, and a Courthouse.
+    createUnit(state, 0, 'greatPerson', city.col, city.row, 'hannibal');
+    createUnit(state, 0, 'greatPerson', city.col + 1, city.row, 'hannibal');
+    city.buildings.push('courthouse');
+    touch(state);
+    expect(explainPacification(state, city)).toEqual(alone);
+    expect(foldPacification(explainPacification(state, city))).toBe(1);
+    expect(pacificationTurnsLeft(state, city)).toBe(UNREST.turns);
+    // The captor walks out, and nothing changes either.
+    lift(state, raider);
+    touch(state);
+    expect(explainPacification(state, city)).toEqual(alone);
+  });
+
+  it('takes three turns with a garrison, a great general and a Courthouse, as with none', () => {
+    const held = captured({ population: 6 });
+    createUnit(held.state, 0, 'greatPerson', held.city.col, held.city.row, 'hannibal');
+    held.city.buildings.push('courthouse');
+    touch(held.state);
+    expect(turnsToPacify(held.state, held.city)).toBe(3);
+
+    const bare = captured({ population: 6 });
+    lift(bare.state, bare.raider);
+    touch(bare.state);
+    expect(turnsToPacify(bare.state, bare.city)).toBe(3);
+  });
+
+  it('takes two turns in a garrisoned town under The Satraps, and three without the garrison', () => {
+    const { state, city } = captured({ population: 6 });
+    slot(state, 0, 'theSatraps');
+    const lines = explainPacification(state, city);
+    expect(lines[0]).toEqual({ source: 'Every turn', amount: 1 });
+    const card = lines.filter((line) => line.source.includes('The Satraps'));
+    expect(card).toHaveLength(1);
+    expect(card[0]!.amount).toBe(1);
+    expect(foldPacification(lines)).toBe(2);
+    expect(pacificationTurnsLeft(state, city)).toBe(2);
+    expect(settle(state)).toEqual([]);
+    expect(city.unrest?.progress).toBe(2);
+    expect(settle(state).map((report) => report.kind)).toEqual(['pacified']);
+    expect(city.unrest).toBeUndefined();
+
+    // The same card in a town with no garrison: the card line goes, and the
+    // town takes the three turns every town takes.
+    const bare = captured({ population: 6 });
+    slot(bare.state, 0, 'theSatraps');
+    lift(bare.state, bare.raider);
+    touch(bare.state);
+    expect(explainPacification(bare.state, bare.city)).toEqual([{ source: 'Every turn', amount: 1 }]);
+    expect(pacificationTurnsLeft(bare.state, bare.city)).toBe(3);
   });
 
   it('starts over for a new owner when the town is taken again in unrest', () => {
@@ -294,70 +370,114 @@ describe('pacification', () => {
     lift(state, raider);
     retake(state, city);
     expect(city.unrest?.progress).toBe(0);
+    expect(city.unrest?.target).toBe(UNREST.turns);
   });
 });
 
 describe('rebels', () => {
-  it('rise beside an unguarded town every third unguarded turn', () => {
+  it('raise none by default, however long a town in unrest goes unguarded', () => {
+    expect(UNREST.rebelEveryTurns).toBe(0);
     const { state, city, raider } = captured({ wild: true, population: 12 });
     lift(state, raider);
+    // A record kept open by hand, so the town stays in unrest well past the
+    // three unguarded turns that raised a rebel before the ruling.
+    city.unrest = { target: 99, progress: 0, unguarded: 0 };
     const wild = barbarianPlayer(state)!;
-    const kind = barbarianUnitType(state, city);
-    expect(kind).not.toBeNull();
-    for (let turn = 1; turn < UNREST.rebelEveryTurns; turn++) {
-      expect(runEndOfTurn(state).unrest).toEqual([]);
-      expect(rebelTurnsLeft(city)).toBe(UNREST.rebelEveryTurns - turn);
-    }
-    const report = runEndOfTurn(state);
-    expect(report.unrest).toHaveLength(1);
-    const rose = report.unrest[0]!;
-    expect(rose.kind).toBe('rebel');
-    const rebel = state.units.find((unit) => unit.id === rose.unitId)!;
-    expect(rebel.ownerId).toBe(wild.id);
-    expect(rebel.type).toBe(kind);
-    expect(
-      wrappedDistance(state.map, tileHex(at(state, city.col, city.row)), tileHex(at(state, rebel.col, rebel.row))),
-    ).toBe(1);
-    expect(city.unrest?.unguarded).toBe(UNREST.rebelEveryTurns);
-  });
-
-  it('never rise from a town a soldier of its owner stands in', () => {
-    const { state, city } = captured({ wild: true, population: 12 });
-    const wild = barbarianPlayer(state)!;
-    for (let turn = 0; turn < UNREST.rebelEveryTurns * 2; turn++) {
-      expect(runEndOfTurn(state).unrest).toEqual([]);
-    }
-    expect(city.unrest?.unguarded).toBe(0);
+    for (let turn = 0; turn < 9; turn++) expect(settle(state)).toEqual([]);
+    expect(city.unrest?.unguarded).toBe(9);
+    expect(rebelTurnsLeft(city)).toBeNull();
     expect(state.units.some((unit) => unit.ownerId === wild.id)).toBe(false);
   });
 
+  it('raise none in a town pacified on the turn a rebel was due', () => {
+    // Three turns of unrest and a rebel every third unguarded turn: the phase
+    // fills the basket first, so the town is pacified before the rebel rises.
+    withUnrestRules({ rebelEveryTurns: 3 }, () => {
+      const { state, city, raider } = captured({ wild: true, population: 12 });
+      lift(state, raider);
+      expect(settle(state)).toEqual([]);
+      expect(settle(state)).toEqual([]);
+      expect(settle(state).map((report) => report.kind)).toEqual(['pacified']);
+      expect(city.unrest).toBeUndefined();
+    });
+  });
+
+  /**
+   * The rest of this block sets the cadence the rule had before the ruling,
+   * and a target long enough for it to matter.
+   */
+  const LONG = { turns: 12, rebelEveryTurns: 3 };
+
+  it('rise beside an unguarded town every third unguarded turn when a test sets the cadence', () => {
+    withUnrestRules(LONG, () => {
+      const { state, city, raider } = captured({ wild: true, population: 12 });
+      lift(state, raider);
+      const wild = barbarianPlayer(state)!;
+      const kind = barbarianUnitType(state, city);
+      expect(kind).not.toBeNull();
+      for (let turn = 1; turn < UNREST.rebelEveryTurns; turn++) {
+        expect(runEndOfTurn(state).unrest).toEqual([]);
+        expect(rebelTurnsLeft(city)).toBe(UNREST.rebelEveryTurns - turn);
+      }
+      const report = runEndOfTurn(state);
+      expect(report.unrest).toHaveLength(1);
+      const rose = report.unrest[0]!;
+      expect(rose.kind).toBe('rebel');
+      const rebel = state.units.find((unit) => unit.id === rose.unitId)!;
+      expect(rebel.ownerId).toBe(wild.id);
+      expect(rebel.type).toBe(kind);
+      expect(
+        wrappedDistance(state.map, tileHex(at(state, city.col, city.row)), tileHex(at(state, rebel.col, rebel.row))),
+      ).toBe(1);
+      expect(city.unrest?.unguarded).toBe(UNREST.rebelEveryTurns);
+    });
+  });
+
+  it('never rise from a town a soldier of its owner stands in', () => {
+    withUnrestRules(LONG, () => {
+      const { state, city } = captured({ wild: true, population: 12 });
+      const wild = barbarianPlayer(state)!;
+      for (let turn = 0; turn < UNREST.rebelEveryTurns * 2; turn++) {
+        expect(runEndOfTurn(state).unrest).toEqual([]);
+      }
+      expect(city.unrest?.unguarded).toBe(0);
+      expect(state.units.some((unit) => unit.ownerId === wild.id)).toBe(false);
+    });
+  });
+
   it('count unguarded turns, not a run of them: a garrisoned turn adds and takes nothing', () => {
-    const { state, city, raider } = captured({ wild: true, population: 12 });
-    lift(state, raider);
-    for (let turn = 1; turn < UNREST.rebelEveryTurns; turn++) expect(settle(state)).toEqual([]);
-    const guard = createUnit(state, 0, 'warrior', city.col, city.row);
-    expect(settle(state)).toEqual([]);
-    expect(settle(state)).toEqual([]);
-    expect(city.unrest?.unguarded).toBe(UNREST.rebelEveryTurns - 1);
-    lift(state, guard);
-    const reports = settle(state);
-    expect(reports.map((report) => report.kind)).toEqual(['rebel']);
+    withUnrestRules(LONG, () => {
+      const { state, city, raider } = captured({ wild: true, population: 12 });
+      lift(state, raider);
+      for (let turn = 1; turn < UNREST.rebelEveryTurns; turn++) expect(settle(state)).toEqual([]);
+      const guard = createUnit(state, 0, 'warrior', city.col, city.row);
+      expect(settle(state)).toEqual([]);
+      expect(settle(state)).toEqual([]);
+      expect(city.unrest?.unguarded).toBe(UNREST.rebelEveryTurns - 1);
+      lift(state, guard);
+      const reports = settle(state);
+      expect(reports.map((report) => report.kind)).toEqual(['rebel']);
+    });
   });
 
   it('raise none when every hex beside the town is taken, and still count the turn', () => {
-    const { state, city, raider } = captured({ wild: true, population: 12 });
-    lift(state, raider);
-    for (const tile of rebelGround(state, city)) createUnit(state, 0, 'worker', tile.col, tile.row);
-    expect(rebelGround(state, city)).toEqual([]);
-    for (let turn = 0; turn < UNREST.rebelEveryTurns; turn++) expect(settle(state)).toEqual([]);
-    expect(city.unrest?.unguarded).toBe(UNREST.rebelEveryTurns);
+    withUnrestRules(LONG, () => {
+      const { state, city, raider } = captured({ wild: true, population: 12 });
+      lift(state, raider);
+      for (const tile of rebelGround(state, city)) createUnit(state, 0, 'worker', tile.col, tile.row);
+      expect(rebelGround(state, city)).toEqual([]);
+      for (let turn = 0; turn < UNREST.rebelEveryTurns; turn++) expect(settle(state)).toEqual([]);
+      expect(city.unrest?.unguarded).toBe(UNREST.rebelEveryTurns);
+    });
   });
 
   it('raise none in a world with no wild seat', () => {
-    const { state, city, raider } = captured({ wild: false, population: 12 });
-    lift(state, raider);
-    for (let turn = 0; turn < UNREST.rebelEveryTurns; turn++) expect(settle(state)).toEqual([]);
-    expect(city.unrest?.unguarded).toBe(UNREST.rebelEveryTurns);
+    withUnrestRules(LONG, () => {
+      const { state, city, raider } = captured({ wild: false, population: 12 });
+      lift(state, raider);
+      for (let turn = 0; turn < UNREST.rebelEveryTurns; turn++) expect(settle(state)).toEqual([]);
+      expect(city.unrest?.unguarded).toBe(UNREST.rebelEveryTurns);
+    });
   });
 });
 
@@ -424,8 +544,8 @@ describe('the bot', () => {
   });
 
   it('sends a soldier to an empty town in unrest before a nearer empty town', () => {
-    // A town of two settles inside the turns the raze arm waits out, so this
-    // board asks only where the soldier goes.
+    // Unrest settles inside the turns the raze arm waits out, so this board
+    // asks only where the soldier goes.
     const { state, city, raider } = captured({ population: 2 });
     lift(state, raider);
     const home = state.cities.find((town) => town.ownerId === 0 && town.id !== city.id)!;
@@ -439,18 +559,31 @@ describe('the bot', () => {
     });
   });
 
-  it('pulls down a town in unrest that nobody can come and hold, and keeps one that can be held', () => {
-    const { state, city, raider } = captured({ population: 12 });
+  it('keeps an empty town in unrest that settles inside the turns it waits out', () => {
+    // Three turns of unrest are fewer than the turns the raze arm waits out, so
+    // at the default figures the bot never pulls a town down.
+    const { state, raider } = captured({ population: 12 });
     lift(state, raider);
     bumpRevision(state);
-    const razed = decisionOfType(structuredClone(state), 'razeCity');
-    expect((razed?.command as { cityId?: number } | undefined)?.cityId).toBe(city.id);
-    expect(razed?.kind).toBe('war');
-
-    // A soldier two hexes off can come and hold it, so it is kept.
-    createUnit(state, 0, 'warrior', city.col + 2, city.row);
-    bumpRevision(state);
     expect(decisionOfType(state, 'razeCity')).toBeNull();
+  });
+
+  it('pulls down a town in unrest that nobody can come and hold, and keeps one that can be held', () => {
+    // A long unrest set for the test, the figure a town of twelve had before
+    // the ruling, so the raze arm still has a case to act on.
+    withUnrestRules({ turns: 24 }, () => {
+      const { state, city, raider } = captured({ population: 12 });
+      lift(state, raider);
+      bumpRevision(state);
+      const razed = decisionOfType(structuredClone(state), 'razeCity');
+      expect((razed?.command as { cityId?: number } | undefined)?.cityId).toBe(city.id);
+      expect(razed?.kind).toBe('war');
+
+      // A soldier two hexes off can come and hold it, so it is kept.
+      createUnit(state, 0, 'warrior', city.col + 2, city.row);
+      bumpRevision(state);
+      expect(decisionOfType(state, 'razeCity')).toBeNull();
+    });
   });
 
   it('weighs a target’s unrest in the declaration', () => {
@@ -470,7 +603,17 @@ describe('the bot', () => {
 });
 
 describe('the log', () => {
-  it('replays a capture, its unrest and a rebel to the same state', () => {
+  /**
+   * A duel in which seat 0 storms seat 1's capital with logged commands, then
+   * lets its pieces in the town go, so the town is unguarded from the first
+   * turn of its unrest. Returns the game, the town, and an End Turn for every
+   * seat.
+   */
+  function stormed(): {
+    game: ReturnType<typeof createGame>;
+    town: City;
+    endTurn: () => UnrestReport[];
+  } {
     const config = {
       seed: 909,
       sizeName: 'duel' as const,
@@ -498,8 +641,7 @@ describe('the log', () => {
       );
     }
     const town = game.state.cities.find((city) => city.ownerId === 1)!;
-    // A town of two, so its unrest outlasts three unguarded turns (a town of
-    // one needs only two to settle at the base rate).
+    // A town of two, as the game this test replays has always used.
     for (let turn = 0; turn < 60 && town.population < 2; turn++) endTurn();
     expect(town.population).toBeGreaterThanOrEqual(2);
     expect(dispatch(game, { type: 'declareWar', playerId: 0, targetId: 1 }).ok).toBe(true);
@@ -526,17 +668,32 @@ describe('the log', () => {
     expect(town.ownerId).toBe(0);
     expect(inUnrest(town)).toBe(true);
 
-    // The captor is let go where it stands, so the town is unguarded from the
-    // first turn of its unrest.
     for (const piece of game.state.units.filter(
       (unit) => unit.ownerId === 0 && unit.col === town.col && unit.row === town.row,
     )) {
       expect(dispatch(game, { type: 'disbandUnit', playerId: 0, unitId: piece.id }).ok).toBe(true);
     }
+    return { game, town, endTurn };
+  }
+
+  it('replays a capture and its unrest to the same state, pacified on the third End Turn', () => {
+    const { game, town, endTurn } = stormed();
     const reports: UnrestReport[] = [];
-    for (let turn = 0; turn < UNREST.rebelEveryTurns; turn++) reports.push(...endTurn());
-    expect(reports.map((report) => report.kind)).toEqual(['rebel']);
+    for (let turn = 0; turn < UNREST.turns; turn++) reports.push(...endTurn());
+    expect(reports.map((report) => report.kind)).toEqual(['pacified']);
     expect(reports[0]!.cityId).toBe(town.id);
+    expect(inUnrest(town)).toBe(false);
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
+  });
+
+  it('replays a rebel to the same state when a test sets the cadence', () => {
+    withUnrestRules({ turns: 12, rebelEveryTurns: 3 }, () => {
+      const { game, town, endTurn } = stormed();
+      const reports: UnrestReport[] = [];
+      for (let turn = 0; turn < UNREST.rebelEveryTurns; turn++) reports.push(...endTurn());
+      expect(reports.map((report) => report.kind)).toEqual(['rebel']);
+      expect(reports[0]!.cityId).toBe(town.id);
+      expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
+    });
   });
 });

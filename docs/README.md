@@ -495,26 +495,31 @@ Reference: **`docs/units.md`** (the roster; generated) and
   over for its new owner; a town handed over at a treaty table enters none. In
   unrest a town makes no production, science or culture (the unrest gate, yield
   step 13) and its borders do not grow; food, gold, faith and purchases are
-  untouched. **Pacification** fills a basket toward `2 × the population when
-  taken`, at a rate that is a labelled list (`explainPacification`): every turn,
-  a soldier of the owner's inside, a great general in or beside the town, and
-  each building with the `easesUnrest` marker (the Courthouse). The `unrest`
-  phase, after `resetMovement` and before `wakeSleepers`, fills it and ends the
-  unrest at the target; a town still in unrest with no soldier inside counts the
-  turn, and every third such turn a **rebel** rises on a free hex beside it — a
-  barbarian of the kind a camp there would raise, ordinary from then on. A town
-  in unrest raises no production blocker. Every figure is `rules.war.unrest`.
+  untouched. **Unrest lasts `rules.war.unrest.turns` (3) turns in every town**
+  (the user's ruling of 2026-11-23): pacification fills a basket toward that
+  target by one each turn, as a labelled list (`explainPacification`) of the
+  turn's one line and any card line. A garrison, a great general and the
+  Courthouse do not change the length. The `unrest` phase, after
+  `resetMovement` and before `wakeSleepers`, fills it and ends the unrest at the
+  target. A town still in unrest with no soldier inside counts the turn as
+  unguarded. **Rebels are off** (`rebelEveryTurns` 0); with a figure above 0, a
+  rebel rises on a free hex beside the town on every such turn that reaches a
+  multiple of it. The rebel is a barbarian of the kind a camp there would raise,
+  and ordinary from then on. A town in unrest raises no production blocker.
+  Every figure is `rules.war.unrest`.
   The town panel shows the bar, the reasons and the turns left; the banner and
   the flag fly a torch (`CityLook.unrest`). Bots keep a soldier in such a town
   (`military.unrestGarrison`), weigh a target's unrest in a declaration
-  (`war.unrestDrag`) and raze one they cannot hold (`war.razeUnrestTurns`).
+  (`war.unrestDrag`) and raze one they cannot hold (`war.razeUnrestTurns`). At
+  the default figures the raze never happens: a town settles in three turns,
+  under the six that `razeUnrestTurns` waits out.
   - **Cards that touch unrest** (Dominion batches D3 and D4):
     - The Harrying's pillage puts an ungarrisoned enemy town into unrest
       (`startUnrest`'s second caller).
     - A card can add a line to pacification (`CardRule` `pacificationRate`, The
-      Satraps).
+      Satraps, retired): its +100% makes a garrisoned town settle in two turns.
     - A card can end the unrest at once: in the `unrest` phase for a town its
-      scope admits (`CityRuleId` `pacified`, The Bakufu and The Consular Roads),
+      scope admits (`CityRuleId` `pacified`, The Consular Roads),
       or at the moment of capture (`ActionRuleId` `pacifyOnCapture`, Pax
       Romana).
     - Every way unrest ends goes through `endUnrest`, which pays the `pacified`
