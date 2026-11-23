@@ -344,7 +344,7 @@ import {
 // and the Ledger do. See `readings.ts`.
 import { readCity, readEmpirePercents, readEmpireRates } from '../sim/readings';
 import { slateMemo } from '../sim/slate';
-import { type CombatForecast, attackRange, fortifyError, isFortified, previewCombat } from '../sim/combat';
+import { type CombatForecast, attackRange, fortifyError, isFortified, previewCombat, previewCombatRisk } from '../sim/combat';
 // A unit's rank, read from its experience (batch WC3). The wounded-veteran
 // clause in `favourableBlow` asks it.
 import { rankName, rankOf } from '../sim/ranks';
@@ -10371,6 +10371,18 @@ function soldierCommand(
       focus: strike.at,
     };
   }
+  if (strikes.heldForRisk) {
+    const hold = standDown(state, unit, 'Holds because the counterattack risk outweighs the available attack value.');
+    if (hold !== null) {
+      hold.candidates = [...weighed, {
+        label: 'keep position', score: 0, chosen: true,
+        terms: [{ label: 'No damage spent on an attack', value: 0 }],
+      }];
+    }
+    // A unit already fortified can have no new order. It must still stop here,
+    // rather than follow a campaign march out of the position it chose to keep.
+    return hold;
+  }
   if (strikes.heldScreen) {
     const hold = standDown(state, unit,
       'Keeps its position in front of a ranged unit that can continue firing at the raider.');
@@ -10496,6 +10508,7 @@ interface StrikeReview {
   candidates: BotCandidate[];
   deferredToRanged: boolean;
   heldScreen?: boolean;
+  heldForRisk?: boolean;
 }
 
 interface AssaultThreshold {
@@ -10505,7 +10518,7 @@ interface AssaultThreshold {
 }
 
 /**
- * Compare legal targets through the shared combat calculation's UI forecast.
+ * Compare legal targets through the shared combat calculation's risk bounds.
  * Keep the existing exchange and ranged-first guards. Among accepted attacks,
  * value damage, target removal and survival rather than taking the first one.
  *
@@ -10546,7 +10559,7 @@ function favourableBlow(
       ? Math.max(0, Math.min(1, siege!.appetite))
       : ordinary;
     const label = `strike (${near.col},${near.row})`;
-    const preview = previewCombat(state, unit.id, { col: near.col, row: near.row });
+    const preview = previewCombatRisk(state, unit.id, { col: near.col, row: near.row });
     if (!preview.ok) {
       tried.push(refused(label, preview.error ?? 'the rules refuse the blow'));
       continue;
@@ -10566,12 +10579,19 @@ function favourableBlow(
     // should make. It is a *charge on the candidate* rather than a silent skip,
     // for `scoutGlutPenalty`'s reason: a reader of the feed has to see the hold.
     const defer = !shoots && !decisive ? rangedFriendReady(state, player, unit, near) : null;
+    const floor = Math.max(0, besieging ? ai.military.siegeStrikeFloor : ai.military.strikeFloor);
+    const bar = preview.damageToAttacker * Math.max(floor, 1 - appetite);
     // Damage is already capped by the health actually available. Add the
     // removal value separately so a finishing hit can beat a larger wound.
     const terms: ValueTerm[] = [
       { label: `${preview.damageToDefender} damage dealt (defender on ${preview.defenderHp})`, value: preview.damageToDefender },
       { label: `${preview.damageToAttacker} damage taken`, value: preview.damageToAttacker, op: 'sub' },
     ];
+    if (preview.damageToAttackerMax > 0) {
+      terms.push({
+        label: `Worst counter: ${preview.damageToAttackerMax} damage against ${preview.attackerHp} health`, value: 0,
+      });
+    }
     if (kills || preview.capturesUnit || preview.plundersUnit || certainCity) {
       terms.push({
         label: certainCity ? 'Certain city capture' : kills ? 'Predicted unit kill' : 'Civilian capture or trade plunder',
@@ -10610,8 +10630,6 @@ function favourableBlow(
     // walls themselves, which is the clause below rather than this bar.
     // At the walls the floor is `military.siegeStrikeFloor` (E1a) — nought,
     // the old rule, lets the siege appetite be the whole bar.
-    const floor = Math.max(0, besieging ? ai.military.siegeStrikeFloor : ai.military.strikeFloor);
-    const bar = preview.damageToAttacker * Math.max(floor, 1 - appetite);
     // **The blow nobody should make** (the same ruling): a melee piece walking at
     // a town, or at a dug-in piece on ground that pays it, and coming off worse.
     // A bow and a siege engine take no blow back, so they clear this by
@@ -10676,13 +10694,20 @@ function favourableBlow(
     }
     if (decisive || preview.damageToDefender > bar) {
       tried.push(exchange);
+      // Preserve deliberate, nonfatal siege trades. The survival penalty can
+      // refuse a lethal gamble without changing the ranking of safe targets.
+      if (preview.damageToAttackerMax >= preview.attackerHp && exchange.score < 0) {
+        exchange.rejected = 'Holding has a better score.';
+        review.heldForRisk = true;
+        continue;
+      }
       if (best !== null && exchange.score <= best.row.score) continue;
       const target: UnitTarget = {
         at: { col: near.col, row: near.row },
         summary: preview.capturesCity || preview.capturesUnit
           ? `Captures ${preview.defenderName}.`
           : kills
-          ? `The blow kills: ${preview.damageToDefender} damage against ${preview.defenderHp} hit points left.`
+          ? `The midpoint forecast finishes the target: ${preview.damageToDefender} damage against ${preview.defenderHp} health.`
           : besieging
             ? `The force is at the walls: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} ` +
               `taken, and a push asks only for more than ${round1(bar)}.`
@@ -10858,7 +10883,7 @@ function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice |
     command: { type: 'fortify', playerId: player.id, unitId: unit.id },
     summary:
       `Too hurt to be swinging: ${unit.hp} of ${maxHp} hit points, on ground this empire holds, ` +
-      'and no blow in front of it would finish anything. Digs in and mends.',
+      'and no finishing attack is safe from the counterattack. Digs in and mends.',
     candidates: [{ label: 'dig in and mend', score: foldTerms(terms), chosen: true, terms }],
   };
 }
@@ -10940,7 +10965,7 @@ function fallBackAndHeal(state: GameState, player: Player, unit: Unit): UnitTarg
       at: goal,
       summary:
         `Too hurt to be out here: ${unit.hp} of ${maxHp} hit points on ground this empire does not hold, ` +
-        `and no blow in front of it would finish anything. Falls back to ${entry.city.name} to mend.`,
+        `and no finishing attack is safe from the counterattack. Falls back to ${entry.city.name} to mend.`,
       candidates: tried,
     };
   }
@@ -10952,8 +10977,9 @@ function fallBackAndHeal(state: GameState, player: Player, unit: Unit): UnitTarg
  * town**, or `null` — the one exception the heal arm makes.
  *
  * `favourableBlow`'s probe with the exchange thrown away: it asks the same
- * `previewCombat` about the same two predicates and answers only whether
- * anything in reach dies. It never chooses; the blow arms below choose.
+ * combat calculation and requires survival across the counter's roll bounds.
+ * A possible finishing hit must not cancel healing if a failed roll can kill
+ * this unit. It never chooses; the attack comparison below chooses.
  */
 function decisiveBlowAt(
   state: GameState,
@@ -10965,8 +10991,9 @@ function decisiveBlowAt(
   for (const near of mapRange(state.map, tileHex(here), attackRange(state, unit))) {
     if (near.col === unit.col && near.row === unit.row) continue;
     if (!holdsWild(state, player, near) && !holdsRival(state, player, near)) continue;
-    const preview = previewCombat(state, unit.id, { col: near.col, row: near.row });
+    const preview = previewCombatRisk(state, unit.id, { col: near.col, row: near.row });
     if (!preview.ok) continue;
+    if (preview.damageToAttackerMax >= preview.attackerHp) continue;
     if (preview.defenderHp <= preview.damageToDefender || preview.capturesUnit || preview.capturesCity) {
       return { col: near.col, row: near.row };
     }

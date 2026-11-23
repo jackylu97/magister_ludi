@@ -2,15 +2,17 @@
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { previewCombat } from '../src/sim/combat';
+import { previewCombat, previewCombatRisk } from '../src/sim/combat';
 import { loadGame, snapshotState, type SaveFile } from '../src/sim/game';
 
-const [root] = process.argv.slice(2);
+const [root, beforeVariant = 'war-losses', afterVariant = 'ranked-attacks'] = process.argv.slice(2);
 if (!root) throw Error('Pass the comparison directory.');
 const schedule = JSON.parse(readFileSync(join(root, 'schedule.json'), 'utf8'));
+const seeds = process.env.BOT_COMBAT_SEEDS?.split(',').map(Number);
 const cases: unknown[] = [];
 for (const { seed } of schedule.lineups) {
-  const files = ['war-losses', 'ranked-attacks'].map(variant => {
+  if (seeds && !seeds.includes(seed)) continue;
+  const files = [beforeVariant, afterVariant].map(variant => {
     const directory = join(root, variant, String(seed));
     const report = JSON.parse(readFileSync(join(directory, `${seed}.json`), 'utf8'));
     const checkpoint = Math.max(...Object.keys(report.checkpoints).map(Number));
@@ -34,10 +36,14 @@ for (const { seed } of schedule.lineups) {
     return {
       command, unit: { type: unit.type, hp: unit.hp, col: unit.col, row: unit.row },
       preview: previewCombat(state, unit.id, command.target),
+      risk: previewCombatRisk(state, unit.id, command.target),
     };
   });
   assert.equal(snapshotState(state), snapshot);
   cases.push({ seed, turn: state.turn, sharedCommands: index, choices });
   console.log(`Compared seed ${seed}, first change at command ${index}, turn ${state.turn}.`);
 }
-writeFileSync(join(root, 'first-attack-differences.json'), JSON.stringify(cases, null, 2) + '\n');
+const filename = process.argv.length > 3
+  ? `first-attack-differences-${beforeVariant}-${afterVariant}.json`
+  : 'first-attack-differences.json';
+writeFileSync(join(root, filename), JSON.stringify(cases, null, 2) + '\n');

@@ -1,4 +1,5 @@
 /** Record bot economies for a chosen roster without resuming mid-game. */
+import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { setAiTuning, type PersonaOverride } from '../src/ai/aiConfig';
 import { driveBots, runBotTurn } from '../src/ai/driver';
@@ -16,6 +17,7 @@ import { sampleEmpireIncome } from './botAuditReadings';
 const [seedInput, output, tuningPath, limitInput, scenarioPath] = process.argv.slice(2);
 const decisionsThrough = Number(process.env.BOT_AUDIT_DECISIONS ?? 0);
 const recordWars = process.env.BOT_AUDIT_WARS === '1';
+const recordCombat = process.env.BOT_AUDIT_COMBAT === '1';
 const limit = Number(limitInput ?? 100);
 if (!Number.isSafeInteger(limit) || limit < 1) throw Error('The turn limit must be a positive integer.');
 const tuning = tuningPath ? JSON.parse(readFileSync(tuningPath, 'utf8')) : null;
@@ -48,7 +50,7 @@ const checkpoints: Record<number, unknown> = {};
 const warnings: { turn: number; message: string; detail?: unknown }[] = [];
 const commandCounts = leaders.map(() => ({} as Record<string, number>));
 const cumulative = leaders.map(() => 0);
-const decisions: { turn: number; playerId: number; decision: BotDecision }[] = [];
+const decisions: { index: number; turn: number; playerId: number; decision: BotDecision }[] = [];
 const losses = leaders.map(() => 0);
 const owners = new Map(state.cities.map(city => [city.id, city.ownerId]));
 
@@ -94,12 +96,15 @@ while (state.turn <= limit && state.winnerId === null) {
   const turn = state.turn;
   const firstCommand = game.log.length;
   const warn = (message: string, detail?: unknown): void => { warnings.push({ turn, message, detail }); };
-  if (turn <= decisionsThrough || recordWars) {
+  if (turn <= decisionsThrough || recordWars || recordCombat) {
     // Keep the original frozen-board appraisal. Repricing a replay can give a different explanation.
     for (const step of runBotTurn(game, { warn, report })) {
       const economy = turn <= decisionsThrough && ['setCityProduction', 'purchaseItem', 'chooseResearch', 'chooseOrder', 'skipOrderOffer', 'slotOrder'].includes(step.decision.command.type);
-      if (step.result.ok && (economy || (recordWars && step.decision.kind === 'war'))) {
-        decisions.push({ turn: step.turn, playerId: step.playerId, decision: step.decision });
+      const combat = recordCombat && step.decision.kind === 'unitOrder';
+      if (step.result.ok && (economy || combat || (recordWars && step.decision.kind === 'war'))) {
+        const index = game.log.length - 1;
+        assert.deepEqual(game.log[index], step.decision.command);
+        decisions.push({ index, turn: step.turn, playerId: step.playerId, decision: step.decision });
       }
     }
   } else driveBots(game, { warn, report });
@@ -120,5 +125,5 @@ while (state.turn <= limit && state.winnerId === null) {
 }
 writeFileSync(`${output}/${seed}.json`, JSON.stringify({
   metricVersion: 2, seed, tuning, scenario, turn: state.turn, winner: state.winnerId, checkpoints, warnings,
-  ...(decisionsThrough > 0 || recordWars ? { decisions } : {}),
+  ...(decisionsThrough > 0 || recordWars || recordCombat ? { decisions } : {}),
 }) + '\n');

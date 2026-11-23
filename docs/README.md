@@ -1462,6 +1462,13 @@ earned).
 
 Reference: **`docs/bot-priorities.md`** — the spec of record. Code: `src/ai/`.
 
+The current combat experiment is on `codex/bot-combat-262`. The
+[combat comparison](audit/bot-combat-results-2026-11-22.md) and
+[counter-risk review](audit/bot-counter-risk-2026-11-22.md) record its games,
+checks and limits. Combat quality includes defense, safe positions and
+civilian protection. Capture totals alone do not decide whether it is better.
+The experimental combat policy has not been put on port 5199.
+
 The bot prices things before it picks them. Each turn it builds a **want book**
 (`wants.ts`): one entry per thing a currency could be spent on, each carrying its
 cost, its worth (the fold of the simulation's own explainers) and its delay. From

@@ -2569,6 +2569,34 @@ export function previewCombat(
   return { ok: true, ...planned.plan.forecast };
 }
 
+/**
+ * Planning needs counter bounds that include a failed finishing attack. The
+ * UI deliberately shows survival when the best attack roll can kill. Here,
+ * the worst counter protects the attacker only if its weakest blow kills.
+ * The midpoint uses both midpoint rolls; it is not an expected-value estimate.
+ * Reuse the same plan and roll arithmetic without drawing from the game's RNG.
+ */
+export function previewCombatRisk(
+  state: GameState,
+  attackerId: number,
+  cell: Cell,
+): CombatPreview {
+  const planned = planCombat(state, attackerId, cell);
+  if (!planned.ok) return { ok: false, error: planned.error };
+  const { forecast, baseToAttacker, target } = planned.plan;
+  const counter = (roll: number, dealt: number): number => {
+    const floor = target.unit !== null && dealt >= forecast.defenderHp ? 1 : 0;
+    return clampDamage(damageAtRoll(baseToAttacker, roll), forecast.attackerHp, floor);
+  };
+  return {
+    ok: true,
+    ...forecast,
+    damageToAttacker: counter(1, forecast.damageToDefender),
+    damageToAttackerMin: counter(1 - COMBAT.rollBand, forecast.damageToDefenderMax),
+    damageToAttackerMax: counter(1 + COMBAT.rollBand, forecast.damageToDefenderMin),
+  };
+}
+
 // --- resolution -------------------------------------------------------------
 
 /** What an attack actually did. The notice line and the animations read this. */

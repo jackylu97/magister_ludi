@@ -75,7 +75,7 @@ import {
 import { buildingDef } from '../../src/sim/buildingData';
 import { isVisibleTo, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { unitDef } from '../../src/sim/unitData';
-import { cityBaseStrength, cityMaxHp, previewCombat } from '../../src/sim/combat';
+import { cityBaseStrength, cityMaxHp, previewCombat, previewCombatRisk } from '../../src/sim/combat';
 import { buildingCityHp, buildingCityStat, foldBuildingCityStat } from '../../src/sim/buildingEffects';
 import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { type DoctrineId, slotLayout } from '../../src/sim/statecraftData';
@@ -1478,6 +1478,48 @@ describe('the three tactics', () => {
     }
     expect(choose(0).command).toMatchObject({ type: 'attack', target: { col: 5, row: 4 } });
     expect(choose(100).command).toMatchObject({ type: 'attack', target: { col: 6, row: 5 } });
+  });
+
+  it('holds instead of taking a risky finishing attack or falling through to a campaign move', () => {
+    withAiTuning({ military: { healBelowHealth: 0, withdrawBelowHealth: 0 } }, () => {
+      const { state } = front();
+      foundCityAt(state, 1, at(state.map, 9, 5));
+      const piece = createUnit(state, 0, 'warrior', 5, 5);
+      const target = createUnit(state, 1, 'warrior', 6, 5);
+      piece.hp = 25;
+      target.hp = 28;
+      recomputeAllVisibility(state);
+      bumpRevision(state);
+      expect(previewCombat(state, piece.id, target)).toMatchObject({ ok: true, damageToAttackerMax: 24 });
+      expect(previewCombatRisk(state, piece.id, target)).toMatchObject({ ok: true, damageToAttackerMax: 25 });
+      const decision = orderFor(state, 0, piece.id, 20)!;
+      expect(decision.command).toMatchObject({ type: 'fortify', unitId: piece.id });
+      expect(decision.candidates.find(row => row.label === 'strike (6,5)')).toMatchObject({
+        chosen: false, rejected: 'Holding has a better score.',
+      });
+      expect(decision.candidates.find(row => row.chosen)).toMatchObject({ label: 'keep position', score: 0 });
+      for (const row of decision.candidates) expect(foldTerms(row.terms)).toBe(row.score);
+      expect(applyCommand(state, decision.command).ok).toBe(true);
+      expect([piece.col, piece.row]).toEqual([5, 5]);
+      // The campaign asks fortified pieces again. A hold with no new command
+      // must not drop through to its march after the first fortify succeeds.
+      expect(orderFor(state, 0, piece.id, 20)?.command.type).not.toBe('moveUnit');
+    });
+  });
+
+  it('does not cancel healing for an uncertain finishing attack with a lethal counter', () => {
+    const { state, city } = front();
+    const piece = createUnit(state, 0, 'warrior', 5, 5);
+    const target = createUnit(state, 1, 'warrior', 6, 5);
+    state.tileOwner[tileIndex(state.map, 5, 5)] = city.id;
+    piece.hp = 25;
+    target.hp = 28;
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const decision = orderFor(state, 0, piece.id, 20)!;
+    expect(decision.command).toMatchObject({ type: 'fortify', unitId: piece.id });
+    expect(decision.summary).toContain('mends');
+    expect(applyCommand(state, decision.command).ok).toBe(true);
   });
 
   it('compares every shot and selects open ground over a defended target', () => {

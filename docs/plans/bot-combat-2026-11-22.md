@@ -129,3 +129,57 @@ from the nearest visible enemy. It does not establish either fact.
 Keep searches local and bounded. Preserve the original decision explanation
 for reviewed turns, including refusals, so a later replay does not substitute
 new knowledge for what the bot knew. Hold the earlier preference settings fixed.
+
+## Third candidate: counter risk and holding
+
+- `previewCombatRisk` uses the shared combat plan. Its maximum counter assumes
+  the weakest attack roll. Survival protection applies only when that roll
+  still kills. The UI keeps its existing optimistic preview.
+- The healing exception uses this bound too. A possible kill must not cancel
+  healing when the counter can kill the attacker.
+- If a counter can kill, hold when its risk penalty outweighs the attack value.
+  Stop later camp and campaign marches, including for a fortified unit that
+  needs no new command. Healing and withdrawal can act earlier.
+- Keep deliberate nonfatal siege trades and the ranking of safe targets.
+  The first trial added an assault allowance to the score, but that changed
+  an unrelated safe-target choice on turn 43 of seed 48017. Preserve that
+  single-map trial separately and narrow the next candidate to counter risk.
+  The defended-wall and ranged-first guards remain.
+- Keep every earlier preference value fixed. Record original unit decisions
+  with `BOT_AUDIT_COMBAT=1`, including the counter bound and refusals.
+- Repeat the fixed all-leader schedule. Review actual fighting before deciding
+  whether this candidate is better. Post-advance exposure is still separate.
+
+## Army composition finding to verify
+
+The declaration gate's `isSiegePiece` includes every ranged unit. An archer
+therefore satisfies `war.siegePiecesWanted`; that setting does not require a
+dedicated siege engine. Production has a separate siege share through
+`military.mixCampaign` and `mixBonus`. Its default empty-share bonus is small.
+This can explain how a large attacking army passes the declaration gate with
+no siege engines, but does not yet establish why Mehmed never selected one.
+Compare actual production choices and city damage before changing this policy.
+
+## Next structural change: validate the planned defender
+
+The counter-risk review reproduced a lethal stale attack on seed 48017,
+turn 60. A plan targeted barbarian spearman 278 on one health. Mehmed's
+swordsman 149 killed it and advanced before the command reached the live
+board. The attack remained legal, so the bot sent it and lost its warrior.
+
+Record the defender used by each planned attack. Before dispatch, check that
+the live attack still targets that unit or the same city siege phase. If the
+target changed, stop the unused plan and resume the existing live decision
+loop. Do not send a known stale attack merely to get a reducer response.
+Keep entity-id remapping, command budgets and accepted sitting marks intact.
+Use the same check for workers, ordinary play and the spectator.
+
+Start with this proven target-replacement failure. Changes in a target's
+health, strength or surrounding threats can also change the decision, but
+require a separate check before broadening invalidation. Record the number
+of replans and compare original fights on the same map. A target check must
+not scan the whole map or invalidate plans for unrelated city changes.
+
+Tests must cover a replaced unit, a changed siege phase, valid unchanged
+targets, new ids, no mutation before a cut and completion through the live
+loop. Preserve exact replay and worker/coordinator parity.

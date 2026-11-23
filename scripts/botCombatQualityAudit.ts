@@ -8,6 +8,7 @@ import { loadGame, restoreState, snapshotState, type SaveFile } from '../src/sim
 import { getTileAt, tileHex, wrappedDistance } from '../src/sim/map';
 import { isBarbarian, newGame, realPlayers, type GameState, type Unit } from '../src/sim/state';
 import { isCombatant, isRanged, unitDef } from '../src/sim/unitData';
+import type { BotDecision } from '../src/ai/decision';
 
 const [root, ...requested] = process.argv.slice(2);
 if (!root) throw Error('Pass the comparison directory and optional variant names.');
@@ -29,6 +30,7 @@ type Event = {
   index: number; turn: number; automatic: boolean; outcome: CombatOutcome;
   attacker: UnitReading | null; defender: UnitReading | null;
   context: ReturnType<typeof attackContext> | null;
+  originalDecision?: BotDecision;
   attackerLostByNextTurn?: { turn: number; index: number; by: number };
 };
 
@@ -52,6 +54,10 @@ for (const variant of variants) for (const { seed } of schedule.lineups) {
   if (seeds && !seeds.includes(seed)) continue;
   const directory = join(root, variant, String(seed));
   const report = JSON.parse(readFileSync(join(directory, `${seed}.json`), 'utf8'));
+  const decisions = new Map<number, BotDecision>(
+    (report.decisions ?? []).filter((row: { index?: number }) => row.index !== undefined)
+      .map((row: { index: number; decision: BotDecision }) => [row.index, row.decision]),
+  );
   const checkpoint = Math.max(...Object.keys(report.checkpoints).map(Number));
   const saved = readFileSync(join(directory, `${seed}-${checkpoint}.save.json`), 'utf8');
   const file = JSON.parse(saved) as SaveFile;
@@ -94,6 +100,7 @@ for (const variant of variants) for (const { seed } of schedule.lineups) {
         attacker: direct ? rosterTypes.get(outcome.attackerId) ?? null : null,
         defender: direct && outcome.defenderUnitId !== null ? rosterTypes.get(outcome.defenderUnitId) ?? null : null,
         context,
+        originalDecision: direct ? decisions.get(index) : undefined,
       };
       for (const killed of outcome.killed) {
         const advance = lastAdvance.get(killed.id);

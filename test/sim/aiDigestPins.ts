@@ -1352,9 +1352,13 @@ import { digestOfState, type Played } from './aiDigestHelpers';
 // Both 120-turn games completed without warnings or stalls and replayed exactly.
 // These replace the version-260 pins. The separate version-262 control and
 // combat-quality findings are in docs/audit/bot-combat-results-2026-11-22.md.
+// Counter-risk bounds now include failed finishing attacks. Healing and
+// withdrawal use those bounds, and negative lethal-counter gambles can hold.
+// Both 120-turn games replay exactly without warnings. Rules and RNG are
+// unchanged. Combat-quality limits are in bot-counter-risk-2026-11-22.md.
 const DIGESTS = {
-  duel: '236e0c96:420760',
-  standard: '5d52a388:1103269',
+  duel: 'f4252d13:414938',
+  standard: 'fd817247:1126826',
 };
 
 /** Check driver errors before comparing the state digest. */

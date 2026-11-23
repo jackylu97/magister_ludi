@@ -21,6 +21,7 @@ import {
   isFortified,
   isRanged,
   previewCombat,
+  previewCombatRisk,
   siegeField,
   underSiege,
 } from '../../src/sim/combat';
@@ -448,6 +449,54 @@ describe('melee', () => {
 });
 
 // --- no mutual death --------------------------------------------------------
+
+describe('combat risk for planning', () => {
+  it.each([28, 34])('includes a lethal counter when a roll can fail to kill a defender on %s health', hp => {
+    const state = flatState();
+    const attacker = createUnit(state, 0, 'warrior', 3, 3);
+    const defender = createUnit(state, 1, 'warrior', 4, 3);
+    attacker.hp = 10;
+    defender.hp = hp;
+    const before = snapshotState(state);
+    const display = previewCombat(state, attacker.id, defender);
+    const risk = previewCombatRisk(state, attacker.id, defender);
+    expect(display.ok && display.damageToAttackerMax).toBe(9);
+    expect(risk).toMatchObject({ ok: true, damageToDefenderMin: 24, damageToAttackerMin: 9, damageToAttackerMax: 10 });
+    expect(risk.ok && risk.damageToAttacker).toBe(hp <= 30 ? 9 : 10);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('keeps guaranteed finishing attacks protected at every counter roll', () => {
+    const state = flatState();
+    const attacker = createUnit(state, 0, 'warrior', 3, 3);
+    const defender = createUnit(state, 1, 'warrior', 4, 3);
+    attacker.hp = 10;
+    defender.hp = 20;
+    expect(previewCombatRisk(state, attacker.id, defender)).toMatchObject({
+      ok: true, damageToDefenderMin: 20, damageToAttackerMin: 9, damageToAttacker: 9, damageToAttackerMax: 9,
+    });
+  });
+
+  it.each(['archer', 'warrior'] as const)('keeps a %s attack with no counter free of counter damage', type => {
+    const state = flatState();
+    const attacker = createUnit(state, 0, type, 3, 3);
+    const defender = createUnit(state, 1, type === 'archer' ? 'warrior' : 'worker', 4, 3);
+    expect(previewCombatRisk(state, attacker.id, defender)).toMatchObject({
+      ok: true, damageToAttackerMin: 0, damageToAttacker: 0, damageToAttackerMax: 0,
+    });
+  });
+
+  it('uses the same refusal and does not mutate a rejected attack', () => {
+    const state = flatState();
+    const attacker = createUnit(state, 0, 'warrior', 3, 3);
+    const defender = createUnit(state, 1, 'warrior', 8, 3);
+    const before = snapshotState(state);
+    const display = previewCombat(state, attacker.id, defender);
+    expect(display.ok).toBe(false);
+    expect(previewCombatRisk(state, attacker.id, defender)).toEqual(display);
+    expect(snapshotState(state)).toBe(before);
+  });
+});
 
 /**
  * Civ V's rule, and the one asymmetry in a melee that is otherwise simultaneous:

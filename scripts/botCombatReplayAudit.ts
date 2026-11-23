@@ -12,6 +12,7 @@ import { sampleEmpireIncome } from './botAuditReadings';
 const [root, ...requestedVariants] = process.argv.slice(2);
 if (!root) throw Error('Pass the comparison directory and optional variant names.');
 const variants = requestedVariants.length ? requestedVariants : ['baseline', 'war-losses', 'ranked-attacks'];
+const output = requestedVariants.length ? `replay-audit-${variants.join('-')}.json` : 'replay-audit.json';
 const schedule = JSON.parse(readFileSync(join(root, 'schedule.json'), 'utf8'));
 const results: unknown[] = [];
 for (const variant of variants) {
@@ -49,7 +50,7 @@ for (const variant of variants) {
     });
     assert.equal(snapshotState(state), before, `${variant}/${seed}: the diagnostic changed state`);
     results.push({ variant, seed, checkpoint, metricsMatched: true, diagnosticReadOnly: true, seats });
-    writeFileSync(join(root, 'replay-audit.json'), JSON.stringify(results, null, 2) + '\n');
+    writeFileSync(join(root, output), JSON.stringify(results, null, 2) + '\n');
     console.log(`Verified ${variant}/${seed} at turn ${checkpoint}.`);
   }
 }
