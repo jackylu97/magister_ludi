@@ -3610,3 +3610,27 @@ The new rule:
   and empties any queue each turn. The user can rule otherwise.
 - **Do not put this on the play server until the user says so.** The user:
   "Don't move this to the playtest server, i want to finish my game".
+
+## Unrest lasts three turns in every town (ruled 2026-11-23)
+
+The user, after the table of the old rule (two points for each citizen, so a
+town of twelve took 24 turns with no help): "let's just keep it way easier.
+Could you make it 3 turns everywhere. I'm realizing the game has so many
+mechanics, i'd love to simplify wherever we can."
+
+- **A town taken by force is in unrest for three turns.** The figure is
+  `rules.war.unrest.turns` (3). The town's size does not change it.
+- **Nothing shortens it but a card.** A garrison, a great general and the
+  Courthouse no longer change the length. Their three rates leave the rules,
+  and the Courthouse loses its `easesUnrest` marker. It keeps its gold and
+  its authority.
+- **The cards stay.** The two Dominion cards that pacify a town at once work
+  as before. The Satraps ("Garrisoned towns in unrest pacify twice as fast")
+  still doubles the speed, so its town takes two turns. That card is weak
+  now, and its text is the user's to change in a card pass.
+- **Rebels are switched off** (`rebelEveryTurns` 0). My reading: a rebel rose
+  after three turns without a garrison, and no town is in unrest that long
+  now. The code for rebels stays, so the number can bring them back.
+- What unrest does to a town does not change: no production, science or
+  culture, and the borders do not grow.
+- Do not put this on the play server until the user's game is over.
