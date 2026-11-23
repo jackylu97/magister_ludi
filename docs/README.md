@@ -1379,9 +1379,9 @@ a city and never captures a unit, and it wears the war-red rim like any enemy.
 
 Camps (batch BR1, `src/sim/barbarians.ts`; the numbers are `rules.barbarians`):
 
-- A new camp starts with one or two units (`campStartUnitsMin`,
-  `campStartUnitsMax`), a roll on `state.rng` made right after `foundCamps`
-  places it. The first unit stands on the camp and digs in. The band does not
+- A new camp starts with one unit (`campStartUnitsMin` and
+  `campStartUnitsMax` are both 1 since 2026-11-22; a wider range is a roll on
+  `state.rng` made right after `foundCamps` places it). The first unit stands on the camp and digs in. The band does not
   move on the turn it appears: `barbarianTurn` takes its list of units that may
   act before it founds camps.
 - Each soldier has one of five jobs, derived each turn by `barbarianRoles` and

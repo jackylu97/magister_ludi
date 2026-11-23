@@ -649,7 +649,8 @@ import {
 // Version 258 changes the first-age build list, research order and culture from combat losses.
 // A tier changes combat, production, camp placement and Order draws during replay.
 // Version 261 changes rested healing at home and movement through city centers.
-export const SCHEMA_VERSION = 261;
+// Version 262: a barbarian camp starts with one unit (the user's ruling of 2026-11-22).
+export const SCHEMA_VERSION = 262;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
