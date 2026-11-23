@@ -458,6 +458,18 @@ this note will name the commit. Price strategic copies one by one from then.
 `war.wearinessWeight`, `war.unhappyWearinessWeight` and `wearinessTerms` go.
 The digest pins and the slow replays need a new record after it.
 
+**The bot's hex price (the user, 2026-11-23).** A hex now costs 30 gold, or
+60 in the outer ring, times the buyer's age (`explainTilePurchaseCost` or its
+current name in `src/sim/cities.ts`). `src/ai/value.ts` reads only
+`ringBase[0]` (30) and no age. The user: "is 30 the right value for the bots,
+i think it should probably value it based on the yields the tile provides".
+So: the bot's cost of a hex is the sim's own price, and its worth is the
+yields the hex gives the town.
+
+The eight rules landed at `c971330a` on `decks`. A follow-up build (the new
+Inquisition, the unhappiness yields, the multiplied growth penalty) and the
+strategic copies build are in flight; this note will name their commits.
+
 The lines in 0.1k and 0.1l that say the play clone stays at `12947dfb` are
 out of date. The user allowed the pull, and the clone follows `decks` again.
 

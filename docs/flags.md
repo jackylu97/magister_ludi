@@ -3742,3 +3742,33 @@ luxury is tedious to decline."
   exchanged.** Two named cases: a duplicate for the other side's last copy,
   and one strategic copy for a luxury.
 - This is bot work, so it is Astra's. The handoff has the note.
+
+## Follow-ups to the eight simpler rules (ruled 2026-11-23)
+
+The user, after the build report: "Let's give it the ability: rival
+religions press your towns at 70% strength. +1 authority for every two of
+your cities that follow your religion. I'm kind of liking this
+authority-based religious play. unhappiness should lower all yields except
+production and food (growth already penalized). please hand off #5 for
+astra. is 30 the right value for the bots, i think it should probably value
+it based on the yields the tile provides, now that i think about it. Please
+delegate the strategic copies pass. Dry towns, i'm not sure, it should
+probably be a multiplication (0.7 * 0.75) even though that breaks the
+convention of the game, maybe this is the one instance where its fine."
+
+- **Inquisition comes back with a new effect.** Text: "Rival religions
+  press your towns at 70% strength. +1 authority for every two of your
+  cities that follow your religion." It does not need a temple. Two effects
+  on one belief is the user's choice here.
+- **Unhappiness at −10 or below lowers gold, science, culture and faith by
+  20%.** Production and food are not lowered. (The first build lowered
+  production, science and culture.) The authority penalty does not change.
+- **The growth penalty for unhappiness multiplies.** It applies after every
+  other growth percentage, as its own step, and does not add to them. My
+  reading of "0.7 * 0.75": a dry town (30% slower) with happiness below 0
+  (75% slower) grows at 0.7 × 0.25 = 17.5% of the normal speed. The user
+  allowed this one break of the rule that percentages in one stage add.
+- **The bot values a hex by the yields the hex gives**, not by a flat 30.
+  Astra's work, in the handoff.
+- **The strategic copies build is delegated** (see "Strategic resources are
+  traded in a quantity").
