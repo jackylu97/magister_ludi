@@ -834,12 +834,13 @@ interface UnrestRules {
  * for every other army, because the wild fields the same roster everybody else
  * does — it simply does not have to pay for it.
  *
- * Nothing here is a probability. Camps and their bands arrive on **cadences**
- * (`campEveryTurns`, `unitEveryTurns`) with hard caps beside them, so a run of
- * bad luck cannot bury an empire and a run of good luck cannot make the wild a
- * decoration. The system rolls two dice, both on `state.rng`: *which* legal tile
- * a camp lands on, and how many units the new camp starts with
- * (`campStartUnitsMin` to `campStartUnitsMax`).
+ * Camps and their bands arrive on **cadences** (`campEveryTurns`,
+ * `unitEveryTurns`) with hard caps beside them, so a run of bad luck cannot
+ * bury an empire and a run of good luck cannot make the wild a decoration. The
+ * system rolls three dice, all on `state.rng`: *which* legal tile a camp lands
+ * on, how many units the new camp starts with (`campStartUnitsMin` to
+ * `campStartUnitsMax`), and whether a camp trains a unit at its muster
+ * (`musterChancePercent`, since 2026-11-22).
  */
 interface BarbarianRules {
   /** First turn a camp may appear at all. The opening is meant to be quiet. */
@@ -853,6 +854,11 @@ interface BarbarianRules {
    * ruling that asked for "half again as many camps" moved *both*: one every two
    * turns is 0.5, and three every four turns is 0.75. Reaching for the cadence
    * alone cannot express it, because ⌈2 × ⅔⌉ is still 2.
+   *
+   * Three since 2026-11-22. The user, on learning that three camps appeared
+   * every two turns: "oh i didn't realize camp sapwns were so quick", then
+   * "let's make it every 3 turns". So the faucet is three camps every three
+   * turns, one camp a turn, with `campsPerSpawn` unchanged.
    */
   campEveryTurns: number;
   /**
@@ -910,6 +916,18 @@ interface BarbarianRules {
    */
   unitEveryTurns: number;
   /**
+   * The chance, in percent, that a camp trains a unit at its muster (the
+   * user's ruling of 2026-11-22: "spawn a new unit with 50% likelihood"). The
+   * muster still comes round every `unitEveryTurns` turns. At 50 a camp gains
+   * a unit about every ten turns instead of every five.
+   *
+   * `musterCamps` rolls one die on `state.rng` for each camp that would train
+   * a unit, and none for a camp that is full or boxed in. At 100 or more the
+   * camp always trains and no die is rolled, which is the rule as it was
+   * before the ruling. At 0 or less a camp never trains, and no die is rolled.
+   */
+  musterChancePercent: number;
+  /**
    * How many guards a camp keeps near it: the warden on the camp hex and the
    * guards beside it (batch BR1). `barbarianRoles` gives these jobs each turn.
    * Every other soldier of the wild is a raider. A camp that holds fewer guards
@@ -931,9 +949,20 @@ interface BarbarianRules {
    */
   campUnitRadius: number;
   /**
+   * How far from its camp a soldier of the wild goes to attack (the user's
+   * ruling of 2026-11-22: "Lets give camps a maximum radius of 8 that it will
+   * attack"). A raider or a thief chooses a town, an improvement or a unit
+   * only if it stands within this many hexes of the raider's own camp, and it
+   * walks only inside that circle. The guards' `campUnitRadius` and the
+   * warden's camp hex lie inside it. See `campReach` (`barbarians.ts`) for how
+   * a unit's camp is found, and for a unit that has no camp.
+   */
+  campAttackRadius: number;
+  /**
    * How far a barbarian unit looks for something to attack on its way. A
    * raider with nothing inside this reach marches on the nearest town of a
-   * real player instead.
+   * real player instead, if that town stands within `campAttackRadius` of its
+   * camp.
    */
   aggressionRadius: number;
   /**
@@ -958,8 +987,8 @@ interface BarbarianRules {
   escortRadius: number;
   /**
    * How far from its camp a guard with nothing to attack patrols (never past
-   * `campUnitRadius`). A raider with no town it can walk to drifts this far
-   * from the nearest camp.
+   * `campUnitRadius`). A raider with nothing to attack inside its camp's reach
+   * (`campAttackRadius`) drifts this far from its camp.
    */
   wanderRadius: number;
   /** How far from a horses tile a camp counts as horse country. */

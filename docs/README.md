@@ -1379,6 +1379,11 @@ a city and never captures a unit, and it wears the war-red rim like any enemy.
 
 Camps (batch BR1, `src/sim/barbarians.ts`; the numbers are `rules.barbarians`):
 
+- Camps are founded from `firstCampTurn` (6), `campsPerSpawn` (3) at a time,
+  every `campEveryTurns` (3) turns, up to `maxCamps` (24). So the first four
+  founding turns are 6, 9, 12 and 15. The cadence was every two turns until
+  2026-11-22 (the user: "oh i didn't realize camp sapwns were so quick", then
+  "let's make it every 3 turns").
 - A new camp starts with one unit (`campStartUnitsMin` and
   `campStartUnitsMax` are both 1 since 2026-11-22; a wider range is a roll on
   `state.rng` made right after `foundCamps` places it). The first unit stands on the camp and digs in. The band does not
@@ -1397,10 +1402,34 @@ Camps (batch BR1, `src/sim/barbarians.ts`; the numbers are `rules.barbarians`):
   Otherwise it closes on a visible target within `aggressionRadius`, or
   marches on the nearest town it can reach over land (`raidGoal`).
   The wild leaves a seat with `barbariansPassive` out of its target list.
-- A camp musters every `unitEveryTurns` turns. A camp short of guards musters a
-  guard. A camp with all its guards musters a raider, but only while the world
-  holds fewer than `raidersPerCamp` raiders for each camp (thieves and escorts
-  count). The counts come from the roles (`campCensus`).
+- **A camp's reach** (the user's ruling of 2026-11-22: "Lets give camps a
+  maximum radius of 8 that it will attack"). A raider or a thief chooses a
+  town, an improvement or a unit only if it stands within `campAttackRadius`
+  (8) of the soldier's camp, and its walks stay inside that circle
+  (`campReach`). An adjacent soldier must be inside the circle too. A raider
+  with nothing in reach drifts round its camp, within `wanderRadius`. The
+  warden and the guards stay closer than that already, so the radius is the
+  outer limit of a camp's attacks.
+  - A unit's camp is derived each turn, never stored: the nearest camp, if it
+    stands within `campAttackRadius` of the unit.
+  - A unit with no camp that near (a rebel raised by unrest, or a raider whose
+    camp was burnt with no other camp near) has its circle centred on itself.
+    It attacks only what is within `campAttackRadius` of where it stands, walks
+    without a circle, and with nothing in reach drifts toward the nearest camp.
+- A camp musters every `unitEveryTurns` (5) turns, counted from its own
+  `foundedTurn`. A camp short of guards musters a guard. A camp with all its
+  guards musters a raider, but only while the world holds fewer than
+  `raidersPerCamp` raiders for each camp (thieves and escorts count). The
+  counts come from the roles (`campCensus`).
+- **The muster is a coin** (the user's ruling of 2026-11-22: "spawn a new unit
+  with 50% likelihood"). A camp that would train a unit at its muster trains it
+  only if `nextInt(state.rng, 0, 100)` is below `musterChancePercent` (50). The
+  die is thrown last, after the camp is found due, not full, able to field a
+  unit type, and not boxed in, so a camp that would train nothing throws no
+  die. At 100 or 0 no die is thrown. A camp gains a unit about every ten turns.
+- Difficulty tier 3's wave (`foundAgeCloseCamps`) still raises two units a
+  camp. The coin does not touch a new camp's band, and the wave's camps then
+  muster and raid by the rules above.
 
 ## The endgame
 

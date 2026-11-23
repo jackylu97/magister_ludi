@@ -41,6 +41,7 @@ import { previewCombat } from '../../../src/sim/combat';
 import { applyCommand } from '../../../src/sim/commands';
 import { type Tile, createMap, getTileAt, raiseImprovement, tileIndex } from '../../../src/sim/map';
 import { makeRng } from '../../../src/sim/rng';
+import { RULES } from '../../../src/sim/rulesData';
 import {
   type City,
   type GameState,
@@ -223,7 +224,15 @@ describe('The Hunting Grounds: camps near your towns raise their units faster', 
         (unit) => unit.ownerId === wild.id && Math.abs(unit.col - camp.col) <= 1 && Math.abs(unit.row - camp.row) <= 1,
       ).length;
     state.turn = 3;
-    musterCamps(state);
+    // The muster's coin (2026-11-22) is set to always land, so this test reads
+    // the cadence alone. At 100 the coin throws no die.
+    const chance = RULES.barbarians.musterChancePercent;
+    RULES.barbarians.musterChancePercent = 100;
+    try {
+      musterCamps(state);
+    } finally {
+      RULES.barbarians.musterChancePercent = chance;
+    }
     expect(bandAt(near)).toBe(1);
     expect(bandAt(far)).toBe(0);
   });

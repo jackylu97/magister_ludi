@@ -11,9 +11,10 @@
  * Nothing here is a difficulty setting. Camps and their bands arrive on
  * **cadences** with hard caps beside them (`rules.barbarians`), so a run of bad
  * luck cannot bury an empire and a run of good luck cannot make the wild
- * furniture. Two things are rolled, both on `state.rng` like every other roll in
- * the game: *which* legal hex a camp lands on, and how many units a new camp
- * starts with (batch BR1).
+ * furniture. Three things are rolled, all on `state.rng` like every other roll
+ * in the game: *which* legal hex a camp lands on, how many units a new camp
+ * starts with (batch BR1), and whether a camp trains a unit at its muster (the
+ * coin of 2026-11-22, `musterCoinLands`).
  *
  * The wild inherits; it does not learn
  * ------------------------------------
@@ -64,12 +65,24 @@
  *     `campUnitRadius`. It patrols round the camp, fights what comes near, and
  *     never goes farther from the camp than `campUnitRadius`.
  *   · **A raider** marches on the nearest town of a real player, human or bot,
- *     and fights what it meets on the way (`raidTowns`).
+ *     inside its camp's reach, and fights what it meets on the way
+ *     (`raidTowns`).
  *
- * A new camp starts with one or two units, raised in the sweep that places it
+ * A new camp starts with its band, raised in the sweep that places it
  * (`foundCamps`). After that a camp musters on its cadence. A camp short of
  * guards musters a guard. A camp with all its guards musters a raider, while
- * the world holds fewer than `raidersPerCamp` raiders for each camp.
+ * the world holds fewer than `raidersPerCamp` raiders for each camp. Since
+ * 2026-11-22 a due muster trains a unit only on a coin
+ * (`musterChancePercent`).
+ *
+ * A camp's reach (the user's ruling of 2026-11-22)
+ * ------------------------------------------------
+ * The user: *"Lets give camps a maximum radius of 8 that it will attack."* A
+ * raider or a thief chooses a town, an improvement or a unit only inside
+ * `campAttackRadius` of its camp, and walks only inside that circle
+ * (`campReach`). A raider with nothing in reach drifts round its camp. The
+ * warden and the guards keep closer to the camp than that already, so the
+ * radius is the outer limit of anything a camp's unit goes to attack.
  *
  * Who stands on the camp needs no clause of its own: `musterTileFor` seats a
  * new unit **on the camp** when its category has room, and under the stacking
@@ -629,6 +642,15 @@ function digIn(state: GameState, unit: Unit): void {
  * cap "there is military room on the camp" *is* "this camp has no warden". So a
  * camp with no warden raises one on the hex, and it **digs in where it stands**
  * (`raiseAtCamp`). Everything after it is seated on a neighbour.
+ *
+ * **The coin** (the user's ruling of 2026-11-22). A camp that would train a
+ * unit trains it only if `musterCoinLands`. The die is thrown last, after
+ * every other check: the camp is due, it is not full (short of guards, or the
+ * world under its raider limit), the wild can field a unit type, and the camp
+ * has a hex to seat it on. So a full or boxed-in camp throws no die, and the
+ * dice stream grows by at most one number for each due camp, in
+ * `state.camps` order. The cadence is unchanged: a camp's first muster is the
+ * turn it is `campCadence` turns old, counted from its own `foundedTurn`.
  */
 export function musterCamps(state: GameState): void {
   const wild = barbarianPlayer(state);
@@ -649,12 +671,33 @@ export function musterCamps(state: GameState): void {
     if (guarded && census.raiders >= limit) continue;
     const type = barbarianUnitType(state, camp);
     if (type === null) continue;
+    // A camp with no hex to seat the unit on would train nothing, so it
+    // throws no die. `raiseAtCamp` asks the same question again below and
+    // gets the same answer, because the die changes nothing on the board.
+    if (musterTileFor(state, camp, type) === null) continue;
+    if (!musterCoinLands(state)) continue;
     if (raiseAtCamp(state, wild, camp, type) === null) continue;
     // Keep the count true for the camps after this one in the sweep: a camp
     // short of guards raised a guard, and a guarded camp raised a raider.
     if (guarded) census.raiders += 1;
     else census.guards.set(key, guards + 1);
   }
+}
+
+/**
+ * Does this muster train a unit? A roll of `nextInt(state.rng, 0, 100)` below
+ * `musterChancePercent` (the user's ruling of 2026-11-22: "spawn a new unit
+ * with 50% likelihood").
+ *
+ * At 100 or more the answer is always yes and at 0 or less always no, and in
+ * both cases the generator is not asked. So the rule at 100 is the rule as it
+ * was before the ruling, roll for roll.
+ */
+function musterCoinLands(state: GameState): boolean {
+  const chance = BARB.musterChancePercent;
+  if (chance >= 100) return true;
+  if (chance <= 0) return false;
+  return nextInt(state.rng, 0, 100) < chance;
 }
 
 /**
@@ -732,6 +775,10 @@ export function campCensus(state: GameState, wild: Player): CampCensus {
  *
  * Exported for the bot (batch BP8), which prices a camp by the raiders it
  * sends and reads the cadence here rather than writing the rule a second time.
+ *
+ * This is the wait between musters, not between units. Since 2026-11-22 a
+ * muster trains a unit only on the coin (`musterChancePercent`), so the mean
+ * wait between new units is this figure × 100 ÷ the chance.
  */
 export function campCadence(state: GameState, camp: { col: number; row: number }): number {
   const cadence = Math.max(1, BARB.unitEveryTurns);
@@ -753,7 +800,8 @@ interface RaidTarget {
 
 /**
  * A circle a guard may not leave: the hexes within `radius` of `centre`, its
- * camp (batch BR1).
+ * camp (batch BR1). Since 2026-11-22 a camp's reach is a circle of the same
+ * shape (`campReach`).
  */
 interface Leash {
   centre: Tile;
@@ -765,6 +813,55 @@ function insideLeash(map: GameMap, leash: Leash, tile: Tile): boolean {
   return wrappedDistance(map, tileHex(leash.centre), tileHex(tile)) <= leash.radius;
 }
 
+/** The circle a raider or a thief attacks inside, and the camp at its centre. */
+export interface Reach {
+  /** Centred on the camp, or on the unit itself when it has no camp. */
+  leash: Leash;
+  /** The unit's camp, or `null` when the circle is centred on the unit. */
+  camp: Tile | null;
+}
+
+/**
+ * **Where this soldier of the wild may attack** (the user's ruling of
+ * 2026-11-22: "Lets give camps a maximum radius of 8 that it will attack").
+ * The circle of `campAttackRadius` round the unit's camp, or `null` for a
+ * unit off the map.
+ *
+ * A unit does not store its camp, for the reason `BarbarianRole` gives. Its
+ * camp is derived each turn: **the nearest camp to it** (`nearestCamp`, by
+ * distance and then tile index), **if that camp stands within
+ * `campAttackRadius` of it**. A raider never walks out of its circle, so it
+ * keeps the same camp from turn to turn, or a nearer one.
+ *
+ * **A unit with no camp within that distance has its circle centred on the
+ * hex where it stands.** It attacks only what is within `campAttackRadius` of
+ * itself, its walks are not held to a circle (`walkLeash`), and with nothing
+ * in reach it drifts toward the nearest camp, as every idle raider did before
+ * (`wander`). Three kinds of unit meet this rule:
+ *
+ *   · a rebel raised beside a town in unrest (`unrest.ts`). It is "a
+ *     barbarian of the kind a camp there would raise", so it attacks the town
+ *     it rose beside, as it did before this ruling;
+ *   · a raider whose camp was burnt, with no other camp near. It does not
+ *     carry the radius of a camp that is gone, because nothing remembers where
+ *     that camp stood. A raider whose camp was burnt and that has another
+ *     camp within reach simply belongs to that camp;
+ *   · a raider pushed out of its circle. Only one rule can do that: a walk
+ *     that meets a jammed hex plans a way round it (`advanceAlongPath`), and
+ *     that way may leave the circle, as the guards' docblock says.
+ */
+export function campReach(state: GameState, unit: Unit): Reach | null {
+  const { map } = state;
+  const from = getTileAt(map, unit.col, unit.row);
+  if (!from) return null;
+  const radius = Math.max(0, BARB.campAttackRadius);
+  const camp = nearestCamp(state, from);
+  if (camp && wrappedDistance(map, tileHex(from), tileHex(camp)) <= radius) {
+    return { leash: { centre: camp, radius }, camp };
+  }
+  return { leash: { centre: from, radius }, camp: null };
+}
+
 /**
  * Extra limits a caller puts on `nearestTarget` (batch BR1). Both are optional,
  * and a call with neither is the reading the warden has always used.
@@ -772,7 +869,10 @@ function insideLeash(map: GameMap, leash: Leash, tile: Tile): boolean {
 interface TargetLimits {
   /** A raider fights an adjacent soldier in the field before it raids a town. */
   preferAdjacentSoldier?: boolean;
-  /** Only targets inside this circle: a guard fights near its camp. */
+  /**
+   * Only targets inside this circle: a guard fights near its camp, and a
+   * raider inside its camp's reach (`campReach`).
+   */
   leash?: Leash;
   /**
    * Only targets on land this unit can walk to (`walkableLand`). A raider does
@@ -788,14 +888,17 @@ interface TargetLimits {
  * Two filters and both are the point. **Within `aggressionRadius`**: this is
  * what a barbarian fights *on its way*. A raider with nothing in this reach
  * marches on the nearest town instead (`raidGoal`, batch BR1), and a guard or
- * a warden never goes looking. And **visible to the wild**, asked through the
+ * a warden never goes looking. A raider passes its camp's reach as its
+ * `leash` (`campReach`, 2026-11-22), so its targets also lie inside the
+ * circle round its camp. Without a `leash`, this function does not apply that
+ * reach. And **visible to the wild**, asked through the
  * same `isVisibleTo` every other seat's fog is asked through: the wild is a
  * player with a real visibility grid (see `seatBarbarians`), so a raider turns
  * toward what it can actually see and a garrison hidden behind a ridge is
  * hidden from it exactly as it would be from an empire.
  *
  * `limits` narrows the choice further for a guard (its leash) and a raider
- * (the land it can walk). See `TargetLimits`.
+ * (its camp's reach and the land it can walk). See `TargetLimits`.
  *
  * Ordered by `(distance, tile index, discovery order)` — a total order over
  * distinct targets, so two equally-near towns always resolve the same way.
@@ -987,6 +1090,11 @@ function raidField(state: GameState): RaidField {
  * the whole world knows is there, and a raider that could only march on what
  * it can see would wait by its camp for ever. The blow itself still goes
  * through `applyCombat`, which asks the fog like any other attack.
+ *
+ * **The goal is limited by the camp's reach** (the user's ruling of
+ * 2026-11-22): only a town within `campAttackRadius` of the raider's camp
+ * will do (`campReach`). A camp with no town in reach sends nobody, and its
+ * raiders drift round it instead.
  */
 export function raidGoal(state: GameState, unit: Unit, field: RaidField = raidField(state)): Tile | null {
   const { map } = state;
@@ -995,11 +1103,14 @@ export function raidGoal(state: GameState, unit: Unit, field: RaidField = raidFi
   const region = field.land[tileIndex(map, from.col, from.row)];
   if (region === undefined || region < 0) return null;
   const hex = tileHex(from);
+  const reach = campReach(state, unit);
+  if (!reach) return null;
 
   let best: RaidTown | null = null;
   let bestDistance = Infinity;
   for (const town of field.towns) {
     if (field.land[town.index] !== region) continue;
+    if (!insideLeash(map, reach.leash, town.tile)) continue;
     const distance = wrappedDistance(map, hex, tileHex(town.tile));
     const closer =
       best === null ||
@@ -1172,6 +1283,8 @@ function isUnguarded(state: GameState, civilian: Unit): boolean {
  *     camp gets a second guard;
  *   · **one thief per prey** — the nearest *unspoken-for* soldier within
  *     `theftRadius`, so a camp does not send four raiders after one worker.
+ *     Since 2026-11-22 the prey must also stand inside that soldier's camp's
+ *     reach (`campReach`).
  *
  * Everybody left is a raider, and marches on the players' towns.
  *
@@ -1297,15 +1410,16 @@ export function barbarianRoles(
     if (!isUnguarded(state, prey)) continue;
     const at = getTileAt(state.map, prey.col, prey.row);
     if (!at) continue;
-    const thief = nearestUnit(
-      state,
-      band,
-      at,
-      BARB.theftRadius,
-      (unit) =>
-        !spokenFor.has(unit.id) &&
-        (isAdjacentTo(state, unit, at) || approachTile(state, unit, at) !== null),
-    );
+    const thief = nearestUnit(state, band, at, BARB.theftRadius, (unit) => {
+      if (spokenFor.has(unit.id)) return false;
+      // The camp's reach (the user's ruling of 2026-11-22): a thief goes only
+      // for prey inside the circle round its own camp, and strikes only from
+      // a doorstep inside it. A soldier with no camp is held to the circle
+      // round itself, and walks as before (`walkLeash`).
+      const reach = campReach(state, unit);
+      if (!reach || !insideLeash(state.map, reach.leash, at)) return false;
+      return isAdjacentTo(state, unit, at) || approachTile(state, unit, at, walkLeash(reach)) !== null;
+    });
     if (!thief) continue;
     spokenFor.add(thief.id);
     roles.set(thief.id, { kind: 'thief', preyId: prey.id });
@@ -1323,8 +1437,11 @@ export function barbarianRoles(
  *
  * Two callers since batch BR1. A **guard** patrols round its own camp, inside
  * its leash: the radius is `wanderRadius`, never more than the leash. A
- * **raider** with no town it can walk to drifts round the nearest camp, as
- * every raider did before the batch.
+ * **raider** with nothing to attack inside its camp's reach drifts round that
+ * camp, and passes the reach as its leash so the walk stays inside the circle
+ * (2026-11-22). A raider with no camp within reach (`campReach`) passes no
+ * leash and drifts round the nearest camp, as every raider did before batch
+ * BR1.
  *
  * Deliberately simple, and deliberately *not* still: a band that stood on its
  * camp forever would make every camp a fortress to be stormed rather than a
@@ -1589,7 +1706,9 @@ function holdCamp(
  *     reason.
  *
  * It does not burn works: only a raider does that. It does not dig in: only
- * the warden does that.
+ * the warden does that. Its leash lies inside the camp's reach
+ * (`campUnitRadius` is no more than `campAttackRadius`, pinned by a test), so
+ * the guard needs no clause for the ruling of 2026-11-22.
  *
  * A melee kill moves it onto the hex it emptied, which is inside the leash
  * because the target was. One rule every piece obeys can take it outside: a
@@ -1619,11 +1738,13 @@ function guardCamp(
 /**
  * Choose an owned, visible improvement before striking a city. The movement
  * range gives legal destinations in tile-index order, which breaks equal-cost
- * ties. A raider cannot swap with another unit while marching.
+ * ties. A raider cannot swap with another unit while marching. Since
+ * 2026-11-22 the improvement must lie inside the raider's reach (`campReach`).
  */
-function improvementToRaid(state: GameState, unit: Unit, standing: Tile | null): Tile | null {
+function improvementToRaid(state: GameState, unit: Unit, standing: Tile | null, reach: Leash): Tile | null {
   const eligible = (tile: Tile): boolean => {
     if (pillageableImprovement(tile) === undefined || !isVisibleTo(state, unit.ownerId, tile.col, tile.row)) return false;
+    if (!insideLeash(state.map, reach, tile)) return false;
     const owner = tileOwnerPlayerId(state, tile.col, tile.row);
     return owner !== null && owner !== unit.ownerId && !cardBehaviorRule(state, owner, 'barbariansPassive');
   };
@@ -1638,7 +1759,16 @@ function improvementToRaid(state: GameState, unit: Unit, standing: Tile | null):
   return target;
 }
 
-/** A raider strikes soldiers first, then pillages improvements before fighting cities. */
+/**
+ * A raider strikes soldiers first, then pillages improvements before fighting cities.
+ *
+ * Every target, improvement and town it chooses lies inside its reach
+ * (`campReach`, the user's ruling of 2026-11-22), and so does every walk it
+ * takes when it has a camp (`walkLeash`). An adjacent soldier is a target like
+ * any other, so it must stand inside the reach too. A raider that keeps near
+ * its camp always has its neighbours inside, so it still fights a soldier that
+ * comes up to it. A raider with nothing in reach drifts round its camp.
+ */
 function raidTowns(
   state: GameState,
   wild: Player,
@@ -1646,13 +1776,20 @@ function raidTowns(
   field: RaidField,
   report?: TurnReport,
 ): void {
-  const target = nearestTarget(state, wild, unit, { land: field.land, preferAdjacentSoldier: true });
+  const reach = campReach(state, unit);
+  if (!reach) return;
+  const walk = walkLeash(reach);
+  const target = nearestTarget(state, wild, unit, {
+    land: field.land,
+    preferAdjacentSoldier: true,
+    leash: reach.leash,
+  });
   const standing = worksUnderfoot(state, unit);
   const goal = target?.tile ?? raidGoal(state, unit, field);
   if (goal && (!target || cityAt(state, goal.col, goal.row))) {
-    const work = improvementToRaid(state, unit, standing);
+    const work = improvementToRaid(state, unit, standing, reach.leash);
     if (work) {
-      if (work !== standing) marchTo(state, unit, work);
+      if (work !== standing) marchTo(state, unit, work, walk);
       if (unit.col === work.col && unit.row === work.row && pillageError(state, unit.id) === null) {
         const damage = pillageAt(state, unit, work);
         report?.pillages.push(damage);
@@ -1669,8 +1806,18 @@ function raidTowns(
     report?.pillages.push(damage);
     return;
   }
-  if (goal) closeAndStrike(state, unit, goal, report);
-  else wander(state, unit);
+  if (goal) closeAndStrike(state, unit, goal, report, walk);
+  else wander(state, unit, walk);
+}
+
+/**
+ * The circle a raider's or a thief's walk must stay inside: its camp's reach,
+ * or none for a unit with no camp. A unit with no camp walks as every raider
+ * walked before the ruling of 2026-11-22. Its targets are still held to the
+ * circle round itself (`campReach`).
+ */
+function walkLeash(reach: Reach): Leash | undefined {
+  return reach.camp ? reach.leash : undefined;
 }
 
 /**
@@ -1693,6 +1840,9 @@ function raidTowns(
  *   · **thief** closes on its chosen civilian and strikes, which captures it;
  *   · **raider** fights an adjacent soldier first. Before attacking a town,
  *     it tries to pillage a visible improvement it can reach this turn.
+ *
+ * A thief and a raider choose and walk only inside their camp's reach
+ * (`campReach`, the user's ruling of 2026-11-22).
  *
  * Every blow goes through `applyCombat`, so a raid rolls the same dice, obeys
  * the same targeting priority, takes the same counter-attack and triggers the
@@ -1749,6 +1899,10 @@ export function raid(
           const prey = unitById(state, role.preyId);
           const at = prey === undefined ? null : getTileAt(state.map, prey.col, prey.row);
           if (!at) break;
+          // The prey lies inside the thief's reach (`barbarianRoles`), and the
+          // walk keeps to its camp's circle (the ruling of 2026-11-22).
+          const reach = campReach(state, unit);
+          const walk = reach ? walkLeash(reach) : undefined;
           // A **ranged** thief walks onto its prey rather than shooting it
           // (2026-09-05, the civilian-capture ruling): a lone civilian is taken
           // by arriving on its hex — `arriveOnTile`, the one capture seam — and
@@ -1758,10 +1912,10 @@ export function raid(
           // uses. A melee thief keeps `closeAndStrike`: its blow *is* the
           // advance, byte for byte what it was.
           if (isRanged(unitDef(unit.type)) && takesByWalking(state, unit, at)) {
-            marchTo(state, unit, at);
+            marchTo(state, unit, at, walk);
             break;
           }
-          closeAndStrike(state, unit, at, report);
+          closeAndStrike(state, unit, at, report, walk);
           break;
         }
         case 'raider':

@@ -650,6 +650,11 @@ import {
 // A tier changes combat, production, camp placement and Order draws during replay.
 // Version 261 changes rested healing at home and movement through city centers.
 // Version 262: a barbarian camp starts with one unit (the user's ruling of 2026-11-22).
+// In the same version and from the same day's rulings: a camp's muster trains a
+// unit only on a 50% roll (`musterChancePercent`), a camp's raiders and thieves
+// attack only within `campAttackRadius` (8) of their camp, and camps are founded
+// every three turns instead of every two (`campEveryTurns`). Nothing was released
+// between these changes, so they share the version.
 export const SCHEMA_VERSION = 262;
 
 /**
