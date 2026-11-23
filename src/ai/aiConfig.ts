@@ -65,6 +65,10 @@ export interface AiConfig {
     /** Zero keeps the control policy available for paired comparisons. */
     enabled: number;
     radius: number;
+    /** Friendly movement search radius. Zero keeps the full reachable area. */
+    moveRadius: number;
+    /** Legal origins checked per enemy target. Zero uses the original search. */
+    replyOrigins: number;
     units: number;
     enemies: number;
     choices: number;

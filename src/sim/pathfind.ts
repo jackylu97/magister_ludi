@@ -2508,6 +2508,9 @@ export function findPathAround(
 /**
  * Every tile `unit` could legally end this turn on, with the cost of getting
  * there. Ordered by tile index so the result is stable.
+ * An optional radius restricts the entire path to that distance from the unit.
+ * It can omit detours or report a higher cost than an unrestricted path.
+ * Ordinary movement highlights and execution use the unrestricted query.
  *
  * The frontier stops expanding at a node once the unit would arrive there with
  * no movement left, but such a node is still *reported*: entering a tile always
@@ -2521,14 +2524,14 @@ export function findPathAround(
  * where the purse runs out — the rule drawn on the board rather than explained
  * in a tooltip, and by the same arithmetic a forest is.
  */
-export function reachableTiles(state: GameState, unit: Unit, options: { swaps?: boolean } = {}): ReachableTile[] {
+export function reachableTiles(state: GameState, unit: Unit, options: { swaps?: boolean; radius?: number } = {}): ReachableTile[] {
   const start = getTileAt(state.map, unit.col, unit.row);
   if (!start || unit.movesLeft <= 0) return [];
   // Each swap checks two routes on the same board as the movement range.
-  return withFieldsHeld(() => reachableFrom(state, unit, start, options.swaps !== false));
+  return withFieldsHeld(() => reachableFrom(state, unit, start, options.swaps !== false, options.radius));
 }
 
-function reachableFrom(state: GameState, unit: Unit, start: Tile, swaps: boolean): ReachableTile[] {
+function reachableFrom(state: GameState, unit: Unit, start: Tile, swaps: boolean, radius?: number): ReachableTile[] {
   const { map } = state;
   const results: ReachableTile[] = [];
   const budget = unit.movesLeft;
@@ -2544,6 +2547,7 @@ function reachableFrom(state: GameState, unit: Unit, start: Tile, swaps: boolean
   const best = new Float64Array(count).fill(Infinity);
   const settled = new Uint8Array(count);
   const startIndex = tileIndex(map, start.col, start.row);
+  const origin = tileHex(start);
 
   best[startIndex] = 0;
   const open = new TileHeap();
@@ -2572,6 +2576,9 @@ function reachableFrom(state: GameState, unit: Unit, start: Tile, swaps: boolean
 
     const tile = map.tiles[current]!;
     for (const neighbor of neighborsOf(map, tile)) {
+      // Local AI searches can omit long detours. Ordinary callers keep the
+      // full range, and every retained path uses the same movement prices.
+      if (radius !== undefined && wrappedDistance(map, origin, tileHex(neighbor)) > radius) continue;
       const index = tileIndex(map, neighbor.col, neighbor.row);
       if (settled[index] === 1) continue;
       if (!canTransit(state, unit, neighbor, mover, ground)) continue;

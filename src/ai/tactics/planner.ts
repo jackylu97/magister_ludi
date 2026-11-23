@@ -75,7 +75,7 @@ function optionsFor(ctx: TacticalContext, before: TacticalPosition, id: number):
   const movedLast = [...before.actions].reverse().find(action => action.unitId === id)?.kind === 'move';
   // Hidden occupants are removed from the planner's view. Do not turn that
   // missing information into a promise that an unseen destination is empty.
-  const moves = ctx.locked.includes(id) || movedLast ? [] : movementActions(before.state, unit)
+  const moves = ctx.locked.includes(id) || movedLast ? [] : movementActions(before.state, unit, ctx.ai.tactics.moveRadius || undefined)
     .filter(action => isVisibleTo(ctx.root, ctx.playerId, action.to.col, action.to.row));
   // Preserve an escape direction as well as progress toward an attack.
   const nearestEnemy = (action: TacticalAction): number => Math.min(...targets.map(target => distance(before.state, action.to, target)));
@@ -115,7 +115,7 @@ function conservativeSequence(ctx: TacticalContext, actions: readonly TacticalAc
   for (const original of actions) {
     const unit = current.state.units.find(row => row.id === original.unitId);
     if (!unit || unit.col !== original.from.col || unit.row !== original.from.row) break;
-    const action = original.kind === 'move' ? movementActions(current.state, unit).find(move => actionKey(move) === actionKey(original)) : original;
+    const action = original.kind === 'move' ? movementActions(current.state, unit, ctx.ai.tactics.moveRadius || undefined).find(move => actionKey(move) === actionKey(original)) : original;
     if (!action) break;
     const result = projectAction(current, action, 'low');
     if (!result) break;

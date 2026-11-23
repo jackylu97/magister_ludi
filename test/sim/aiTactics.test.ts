@@ -5,11 +5,11 @@ import { planTacticalCombat } from '../../src/ai/tactics/planner';
 import { cachedTacticalPlan } from '../../src/ai/tactics/memo';
 import { enemyReply, type TacticalContext } from '../../src/ai/tactics/assessment';
 import { sameTacticalDependencies, tacticalDependencies } from '../../src/ai/tactics/dependencies';
-import { attackAction, holdAction, initialPosition, movementActions, projectAction } from '../../src/ai/tactics/position';
+import { attackAction, distance, holdAction, initialPosition, movementActions, projectAction } from '../../src/ai/tactics/position';
 import { combatContinuation, previewCombatRisk, previewCombatSample } from '../../src/sim/combat';
 import { controlledHoldings, foundCityAt } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
-import { snapshotState } from '../../src/sim/game';
+import { restoreState, snapshotState } from '../../src/sim/game';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { bumpPiecesOnly, bumpRevision, createUnit, type GameState } from '../../src/sim/state';
 import { inheritGroundReadings, setSlateShadow, slateMemo, slateShadow } from '../../src/sim/slate';
@@ -34,6 +34,14 @@ function board(): GameState {
   return state;
 }
 
+function replyContext(state: GameState, mine: number, enemy: number): TacticalContext {
+  return {
+    root: state, playerId: 0, units: [mine], enemies: [enemy], cities: [], protectedUnits: [], locked: [],
+    ai: aiConfigFor(), worth: new Map([[mine, 1], [enemy, 1]]),
+    stats: { positions: 0, forecasts: 0, replies: 0, cacheHits: 0, limited: false },
+  };
+}
+
 describe('shared tactical positions', () => {
   it('reuses ground indexes without sharing unit-dependent readings', () => {
     const state = board();
@@ -55,6 +63,22 @@ describe('shared tactical positions', () => {
     const mine = createUnit(state, 0, 'spearman', 5, 5);
     createUnit(state, 0, 'spearman', 6, 5);
     expect(reachableTiles(state, mine, { swaps: false })).toEqual(reachableTiles(state, mine).filter(row => !row.swap));
+  });
+
+  it('bounds a road search by hex distance and keeps movement prices across the map seam', () => {
+    const state = board();
+    const mine = createUnit(state, 0, 'horseman', 0, 5);
+    for (const tile of state.map.tiles) tile.road = 0;
+    const full = movementActions(state, mine);
+    const local = movementActions(state, mine, 2);
+    expect(full.some(action => distance(state, mine, action.to) > 2)).toBe(true);
+    expect(local).toEqual(full.filter(action => distance(state, mine, action.to) <= 2));
+    expect(local.some(action => action.to.col === 15 && action.to.row === 5)).toBe(true);
+    const snapshot = snapshotState(state);
+    for (const action of local) {
+      const copy = restoreState(snapshot);
+      expect(applyCommand(copy, action.command!).ok).toBe(true);
+    }
   });
 
   it('carries repeated-attack strength and earned experience into a follow-up', () => {
@@ -216,6 +240,70 @@ describe('shared tactical positions', () => {
 });
 
 describe('bounded tactical planning', () => {
+  it('skips reply searches for civilians and units that changed to our side', () => {
+    const state = board();
+    const mine = createUnit(state, 0, 'archer', 5, 5);
+    const worker = createUnit(state, 1, 'worker', 6, 5);
+    const converted = createUnit(state, 0, 'warrior', 6, 4);
+    recomputeAllVisibility(state);
+    const ctx = replyContext(state, mine.id, worker.id);
+    ctx.enemies = [worker.id, converted.id];
+    const reply = enemyReply(ctx, initialPosition(state), true);
+    expect(reply.actions).toEqual([]);
+    expect(ctx.stats.forecasts).toBe(0);
+  });
+
+  it('keeps mounted threats that move more than two hexes before attacking', () => {
+    const state = board();
+    for (const tile of state.map.tiles) tile.road = 0;
+    const mine = createUnit(state, 0, 'archer', 5, 5);
+    const enemy = createUnit(state, 1, 'horseman', 9, 5);
+    enemy.movesLeft = 0;
+    recomputeAllVisibility(state);
+    state.visibility[0]!.fill(2);
+    expect(planTacticalCombat(state, 0, mine.id, aiConfigFor())?.enemies).toContain(enemy.id);
+    const ctx = replyContext(state, mine.id, enemy.id);
+    const reply = enemyReply(ctx, initialPosition(state), true);
+    expect(reply.actions.some(action => action.kind === 'move' && distance(state, action.from, action.to) > 2)).toBe(true);
+    expect(reply.state.units.find(unit => unit.id === mine.id)?.hp ?? 0).toBeLessThan(mine.hp);
+  });
+
+  it('counts a ranged enemy outside the friendly movement radius', () => {
+    const state = board();
+    const mine = createUnit(state, 0, 'spearman', 5, 5);
+    const enemy = createUnit(state, 1, 'archer', 8, 5);
+    enemy.movesLeft = 0;
+    recomputeAllVisibility(state);
+    const reply = enemyReply(replyContext(state, mine.id, enemy.id), initialPosition(state), true);
+    expect(reply.actions.map(action => action.kind)).toEqual(['move', 'attack']);
+    expect(reply.state.units.find(unit => unit.id === mine.id)?.hp).toBeLessThan(mine.hp);
+  });
+
+  it('does not turn geometric proximity across a barrier into an enemy attack', () => {
+    const state = board();
+    for (const tile of state.map.tiles) tile.terrain = 'mountain';
+    getTileAt(state.map, 5, 5)!.terrain = 'grassland';
+    getTileAt(state.map, 8, 5)!.terrain = 'grassland';
+    const mine = createUnit(state, 0, 'archer', 5, 5);
+    const enemy = createUnit(state, 1, 'horseman', 8, 5);
+    recomputeAllVisibility(state);
+    const reply = enemyReply(replyContext(state, mine.id, enemy.id), initialPosition(state), true);
+    expect(reply.actions).toEqual([]);
+    expect(reply.state.units.find(unit => unit.id === mine.id)?.hp).toBe(mine.hp);
+  });
+
+  it('finds a legal firing position when the first shot has blocked sight', () => {
+    const state = board();
+    const mine = createUnit(state, 0, 'archer', 7, 5);
+    const enemy = createUnit(state, 1, 'archer', 5, 5);
+    getTileAt(state.map, 6, 5)!.terrain = 'mountain';
+    recomputeAllVisibility(state);
+    expect(previewCombatSample(state, enemy.id, mine, 'middle').ok).toBe(false);
+    const reply = enemyReply(replyContext(state, mine.id, enemy.id), initialPosition(state), true);
+    expect(reply.actions.map(action => action.kind)).toEqual(['move', 'attack']);
+    expect(reply.state.units.find(unit => unit.id === mine.id)?.hp).toBeLessThan(mine.hp);
+  });
+
   it('reuses an unchanged local plan after a distant move, but not a local or economy change', () => {
     const state = board();
     const mine = createUnit(state, 0, 'spearman', 5, 5);

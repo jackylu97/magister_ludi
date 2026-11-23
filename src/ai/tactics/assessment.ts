@@ -1,6 +1,7 @@
 import { attackRange, pieceStrength } from '../../sim/combat';
 import { explainUnitHeal, foldUnitHeal } from '../../sim/healing';
 import { tileIndex } from '../../sim/map';
+import type { Cell } from '../../sim/pathfind';
 import { unitHealthBonus } from '../../sim/resourceEffects';
 import { inheritGroundReadings } from '../../sim/slate';
 import type { GameState, Unit } from '../../sim/state';
@@ -102,6 +103,49 @@ export function quietTerms(ctx: TacticalContext, position: TacticalPosition): Va
 }
 
 /**
+ * Choose a few legal origins per target instead of forecasting every approach.
+ * An existing shot comes first, then the cheapest move into range. This is a
+ * heuristic for position choice only. The shared combat plan still decides
+ * legality, terrain strength, counters and damage for each retained exchange.
+ */
+function replyChoices(ctx: TacticalContext, current: TacticalPosition, enemy: Unit, targets: readonly Cell[]): TacticalPosition[] {
+  const results: TacticalPosition[] = [];
+  let moves: TacticalAction[] | undefined;
+  const movedPositions = new Map<TacticalAction, TacticalPosition | null>();
+  const range = attackRange(current.state, enemy);
+  const tryOrigin = (position: TacticalPosition, target: Cell): boolean => {
+    const actor = position.state.units.find(unit => unit.id === enemy.id);
+    if (!actor) return false;
+    const action = attackActions(position.state, actor, [target])[0];
+    if (!action) return false;
+    ctx.stats.forecasts++;
+    const result = projectAction(position, action);
+    if (!result) return false;
+    results.push(result.position);
+    return true;
+  };
+  for (const target of targets) {
+    let checked = Number(tryOrigin(current, target));
+    if (checked >= ctx.ai.tactics.replyOrigins) continue;
+    // Threats keep their full movement range. A two-hex friendly search must
+    // not hide an enemy that can approach along a road or fire from farther away.
+    moves ??= movementActions(current.state, enemy).filter(action => action.cost < enemy.movesLeft);
+    const origins = moves.filter(action => {
+      const gap = distance(current.state, action.to, target);
+      return gap > 0 && gap <= range;
+    }).sort((a, b) => a.cost - b.cost || distance(current.state, b.to, target) - distance(current.state, a.to, target));
+    for (const move of origins) {
+      if (!movedPositions.has(move)) movedPositions.set(move, projectAction(current, move)?.position ?? null);
+      const moved = movedPositions.get(move);
+      if (!moved || moved.terminal) continue;
+      if (tryOrigin(moved, target)) checked++;
+      if (checked >= ctx.ai.tactics.replyOrigins) break;
+    }
+  }
+  return results;
+}
+
+/**
  * Construct one feasible response. Occupation and health change after each
  * attack, so enemies cannot share an origin or attack a target already removed.
  * Full allowances are a conservative next-opportunity scenario. The remaining
@@ -130,8 +174,18 @@ export function enemyReply(ctx: TacticalContext, position: TacticalPosition, ful
     const before = foldTerms(positionTerms(ctx, current));
     for (const id of known) {
       const enemy = current.state.units.find(unit => unit.id === id);
-      if (!enemy || enemy.movesLeft <= 0 || enemy.hasAttacked) continue;
+      // Civilians cannot attack. A converted unit also stops being an enemy.
+      // Skip them before pathfinding or forecasting rejected attacks.
+      if (!enemy || enemy.ownerId === ctx.playerId || !isCombatant(unitDef(enemy.type)) ||
+          enemy.movesLeft <= 0 || enemy.hasAttacked) continue;
       const targets = targetCells(current.state, targetIds, cityIds);
+      if (ctx.ai.tactics.replyOrigins > 0) {
+        for (const reply of replyChoices(ctx, current, enemy, targets)) {
+          const score = before - foldTerms(positionTerms(ctx, reply));
+          if (score > 0 && (best === null || score > best.score)) best = { position: reply, score };
+        }
+        continue;
+      }
       const moves = movementActions(current.state, enemy)
         .filter(action => action.cost < enemy.movesLeft)
         .sort((a, b) => Math.min(...targets.map(target => distance(current.state, a.to, target))) - Math.min(...targets.map(target => distance(current.state, b.to, target))));

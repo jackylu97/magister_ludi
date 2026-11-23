@@ -51,8 +51,8 @@ export function initialPosition(state: GameState): TacticalPosition {
 }
 
 /** The move range already includes terrain, roads, occupation and control tolls. */
-export function movementActions(state: GameState, unit: Unit): TacticalAction[] {
-  return reachableTiles(state, unit, { swaps: false }).map(row => ({
+export function movementActions(state: GameState, unit: Unit, radius?: number): TacticalAction[] {
+  return reachableTiles(state, unit, { swaps: false, radius }).map(row => ({
     unitId: unit.id, from: { col: unit.col, row: unit.row }, to: { col: row.tile.col, row: row.tile.row },
     kind: 'move', cost: row.cost,
     command: { type: 'moveUnit', playerId: unit.ownerId, unitId: unit.id, target: { col: row.tile.col, row: row.tile.row } },

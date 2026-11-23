@@ -429,6 +429,8 @@
   "tactics": {
     "enabled": 0,
     "radius": 6,
+    "moveRadius": 2,
+    "replyOrigins": 1,
     "units": 4,
     "enemies": 6,
     "choices": 5,

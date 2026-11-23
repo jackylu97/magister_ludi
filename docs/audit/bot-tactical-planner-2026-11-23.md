@@ -12,6 +12,33 @@ the default policy.
 
 ## Implementation
 
+### Local search cost experiment
+
+The user requested a smaller search and cheaper estimates on November 23.
+The experiment uses a two-hex radius for friendly movement, with a separate,
+wider threat search. Movement inside that radius still uses the shared terrain, road,
+occupation and control costs. Longer detours can be omitted by this search.
+
+Enemy replies use a small number of legal origins per target. They prefer
+an existing shot, then a reachable origin that costs less movement. The shared
+combat rules confirm each selected exchange. This approximates the
+enemy's choice of attack position; it does not approximate damage or grant
+an impossible attack. The old response search remains available for comparison.
+Saved tactical cases, a heavy saved turn and five games were compared.
+Economic weights stay fixed, the planner stays disabled by default, and 5199 is unchanged.
+
+The new controls are `tactics.moveRadius` and `tactics.replyOrigins`.
+Setting both to zero restores the previous search. The radius applies to
+friendly movement paths, not attack range or enemy movement. Known enemies
+still come from the existing engagement radius and count limit.
+
+The reply heuristic prefers a legal attack from the current tile. Otherwise
+it checks reachable origins by movement cost, with distance from the target
+as a tie-breaker. A blocked shot does not consume the legal-origin allowance.
+Every selected exchange still uses the shared combat forecast. Occupation
+and health update after each response, as before. This can miss a stronger
+attack from a different origin; it does not promise an optimal enemy reply.
+
 - `src/ai/tactics/position.ts` constructs private positions. It uses the sim's
   reachable tiles, combat plan, damage curve and attack allowances.
 - `assessment.ts` scores health, losses, captures, protection, healing and
@@ -64,6 +91,8 @@ branches remain as the control and for jobs outside this planner's scope.
   reuse when an economic change outside the local area could affect combat.
 - Tactical moves stop on visible destinations. Removing hidden occupants from
   the search must not imply that an unseen destination is empty.
+- The reply search skips civilians and units converted to our side before
+  pathfinding. The shared combat validator would reject their attacks anyway.
 
 An original saved turn took 10,889 ms with the first prototype and 9,665 ms
 after the movement and ground-cache changes. The commands were identical in
@@ -295,3 +324,115 @@ deployment was performed for this experiment.
   job planner.
 - More captures, fewer losses or higher income alone cannot establish better
   combat. Review the original decisions and actual fights before promotion.
+
+## Smaller search and estimated reply positions
+
+The second experiment uses `moveRadius: 2` and `replyOrigins: 1`. The defaults
+for friendly group size, sequence depth, replies and score weights are unchanged.
+The [evidence file](bot-tactical-local-search-2026-11-23.json) records every seat,
+source and bundle hashes, timings, replay checks and the reviewed advance losses.
+
+### Planning cost
+
+On the same saved late-game turn, the initial settings comparison took:
+
+- Previous search: 18.31 seconds.
+- Two-hex friendly movement, previous reply search: 9.33 seconds.
+- Two-hex movement, one legal enemy origin per target: 7.96 seconds.
+- Two-hex movement, two legal enemy origins per target: 8.84 seconds.
+
+The one-origin and two-origin runs produced identical commands and final state
+on this fixture. That does not establish equivalence on other boards.
+
+A final check skips reply searches for civilians and converted units. It reduced
+forecasts from 13,854 to 12,600 on this fixture. All 240 queried commands and the
+final state matched the version without this check. This is an exact-result
+optimization, unlike the smaller search and reply heuristic.
+
+The final timing comparison ran previous/new/new/previous, with no other test
+or simulation running. The previous settings took 18.64 and 17.55 seconds;
+the new settings took 7.64 and 9.06 seconds. The means are **18.09 versus 8.35
+seconds**, about **54% less planning time**. The control reproduces the commands
+and final state recorded at `9356891a`. These measurements include a full
+headless turn across the seats. They are not FPS measurements. The new policy
+changes decisions, so these are not timings for identical command sequences.
+
+### Matched games
+
+The frozen game bundle includes the smaller search and reply heuristic, before
+the final eligibility check. All five games passed exact combat replay and had
+no live-driver warnings. Economy, production and diplomacy weights match the
+stable control. All six seats use the same policy in each game; this is not a
+head-to-head comparison.
+
+The fixed cohort covers the fifteen paired-deck leaders twice each. It does
+not cover Ibn Battuta's rainbow deck. That remains a coverage gap for a broader
+leader audit.
+
+Qin won seed 39827 on turn 92, compared with turn 93 under the previous planner.
+The stable control had no winner through turn 100. Both controls were replayed
+to turn 92 from their original accepted logs. The checkpoint tool first reproduced
+the turn-90 yields, score, research, drafts, unit counts and city counts used
+in this comparison, then wrote the turn-92 checkpoints. Both shortened
+controls passed combat replay. This avoids rerunning bot planning or comparing
+different lengths of game.
+
+The following results use turn 92 for that map and turn 100 for the other four:
+
+| Result, thirty seats | Stable control | Previous planner | Smaller search |
+| --- | ---: | ---: | ---: |
+| Total unit losses | 383 | 471 | 386 |
+| Civilian losses | 74 | 74 | 57 |
+| Losses to barbarians | 244 | 147 | 149 |
+| City captures | 8 | 11 | 9 |
+| Captures by Dominion leaders | 8 | 11 | 8 |
+| Deaths to an immediate counterattack | 0 | 2 | 0 |
+| Advances followed by death by the next turn | 31 / 333 (9.3%) | 36 / 464 (7.8%) | 36 / 392 (9.2%) |
+| Mean score | 1,354 | 1,473 | 1,469 |
+
+The turn-100 comparison excludes the early-finished map from every policy:
+
+| Result, twenty-four seats | Stable control | Previous planner | Smaller search |
+| --- | ---: | ---: | ---: |
+| At least 800 recurring yields | 20 / 24 | 14 / 24 | 19 / 24 |
+| Median recurring yields | 1,300 | 1,145 | 1,451 |
+| Mean recurring yields | 2,459 | 2,054 | 2,590 |
+| Mean researched nodes | 30.71 | 29.25 | 30.58 |
+| Mean Order drafts | 20.25 | 20.25 | 21.71 |
+| Mean score | 1,385 | 1,330 | 1,470 |
+
+Every seat remained alive. The smaller search improves economic consistency
+and reduces total losses compared with the previous planner. It also captures
+fewer cities and loses the same number of advancing units across fewer advances.
+The barbarian gains over the stable control largely remain. These mixed results
+do not justify promoting the planner to the default policy.
+
+The five game durations were 397, 583, 188, 295 and 1,170 seconds, in schedule
+order. They include planning, simulation and audit collection. Changed wars and
+armies affect that work, so use the fixed saved-turn test for the timing comparison.
+
+### Reviewed losses and next tests
+
+Four stored decisions from seed 48017 were reviewed: command indices 3912,
+5771, 7033 and 7291. In three, the selected score was negative and the retained
+holding and retreat alternatives scored worse. The explanations already priced
+substantial enemy retaliation. This points to missing useful alternatives as
+well as the accuracy of the enemy reply. It does not prove that every sacrifice
+was necessary or that the heuristic caused these particular deaths.
+
+Keep both controls available. The next comparison should isolate the two-hex
+radius from the reply heuristic, and test selective wider retreats and swaps.
+A cheap shortlist should retain useful defensive positions before spending more
+work on deeper sequences. These five reused maps are development evidence;
+additional maps and mixed-policy seats are still needed before promotion.
+
+The additional core fixtures cover wrapped road movement, mounted threats beyond
+two hexes, ranged approaches, blocked paths, blocked shots and ineligible enemy
+attackers. The checkpoint script verifies saved metrics against existing reports
+before writing shortened comparison games.
+
+The final changes pass typecheck, the production build, and all 574 core files
+with 12,993 tests. This includes 32 tactical fixtures and the enabled planner's
+page/worker parity check. The core suite took 161 seconds and the build took
+18 seconds. The existing large-chunk warning remains. No full slow-tier sweep,
+push or deployment was performed. All benchmark and validation processes ended.

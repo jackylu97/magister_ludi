@@ -6,10 +6,10 @@ import { askTheBot } from '../src/ai/frozenBoard';
 import { tacticalTally } from '../src/ai/tactics/planner';
 import { loadGame, snapshotState } from '../src/sim/game';
 
-const [save, output] = process.argv.slice(2);
+const [save, output, tuning] = process.argv.slice(2);
 if (!save || !output) throw Error('Pass a saved game and output prefix.');
 const game = loadGame(readFileSync(save, 'utf8'));
-setAiTuning({ tactics: { enabled: 1 } });
+setAiTuning(tuning ? JSON.parse(readFileSync(tuning, 'utf8')) : { tactics: { enabled: 1 } });
 const started = performance.now();
 let longest = 0;
 const rows: { ms: number; playerId: number; command: unknown }[] = [];
@@ -35,5 +35,6 @@ try {
 } finally {
   const report = { elapsedMs: performance.now() - started, rows, tactics: { ...tacticalTally } };
   writeFileSync(`${output}.json`, JSON.stringify(report, null, 2));
+  writeFileSync(`${output}.state.json`, snapshotState(game.state));
   console.log(JSON.stringify({ ...report, rows: [...rows].sort((a, b) => b.ms - a.ms).slice(0, 8) }));
 }

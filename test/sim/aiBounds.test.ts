@@ -67,6 +67,7 @@ const SENTINEL_LEAVES = ['meters.happinessFloor', 'meters.authorityFloor', 'wage
 const INTEGER_LEAVES = [
   'priorities.horizonTurns',
   'tactics.enabled', 'tactics.radius', 'tactics.units', 'tactics.enemies', 'tactics.choices',
+  'tactics.moveRadius', 'tactics.replyOrigins',
   'tactics.beam', 'tactics.depth', 'tactics.replies', 'tactics.projections',
   'expansion.siteSearchRadius',
   'expansion.hexOffersPriced',

@@ -1,12 +1,13 @@
 /** Compare the local planner's alternatives on an original private planning board. */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { aiConfigFor } from '../src/ai/aiConfig';
+import { aiConfigFor, setAiTuning } from '../src/ai/aiConfig';
 import { planTacticalCombat } from '../src/ai/tactics/planner';
 import { restoreState, snapshotState } from '../src/sim/game';
 
-const [input, idText, output] = process.argv.slice(2);
+const [input, idText, output, tuning] = process.argv.slice(2);
 const id = Number(idText);
 if (!input || !output || !Number.isSafeInteger(id)) throw Error('Pass a planning snapshot, unit id and output path.');
+if (tuning) setAiTuning(JSON.parse(readFileSync(tuning, 'utf8')));
 const state = restoreState(readFileSync(input, 'utf8'));
 const unit = state.units.find(row => row.id === id);
 if (!unit) throw Error(`Unit ${id} is missing.`);

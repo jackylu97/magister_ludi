@@ -1,0 +1,4387 @@
+{
+  "basis": {
+    "stable": "1b596864",
+    "previous": "9356891a (same policy as 6de2429f)",
+    "candidate": "two-hex movement and one legal enemy origin per target",
+    "gameBundle": "tactics-local-v1.mjs",
+    "samePolicyPerGame": true,
+    "headToHead": false,
+    "unchangedEconomyWeights": true,
+    "allLiveDriverWarningsEmpty": true,
+    "coverage": "Fifteen paired-deck leaders twice. Ibn Battuta is outside this fixed cohort.",
+    "matchedTurn": {
+      "72839": 100,
+      "48017": 100,
+      "85211": 100,
+      "39827": 92,
+      "67153": 100
+    }
+  },
+  "manifest": {
+    "base": "9356891a",
+    "variant": "tactics-local-v1",
+    "economyWeightsUnchanged": true,
+    "files": {
+      "src/ai/aiConfig.ts": "86212f3ddaed80f3396c85cb8d0b61bf64f29e0fa426eb72426d768463e38fa1",
+      "src/ai/tactics/assessment.ts": "8f5ee776def85fba6b1c0d6fdcaad70c365f97bedbde12ad32e3a88496ccf8a6",
+      "src/ai/tactics/planner.ts": "c9c8aa572ee16f8d10ea72b040e51780b8460b7acc45d9c3973b8ff21747b0b5",
+      "src/ai/tactics/position.ts": "af1985e2ee4f03cc2767bb1ddf64f9af5b6ddd033a5dde6ea7b2fbbaee53660e",
+      "src/sim/pathfind.ts": "1832249c74036926274af9c1616b7b1436351ff888728534ff293d4736db9859",
+      "data/ai.json": "612d3332929e261fbb52895cc6dff35a6d1a0564c027557bbfeb5d91e7c600cd",
+      "data/ai.bounds.json": "46a12e61eac10efa88832ac50ecc9874edac1b9b6d8e17f9d1e587da138e1aab"
+    },
+    "bundle": "1c3759d90aa49a470f69a99bf69a15540498e5837a5175b7536bf01dd87f958c",
+    "tuning": {
+      "tactics": {
+        "enabled": 1
+      }
+    },
+    "profileVariants": {
+      "control": {
+        "tactics": {
+          "enabled": 1,
+          "moveRadius": 0,
+          "replyOrigins": 0
+        }
+      },
+      "radius": {
+        "tactics": {
+          "enabled": 1,
+          "moveRadius": 2,
+          "replyOrigins": 0
+        }
+      },
+      "one": {
+        "tactics": {
+          "enabled": 1,
+          "moveRadius": 2,
+          "replyOrigins": 1
+        }
+      },
+      "two": {
+        "tactics": {
+          "enabled": 1,
+          "moveRadius": 2,
+          "replyOrigins": 2
+        }
+      }
+    }
+  },
+  "gameRuntimeSeconds": [
+    {
+      "seed": 72839,
+      "seconds": 397.167697625,
+      "replayPassed": true,
+      "sourceLabel": "9356891a-local-v1"
+    },
+    {
+      "seed": 48017,
+      "seconds": 582.589221083,
+      "replayPassed": true,
+      "sourceLabel": "9356891a-local-v1"
+    },
+    {
+      "seed": 85211,
+      "seconds": 188.0563689170001,
+      "replayPassed": true,
+      "sourceLabel": "9356891a-local-v1"
+    },
+    {
+      "seed": 39827,
+      "seconds": 294.786960917,
+      "replayPassed": true,
+      "sourceLabel": "9356891a-local-v1"
+    },
+    {
+      "seed": 67153,
+      "seconds": 1169.5858558749999,
+      "replayPassed": true,
+      "sourceLabel": "9356891a-local-v1"
+    }
+  ],
+  "comparison": {
+    "games": [
+      {
+        "seed": 72839,
+        "turn": 100,
+        "variants": {
+          "stable": {
+            "winner": null,
+            "warnings": [],
+            "tactics": null,
+            "planning": {
+              "landed": 6019,
+              "refused": {
+                "moveUnit": 5,
+                "purchaseItem": 4,
+                "fortify": 2,
+                "proposeDeal": 6,
+                "buyRoute": 1,
+                "foundCity": 1
+              },
+              "refusedWhy": {
+                "moveUnit: Unit N cannot stop on (N, N)": 2,
+                "purchaseItem: Warrior costs N gold; Joan of Arc has N": 1,
+                "fortify: No unit with id N": 2,
+                "proposeDeal: The Joan of Arc have no copper to spare \u2014 every copy is alre": 4,
+                "moveUnit: Unit N does not belong to player N": 1,
+                "purchaseItem: Warrior costs N gold; Jayavarman VII has N": 1,
+                "buyRoute: You are at war with Alexander the Great": 1,
+                "foundCity: (N, N) is N tile(s) from the nearest city; N required": 1,
+                "moveUnit: No unit with id N": 1,
+                "moveUnit: Your Warrior there has not the movement to trade places": 1,
+                "purchaseItem: Warrior has been replaced by the Swordsman": 2,
+                "proposeDeal: The Alexander the Great have no iron to spare \u2014 every copy i": 2
+              },
+              "cut": {
+                "offer": 25,
+                "combat": 19,
+                "refused": 19
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 10,
+                "combat: attack target is unavailable": 6,
+                "offer: chooseBelief: belief": 8,
+                "combat: health or strength changed": 13,
+                "offer: chooseOrder: order": 4,
+                "offer: rerollOffer: belief": 2,
+                "refused: moveUnit, after an unlike outcome": 2,
+                "refused: purchaseItem": 4,
+                "refused: fortify": 2,
+                "refused: proposeDeal": 6,
+                "refused: moveUnit": 3,
+                "refused: buyRoute": 1,
+                "refused: foundCity": 1,
+                "offer: chooseDiscovery: discovery": 1
+              },
+              "unlike": {
+                "attack": 4,
+                "moveUnit": 6
+              }
+            }
+          },
+          "previous": {
+            "winner": null,
+            "warnings": [],
+            "tactics": {
+              "calls": 13197,
+              "engagements": 13197,
+              "positions": 1090674,
+              "forecasts": 917049,
+              "replies": 67992,
+              "limited": 1312,
+              "cacheHits": 85307
+            },
+            "planning": {
+              "landed": 4812,
+              "refused": {
+                "proposeDeal": 4,
+                "purchaseItem": 5,
+                "moveUnit": 7,
+                "acceptDeal": 1
+              },
+              "refusedWhy": {
+                "proposeDeal: The Alexander the Great have no copper to spare \u2014 every copy": 3,
+                "purchaseItem: Warrior costs N gold; Cleopatra has -N": 1,
+                "purchaseItem: Warrior has been replaced by the Swordsman": 2,
+                "purchaseItem: Warrior costs N gold; Jayavarman VII has N": 1,
+                "proposeDeal: The Qin Shi Huang have olives only on loan, and a borrowed l": 1,
+                "moveUnit: Unit N does not belong to player N": 1,
+                "moveUnit: Unit N cannot stop on (N, N)": 6,
+                "acceptDeal: The Qin Shi Huang have no whales to lend": 1,
+                "purchaseItem: This city cannot purchase without free tiles.": 1
+              },
+              "cut": {
+                "offer": 19,
+                "combat": 152,
+                "refused": 17
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 5,
+                "combat: local tactical position changed": 152,
+                "offer: chooseDiscovery: discovery": 1,
+                "offer: chooseBelief: belief": 6,
+                "offer: chooseOrder: order": 3,
+                "refused: proposeDeal": 4,
+                "refused: purchaseItem": 5,
+                "offer: rerollOffer: belief": 1,
+                "refused: moveUnit": 7,
+                "offer: skipOrderOffer: order": 2,
+                "refused: acceptDeal": 1,
+                "offer: chooseGreatPerson: great person": 1
+              },
+              "unlike": {
+                "moveUnit": 6,
+                "attack": 1
+              }
+            }
+          },
+          "local": {
+            "winner": null,
+            "warnings": [],
+            "tactics": {
+              "calls": 7048,
+              "engagements": 7048,
+              "positions": 524802,
+              "forecasts": 333617,
+              "replies": 35030,
+              "limited": 320,
+              "cacheHits": 48804
+            },
+            "planning": {
+              "landed": 4604,
+              "refused": {
+                "purchaseItem": 2,
+                "buildImprovement": 1,
+                "moveUnit": 1
+              },
+              "refusedWhy": {
+                "purchaseItem: Lighthouse costs N gold; Joan of Arc has N": 1,
+                "buildImprovement: Unit N does not belong to player N": 1,
+                "moveUnit: Unit N cannot stop on (N, N)": 1,
+                "purchaseItem: Warrior has been replaced by the Swordsman": 1
+              },
+              "cut": {
+                "offer": 19,
+                "combat": 155,
+                "refused": 4
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 5,
+                "combat: local tactical position changed": 155,
+                "offer: chooseDiscovery: discovery": 2,
+                "offer: chooseBelief: belief": 5,
+                "offer: chooseOrder: order": 6,
+                "refused: purchaseItem": 2,
+                "refused: buildImprovement": 1,
+                "offer: skipOrderOffer: order": 1,
+                "refused: moveUnit": 1
+              },
+              "unlike": {
+                "attack": 2,
+                "moveUnit": 1
+              }
+            }
+          }
+        }
+      },
+      {
+        "seed": 48017,
+        "turn": 100,
+        "variants": {
+          "stable": {
+            "winner": null,
+            "warnings": [],
+            "tactics": null,
+            "planning": {
+              "landed": 4734,
+              "refused": {
+                "moveUnit": 13,
+                "fortify": 3,
+                "purchaseItem": 1,
+                "buyRoute": 1
+              },
+              "refusedWhy": {
+                "moveUnit: Unit N cannot stop on (N, N)": 4,
+                "moveUnit: No unit with id N": 9,
+                "fortify: No unit with id N": 3,
+                "purchaseItem: Warrior has been replaced by the Swordsman": 1,
+                "buyRoute: Tadmekka is N turns away; a caravan may be sent N": 1
+              },
+              "cut": {
+                "offer": 16,
+                "combat": 49,
+                "refused": 18
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 6,
+                "offer: chooseBelief: belief": 7,
+                "combat: defender or siege phase changed": 2,
+                "combat: attack target is unavailable": 13,
+                "combat: health or strength changed": 34,
+                "refused: moveUnit": 12,
+                "refused: fortify": 3,
+                "offer: chooseOrder: order": 3,
+                "refused: purchaseItem": 1,
+                "refused: moveUnit, after an unlike outcome": 1,
+                "refused: buyRoute": 1
+              },
+              "unlike": {
+                "moveUnit": 6,
+                "attack": 1
+              }
+            }
+          },
+          "previous": {
+            "winner": null,
+            "warnings": [],
+            "tactics": {
+              "calls": 20803,
+              "engagements": 20803,
+              "positions": 1478900,
+              "forecasts": 2170242,
+              "replies": 180949,
+              "limited": 946,
+              "cacheHits": 146069
+            },
+            "planning": {
+              "landed": 4912,
+              "refused": {
+                "moveUnit": 1,
+                "sleepUnit": 1
+              },
+              "refusedWhy": {
+                "moveUnit: Unit N does not belong to player N": 1,
+                "sleepUnit: Unit N does not belong to player N": 1
+              },
+              "cut": {
+                "offer": 10,
+                "combat": 211,
+                "refused": 2
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 2,
+                "combat: local tactical position changed": 211,
+                "refused: moveUnit": 1,
+                "offer: chooseBelief: belief": 5,
+                "offer: skipOrderOffer: order": 1,
+                "offer: chooseOrder: order": 2,
+                "refused: sleepUnit": 1
+              },
+              "unlike": {
+                "moveUnit": 2
+              }
+            }
+          },
+          "local": {
+            "winner": null,
+            "warnings": [],
+            "tactics": {
+              "calls": 18072,
+              "engagements": 18072,
+              "positions": 1310010,
+              "forecasts": 1201809,
+              "replies": 152801,
+              "limited": 723,
+              "cacheHits": 133518
+            },
+            "planning": {
+              "landed": 4840,
+              "refused": {
+                "moveUnit": 2,
+                "sleepUnit": 1,
+                "purchaseItem": 3,
+                "acceptDeal": 1,
+                "buyRoute": 1
+              },
+              "refusedWhy": {
+                "moveUnit: Unit N does not belong to player N": 2,
+                "sleepUnit: Unit N does not belong to player N": 1,
+                "purchaseItem: Monument costs N gold; Mansa Musa has N": 1,
+                "purchaseItem: Cusco does not belong to Pachacuti": 1,
+                "purchaseItem: Warrior has been replaced by the Swordsman": 1,
+                "acceptDeal: The Lorenzo de' Medici have no obsidian to spare \u2014 every cop": 1,
+                "buyRoute: Ravenna is N turns away; a caravan may be sent N": 1
+              },
+              "cut": {
+                "offer": 13,
+                "combat": 186,
+                "refused": 8
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 3,
+                "combat: local tactical position changed": 186,
+                "refused: moveUnit": 2,
+                "offer: chooseBelief: belief": 5,
+                "refused: sleepUnit": 1,
+                "offer: rerollOffer: belief": 3,
+                "refused: purchaseItem": 3,
+                "offer: chooseOrder: order": 2,
+                "refused: acceptDeal": 1,
+                "refused: buyRoute": 1
+              },
+              "unlike": {
+                "moveUnit": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "seed": 85211,
+        "turn": 100,
+        "variants": {
+          "stable": {
+            "winner": null,
+            "warnings": [],
+            "tactics": null,
+            "planning": {
+              "landed": 5813,
+              "refused": {
+                "moveUnit": 3,
+                "purchaseItem": 1
+              },
+              "refusedWhy": {
+                "moveUnit: Ironford is another empire's city \u2014 take it by force": 1,
+                "purchaseItem: Swordsman has been replaced by the Legionary": 1,
+                "moveUnit: Unit N cannot stop on (N, N)": 2
+              },
+              "cut": {
+                "offer": 34,
+                "combat": 20,
+                "refused": 4,
+                "taken": 1
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 9,
+                "offer: chooseDiscovery: discovery": 1,
+                "combat: health or strength changed": 13,
+                "offer: rerollOffer: belief": 2,
+                "combat: attack target is unavailable": 7,
+                "offer: chooseOrder: order": 11,
+                "offer: chooseBelief: belief": 8,
+                "offer: chooseGreatPerson: great person": 2,
+                "refused: moveUnit": 3,
+                "offer: chooseDoctrine: doctrine, great person": 1,
+                "refused: purchaseItem": 1,
+                "taken: Ibn al-Haytham has already been called by another empire": 1
+              },
+              "unlike": {
+                "attack": 10,
+                "moveUnit": 3
+              }
+            }
+          },
+          "previous": {
+            "winner": null,
+            "warnings": [],
+            "tactics": {
+              "calls": 4768,
+              "engagements": 4768,
+              "positions": 332902,
+              "forecasts": 73958,
+              "replies": 8950,
+              "limited": 239,
+              "cacheHits": 38999
+            },
+            "planning": {
+              "landed": 3365,
+              "refused": {
+                "moveUnit": 1,
+                "setCityProduction": 1
+              },
+              "refusedWhy": {
+                "moveUnit: You are not at war with the Persians \u2014 their land is closed ": 1,
+                "setCityProduction: Swordsman has been replaced by the Legionary": 1
+              },
+              "cut": {
+                "offer": 17,
+                "combat": 177,
+                "refused": 2
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 4,
+                "combat: local tactical position changed": 177,
+                "offer: chooseBelief: belief": 6,
+                "offer: chooseOrder: order": 3,
+                "offer: chooseGreatPerson: great person": 2,
+                "offer: rerollOffer: belief": 2,
+                "refused: moveUnit": 1,
+                "refused: setCityProduction": 1
+              },
+              "unlike": {
+                "moveUnit": 1
+              }
+            }
+          },
+          "local": {
+            "winner": null,
+            "warnings": [],
+            "tactics": {
+              "calls": 2473,
+              "engagements": 2473,
+              "positions": 145043,
+              "forecasts": 36413,
+              "replies": 4465,
+              "limited": 93,
+              "cacheHits": 19169
+            },
+            "planning": {
+              "landed": 3774,
+              "refused": {
+                "foundCity": 1,
+                "acceptDeal": 3
+              },
+              "refusedWhy": {
+                "foundCity: (N, N) belongs to player N": 1,
+                "acceptDeal: The Cyrus the Great have jade only on loan, and a borrowed l": 1,
+                "acceptDeal: The Harun al-Rashid have wine only on loan, and a borrowed l": 2
+              },
+              "cut": {
+                "offer": 22,
+                "combat": 152,
+                "refused": 4,
+                "taken": 1
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 5,
+                "combat: local tactical position changed": 152,
+                "offer: chooseBelief: belief": 7,
+                "offer: chooseOrder: order": 7,
+                "offer: chooseGreatPerson: great person": 2,
+                "refused: foundCity": 1,
+                "offer: rerollOffer: belief": 1,
+                "taken: Zhang Qian has already been called by another empire": 1,
+                "refused: acceptDeal": 3
+              },
+              "unlike": {
+                "attack": 2,
+                "moveUnit": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "seed": 39827,
+        "turn": 92,
+        "variants": {
+          "stable": {
+            "winner": null,
+            "warnings": [],
+            "tactics": null,
+            "planning": null
+          },
+          "previous": {
+            "winner": null,
+            "warnings": [],
+            "tactics": null,
+            "planning": null
+          },
+          "local": {
+            "winner": 5,
+            "warnings": [],
+            "tactics": {
+              "calls": 9343,
+              "engagements": 9343,
+              "positions": 478155,
+              "forecasts": 244020,
+              "replies": 41093,
+              "limited": 346,
+              "cacheHits": 60223
+            },
+            "planning": {
+              "landed": 3211,
+              "refused": {
+                "acceptDeal": 2,
+                "proposeDeal": 1,
+                "moveUnit": 2,
+                "purchaseItem": 1
+              },
+              "refusedWhy": {
+                "acceptDeal: The Qin Shi Huang have no obsidian to lend": 1,
+                "proposeDeal: Under The Forbidden Silks, the Florentines cannot lend luxur": 1,
+                "acceptDeal: The Qin Shi Huang have no copper to lend": 1,
+                "moveUnit: Unit N does not belong to player N": 2,
+                "purchaseItem: Warrior has been replaced by the Swordsman": 1
+              },
+              "cut": {
+                "offer": 12,
+                "combat": 153,
+                "refused": 6
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 3,
+                "combat: local tactical position changed": 153,
+                "refused: acceptDeal": 2,
+                "offer: chooseOrder: order": 4,
+                "offer: chooseBelief: belief": 4,
+                "refused: proposeDeal": 1,
+                "offer: rerollOffer: belief": 1,
+                "refused: moveUnit": 1,
+                "refused: purchaseItem": 1,
+                "refused: moveUnit, after an unlike outcome": 1
+              },
+              "unlike": {
+                "attack": 1,
+                "moveUnit": 3
+              }
+            }
+          }
+        }
+      },
+      {
+        "seed": 67153,
+        "turn": 100,
+        "variants": {
+          "stable": {
+            "winner": null,
+            "warnings": [],
+            "tactics": null,
+            "planning": {
+              "landed": 5481,
+              "refused": {
+                "moveUnit": 5,
+                "acceptDeal": 3,
+                "proposeDeal": 2,
+                "purchaseItem": 1
+              },
+              "refusedWhy": {
+                "moveUnit: Unit N cannot stop on (N, N)": 3,
+                "acceptDeal: The Genghis Khan have cotton only on loan, and a borrowed lu": 1,
+                "moveUnit: Unit N does not belong to player N": 1,
+                "proposeDeal: You are at war with the Mongols \u2014 terms belong in a peace": 1,
+                "purchaseItem: Warrior has been replaced by the Swordsman": 1,
+                "acceptDeal: The Nezahualcoyotl have no sugar to lend": 1,
+                "acceptDeal: The Mehmed the Conqueror have no coffee to lend": 1,
+                "proposeDeal: The Genghis Khan have no copper to spare \u2014 every copy is alr": 1,
+                "moveUnit: Your Composite Bowman there has not the movement to trade pl": 1
+              },
+              "cut": {
+                "offer": 18,
+                "combat": 71,
+                "refused": 11
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 6,
+                "combat: health or strength changed": 51,
+                "combat: attack target is unavailable": 12,
+                "refused: moveUnit": 4,
+                "refused: acceptDeal": 3,
+                "offer: chooseOrder: order": 3,
+                "refused: proposeDeal": 2,
+                "offer: chooseBelief: belief": 8,
+                "combat: defender or siege phase changed": 8,
+                "offer: rerollOffer: belief": 1,
+                "refused: purchaseItem": 1,
+                "refused: moveUnit, after an unlike outcome": 1
+              },
+              "unlike": {
+                "attack": 8,
+                "moveUnit": 10
+              }
+            }
+          },
+          "previous": {
+            "winner": null,
+            "warnings": [],
+            "tactics": {
+              "calls": 36670,
+              "engagements": 36670,
+              "positions": 2546853,
+              "forecasts": 2091429,
+              "replies": 240185,
+              "limited": 1468,
+              "cacheHits": 220366
+            },
+            "planning": {
+              "landed": 3212,
+              "refused": {
+                "proposeDeal": 5,
+                "acceptDeal": 1,
+                "moveUnit": 4,
+                "purchaseItem": 1
+              },
+              "refusedWhy": {
+                "proposeDeal: The Mehmed the Conqueror have cotton only on loan, and a bor": 2,
+                "acceptDeal: Under The Forbidden Silks, the Mongols cannot lend luxuries ": 1,
+                "proposeDeal: You are at war with the Ottomans \u2014 terms belong in a peace": 1,
+                "moveUnit: Unit N cannot stop on (N, N)": 4,
+                "proposeDeal: The Mehmed the Conqueror have silk only on loan, and a borro": 2,
+                "purchaseItem: This city cannot purchase without free tiles.": 1
+              },
+              "cut": {
+                "offer": 4,
+                "combat": 217,
+                "refused": 11
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 1,
+                "combat: local tactical position changed": 217,
+                "refused: proposeDeal": 5,
+                "refused: acceptDeal": 1,
+                "refused: moveUnit": 4,
+                "offer: chooseBelief: belief": 3,
+                "refused: purchaseItem": 1
+              },
+              "unlike": {
+                "attack": 2
+              }
+            }
+          },
+          "local": {
+            "winner": null,
+            "warnings": [],
+            "tactics": {
+              "calls": 26569,
+              "engagements": 26569,
+              "positions": 1846753,
+              "forecasts": 1594913,
+              "replies": 159829,
+              "limited": 1062,
+              "cacheHits": 170027
+            },
+            "planning": {
+              "landed": 3192,
+              "refused": {
+                "proposeDeal": 3,
+                "acceptDeal": 2,
+                "moveUnit": 2
+              },
+              "refusedWhy": {
+                "proposeDeal: The Mehmed the Conqueror have cotton only on loan, and a bor": 2,
+                "acceptDeal: Under The Forbidden Silks, the Mongols cannot lend luxuries ": 1,
+                "proposeDeal: You are at war with the Ottomans \u2014 terms belong in a peace": 1,
+                "moveUnit: Unit N cannot stop on (N, N)": 1,
+                "moveUnit: No path from (N, N) to (N, N)": 1,
+                "acceptDeal: The Mehmed the Conqueror have no iron to lend": 1
+              },
+              "cut": {
+                "offer": 6,
+                "combat": 208,
+                "refused": 7
+              },
+              "cutWhy": {
+                "offer: chooseDoctrine: doctrine": 2,
+                "combat: local tactical position changed": 208,
+                "refused: proposeDeal": 3,
+                "refused: acceptDeal": 2,
+                "refused: moveUnit": 2,
+                "offer: chooseBelief: belief": 3,
+                "offer: chooseGreatPerson: great person": 1
+              },
+              "unlike": {
+                "attack": 1
+              }
+            }
+          }
+        }
+      }
+    ],
+    "rows": [
+      {
+        "seed": 72839,
+        "turn": 100,
+        "seat": 0,
+        "stable": {
+          "leader": "alexanderTheGreat",
+          "alive": true,
+          "total": 1329.4544999999998,
+          "rates": {
+            "foodPerTurn": 325.5,
+            "productionPerTurn": 288.7005,
+            "goldPerTurn": 359.154,
+            "sciencePerTurn": 151.2,
+            "culturePerTurn": 159.89999999999998,
+            "faithPerTurn": 45
+          },
+          "score": 945,
+          "techs": 29,
+          "drafts": 18,
+          "captures": 1,
+          "unitsLost": 9,
+          "citiesLost": 0,
+          "military": 67,
+          "cities": 12,
+          "combat": {
+            "attacks": 88,
+            "ranged": 45,
+            "counterDeaths": 0,
+            "advances": 23,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 1,
+            "lostToWild": 8,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "alexanderTheGreat",
+          "alive": true,
+          "total": 1131.5500000000002,
+          "rates": {
+            "foodPerTurn": 385,
+            "productionPerTurn": 199.75,
+            "goldPerTurn": 136,
+            "sciencePerTurn": 159.40000000000003,
+            "culturePerTurn": 165.4,
+            "faithPerTurn": 86
+          },
+          "score": 877,
+          "techs": 28,
+          "drafts": 18,
+          "captures": 2,
+          "unitsLost": 10,
+          "citiesLost": 0,
+          "military": 90,
+          "cities": 11,
+          "combat": {
+            "attacks": 248,
+            "ranged": 156,
+            "counterDeaths": 0,
+            "advances": 39,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 0,
+            "lostToWild": 1,
+            "knownFortifiedDefenses": 4,
+            "knownTerrainDefenses": 17
+          }
+        },
+        "local": {
+          "leader": "alexanderTheGreat",
+          "alive": true,
+          "total": 1513.695,
+          "rates": {
+            "foodPerTurn": 418.75,
+            "productionPerTurn": 352.575,
+            "goldPerTurn": 417.75,
+            "sciencePerTurn": 148.655,
+            "culturePerTurn": 142.96499999999997,
+            "faithPerTurn": 33
+          },
+          "score": 1046,
+          "techs": 27,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 9,
+          "citiesLost": 0,
+          "military": 71,
+          "cities": 11,
+          "combat": {
+            "attacks": 63,
+            "ranged": 36,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 0,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 4,
+            "knownTerrainDefenses": 9
+          }
+        }
+      },
+      {
+        "seed": 72839,
+        "turn": 100,
+        "seat": 1,
+        "stable": {
+          "leader": "joan",
+          "alive": true,
+          "total": 1069.6125,
+          "rates": {
+            "foodPerTurn": 346,
+            "productionPerTurn": 188.4,
+            "goldPerTurn": 73,
+            "sciencePerTurn": 155.2125,
+            "culturePerTurn": 180,
+            "faithPerTurn": 127
+          },
+          "score": 902,
+          "techs": 28,
+          "drafts": 17,
+          "captures": 0,
+          "unitsLost": 25,
+          "citiesLost": 1,
+          "military": 35,
+          "cities": 9,
+          "combat": {
+            "attacks": 73,
+            "ranged": 54,
+            "counterDeaths": 0,
+            "advances": 13,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 4,
+            "lostToWild": 15,
+            "knownFortifiedDefenses": 16,
+            "knownTerrainDefenses": 1
+          }
+        },
+        "previous": {
+          "leader": "joan",
+          "alive": true,
+          "total": 590.125,
+          "rates": {
+            "foodPerTurn": 140,
+            "productionPerTurn": 84,
+            "goldPerTurn": 56,
+            "sciencePerTurn": 114.52499999999999,
+            "culturePerTurn": 87.6,
+            "faithPerTurn": 108
+          },
+          "score": 625,
+          "techs": 25,
+          "drafts": 16,
+          "captures": 0,
+          "unitsLost": 21,
+          "citiesLost": 1,
+          "military": 47,
+          "cities": 7,
+          "combat": {
+            "attacks": 127,
+            "ranged": 108,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 0,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 13,
+            "knownTerrainDefenses": 16
+          }
+        },
+        "local": {
+          "leader": "joan",
+          "alive": true,
+          "total": 871.43,
+          "rates": {
+            "foodPerTurn": 241,
+            "productionPerTurn": 213.92,
+            "goldPerTurn": 80,
+            "sciencePerTurn": 139.75,
+            "culturePerTurn": 145.76,
+            "faithPerTurn": 51
+          },
+          "score": 754,
+          "techs": 27,
+          "drafts": 19,
+          "captures": 0,
+          "unitsLost": 19,
+          "citiesLost": 0,
+          "military": 49,
+          "cities": 9,
+          "combat": {
+            "attacks": 74,
+            "ranged": 57,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 1,
+            "lostToWild": 11,
+            "knownFortifiedDefenses": 7,
+            "knownTerrainDefenses": 7
+          }
+        }
+      },
+      {
+        "seed": 72839,
+        "turn": 100,
+        "seat": 2,
+        "stable": {
+          "leader": "qinShiHuang",
+          "alive": true,
+          "total": 2451.3950000000004,
+          "rates": {
+            "foodPerTurn": 447,
+            "productionPerTurn": 862.6800000000001,
+            "goldPerTurn": 28,
+            "sciencePerTurn": 685.975,
+            "culturePerTurn": 340.74000000000007,
+            "faithPerTurn": 87
+          },
+          "score": 2108,
+          "techs": 37,
+          "drafts": 25,
+          "captures": 0,
+          "unitsLost": 11,
+          "citiesLost": 0,
+          "military": 39,
+          "cities": 16,
+          "combat": {
+            "attacks": 71,
+            "ranged": 54,
+            "counterDeaths": 0,
+            "advances": 7,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 1,
+            "lostToWild": 11,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "qinShiHuang",
+          "alive": true,
+          "total": 3206.9804999999997,
+          "rates": {
+            "foodPerTurn": 666,
+            "productionPerTurn": 1230.165,
+            "goldPerTurn": 185.5,
+            "sciencePerTurn": 622.7055,
+            "culturePerTurn": 308.6099999999999,
+            "faithPerTurn": 194
+          },
+          "score": 2443,
+          "techs": 39,
+          "drafts": 24,
+          "captures": 0,
+          "unitsLost": 6,
+          "citiesLost": 0,
+          "military": 50,
+          "cities": 21,
+          "combat": {
+            "attacks": 75,
+            "ranged": 59,
+            "counterDeaths": 0,
+            "advances": 13,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 1,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "qinShiHuang",
+          "alive": true,
+          "total": 10071.146,
+          "rates": {
+            "foodPerTurn": 1251.475,
+            "productionPerTurn": 1614.9999999999998,
+            "goldPerTurn": 639,
+            "sciencePerTurn": 3498.6950000000006,
+            "culturePerTurn": 2832.4760000000006,
+            "faithPerTurn": 234.5
+          },
+          "score": 4513,
+          "techs": 48,
+          "drafts": 36,
+          "captures": 0,
+          "unitsLost": 9,
+          "citiesLost": 0,
+          "military": 56,
+          "cities": 25,
+          "combat": {
+            "attacks": 76,
+            "ranged": 61,
+            "counterDeaths": 0,
+            "advances": 11,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 9,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 72839,
+        "turn": 100,
+        "seat": 3,
+        "stable": {
+          "leader": "jayavarmanVII",
+          "alive": true,
+          "total": 1105.4,
+          "rates": {
+            "foodPerTurn": 378,
+            "productionPerTurn": 249.20000000000002,
+            "goldPerTurn": 72,
+            "sciencePerTurn": 183.7,
+            "culturePerTurn": 115.49999999999997,
+            "faithPerTurn": 107
+          },
+          "score": 1083,
+          "techs": 28,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 13,
+          "citiesLost": 0,
+          "military": 31,
+          "cities": 14,
+          "combat": {
+            "attacks": 36,
+            "ranged": 17,
+            "counterDeaths": 0,
+            "advances": 9,
+            "advancesLostByNextTurn": 3,
+            "civilianLosses": 3,
+            "lostToWild": 12,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 3
+          }
+        },
+        "previous": {
+          "leader": "jayavarmanVII",
+          "alive": true,
+          "total": 1641.8500000000001,
+          "rates": {
+            "foodPerTurn": 430,
+            "productionPerTurn": 587.25,
+            "goldPerTurn": 202.90000000000006,
+            "sciencePerTurn": 107.5,
+            "culturePerTurn": 131.2,
+            "faithPerTurn": 183
+          },
+          "score": 1120,
+          "techs": 25,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 13,
+          "citiesLost": 0,
+          "military": 58,
+          "cities": 14,
+          "combat": {
+            "attacks": 41,
+            "ranged": 13,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 2,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 17,
+            "knownTerrainDefenses": 18
+          }
+        },
+        "local": {
+          "leader": "jayavarmanVII",
+          "alive": true,
+          "total": 1930.9499999999998,
+          "rates": {
+            "foodPerTurn": 650,
+            "productionPerTurn": 455.1,
+            "goldPerTurn": 36.5,
+            "sciencePerTurn": 197.75000000000006,
+            "culturePerTurn": 390.6,
+            "faithPerTurn": 201
+          },
+          "score": 1273,
+          "techs": 27,
+          "drafts": 23,
+          "captures": 0,
+          "unitsLost": 1,
+          "citiesLost": 0,
+          "military": 34,
+          "cities": 14,
+          "combat": {
+            "attacks": 41,
+            "ranged": 37,
+            "counterDeaths": 0,
+            "advances": 4,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 1,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 72839,
+        "turn": 100,
+        "seat": 4,
+        "stable": {
+          "leader": "cyrusTheGreat",
+          "alive": true,
+          "total": 7022.792399999998,
+          "rates": {
+            "foodPerTurn": 895,
+            "productionPerTurn": 1519.4474999999998,
+            "goldPerTurn": 933.3,
+            "sciencePerTurn": 1749.2848999999992,
+            "culturePerTurn": 1387.7599999999998,
+            "faithPerTurn": 538
+          },
+          "score": 3611,
+          "techs": 42,
+          "drafts": 31,
+          "captures": 0,
+          "unitsLost": 5,
+          "citiesLost": 0,
+          "military": 54,
+          "cities": 26,
+          "combat": {
+            "attacks": 41,
+            "ranged": 35,
+            "counterDeaths": 0,
+            "advances": 4,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 2,
+            "lostToWild": 5,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "cyrusTheGreat",
+          "alive": true,
+          "total": 9181.419199999998,
+          "rates": {
+            "foodPerTurn": 607,
+            "productionPerTurn": 1506.2399999999998,
+            "goldPerTurn": 899,
+            "sciencePerTurn": 4777.315199999999,
+            "culturePerTurn": 1302.864,
+            "faithPerTurn": 89
+          },
+          "score": 4342,
+          "techs": 49,
+          "drafts": 35,
+          "captures": 0,
+          "unitsLost": 1,
+          "citiesLost": 0,
+          "military": 41,
+          "cities": 24,
+          "combat": {
+            "attacks": 24,
+            "ranged": 22,
+            "counterDeaths": 0,
+            "advances": 1,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 2,
+            "lostToWild": 1,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "cyrusTheGreat",
+          "alive": true,
+          "total": 5552.977000000001,
+          "rates": {
+            "foodPerTurn": 600,
+            "productionPerTurn": 1424.7970000000003,
+            "goldPerTurn": 698.6,
+            "sciencePerTurn": 895.9200000000001,
+            "culturePerTurn": 1401.6600000000003,
+            "faithPerTurn": 532
+          },
+          "score": 2811,
+          "techs": 41,
+          "drafts": 32,
+          "captures": 0,
+          "unitsLost": 2,
+          "citiesLost": 0,
+          "military": 54,
+          "cities": 26,
+          "combat": {
+            "attacks": 48,
+            "ranged": 41,
+            "counterDeaths": 0,
+            "advances": 5,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 3,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 72839,
+        "turn": 100,
+        "seat": 5,
+        "stable": {
+          "leader": "cleopatra",
+          "alive": true,
+          "total": 2057.2025000000003,
+          "rates": {
+            "foodPerTurn": 233.75,
+            "productionPerTurn": 309.2925,
+            "goldPerTurn": 362.5,
+            "sciencePerTurn": 730.7099999999999,
+            "culturePerTurn": 377.70000000000005,
+            "faithPerTurn": 43.25
+          },
+          "score": 1032,
+          "techs": 37,
+          "drafts": 21,
+          "captures": 0,
+          "unitsLost": 2,
+          "citiesLost": 0,
+          "military": 32,
+          "cities": 9,
+          "combat": {
+            "attacks": 3,
+            "ranged": 2,
+            "counterDeaths": 0,
+            "advances": 1,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 2,
+            "lostToWild": 3,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "cleopatra",
+          "alive": true,
+          "total": 570.45,
+          "rates": {
+            "foodPerTurn": 98,
+            "productionPerTurn": 145.4,
+            "goldPerTurn": 50.3,
+            "sciencePerTurn": 209.25,
+            "culturePerTurn": 45.5,
+            "faithPerTurn": 22
+          },
+          "score": 923,
+          "techs": 32,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 32,
+          "citiesLost": 1,
+          "military": 46,
+          "cities": 7,
+          "combat": {
+            "attacks": 12,
+            "ranged": 7,
+            "counterDeaths": 0,
+            "advances": 3,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 5,
+            "lostToWild": 5,
+            "knownFortifiedDefenses": 31,
+            "knownTerrainDefenses": 52
+          }
+        },
+        "local": {
+          "leader": "cleopatra",
+          "alive": true,
+          "total": 2452.745,
+          "rates": {
+            "foodPerTurn": 141.5,
+            "productionPerTurn": 238.91999999999996,
+            "goldPerTurn": 370.5,
+            "sciencePerTurn": 815.0250000000001,
+            "culturePerTurn": 640.8,
+            "faithPerTurn": 246
+          },
+          "score": 919,
+          "techs": 37,
+          "drafts": 25,
+          "captures": 0,
+          "unitsLost": 4,
+          "citiesLost": 0,
+          "military": 24,
+          "cities": 8,
+          "combat": {
+            "attacks": 8,
+            "ranged": 2,
+            "counterDeaths": 0,
+            "advances": 3,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 1,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 4
+          }
+        }
+      },
+      {
+        "seed": 48017,
+        "turn": 100,
+        "seat": 0,
+        "stable": {
+          "leader": "mehmedTheConqueror",
+          "alive": true,
+          "total": 1670.3549999999998,
+          "rates": {
+            "foodPerTurn": 666,
+            "productionPerTurn": 484.8299999999999,
+            "goldPerTurn": 149.5,
+            "sciencePerTurn": 180.225,
+            "culturePerTurn": 109.80000000000001,
+            "faithPerTurn": 80
+          },
+          "score": 1748,
+          "techs": 31,
+          "drafts": 18,
+          "captures": 2,
+          "unitsLost": 28,
+          "citiesLost": 0,
+          "military": 85,
+          "cities": 15,
+          "combat": {
+            "attacks": 331,
+            "ranged": 278,
+            "counterDeaths": 0,
+            "advances": 33,
+            "advancesLostByNextTurn": 5,
+            "civilianLosses": 1,
+            "lostToWild": 8,
+            "knownFortifiedDefenses": 4,
+            "knownTerrainDefenses": 27
+          }
+        },
+        "previous": {
+          "leader": "mehmedTheConqueror",
+          "alive": true,
+          "total": 1202.34,
+          "rates": {
+            "foodPerTurn": 328.5,
+            "productionPerTurn": 323.43999999999994,
+            "goldPerTurn": -104,
+            "sciencePerTurn": 336.79999999999995,
+            "culturePerTurn": 261.6,
+            "faithPerTurn": 56
+          },
+          "score": 1892,
+          "techs": 34,
+          "drafts": 25,
+          "captures": 3,
+          "unitsLost": 48,
+          "citiesLost": 0,
+          "military": 109,
+          "cities": 19,
+          "combat": {
+            "attacks": 327,
+            "ranged": 139,
+            "counterDeaths": 1,
+            "advances": 87,
+            "advancesLostByNextTurn": 8,
+            "civilianLosses": 2,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 76,
+            "knownTerrainDefenses": 166
+          }
+        },
+        "local": {
+          "leader": "mehmedTheConqueror",
+          "alive": true,
+          "total": 1525.505,
+          "rates": {
+            "foodPerTurn": 349.5,
+            "productionPerTurn": 607.9700000000001,
+            "goldPerTurn": -92,
+            "sciencePerTurn": 332.275,
+            "culturePerTurn": 288.36,
+            "faithPerTurn": 39.4
+          },
+          "score": 1927,
+          "techs": 31,
+          "drafts": 25,
+          "captures": 4,
+          "unitsLost": 79,
+          "citiesLost": 1,
+          "military": 119,
+          "cities": 16,
+          "combat": {
+            "attacks": 226,
+            "ranged": 181,
+            "counterDeaths": 0,
+            "advances": 25,
+            "advancesLostByNextTurn": 7,
+            "civilianLosses": 0,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 33,
+            "knownTerrainDefenses": 76
+          }
+        }
+      },
+      {
+        "seed": 48017,
+        "turn": 100,
+        "seat": 1,
+        "stable": {
+          "leader": "pachacuti",
+          "alive": true,
+          "total": 278.25,
+          "rates": {
+            "foodPerTurn": 76,
+            "productionPerTurn": 64,
+            "goldPerTurn": 26,
+            "sciencePerTurn": 40.25,
+            "culturePerTurn": 39,
+            "faithPerTurn": 33
+          },
+          "score": 417,
+          "techs": 17,
+          "drafts": 12,
+          "captures": 0,
+          "unitsLost": 11,
+          "citiesLost": 0,
+          "military": 30,
+          "cities": 9,
+          "combat": {
+            "attacks": 37,
+            "ranged": 16,
+            "counterDeaths": 0,
+            "advances": 9,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 3,
+            "lostToWild": 3,
+            "knownFortifiedDefenses": 7,
+            "knownTerrainDefenses": 17
+          }
+        },
+        "previous": {
+          "leader": "pachacuti",
+          "alive": true,
+          "total": 95.05,
+          "rates": {
+            "foodPerTurn": 32,
+            "productionPerTurn": 40.8,
+            "goldPerTurn": 8,
+            "sciencePerTurn": 3.25,
+            "culturePerTurn": 10,
+            "faithPerTurn": 1
+          },
+          "score": 217,
+          "techs": 13,
+          "drafts": 12,
+          "captures": 0,
+          "unitsLost": 46,
+          "citiesLost": 3,
+          "military": 11,
+          "cities": 2,
+          "combat": {
+            "attacks": 185,
+            "ranged": 174,
+            "counterDeaths": 0,
+            "advances": 5,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 5,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 70,
+            "knownTerrainDefenses": 97
+          }
+        },
+        "local": {
+          "leader": "pachacuti",
+          "alive": true,
+          "total": -1.4,
+          "rates": {
+            "foodPerTurn": 0,
+            "productionPerTurn": 0,
+            "goldPerTurn": -1.4,
+            "sciencePerTurn": 0,
+            "culturePerTurn": 0,
+            "faithPerTurn": 0
+          },
+          "score": 136,
+          "techs": 12,
+          "drafts": 11,
+          "captures": 0,
+          "unitsLost": 32,
+          "citiesLost": 4,
+          "military": 4,
+          "cities": 0,
+          "combat": {
+            "attacks": 50,
+            "ranged": 41,
+            "counterDeaths": 0,
+            "advances": 4,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 4,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 56,
+            "knownTerrainDefenses": 56
+          }
+        }
+      },
+      {
+        "seed": 48017,
+        "turn": 100,
+        "seat": 2,
+        "stable": {
+          "leader": "nezahualcoyotl",
+          "alive": true,
+          "total": 267,
+          "rates": {
+            "foodPerTurn": 91,
+            "productionPerTurn": 44,
+            "goldPerTurn": 37,
+            "sciencePerTurn": 47,
+            "culturePerTurn": 26,
+            "faithPerTurn": 22
+          },
+          "score": 434,
+          "techs": 19,
+          "drafts": 13,
+          "captures": 0,
+          "unitsLost": 13,
+          "citiesLost": 0,
+          "military": 18,
+          "cities": 5,
+          "combat": {
+            "attacks": 24,
+            "ranged": 19,
+            "counterDeaths": 0,
+            "advances": 2,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 8,
+            "lostToWild": 13,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "nezahualcoyotl",
+          "alive": true,
+          "total": 379.558,
+          "rates": {
+            "foodPerTurn": 95,
+            "productionPerTurn": 107.728,
+            "goldPerTurn": 17,
+            "sciencePerTurn": 91.75,
+            "culturePerTurn": 41.080000000000005,
+            "faithPerTurn": 27
+          },
+          "score": 568,
+          "techs": 27,
+          "drafts": 14,
+          "captures": 0,
+          "unitsLost": 3,
+          "citiesLost": 0,
+          "military": 16,
+          "cities": 4,
+          "combat": {
+            "attacks": 39,
+            "ranged": 37,
+            "counterDeaths": 0,
+            "advances": 2,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 3,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "nezahualcoyotl",
+          "alive": true,
+          "total": 429.92500000000007,
+          "rates": {
+            "foodPerTurn": 109,
+            "productionPerTurn": 93,
+            "goldPerTurn": 26.799999999999997,
+            "sciencePerTurn": 125.775,
+            "culturePerTurn": 44.35,
+            "faithPerTurn": 31
+          },
+          "score": 653,
+          "techs": 27,
+          "drafts": 14,
+          "captures": 0,
+          "unitsLost": 6,
+          "citiesLost": 0,
+          "military": 16,
+          "cities": 7,
+          "combat": {
+            "attacks": 45,
+            "ranged": 42,
+            "counterDeaths": 0,
+            "advances": 3,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 0,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 48017,
+        "turn": 100,
+        "seat": 3,
+        "stable": {
+          "leader": "mansaMusa",
+          "alive": true,
+          "total": 669.1999999999999,
+          "rates": {
+            "foodPerTurn": 170,
+            "productionPerTurn": 169.5,
+            "goldPerTurn": 61.7,
+            "sciencePerTurn": 133.20000000000002,
+            "culturePerTurn": 82.79999999999998,
+            "faithPerTurn": 52
+          },
+          "score": 867,
+          "techs": 29,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 21,
+          "citiesLost": 1,
+          "military": 36,
+          "cities": 10,
+          "combat": {
+            "attacks": 85,
+            "ranged": 45,
+            "counterDeaths": 0,
+            "advances": 20,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 9,
+            "lostToWild": 13,
+            "knownFortifiedDefenses": 17,
+            "knownTerrainDefenses": 3
+          }
+        },
+        "previous": {
+          "leader": "mansaMusa",
+          "alive": true,
+          "total": 720,
+          "rates": {
+            "foodPerTurn": 143,
+            "productionPerTurn": 162.1,
+            "goldPerTurn": 143.7,
+            "sciencePerTurn": 130.8,
+            "culturePerTurn": 86.4,
+            "faithPerTurn": 54
+          },
+          "score": 793,
+          "techs": 27,
+          "drafts": 17,
+          "captures": 0,
+          "unitsLost": 22,
+          "citiesLost": 0,
+          "military": 39,
+          "cities": 8,
+          "combat": {
+            "attacks": 165,
+            "ranged": 144,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 11,
+            "lostToWild": 11,
+            "knownFortifiedDefenses": 18,
+            "knownTerrainDefenses": 11
+          }
+        },
+        "local": {
+          "leader": "mansaMusa",
+          "alive": true,
+          "total": 1388.4445,
+          "rates": {
+            "foodPerTurn": 161,
+            "productionPerTurn": 194.20199999999997,
+            "goldPerTurn": 328.05,
+            "sciencePerTurn": 292.7925,
+            "culturePerTurn": 257.4,
+            "faithPerTurn": 155
+          },
+          "score": 1020,
+          "techs": 29,
+          "drafts": 21,
+          "captures": 1,
+          "unitsLost": 22,
+          "citiesLost": 0,
+          "military": 48,
+          "cities": 13,
+          "combat": {
+            "attacks": 216,
+            "ranged": 113,
+            "counterDeaths": 0,
+            "advances": 45,
+            "advancesLostByNextTurn": 8,
+            "civilianLosses": 6,
+            "lostToWild": 8,
+            "knownFortifiedDefenses": 14,
+            "knownTerrainDefenses": 7
+          }
+        }
+      },
+      {
+        "seed": 48017,
+        "turn": 100,
+        "seat": 4,
+        "stable": {
+          "leader": "lorenzoDeMedici",
+          "alive": true,
+          "total": 866.40625,
+          "rates": {
+            "foodPerTurn": 171.5,
+            "productionPerTurn": 228.65624999999997,
+            "goldPerTurn": 75,
+            "sciencePerTurn": 195.25,
+            "culturePerTurn": 154,
+            "faithPerTurn": 42
+          },
+          "score": 1081,
+          "techs": 28,
+          "drafts": 19,
+          "captures": 0,
+          "unitsLost": 8,
+          "citiesLost": 0,
+          "military": 34,
+          "cities": 10,
+          "combat": {
+            "attacks": 40,
+            "ranged": 25,
+            "counterDeaths": 0,
+            "advances": 7,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 1,
+            "lostToWild": 5,
+            "knownFortifiedDefenses": 11,
+            "knownTerrainDefenses": 18
+          }
+        },
+        "previous": {
+          "leader": "lorenzoDeMedici",
+          "alive": true,
+          "total": 1594.848,
+          "rates": {
+            "foodPerTurn": 295,
+            "productionPerTurn": 629.6879999999999,
+            "goldPerTurn": 99.2,
+            "sciencePerTurn": 275.03999999999996,
+            "culturePerTurn": 241.92,
+            "faithPerTurn": 54
+          },
+          "score": 1344,
+          "techs": 30,
+          "drafts": 20,
+          "captures": 0,
+          "unitsLost": 10,
+          "citiesLost": 0,
+          "military": 38,
+          "cities": 10,
+          "combat": {
+            "attacks": 97,
+            "ranged": 79,
+            "counterDeaths": 0,
+            "advances": 9,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 1,
+            "lostToWild": 5,
+            "knownFortifiedDefenses": 1,
+            "knownTerrainDefenses": 7
+          }
+        },
+        "local": {
+          "leader": "lorenzoDeMedici",
+          "alive": true,
+          "total": 1365.3629999999998,
+          "rates": {
+            "foodPerTurn": 186.5,
+            "productionPerTurn": 371.628,
+            "goldPerTurn": 445.5,
+            "sciencePerTurn": 156.735,
+            "culturePerTurn": 153,
+            "faithPerTurn": 52
+          },
+          "score": 1004,
+          "techs": 29,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 5,
+          "citiesLost": 0,
+          "military": 36,
+          "cities": 12,
+          "combat": {
+            "attacks": 58,
+            "ranged": 35,
+            "counterDeaths": 0,
+            "advances": 11,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 3,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 48017,
+        "turn": 100,
+        "seat": 5,
+        "stable": {
+          "leader": "justinian",
+          "alive": true,
+          "total": 877.8325,
+          "rates": {
+            "foodPerTurn": 126,
+            "productionPerTurn": 156.9,
+            "goldPerTurn": 199.1,
+            "sciencePerTurn": 185.5325,
+            "culturePerTurn": 111.30000000000001,
+            "faithPerTurn": 99
+          },
+          "score": 990,
+          "techs": 29,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 29,
+          "citiesLost": 1,
+          "military": 43,
+          "cities": 10,
+          "combat": {
+            "attacks": 32,
+            "ranged": 18,
+            "counterDeaths": 0,
+            "advances": 5,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 4,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 20,
+            "knownTerrainDefenses": 33
+          }
+        },
+        "previous": {
+          "leader": "justinian",
+          "alive": true,
+          "total": 1158.0439999999999,
+          "rates": {
+            "foodPerTurn": 169,
+            "productionPerTurn": 251.724,
+            "goldPerTurn": 237.9,
+            "sciencePerTurn": 159.42,
+            "culturePerTurn": 174,
+            "faithPerTurn": 166
+          },
+          "score": 860,
+          "techs": 26,
+          "drafts": 19,
+          "captures": 0,
+          "unitsLost": 13,
+          "citiesLost": 0,
+          "military": 36,
+          "cities": 7,
+          "combat": {
+            "attacks": 93,
+            "ranged": 81,
+            "counterDeaths": 0,
+            "advances": 6,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 15,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 9,
+            "knownTerrainDefenses": 11
+          }
+        },
+        "local": {
+          "leader": "justinian",
+          "alive": true,
+          "total": 2542.4049999999997,
+          "rates": {
+            "foodPerTurn": 303.5,
+            "productionPerTurn": 653.9819999999999,
+            "goldPerTurn": 150.9,
+            "sciencePerTurn": 548.394,
+            "culturePerTurn": 534.1290000000001,
+            "faithPerTurn": 351.5
+          },
+          "score": 1407,
+          "techs": 34,
+          "drafts": 24,
+          "captures": 0,
+          "unitsLost": 7,
+          "citiesLost": 0,
+          "military": 38,
+          "cities": 9,
+          "combat": {
+            "attacks": 43,
+            "ranged": 25,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 2
+          }
+        }
+      },
+      {
+        "seed": 85211,
+        "turn": 100,
+        "seat": 0,
+        "stable": {
+          "leader": "jayavarmanVII",
+          "alive": true,
+          "total": 1270.9,
+          "rates": {
+            "foodPerTurn": 269,
+            "productionPerTurn": 179.3,
+            "goldPerTurn": 207.8,
+            "sciencePerTurn": 140.10000000000002,
+            "culturePerTurn": 383.7,
+            "faithPerTurn": 91
+          },
+          "score": 771,
+          "techs": 24,
+          "drafts": 19,
+          "captures": 0,
+          "unitsLost": 4,
+          "citiesLost": 0,
+          "military": 33,
+          "cities": 13,
+          "combat": {
+            "attacks": 40,
+            "ranged": 20,
+            "counterDeaths": 0,
+            "advances": 11,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 3,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "jayavarmanVII",
+          "alive": true,
+          "total": 1386.35,
+          "rates": {
+            "foodPerTurn": 282,
+            "productionPerTurn": 254.29999999999998,
+            "goldPerTurn": 207.75,
+            "sciencePerTurn": 208.80000000000004,
+            "culturePerTurn": 241.5,
+            "faithPerTurn": 192
+          },
+          "score": 913,
+          "techs": 26,
+          "drafts": 21,
+          "captures": 0,
+          "unitsLost": 2,
+          "citiesLost": 0,
+          "military": 22,
+          "cities": 13,
+          "combat": {
+            "attacks": 26,
+            "ranged": 14,
+            "counterDeaths": 0,
+            "advances": 9,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "jayavarmanVII",
+          "alive": true,
+          "total": 1083.7749999999999,
+          "rates": {
+            "foodPerTurn": 161,
+            "productionPerTurn": 227.84999999999997,
+            "goldPerTurn": 141,
+            "sciencePerTurn": 188.925,
+            "culturePerTurn": 198,
+            "faithPerTurn": 167
+          },
+          "score": 855,
+          "techs": 26,
+          "drafts": 20,
+          "captures": 0,
+          "unitsLost": 2,
+          "citiesLost": 0,
+          "military": 36,
+          "cities": 13,
+          "combat": {
+            "attacks": 29,
+            "ranged": 10,
+            "counterDeaths": 0,
+            "advances": 13,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 0,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 85211,
+        "turn": 100,
+        "seat": 1,
+        "stable": {
+          "leader": "cyrusTheGreat",
+          "alive": true,
+          "total": 3746.2300000000005,
+          "rates": {
+            "foodPerTurn": 500,
+            "productionPerTurn": 1831.44,
+            "goldPerTurn": 204.5,
+            "sciencePerTurn": 658.8700000000001,
+            "culturePerTurn": 321.4199999999999,
+            "faithPerTurn": 230
+          },
+          "score": 2186,
+          "techs": 35,
+          "drafts": 22,
+          "captures": 0,
+          "unitsLost": 3,
+          "citiesLost": 0,
+          "military": 40,
+          "cities": 23,
+          "combat": {
+            "attacks": 52,
+            "ranged": 43,
+            "counterDeaths": 0,
+            "advances": 4,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 5,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "cyrusTheGreat",
+          "alive": true,
+          "total": 2582.1850000000004,
+          "rates": {
+            "foodPerTurn": 705,
+            "productionPerTurn": 845.9100000000001,
+            "goldPerTurn": 316.5,
+            "sciencePerTurn": 272.475,
+            "culturePerTurn": 330.3,
+            "faithPerTurn": 112
+          },
+          "score": 1910,
+          "techs": 29,
+          "drafts": 23,
+          "captures": 0,
+          "unitsLost": 4,
+          "citiesLost": 0,
+          "military": 46,
+          "cities": 20,
+          "combat": {
+            "attacks": 57,
+            "ranged": 45,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 2,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "cyrusTheGreat",
+          "alive": true,
+          "total": 3417.2875999999997,
+          "rates": {
+            "foodPerTurn": 587,
+            "productionPerTurn": 1224.12,
+            "goldPerTurn": 496.5,
+            "sciencePerTurn": 603.8555999999999,
+            "culturePerTurn": 364.8119999999999,
+            "faithPerTurn": 141
+          },
+          "score": 2081,
+          "techs": 32,
+          "drafts": 23,
+          "captures": 0,
+          "unitsLost": 5,
+          "citiesLost": 0,
+          "military": 37,
+          "cities": 21,
+          "combat": {
+            "attacks": 63,
+            "ranged": 47,
+            "counterDeaths": 0,
+            "advances": 11,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 2,
+            "lostToWild": 5,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 85211,
+        "turn": 100,
+        "seat": 2,
+        "stable": {
+          "leader": "cleopatra",
+          "alive": true,
+          "total": 1967.606,
+          "rates": {
+            "foodPerTurn": 129,
+            "productionPerTurn": 407.72599999999994,
+            "goldPerTurn": 407.21999999999997,
+            "sciencePerTurn": 575.4,
+            "culturePerTurn": 391.26000000000005,
+            "faithPerTurn": 57
+          },
+          "score": 1149,
+          "techs": 35,
+          "drafts": 28,
+          "captures": 0,
+          "unitsLost": 11,
+          "citiesLost": 0,
+          "military": 24,
+          "cities": 8,
+          "combat": {
+            "attacks": 59,
+            "ranged": 20,
+            "counterDeaths": 0,
+            "advances": 19,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 1,
+            "lostToWild": 11,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "cleopatra",
+          "alive": true,
+          "total": 4781.192,
+          "rates": {
+            "foodPerTurn": 169,
+            "productionPerTurn": 783.102,
+            "goldPerTurn": 467.4,
+            "sciencePerTurn": 1246.7,
+            "culturePerTurn": 1517.99,
+            "faithPerTurn": 597
+          },
+          "score": 1296,
+          "techs": 32,
+          "drafts": 34,
+          "captures": 0,
+          "unitsLost": 6,
+          "citiesLost": 0,
+          "military": 35,
+          "cities": 9,
+          "combat": {
+            "attacks": 50,
+            "ranged": 15,
+            "counterDeaths": 0,
+            "advances": 18,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 3,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "cleopatra",
+          "alive": true,
+          "total": 6195.8232,
+          "rates": {
+            "foodPerTurn": 393,
+            "productionPerTurn": 2064.3172,
+            "goldPerTurn": 517.65,
+            "sciencePerTurn": 1364.3159999999998,
+            "culturePerTurn": 1632.54,
+            "faithPerTurn": 224
+          },
+          "score": 2552,
+          "techs": 42,
+          "drafts": 35,
+          "captures": 0,
+          "unitsLost": 7,
+          "citiesLost": 0,
+          "military": 28,
+          "cities": 13,
+          "combat": {
+            "attacks": 48,
+            "ranged": 17,
+            "counterDeaths": 0,
+            "advances": 15,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 3,
+            "lostToWild": 7,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 85211,
+        "turn": 100,
+        "seat": 3,
+        "stable": {
+          "leader": "harunAlRashid",
+          "alive": true,
+          "total": 1167.86,
+          "rates": {
+            "foodPerTurn": 265,
+            "productionPerTurn": 176.22,
+            "goldPerTurn": 192,
+            "sciencePerTurn": 245.4,
+            "culturePerTurn": 192.23999999999995,
+            "faithPerTurn": 97
+          },
+          "score": 837,
+          "techs": 30,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 2,
+          "citiesLost": 0,
+          "military": 23,
+          "cities": 9,
+          "combat": {
+            "attacks": 34,
+            "ranged": 20,
+            "counterDeaths": 0,
+            "advances": 9,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "harunAlRashid",
+          "alive": true,
+          "total": 685.9875,
+          "rates": {
+            "foodPerTurn": 188,
+            "productionPerTurn": 82.80000000000001,
+            "goldPerTurn": 191,
+            "sciencePerTurn": 100.1875,
+            "culturePerTurn": 83,
+            "faithPerTurn": 41
+          },
+          "score": 689,
+          "techs": 23,
+          "drafts": 15,
+          "captures": 0,
+          "unitsLost": 4,
+          "citiesLost": 0,
+          "military": 37,
+          "cities": 13,
+          "combat": {
+            "attacks": 23,
+            "ranged": 11,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 1,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "harunAlRashid",
+          "alive": true,
+          "total": 568.05,
+          "rates": {
+            "foodPerTurn": 187,
+            "productionPerTurn": 79.60000000000001,
+            "goldPerTurn": 109,
+            "sciencePerTurn": 64.45,
+            "culturePerTurn": 83,
+            "faithPerTurn": 45
+          },
+          "score": 618,
+          "techs": 23,
+          "drafts": 15,
+          "captures": 0,
+          "unitsLost": 4,
+          "citiesLost": 0,
+          "military": 19,
+          "cities": 10,
+          "combat": {
+            "attacks": 18,
+            "ranged": 8,
+            "counterDeaths": 0,
+            "advances": 6,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 0,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 85211,
+        "turn": 100,
+        "seat": 4,
+        "stable": {
+          "leader": "sejongTheGreat",
+          "alive": true,
+          "total": 20107.001733,
+          "rates": {
+            "foodPerTurn": 2546.340000000001,
+            "productionPerTurn": 6502.929993000001,
+            "goldPerTurn": 1335.4,
+            "sciencePerTurn": 4281.504060000001,
+            "culturePerTurn": 3824.0276800000006,
+            "faithPerTurn": 1616.7999999999997
+          },
+          "score": 4563,
+          "techs": 50,
+          "drafts": 40,
+          "captures": 0,
+          "unitsLost": 6,
+          "citiesLost": 0,
+          "military": 32,
+          "cities": 23,
+          "combat": {
+            "attacks": 41,
+            "ranged": 29,
+            "counterDeaths": 0,
+            "advances": 6,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 2,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "sejongTheGreat",
+          "alive": true,
+          "total": 10755.420699999999,
+          "rates": {
+            "foodPerTurn": 707.5,
+            "productionPerTurn": 4273.383499999999,
+            "goldPerTurn": 332.6,
+            "sciencePerTurn": 3551.7227999999996,
+            "culturePerTurn": 1708.7143999999998,
+            "faithPerTurn": 181.5
+          },
+          "score": 3737,
+          "techs": 46,
+          "drafts": 35,
+          "captures": 0,
+          "unitsLost": 3,
+          "citiesLost": 0,
+          "military": 29,
+          "cities": 21,
+          "combat": {
+            "attacks": 34,
+            "ranged": 28,
+            "counterDeaths": 0,
+            "advances": 5,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 2,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "sejongTheGreat",
+          "alive": true,
+          "total": 13700.365800000001,
+          "rates": {
+            "foodPerTurn": 1363,
+            "productionPerTurn": 3597.8399999999997,
+            "goldPerTurn": 1020.2,
+            "sciencePerTurn": 4132.6392000000005,
+            "culturePerTurn": 3322.086600000001,
+            "faithPerTurn": 264.5999999999999
+          },
+          "score": 3999,
+          "techs": 44,
+          "drafts": 39,
+          "captures": 0,
+          "unitsLost": 5,
+          "citiesLost": 0,
+          "military": 28,
+          "cities": 20,
+          "combat": {
+            "attacks": 29,
+            "ranged": 17,
+            "counterDeaths": 0,
+            "advances": 8,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 2,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 85211,
+        "turn": 100,
+        "seat": 5,
+        "stable": {
+          "leader": "genghisKhan",
+          "alive": true,
+          "total": 865.5999999999999,
+          "rates": {
+            "foodPerTurn": 201,
+            "productionPerTurn": 278.5,
+            "goldPerTurn": 80.5,
+            "sciencePerTurn": 184.8,
+            "culturePerTurn": 88.79999999999998,
+            "faithPerTurn": 32
+          },
+          "score": 902,
+          "techs": 26,
+          "drafts": 17,
+          "captures": 0,
+          "unitsLost": 11,
+          "citiesLost": 0,
+          "military": 57,
+          "cities": 11,
+          "combat": {
+            "attacks": 65,
+            "ranged": 53,
+            "counterDeaths": 0,
+            "advances": 8,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 1,
+            "lostToWild": 11,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "genghisKhan",
+          "alive": true,
+          "total": 721.45,
+          "rates": {
+            "foodPerTurn": 172,
+            "productionPerTurn": 204.70000000000002,
+            "goldPerTurn": 75,
+            "sciencePerTurn": 141.9,
+            "culturePerTurn": 69.85,
+            "faithPerTurn": 58
+          },
+          "score": 769,
+          "techs": 25,
+          "drafts": 15,
+          "captures": 0,
+          "unitsLost": 5,
+          "citiesLost": 0,
+          "military": 51,
+          "cities": 9,
+          "combat": {
+            "attacks": 119,
+            "ranged": 101,
+            "counterDeaths": 0,
+            "advances": 14,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 1,
+            "lostToWild": 3,
+            "knownFortifiedDefenses": 4,
+            "knownTerrainDefenses": 6
+          }
+        },
+        "local": {
+          "leader": "genghisKhan",
+          "alive": true,
+          "total": 685.1800000000001,
+          "rates": {
+            "foodPerTurn": 176,
+            "productionPerTurn": 187,
+            "goldPerTurn": 51,
+            "sciencePerTurn": 186.7,
+            "culturePerTurn": 50.48000000000001,
+            "faithPerTurn": 34
+          },
+          "score": 817,
+          "techs": 25,
+          "drafts": 15,
+          "captures": 0,
+          "unitsLost": 4,
+          "citiesLost": 0,
+          "military": 51,
+          "cities": 9,
+          "combat": {
+            "attacks": 63,
+            "ranged": 44,
+            "counterDeaths": 0,
+            "advances": 11,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 1,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 39827,
+        "turn": 92,
+        "seat": 0,
+        "stable": {
+          "leader": "mansaMusa",
+          "alive": true,
+          "total": 2442.405,
+          "rates": {
+            "foodPerTurn": 282,
+            "productionPerTurn": 424.49999999999994,
+            "goldPerTurn": 603,
+            "sciencePerTurn": 524.525,
+            "culturePerTurn": 424.38,
+            "faithPerTurn": 184
+          },
+          "score": 1076,
+          "techs": 34,
+          "drafts": 26,
+          "captures": 0,
+          "unitsLost": 12,
+          "citiesLost": 0,
+          "military": 23,
+          "cities": 11,
+          "combat": {
+            "attacks": 36,
+            "ranged": 11,
+            "counterDeaths": 0,
+            "advances": 13,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 3,
+            "lostToWild": 14,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "mansaMusa",
+          "alive": true,
+          "total": 4788.62,
+          "rates": {
+            "foodPerTurn": 560,
+            "productionPerTurn": 1470.6119999999999,
+            "goldPerTurn": 1375.4,
+            "sciencePerTurn": 518.808,
+            "culturePerTurn": 640.8000000000001,
+            "faithPerTurn": 223
+          },
+          "score": 1829,
+          "techs": 32,
+          "drafts": 26,
+          "captures": 0,
+          "unitsLost": 5,
+          "citiesLost": 0,
+          "military": 42,
+          "cities": 20,
+          "combat": {
+            "attacks": 58,
+            "ranged": 38,
+            "counterDeaths": 0,
+            "advances": 14,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 5,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "mansaMusa",
+          "alive": true,
+          "total": 2265.945,
+          "rates": {
+            "foodPerTurn": 493.595,
+            "productionPerTurn": 521.64,
+            "goldPerTurn": 451,
+            "sciencePerTurn": 340.965,
+            "culturePerTurn": 326.745,
+            "faithPerTurn": 132
+          },
+          "score": 1513,
+          "techs": 32,
+          "drafts": 27,
+          "captures": 0,
+          "unitsLost": 5,
+          "citiesLost": 0,
+          "military": 24,
+          "cities": 15,
+          "combat": {
+            "attacks": 47,
+            "ranged": 32,
+            "counterDeaths": 0,
+            "advances": 9,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 5,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        }
+      },
+      {
+        "seed": 39827,
+        "turn": 92,
+        "seat": 1,
+        "stable": {
+          "leader": "lorenzoDeMedici",
+          "alive": true,
+          "total": 248.603,
+          "rates": {
+            "foodPerTurn": 58,
+            "productionPerTurn": 82.368,
+            "goldPerTurn": 2,
+            "sciencePerTurn": 38.115,
+            "culturePerTurn": 42.120000000000005,
+            "faithPerTurn": 26
+          },
+          "score": 464,
+          "techs": 20,
+          "drafts": 15,
+          "captures": 0,
+          "unitsLost": 22,
+          "citiesLost": 2,
+          "military": 29,
+          "cities": 3,
+          "combat": {
+            "attacks": 44,
+            "ranged": 29,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 8,
+            "knownFortifiedDefenses": 8,
+            "knownTerrainDefenses": 5
+          }
+        },
+        "previous": {
+          "leader": "lorenzoDeMedici",
+          "alive": true,
+          "total": 505.02,
+          "rates": {
+            "foodPerTurn": 113,
+            "productionPerTurn": 114.62,
+            "goldPerTurn": 53.79999999999999,
+            "sciencePerTurn": 120.00000000000001,
+            "culturePerTurn": 81.6,
+            "faithPerTurn": 22
+          },
+          "score": 539,
+          "techs": 25,
+          "drafts": 15,
+          "captures": 0,
+          "unitsLost": 2,
+          "citiesLost": 0,
+          "military": 22,
+          "cities": 5,
+          "combat": {
+            "attacks": 26,
+            "ranged": 14,
+            "counterDeaths": 0,
+            "advances": 7,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 1,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "local": {
+          "leader": "lorenzoDeMedici",
+          "alive": true,
+          "total": 419.54,
+          "rates": {
+            "foodPerTurn": 98,
+            "productionPerTurn": 107.47,
+            "goldPerTurn": 8,
+            "sciencePerTurn": 109.33,
+            "culturePerTurn": 54.24,
+            "faithPerTurn": 42.5
+          },
+          "score": 555,
+          "techs": 23,
+          "drafts": 14,
+          "captures": 0,
+          "unitsLost": 9,
+          "citiesLost": 1,
+          "military": 32,
+          "cities": 5,
+          "combat": {
+            "attacks": 23,
+            "ranged": 11,
+            "counterDeaths": 0,
+            "advances": 6,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 2,
+            "lostToWild": 0,
+            "knownFortifiedDefenses": 6,
+            "knownTerrainDefenses": 12
+          }
+        }
+      },
+      {
+        "seed": 39827,
+        "turn": 92,
+        "seat": 2,
+        "stable": {
+          "leader": "justinian",
+          "alive": true,
+          "total": 964.1775,
+          "rates": {
+            "foodPerTurn": 186.5,
+            "productionPerTurn": 273.555,
+            "goldPerTurn": 140.5,
+            "sciencePerTurn": 181.8225,
+            "culturePerTurn": 118.79999999999998,
+            "faithPerTurn": 63
+          },
+          "score": 785,
+          "techs": 27,
+          "drafts": 16,
+          "captures": 0,
+          "unitsLost": 2,
+          "citiesLost": 0,
+          "military": 21,
+          "cities": 11,
+          "combat": {
+            "attacks": 25,
+            "ranged": 23,
+            "counterDeaths": 0,
+            "advances": 2,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 2,
+            "lostToWild": 2,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "justinian",
+          "alive": true,
+          "total": 608.95,
+          "rates": {
+            "foodPerTurn": 141,
+            "productionPerTurn": 211.7,
+            "goldPerTurn": 51,
+            "sciencePerTurn": 115.5,
+            "culturePerTurn": 61.75,
+            "faithPerTurn": 28
+          },
+          "score": 706,
+          "techs": 24,
+          "drafts": 14,
+          "captures": 0,
+          "unitsLost": 28,
+          "citiesLost": 0,
+          "military": 32,
+          "cities": 7,
+          "combat": {
+            "attacks": 60,
+            "ranged": 50,
+            "counterDeaths": 0,
+            "advances": 5,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 4,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 4,
+            "knownTerrainDefenses": 19
+          }
+        },
+        "local": {
+          "leader": "justinian",
+          "alive": true,
+          "total": 721.75,
+          "rates": {
+            "foodPerTurn": 164,
+            "productionPerTurn": 206,
+            "goldPerTurn": 125,
+            "sciencePerTurn": 118.75,
+            "culturePerTurn": 65,
+            "faithPerTurn": 43
+          },
+          "score": 724,
+          "techs": 25,
+          "drafts": 14,
+          "captures": 0,
+          "unitsLost": 16,
+          "citiesLost": 1,
+          "military": 29,
+          "cities": 10,
+          "combat": {
+            "attacks": 24,
+            "ranged": 12,
+            "counterDeaths": 0,
+            "advances": 5,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 3,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 5,
+            "knownTerrainDefenses": 3
+          }
+        }
+      },
+      {
+        "seed": 39827,
+        "turn": 92,
+        "seat": 3,
+        "stable": {
+          "leader": "alexanderTheGreat",
+          "alive": true,
+          "total": 843.4275,
+          "rates": {
+            "foodPerTurn": 276,
+            "productionPerTurn": 248.24249999999998,
+            "goldPerTurn": 172.8,
+            "sciencePerTurn": 64.035,
+            "culturePerTurn": 82.34999999999998,
+            "faithPerTurn": 0
+          },
+          "score": 866,
+          "techs": 27,
+          "drafts": 19,
+          "captures": 2,
+          "unitsLost": 21,
+          "citiesLost": 0,
+          "military": 52,
+          "cities": 11,
+          "combat": {
+            "attacks": 136,
+            "ranged": 84,
+            "counterDeaths": 0,
+            "advances": 23,
+            "advancesLostByNextTurn": 3,
+            "civilianLosses": 2,
+            "lostToWild": 12,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 12
+          }
+        },
+        "previous": {
+          "leader": "alexanderTheGreat",
+          "alive": true,
+          "total": 2947.5850000000005,
+          "rates": {
+            "foodPerTurn": 684.5,
+            "productionPerTurn": 910.21,
+            "goldPerTurn": 448.1750000000002,
+            "sciencePerTurn": 502.1499999999999,
+            "culturePerTurn": 308.5500000000002,
+            "faithPerTurn": 94
+          },
+          "score": 1901,
+          "techs": 32,
+          "drafts": 21,
+          "captures": 0,
+          "unitsLost": 21,
+          "citiesLost": 0,
+          "military": 109,
+          "cities": 24,
+          "combat": {
+            "attacks": 141,
+            "ranged": 84,
+            "counterDeaths": 0,
+            "advances": 33,
+            "advancesLostByNextTurn": 5,
+            "civilianLosses": 0,
+            "lostToWild": 7,
+            "knownFortifiedDefenses": 16,
+            "knownTerrainDefenses": 14
+          }
+        },
+        "local": {
+          "leader": "alexanderTheGreat",
+          "alive": true,
+          "total": 1860.8500000000001,
+          "rates": {
+            "foodPerTurn": 432.5,
+            "productionPerTurn": 568.6,
+            "goldPerTurn": 327.54999999999995,
+            "sciencePerTurn": 292.4,
+            "culturePerTurn": 196.8,
+            "faithPerTurn": 43
+          },
+          "score": 1611,
+          "techs": 31,
+          "drafts": 20,
+          "captures": 3,
+          "unitsLost": 17,
+          "citiesLost": 0,
+          "military": 103,
+          "cities": 18,
+          "combat": {
+            "attacks": 161,
+            "ranged": 89,
+            "counterDeaths": 0,
+            "advances": 43,
+            "advancesLostByNextTurn": 4,
+            "civilianLosses": 2,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 4,
+            "knownTerrainDefenses": 11
+          }
+        }
+      },
+      {
+        "seed": 39827,
+        "turn": 92,
+        "seat": 4,
+        "stable": {
+          "leader": "joan",
+          "alive": true,
+          "total": 1139.34,
+          "rates": {
+            "foodPerTurn": 144,
+            "productionPerTurn": 167.42,
+            "goldPerTurn": 142,
+            "sciencePerTurn": 289.22400000000005,
+            "culturePerTurn": 246.69599999999997,
+            "faithPerTurn": 150
+          },
+          "score": 794,
+          "techs": 27,
+          "drafts": 19,
+          "captures": 0,
+          "unitsLost": 3,
+          "citiesLost": 0,
+          "military": 28,
+          "cities": 8,
+          "combat": {
+            "attacks": 23,
+            "ranged": 12,
+            "counterDeaths": 0,
+            "advances": 5,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 1,
+            "lostToWild": 3,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "joan",
+          "alive": true,
+          "total": 787.26,
+          "rates": {
+            "foodPerTurn": 175,
+            "productionPerTurn": 133.09999999999997,
+            "goldPerTurn": 155.9,
+            "sciencePerTurn": 142.26,
+            "culturePerTurn": 95.99999999999999,
+            "faithPerTurn": 85
+          },
+          "score": 671,
+          "techs": 23,
+          "drafts": 16,
+          "captures": 0,
+          "unitsLost": 8,
+          "citiesLost": 0,
+          "military": 30,
+          "cities": 9,
+          "combat": {
+            "attacks": 7,
+            "ranged": 2,
+            "counterDeaths": 0,
+            "advances": 4,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 1,
+            "lostToWild": 7,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 2
+          }
+        },
+        "local": {
+          "leader": "joan",
+          "alive": true,
+          "total": 568.55,
+          "rates": {
+            "foodPerTurn": 149,
+            "productionPerTurn": 72,
+            "goldPerTurn": 110.4,
+            "sciencePerTurn": 87.75,
+            "culturePerTurn": 68.4,
+            "faithPerTurn": 81
+          },
+          "score": 621,
+          "techs": 21,
+          "drafts": 15,
+          "captures": 0,
+          "unitsLost": 11,
+          "citiesLost": 1,
+          "military": 35,
+          "cities": 10,
+          "combat": {
+            "attacks": 15,
+            "ranged": 9,
+            "counterDeaths": 0,
+            "advances": 5,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 3,
+            "lostToWild": 10,
+            "knownFortifiedDefenses": 8,
+            "knownTerrainDefenses": 8
+          }
+        }
+      },
+      {
+        "seed": 39827,
+        "turn": 92,
+        "seat": 5,
+        "stable": {
+          "leader": "qinShiHuang",
+          "alive": true,
+          "total": 9392.974999999999,
+          "rates": {
+            "foodPerTurn": 815,
+            "productionPerTurn": 3401.119999999999,
+            "goldPerTurn": 215,
+            "sciencePerTurn": 2270.8770000000004,
+            "culturePerTurn": 1908.978,
+            "faithPerTurn": 782
+          },
+          "score": 3392,
+          "techs": 37,
+          "drafts": 30,
+          "captures": 0,
+          "unitsLost": 9,
+          "citiesLost": 0,
+          "military": 48,
+          "cities": 26,
+          "combat": {
+            "attacks": 29,
+            "ranged": 12,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 3,
+            "civilianLosses": 0,
+            "lostToWild": 9,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 0
+          }
+        },
+        "previous": {
+          "leader": "qinShiHuang",
+          "alive": true,
+          "total": 25890.288585000002,
+          "rates": {
+            "foodPerTurn": 349,
+            "productionPerTurn": 5409.719999999998,
+            "goldPerTurn": 141.6,
+            "sciencePerTurn": 13943.210985000002,
+            "culturePerTurn": 5825.7576,
+            "faithPerTurn": 221
+          },
+          "score": 6607,
+          "techs": 47,
+          "drafts": 41,
+          "captures": 0,
+          "unitsLost": 9,
+          "citiesLost": 0,
+          "military": 55,
+          "cities": 20,
+          "combat": {
+            "attacks": 57,
+            "ranged": 48,
+            "counterDeaths": 0,
+            "advances": 6,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 0,
+            "lostToWild": 7,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 1
+          }
+        },
+        "local": {
+          "leader": "qinShiHuang",
+          "alive": true,
+          "total": 7267.2968,
+          "rates": {
+            "foodPerTurn": 251,
+            "productionPerTurn": 2082.4048,
+            "goldPerTurn": 5.279999999999973,
+            "sciencePerTurn": 2916.9239999999995,
+            "culturePerTurn": 1838.6879999999996,
+            "faithPerTurn": 173
+          },
+          "score": 3764,
+          "techs": 48,
+          "drafts": 32,
+          "captures": 0,
+          "unitsLost": 8,
+          "citiesLost": 0,
+          "military": 48,
+          "cities": 18,
+          "combat": {
+            "attacks": 61,
+            "ranged": 38,
+            "counterDeaths": 0,
+            "advances": 15,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 7,
+            "lostToWild": 7,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 7
+          }
+        }
+      },
+      {
+        "seed": 67153,
+        "turn": 100,
+        "seat": 0,
+        "stable": {
+          "leader": "harunAlRashid",
+          "alive": true,
+          "total": 438.92,
+          "rates": {
+            "foodPerTurn": 82,
+            "productionPerTurn": 101.42,
+            "goldPerTurn": 10,
+            "sciencePerTurn": 85.5,
+            "culturePerTurn": 80,
+            "faithPerTurn": 80
+          },
+          "score": 518,
+          "techs": 25,
+          "drafts": 14,
+          "captures": 0,
+          "unitsLost": 18,
+          "citiesLost": 2,
+          "military": 24,
+          "cities": 3,
+          "combat": {
+            "attacks": 30,
+            "ranged": 18,
+            "counterDeaths": 0,
+            "advances": 3,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 3,
+            "lostToWild": 4,
+            "knownFortifiedDefenses": 25,
+            "knownTerrainDefenses": 24
+          }
+        },
+        "previous": {
+          "leader": "harunAlRashid",
+          "alive": true,
+          "total": 607.3325,
+          "rates": {
+            "foodPerTurn": 79,
+            "productionPerTurn": 183.5325,
+            "goldPerTurn": -2,
+            "sciencePerTurn": 67.25,
+            "culturePerTurn": 142.55,
+            "faithPerTurn": 137
+          },
+          "score": 620,
+          "techs": 23,
+          "drafts": 17,
+          "captures": 0,
+          "unitsLost": 49,
+          "citiesLost": 2,
+          "military": 19,
+          "cities": 3,
+          "combat": {
+            "attacks": 116,
+            "ranged": 114,
+            "counterDeaths": 0,
+            "advances": 0,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 1,
+            "lostToWild": 3,
+            "knownFortifiedDefenses": 46,
+            "knownTerrainDefenses": 99
+          }
+        },
+        "local": {
+          "leader": "harunAlRashid",
+          "alive": true,
+          "total": 1213.4,
+          "rates": {
+            "foodPerTurn": 271,
+            "productionPerTurn": 269.2,
+            "goldPerTurn": 102.7,
+            "sciencePerTurn": 344.1,
+            "culturePerTurn": 104.39999999999996,
+            "faithPerTurn": 122
+          },
+          "score": 904,
+          "techs": 29,
+          "drafts": 14,
+          "captures": 0,
+          "unitsLost": 3,
+          "citiesLost": 0,
+          "military": 28,
+          "cities": 9,
+          "combat": {
+            "attacks": 25,
+            "ranged": 24,
+            "counterDeaths": 0,
+            "advances": 1,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 3,
+            "knownFortifiedDefenses": 3,
+            "knownTerrainDefenses": 5
+          }
+        }
+      },
+      {
+        "seed": 67153,
+        "turn": 100,
+        "seat": 1,
+        "stable": {
+          "leader": "sejongTheGreat",
+          "alive": true,
+          "total": 1561.7759999999998,
+          "rates": {
+            "foodPerTurn": 355,
+            "productionPerTurn": 697.3999999999999,
+            "goldPerTurn": 63,
+            "sciencePerTurn": 254.39600000000004,
+            "culturePerTurn": 177.47999999999996,
+            "faithPerTurn": 14.5
+          },
+          "score": 1285,
+          "techs": 36,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 21,
+          "citiesLost": 1,
+          "military": 45,
+          "cities": 10,
+          "combat": {
+            "attacks": 73,
+            "ranged": 47,
+            "counterDeaths": 0,
+            "advances": 13,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 1,
+            "lostToWild": 14,
+            "knownFortifiedDefenses": 3,
+            "knownTerrainDefenses": 8
+          }
+        },
+        "previous": {
+          "leader": "sejongTheGreat",
+          "alive": true,
+          "total": 523.45,
+          "rates": {
+            "foodPerTurn": 128,
+            "productionPerTurn": 164.45000000000002,
+            "goldPerTurn": 23.5,
+            "sciencePerTurn": 110,
+            "culturePerTurn": 70.5,
+            "faithPerTurn": 27
+          },
+          "score": 999,
+          "techs": 31,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 33,
+          "citiesLost": 3,
+          "military": 44,
+          "cities": 6,
+          "combat": {
+            "attacks": 74,
+            "ranged": 45,
+            "counterDeaths": 0,
+            "advances": 15,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 0,
+            "lostToWild": 10,
+            "knownFortifiedDefenses": 37,
+            "knownTerrainDefenses": 69
+          }
+        },
+        "local": {
+          "leader": "sejongTheGreat",
+          "alive": true,
+          "total": 854.9125,
+          "rates": {
+            "foodPerTurn": 185,
+            "productionPerTurn": 250.24999999999997,
+            "goldPerTurn": 20,
+            "sciencePerTurn": 186.375,
+            "culturePerTurn": 185.28750000000002,
+            "faithPerTurn": 28
+          },
+          "score": 1247,
+          "techs": 32,
+          "drafts": 20,
+          "captures": 0,
+          "unitsLost": 31,
+          "citiesLost": 0,
+          "military": 63,
+          "cities": 7,
+          "combat": {
+            "attacks": 66,
+            "ranged": 37,
+            "counterDeaths": 0,
+            "advances": 16,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 0,
+            "lostToWild": 9,
+            "knownFortifiedDefenses": 32,
+            "knownTerrainDefenses": 77
+          }
+        }
+      },
+      {
+        "seed": 67153,
+        "turn": 100,
+        "seat": 2,
+        "stable": {
+          "leader": "genghisKhan",
+          "alive": true,
+          "total": 3370.35,
+          "rates": {
+            "foodPerTurn": 490,
+            "productionPerTurn": 909.5,
+            "goldPerTurn": 877.45,
+            "sciencePerTurn": 519.0000000000001,
+            "culturePerTurn": 455.4000000000001,
+            "faithPerTurn": 119
+          },
+          "score": 1990,
+          "techs": 35,
+          "drafts": 24,
+          "captures": 1,
+          "unitsLost": 20,
+          "citiesLost": 0,
+          "military": 111,
+          "cities": 19,
+          "combat": {
+            "attacks": 161,
+            "ranged": 110,
+            "counterDeaths": 0,
+            "advances": 25,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 1,
+            "lostToWild": 13,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 17
+          }
+        },
+        "previous": {
+          "leader": "genghisKhan",
+          "alive": true,
+          "total": 2859.7860000000005,
+          "rates": {
+            "foodPerTurn": 601.25,
+            "productionPerTurn": 851.296,
+            "goldPerTurn": 681,
+            "sciencePerTurn": 258.5600000000001,
+            "culturePerTurn": 303.6800000000001,
+            "faithPerTurn": 164
+          },
+          "score": 2019,
+          "techs": 28,
+          "drafts": 25,
+          "captures": 4,
+          "unitsLost": 18,
+          "citiesLost": 0,
+          "military": 156,
+          "cities": 26,
+          "combat": {
+            "attacks": 342,
+            "ranged": 235,
+            "counterDeaths": 1,
+            "advances": 58,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 2,
+            "lostToWild": 9,
+            "knownFortifiedDefenses": 11,
+            "knownTerrainDefenses": 40
+          }
+        },
+        "local": {
+          "leader": "genghisKhan",
+          "alive": true,
+          "total": 1644.732,
+          "rates": {
+            "foodPerTurn": 550,
+            "productionPerTurn": 644.0559999999999,
+            "goldPerTurn": -55.5,
+            "sciencePerTurn": 210,
+            "culturePerTurn": 234.17599999999996,
+            "faithPerTurn": 62
+          },
+          "score": 1961,
+          "techs": 32,
+          "drafts": 24,
+          "captures": 1,
+          "unitsLost": 21,
+          "citiesLost": 0,
+          "military": 106,
+          "cities": 21,
+          "combat": {
+            "attacks": 254,
+            "ranged": 125,
+            "counterDeaths": 0,
+            "advances": 59,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 1,
+            "lostToWild": 8,
+            "knownFortifiedDefenses": 30,
+            "knownTerrainDefenses": 63
+          }
+        }
+      },
+      {
+        "seed": 67153,
+        "turn": 100,
+        "seat": 3,
+        "stable": {
+          "leader": "mehmedTheConqueror",
+          "alive": true,
+          "total": 1798.7999999999997,
+          "rates": {
+            "foodPerTurn": 418,
+            "productionPerTurn": 575.0999999999999,
+            "goldPerTurn": 32.80000000000001,
+            "sciencePerTurn": 369.59999999999997,
+            "culturePerTurn": 325.30000000000007,
+            "faithPerTurn": 78
+          },
+          "score": 1554,
+          "techs": 34,
+          "drafts": 25,
+          "captures": 2,
+          "unitsLost": 14,
+          "citiesLost": 0,
+          "military": 109,
+          "cities": 16,
+          "combat": {
+            "attacks": 110,
+            "ranged": 69,
+            "counterDeaths": 0,
+            "advances": 22,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 0,
+            "lostToWild": 8,
+            "knownFortifiedDefenses": 4,
+            "knownTerrainDefenses": 16
+          }
+        },
+        "previous": {
+          "leader": "mehmedTheConqueror",
+          "alive": true,
+          "total": 1017.189,
+          "rates": {
+            "foodPerTurn": 253.5,
+            "productionPerTurn": 351.729,
+            "goldPerTurn": 38.900000000000006,
+            "sciencePerTurn": 196,
+            "culturePerTurn": 109.55999999999999,
+            "faithPerTurn": 67.5
+          },
+          "score": 1144,
+          "techs": 31,
+          "drafts": 17,
+          "captures": 2,
+          "unitsLost": 16,
+          "citiesLost": 0,
+          "military": 68,
+          "cities": 8,
+          "combat": {
+            "attacks": 202,
+            "ranged": 119,
+            "counterDeaths": 0,
+            "advances": 41,
+            "advancesLostByNextTurn": 3,
+            "civilianLosses": 1,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 39,
+            "knownTerrainDefenses": 70
+          }
+        },
+        "local": {
+          "leader": "mehmedTheConqueror",
+          "alive": true,
+          "total": 1598.92735,
+          "rates": {
+            "foodPerTurn": 321.5,
+            "productionPerTurn": 560.3836500000001,
+            "goldPerTurn": 337.7,
+            "sciencePerTurn": 178.6125,
+            "culturePerTurn": 178.73120000000003,
+            "faithPerTurn": 22
+          },
+          "score": 1134,
+          "techs": 31,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 15,
+          "citiesLost": 0,
+          "military": 69,
+          "cities": 11,
+          "combat": {
+            "attacks": 76,
+            "ranged": 57,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 2,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 19,
+            "knownTerrainDefenses": 32
+          }
+        }
+      },
+      {
+        "seed": 67153,
+        "turn": 100,
+        "seat": 4,
+        "stable": {
+          "leader": "pachacuti",
+          "alive": true,
+          "total": 897.4,
+          "rates": {
+            "foodPerTurn": 276,
+            "productionPerTurn": 266.9,
+            "goldPerTurn": 163.75,
+            "sciencePerTurn": 99.75,
+            "culturePerTurn": 62,
+            "faithPerTurn": 29
+          },
+          "score": 895,
+          "techs": 23,
+          "drafts": 14,
+          "captures": 0,
+          "unitsLost": 21,
+          "citiesLost": 0,
+          "military": 51,
+          "cities": 8,
+          "combat": {
+            "attacks": 66,
+            "ranged": 52,
+            "counterDeaths": 0,
+            "advances": 11,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 9,
+            "lostToWild": 11,
+            "knownFortifiedDefenses": 9,
+            "knownTerrainDefenses": 23
+          }
+        },
+        "previous": {
+          "leader": "pachacuti",
+          "alive": true,
+          "total": 587.675,
+          "rates": {
+            "foodPerTurn": 108,
+            "productionPerTurn": 169.9,
+            "goldPerTurn": 57,
+            "sciencePerTurn": 169.675,
+            "culturePerTurn": 45.10000000000001,
+            "faithPerTurn": 38
+          },
+          "score": 740,
+          "techs": 25,
+          "drafts": 15,
+          "captures": 0,
+          "unitsLost": 27,
+          "citiesLost": 1,
+          "military": 31,
+          "cities": 9,
+          "combat": {
+            "attacks": 22,
+            "ranged": 12,
+            "counterDeaths": 0,
+            "advances": 8,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 7,
+            "lostToWild": 7,
+            "knownFortifiedDefenses": 16,
+            "knownTerrainDefenses": 30
+          }
+        },
+        "local": {
+          "leader": "pachacuti",
+          "alive": true,
+          "total": 519.932,
+          "rates": {
+            "foodPerTurn": 124,
+            "productionPerTurn": 161.57199999999997,
+            "goldPerTurn": 54.359999999999985,
+            "sciencePerTurn": 101,
+            "culturePerTurn": 50,
+            "faithPerTurn": 29
+          },
+          "score": 676,
+          "techs": 22,
+          "drafts": 14,
+          "captures": 0,
+          "unitsLost": 22,
+          "citiesLost": 1,
+          "military": 33,
+          "cities": 7,
+          "combat": {
+            "attacks": 53,
+            "ranged": 45,
+            "counterDeaths": 0,
+            "advances": 8,
+            "advancesLostByNextTurn": 0,
+            "civilianLosses": 6,
+            "lostToWild": 6,
+            "knownFortifiedDefenses": 17,
+            "knownTerrainDefenses": 26
+          }
+        }
+      },
+      {
+        "seed": 67153,
+        "turn": 100,
+        "seat": 5,
+        "stable": {
+          "leader": "nezahualcoyotl",
+          "alive": true,
+          "total": 2147.053,
+          "rates": {
+            "foodPerTurn": 390,
+            "productionPerTurn": 757.198,
+            "goldPerTurn": 378.63,
+            "sciencePerTurn": 249.125,
+            "culturePerTurn": 258.59999999999997,
+            "faithPerTurn": 113.5
+          },
+          "score": 1365,
+          "techs": 30,
+          "drafts": 19,
+          "captures": 0,
+          "unitsLost": 8,
+          "citiesLost": 0,
+          "military": 13,
+          "cities": 12,
+          "combat": {
+            "attacks": 55,
+            "ranged": 38,
+            "counterDeaths": 0,
+            "advances": 6,
+            "advancesLostByNextTurn": 1,
+            "civilianLosses": 1,
+            "lostToWild": 8,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 1
+          }
+        },
+        "previous": {
+          "leader": "nezahualcoyotl",
+          "alive": true,
+          "total": 1309.9370000000001,
+          "rates": {
+            "foodPerTurn": 229.3,
+            "productionPerTurn": 424.297,
+            "goldPerTurn": 173.94000000000003,
+            "sciencePerTurn": 282.6,
+            "culturePerTurn": 94.8,
+            "faithPerTurn": 105
+          },
+          "score": 1083,
+          "techs": 28,
+          "drafts": 15,
+          "captures": 0,
+          "unitsLost": 6,
+          "citiesLost": 0,
+          "military": 14,
+          "cities": 9,
+          "combat": {
+            "attacks": 50,
+            "ranged": 32,
+            "counterDeaths": 0,
+            "advances": 12,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 4,
+            "lostToWild": 7,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 1
+          }
+        },
+        "local": {
+          "leader": "nezahualcoyotl",
+          "alive": true,
+          "total": 1040.4,
+          "rates": {
+            "foodPerTurn": 206.5,
+            "productionPerTurn": 309.7950000000001,
+            "goldPerTurn": 171.5,
+            "sciencePerTurn": 135.025,
+            "culturePerTurn": 167.57999999999998,
+            "faithPerTurn": 50
+          },
+          "score": 981,
+          "techs": 27,
+          "drafts": 18,
+          "captures": 0,
+          "unitsLost": 6,
+          "citiesLost": 0,
+          "military": 29,
+          "cities": 12,
+          "combat": {
+            "attacks": 48,
+            "ranged": 33,
+            "counterDeaths": 0,
+            "advances": 10,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 8,
+            "lostToWild": 7,
+            "knownFortifiedDefenses": 0,
+            "knownTerrainDefenses": 1
+          }
+        }
+      }
+    ],
+    "summary": {
+      "stable": {
+        "seats": 30,
+        "alive": 30,
+        "incomeMean": 2467.8441794333335,
+        "incomeMedian": 1219.38,
+        "atLeast800": 25,
+        "scoreMean": 1353.6666666666667,
+        "techsMean": 30.3,
+        "draftsMean": 20.366666666666667,
+        "captures": 8,
+        "losses": 383,
+        "combat": {
+          "attacks": 1940,
+          "ranged": 1298,
+          "counterDeaths": 0,
+          "advances": 333,
+          "advancesLostByNextTurn": 31,
+          "civilianLosses": 74,
+          "lostToWild": 244,
+          "knownFortifiedDefenses": 124,
+          "knownTerrainDefenses": 208
+        }
+      },
+      "previous": {
+        "seats": 30,
+        "alive": 30,
+        "incomeMean": 2827.2630995,
+        "incomeMedian": 1144.797,
+        "atLeast800": 17,
+        "scoreMean": 1472.5333333333333,
+        "techsMean": 29.5,
+        "draftsMean": 20.633333333333333,
+        "captures": 11,
+        "losses": 471,
+        "combat": {
+          "attacks": 2897,
+          "ranged": 2026,
+          "counterDeaths": 2,
+          "advances": 464,
+          "advancesLostByNextTurn": 36,
+          "civilianLosses": 74,
+          "lostToWild": 147,
+          "knownFortifiedDefenses": 412,
+          "knownTerrainDefenses": 746
+        }
+      },
+      "local": {
+        "seats": 30,
+        "alive": 30,
+        "incomeMean": 2508.996758333333,
+        "incomeMedian": 1451.06975,
+        "atLeast800": 22,
+        "scoreMean": 1469.2,
+        "techsMean": 30.466666666666665,
+        "draftsMean": 21.433333333333334,
+        "captures": 9,
+        "losses": 386,
+        "combat": {
+          "attacks": 2051,
+          "ranged": 1326,
+          "counterDeaths": 0,
+          "advances": 392,
+          "advancesLostByNextTurn": 36,
+          "civilianLosses": 57,
+          "lostToWild": 149,
+          "knownFortifiedDefenses": 238,
+          "knownTerrainDefenses": 406
+        }
+      }
+    },
+    "turn100": {
+      "stable": {
+        "seats": 24,
+        "alive": 24,
+        "incomeMean": 2458.516557625,
+        "incomeMedian": 1300.17725,
+        "atLeast800": 20,
+        "scoreMean": 1384.7083333333333,
+        "techsMean": 30.708333333333332,
+        "draftsMean": 20.25,
+        "captures": 6,
+        "losses": 314,
+        "combat": {
+          "attacks": 1647,
+          "ranged": 1127,
+          "counterDeaths": 0,
+          "advances": 270,
+          "advancesLostByNextTurn": 23,
+          "civilianLosses": 66,
+          "lostToWild": 196,
+          "knownFortifiedDefenses": 116,
+          "knownTerrainDefenses": 191
+        }
+      },
+      "previous": {
+        "seats": 24,
+        "alive": 24,
+        "incomeMean": 2053.757058333333,
+        "incomeMedian": 1144.797,
+        "atLeast800": 14,
+        "scoreMean": 1330.125,
+        "techsMean": 29.25,
+        "draftsMean": 20.25,
+        "captures": 11,
+        "losses": 398,
+        "combat": {
+          "attacks": 2548,
+          "ranged": 1790,
+          "counterDeaths": 2,
+          "advances": 395,
+          "advancesLostByNextTurn": 29,
+          "civilianLosses": 68,
+          "lostToWild": 115,
+          "knownFortifiedDefenses": 392,
+          "knownTerrainDefenses": 710
+        }
+      },
+      "local": {
+        "seats": 24,
+        "alive": 24,
+        "incomeMean": 2590.2487895833333,
+        "incomeMedian": 1451.06975,
+        "atLeast800": 19,
+        "scoreMean": 1470.3333333333333,
+        "techsMean": 30.583333333333332,
+        "draftsMean": 21.708333333333332,
+        "captures": 6,
+        "losses": 320,
+        "combat": {
+          "attacks": 1720,
+          "ranged": 1135,
+          "counterDeaths": 0,
+          "advances": 309,
+          "advancesLostByNextTurn": 30,
+          "civilianLosses": 40,
+          "lostToWild": 117,
+          "knownFortifiedDefenses": 215,
+          "knownTerrainDefenses": 365
+        }
+      }
+    },
+    "leaderCounts": {
+      "alexanderTheGreat": 2,
+      "joan": 2,
+      "qinShiHuang": 2,
+      "jayavarmanVII": 2,
+      "cyrusTheGreat": 2,
+      "cleopatra": 2,
+      "mehmedTheConqueror": 2,
+      "pachacuti": 2,
+      "nezahualcoyotl": 2,
+      "mansaMusa": 2,
+      "lorenzoDeMedici": 2,
+      "justinian": 2,
+      "harunAlRashid": 2,
+      "sejongTheGreat": 2,
+      "genghisKhan": 2
+    },
+    "dominionCaptures": {
+      "stable": 8,
+      "previous": 11,
+      "local": 8
+    }
+  },
+  "timing": {
+    "input": "tactics-round2/48017/48017-90.save.json",
+    "inputSha256": "c10fde2c223c250733cb50c59b5a5c9fc4cbbfc9964ef7b5da58deed0262b4af",
+    "kind": "Headless complete next-turn planning, not rendering FPS",
+    "order": [
+      "clean-control-1",
+      "clean-final-1",
+      "clean-final-2",
+      "clean-control-2"
+    ],
+    "samples": {
+      "clean-control-1": {
+        "elapsedMs": 18639.670208,
+        "tactics": {
+          "calls": 261,
+          "engagements": 261,
+          "positions": 16229,
+          "forecasts": 25893,
+          "replies": 2498,
+          "limited": 3,
+          "cacheHits": 1790
+        },
+        "asks": 237
+      },
+      "clean-final-1": {
+        "elapsedMs": 7642.536167,
+        "tactics": {
+          "calls": 236,
+          "engagements": 236,
+          "positions": 13309,
+          "forecasts": 12600,
+          "replies": 2352,
+          "limited": 3,
+          "cacheHits": 1418
+        },
+        "asks": 240
+      },
+      "clean-final-2": {
+        "elapsedMs": 9059.813791999999,
+        "tactics": {
+          "calls": 236,
+          "engagements": 236,
+          "positions": 13309,
+          "forecasts": 12600,
+          "replies": 2352,
+          "limited": 3,
+          "cacheHits": 1418
+        },
+        "asks": 240
+      },
+      "clean-control-2": {
+        "elapsedMs": 17549.714832999998,
+        "tactics": {
+          "calls": 261,
+          "engagements": 261,
+          "positions": 16229,
+          "forecasts": 25893,
+          "replies": 2498,
+          "limited": 3,
+          "cacheHits": 1790
+        },
+        "asks": 237
+      }
+    },
+    "controlMeanMs": 18094.6925205,
+    "candidateMeanMs": 8351.1749795,
+    "reductionPercent": 53.847378340147465,
+    "previousSearchMatches9356891aCommandsAndState": true,
+    "eligibilityGuardMatchesV1CommandsAndState": true,
+    "guardForecastsBefore": 13854,
+    "guardForecastsAfter": 12600,
+    "excluded": "Earlier repeat series had result aggregation overlap with its second control; none of that series is in these timing means."
+  },
+  "initialVariants": {
+    "control": {
+      "settings": {
+        "tactics": {
+          "enabled": 1,
+          "moveRadius": 0,
+          "replyOrigins": 0
+        }
+      },
+      "elapsedMs": 18309.143624999997
+    },
+    "radius": {
+      "settings": {
+        "tactics": {
+          "enabled": 1,
+          "moveRadius": 2,
+          "replyOrigins": 0
+        }
+      },
+      "elapsedMs": 9327.211291
+    },
+    "one": {
+      "settings": {
+        "tactics": {
+          "enabled": 1,
+          "moveRadius": 2,
+          "replyOrigins": 1
+        }
+      },
+      "elapsedMs": 7964.317415999998
+    },
+    "two": {
+      "settings": {
+        "tactics": {
+          "enabled": 1,
+          "moveRadius": 2,
+          "replyOrigins": 2
+        }
+      },
+      "elapsedMs": 8837.996334000001
+    }
+  },
+  "advanceReview": {
+    "basis": "Stored original decision explanations and actual replay outcomes; no reconstruction of unsearched alternatives.",
+    "cases": [
+      {
+        "seed": 48017,
+        "index": 3912,
+        "turn": 75,
+        "attacker": {
+          "id": 517,
+          "ownerId": 1,
+          "type": "warrior",
+          "hp": 100,
+          "col": 19,
+          "row": 24,
+          "terrain": "grassland",
+          "feature": "none",
+          "hills": true,
+          "ranged": false,
+          "military": true,
+          "fortifiedTurns": 1
+        },
+        "loss": {
+          "turn": 76,
+          "index": 3979,
+          "by": 0
+        },
+        "originalChoice": "517: attack (19,23)",
+        "score": -128.4,
+        "holdScore": -169.7,
+        "replyChange": -172,
+        "candidates": [
+          {
+            "label": "289: hold (16,24); 517: hold (19,24); 27: hold (20,23); 407: hold (20,25)",
+            "score": -169.7,
+            "chosen": false
+          },
+          {
+            "label": "517: attack (19,23)",
+            "score": -128.4,
+            "chosen": true
+          },
+          {
+            "label": "289: hold (16,24); 517: attack (19,23)",
+            "score": -128.4,
+            "chosen": false
+          },
+          {
+            "label": "289: move (15,23); 517: attack (19,23)",
+            "score": -269.79999999999995,
+            "chosen": false
+          },
+          {
+            "label": "289: move (17,24); 517: attack (19,23)",
+            "score": -156.9,
+            "chosen": false
+          },
+          {
+            "label": "289: move (15,24)",
+            "score": -194.29999999999998,
+            "chosen": false
+          },
+          {
+            "label": "517: move (18,23)",
+            "score": -187.05,
+            "chosen": false
+          }
+        ]
+      },
+      {
+        "seed": 48017,
+        "index": 5771,
+        "turn": 88,
+        "attacker": {
+          "id": 741,
+          "ownerId": 3,
+          "type": "chariot",
+          "hp": 65,
+          "col": 32,
+          "row": 15,
+          "terrain": "desert",
+          "feature": "floodplain",
+          "hills": false,
+          "ranged": false,
+          "military": true,
+          "fortifiedTurns": 1
+        },
+        "loss": {
+          "turn": 89,
+          "index": 5849,
+          "by": 0
+        },
+        "originalChoice": "741: attack (32,14); 681: move (32,15); 681: attack (31,15)",
+        "score": 11.245867768595039,
+        "holdScore": -151.37741046831957,
+        "replyChange": -40.909090909090914,
+        "candidates": [
+          {
+            "label": "174: hold (33,16); 681: hold (33,15); 728: hold (34,16); 741: hold (32,15)",
+            "score": -151.37741046831957,
+            "chosen": false
+          },
+          {
+            "label": "741: attack (32,14); 681: move (32,15); 681: attack (31,15)",
+            "score": 11.245867768595039,
+            "chosen": true
+          },
+          {
+            "label": "681: move (34,17); 681: attack (34,18); 741: attack (32,14)",
+            "score": -103.81370523415977,
+            "chosen": false
+          },
+          {
+            "label": "681: move (33,17); 681: attack (34,18); 741: attack (32,14)",
+            "score": -103.81370523415977,
+            "chosen": false
+          },
+          {
+            "label": "728: move (33,17); 741: attack (32,14); 681: move (32,15)",
+            "score": -27.43250688705234,
+            "chosen": false
+          },
+          {
+            "label": "681: move (34,15)",
+            "score": -153.37741046831957,
+            "chosen": false
+          },
+          {
+            "label": "728: move (34,15)",
+            "score": -151.37741046831957,
+            "chosen": false
+          },
+          {
+            "label": "741: move (34,15)",
+            "score": -53.81818181818182,
+            "chosen": false
+          }
+        ]
+      },
+      {
+        "seed": 48017,
+        "index": 7033,
+        "turn": 96,
+        "attacker": {
+          "id": 479,
+          "ownerId": 0,
+          "type": "warrior",
+          "hp": 110,
+          "col": 30,
+          "row": 13,
+          "terrain": "desert",
+          "feature": "oasis",
+          "hills": false,
+          "ranged": false,
+          "military": true,
+          "fortifiedTurns": 1
+        },
+        "loss": {
+          "turn": 96,
+          "index": 7113,
+          "by": 3
+        },
+        "originalChoice": "479: attack (31,13); 703: move (30,13)",
+        "score": -52.8974358974359,
+        "holdScore": -80.44522144522143,
+        "replyChange": -81.44522144522145,
+        "candidates": [
+          {
+            "label": "790: hold (30,12); 479: hold (30,13); 669: hold (29,13); 703: hold (29,12)",
+            "score": -80.44522144522143,
+            "chosen": false
+          },
+          {
+            "label": "479: attack (31,13); 703: move (30,13)",
+            "score": -52.8974358974359,
+            "chosen": true
+          },
+          {
+            "label": "790: hold (30,12); 479: attack (31,13); 703: move (30,13)",
+            "score": -52.8974358974359,
+            "chosen": false
+          },
+          {
+            "label": "669: hold (29,13); 479: attack (31,13); 703: move (30,13)",
+            "score": -52.8974358974359,
+            "chosen": false
+          },
+          {
+            "label": "479: hold (30,13)",
+            "score": -80.44522144522143,
+            "chosen": false
+          },
+          {
+            "label": "790: move (29,14)",
+            "score": -84.44522144522143,
+            "chosen": false
+          },
+          {
+            "label": "479: move (29,14)",
+            "score": -108.58275058275055,
+            "chosen": false
+          },
+          {
+            "label": "669: move (28,14)",
+            "score": -85.44522144522143,
+            "chosen": false
+          },
+          {
+            "label": "703: move (28,14)",
+            "score": -84.44522144522143,
+            "chosen": false
+          }
+        ]
+      },
+      {
+        "seed": 48017,
+        "index": 7291,
+        "turn": 97,
+        "attacker": {
+          "id": 703,
+          "ownerId": 0,
+          "type": "spearman",
+          "hp": 110,
+          "col": 30,
+          "row": 13,
+          "terrain": "desert",
+          "feature": "oasis",
+          "hills": false,
+          "ranged": false,
+          "military": true,
+          "fortifiedTurns": 0
+        },
+        "loss": {
+          "turn": 97,
+          "index": 7340,
+          "by": 3
+        },
+        "originalChoice": "703: attack (31,12)",
+        "score": -122.3974358974359,
+        "holdScore": -166.75874125874122,
+        "replyChange": -168.25174825174827,
+        "candidates": [
+          {
+            "label": "663: hold (31,14); 167: hold (30,14); 703: hold (30,13); 905: hold (31,15)",
+            "score": -166.75874125874122,
+            "chosen": false
+          },
+          {
+            "label": "703: attack (31,12)",
+            "score": -122.3974358974359,
+            "chosen": true
+          },
+          {
+            "label": "663: hold (31,14); 703: attack (31,12)",
+            "score": -122.3974358974359,
+            "chosen": false
+          },
+          {
+            "label": "703: move (31,13); 703: attack (31,12)",
+            "score": -122.3974358974359,
+            "chosen": false
+          },
+          {
+            "label": "703: hold (30,13)",
+            "score": -166.75874125874122,
+            "chosen": false
+          },
+          {
+            "label": "663: move (32,14)",
+            "score": -215.5477855477855,
+            "chosen": false
+          },
+          {
+            "label": "703: move (28,13)",
+            "score": -170.75874125874122,
+            "chosen": false
+          }
+        ]
+      }
+    ]
+  },
+  "checkpointValidation": {
+    "combat-facts": {
+      "savePath": "/private/tmp/webciv-bot-combat-2026-11-22/combat-facts/39827/39827-100.save.json",
+      "reportPath": "/private/tmp/webciv-bot-combat-2026-11-22/combat-facts/39827/39827.json",
+      "acceptedCommands": 5515,
+      "matchesExistingCheckpoint": true
+    },
+    "tactics-retreat": {
+      "savePath": "/private/tmp/webciv-bot-combat-2026-11-22/tactics-retreat/39827/39827-93.save.json",
+      "reportPath": "/private/tmp/webciv-bot-combat-2026-11-22/tactics-retreat/39827/39827.json",
+      "acceptedCommands": 7233,
+      "matchesExistingCheckpoint": true
+    }
+  },
+  "finalRuntimeHashes": {
+    "src/ai/tactics/assessment.ts": "1a91d766245fdb2c24e4f90f9f2fe76b669e68f7d45ee1149ffd5dd616bdddf3",
+    "src/ai/tactics/planner.ts": "c9c8aa572ee16f8d10ea72b040e51780b8460b7acc45d9c3973b8ff21747b0b5",
+    "src/ai/tactics/position.ts": "af1985e2ee4f03cc2767bb1ddf64f9af5b6ddd033a5dde6ea7b2fbbaee53660e",
+    "src/sim/pathfind.ts": "1832249c74036926274af9c1616b7b1436351ff888728534ff293d4736db9859",
+    "data/ai.json": "612d3332929e261fbb52895cc6dff35a6d1a0564c027557bbfeb5d91e7c600cd"
+  },
+  "initialOneVsTwoCommandsAndStateEqual": true,
+  "validation": {
+    "typecheck": true,
+    "coreFiles": 574,
+    "coreTests": 12993,
+    "coreSeconds": 161.2,
+    "tacticalTests": 32,
+    "buildPassed": true,
+    "buildSeconds": 18.36,
+    "fullSlowTier": false,
+    "deployed": false,
+    "plannerEnabledByDefault": false
+  }
+}
