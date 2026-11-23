@@ -1450,9 +1450,14 @@ describe('determinism', () => {
   // Printing version 259 restores both previous hashes exactly.
   // Version 261 changes home healing and city road movement. These games have
   // no cities. Printing version 260 restores both previous hashes exactly.
+  // Version 262 weakens the wild (the user's rulings of 2026-11-22): a camp
+  // starts with one unit, trains at each muster with a chance of 50%, attacks
+  // only within eight hexes, and camps are founded every three turns. These
+  // games hold camps, so both hashes changed. The earlier pair was
+  // '4900e09e:190684' and '1060a0b4:190844'.
   const RANGED_BOARDS: Record<number, string> = {
-    11: '4900e09e:190684',
-    2026: '1060a0b4:190844',
+    11: '38fc5a55:189209',
+    2026: 'da62ecc8:188729',
   };
 
   for (const seed of [11, 2026]) {
