@@ -53,7 +53,33 @@ import type { TallyOccasion } from '../sim/statecraftData';
  */
 export type MixRole = 'melee' | 'ranged' | 'mounted' | 'siege';
 
+export interface TacticalRoleWeights {
+  damage: number;
+  loss: number;
+  exposure: number;
+  progress: number;
+}
+
 export interface AiConfig {
+  tactics: {
+    /** Zero keeps the control policy available for paired comparisons. */
+    enabled: number;
+    radius: number;
+    units: number;
+    enemies: number;
+    choices: number;
+    beam: number;
+    depth: number;
+    replies: number;
+    projections: number;
+    risk: number;
+    healing: number;
+    civilian: number;
+    city: number;
+    camp: number;
+    progress: number;
+    roles: Record<MixRole, TacticalRoleWeights>;
+  };
   driver: {
     /** Hard ceiling on commands one seat may emit in one turn. A guard, not a rule. */
     commandsPerSeat: number;

@@ -1475,7 +1475,9 @@ The experimental combat policy has not been put on port 5199.
 The next design is a shared tactical evaluator for attack, movement and holding.
 The [combat research and plan](audit/bot-combat-research-2026-11-23.md) compares
 primary sources with the current code and specifies bounded group planning.
-It is not yet an enabled policy.
+The [implementation and validation record](audit/bot-tactical-planner-2026-11-23.md)
+describes the new local planner and its limits. The `tactics.enabled` setting
+keeps the stable policy available while the new planner is tested.
 
 The bot prices things before it picks them. Each turn it builds a **want book**
 (`wants.ts`): one entry per thing a currency could be spent on, each carrying its

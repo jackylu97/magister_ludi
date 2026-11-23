@@ -484,6 +484,20 @@ function halfOf(state: GameState, clock: SlateClock): Half {
 }
 
 /**
+ * A private position can share ground indexes when only units or visibility
+ * change. Economy and movement readings stay separate because they can depend
+ * on garrisons, health or occupancy. Callers must treat both positions as
+ * immutable while sharing these indexes. Changed city or player records refuse
+ * reuse, including city captures and research changes.
+ */
+export function inheritGroundReadings(source: GameState, projection: GameState): void {
+  if (source.map !== projection.map || source.cities !== projection.cities ||
+    source.players !== projection.players || source.tileOwner !== projection.tileOwner ||
+    source.turn !== projection.turn) return;
+  halfOf(projection, 'ground').buckets = halfOf(source, 'ground').buckets;
+}
+
+/**
  * **Remember one answer** — `compute` asked once per `(clock stamp, bucket,
  * key)`, inside a write and outside one alike (batch M3: the writes announce
  * themselves, so there is no longer such a thing as a world halfway moved that

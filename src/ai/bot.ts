@@ -345,6 +345,8 @@ import {
 import { readCity, readEmpirePercents, readEmpireRates } from '../sim/readings';
 import { slateMemo } from '../sim/slate';
 import { type CombatForecast, attackRange, fortifyError, isFortified, previewCombat, previewCombatRisk } from '../sim/combat';
+import { cachedTacticalPlan } from './tactics/memo';
+import { distance as tacticalDistance } from './tactics/position';
 // A unit's rank, read from its experience (batch WC3). The wounded-veteran
 // clause in `favourableBlow` asks it.
 import { rankName, rankOf } from '../sim/ranks';
@@ -3512,7 +3514,8 @@ function wakeIdleSettler(
     return {
       kind: 'unitOrder',
       command: choice.command,
-      subject: unitLabel(unit),
+      subject: choice.subject ?? unitLabel(unit),
+      tacticalOrigin: choice.tacticalOrigin,
       summary: `Rouses a sleeping settler — the board has moved. ${choice.summary}`,
       candidates: choice.candidates,
       focus: choice.focus ?? { col: unit.col, row: unit.row },
@@ -3561,7 +3564,8 @@ function wakeIdleWorker(state: GameState, player: Player, sitting?: BotSitting):
     return {
       kind: 'unitOrder',
       command: choice.command,
-      subject: unitLabel(unit),
+      subject: choice.subject ?? unitLabel(unit),
+      tacticalOrigin: choice.tacticalOrigin,
       summary: `Rouses a sleeping worker — there is ground for it now. ${choice.summary}`,
       candidates: choice.candidates,
       focus: choice.focus ?? { col: unit.col, row: unit.row },
@@ -3655,7 +3659,8 @@ function wakeTheCampaign(
     return {
       kind: 'unitOrder',
       command: choice.command,
-      subject: unitLabel(unit),
+      subject: choice.subject ?? unitLabel(unit),
+      tacticalOrigin: choice.tacticalOrigin,
       summary: `Calls a dug-in piece back to the colours — the campaign has moved. ${choice.summary}`,
       candidates: choice.candidates,
       focus: choice.focus ?? { col: unit.col, row: unit.row },
@@ -3727,7 +3732,8 @@ function wakeTheHunt(state: GameState, player: Player, sitting?: BotSitting): Bo
     return {
       kind: 'unitOrder',
       command: choice.command,
-      subject: unitLabel(unit),
+      subject: choice.subject ?? unitLabel(unit),
+      tacticalOrigin: choice.tacticalOrigin,
       summary: `Calls a dug-in piece out for the hunt. ${choice.summary}`,
       candidates: choice.candidates,
       focus: choice.focus ?? { col: unit.col, row: unit.row },
@@ -7284,7 +7290,8 @@ function unitCommand(
   const decision: BotDecision = {
     kind: 'unitOrder',
     command: choice.command,
-    subject: unitLabel(unit),
+    subject: choice.subject ?? unitLabel(unit),
+    tacticalOrigin: choice.tacticalOrigin,
     summary: choice.summary,
     candidates: choice.candidates,
     focus: choice.focus ?? { col: unit.col, row: unit.row },
@@ -7300,6 +7307,8 @@ function unitCommand(
  * along; `unitCommand` is the one place a piece's name and hex are attached.
  */
 interface UnitChoice {
+  subject?: string;
+  tacticalOrigin?: { col: number; row: number };
   command: Command;
   summary: string;
   candidates: BotCandidate[];
@@ -8913,7 +8922,8 @@ function walkWithSettlers(state: GameState, player: Player, sitting?: BotSitting
       return {
         kind: 'unitOrder',
         command: choice.command,
-        subject: unitLabel(settler),
+        subject: choice.subject ?? unitLabel(settler),
+        tacticalOrigin: choice.tacticalOrigin,
         summary: choice.summary,
         candidates: choice.candidates,
         focus: choice.focus ?? { col: settler.col, row: settler.row },
@@ -8940,7 +8950,8 @@ function walkWithSettlers(state: GameState, player: Player, sitting?: BotSitting
     return {
       kind: 'unitOrder',
       command: choice.command,
-      subject: unitLabel(soldier),
+      subject: choice.subject ?? unitLabel(soldier),
+      tacticalOrigin: choice.tacticalOrigin,
       summary: choice.summary,
       candidates: choice.candidates,
       focus: choice.focus ?? { col: soldier.col, row: soldier.row },
@@ -9270,7 +9281,8 @@ function guardWorkers(state: GameState, player: Player, sitting?: BotSitting): B
     return {
       kind: 'unitOrder',
       command: choice.command,
-      subject: unitLabel(soldier),
+      subject: choice.subject ?? unitLabel(soldier),
+      tacticalOrigin: choice.tacticalOrigin,
       summary: choice.summary,
       candidates: choice.candidates,
       focus: choice.focus ?? { col: soldier.col, row: soldier.row },
@@ -9296,7 +9308,8 @@ function guardWorkers(state: GameState, player: Player, sitting?: BotSitting): B
     return {
       kind: 'unitOrder',
       command: choice.command,
-      subject: unitLabel(soldier),
+      subject: choice.subject ?? unitLabel(soldier),
+      tacticalOrigin: choice.tacticalOrigin,
       summary: `Leaves its guard on ${unitLabel(worker)}: no hostile can reach it now. ${choice.summary}`,
       candidates: choice.candidates,
       focus: choice.focus ?? { col: soldier.col, row: soldier.row },
@@ -10289,6 +10302,34 @@ function scoutCommand(state: GameState, player: Player, unit: Unit, sitting?: Bo
  *     because a bowman with an enemy in sight has no business walking off to a
  *     camp — but a shot is always better than a step, so the blows come first.
  */
+/** Keep essential jobs while replacing the local attack, retreat and hold branches. */
+function tacticalUnitChoice(state: GameState, player: Player, unit: Unit, sitting?: BotSitting): UnitChoice | null | undefined {
+  const ai = aiFor(player);
+  if (ai.tactics.enabled <= 0 || !isFieldSoldier(unitDef(unit.type))) return undefined;
+  // Most soldiers have no nearby engagement. Avoid building job plans for them.
+  if (!state.units.some(enemy => atWar(state, player.id, enemy.ownerId) && isVisibleTo(state, player.id, enemy.col, enemy.row) &&
+    tacticalDistance(state, unit, enemy) <= ai.tactics.radius) &&
+    !state.cities.some(city => atWar(state, player.id, city.ownerId) && isVisibleTo(state, player.id, city.col, city.row) &&
+      tacticalDistance(state, unit, city) <= ai.tactics.radius)) return undefined;
+  const escorts = escortPlan(state, player, sitting).bySoldier;
+  const guards = guardPlan(state, player, sitting).bySoldier;
+  if (escorts.has(unit.id) || guards.has(unit.id)) return undefined;
+  const ours = state.units.filter(piece => piece.ownerId === player.id);
+  const excluded = ours.filter(piece => escorts.has(piece.id) || guards.has(piece.id) || !isFieldSoldier(unitDef(piece.type))).map(piece => piece.id);
+  const locked = ours.filter(piece => !isRedundant(state, player, piece) || unrestTownHeldBy(state, player, piece) !== null).map(piece => piece.id);
+  const plan = cachedTacticalPlan(state, player.id, unit.id, ai, { excluded, locked });
+  if (plan === null) return undefined;
+  const command = plan.action.command;
+  if (command === null) return null;
+  const actor = state.units.find(piece => piece.id === plan!.action.unitId) ?? unit;
+  return {
+    command, subject: unitLabel(actor),
+    tacticalOrigin: { col: unit.col, row: unit.row },
+    summary: `Compares attacking, moving and holding with a feasible enemy reply. Plans ${plan.sequence.length} local actions and executes the first.`,
+    candidates: plan.candidates, focus: plan.action.to,
+  };
+}
+
 function soldierCommand(
   state: GameState,
   player: Player,
@@ -10296,6 +10337,8 @@ function soldierCommand(
   sitting?: BotSitting,
 ): UnitChoice | null {
   const ai = aiFor(player);
+  const tactical = tacticalUnitChoice(state, player, unit, sitting);
+  if (tactical !== undefined) return tactical;
   const resting = restAndHeal(state, player, unit);
   // A hurt piece already dug in on its own ground is mending: nothing to send,
   // and no arm below may call it out (bot batch BP16).
@@ -10487,6 +10530,20 @@ function fortifiedRangedAttack(state: GameState, player: Player): BotDecision | 
   for (const unit of state.units) {
     if (unit.ownerId !== player.id || unit.fortifiedTurns === undefined) continue;
     if (!isRanged(unitDef(unit.type)) || unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
+    if (aiFor(player).tactics.enabled > 0) {
+      // This early interrupt handles nearby shots. Campaign and defense jobs
+      // handle repositioning distant units when their normal priority is reached.
+      const range = attackRange(state, unit);
+      if (!state.units.some(enemy => atWar(state, player.id, enemy.ownerId) && isVisibleTo(state, player.id, enemy.col, enemy.row) &&
+        tacticalDistance(state, unit, enemy) <= range) &&
+        !state.cities.some(city => atWar(state, player.id, city.ownerId) && isVisibleTo(state, player.id, city.col, city.row) &&
+          tacticalDistance(state, unit, city) <= range)) continue;
+    }
+    const tactical = tacticalUnitChoice(state, player, unit);
+    if (tactical !== undefined) {
+      if (tactical !== null) return { kind: 'unitOrder', ...tactical, subject: tactical.subject ?? unitLabel(unit) };
+      continue;
+    }
     if (restAndHeal(state, player, unit) !== null) continue;
     const review: StrikeReview = { candidates: [], deferredToRanged: false };
     const strike = favourableBlow(state, player, unit, review);

@@ -1,6 +1,7 @@
 /** A legal attack must still use the combat facts the bot selected. */
 import { describe, expect, it } from 'vitest';
 import { driveBots } from '../../src/ai/driver';
+import { withAiTuning } from '../../src/ai/aiConfig';
 import { applyNextStep, freezeBoard, planSeat, startPlanRun } from '../../src/ai/frozenBoard';
 import { foundCityAt } from '../../src/sim/cities';
 import { applyCommand, type Command } from '../../src/sim/commands';
@@ -11,6 +12,7 @@ import { bumpRevision, createUnit, playerById, unitById, type GameState } from '
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { createGame } from './newGameHelpers';
 import { openEveryWar } from './warHelpers';
+import { driveWithBotsThinking } from '../ui/botWorkerHelpers';
 
 function front() {
   const game = createGame({ seed: 48017, sizeName: 'duel', barbarians: false, players: [
@@ -43,13 +45,15 @@ function front() {
   return { game, state, towns, attacker, defender, earlier, spare, command };
 }
 
-function oneAttack(state: GameState, command: Extract<Command, { type: 'attack' }>) {
+function oneAttack(state: GameState, command: Extract<Command, { type: 'attack' }>, tacticalOrigin?: { col: number; row: number }) {
   let asked = false;
   return planSeat(freezeBoard(state), command.playerId, {
     ask: () => {
       if (asked) return null;
       asked = true;
-      return { command, decision: null };
+      return { command, decision: tacticalOrigin ? {
+        kind: 'unitOrder', command, subject: 'Test group', summary: 'Tests the group origin.', candidates: [], tacticalOrigin,
+      } : null };
     },
     warn: message => { throw Error(message); },
   });
@@ -70,6 +74,62 @@ function checkCut(state: GameState, run: ReturnType<typeof startPlanRun>, reason
 }
 
 describe('planned combat facts', () => {
+  it('keeps the group origin when a different unit acts first', () => {
+    withAiTuning({ tactics: { enabled: 1, radius: 2 } }, () => {
+      const { state, command } = front();
+      const other = createUnit(state, 2, 'archer', 8, 4);
+      // The group saw this enemy, outside the acting unit's small footprint.
+      state.visibility[1]!.fill(2);
+      const plan = oneAttack(state, command, { col: 6, row: 4 });
+      expect(plan.steps[0]?.tactics?.units.some(unit => unit.id === other.id)).toBe(true);
+      other.row = 5;
+      bumpRevision(state);
+      checkCut(state, startPlanRun(plan), 'combat');
+    });
+  });
+  it('uses the same tactical commands through the page and worker paths', () => {
+    withAiTuning({ tactics: { enabled: 1 } }, () => {
+      const page = front().game;
+      const worker = front().game;
+      for (const game of [page, worker]) {
+        for (const player of game.state.players) player.isHuman = false;
+        createUnit(game.state, 1, 'archer', 3, 4);
+        recomputeAllVisibility(game.state);
+      }
+      driveWithBotsThinking(page, 'page');
+      expect(driveWithBotsThinking(worker, 'worker')).toBe('applied');
+      expect(worker.log).toEqual(page.log);
+      expect(snapshotState(worker.state)).toBe(snapshotState(page.state));
+      expect(page.log.some(command => command.type === 'attack')).toBe(true);
+    });
+  });
+  it('replans a tactical action when another nearby enemy changes position', () => {
+    withAiTuning({ tactics: { enabled: 1 } }, () => {
+      const { state, command } = front();
+      const other = createUnit(state, 2, 'archer', 6, 4);
+      recomputeAllVisibility(state);
+      const plan = oneAttack(state, command);
+      expect(plan.steps[0]?.tactics).not.toBeNull();
+      other.col = 6;
+      other.row = 5;
+      bumpRevision(state);
+      checkCut(state, startPlanRun(plan), 'combat');
+    });
+  });
+
+  it('keeps a tactical plan after an unrelated bank payment', () => {
+    withAiTuning({ tactics: { enabled: 1 } }, () => {
+      const { state, command } = front();
+      const plan = oneAttack(state, command);
+      state.players[0]!.gold += 3;
+      bumpRevision(state);
+      const run = startPlanRun(plan);
+      const landed = applyNextStep(state, run, order => applyCommand(state, order));
+      expect(landed).not.toBeNull();
+      expect(run.cut).toBeNull();
+    });
+  });
+
   it('cuts a still-legal attack after a different enemy advances onto the target', () => {
     const { state, command, defender, earlier } = front();
     const plan = oneAttack(state, command);

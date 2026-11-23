@@ -280,9 +280,17 @@ export function awardExperience(
 ): RankId[] {
   if (isBarbarian(state, unit.ownerId)) return [];
   if (lawForbids(state, unit.ownerId)) return [];
-  const current = experienceOf(unit);
-  const next = experienceAfter(current, event, isBarbarian(state, opponentOwnerId));
+  const next = experienceAfterCombat(state, unit, event, opponentOwnerId);
   return writeExperience(state, unit, next);
+}
+
+/** Planning reads the same experience result without writing a rank or paying rewards. */
+export function experienceAfterCombat(
+  state: GameState, unit: ExperiencedUnit & { ownerId: number }, event: ExperienceEvent, opponentOwnerId: number,
+): number {
+  const current = experienceOf(unit);
+  if (isBarbarian(state, unit.ownerId) || lawForbids(state, unit.ownerId)) return current;
+  return experienceAfter(current, event, isBarbarian(state, opponentOwnerId));
 }
 
 /**

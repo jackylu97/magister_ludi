@@ -441,6 +441,7 @@ const MOVED_READERS: Record<string, string> = {
   'combat.ts › cityWallsStrength': 'the walls (`buildingCityStat`)',
   'combat.ts › planCombat': 'the walls and the hit points',
   'combat.ts › captureCity': 'the hit points of a captured town',
+  'combat.ts › capturedCityHealth': 'the shared wall health after a projected or real capture',
   'combat.ts › healCities': 'the hit points a town heals to',
   'commands.ts › applySetCityProduction': 'the queue floor',
   'guilds.ts › explainGuildInflow': 'the renown that fills the guild bar',

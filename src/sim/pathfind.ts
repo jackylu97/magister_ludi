@@ -2521,14 +2521,14 @@ export function findPathAround(
  * where the purse runs out — the rule drawn on the board rather than explained
  * in a tooltip, and by the same arithmetic a forest is.
  */
-export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
+export function reachableTiles(state: GameState, unit: Unit, options: { swaps?: boolean } = {}): ReachableTile[] {
   const start = getTileAt(state.map, unit.col, unit.row);
   if (!start || unit.movesLeft <= 0) return [];
   // Each swap checks two routes on the same board as the movement range.
-  return withFieldsHeld(() => reachableFrom(state, unit, start));
+  return withFieldsHeld(() => reachableFrom(state, unit, start, options.swaps !== false));
 }
 
-function reachableFrom(state: GameState, unit: Unit, start: Tile): ReachableTile[] {
+function reachableFrom(state: GameState, unit: Unit, start: Tile, swaps: boolean): ReachableTile[] {
   const { map } = state;
   const results: ReachableTile[] = [];
   const budget = unit.movesLeft;
@@ -2565,7 +2565,7 @@ function reachableFrom(state: GameState, unit: Unit, start: Tile): ReachableTile
       // promise this function exists to keep: every hex in the list is a
       // `moveUnit` that will be accepted, and every accepted `moveUnit` is a hex
       // in the list.
-      else if (planSwap(state, unit, tile) !== null) results.push({ tile, cost, swap: true });
+      else if (swaps && planSwap(state, unit, tile) !== null) results.push({ tile, cost, swap: true });
     }
     // Arriving with nothing left ends the move: no step can follow.
     if (cost >= budget) continue;

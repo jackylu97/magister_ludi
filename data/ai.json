@@ -99,7 +99,12 @@
     "garrisonPerCity": 1,
     "unrestGarrison": 1,
     "armyPerCity": 2,
-    "routineArmyShareByAge": [1, 1, 1, 1],
+    "routineArmyShareByAge": [
+      1,
+      1,
+      1,
+      1
+    ],
     "aggression": 0,
     "wildAggression": 0,
     "levyCapMultiple": 2,
@@ -420,6 +425,49 @@
   "puppet": {
     "switchMargin": 0.1,
     "strandWeight": 0.5
+  },
+  "tactics": {
+    "enabled": 0,
+    "radius": 6,
+    "units": 4,
+    "enemies": 6,
+    "choices": 5,
+    "beam": 4,
+    "depth": 3,
+    "replies": 3,
+    "projections": 160,
+    "risk": 0.25,
+    "healing": 0.5,
+    "civilian": 100,
+    "city": 250,
+    "camp": 40,
+    "progress": 2,
+    "roles": {
+      "melee": {
+        "damage": 1,
+        "loss": 1,
+        "exposure": 1,
+        "progress": 1
+      },
+      "ranged": {
+        "damage": 1,
+        "loss": 1.1,
+        "exposure": 1.2,
+        "progress": 0.5
+      },
+      "siege": {
+        "damage": 1,
+        "loss": 1.2,
+        "exposure": 1.2,
+        "progress": 1
+      },
+      "mounted": {
+        "damage": 1,
+        "loss": 1,
+        "exposure": 1,
+        "progress": 1
+      }
+    }
   },
   "puppetProfile": {
     "weights": {

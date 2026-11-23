@@ -79,6 +79,7 @@
  */
 
 import { aiConfigFor } from './aiConfig';
+import { tacticalDependencies, sameTacticalDependencies, type TacticalDependencies } from './tactics/dependencies';
 import { type BotSitting, type SittingMarks, botSitting, nextBotCommand, nextBotDecision, resumedSitting, sittingMarks } from './bot';
 import { pendingDealRefusal, rememberDealRefusal } from './dealMemory';
 import type { BotDecision } from './decision';
@@ -293,6 +294,7 @@ export interface PlannedStep {
   offer: string | null;
   /** The direct combat facts on the planning copy, before an attack changes them. */
   combat: PlannedCombat | null;
+  tactics?: TacticalDependencies | null;
   /**
    * For a march or a blow: what it left on the copy (`outcomePrint`), for the
    * tally of commands that landed and did not do what the copy did.
@@ -369,6 +371,11 @@ export function planSeat(
     const firstMinted = state.nextEntityId;
     const offer = choosesFromAnOffer(command) ? offerPrint(state, playerId) : null;
     const combat = command.type === 'attack' ? combatFactsFor(state, command) : null;
+    const ai = aiConfigFor(state.players[playerId]?.persona, playerId);
+    const tactics = ai.tactics.enabled > 0 && (decision?.tacticalOrigin || command.type === 'attack')
+      ? tacticalDependencies(state, playerId, command, ai.tactics.radius,
+        decision?.tacticalOrigin ? [decision.tacticalOrigin, ...('target' in command ? [command.target] : [])] : undefined)
+      : null;
     const result = applyCommand(state, command);
     if (result.ok) {
       steps.push({
@@ -378,6 +385,7 @@ export function planSeat(
         minted: state.nextEntityId - firstMinted,
         offer,
         combat,
+        tactics,
         after: outcomePrint(state, command, board.firstNewId),
         marks: sittingMarks(sitting),
       });
@@ -525,6 +533,12 @@ export function applyNextStep(
   if (command.type === 'chooseGreatPerson') {
     const taken = greatPersonChoiceError(state, playerId, command.optionIndex);
     if (taken !== null) return cut(run, 'taken', taken);
+  }
+  if (step.tactics) {
+    const actual = tacticalDependencies(state, playerId, command, step.tactics.radius, step.tactics.centres);
+    if (!actual || !sameTacticalDependencies(step.tactics, actual, id => mappedEntityId(run, id))) {
+      return cut(run, 'combat', 'local tactical position changed');
+    }
   }
   if (command.type === 'attack') {
     const expected = step.combat;

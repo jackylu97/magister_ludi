@@ -280,3 +280,11 @@ Retain the current bot as a fixed control. Use exact tactical scenarios plus
 the original-decision captures and the same all-leader games. Review useful
 trades, city defense, civilian protection and ranged support as well as totals.
 Tune role weights only after these structural comparisons are sound.
+
+## Shared planner implementation
+
+The user approved implementation on 23 November. Work is isolated on
+`codex/bot-position-262`; the stable control is `1b596864`. The
+[implementation record](../audit/bot-tactical-planner-2026-11-23.md) documents
+the private position model, shared score terms, bounded response search,
+worker dependency checks and validation results. Port 5199 stays unchanged.

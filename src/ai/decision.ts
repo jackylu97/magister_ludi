@@ -193,6 +193,8 @@ export interface BotDecision {
   candidates: BotCandidate[];
   /** Where to point a camera, when the decision happens somewhere. */
   focus?: { col: number; row: number };
+  /** The local group's centre can differ from the unit selected to act first. */
+  tacticalOrigin?: { col: number; row: number };
 }
 
 /**

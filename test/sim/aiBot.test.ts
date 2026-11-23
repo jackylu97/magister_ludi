@@ -1455,6 +1455,7 @@ describe('the bot module', () => {
       'search',
       'site',
       'solvency',
+      'tactics',
       'threat',
       // `trade` left in batch 7 with the last knob in it: `tradersPerCity` went
       // in batch 4 (route pay is priced) and `traderCap` followed once a

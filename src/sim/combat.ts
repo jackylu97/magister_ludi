@@ -370,6 +370,7 @@ import { cardTurningSides, stampSidesTurned } from './statecraft/evaluator';
 import {
   type City,
   type GameState,
+  type Player,
   type QueueItem,
   type Unit,
   breakFortify,
@@ -426,7 +427,7 @@ import { endUnrest, startUnrest } from './unrest';
 import { recordWarLoss } from './weariness';
 // A leaf over the rule book and `state.ts`, like `weariness.ts`, so this edge
 // cannot make a cycle either.
-import { awardExperience, rankStrengthLines } from './ranks';
+import { awardExperience, experienceAfterCombat, rankStrengthLines } from './ranks';
 
 const COMBAT = RULES.combat;
 
@@ -745,12 +746,14 @@ function strikeTargetId(target: AttackTarget): number {
 function recordStrike(state: GameState, playerId: number, targetId: number): void {
   const player = playerById(state, playerId);
   if (!player || !lawCountsStrikes(state, playerId)) return;
-  const record = player.strikesThisTurn;
-  if (record === undefined || record.turn !== state.turn) {
-    player.strikesThisTurn = { turn: state.turn, targets: [targetId] };
-  } else {
-    record.targets.push(targetId);
-  }
+  player.strikesThisTurn = strikesAfterAttack(state, playerId, targetId);
+}
+
+/** Copy the attack count so a projected follow-up sees the same strength bonus. */
+export function strikesAfterAttack(state: GameState, playerId: number, targetId: number): Player['strikesThisTurn'] {
+  const record = playerById(state, playerId)?.strikesThisTurn;
+  if (!lawCountsStrikes(state, playerId)) return record;
+  return { turn: state.turn, targets: [...(record?.turn === state.turn ? record.targets : []), targetId] };
 }
 
 /** The priority above, with nothing asked about who is swinging. */
@@ -2580,8 +2583,9 @@ export function previewCombatRisk(
   state: GameState,
   attackerId: number,
   cell: Cell,
+  stance?: CombatStance,
 ): CombatPreview {
-  const planned = planCombat(state, attackerId, cell);
+  const planned = planCombat(state, attackerId, cell, stance);
   if (!planned.ok) return { ok: false, error: planned.error };
   const { forecast, baseToAttacker, target } = planned.plan;
   const counter = (roll: number, dealt: number): number => {
@@ -2595,6 +2599,84 @@ export function previewCombatRisk(
     damageToAttackerMin: counter(1 - COMBAT.rollBand, forecast.damageToDefenderMax),
     damageToAttackerMax: counter(1 + COMBAT.rollBand, forecast.damageToDefenderMin),
   };
+}
+
+export interface CombatSample extends CombatForecast {
+  advances: boolean;
+  capturedCityId: number | null;
+  attackerHpAfter: number;
+  defenderConverted: boolean;
+  attackerExperience: number | undefined;
+  defenderExperience: number | undefined;
+}
+
+/**
+ * Project a stated pair of damage rolls without drawing randomness. The bot
+ * uses the same damage, survival and advance rules as the resolver. Samples
+ * describe scenarios, not probabilities or a prediction of the next roll.
+ */
+export function previewCombatSample(
+  state: GameState,
+  attackerId: number,
+  cell: Cell,
+  sample: 'low' | 'middle' | 'high',
+): ({ ok: true } & CombatSample) | { ok: false; error: string } {
+  const planned = planCombat(state, attackerId, cell);
+  if (!planned.ok) return planned;
+  const { forecast, baseToDefender, baseToAttacker, defenderFloor, breaches, target, attacker, tile } = planned.plan;
+  const roll = sample === 'low' ? 1 - COMBAT.rollBand : sample === 'high' ? 1 + COMBAT.rollBand : 1;
+  const dealt = forecast.capturesUnit || forecast.plundersUnit ? 0 : breaches
+    ? Math.max(0, forecast.defenderHp - defenderFloor)
+    : clampDamage(damageAtRoll(baseToDefender, roll), forecast.defenderHp, defenderFloor);
+  const killed = forecast.plundersUnit || (target.unit !== null && dealt >= forecast.defenderHp);
+  const defenderConverted = killed && target.unit !== null && !forecast.plundersUnit && (
+    (isBarbarian(state, target.unit.ownerId) && cardBehaviorRule(state, attacker.ownerId, 'barbarianKillsConvert')) ||
+    turningCardFor(state, attacker, target.unit, tile) !== null
+  );
+  const heal = killed && !defenderConverted && target.unit !== null
+    ? windfallPayout(state, attacker.ownerId, 'kill', 0, 0, {
+      actor: attacker.type, fallen: target.unit.type, strength: fallenStrength(target.unit),
+      vsBarbarians: isBarbarian(state, target.unit.ownerId),
+    }).heal : 0;
+  // Kill healing is paid before the counter, including its maximum-health cap.
+  const standing = Math.min(forecast.attackerMaxHp, forecast.attackerHp + heal);
+  const counter = baseToAttacker > 0
+    ? clampDamage(damageAtRoll(baseToAttacker, 2 - roll), standing, killed ? 1 : 0)
+    : 0;
+  const survived = counter < standing;
+  const capturedCityId = survived && !defenderConverted && (forecast.capturesCity || (forecast.capturesCityOnKill && killed))
+    ? cityAt(state, tile.col, tile.row)?.id ?? null : null;
+  const city = cityAt(state, tile.col, tile.row);
+  const advances = survived && !defenderConverted && forecast.kind === 'melee' && (killed || forecast.capturesUnit || forecast.capturesCity) &&
+    (city === undefined || city.ownerId === attacker.ownerId || capturedCityId !== null) &&
+    canHoldTakenGround(state, attacker, tile, killed ? target.unit?.id ?? -1 : -1);
+  const fought = !forecast.capturesUnit && !forecast.plundersUnit &&
+    (forecast.cityPhase === 'walls' || (target.unit !== null && isCombatant(unitDef(target.unit.type))));
+  const defenderOwner = target.unit?.ownerId ?? target.city?.ownerId;
+  return { ok: true, ...forecast, damageToDefender: dealt, damageToAttacker: counter, advances, capturedCityId,
+    attackerHpAfter: standing - counter, defenderConverted,
+    attackerExperience: fought && survived && defenderOwner !== undefined
+      ? experienceAfterCombat(state, attacker, killed ? 'kill' : 'survived', defenderOwner) : attacker.experience,
+    defenderExperience: fought && target.unit !== null && !killed
+      ? experienceAfterCombat(state, target.unit, survived ? 'survived' : 'kill', attacker.ownerId) : target.unit?.experience,
+  };
+}
+
+/** Captured walls recover using the new owner's maximum health. */
+export function capturedCityHealth(state: GameState, city: City): number {
+  const maximum = cityMaxHp(city, townShelf(state, city), state);
+  return Math.min(maximum, Math.max(1, Math.round(maximum * COMBAT.cityCaptureHpFraction)));
+}
+
+/** The action budget after an attack is shared by resolution and planning. */
+export function combatContinuation(state: GameState, attacker: Unit, killed: boolean): Pick<Unit, 'movesLeft' | 'hasAttacked' | 'firstAttackTurn'> {
+  const firstOfTwo = attacker.firstAttackTurn !== state.turn && cardBehaviorRuleFor(state, attacker, 'secondAttack');
+  const keepsMoving = unitDef(attacker.type).hitAndRun === true ||
+    cardBehaviorRule(state, attacker.ownerId, 'moveAfterAttack', attacker.type) || firstOfTwo;
+  const movesLeft = killed && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill', attacker.type)
+    ? fullMovement(attacker, state)
+    : keepsMoving ? Math.max(0, snapMovement(attacker.movesLeft - RULES.naval.hitAndRunCost)) : 0;
+  return { movesLeft, hasAttacked: !firstOfTwo, firstAttackTurn: firstOfTwo ? state.turn : attacker.firstAttackTurn };
 }
 
 // --- resolution -------------------------------------------------------------
@@ -3027,64 +3109,10 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       );
     }
   } else {
-    /**
-     * **Hit and run**: a light hull pays for the blow and keeps the rest.
-     *
-     * The one exception to "an attack ends your turn", and it is a *price*
-     * rather than an exemption — `rules.naval.hitAndRunCost` out of the purse,
-     * so a hull that came in on its last point is finished exactly like anybody
-     * else. `hasAttacked` is set either way, which is what keeps "one blow a
-     * turn" true: what the light line buys is somewhere to be afterwards, never
-     * a second attack.
-     *
-     * Read off `UnitDef.hitAndRun`, the row's own marker, so the raider a later
-     * age adds inherits it without this line moving. `snapMovement` because a
-     * purse is exact thirds and a hull may have walked a road to get here.
-     */
-    /**
-     * **The Varangian Guard** (Dominion batch D2): a piece the `secondAttack`
-     * rule is true of (the row narrows it to Elites) may attack twice a turn.
-     * The first attack pays the hull's price below and leaves `hasAttacked`
-     * unset, and the turn is written into `Unit.firstAttackTurn`, this
-     * function being its one writer. An attack made while that equals the
-     * turn is the second, and ends the turn as any attack does.
-     */
-    const firstOfTwo =
-      attacker.firstAttackTurn !== state.turn &&
-      cardBehaviorRuleFor(state, attacker, 'secondAttack');
-    /**
-     * **The Swift Riders** (Dominion batch D2): the `moveAfterAttack` rule
-     * gives a land piece the light hull's price — one point, the rest kept —
-     * for its reason (reading 21). `hasAttacked` is still set below.
-     */
-    const keepsMoving =
-      unitDef(attacker.type).hitAndRun === true ||
-      cardBehaviorRule(state, attacker.ownerId, 'moveAfterAttack', attacker.type) ||
-      firstOfTwo;
-    attacker.movesLeft = keepsMoving
-      ? Math.max(0, snapMovement(attacker.movesLeft - RULES.naval.hitAndRunCost))
-      : 0;
-    /**
-     * **Blitz**: a piece that kills gets its walking back.
-     *
-     * The purse is refilled and nothing else is — `hasAttacked` is set two lines
-     * down and stays set, so "one blow a turn" is untouched and what the
-     * Doctrine buys is somewhere to be afterwards, exactly as the light hull's
-     * hit-and-run does one clause up. It fires **only on a kill**: a blow that
-     * merely wounded ends the turn as it always did, which is what the card's
-     * own words say.
-     */
-    // The **piece** is handed over (batch L2a), because a row may narrow the
-    // rule to one silhouette — the Xiongnu horse archer's own card does, and a
-    // filtered row asked without a type in hand is skipped by `cardRuleHolds`
-    // rather than admitted, so the card would have been a line that never fires.
-    // Blitz names no class and still answers every piece, which is that
-    // function's own rule for every row written before the filter existed.
-    if (outcome.killed.length > 0 && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill', attacker.type)) {
-      attacker.movesLeft = fullMovement(attacker, state);
-    }
-    if (firstOfTwo) attacker.firstAttackTurn = state.turn;
-    else attacker.hasAttacked = true;
+    const continuation = combatContinuation(state, attacker, outcome.killed.length > 0);
+    attacker.movesLeft = continuation.movesLeft;
+    attacker.hasAttacked = continuation.hasAttacked;
+    if (continuation.firstAttackTurn === state.turn) attacker.firstAttackTurn = state.turn;
     // **The Marching Camps** (Dominion batch D2): an attack does not break this
     // empire's fortification. A melee winner that advances still breaks it, by
     // moving.
@@ -3594,7 +3622,7 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // walls the town was defended with. Clamped afterwards anyway, because the
   // fraction is data and a designer may set it above 1.
   const shelf = townShelf(state, city);
-  city.hp = Math.max(1, Math.round(cityMaxHp(city, shelf, state) * COMBAT.cityCaptureHpFraction));
+  city.hp = capturedCityHealth(state, city);
   clampCityHp(state, city, shelf);
   // The Taken. In the mechanism beside the change of hands, for
   // `awardFoundingTriumphs`' reason: capturing a town is one thing that happens
