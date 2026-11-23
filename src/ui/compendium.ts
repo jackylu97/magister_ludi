@@ -3120,7 +3120,7 @@ function meterEntries(): CompendiumEntry[] {
       ],
       clauses: [
         {
-          text: 'Happiness is one figure for your whole empire: everything that supplies it, minus everything that demands it. When it is high enough your empire gets a percentage bonus to science and culture, and when it falls far enough below zero your production, science and culture fall instead, in the steps listed above.',
+          text: 'Happiness is one figure for your whole empire: everything that supplies it, minus everything that demands it. When it is high enough your empire gets a percentage bonus to science and culture, and when it falls far enough below zero your gold, science, culture and faith fall instead, in the steps listed above.',
         },
         {
           text: `Every citizen in every city demands ${figure(happiness.demandPerPop)}.`,

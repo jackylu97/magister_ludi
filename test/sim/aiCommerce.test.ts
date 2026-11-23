@@ -949,13 +949,8 @@ describe('The Grand Canal (batch DT18)', () => {
     return COMMERCE.surplusCarried * voiceWeight(ctx, 'food');
   }
 
-  // The boards below are small enough that the empire is not short of
-  // happiness. Since the ruling of 2026-11-23 a deficit slows growth by 75%,
-  // and with the dry-town line on top a dry town in deficit has no surplus
-  // left to carry, so a test of what a route carries would read nothing.
-
   it('prices a route from a small town to a larger one at the food it moves', () => {
-    const { state, player, towns } = board([2, 4]);
+    const { state, player, towns } = board([3, 5]);
     caravan(state, towns[0]!, towns[1]!);
     const ctx = quiet(state, player);
     const surplus = channelSurplus(state, towns[0]!);
@@ -976,7 +971,7 @@ describe('The Grand Canal (batch DT18)', () => {
     const level = board([3, 3]);
     caravan(level.state, level.towns[0]!, level.towns[1]!);
     expect(scoreEffects(CANAL, quiet(level.state, level.player))).toBe(0);
-    const bare = board([2, 4]);
+    const bare = board([3, 5]);
     expect(scoreEffects(CANAL, quiet(bare.state, bare.player))).toBe(0);
   });
 
@@ -992,7 +987,7 @@ describe('The Grand Canal (batch DT18)', () => {
   });
 
   it('adds the next route the seat could send, when it stays at home', () => {
-    const { state, player, towns } = board([2, 4]);
+    const { state, player, towns } = board([3, 5]);
     const base = valueContext(state, player);
     const next = { from: towns[0]!, to: towns[1]!, mode: 'land' as const, pay: appraise([]) };
     const ctx: ValueContext = { ...base, routes: { ...base.routes, open: next } };
@@ -1025,12 +1020,9 @@ describe('The Grand Canal (batch DT18)', () => {
   });
 
   it('sees that a third route out of a town moves nothing more', () => {
-    // Four towns cannot all be small enough for the palace's happiness, so the
-    // farm drinks: a deficit above −10 then leaves it a quarter of its surplus.
-    const { state, player, towns } = board([3, 2, 3, 3]);
+    const { state, player, towns } = board([3, 5, 5, 5]);
     const farm = towns[1]!;
     farm.population = 2;
-    at(state.map, farm.col, farm.row).freshwater = true;
     refreshCityDerived(state, farm);
     bumpRevision(state);
     expect(channelSurplus(state, farm)).toBeGreaterThan(0);
@@ -1053,7 +1045,7 @@ describe('The Grand Canal (batch DT18)', () => {
   });
 
   it('prices nothing for a route a blockade stops', () => {
-    const { state, player, towns } = board([2, 4]);
+    const { state, player, towns } = board([3, 5]);
     caravan(state, towns[0]!, towns[1]!);
     for (let row = 0; row < state.map.height; row++) at(state.map, 10, row).terrain = 'coast' as never;
     bumpRevision(state);
@@ -1065,7 +1057,7 @@ describe('The Grand Canal (batch DT18)', () => {
   });
 
   it('prices nothing for a town whose surplus a mover already takes', () => {
-    const { state, player, towns } = board([2, 4]);
+    const { state, player, towns } = board([3, 5]);
     caravan(state, towns[0]!, towns[1]!);
     towns[0]!.queue = [{ kind: 'unit', id: 'warrior' }];
     seat(state, 0).statecraft.doctrines.push('theLawsOfLordShang' as never);

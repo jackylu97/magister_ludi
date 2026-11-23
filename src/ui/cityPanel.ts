@@ -3576,7 +3576,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // twin, and since the dry-settle ruling it is the fold's own list rather
     // than the one line the panel happened to know about: a town that cannot
     // drink, an aqueduct, a wonder and the happiness stifle all print here
-    // because `growthSurplus` is the sum of exactly these (rule 5).
+    // because `growthSurplus` is the fold of exactly these (rule 5).
     //
     // **On the row's hover rather than under it** since the mode landed, which
     // is the same move the yield chips made and the same promise: the list is
@@ -3591,7 +3591,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const modifiers: string[] = [];
     if (channelSurplus(state, city, made) > 0) {
       for (const line of explainGrowthPercent(state, city)) {
-        modifiers.push(`${line.source} ${percentFigure(line.percent)}`);
+        // The happiness stifle is its own step after the sum of the others
+        // (`foldGrowthFactor`), so it prints as the multiplier it is.
+        modifiers.push(
+          line.ownStep === true
+            ? `${line.source} ×${Math.max(0, 1 + line.percent / 100).toFixed(2)}`
+            : `${line.source} ${percentFigure(line.percent)}`,
+        );
       }
     }
     for (const line of carried) {

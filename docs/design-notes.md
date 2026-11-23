@@ -46,8 +46,12 @@ with no deeds in it (Q1; it was 20, which was priced for the decks).
 - **Growth surplus is one fold of one list** (`explainGrowthPercent`): the site
   (`cities.drySettlePercent` −30% for a town off fresh water, lifted by a card
   granting freshwater or by a building marked `waters` — the aqueduct), the
-  cards/buildings/wonders on `growthSurplus`, then the happiness stifle. Summed
-  once, multiplied once; the city panel prints the lines.
+  cards/buildings/wonders on `growthSurplus`, then the happiness stifle. The
+  first lines are summed once; the stifle then multiplies the result as its
+  own step (ruled 2026-11-23, `foldGrowthFactor`); the city panel prints the
+  lines.
+- The happiness malus (−20% at −10 or below) lowers gold, science, culture and
+  faith, never production or food (ruled 2026-11-23).
 - One-time grants are modifier-immune windfalls (Entry XVIII): base + riders
   compose into ONE printed figure; everything pays through a
   `settle…Windfall`; the mutation register lives in CLAUDE.md.

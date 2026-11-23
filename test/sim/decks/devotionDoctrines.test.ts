@@ -1965,15 +1965,7 @@ describe('The House of Worship (batch DT15)', () => {
     const mosque: CardEffect[] = [
       { kind: 'unlocksBuilding', building: 'mosque', scope: { test: 'ownersFaith', keeps: true } },
     ];
-    // Smaller towns, so the empire is not at −10 happiness or below. Since the
-    // ruling of 2026-11-23 that deficit lowers production by a fifth, and the
-    // slower build would push the house past the bot's horizon.
-    for (const city of state.cities) {
-      if (city.ownerId !== 0) continue;
-      city.population = 3;
-      refreshCityDerived(state, city);
-    }
-    const second = town(state, 26, 5, 3);
+    const second = town(state, 26, 5, 4);
     second.followers = { [faith.id]: second.population };
     bumpRevision(state);
     // Two devout towns, and the two towns that do not keep the faith count for nothing.

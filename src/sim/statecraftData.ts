@@ -9848,10 +9848,10 @@ export type PressureRuleId =
   | 'routeBothWays'
   /**
    * A percentage on **rival** pressure entering this empire's own towns, read
-   * for the town's owner in `templeShare` (tide and proclamation alike). −100
-   * shuts it out (The Peace of God, retired in batch DS1 and kept for saves).
-   * The Holy Inquisition's −40 went in batch DS5. Not a key of
-   * `rules.religion`: its base is nought.
+   * for the town's owner in `rivalShare` (tide and proclamation alike, with or
+   * without a Temple). The belief Inquisition says −30 and the Order The Holy
+   * Inquisition −80. −100 shuts it out (The Peace of God, retired in batch DS1
+   * and kept for saves). Not a key of `rules.religion`: its base is nought.
    */
   | 'rivalPressurePercent';
 

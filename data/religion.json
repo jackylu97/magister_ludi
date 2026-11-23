@@ -959,13 +959,28 @@
       "name": "Inquisition",
       "axis": "war",
       "flavor": "Doubt is welcome. Bring it here, where we can look at it.",
-      "text": "This belief has no effect now.",
-      "effects": [],
-      "deferred": [
-        "rival religions press your towns with a Temple more weakly"
-      ],
-      "note": "Withdrawn: this belief is no longer offered. It made a Temple hold rival religions back harder, and a Temple no longer holds rival religions back at all.",
-      "retired": true
+      "text": "Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion.",
+      "effects": [
+        {
+          "kind": "pressureRule",
+          "rule": "rivalPressurePercent",
+          "delta": -30
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
+          "count": "citiesAdmitted",
+          "per": 2,
+          "within": "empire",
+          "admits": {
+            "test": "ownersFaith",
+            "keeps": true
+          }
+        }
+      ]
     },
     "theLongRoad": {
       "name": "The Long Road",

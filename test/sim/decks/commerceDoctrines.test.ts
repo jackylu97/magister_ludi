@@ -1804,9 +1804,6 @@ describe('The Grand Canal (batch DT18)', () => {
     // surplus. A town banking gold can lift the stifle for the towns after it in the
     // same phase. The farm is founded first, so it banks first.
     const { state, farm, market } = canalBoard();
-    // The farm drinks. Since the ruling of 2026-11-23 a deficit slows growth by
-    // 75%, and with the dry-town line on top a dry town would bank nothing.
-    state.map.tiles[tileIndex(state.map, farm.col, farm.row)]!.freshwater = true;
     running(state, farm, market);
     hold(state, 'theGrandCanal');
     hold(state, 'theMonteDiPieta');

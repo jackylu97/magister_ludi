@@ -327,21 +327,29 @@ source test.
 Pressure sources (`explainPressure`, rule-5 list; numbers in
 `rules.religion`). There are three: the holy site, each city that follows, and
 each trade route (ruled 2026-11-23, `docs/flags.md`, "Eight simpler rules").
-Roads and the founder's capital press nothing. A wonder can add a line, and a
-Temple changes the total last.
+Roads and the founder's capital press nothing. A wonder can add a line. The
+town's own share changes the total last, in two lines: "Resisted", then
+"Temple".
 
 | Source | Key | Default |
 |---|---|---|
 | Holy site in range | `siteRange`/`siteStrength` | 6 / 6 |
 | Following city | `cityRange`/`cityStrength` | 3 / 2 |
 | Trade route from a following city | `routeStrength` | 3 |
+| The town owner's cards on a rival religion ("Resisted") | `rivalPressurePercent` (card rule only) | 0 |
 | Temple in the city (own faith only) | `templeOwnPercent` | 200 |
 | Wonders | `{ kind: 'pressure', amount, range }` rows | per row |
 
 - A Temple doubles the pressure of the faith its city already follows. Other
   religions press a city with a Temple at full strength: the user removed the
   rival half of the rule on 2026-11-23 ("lets remove the temples' 75% to rival
-  strength"). The belief Inquisition, which made that half stronger, is retired.
+  strength").
+- A rival religion is one the town's owner is not paid by (`heldReligions`).
+  The owner's cards can lower its pressure in all of the owner's towns, with or
+  without a Temple (`rivalShare`, the "Resisted" line). The percentages add:
+  the enhancer belief Inquisition says −30% (rivals press at 70% strength), and
+  the Order The Holy Inquisition says −80%. The same share applies to the tide
+  and to every lump (`templeShare`).
 
 - `pressurePerConvert` 10; one citizen converts per full bank.
 - `cityReligion(city)` is DERIVED: the faith more than half the citizens

@@ -4058,17 +4058,18 @@ export interface PressureLine {
  * derived from the board with nothing stored. There are three sources: the holy
  * sites, the cities that follow the religion, and the trade routes from those
  * cities (the user's ruling of 2026-11-23, `docs/flags.md` "Eight simpler
- * rules"). A wonder that presses adds its own line, and a temple changes the
- * total last. Roads and the founder's capital press nothing. Recomputed every
- * turn by the `spreadReligion` phase and by any surface that explains a banner.
+ * rules"). A wonder that presses adds its own line, and the town's own share
+ * changes the total last. Roads and the founder's capital press nothing.
+ * Recomputed every turn by the `spreadReligion` phase and by any surface that
+ * explains a banner.
  *
  * Two orderings are load-bearing and neither is negotiable. The **religions** are
  * walked in `state.religions` order, which is founding order, so a fold is the
- * same on every machine. The **temple's line is last** within each religion,
- * because it is a percentage of everything above it — the one multiplication in
- * the whole tide, taken once, floored once, and carried as the *difference* it
- * makes so that the list still sums to the total (`explainUnitCost`'s discipline
- * for the fourth time).
+ * same on every machine. The **town's two lines are last** within each religion,
+ * because each is a percentage of everything above it: first "Resisted" (the
+ * owner's cards on a rival, `rivalShare`), then "Temple". Each is taken once,
+ * floored once, and carried as the *difference* it makes so that the list still
+ * sums to the total (`explainUnitCost`'s discipline for the fourth time).
  *
  * `sites` is the hoisted sweep. Absent means "ask the board", which is what a
  * panel does and what a test does.
@@ -4084,7 +4085,8 @@ export function explainPressure(
   const here = getTileAt(state.map, city.col, city.row);
   if (!here) return lines;
   const eye = tileHex(here);
-  // What the town holds (`townHoldsBuilding`, Expansionist batch E12).
+  // What the town holds (`townHoldsBuilding`, Expansionist batch E12). Asked
+  // once for the town rather than once for each religion.
   const hasTemple = townHoldsBuilding(state, city, TEMPLE);
 
   for (const religion of state.religions) {
@@ -4162,19 +4164,28 @@ export function explainPressure(
     }
     say('Wonder', fromWonders);
 
-    // **The temple** doubles the faith the town already keeps. Other religions
-    // press at full strength (the user's ruling of 2026-11-23). Last, and
-    // carried as a difference, so the list still sums to the total.
-    //
-    // Through `templeShare`, the same arithmetic a proclamation's lump goes
-    // through, so a temple treats a slow tide and a bomb the same way.
-    if (!hasTemple) continue;
+    // **What the town lets through**, last. Two lines, each carried as a
+    // difference so the list still sums to the total, and in the order
+    // `templeShare` takes them:
+    //   1. "Resisted": the town owner's cards on a rival religion
+    //      (`rivalShare`; the belief Inquisition and the Order The Holy
+    //      Inquisition). No temple is needed (the user's ruling of 2026-11-23,
+    //      "Follow-ups to the eight simpler rules").
+    //   2. "Temple": a Temple doubles the faith the town already keeps. Other
+    //      religions press at full strength (the user's ruling of 2026-11-23).
+    // These are the same steps a proclamation's lump goes through
+    // (`templeShare`), so a slow tide and a bomb are treated the same way.
     let subtotal = 0;
     for (let i = before; i < lines.length; i++) subtotal += lines[i]!.amount;
     if (subtotal === 0) continue;
+    const resisted = rivalShare(state, city, religion, subtotal);
+    if (resisted !== subtotal) {
+      lines.push({ religion: religion.id, source: RESISTED_LINE, amount: resisted - subtotal });
+    }
+    if (!hasTemple) continue;
     const after = templeShare(state, city, religion, subtotal, founder);
-    if (after !== subtotal) {
-      lines.push({ religion: religion.id, source: 'Temple', amount: after - subtotal });
+    if (after !== resisted) {
+      lines.push({ religion: religion.id, source: TEMPLE_LINE, amount: after - resisted });
     }
   }
   return lines;
@@ -4182,6 +4193,15 @@ export function explainPressure(
 
 /** The building a town defends its faith with. Named once, read twice. */
 const TEMPLE: BuildingId = 'temple';
+
+/**
+ * The labels of the two lines `explainPressure` adds for what the town itself
+ * does to the pressure. A seat that cannot see the town does not know either
+ * fact, so the faith hover drops both lines from a remembered reading
+ * (`faithHover.ts`).
+ */
+export const RESISTED_LINE = 'Resisted';
+export const TEMPLE_LINE = 'Temple';
 
 /**
  * The fold of `explainPressure`, by religion id — one entry per religion in
@@ -4495,10 +4515,12 @@ function purgePressure(
  * holds the seat** of that faith (`religionFounder`). Every other religion gets
  * its figure back at full strength: the user's ruling of 2026-11-23 removed the
  * rival half of the rule ("lets remove the temples' 75% to rival strength").
- * The owner's own cards may still weaken a rival first (`rivalShare`).
+ * The owner's own cards may still weaken a rival first (`rivalShare`), in every
+ * town of the owner's, with or without a Temple.
  *
- * A town with no Temple gets its figure back untouched, which is why callers do
- * not ask whether there is one.
+ * A town with no Temple and no such card gets its figure back untouched, which
+ * is why callers do not ask whether there is one. `explainPressure` prints the
+ * two steps as two lines: `rivalShare` alone, then the rest of this figure.
  */
 export function templeShare(
   state: GameState,
@@ -4518,9 +4540,11 @@ export function templeShare(
 
 /**
  * What the town's **owner's** cards let through of a rival religion's pressure
- * (`rivalPressurePercent`: the retired The Peace of God). A religion
- * the owner is paid by is not a rival and passes untouched; so does everything
- * when no card speaks. Applied before the temple, so the two multiply.
+ * (`rivalPressurePercent`: the belief Inquisition's −30, the Order The Holy
+ * Inquisition's −80, and the retired The Peace of God's −100). A religion the
+ * owner is paid by (`heldReligions`) is not a rival and passes untouched; so
+ * does everything when no card speaks. The percentages add, and the share is
+ * floored at nothing. Applied before the temple, so the two multiply.
  */
 function rivalShare(state: GameState, city: City, religion: Religion, amount: number): number {
   const percent = cardRivalPressurePercent(state, city);

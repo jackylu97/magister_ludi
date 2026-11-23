@@ -7,11 +7,15 @@ import {
   capitalCityOf,
   cityTile,
   controlledResources,
+  explainGrowthPercent,
+  foldGrowthFactor,
+  foldGrowthPercent,
   foundCityAt,
   growthSurplus,
   isCoastalCity,
 } from '../../src/sim/cities';
 import {
+  cityYieldPercents,
   explainCity,
   foldCity,
 } from '../../src/sim/yields/town';
@@ -662,8 +666,9 @@ describe('what the meters do to the economy', () => {
 
   it('stops growth and lowers yields at −10 or below', () => {
     // The user's ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules",
-    // item 2): "Below 10, no growth, 20% reduction in yields". The malus moves
-    // the three yields a meter can multiply.
+    // item 2): "Below 10, no growth, 20% reduction in yields". Its follow-up
+    // of the same day: "unhappiness should lower all yields except production
+    // and food". So the malus lowers gold, science, culture and faith.
     const state = empire(1);
     const city = state.cities[0]!;
     city.population = HAPPY.palace + 10;
@@ -673,11 +678,21 @@ describe('what the meters do to the economy', () => {
     const unhappy = effects.filter((effect) => effect.meter === 'happiness');
     const malus = unhappy.find((effect) => !effect.growth)!;
     expect(malus.percent).toBe(-20);
-    expect(malus.yields).toEqual(['production', 'science', 'culture']);
-    expect(yieldFactor(unhappy, 'production')).toBeCloseTo(0.8, 10);
+    expect(malus.yields).toEqual(['gold', 'science', 'culture', 'faith']);
+    expect(yieldFactor(unhappy, 'production')).toBe(1);
+    expect(yieldFactor(unhappy, 'gold')).toBeCloseTo(0.8, 10);
     expect(yieldFactor(unhappy, 'science')).toBeCloseTo(0.8, 10);
     expect(yieldFactor(unhappy, 'culture')).toBeCloseTo(0.8, 10);
+    expect(yieldFactor(unhappy, 'faith')).toBeCloseTo(0.8, 10);
     expect(growthFactor(effects)).toBe(0);
+
+    // Each lowered yield is a labelled line at the empire stage of the town's
+    // percent list, and production and food have no happiness line.
+    const lines = cityYieldPercents(state, city).filter((line) => line.meter === 'happiness');
+    expect(lines.map((line) => line.yield)).toEqual(['gold', 'science', 'culture', 'faith']);
+    for (const line of lines) {
+      expect(line).toMatchObject({ source: 'Happiness', percent: -20, stage: 'empire' });
+    }
 
     // One step shallower and the yields are whole again, and growth is slowed.
     city.population = HAPPY.palace + 9;
@@ -717,6 +732,37 @@ describe('what the meters do to the economy', () => {
     collectYields(state);
     expect(foldCity(state, city).food).toBe(yields.food);
     expect(city.foodBasket - before).toBe(promised);
+  });
+
+  it('multiplies the growth of a dry town by the stifle as its own step', () => {
+    // The user's ruling of 2026-11-23 ("Follow-ups to the eight simpler rules",
+    // `docs/flags.md`): the stifle multiplies "(0.7 * 0.75)" rather than adding
+    // to the dry-town line. So a dry town in a shallow deficit banks
+    // 0.7 × 0.25 of its surplus, where the sum would have left it nothing.
+    const state = empire(1);
+    const city = state.cities[0]!;
+    city.population = HAPPY.palace + 1;
+    cityTile(state.map, city).freshwater = false;
+    growTerritory(state, city);
+    collectYields(state);
+    expect(happinessOf(state, 0)).toBeLessThan(0);
+    expect(happinessOf(state, 0)).toBeGreaterThan(METERS.tiers[2]!.whenAtOrBelow!);
+
+    const lines = explainGrowthPercent(state, city);
+    expect(lines).toEqual([
+      { source: 'No fresh water', percent: RULES.cities.drySettlePercent },
+      { source: 'Happiness', percent: METERS.growthStifle[0]!.percent, ownStep: true },
+    ]);
+    // The first step holds the dry line alone; the stifle is the second.
+    expect(foldGrowthPercent(lines)).toBe(RULES.cities.drySettlePercent);
+    const factor =
+      (1 + RULES.cities.drySettlePercent / 100) * (1 + METERS.growthStifle[0]!.percent / 100);
+    expect(factor).toBeCloseTo(0.7 * 0.25, 10);
+    expect(foldGrowthFactor(lines)).toBeCloseTo(factor, 10);
+
+    const raw = foldCity(state, city).food - city.population * RULES.cities.foodPerCitizen;
+    expect(raw).toBeGreaterThan(0);
+    expect(growthSurplus(state, city)).toBeCloseTo(raw * factor, 9);
   });
 
   it('never turns a deficit into a deeper one: a stifle cannot starve', () => {

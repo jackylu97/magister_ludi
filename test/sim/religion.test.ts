@@ -43,7 +43,7 @@ import {
   growthCarryover,
   realiseItem,
 } from "../../src/sim/cities";
-import { authorityOf } from "../../src/sim/meters";
+import { authorityOf, explainAuthority } from "../../src/sim/meters";
 import {
   cityContext,
   explainTileYield,
@@ -95,6 +95,7 @@ import {
   foundReligion,
   foundReligionError,
   maxReligions,
+  pressLump,
   pressureTotals,
   religionBeliefPool,
   spreadReligion,
@@ -5626,5 +5627,161 @@ describe("the second beliefs pass", () => {
     expect(said("templeSpires")[1]).toBe("unlocks the Wat: +1 faith per 2 citizens in this city; +3 happiness");
     expect(said("theOpenKitchen")[1]).toBe("unlocks the Gurdwara: +3 food, +3 faith; +1 science per 3 citizens in this city");
     expect(said("theEternalFlame")[1]).toBe("unlocks the Dar-e Mehr: +25% faith in every city with a Dar-e Mehr");
+  });
+});
+
+/**
+ * **Inquisition** (the user's ruling of 2026-11-23, `docs/flags.md`,
+ * "Follow-ups to the eight simpler rules"): "Rival religions press your towns
+ * at 70% strength. +1 authority for every two of your cities that follow your
+ * religion."
+ *
+ * It is an enhancer belief, so "your" is the empire that holds the holy site
+ * (`religionFounder`), as for every enhancer belief. A rival religion is one
+ * that empire is not paid by (`heldReligions`). No Temple is needed, and the
+ * share applies to the tide and to a lump alike.
+ */
+describe("Inquisition", () => {
+  /**
+   * Seat 0 founds a faith and holds it (no stones, so the founder is the
+   * holder). Seat 1 founds a rival faith with a holy site three hexes from one
+   * of seat 0's towns, which holds no Temple.
+   */
+  function inquisitionWorld() {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const mine = faith(g.state, 0);
+    const rivalSeat = town(g.state, 1, 12, 6);
+    const theirs = faith(g.state, 1, "starReaders");
+    siteAt(g.state, rivalSeat, 12, 6);
+    const target = town(g.state, 0, 9, 6);
+    target.population = 7;
+    bumpRevision(g.state);
+    const hold = (): void => {
+      mine.enhancer = ["inquisition" as BeliefId];
+      bumpRevision(g.state);
+    };
+    return { g, seat, mine, theirs, target, hold };
+  }
+
+  /** The belief's share of a figure: 70%, floored once. */
+  const share = (amount: number): number => Math.floor((amount * 70) / 100);
+
+  it("is a live enhancer belief with the user's text", () => {
+    expect(ENHANCER_BELIEF_IDS).toContain("inquisition");
+    const def = beliefDef("inquisition" as BeliefId);
+    expect(def.retired).toBeUndefined();
+    expect(def.deferred).toBeUndefined();
+    expect(def.text).toBe(
+      "Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion.",
+    );
+    expect(def.effects.map((effect) => effect.kind)).toEqual(["pressureRule", "pays"]);
+  });
+
+  it("presses a rival faith at 70% in the tide, with no Temple, as a labelled line", () => {
+    const { g, theirs, target, hold } = inquisitionWorld();
+    const plain = pressureTotals(g.state, target)[theirs.id]!;
+    expect(plain).toBeGreaterThan(0);
+    expect(
+      explainPressure(g.state, target).some((line) => line.source === "Resisted"),
+    ).toBe(false);
+
+    hold();
+    const lines = explainPressure(g.state, target).filter(
+      (line) => line.religion === theirs.id,
+    );
+    expect(lines.map((line) => line.source)).toEqual(["Holy site", "Resisted"]);
+    expect(lines[1]!.amount).toBe(share(plain) - plain);
+    expect(pressureTotals(g.state, target)[theirs.id]).toBe(share(plain));
+
+    // And the tide banks that figure.
+    spreadReligion(g.state);
+    expect(target.pressureBank?.[theirs.id]).toBe(share(plain));
+  });
+
+  it("leaves the holder's own faith whole, and a rival's town untouched", () => {
+    const { g, seat, mine, theirs, target, hold } = inquisitionWorld();
+    seat.followers = { [mine.id]: seat.population };
+    // A town of the rival's own, three hexes from seat 0's following capital.
+    const theirTown = town(g.state, 1, 3, 6);
+    bumpRevision(g.state);
+    const ownBefore = pressureTotals(g.state, target)[mine.id]!;
+    const abroadBefore = pressureTotals(g.state, theirTown);
+    expect(ownBefore).toBeGreaterThan(0);
+
+    hold();
+    expect(pressureTotals(g.state, target)[mine.id]).toBe(ownBefore);
+    expect(
+      explainPressure(g.state, target).filter(
+        (line) => line.religion === mine.id && line.source === "Resisted",
+      ),
+    ).toEqual([]);
+    // The belief speaks for the holder's towns and nobody else's.
+    expect(pressureTotals(g.state, theirTown)).toEqual(abroadBefore);
+    expect(pressureTotals(g.state, target)[theirs.id]).toBeGreaterThan(0);
+  });
+
+  it("takes its share before a Temple doubles the faith the town keeps", () => {
+    const { g, theirs, target, hold } = inquisitionWorld();
+    target.followers = { [theirs.id]: 4 };
+    target.buildings.push("temple");
+    bumpRevision(g.state);
+    const sites = explainPressure(g.state, target)
+      .filter((line) => line.religion === theirs.id && line.source === "Holy site")
+      .reduce((sum, line) => sum + line.amount, 0);
+
+    hold();
+    const lines = explainPressure(g.state, target).filter(
+      (line) => line.religion === theirs.id,
+    );
+    expect(lines.map((line) => line.source)).toEqual(["Holy site", "Resisted", "Temple"]);
+    const resisted = share(sites);
+    const walled = Math.floor((resisted * RULES.religion.templeOwnPercent) / 100);
+    expect(lines[1]!.amount).toBe(resisted - sites);
+    expect(lines[2]!.amount).toBe(walled - resisted);
+    // The list still sums to the figure the bank receives.
+    expect(pressureTotals(g.state, target)[theirs.id]).toBe(walled);
+  });
+
+  it("presses a rival's lump at 70% too", () => {
+    const { g, theirs, target, hold } = inquisitionWorld();
+    hold();
+    const perConvert = RULES.religion.pressurePerConvert;
+    const pressed = share(RULES.religion.bombLump);
+    pressLump(g.state, theirs, { col: 12, row: 6 }, RULES.religion.bombRange, RULES.religion.bombLump);
+    expect(target.followers?.[theirs.id]).toBe(
+      Math.min(target.population, Math.floor(pressed / perConvert)),
+    );
+  });
+
+  it("gives +1 authority for every two of the holder's towns that follow its faith", () => {
+    const { g, seat, mine, theirs, target, hold } = inquisitionWorld();
+    const third = town(g.state, 0, 6, 9);
+    // A town of the rival's that follows seat 0's faith counts for nothing:
+    // the count is of the holder's own towns.
+    const abroad = town(g.state, 1, 12, 9);
+    abroad.followers = { [mine.id]: abroad.population };
+    seat.followers = { [mine.id]: seat.population };
+    target.followers = { [theirs.id]: target.population };
+    third.followers = { [mine.id]: third.population };
+    bumpRevision(g.state);
+    const before = authorityOf(g.state, 0);
+    hold();
+    const line = (): { source: string; value: number } | undefined =>
+      explainAuthority(g.state, 0).find((entry) => entry.card === ("inquisition" as never));
+    // Two of seat 0's towns follow its faith: one helping.
+    expect(line()?.value).toBe(1);
+    expect(line()?.source).toContain("Inquisition");
+    expect(authorityOf(g.state, 0)).toBe(before + 1);
+
+    // A third follows, and three is still one pair.
+    target.followers = { [mine.id]: target.population };
+    bumpRevision(g.state);
+    expect(line()?.value).toBe(1);
+    // A fourth makes two.
+    const fourth = town(g.state, 0, 9, 9);
+    fourth.followers = { [mine.id]: fourth.population };
+    bumpRevision(g.state);
+    expect(line()?.value).toBe(2);
   });
 });

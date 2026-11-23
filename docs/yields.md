@@ -331,6 +331,15 @@ banking (Entry XVIII.5).
   in its stated research ages. Each building's upkeep can be waived once.
 - **Happiness multipliers apply after the tier clamp and fixed increases.** They
   apply only when happiness gives a bonus.
+- **The happiness malus lowers gold, science, culture and faith** (−20% at −10
+  or below, `meterEffects`), one "Happiness" line a voice at the empire stage.
+  It never lowers production or food (the user's ruling of 2026-11-23).
+- **The growth channel has two steps** (outside `foldCity`;
+  `explainGrowthPercent`, folded by `foldGrowthFactor`). The difficulty line,
+  the dry-town line and the cards sum into one percentage. Then the happiness
+  stifle multiplies what is left, as its own step, so a dry town below zero
+  grows at 0.7 × 0.25 of its surplus. The user allowed this one break of the
+  rule that percentages in one stage add (2026-11-23).
 - **The empire's bills stay outside the empire stage.** Maintenance, the levy's
   surcharge, the charter's rebate and the treaties are costs rather than yields:
   a contented empire earns more from its roads without paying its soldiers less.

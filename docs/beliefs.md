@@ -123,6 +123,7 @@ world-scale counts live here.
 | Belief | Axis | Effect |
 |---|---|---|
 | Reliquaries | stone | +1 culture for every 3 faith you make each turn. |
+| Inquisition | war | Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion. |
 | The Long Road | road | Your religion presses 2 harder along trade routes. |
 | Itinerant Preachers | road | Towns that follow press your religion 5 hexes further. |
 | The Pulse of Bells | sky | A proclamation reaches 4 hexes further and presses 20 faith harder. |
@@ -182,10 +183,6 @@ chosen, and then a fact about that town for as long as it stands.
 - **Withdrawn** (`retired: true`, kept in the data so a game that names them still
   reads): the enhancer Theocratic Mandate, which never had an effect, and the
   consecration The Green Cathedral, which the cathedral no longer rolls.
-- **Withdrawn 2026-11-23: Inquisition.** It made a Temple hold rival religions
-  back harder. The user's ruling of that day removed the Temple's hold on rival
-  religions ("lets remove the temples' 75% to rival strength"), so the belief had
-  nothing left to change. Its row has no effects and stays for saves.
 - **Held back: Feast Days.** The spec's text is "Rites in a town that follows last 5
   turns longer". The game can lengthen a rite only by a percentage over the whole
   empire (`effectAmplifier riteDuration`, The Octave), read when the rite starts

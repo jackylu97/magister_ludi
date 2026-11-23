@@ -11582,9 +11582,12 @@
   ],
   "inquisition": [
    {
-    "raw": "rival religions press your towns with a Temple more weakly — not built yet",
-    "text": "rival religions press your towns with a Temple more weakly — not built yet",
-    "deferred": true
+    "raw": "rival religions press your cities 30% less",
+    "text": "rival religions press your cities 30% less"
+   },
+   {
+    "raw": "+1 authority capacity per 2 devout cities",
+    "text": "+1 authority capacity per 2 devout cities"
    }
   ],
   "theLongRoad": [

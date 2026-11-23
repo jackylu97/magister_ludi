@@ -184,10 +184,11 @@ describe('The Good Years', () => {
     happiness(-10);
     const penalty = stifle();
     expect(penalty).toBeLessThan(0);
-    // At −10 the tier is the malus (the ruling of 2026-11-23), and the card
-    // leaves it whole: it doubles bonus rungs only.
+    // At −10 the tier is the malus (the rulings of 2026-11-23: it lowers every
+    // yield but production and food), and the card leaves it whole: it doubles
+    // bonus rungs only.
     const malus = tier();
-    expect(malus).toMatchObject({ percent: -20, yields: ['production', 'science', 'culture'] });
+    expect(malus).toMatchObject({ percent: -20, yields: ['gold', 'science', 'culture', 'faith'] });
     const lowPrice = price(state, GOOD_YEARS);
     seat(state, GOOD_YEARS);
     expect(tier()).toEqual(malus);

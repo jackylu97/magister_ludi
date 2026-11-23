@@ -14162,10 +14162,10 @@ export function cardPressureRule(
 
 /**
  * The percentage this town's owner's cards put on **rival** pressure entering
- * it: The Peace of God's −100 in the city building the Magnum Opus. Summed,
- * floored at −100 by the caller. Read in `templeShare`. The Holy Inquisition
- * gave −40 everywhere until batch DS5 cut that half, and The Peace of God is
- * retired, so only a save that holds it reads this today.
+ * it: the belief Inquisition's −30 and the Order The Holy Inquisition's −80 in
+ * every town, and the retired The Peace of God's −100 in the city building the
+ * Magnum Opus. Summed, floored at −100 by the caller. Read in `rivalShare`
+ * (`religion.ts`), which the tide and every lump go through.
  */
 export function cardRivalPressurePercent(state: GameState, city: City): number {
   let total = 0;

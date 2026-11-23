@@ -264,12 +264,19 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     era term, the rounding and the surcharge for each hex bought before are
     gone. `Player.tilesPurchased` is still counted for the beads and the bots.
   - **Unhappiness has two steps.** Below 0, towns grow 75% slower
-    (`meters.growthStifle`). At −10 or below, towns do not grow, and
-    production, science and culture are 20% lower: the one malus rung of
-    `meters.tiers`, which a happiness deficit now reads (`meterEffects`) as the
-    writ's deficit already did. The bonus steps stay (+10% at 5, +20% at 10),
-    and the old −10% step at −5 is gone for both meters. A dry town's own
-    growth line adds to the stifle, so a dry town in deficit does not grow.
+    (`meters.growthStifle`). At −10 or below, towns do not grow, and gold,
+    science, culture and faith are 20% lower: the one malus rung of
+    `meters.tiers`, which a happiness deficit now reads (`meterEffects`).
+    Production and food are not lowered (the follow-up ruling of the same
+    day); the writ's deficit still lowers production, science and culture.
+    The bonus steps stay (+10% at 5, +20% at 10), and the old −10% step at −5
+    is gone for both meters.
+  - **The growth stifle is its own step.** `explainGrowthPercent` sums the
+    difficulty, dry-town and card lines, and the happiness stifle (its line
+    carries `ownStep`) then multiplies what is left (`foldGrowthFactor`). So a
+    dry town (−30%) below zero (−75%) grows at 0.7 × 0.25 of its surplus. The
+    city panel prints the stifle as a multiplier ("Happiness ×0.25"). The user
+    allowed this one break of the rule that percentages in one stage add.
   - **Debt lowers science and culture by 20%** (`rules.upkeep.debtPercent`,
     was 25%). Units still disband below −10 gold.
 - **Purchases** (`purchase.ts`): `purchaseItem {cityId, item, currency}`, gated by
@@ -1176,8 +1183,18 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   simpler rules"): the holy site, each city that follows, and each trade route
   from a city that follows (`explainPressure`). Roads and the founder's capital
   press nothing. A wonder can add a line. A Temple doubles the pressure of the
-  faith its city follows, and other religions press it at full strength. The
-  belief Inquisition, which made a Temple hold rivals back harder, is retired.
+  faith its city follows, and other religions press it at full strength.
+- **The enhancer belief Inquisition** (ruled 2026-11-23, `docs/flags.md`,
+  "Follow-ups to the eight simpler rules"): rival religions press the holder's
+  towns at 70% strength (`pressureRule rivalPressurePercent` −30, read by
+  `rivalShare`), with or without a Temple, in the tide and in every lump. In
+  `explainPressure` it is the "Resisted" line, before the Temple's line. Its
+  second effect is +1 authority for every two of the holder's cities that
+  follow the holder's religion (`pays` count `citiesAdmitted` on
+  `ownersFaith`, `per` 2), a labelled line in `explainAuthority`. "Your" is
+  the holder of the holy site, as for every enhancer belief. The Order The
+  Holy Inquisition's −80% now also applies in the tide in towns with no Temple,
+  as its text says; before, the tide applied it only in towns with a Temple.
 - **Religion is a tide, not a verb.** A city's religion is derived (the faith
   more than half its citizens follow), never stored. `spreadReligion` measures
   every town against one board, then moves every town; `bankPressure` has exactly

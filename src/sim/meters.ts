@@ -1023,8 +1023,15 @@ export function borderFreezePercent(value: number): number {
   return stepPercent(METERS.borderFreeze, value);
 }
 
-/** The yields a meter can multiply. Food is not among them — see `growth`. */
-export type ModifiedYield = 'production' | 'science' | 'culture';
+/**
+ * The yields a meter can multiply. Food is not among them — see `growth`.
+ * Gold and faith joined on 2026-11-23 for the happiness malus alone (the
+ * user's ruling, `docs/flags.md`, "Follow-ups to the eight simpler rules").
+ * Every member reaches the empire stage of the town's basket
+ * (`empirePercents`, `yields/town.ts`) and of the empire's own lines
+ * (`stageEmpireFold`, `yields/empire.ts`) as a labelled line.
+ */
+export type ModifiedYield = 'production' | 'gold' | 'science' | 'culture' | 'faith';
 
 export type MeterId = 'happiness' | 'authority';
 
@@ -1071,12 +1078,13 @@ export interface MeterEffect {
  * (Entry XIV.D.4):
  *
  *   happiness ≥ +5   science and culture — contentment buys thought, not iron.
- *   happiness < 0    growth, on its own steep ladder.
- *   happiness ≤ −10  growth stops, and production, science and culture fall by
- *                    the tier's malus (the user's ruling of 2026-11-23,
- *                    `docs/flags.md`, "Eight simpler rules": "Below 10, no
- *                    growth, 20% reduction in yields"). Before that ruling an
- *                    unhappy empire only grew more slowly.
+ *   happiness < 0    growth, on its own steep ladder, applied after every other
+ *                    growth percentage (`explainGrowthPercent`).
+ *   happiness ≤ −10  growth stops, and gold, science, culture and faith fall by
+ *                    the tier's malus (the user's rulings of 2026-11-23,
+ *                    `docs/flags.md`, "Eight simpler rules" and its
+ *                    follow-ups). Production and food are not lowered. Before
+ *                    those rulings an unhappy empire only grew more slowly.
  *   authority ≥ +5   production *and border growth* — a writ that runs is a writ
  *                    that builds and claims.
  *   authority < 0    borders freeze outright, well before the malus rung is
@@ -1138,13 +1146,15 @@ function meterEffectsOf(state: GameState, playerId: number): MeterEffect[] {
   } else if (bonus < 0) {
     // **A deep deficit lowers yields too** (the user's ruling of 2026-11-23,
     // `docs/flags.md`, "Eight simpler rules"). The tier's malus rung starts at
-    // −10, and it moves the three yields a meter can multiply, as the writ's
-    // malus does. The bonus above moves only science and culture.
+    // −10. It lowers every yield except production and food: "unhappiness
+    // should lower all yields except production and food (growth already
+    // penalized)" (the user, "Follow-ups to the eight simpler rules"). The
+    // bonus above moves only science and culture.
     effects.push({
       meter: 'happiness',
       value: happiness,
       percent: bonus,
-      yields: ['production', 'science', 'culture'],
+      yields: ['gold', 'science', 'culture', 'faith'],
       growth: false,
       borders: false,
     });

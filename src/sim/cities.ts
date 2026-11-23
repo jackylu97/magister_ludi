@@ -3597,6 +3597,12 @@ interface GrowthPercentLine {
   /** "No fresh water", "Building · Aqueduct", "Happiness" — printed verbatim. */
   source: string;
   percent: number;
+  /**
+   * True for the happiness stifle, which is its own step: it multiplies the
+   * surplus that the sum of every other line leaves (`foldGrowthFactor`).
+   * Absent on every other line, which joins the one sum.
+   */
+  ownStep?: true;
 }
 
 /**
@@ -3625,9 +3631,17 @@ interface GrowthPercentLine {
  *   3. **the meters' stifle**, summed into one Happiness line as the panel has
  *      always printed it.
  *
- * Summed and never compounded, exactly as Entry XVII's stages are additive
- * within a stage: a −30% site and a +30% of anything have to read as nothing at
- * all, which they do not if they are multiplied one after the other.
+ * The first two (and the difficulty line) are summed and never compounded,
+ * exactly as Entry XVII's stages are additive within a stage: a −30% site and a
+ * +30% of anything have to read as nothing at all, which they do not if they
+ * are multiplied one after the other.
+ *
+ * **The stifle is its own step** (`ownStep`), after that sum. The user's ruling
+ * of 2026-11-23 ("Follow-ups to the eight simpler rules", `docs/flags.md`): "it
+ * should probably be a multiplication (0.7 * 0.75) even though that breaks the
+ * convention of the game, maybe this is the one instance where its fine". So a
+ * dry town (−30%) in an empire below zero (−75%) banks 0.7 × 0.25 of its
+ * surplus, where the sum would have left it nothing.
  */
 export function explainGrowthPercent(state: GameState, city: City): GrowthPercentLine[] {
   const lines: GrowthPercentLine[] = [];
@@ -3643,15 +3657,33 @@ export function explainGrowthPercent(state: GameState, city: City): GrowthPercen
     lines.push({ source: line.source, percent: line.percent });
   }
   const stifle = growthPercent(meterEffects(state, city.ownerId));
-  if (stifle !== 0) lines.push({ source: 'Happiness', percent: stifle });
+  if (stifle !== 0) lines.push({ source: 'Happiness', percent: stifle, ownStep: true });
   return lines;
 }
 
-/** The fold of a growth-percentage list: summed, applied once. */
+/**
+ * The first step of a growth-percentage list: every line but the `ownStep`
+ * lines, summed.
+ */
 export function foldGrowthPercent(lines: readonly GrowthPercentLine[]): number {
   let percent = 0;
-  for (const line of lines) percent += line.percent;
+  for (const line of lines) if (line.ownStep !== true) percent += line.percent;
   return percent;
+}
+
+/**
+ * The fold of a growth-percentage list: what the surplus is multiplied by.
+ *
+ * Two steps. The first is `foldGrowthPercent` plus `extraPercent` (see
+ * `channelSurplus`), and the second is the `ownStep` lines (the happiness
+ * stifle) summed. Each step is floored at zero for `growthFactor`'s reason: the
+ * worst any of this may do is stall a city, never eat it.
+ */
+export function foldGrowthFactor(lines: readonly GrowthPercentLine[], extraPercent = 0): number {
+  let own = 0;
+  for (const line of lines) if (line.ownStep === true) own += line.percent;
+  const first = Math.max(0, 1 + (foldGrowthPercent(lines) + extraPercent) / 100);
+  return first * Math.max(0, 1 + own / 100);
 }
 
 /**
@@ -3664,8 +3696,9 @@ export function foldGrowthPercent(lines: readonly GrowthPercentLine[]): number {
  *   1. the citizens eat (`foodUpkeep`), which is what makes this a *surplus*;
  *   2. a settler at the front of the queue eats the growth (`growthIsHalted`) —
  *      the city banks nothing positive, and a deficit still bites;
- *   3. every percentage on the channel throttles what is left — the dry site,
- *      the cards, the happiness stifle, folded once (`explainGrowthPercent`).
+ *   3. every percentage on the channel throttles what is left — the dry site
+ *      and the cards summed, then the happiness stifle as its own step
+ *      (`explainGrowthPercent`, `foldGrowthFactor`).
  *
  * The stifle multiplies the **surplus and only the surplus**, never the food
  * yield itself (design ledger, Entry XIV.D.4). That is the difference between an
@@ -3832,7 +3865,8 @@ export function otherCarryingRoutes(state: GameState, from: City, to: City): num
  * one number.
  *
  * `extraPercent` is a growth percentage that is not in the town's list, added to
- * the list's sum before the one multiplication. It is nought for every rule of
+ * the sum of the first step, before the happiness stifle multiplies it
+ * (`foldGrowthFactor`). It is nought for every rule of
  * the game. The bot asks it (bot batch BP5) to read what a card or a rite that
  * changes the growth channel would change in this town, with the channel's own
  * floor, so that it does not restate the arithmetic here.
@@ -3846,11 +3880,11 @@ export function channelSurplus(
   let surplus = yields.food - foodUpkeep(city);
   if (growthIsHalted(city)) surplus = Math.min(0, surplus);
   if (surplus <= 0) return surplus;
-  // **One channel, one sum, one multiplication**, and the sum is the fold of a
+  // **One channel, one list, two steps**, and the factor is the fold of the
   // *list* (hard rule 5) — see `explainGrowthPercent`, which the city panel
-  // prints line by line. Floored at zero for `growthFactor`'s reason: the worst
-  // any of this may do is stall a city, never eat it.
-  const factor = Math.max(0, 1 + (foldGrowthPercent(explainGrowthPercent(state, city)) + extraPercent) / 100);
+  // prints line by line: the summed lines first, then the happiness stifle as
+  // its own multiplication (`foldGrowthFactor`).
+  const factor = foldGrowthFactor(explainGrowthPercent(state, city), extraPercent);
   // **Exact** since batch X. It used to floor, on the argument that "a fraction
   // of a bushel banked forever eventually decides a growth turn nobody can
   // account for" — which had it backwards: the fraction is *earned*, and a −25%
