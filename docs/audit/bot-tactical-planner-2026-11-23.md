@@ -293,9 +293,11 @@ deployment was performed for this experiment.
    turn 94 on seed 48017 has seven swaps; legionary 204 at turn 92 on seed
    67153 has three. Several replacement units have full health. This is a
    missing option to assess, not proof every swap is safe.
-2. Reduce repeated local searches and enemy-response work. The expensive
-   case needs an engagement-entry and reuse review before a larger budget.
-   Keep deterministic work limits; do not let machine speed choose an action.
+2. Target the stable bot's planning time. The user requested roughly the same
+   runtime using faster heuristics and simpler logic. Replace routine group
+   sequence search and enemy reply projections with a shared local threat
+   estimate and a small action shortlist. Keep deterministic work limits;
+   timing is a validation measure, not an input that changes a decision.
 3. Review weak defensive games and the conservative reply assumptions.
    A lower local score must not force a sacrifice merely because a useful
    retreat, rotation or support action was omitted from the shortlist.
@@ -436,3 +438,43 @@ with 12,993 tests. This includes 32 tactical fixtures and the enabled planner's
 page/worker parity check. The core suite took 161 seconds and the build took
 18 seconds. The existing large-chunk warning remains. No full slow-tier sweep,
 push or deployment was performed. All benchmark and validation processes ended.
+
+## Original bot timing and revised performance target
+
+The user asked for planning to take roughly the same time as before the tactical
+rewrite. The earlier 18.09-to-8.35-second comparison used the expanded tactical
+prototype as its control. It did not measure the overhead against the original
+bot, which remains available with `tactics.enabled: 0`.
+
+A new comparison used the same saved turn and frozen `81879baa` profile bundle,
+in original/current/current/original order. No other tests or simulations ran:
+
+- Original bot: 2,555 and 2,553 ms, averaging **2.55 seconds**.
+- Current tactical planner: 7,596 and 7,499 ms, averaging **7.55 seconds**.
+- Current/original ratio: **2.96**.
+
+Each run covers a complete headless turn across six seats, including decision
+queries, command execution and diagnostics. Decisions differ between policies.
+Within each policy, both runs produced identical commands and final states.
+The original bot made 162 queries; the tactical planner made 240. The latter's
+local planner alone projected 13,309 positions and made 12,600 combat forecasts.
+The original bot's older combat forecasts are not counted by that local-planner
+counter, so zero on that counter does not mean it used no combat forecasts.
+
+The next iteration should target the original bot's cost, approximately 2.55
+seconds on this fixture. The two-hex radius is useful but leaves expensive
+sequence searches and repeated reply projections in place. The simpler approach
+to test is:
+
+1. Build one local threat and support estimate, and reuse it while its inputs
+   remain unchanged. Keep known threats outside the movement radius.
+2. Rank nearby positions with role-specific terms for exposure, cover, useful
+   shots, retreat and progress. Keep the shortlist small.
+3. Use exact combat forecasts for the shortlisted attacks and dangerous cases.
+   Remove routine multi-unit sequence search and projected enemy reply sequences.
+4. Select one action, then update the estimate after the actual command. Avoid
+   repeating group planning through different units for the same position.
+
+Economic weights stay fixed. The performance target must be checked alongside
+combat quality, including captures, civilian protection and losses after advances.
+The planner remains disabled by default, and port 5199 remains unchanged.

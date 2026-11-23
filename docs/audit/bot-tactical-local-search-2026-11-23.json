@@ -4383,5 +4383,101 @@
     "fullSlowTier": false,
     "deployed": false,
     "plannerEnabledByDefault": false
+  },
+  "originalBotTiming": {
+    "original": {
+      "runs": [
+        {
+          "elapsedMs": 2554.540792,
+          "askMs": 2054.3810800000083,
+          "asks": 162,
+          "tactics": {
+            "calls": 0,
+            "engagements": 0,
+            "positions": 0,
+            "forecasts": 0,
+            "replies": 0,
+            "limited": 0,
+            "cacheHits": 0
+          }
+        },
+        {
+          "elapsedMs": 2552.6791250000006,
+          "askMs": 2069.062871000002,
+          "asks": 162,
+          "tactics": {
+            "calls": 0,
+            "engagements": 0,
+            "positions": 0,
+            "forecasts": 0,
+            "replies": 0,
+            "limited": 0,
+            "cacheHits": 0
+          }
+        }
+      ],
+      "meanMs": 2553.6099585,
+      "repeatCommandsAndStateMatch": true,
+      "stateSha256": "4d6894e55712140907104a47a8ef39d5b631c1697a8279701a020542e4d18fab"
+    },
+    "current": {
+      "runs": [
+        {
+          "elapsedMs": 7595.887290999999,
+          "askMs": 6887.339412000003,
+          "asks": 240,
+          "tactics": {
+            "calls": 236,
+            "engagements": 236,
+            "positions": 13309,
+            "forecasts": 12600,
+            "replies": 2352,
+            "limited": 3,
+            "cacheHits": 1418
+          }
+        },
+        {
+          "elapsedMs": 7498.967709000002,
+          "askMs": 6809.762584999997,
+          "asks": 240,
+          "tactics": {
+            "calls": 236,
+            "engagements": 236,
+            "positions": 13309,
+            "forecasts": 12600,
+            "replies": 2352,
+            "limited": 3,
+            "cacheHits": 1418
+          }
+        }
+      ],
+      "meanMs": 7547.427500000001,
+      "repeatCommandsAndStateMatch": true,
+      "stateSha256": "5f05f05feeffe75297cb22c4038d341f68929f0bea381a9f7a522c5f3ecfcc41"
+    },
+    "ratio": 2.955591348192183,
+    "order": [
+      "original",
+      "current",
+      "current",
+      "original"
+    ],
+    "settings": {
+      "original": {
+        "tactics": {
+          "enabled": 0
+        }
+      },
+      "current": {
+        "tactics": {
+          "enabled": 1,
+          "moveRadius": 2,
+          "replyOrigins": 1
+        }
+      }
+    },
+    "sourceCommit": "81879baa",
+    "bundleSha256": "52a6ed85915be5d4f8932050dea77a110f4c0f15e9ab25050ca935ac92c5f4e6",
+    "scope": "Same saved late-game turn across all six seats; includes decision queries, command execution and diagnostics. The policies choose different commands. No other tests or simulations ran during timing."
   }
 }
