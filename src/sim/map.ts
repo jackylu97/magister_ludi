@@ -170,7 +170,7 @@ export interface Tile {
    * when its stones went down cannot be asked.
    *
    * **An absolute turn, written once and compared against `state.turn`** —
-   * `TimedEffect.expiresTurn`'s discipline and `City.purchasedUnitTurns`',
+   * `TimedEffect.expiresTurn`'s discipline and `City.purchasedUnitTurn`'s,
    * applied to the longest-lived fact in the game. Nothing decrements it, no
    * phase sweeps it, and the reading is `state.turn - improvedOn >= turns`.
    *

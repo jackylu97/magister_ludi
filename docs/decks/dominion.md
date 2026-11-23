@@ -182,7 +182,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Circumvallation** | uncommon | implemented | A town under siege by your units makes no production and takes twice the siege damage. | Military |
 | **The Proconsuls** | uncommon | implemented | Captured towns gain +25% production and +25% gold. | Economic |
 | **Commission: The Grand Campaign** | uncommon | implemented | Goal: capture three cities. Reward: a great general, and science and culture equal to forty times their population. | Wildcard |
-| **The Glorious Dead** | rare | implemented | Your losses never count toward war weariness. Losing a unit grants production equal to half its cost in your capital. | Civic |
+| **The Glorious Dead** | rare | implemented | Losing a unit grants production equal to half its cost in your capital. | Civic |
 | **The Castellans** | uncommon | implemented | Towns gain +6 production for each military and defensive building. | Economic |
 
 ## Shared with another deck

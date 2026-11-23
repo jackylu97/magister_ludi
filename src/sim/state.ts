@@ -657,7 +657,15 @@ import {
 // between these changes, so they share the version.
 // Version 263: a queue completes every row and technology its basket or pool pays for in one turn.
 // Version 264: unrest lasts three turns in every town, and no rebels rise (the user's ruling of 2026-11-23).
-export const SCHEMA_VERSION = 264;
+// Version 265: five of the user's simpler rules of 2026-11-23 (`docs/flags.md`,
+// "Eight simpler rules", items 1, 2, 3, 6 and 8). War weariness is gone. A
+// happiness deficit slows growth by 75%, and at −10 or below stops it and
+// lowers production, science and culture by 20%. A hex costs its ring's base
+// times the buyer's age. Debt lowers science and culture by 20%. A town buys
+// one unit a turn in any currency: `City.purchasedUnitTurns` (a stamp for each
+// of three classes) becomes `City.purchasedUnitTurn` (one turn number). A v264
+// log replays to a different state. Nothing is migrated.
+export const SCHEMA_VERSION = 265;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1063,9 +1071,9 @@ export interface Player {
   /**
    * How many tiles this player has ever bought with gold (`purchaseTile`).
    *
-   * The escalation ladder in `explainTilePurchase` (`cities.ts`), and per
-   * *player* rather than per city because that is what it is meant to price: Civ
-   * 6 escalates a habit of buying land, and a habit belongs to an empire. Kept
+   * A lifetime count that the beads and the bots read. It no longer raises the
+   * price of a hex: the surcharge for each hex bought before was removed by the
+   * user's ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules"). Kept
    * on the player for `unitsBuilt`'s reason — it can never be derived from
    * the board, because a bought tile is indistinguishable from a tile culture
    * claimed the moment the gold has left the treasury.
@@ -1561,15 +1569,18 @@ export interface Player {
   enemiesKilled?: number;
   /**
    * **The losses this empire has suffered to other empires in war**, oldest
-   * first (batch WC2, `docs/flags.md` (rrrrrr) part 2). War weariness is read
-   * off this list (`src/sim/weariness.ts`).
+   * first (batch WC2, `docs/flags.md` (rrrrrr) part 2; `src/sim/warLosses.ts`).
+   * No rule of the game reads it. The bots read their recent fighting from it
+   * (`warOutlook`, `src/ai/bot.ts`). War weariness read it until the user
+   * removed weariness on 2026-11-23.
    *
    * One record per unit another empire destroyed or captured, and one per town
    * another empire took by force. Each record carries the turn it happened on
    * and who did it. The list is only appended to, and only by `recordWarLoss`;
-   * readers count the records whose turn is inside the weariness window, so
-   * nothing here counts down. `pruneWarLosses` deletes records that have left
-   * the window, which changes no reading.
+   * readers count the records whose turn is inside the loss window
+   * (`rules.war.lossWindowTurns`), so nothing here counts down.
+   * `pruneWarLosses` deletes records that have left the window, which changes no
+   * reading.
    *
    * Stored rather than derived because a loss leaves nothing on the board: a
    * dead unit is gone, and a captured town looks the same as any other town of
@@ -2676,35 +2687,15 @@ export type QueueKind = QueueItem["kind"];
  */
 
 /**
- * Which "one a turn" a bought unit spends (`City.purchasedUnitTurns`).
- *
- * The user's widening of the one-unit-a-turn rule (2026-09-02): *faith buying,
- * buying a civilian unit, and buying a military unit all counted separately*. So
- * the bucket is a pair of questions asked in order — **which bank paid**, and
- * then **is the piece a combatant** — because the faith bank is the one a town
- * calls an augur or a prophet out of and that call has never competed with a
- * garrison for the same afternoon.
- *
- * Read off `UnitDef` through `isCivilian` rather than off a name, exactly as
- * every other class question in this codebase is: nothing here compares a type
- * against `"settler"`, so a caravan is bought out of the civilian bucket for
- * being a non-combatant and not for being called a trader.
- *
- * Declared here beside `City` rather than in `purchase.ts` because the field is
- * the city's; `purchase.ts` imports this module and an import the other way
- * would be the runtime cycle `moduleCycles.test.ts` exists to catch.
- */
-export type UnitPurchaseBucket = "militaryGold" | "civilianGold" | "faith";
-
-/**
  * The banks a purchase is paid from: the treasury, the faith pool and, since
  * Magisterial batch MG11, the culture pool, from which Magnificence buys the
  * world wonder at the front of a town's queue.
  *
- * Declared here beside `City` rather than in `purchase.ts` for the reason
- * `UnitPurchaseBucket` gives: `City.buildingBanks` records which bank paid for
- * a building, and `purchase.ts` imports this module. `purchase.ts` re-exports
- * it by name, so every caller still imports it from there.
+ * Declared here beside `City` rather than in `purchase.ts` because
+ * `City.buildingBanks` records which bank paid for a building, and
+ * `purchase.ts` imports this module: an import the other way would be the
+ * runtime cycle `moduleCycles.test.ts` exists to catch. `purchase.ts`
+ * re-exports it by name, so every caller still imports it from there.
  */
 export type PurchaseCurrency = 'faith' | 'gold' | 'culture';
 
@@ -2774,7 +2765,7 @@ export interface City {
    *
    * `Tile.improvedOn` one scale up and the same discipline: an **absolute** turn
    * compared against `state.turn`, never a countdown — `TimedEffect.expiresTurn`'s
-   * rule, `SlottedOrder.sealedUntil`'s and `purchasedUnitTurns`' below. Nothing
+   * rule, `SlottedOrder.sealedUntil`'s and `purchasedUnitTurn`'s below. Nothing
    * decrements it and no phase sweeps it; the whole reading is
    * `state.turn - buildingTurns[id] >= turns`, which is what lets a card say "a
    * Library that has stood twenty turns" without anything anywhere ticking.
@@ -3077,32 +3068,30 @@ export interface City {
    */
   posts?: CommercialPost[];
   /**
-   * The turn this town last bought a unit **of each class**, or the key is
+   * The turn this town last bought a unit, in any currency, or the key is
    * **absent** on a town that never has (user, 2026-08-28 playtest: "cities can
-   * only purchase a single unit per turn"; widened 2026-09-02: "cities should be
-   * able to only buy one unit of each *type* — faith buying, buying a civilian
-   * unit, and buying a military unit all counted separately").
+   * only purchase a single unit per turn"; and the ruling of 2026-11-23,
+   * `docs/flags.md`, "Eight simpler rules": "One bought unit each turn").
    *
-   * One record with one stamp per `UnitPurchaseBucket` rather than three fields,
-   * because the rule is one rule asked of three buckets: `purchaseError` looks up
-   * the bucket the thing being bought falls in and `purchaseItemAt` writes the
-   * same one, so a fourth class is a member of that union and nothing else.
+   * One number for the town. From 2026-09-02 to schema 264 it was a record with
+   * one stamp for each of three classes (military units for gold, civilian units
+   * for gold, and units for faith), so a town could buy one of each in a turn.
    *
-   * Each entry is an **absolute** turn compared against `state.turn`, never a
-   * countdown — `TimedEffect`'s rule and `SlottedOrder.sealedUntil`'s, applied to
-   * the shortest-lived fact in the game. The whole reading is
-   * `city.purchasedUnitTurns?.[bucket] === state.turn`, so nothing decrements it,
-   * no phase clears it and the entry is *already* meaningless the moment the turn
-   * rolls over. That is what makes the rule safe under simultaneous turns: there
-   * is no moment in the pipeline where it has to have been reset.
+   * An **absolute** turn compared against `state.turn`, never a countdown —
+   * `TimedEffect`'s rule and `SlottedOrder.sealedUntil`'s, applied to the
+   * shortest-lived fact in the game. The whole reading is
+   * `city.purchasedUnitTurn === state.turn`, so nothing decrements it, no phase
+   * clears it and the value is *already* meaningless the moment the turn rolls
+   * over. That is what makes the rule safe under simultaneous turns: there is no
+   * moment in the pipeline where it has to have been reset.
    *
    * **Units only.** A treasury that can turn coin into a garrison as fast as it
    * can click is the thing the note is about; a town that buys a granary and a
    * library on the same afternoon has bought two things it then has to feed.
    * Written by `purchaseItemAt` and read by `purchaseError`, and by nothing
-   * else.
+   * else in the simulation.
    */
-  purchasedUnitTurns?: Partial<Record<UnitPurchaseBucket, number>>;
+  purchasedUnitTurn?: number;
   /**
    * How many of this town's citizens follow each religion, or the key is
    * **absent** on a town nobody has preached to — which is every town for most
@@ -3322,9 +3311,8 @@ export type WarLossKind = 'unit' | 'town';
 /**
  * One loss an empire suffered to another empire. See `Player.warLosses`.
  *
- * The record says what was lost and not what it costs: how many points of
- * weariness a unit or a town is worth is read from `rules.war.weariness` when
- * the list is counted, so the figures stay in the data.
+ * The record says what was lost and not what it costs. A loss costs no
+ * happiness since war weariness was removed (2026-11-23).
  */
 export interface WarLoss {
   /** `state.turn` when the loss happened. Compared against the window. */

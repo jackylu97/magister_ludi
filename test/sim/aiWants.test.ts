@@ -2795,8 +2795,8 @@ describe('batch X3 — the faith book prices the piece', () => {
       currency: 'faith',
     } as never);
     expect(bought.ok).toBe(true);
-    // A turn on: a town buys one unit of a class a turn (`City.purchasedUnitTurns`,
-    // absolute stamps), and that refusal is the simulation's own rather than the
+    // A turn on: a town buys one unit a turn (`City.purchasedUnitTurn`, an
+    // absolute stamp), and that refusal is the simulation's own rather than the
     // book's — what is under test is what the row is *worth* once the rules will
     // sell a second one at all.
     state.turn += 1;
@@ -2964,7 +2964,7 @@ describe('the piece walks itself back in, by the arm that already did that', () 
  * Two of those are asserted here because they are the two the ruling's own
  * clause stands next to and could plausibly have swallowed:
  *
- *   · the **once-per-class-per-turn stamp** (`City.purchasedUnitTurns`), which
+ *   · the **one-unit-a-turn stamp** (`City.purchasedUnitTurn`), which
  *     `purchaseError` asks *in front of* the room clause — so a garrisoned town
  *     that has already taken delivery today is refused for the stamp, and the
  *     piece in its hex is beside the point;
@@ -2990,7 +2990,7 @@ describe('every refusal that is not the piece in the hex strikes the row, as bef
       valueContext(state, player).wants.gold.some((row) => row.label.startsWith('Warrior at ')),
     ).toBe(true);
 
-    city.purchasedUnitTurns = { militaryGold: state.turn };
+    city.purchasedUnitTurn = state.turn;
     bumpRevision(state);
     // The gate's own words, so the pin fails the day the clause moves rather
     // than the day the book quietly empties.

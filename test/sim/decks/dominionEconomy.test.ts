@@ -17,7 +17,8 @@
  *     `docs/yields.md` (The Laws of Lord Shang);
  *   · the end-of-turn harvest of enemy hexes (War Feeds Itself);
  *   · the disband moment (The Legions' Labour);
- *   · the weariness rules (The Funeral Oration, The Glorious Dead);
+ *   · The Funeral Oration and The Glorious Dead after war weariness was
+ *     removed (2026-11-23);
  *   · Double Time's repeats, for Orders only, and its two tiers.
  *
  * And one fix from the coordinator's notes: a completion rider that pays only
@@ -71,7 +72,6 @@ import {
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../../../src/sim/unitData';
 import { explainUnitUpkeepRebate, unitUpkeepTotal } from '../../../src/sim/upkeep';
 import { resetVisibility } from '../../../src/sim/visibility';
-import { recordWarLoss, wearinessBetween } from '../../../src/sim/weariness';
 import { openWar } from '../../../src/sim/wars';
 import { explainTileYield, foldTile, yieldContextFor } from '../../../src/sim/yields/hex';
 import {
@@ -539,30 +539,23 @@ describe('The Legions’ Labour: the disband moment', () => {
   });
 });
 
-describe('The Funeral Oration and The Glorious Dead: the weariness rules', () => {
-  it('counts your unit losses at half, rounded down, and leaves the enemy’s reading whole', () => {
-    const state = flat();
-    for (let n = 0; n < 3; n++) recordWarLoss(state, 0, 1, 'unit');
-    recordWarLoss(state, 1, 0, 'unit');
-    expect(wearinessBetween(state, 0, 1).suffered).toBe(3);
-    slot(state, 0, 'theFuneralOration');
-    expect(wearinessBetween(state, 0, 1).suffered).toBe(1);
-    expect(wearinessBetween(state, 0, 1).points).toBe(0);
-    // The enemy's line still counts this empire's losses whole as its offset.
-    expect(wearinessBetween(state, 1, 0).inflicted).toBe(3);
-    // A town lost still counts in full.
-    recordWarLoss(state, 0, 1, 'town');
-    expect(wearinessBetween(state, 0, 1).suffered).toBe(1 + 8);
+describe('The Funeral Oration and The Glorious Dead, with war weariness removed', () => {
+  // The user's ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules",
+  // item 1): war weariness is gone, and so are the two card rules that changed
+  // it.
+  it('keeps The Glorious Dead’s production for a lost unit and nothing else', () => {
+    const def = orderDef('theGloriousDead' as OrderId);
+    expect(def.text).toBe('Losing a unit grants production equal to half its cost in your capital.');
+    expect(def.effects.map((effect) => effect.kind)).toEqual(['windfallRider']);
+    expect(orderIsDealt('theGloriousDead' as OrderId)).toBe(true);
   });
 
-  it('counts none of your losses under The Glorious Dead', () => {
-    const state = flat();
-    recordWarLoss(state, 0, 1, 'unit');
-    recordWarLoss(state, 0, 1, 'town');
-    slot(state, 0, 'theGloriousDead');
-    expect(wearinessBetween(state, 0, 1).suffered).toBe(0);
-    expect(wearinessBetween(state, 0, 1).happiness).toBe(0);
-    expect(wearinessBetween(state, 1, 0).inflicted).toBe(9);
+  it('keeps The Funeral Oration’s row for saves, retired, with nothing to do', () => {
+    const def = orderDef('theFuneralOration' as OrderId);
+    expect(def.retired).toBe(true);
+    expect(def.effects).toEqual([]);
+    expect(def.deferred?.length).toBe(1);
+    expect(orderIsDealt('theFuneralOration' as OrderId)).toBe(false);
   });
 });
 

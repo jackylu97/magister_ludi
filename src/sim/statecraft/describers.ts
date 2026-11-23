@@ -7087,21 +7087,7 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
       ? `barbarian camps ${near} raise their units ${-percent}% slower`
       : `barbarian camps ${near} raise their units ${percent}% faster`;
   },
-  // The Funeral Oration and The Glorious Dead (Dominion batch D7). Said as what
-  // a loss adds, and "nothing" at the whole cut.
   siegeDamage: (percent) => `a city under siege by your units takes ${percent}% more siege damage`,
-  unitLossWeariness: (percent) =>
-    percent <= -100
-      ? 'units you lose add nothing to war weariness'
-      : percent < 0
-        ? `units you lose add ${-percent}% less war weariness`
-        : `units you lose add ${percent}% more war weariness`,
-  townLossWeariness: (percent) =>
-    percent <= -100
-      ? 'towns you lose add nothing to war weariness'
-      : percent < 0
-        ? `towns you lose add ${-percent}% less war weariness`
-        : `towns you lose add ${percent}% more war weariness`,
   // The Commonplace Book (Scientific batch S0). A price, said as the saving.
   charterTechCost: (percent) =>
     percent < 0

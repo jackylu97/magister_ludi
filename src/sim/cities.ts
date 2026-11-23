@@ -277,13 +277,11 @@ import type { TurnReport } from './turn';
 import { type TileYield, isWaterTerrain, isWorkableTerrain } from './terrainData';
 import {
   BUILDING_UNLOCK_TECH,
-  TECH_IDS,
   type TechAge,
   type TechId,
   UNIT_UNLOCK_TECH,
+  eraNumeral,
   highestAge,
-  isCharterTech,
-  isTechId,
   techColumn,
 } from './techData';
 // **A function-level cycle, and the mirror of one that already existed**:
@@ -7483,37 +7481,6 @@ export function settleBorderWindfall(state: GameState, city: City): BorderComple
 
 // --- buying ground ----------------------------------------------------------
 
-/**
- * How far through the game the world is, as a fraction in `[0, 1]`: the share of
- * the technology tree this player has researched.
- *
- * The tile price's era term, and it is *this player's* progress rather than the
- * world's on purpose. A runaway empire pays runaway prices for land while the
- * empire it left behind can still afford a hex, which is the only reading of a
- * gold sink that does not punish the player who is losing. It is also the only
- * reading that is cheap to compute deterministically — a world-wide figure would
- * make one player's research change another player's prices mid-turn.
- *
- * Counted off `TECH_IDS`, so a tech added to `data/techs.json` re-scales the
- * curve rather than breaking it, and the starting techs count: an empire that
- * opens holding agriculture has already come a little way.
- *
- * **Ordinary technologies only, on both sides of the share** (Scientific batch
- * S0). `TECH_IDS` is the sky and leaves the charter rows out, so the count
- * leaves out the charter technologies the seat knows too. A charter path is
- * not progress through the tree (reading 1), and counting it above a
- * denominator that does not hold it would be a share of nothing.
- */
-export function gameProgress(state: GameState, playerId: number): number {
-  const player = playerById(state, playerId);
-  if (!player || TECH_IDS.length === 0) return 0;
-  let known = 0;
-  for (const id of player.techsResearched) {
-    if (isTechId(id) && !isCharterTech(id)) known += 1;
-  }
-  return Math.min(1, known / TECH_IDS.length);
-}
-
 /** Hex distance from a city's centre to a cell — the ring a tile stands in. */
 export function ringOf(state: GameState, city: City, cell: Cell): number {
   const { map } = state;
@@ -7552,22 +7519,22 @@ interface TilePriceLine {
  * Rule 5 at the till: the price tag the Buy Tiles overlay paints on a hex is
  * this list summed, the reducer charges this list summed, and there is no second
  * implementation of the arithmetic anywhere. A player who wonders why the hex
- * across the river costs 95 gets four lines that add up to 95.
+ * across the river costs 90 gets lines that add up to 90.
  *
- * The lines, in the order they are read:
+ * The price is `ringBase[ring] × the buyer's age` (the user's ruling of
+ * 2026-11-23, `docs/flags.md`, "Eight simpler rules": "30 gold, 60 in the
+ * outer ring, multiplied by age"). The age counts from 1 and is `highestAge`,
+ * the one age reading of a player. The lines, in the order they are read:
  *
  *   1. **Ring** — `ringBase` for how far out the tile is: the near rings are one
  *      price and the outer one dearer, which is Civ 6's shape (a tile you can
  *      almost reach is cheaper than a tile at the edge of what a town can ever
  *      hold).
- *   2. **Era** — what the world's progress adds to that base. Folded into the
- *      *rounded* figure rather than being rounded on its own, so the two lines
- *      always sum to a tidy multiple of `roundTo` and the tag never reads 97.
- *   3. **Prior purchases** — `perPriorPurchase` per tile this player has ever
- *      bought. Added *after* the rounding, deliberately: the escalation is a
- *      flat surcharge on a habit, not part of the price of the ground, and
- *      rounding it in would make the first purchase silently free.
- *   4. Resource and card buying power add together before rounding the price.
+ *   2. **Age** — what the buyer's age adds to that base: `base × (age − 1)`, so
+ *      the two lines sum to `base × age`. An empire in the first age has no age
+ *      line.
+ *   3. Resource and card buying power, added together and taken off the sum of
+ *      the two lines above.
  *
  * A cell outside the city, or one this function is asked about before the city
  * exists, still gets a price — this evaluator prices ground and refuses nothing.
@@ -7587,22 +7554,10 @@ export function explainTilePurchase(
   const index = Math.max(0, Math.min(table.length - 1, Math.round(ring)));
   const base = table[index] ?? 0;
 
-  // Rounded once, over base *and* era together — see the docblock.
-  const scaled = base * (1 + rules.progressFactor * gameProgress(state, playerId));
-  const step = rules.roundTo > 0 ? rules.roundTo : 1;
-  const rounded = Math.round(scaled / step) * step;
-
   const lines: TilePriceLine[] = [{ source: `Ring ${index}`, amount: base }];
-  if (rounded !== base) lines.push({ source: 'Era', amount: rounded - base });
-
   const player = playerById(state, playerId);
-  const prior = player?.tilesPurchased ?? 0;
-  if (prior > 0 && rules.perPriorPurchase !== 0) {
-    lines.push({
-      source: `${prior} hexes bought before`,
-      amount: rules.perPriorPurchase * prior,
-    });
-  }
+  const age = player ? highestAge(player.techsResearched) : 1;
+  if (age > 1 && base !== 0) lines.push({ source: `Æra ${eraNumeral(age)}`, amount: base * (age - 1) });
 
   const local = city?.ownerId === playerId ? buildingPurchaseDiscount(townShelf(state, city)) : [];
   const modifiers = [
@@ -7675,7 +7630,7 @@ export function tilePurchasePrice(
  * on exactly the terms a farming town buys its hill, and the *distance* and
  * *frontier* clauses are what keep a seat from buying the open ocean — the same
  * two that keep it from buying a mountain range three rings out. Nothing in the
- * ladder is land-only (`explainTilePurchase` prices ring, era, habit and furs),
+ * ladder is land-only (`explainTilePurchase` prices ring, age and furs),
  * so no clause was owed a water reading.
  *
  * Adjacency is to the *player's* territory rather than to this city's, and that
@@ -7916,8 +7871,9 @@ export function purchasableTiles(state: GameState, city: City): TileOffer[] {
  * to the *culture* curve, and a tile bought with gold must not make the next
  * tile a city's own culture earns any dearer — the two ladders are separate in
  * Civ 6 and separate here, and folding them together would turn the gold sink
- * into a tax on border growth. The purchase has its own ladder,
- * `Player.tilesPurchased`, which is what `explainTilePurchase` climbs.
+ * into a tax on border growth. The purchase keeps its own lifetime count,
+ * `Player.tilesPurchased`, which the beads and the bots read. The price itself
+ * no longer climbs with it (`explainTilePurchase`).
  *
  * The citizens are re-assigned on the spot, through `refreshCityDerived` — the
  * register `setLockedTiles` opened and the trap in CLAUDE.md names: a player who

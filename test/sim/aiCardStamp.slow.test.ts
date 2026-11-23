@@ -87,13 +87,12 @@ interface Findings {
 function auditPositions(snapshots: readonly string[]): GameState[] {
   const positions = snapshots.map((snapshot) => restoreState(snapshot));
   // **The last position again, with every seat's recent losses** (bot batch
-  // BP12). The unit-loss rule (The Funeral Oration, The Glorious Dead) is read
-  // as a line on the books, and the fourth case below asks some position to
-  // show it moving them. That needs a seat that prices such a card and has lost
-  // units inside the weariness window. BP10's games held one (seat 2 at turn
-  // 121); the game the BP12 bots play does not (seat 5 prices The Glorious Dead
-  // at turns 119 to 121 with no losses). So the last position is recorded once
-  // more with two units of each seat lost to the next seat this turn.
+  // BP12). It was added for the unit-loss rule of The Funeral Oration and The
+  // Glorious Dead, which the bot read as a line on the books. That rule left
+  // with war weariness on 2026-11-23, so no shape on the books needs this
+  // position now. It is kept as one more position for the cases below: the
+  // last position recorded once more, with two units of each seat lost to the
+  // next seat this turn.
   const last = positions[positions.length - 1];
   if (last !== undefined) {
     const worn = restoreState(snapshotState(last));

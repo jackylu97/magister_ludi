@@ -364,8 +364,8 @@ export const SLOT_TYPES: readonly SlotType[] = ['military', 'economic', 'wildcar
  *   · **military**: combat strength, movement and unit rules, ranks and
  *     experience, units gained, and unit upkeep;
  *   · **economic**: food, production, gold, land and growth;
- *   · **civic**: science, culture, faith, happiness, authority, unrest, war
- *     weariness, renown and great people;
+ *   · **civic**: science, culture, faith, happiness, authority, unrest, renown
+ *     and great people;
  *   · **wildcard**: commissions, and cards that act on other cards.
  *
  * The type decides two things. Its face is printed in its type's ink
@@ -4046,19 +4046,6 @@ export type CardRule =
   | 'campMuster'
   | 'siegeDamage'
   /**
-   * **What the units this empire loses count toward its war weariness**
-   * (Dominion batch D7, The Funeral Oration's half and The Glorious Dead's
-   * nothing). A negative percentage counts them for less. Only this empire's
-   * own losses are changed, never what its enemies lost to it (the triage's
-   * reading 24). Read in `wearinessBetween` (`weariness.ts`).
-   */
-  | 'unitLossWeariness'
-  /**
-   * What the **towns** this empire loses count toward its war weariness: The
-   * Glorious Dead's nothing. `unitLossWeariness`' sibling for towns.
-   */
-  | 'townLossWeariness'
-  /**
    * **What a unit of the row's `class` costs this empire to build** (Dominion
    * batch D8, The Servian Reforms: military units 25% cheaper). A negative
    * percentage is cheaper. It is a line of `explainUnitCost`, so a purchase,
@@ -4314,7 +4301,7 @@ export type ActionRuleId =
    * **The capital may buy as many units in a turn as it can pay for** — The
    * Capital Arsenal (batch C2).
    *
-   * The one-buy-per-class-per-turn stamp (`City.purchasedUnitTurns`) is
+   * The one-unit-a-turn stamp (`City.purchasedUnitTurn`) is
    * compared against in exactly one place, and this rule is a clause beside
    * that comparison. Nothing else changes: the stamp is still written by
    * `purchaseItemAt`, so a town that loses the card is back under the limit the
@@ -4511,10 +4498,12 @@ export type ActionRuleId =
    * Garrison (Commerce, Tier IV).
    *
    * `capitalBuysWithoutLimit`'s sibling, read beside it at the one comparison
-   * against `City.purchasedUnitTurns` (`purchaseError`). It lifts the limit for
-   * the military gold bucket only, and only while the front row is a wonder or
-   * the Opus, so a town that finishes the wonder is back under the limit the
-   * same turn.
+   * against `City.purchasedUnitTurn` (`purchaseError`). It lifts the limit for
+   * military units bought with gold only, and only while the front row is a
+   * wonder or the Opus, so a town that finishes the wonder is back under the
+   * limit the same turn. Since the town has one stamp for every unit (the
+   * ruling of 2026-11-23), a soldier bought under this rule still writes the
+   * stamp, and any other unit is refused in that town for the rest of the turn.
    */
   | 'wonderTownBuysWithoutLimit'
   /**
@@ -8185,7 +8174,7 @@ export interface CardWindfallRiderEffect {
    *
    * An **absolute stamp and never a counter that resets**, which is this
    * codebase's one discipline about time (`TimedEffect`, `SlottedOrder.
-   * sealedUntil`, `City.purchasedUnitTurns`): `PlayerStatecraft.riderTurns`
+   * sealedUntil`, `City.purchasedUnitTurn`): `PlayerStatecraft.riderTurns`
    * holds the turn this card last rode, the rider is dropped while that turn is
    * the current one, and nothing anywhere ticks it down or sweeps it clean. A
    * turn arriving is the whole of the reset.

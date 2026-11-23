@@ -575,8 +575,11 @@ describe('a unit stamp narrowed to a town of a kind', () => {
 });
 
 describe('The Two Capitals', () => {
+  // Small towns, so the empire is not short of happiness. Since the ruling of
+  // 2026-11-23 a deficit slows growth by 75%, and with the dry-town line on
+  // top a town in deficit has no growth left for the card to slow.
   it('reads no growth cost for a seat of two towns', () => {
-    const { state, player } = board([6, 4]);
+    const { state, player } = board([3, 2]);
     const ctx = valueContext(state, player);
     const rows = doctrineDef('theTwoCapitals' as DoctrineId).effects;
     const growth = rows[1]!;
@@ -591,7 +594,7 @@ describe('The Two Capitals', () => {
   });
 
   it('reads the cost on the towns left for a seat of three', () => {
-    const { state, player } = board([6, 4, 3]);
+    const { state, player } = board([3, 2, 1]);
     const ctx = valueContext(state, player);
     const rows = doctrineDef('theTwoCapitals' as DoctrineId).effects;
     const alone = scoreEffects([rows[1]!], ctx);

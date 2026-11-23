@@ -388,7 +388,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Vae Victis | 4 | ○ | P | Your capture rewards are paid twice. |
 | The Spear Makers | 0 | ● | S | +40% production toward military units. |
 | War Feeds Itself | 2 | ○ | S | At the end of your turn, each of your units in enemy territory yields you its hex's yields. |
-| The Glorious Dead | 4 | ○ | S | Your losses never count toward war weariness. Losing a unit grants production equal to half its cost in your capital. |
+| The Glorious Dead | 4 | ○ | S | Losing a unit grants production equal to half its cost in your capital. |
 | The Castle Demesne | 1 | ◆ | S | Citadels give +5 food and +5 production. |
 | Commission: The First Province | 1 | ◆ | S | Goal: capture a town. Reward: towns you captured gain +5 food and +5 gold. |
 | The Naadam | 1 | ● | S | Pastures and camps gain +2 culture. |

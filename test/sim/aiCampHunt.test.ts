@@ -122,7 +122,7 @@ function twoTowns(state: GameState): { home: City; rival: City } {
   seat(state, 0).gold = 500;
   seat(state, 1).gold = 500;
   for (const city of [home, rival]) {
-    city.purchasedUnitTurns = { militaryGold: state.turn, civilianGold: state.turn, faith: state.turn };
+    city.purchasedUnitTurn = state.turn;
   }
   recomputeAllVisibility(state);
   bumpRevision(state);

@@ -1526,9 +1526,9 @@ describe('C2 — the counts, the ring and the two counter rules', () => {
     const musa = playerById(g.state, 0)!;
     musa.gold = 9000;
     const item = { kind: 'unit', id: 'warrior' } as const;
-    // The limit as it stands: a town that has bought a soldier today is done.
+    // The limit as it stands: a town that has bought a unit today is done.
     for (const city of [capital, other]) {
-      city.purchasedUnitTurns = { militaryGold: g.state.turn };
+      city.purchasedUnitTurn = g.state.turn;
     }
     expect(purchaseError(g.state, 0, capital.id, item, 'gold')).toContain('already bought');
     expect(purchaseError(g.state, 0, other.id, item, 'gold')).toContain('already bought');

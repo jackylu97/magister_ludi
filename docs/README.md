@@ -254,11 +254,32 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   (The Envious Eye) and lost to a rival keeps the hammers toward its new front
   row instead, and settles through `settleProductionWindfall`. A town with an
   empty queue still takes the gold.
+- **Five simpler rules** (the user's ruling of 2026-11-23, `docs/flags.md`,
+  "Eight simpler rules", items 1, 2, 3, 6 and 8; schema 265). War weariness and
+  the one-unit stamp are described below; the other three are:
+  - **A hex costs its ring's base times the buyer's age.**
+    `rules.cities.tilePurchase.ringBase` is 30, 30, 30 and 60 (the outer ring),
+    and the age counts from 1 (`highestAge`). `explainTilePurchase` lists the
+    ring's base and what the age adds, then any card or building discount. The
+    era term, the rounding and the surcharge for each hex bought before are
+    gone. `Player.tilesPurchased` is still counted for the beads and the bots.
+  - **Unhappiness has two steps.** Below 0, towns grow 75% slower
+    (`meters.growthStifle`). At −10 or below, towns do not grow, and
+    production, science and culture are 20% lower: the one malus rung of
+    `meters.tiers`, which a happiness deficit now reads (`meterEffects`) as the
+    writ's deficit already did. The bonus steps stay (+10% at 5, +20% at 10),
+    and the old −10% step at −5 is gone for both meters. A dry town's own
+    growth line adds to the stifle, so a dry town in deficit does not grow.
+  - **Debt lowers science and culture by 20%** (`rules.upkeep.debtPercent`,
+    was 25%). Units still disband below −10 gold.
 - **Purchases** (`purchase.ts`): `purchaseItem {cityId, item, currency}`, gated by
   `explainPurchaseCost` + `purchaseError`. A row naming its own bank sells only
   there; everything else sells for gold at `goldPerHammer` × the full production
-  cost. **A city buys one unit per class per turn** (military-gold, civilian-gold,
-  faith), by absolute stamp. Buildings are uncounted.
+  cost. **A city buys one unit per turn**, in any currency, by one absolute
+  stamp (`City.purchasedUnitTurn`; the user's ruling of 2026-11-23, schema
+  265). Buildings are uncounted. The Capital Arsenal and The Hired Garrison
+  (both retired) lift the limit: the first in the capital, the second for
+  military units bought with gold in a town raising a wonder.
   - A purchased unit takes its free city slot. If that slot is full, the
     city needs a legal adjacent tile and must be free of siege. The game
     checks in map neighbour order before payment and applies arrival effects.
@@ -528,21 +549,20 @@ Reference: **`docs/units.md`** (the roster; generated) and
       Romana).
     - Every way unrest ends goes through `endUnrest`, which pays the `pacified`
       windfall occasion with the town's population (The Provincial Census).
-- **Losing a war costs happiness** (batch WC2, `src/sim/weariness.ts`;
-  reference `docs/war-diplomacy.md` §6a). Every unit an empire loses to another
-  empire (killed, captured, or a caravan plundered) and every town taken from it
-  by force is recorded on `Player.warLosses` with the turn and the empire that
-  caused it. `recordWarLoss` is the one writer; its callers are `applyCombat`,
-  `captureCity` and `arriveOnTile`, pinned by `test/sim/weariness.test.ts`. War
-  weariness against one enemy is your losses to it minus its losses to you over
-  the last `windowTurns` (20) turns, never below zero, with a town worth
-  `townLoss` (8) units. The barbarians never count, a town ceded in a peace deal
-  is not a loss, and peace erases nothing: losses age out. Each enemy with
-  weariness is one cost line in the happiness list (`explainHappiness`), at
-  `happinessPerPoint` (1) a point, and weariness touches nothing else. The
-  `settleDiplomacy` phase prunes losses that have left the window. Every figure
-  is `rules.war.weariness`. The foreign courts screen shows the line in that
-  court's "Standing and deals" drawer, and the Compendium has a concept entry.
+- **A lost war costs no happiness.** War weariness was removed by the user's
+  ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules", item 1; schema
+  265), with its rules, its happiness line, its courts-screen line, its lesson
+  and its Compendium entry.
+- **The war losses are still kept** (`src/sim/warLosses.ts`; reference
+  `docs/war-diplomacy.md` §6a), because the bots read their recent fighting
+  from them (`warOutlook`, `bot.ts`). No rule of the game reads them. Every unit
+  an empire loses to another empire (killed, captured, or a caravan plundered)
+  and every town taken from it by force is recorded on `Player.warLosses` with
+  the turn and the empire that caused it. `recordWarLoss` is the one writer; its
+  callers are `applyCombat`, `captureCity` and `arriveOnTile`, pinned by
+  `test/sim/warLosses.test.ts`. The barbarians never count, and a town ceded in a
+  peace deal is not a loss. The `settleDiplomacy` phase prunes losses older than
+  `rules.war.lossWindowTurns` (20).
 - **Units earn ranks in combat** (batch WC3, `src/sim/ranks.ts`; reference
   `docs/war-diplomacy.md` §6b). A blow is a fight when it is struck at a unit
   that is not a civilian or at a town whose walls still stand; each side that
@@ -1055,9 +1075,10 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
     hex of an empire its owner is at war with yields its owner that hex's
     yields, through `payWindfallGrants`.
   - A camp near the towns of an empire whose law speeds it musters sooner
-    (`campMuster`, `musterCamps`), and an empire's law can count its own war
-    losses for less (`unitLossWeariness`, `townLossWeariness`, read in
-    `wearinessBetween`).
+    (`campMuster`, `musterCamps`). The two war-loss rules
+    (`unitLossWeariness`, `townLossWeariness`) left with war weariness on
+    2026-11-23: The Glorious Dead keeps only its production for a lost unit,
+    and The Funeral Oration (retired) keeps its row with no effects.
   - **Double Time** (`turnEffectRepeats`): an Order's periodic boons, musters,
     drills and harvests happen twice; a Doctrine's do not (the user's ruling of
     2026-10-16). It was dealt in bands 2 and 3 (`OrderDef.lastBand`) until
@@ -1520,13 +1541,10 @@ it pushes, blows that must be favourable (a melee piece never walks into a wall
 at a loss — the bows go first), and hurt pieces that walk home. It ends on the
 warscore or on **this war's own exchange** — what it has cost against what it has
 taken, windowed by `warLedger.ts` off the simulation's own kill counters. Every
-peace decision also weighs the seat's own **war weariness** (batch WC2,
-`explainPeaceScore`: the warscore less `war.wearinessWeight` a point of
-happiness it costs, and `war.unhappyWearinessWeight` more for the part below
-nought), so a weary seat sues sooner, signs sooner and pays more to stop. The
-enemy's weariness never counts, so a winner is never harder to make peace with,
-and the warscore itself (which also decides whether a seat campaigns) is
-unchanged. A **wounded veteran** (batch WC3: a ranked piece below
+peace decision reads `explainPeaceScore`, which is the warscore itself since
+war weariness was removed (2026-11-23); its two weights
+(`war.wearinessWeight`, `war.unhappyWearinessWeight`) went with it. A
+**wounded veteran** (batch WC3: a ranked piece below
 `military.veteranCautionBelow` of its health) refuses a blow that is not
 decisive when the counter could kill it or the blow deals no more than it
 takes, whatever the seat's appetite or the siege appetite says.
@@ -2174,8 +2192,8 @@ Eight root pages, all named in `vite.config.ts` inputs:
     Accept, Decline, "Change the terms" and "Back to your paper" in place of
     the questions.
   - **"Standing and deals"** opens a drawer over the desk
-    (`standingAndDeals`): the relation, both borders and the war weariness
-    line, the deals in force with their turns left, the offers waiting for
+    (`standingAndDeals`): the relation and both borders, the deals in force
+    with their turns left, the offers waiting for
     your answer (Read opens one on the table) and your own offers (Withdraw).
     Its × and Escape close it back to the trays. Every command the screen
     sends is the same as before.

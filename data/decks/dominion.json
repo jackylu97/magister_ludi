@@ -4665,13 +4665,9 @@
       "rarity": "uncommon",
       "flavor": "They died for the city, and the city speaks their names.",
       "text": "Units you lose count half toward war weariness.",
-      "effects": [
-        {
-          "kind": "rulePercent",
-          "rule": "unitLossWeariness",
-          "percent": -50
-        }
-      ],
+      "deferred": ["units you lose count half toward war weariness"],
+      "note": "Cut. The game no longer has war weariness, so this card has nothing to change.",
+      "effects": [],
       "retired": true
     },
     "theCastra": {
@@ -4757,18 +4753,8 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "Nobody mourns a hero. They envy him.",
-      "text": "Your losses never count toward war weariness. Losing a unit grants production equal to half its cost in your capital.",
+      "text": "Losing a unit grants production equal to half its cost in your capital.",
       "effects": [
-        {
-          "kind": "rulePercent",
-          "rule": "unitLossWeariness",
-          "percent": -100
-        },
-        {
-          "kind": "rulePercent",
-          "rule": "townLossWeariness",
-          "percent": -100
-        },
         {
           "kind": "windfallRider",
           "occasion": "death",

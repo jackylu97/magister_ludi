@@ -1253,9 +1253,8 @@ export interface BuildingDef {
    * word (batch L6a, the Sainte-Chapelle) and is the second's negation rather
    * than a second question: a town holding both rows sells its whole roster, as
    * both rows say. `'all'` is the Reliquary's
-   * whole roster; `'civilian'` is `isCivilian` (`unitData.ts`), the same
-   * predicate `unitPurchaseBucket` sorts a purchase by, so the bank that opens
-   * and the bucket that is stamped can never disagree about what a civilian is.
+   * whole roster; `'civilian'` is `isCivilian` (`unitData.ts`), the roster's
+   * own reading of what a civilian is.
    */
   faithPurchases?: 'all' | 'civilian' | 'military';
   /**

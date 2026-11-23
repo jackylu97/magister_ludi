@@ -73,9 +73,9 @@ import { fullMovement, unitsOnTile } from './units';
 // change it (`diplomacy.ts` sits above this file and imports it). So this edge
 // cannot make a cycle, which is the whole reason `wars.ts` is a leaf.
 import { atWar } from './wars';
-// A leaf over `state.ts`, the rule book and the slate, so this edge cannot make
-// a cycle either.
-import { recordWarLoss } from './weariness';
+// A leaf over `state.ts` and the rule book, so this edge cannot make a cycle
+// either.
+import { recordWarLoss } from './warLosses';
 
 /** A civilian that changed hands because somebody took the ground it stood on. */
 interface CapturedCivilian {
@@ -320,8 +320,8 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
        */
       if (cardTraderShielded(state, other)) continue;
       removeUnit(state, other.id);
-      // A destroyed caravan is a unit lost to the arriving piece's empire, for
-      // war weariness (batch WC2). The wild's plunder is never recorded.
+      // A destroyed caravan is a unit lost to the arriving piece's empire, in
+      // the war losses (batch WC2). The wild's plunder is never recorded.
       recordWarLoss(state, other.ownerId, unit.ownerId, 'unit');
       // The cart itself, off the board and still the only record of who lost it
       // and where it was bound — see `TraderPlunder.toCityId`, which is what the
@@ -342,8 +342,8 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
       fromWild: playerById(state, fromOwnerId)?.barbarian === true,
     });
     captureUnit(state, other, unit.ownerId);
-    // A captured civilian is a unit lost to the captor's empire, for war
-    // weariness (batch WC2). A rescue from a camp and a theft by the wild both
+    // A captured civilian is a unit lost to the captor's empire, in the war
+    // losses (batch WC2). A rescue from a camp and a theft by the wild both
     // involve the wild, so neither is recorded.
     recordWarLoss(state, fromOwnerId, unit.ownerId, 'unit');
   }

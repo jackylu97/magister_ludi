@@ -8,7 +8,6 @@ import {
   explainTilePurchase,
   foldTilePrice,
   foundCityAt,
-  gameProgress,
   nextBorderCost,
   purchasableTiles,
   ringOf,
@@ -40,7 +39,7 @@ import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, bumpRevision } from '../../src/sim/state';
 import { improvementForResource } from '../../src/sim/improvementData';
 import { resourceDef, withExtraResources } from '../../src/sim/resourceData';
-import { TECH_IDS } from '../../src/sim/techData';
+import { TECH_IDS, highestAge, techDef } from '../../src/sim/techData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { resetVisibility } from '../../src/sim/visibility';
 import { newGame } from './newGameHelpers';
@@ -58,7 +57,7 @@ const WRIT = RULES.meters.authority;
  * bars and the same luxuries discount.
  *
  * Everything is asserted against `data/rules.json` rather than against the
- * numbers in it today — `BUY.perPriorPurchase`, not `5` — with two deliberate
+ * numbers in it today — `BUY.ringBase[1]`, not `30` — with two deliberate
  * exceptions, both of them tuning claims the design signed off on and would want
  * to hear about if they moved: the four opening rungs of the cost curve, and the
  * monument band.
@@ -124,13 +123,18 @@ function overextendTo(state: GameState, playerId: number, target: number): void 
 
 /**
  * The undiscounted asking price for a ring, worked out from `rules.json` — the
- * ring's base scaled by this player's progress and rounded, with no escalation
- * and no luxuries. The formula the evaluator is checked against, written once.
+ * ring's base times this player's age (the user's ruling of 2026-11-23), with
+ * no luxuries and no cards. The formula the evaluator is checked against,
+ * written once.
  */
 function ringPrice(state: GameState, playerId: number, ring: number): number {
   const base = BUY.ringBase[Math.min(ring, BUY.ringBase.length - 1)]!;
-  const scaled = base * (1 + BUY.progressFactor * gameProgress(state, playerId));
-  return Math.round(scaled / BUY.roundTo) * BUY.roundTo;
+  return base * highestAge(state.players[playerId]!.techsResearched);
+}
+
+/** The technologies of every age up to and including `age`, and none later. */
+function techsThroughAge(age: number): typeof TECH_IDS {
+  return TECH_IDS.filter((id) => techDef(id).age <= age);
 }
 
 // --- A. the culture curve ---------------------------------------------------
@@ -346,8 +350,9 @@ describe('the writ and the borders', () => {
     expect(borderFreezePercent(1)).toBe(0);
     expect(borderFreezePercent(0)).toBe(0);
     expect(borderFreezePercent(-1)).toBe(-100);
-    // Four points before the first malus rung of the tier ladder is reached.
+    // Well before the tier ladder's one malus rung, at −10.
     expect(tierPercent(-1)).toBe(0);
+    expect(tierPercent(-9)).toBe(0);
   });
 
   it('multiplies accrual by the writ, summed then applied once and floored', () => {
@@ -511,70 +516,54 @@ describe('what a tile costs', () => {
     );
   });
 
-  it('scales with how far the world has come, rounded to a tidy figure', () => {
+  it('multiplies the ring’s base by the buyer’s age, as two lines', () => {
     const state = flatState();
     const city = foundCityAt(state, 0, at(state.map, 8, 8));
     const cell = { col: 9, row: 8 };
-    const opening = tilePurchasePrice(state, 0, city.id, cell);
-
-    // Progress is this player's own share of the tree, starting techs included.
     const player = state.players[0]!;
-    expect(gameProgress(state, 0)).toBeCloseTo(player.techsResearched.length / TECH_IDS.length, 10);
 
-    // Half the tree learned. The band is asserted, not a hard-coded price: what
-    // is pinned is that the era term is `1 + progressFactor · progress` and that
-    // the tag is a round multiple of `roundTo`.
-    const half = TECH_IDS.slice(0, Math.floor(TECH_IDS.length / 2));
-    player.techsResearched = [...half];
-    bumpRevision(state);
-    const later = tilePurchasePrice(state, 0, city.id, cell);
-    expect(later).toBeGreaterThan(opening);
-    expect(later % BUY.roundTo).toBe(0);
-    expect(later).toBe(
-      Math.round((BUY.ringBase[1]! * (1 + BUY.progressFactor * gameProgress(state, 0))) / BUY.roundTo) *
-        BUY.roundTo,
-    );
+    // A fresh empire stands in the first age: the price is the base, on one line.
+    expect(highestAge(player.techsResearched)).toBe(1);
+    expect(tilePurchasePrice(state, 0, city.id, cell)).toBe(BUY.ringBase[1]!);
+    expect(explainTilePurchase(state, 0, city.id, cell)).toEqual([
+      { source: 'Ring 1', amount: BUY.ringBase[1]! },
+    ]);
 
-    // The whole tree: the base times `1 + progressFactor`, and no further.
-    player.techsResearched = [...TECH_IDS];
-    bumpRevision(state);
-    expect(gameProgress(state, 0)).toBe(1);
-    expect(tilePurchasePrice(state, 0, city.id, cell)).toBe(
-      Math.round((BUY.ringBase[1]! * (1 + BUY.progressFactor)) / BUY.roundTo) * BUY.roundTo,
-    );
+    // Every later age multiplies the base again. The age line is what the age
+    // adds, so the two lines fold to `base × age` (rule 5).
+    for (const age of [2, 3, 4]) {
+      player.techsResearched = [...techsThroughAge(age)];
+      bumpRevision(state);
+      expect(highestAge(player.techsResearched)).toBe(age);
+      const lines = explainTilePurchase(state, 0, city.id, cell);
+      expect(lines).toHaveLength(2);
+      expect(lines[0]).toEqual({ source: 'Ring 1', amount: BUY.ringBase[1]! });
+      expect(lines[1]!.source).toMatch(/^Æra [IVX]+$/);
+      expect(lines[1]!.amount).toBe(BUY.ringBase[1]! * (age - 1));
+      expect(tilePurchasePrice(state, 0, city.id, cell)).toBe(BUY.ringBase[1]! * age);
+      expect(tilePurchasePrice(state, 0, city.id, cell)).toBe(ringPrice(state, 0, 1));
+    }
   });
 
   /**
-   * **Ground, at the doubled gold price** (user ruling, 2026-09-03: "gold is
-   * way too strong. Gold costs need to be 2x across the board").
+   * **The ring prices the 2026-11-23 ruling named** (`docs/flags.md`, "Eight
+   * simpler rules", item 3: "30 gold, 60 in the outer ring, multiplied by
+   * age").
    *
-   * The one literal pin on this ladder, because the ruling is the number:
-   * buying a hex is a price *paid in* gold, so both the ring bases and the
-   * habit surcharge doubled — 20/20/20/30 → 40/40/40/60 and 2 → 4 — while the
-   * era term and the rounding, which are shapes rather than prices, did not
-   * move. This partially walks back the 8/29 "buying tiles need to be cheaper,
-   * like 0.4x" ruling by design: ground now sits at 0.8× what it cost before
-   * that pass.
+   * The one literal pin on this ladder, because the ruling is the number. The
+   * world's progress, the rounding and the surcharge for each hex bought before
+   * left the rules with it.
    */
-  it('charges the doubled ring prices the 9/3 ruling named', () => {
-    expect(BUY.ringBase).toEqual([40, 40, 40, 60]);
-    expect(BUY.perPriorPurchase).toBe(4);
-    // The shapes underneath are untouched: the era term is still a factor and
-    // the tag is still rounded to a tidy figure.
-    expect(BUY.progressFactor).toBe(2);
-    expect(BUY.roundTo).toBe(5);
+  it('charges the ring prices the 2026-11-23 ruling named, and nothing else', () => {
+    expect(BUY).toEqual({ ringBase: [30, 30, 30, 60] });
 
-    // And the tag a player reads at the opening of a game is the base itself:
-    // a fresh empire has learned almost nothing, so the era line is small and
-    // the price is the doubled ring base, rounded.
     const state = flatState();
     const city = foundCityAt(state, 0, at(state.map, 8, 8));
-    const price = tilePurchasePrice(state, 0, city.id, { col: 9, row: 8 });
-    expect(price).toBeGreaterThanOrEqual(BUY.ringBase[1]!);
-    expect(price % BUY.roundTo).toBe(0);
+    expect(tilePurchasePrice(state, 0, city.id, { col: 9, row: 8 })).toBe(30);
+    expect(tilePurchasePrice(state, 0, city.id, { col: 11, row: 8 })).toBe(60);
   });
 
-  it('escalates per player, not per city, and only on tiles actually bought', () => {
+  it('does not climb with the hexes bought before, and reads the buyer’s own age', () => {
     const state = flatState();
     const first = foundCityAt(state, 0, at(state.map, 6, 6));
     const second = foundCityAt(state, 0, at(state.map, 14, 6));
@@ -583,26 +572,28 @@ describe('what a tile costs', () => {
     const opening = tilePurchasePrice(state, 0, first.id, cellA);
     expect(tilePurchasePrice(state, 0, second.id, cellB)).toBe(opening);
 
+    // A habit of buying land no longer costs more.
     state.players[0]!.tilesPurchased = 3;
-    const dearer = opening + BUY.perPriorPurchase * 3;
-    // Both cities, because the ladder belongs to the empire.
-    expect(tilePurchasePrice(state, 0, first.id, cellA)).toBe(dearer);
-    expect(tilePurchasePrice(state, 0, second.id, cellB)).toBe(dearer);
-    // The other player has bought nothing and pays the opening price.
-    expect(tilePurchasePrice(state, 1, first.id, cellA)).toBe(opening);
-
+    expect(tilePurchasePrice(state, 0, first.id, cellA)).toBe(opening);
+    expect(tilePurchasePrice(state, 0, second.id, cellB)).toBe(opening);
     const lines = explainTilePurchase(state, 0, first.id, cellA);
-    expect(lines.some((line) => line.source.includes('3 hexes bought before'))).toBe(true);
+    expect(lines.some((line) => line.source.includes('bought before'))).toBe(false);
+
+    // The age is the buyer's: an empire in the second age pays twice what an
+    // empire in the first age pays for the same hex.
+    state.players[0]!.techsResearched = [...techsThroughAge(2)];
+    bumpRevision(state);
+    expect(tilePurchasePrice(state, 0, first.id, cellA)).toBe(opening * 2);
+    expect(tilePurchasePrice(state, 1, first.id, cellA)).toBe(opening);
   });
 
   it('takes furs off the gold price too, on a line that names them', () => withBorderCostFurs(() => {
     const state = flatState();
     const city = foundCityAt(state, 0, at(state.map, 6, 6));
     const cell = { col: 8, row: 6 };
-    // The tech first: `fletching` is what lets a camp stand on the furs,
-    // and it also moves this player's `gameProgress`. Granting it before the
-    // baseline is read is what keeps this a test of the discount rather than of
-    // the era term underneath it.
+    // The tech first: `fletching` is what lets a camp stand on the furs.
+    // Granting it before the baseline is read keeps this a test of the discount
+    // and not of the age line, should the tech ever move to a later age.
     state.players[0]!.techsResearched.push('fletching');
     bumpRevision(state);
     const plain = tilePurchasePrice(state, 0, city.id, cell);

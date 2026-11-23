@@ -4478,8 +4478,9 @@
   ],
   "theFuneralOration": [
    {
-    "raw": "units you lose add 50% less war weariness",
-    "text": "units you lose add 50% less war weariness"
+    "raw": "units you lose count half toward war weariness — not built yet",
+    "text": "units you lose count half toward war weariness — not built yet",
+    "deferred": true
    }
   ],
   "theCastra": [
@@ -4505,14 +4506,6 @@
    }
   ],
   "theGloriousDead": [
-   {
-    "raw": "units you lose add nothing to war weariness",
-    "text": "units you lose add nothing to war weariness"
-   },
-   {
-    "raw": "towns you lose add nothing to war weariness",
-    "text": "towns you lose add nothing to war weariness"
-   },
    {
     "raw": "losing a unit grants production equal to 50% of its production cost to your capital",
     "text": "losing a unit grants production equal to 50% of its production cost to your capital"

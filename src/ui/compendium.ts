@@ -3120,7 +3120,7 @@ function meterEntries(): CompendiumEntry[] {
       ],
       clauses: [
         {
-          text: 'Happiness is one figure for your whole empire: everything that supplies it, minus everything that demands it. While it is positive your empire gets a percentage bonus to its yields, in the steps listed above; while it is negative it gets a penalty.',
+          text: 'Happiness is one figure for your whole empire: everything that supplies it, minus everything that demands it. When it is high enough your empire gets a percentage bonus to science and culture, and when it falls far enough below zero your production, science and culture fall instead, in the steps listed above.',
         },
         {
           text: `Every citizen in every city demands ${figure(happiness.demandPerPop)}.`,
@@ -3133,7 +3133,7 @@ function meterEntries(): CompendiumEntry[] {
           text: `However far the steps above go, the bonus or penalty never passes ${percentFigure(RULES.meters.tierClamp)}.`,
         },
         {
-          text: 'Negative happiness also slows growth, on a steeper set of steps of its own. It reduces a city’s spare food only, so even the worst step stops a city growing rather than starving it.',
+          text: 'Negative happiness also slows growth, on steps of its own. It reduces a city’s spare food only, so even the worst step stops a city growing rather than starving it. A city without fresh water grows more slowly still, so an unhappy one may not grow at all.',
         },
         ...ladderRows(RULES.meters.growthStifle).map((entry) => ({
           text: `Happiness ${entry.label.toLowerCase()}: spare food toward growth ${entry.figures}.`,
@@ -3157,7 +3157,7 @@ function meterEntries(): CompendiumEntry[] {
       ],
       clauses: [
         {
-          text: 'Authority is one figure for your whole empire: your capacity to govern, minus what your cities cost to govern. While it is positive your empire gets a percentage bonus, in the steps listed above; while it is negative it gets a penalty.',
+          text: 'Authority is one figure for your whole empire: your capacity to govern, minus what your cities cost to govern. When it is high enough your empire gets a percentage bonus to production and to border growth, and when it falls far enough below zero your production, science and culture fall instead, in the steps listed above.',
         },
         {
           text: 'A city you founded costs the same on the coast as inland. A city you captured always counts as captured.',

@@ -133,9 +133,8 @@ import {
 import { lentCopiesToPlayer, loanedResources } from '../sim/deals';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from '../sim/resourceData';
 import { techDef } from '../sim/techData';
-import { wearinessBetween } from '../sim/weariness';
 import { RULES } from '../sim/rulesData';
-import { figure, signedMeterFigure } from './figures';
+import { figure } from './figures';
 import type { ConfirmRequest } from './confirmCard';
 import { element } from './dom';
 import { leaderFaces, leaderPortraitNode } from './leaderSelect';
@@ -198,13 +197,6 @@ interface DiplomacyRow {
    */
   waiting: number;
   /**
-   * The happiness your losses to them are costing you in war weariness, or
-   * nought (`wearinessBetween`, `src/sim/weariness.ts`; batch WC2). The same
-   * figure as their line in the happiness breakdown. It can be above nought at
-   * peace, because making peace does not erase recent losses.
-   */
-  weariness: number;
-  /**
    * You have met them: seen their land, their town or their pieces, or signed
    * something with them (`hasMetSeat`, `src/sim/diplomacy.ts`).
    *
@@ -256,7 +248,6 @@ export function diplomacyRows(state: GameState, seat: number): DiplomacyRow[] {
       waiting:
         state.dealProposals.filter((paper) => paper.by === id && paper.to === seat).length +
         (hasPeaceOffer(state, id, seat) && !hasPeaceOffer(state, seat, id) ? 1 : 0),
-      weariness: wearinessBetween(state, seat, id).happiness,
       met: hasMetSeat(state, seat, id),
     });
   }
@@ -320,19 +311,6 @@ export function relationSentence(
     return truceLeft === 1 ? 'Truce — one turn left' : `Truce — ${figure(truceLeft)} turns left`;
   }
   return 'At peace';
-}
-
-/**
- * The line under the status that says what your losses to this empire are
- * costing you in war weariness, or `null` when they cost nothing (batch WC2).
- *
- * Shown whatever the relation, because a peace does not erase recent losses:
- * they keep costing happiness until they are old enough to stop counting. The
- * figure is the same one the happiness breakdown prints on this empire's line.
- */
-export function wearinessLine(row: DiplomacyRow): string | null {
-  if (row.weariness <= 0) return null;
-  return `War weariness ${signedMeterFigure(-row.weariness)} happiness`;
 }
 
 /**
@@ -1354,13 +1332,11 @@ export interface OwnOfferLine extends OfferLine {
 /**
  * Everything the "Standing and deals" drawer lists for one court. Every part
  * is a reading the sheet already had: the relation sentence, `bordersOpenTo`
- * both ways, `wearinessLine`, and the deal panel's own deals in force,
- * offers and peace paper (`dealPanel`). Nothing here is a new figure.
+ * both ways, and the deal panel's own deals in force, offers and peace paper
+ * (`dealPanel`). Nothing here is a new figure.
  */
 export interface StandingAndDeals {
   standing: StandingLine[];
-  /** The war weariness line, or `null` when your losses to them cost nothing. */
-  weariness: string | null;
   inForce: ActiveDealRow[];
   waiting: OfferLine[];
   mine: OwnOfferLine[];
@@ -1411,7 +1387,7 @@ export function standingAndDeals(
       : ['Your offer of peace stands.', ''];
     mine.push({ paper: 'peace', head, text, action: peaceButtonLabel(row), error: row.peaceError });
   }
-  return { standing, weariness: wearinessLine(row), inForce: model.active, waiting, mine };
+  return { standing, inForce: model.active, waiting, mine };
 }
 
 /**
@@ -2822,7 +2798,6 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       node.append(element('span', '', line.label), element('b', '', line.value));
       drawer.append(node);
     }
-    if (read.weariness !== null) drawer.append(element('p', 'dp-weary', read.weariness));
 
     const force = heading(DRAWER_WORDS.inForce, DRAWER_WORDS.turnsLeft);
     force.title = dealFootSentence();

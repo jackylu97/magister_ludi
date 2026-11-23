@@ -2240,7 +2240,7 @@ describe('the wage-aware levy', () => {
    * four hundred gold and a soldier want that no longer vanishes at the garrison
    * would buy a warrior before the queue was ever consulted, and the levy the
    * queue then read would be the test's fixture plus one. The stamp is the
-   * simulation's own one-a-turn rule (`City.purchasedUnitTurns`), which is
+   * simulation's own one-a-turn rule (`City.purchasedUnitTurn`), which is
    * exactly the sentence wanted here: the purse has had its go, and what is left
    * to decide is what the town *builds*.
    */
@@ -2249,7 +2249,7 @@ describe('the wage-aware levy', () => {
     state.turn = 50;
     const city = foundCityAt(state, 0, at(state.map, 5, 5));
     city.population = 5;
-    city.purchasedUnitTurns = { militaryGold: state.turn, civilianGold: state.turn };
+    city.purchasedUnitTurn = state.turn;
     refreshCityDerived(state, city);
     for (let index = 0; index < soldiers; index++) {
       const piece = createUnit(state, 0, 'warrior', city.col, city.row + index);

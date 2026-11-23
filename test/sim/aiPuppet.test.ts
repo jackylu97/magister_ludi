@@ -77,11 +77,7 @@ function bench(options: {
   if (open !== undefined) state.players[0]!.researching = open;
   if (options.boughtToday === true) {
     for (const city of state.cities) {
-      city.purchasedUnitTurns = {
-        militaryGold: state.turn,
-        civilianGold: state.turn,
-        faith: state.turn,
-      };
+      city.purchasedUnitTurn = state.turn;
     }
   }
   // Announced before the refresh, because seating the citizens reads the law.

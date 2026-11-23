@@ -920,8 +920,8 @@ export interface SittingKey {
  *
  * The plans are two readings: whether the seat is at war with another empire
  * now, and how close it stands to declaring one (`declarationLean`, read with
- * its own sheet). The fighting is the war-loss list the game keeps for war
- * weariness (`Player.warLosses`): each record names the empire that destroyed
+ * its own sheet). The fighting is the war-loss list the game keeps
+ * (`Player.warLosses`): each record names the empire that destroyed
  * or took the piece or town, so the pieces and towns this seat took inside the
  * window are a count of records on the other seats' lists.
  */
@@ -4488,13 +4488,6 @@ function ruleRewriteValue(
       // near home are a cost and a supply of kills at once, and the bot
       // forecasts neither, so the rule is worth nothing to it by itself.
       return 0;
-    case 'unitLossWeariness':
-    case 'townLossWeariness':
-      // **Less weariness is worth something only while at war** (Dominion batch
-      // D7, The Funeral Oration and The Glorious Dead). A cut is a share of the
-      // stand-in, scaled by how often a town is taken, as `pacificationRate`
-      // is: the bot does not forecast its own losses.
-      return -share * ctx.ai.score.unknownEffect * occasionRate('capture', ctx);
     case 'unitCost': {
       // **A cheaper unit is more hammers toward it** (Dominion batch D8, The
       // Servian Reforms). A cost cut of a share s buys what a production bonus
@@ -6054,16 +6047,14 @@ function surplusMovedShare(ctx: ValueContext): number {
 }
 
 /**
- * Current upkeep, happiness demand and war-loss relief already affect the
- * empire's totals. Price them through the card stamp so the forecast does not
- * count the same benefit twice. Both unit losses and town losses use this path.
+ * Current upkeep and happiness demand already affect the empire's totals. Price
+ * them through the card stamp so the forecast does not count the same benefit
+ * twice.
  */
 function rulePercentInBooks(rule: Extract<CardEffect, { kind: 'rulePercent' }>['rule']): boolean {
   switch (rule) {
     case 'unitUpkeep':
     case 'happinessDemand':
-    case 'unitLossWeariness':
-    case 'townLossWeariness':
       return true;
     case 'defeatedShipJoins':
     case 'roadStepCost':

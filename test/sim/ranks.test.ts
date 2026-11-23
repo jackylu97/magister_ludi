@@ -534,7 +534,7 @@ describe('experience stays with the unit', () => {
 
 /**
  * The simulation's sources, read as text: a writer and a caller are facts
- * about the file, which is how `weariness.test.ts` pins its own register.
+ * about the file, which is how `warLosses.test.ts` pins its own register.
  */
 const SOURCES = {
   ...import.meta.glob('../../src/sim/*.ts', { eager: true, query: '?raw', import: 'default' }),

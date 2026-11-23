@@ -443,7 +443,7 @@ import { unitHealthBonus } from '../sim/resourceEffects';
 import { fullMovement, sleepError, unitOfferedForOrders } from '../sim/units';
 import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { atWar } from '../sim/wars';
-import { lossTurnsCounted } from '../sim/weariness';
+import { lossTurnsCounted } from '../sim/warLosses';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 import { wagerBlocker } from '../sim/wagers';
 import { appraiseWagers, wagerLeanOf } from './wager';
@@ -1729,11 +1729,11 @@ function threatWeights(state: GameState, player: Player): readonly number[] {
  *     zealot seat, whose bar cannot be reached, leans at nearly nothing.
  *   · **The army it would march**: the soldiers spare of the garrisons its towns
  *     are owed (`strikeForce`), the force the declaration itself reads.
- *   · **The fighting**: the war losses the game keeps for war weariness
- *     (`Player.warLosses`). Each record names who destroyed or took the piece or
- *     town, so this seat's kills and captures are the records on the other seats'
- *     lists, and its own losses are the records on its list. Read over the last
- *     `score.recentTurns` turns, never more than the weariness window the records
+ *   · **The fighting**: the war losses the game keeps (`Player.warLosses`,
+ *     `src/sim/warLosses.ts`). Each record names who destroyed or took the piece
+ *     or town, so this seat's kills and captures are the records on the other
+ *     seats' lists, and its own losses are the records on its list. Read over the
+ *     last `score.recentTurns` turns, never more than the loss window the records
  *     are kept for, and never more than the turns played.
  *
  * Kept on the revision clock, `threatWeights`' bargain: the lean reads both
@@ -5248,7 +5248,7 @@ function readBankSpend(
   // **The rules are asked again at the moment of firing** — the other half of the
   // sitting's bargain (`BotSitting`). A book built once per turn can offer a row
   // this seat has *since bought*: the building now stands, or the town has spent
-  // its one purchase of that class this turn (`City.purchasedUnitTurns`). Asking
+  // its one unit purchase this turn (`City.purchasedUnitTurn`). Asking
   // `purchaseError` of the live state before proposing keeps the driver's rule
   // that a refusal is a bug, and a struck row simply hands the bank to the next
   // best want rather than ending the arm.

@@ -743,35 +743,15 @@ interface WarRules {
    */
   unrest: UnrestRules;
   /**
-   * War weariness (batch WC2, `docs/flags.md` (rrrrrr) part 2). Every figure
-   * the rule is made of; the rule itself is `src/sim/weariness.ts`.
+   * How many turns the game keeps a war loss (`Player.warLosses`). A loss on
+   * turn `t` is kept on turns `t` to `t + lossWindowTurns − 1`. After that the
+   * broom deletes it (`pruneWarLosses`, `src/sim/warLosses.ts`).
+   *
+   * War weariness read this window until the user removed it (2026-11-23,
+   * `docs/flags.md`, "Eight simpler rules"). The list stays because the bots
+   * read their recent fighting from it (`warOutlook`, `src/ai/bot.ts`).
    */
-  weariness: WearinessRules;
-}
-
-/**
- * The numbers of war weariness: how long a loss counts, what a unit and a town
- * are worth, and what a point of weariness costs.
- *
- * Weariness against one enemy is the points this empire lost to that enemy
- * inside the window, minus the points that enemy lost to this empire inside
- * the same window, never below zero.
- */
-interface WearinessRules {
-  /**
-   * How many turns a loss counts for. A loss on turn `t` counts on turns `t`
-   * to `t + windowTurns − 1` and not after. Making peace does not end it early.
-   */
-  windowTurns: number;
-  /** Points of weariness for a unit destroyed or captured by an enemy. */
-  unitLoss: number;
-  /**
-   * Points of weariness for a town taken by force (the user, 2026-10-14:
-   * *"losing a town counts as losing 8 units"*).
-   */
-  townLoss: number;
-  /** Happiness one point of weariness costs. */
-  happinessPerPoint: number;
+  lossWindowTurns: number;
 }
 
 /**
@@ -1055,16 +1035,14 @@ export function isCitizenFocus(value: unknown): value is CitizenFocus {
 }
 
 /**
- * The tile-purchase price, which is Civ 6's shape with this game's numbers in
- * it: a base that depends only on how far out the tile is, a premium that rises
- * with how far the *world* has come, and a flat escalation per tile this player
- * has already bought.
+ * The tile-purchase price: the ring's base times the buyer's age, counted from
+ * 1 (the user's ruling of 2026-11-23, `docs/flags.md`, "Eight simpler rules":
+ * "30 gold, 60 in the outer ring, multiplied by age").
  *
- * Three terms rather than one curve because each answers a different question a
- * player asks — "how far away is it", "how late is it", "how greedy have I
- * been" — and rule 5 means the price is *shown* as those three lines
- * (`explainTilePrice` in `cities.ts`). A single opaque formula could not be
- * printed honestly.
+ * The world's progress, the rounding and the surcharge for each hex bought
+ * before were removed by the same ruling. Rule 5 still holds: the price is
+ * shown as its lines (`explainTilePurchase` in `cities.ts`), the ring's base
+ * and what the age adds, and then any card or building discount.
  */
 interface TilePurchaseRules {
   /**
@@ -1074,22 +1052,6 @@ interface TilePurchaseRules {
    * the index and the ring the same number.
    */
   ringBase: number[];
-  /**
-   * How much the base grows across a whole game: the multiplier is
-   * `1 + progressFactor · gameProgress`, where progress is the fraction of the
-   * tech tree this player has researched. At 2 a tile at the end of the tree
-   * costs three times its opening price, which is what stops a late empire
-   * buying a province out of pocket change.
-   */
-  progressFactor: number;
-  /** The scaled base is rounded to a multiple of this. Civ's tidy price tags. */
-  roundTo: number;
-  /**
-   * Added per tile this player has *ever* bought, anywhere. Per player and not
-   * per city, exactly as Civ 6 has it: the escalation is meant to price a
-   * strategy of buying land, and a strategy is an empire's, not a town's.
-   */
-  perPriorPurchase: number;
 }
 
 /**
@@ -1506,7 +1468,7 @@ interface AuthorityRules {
  *
  * Three optional comparators rather than one, because the two ladders this game
  * has do not agree on their boundaries: the bonus/malus tiers are inclusive
- * (`≥ +5`, `≤ −5`) while the growth stifle's first rung is "any deficit at all",
+ * (`≥ +5`, `≤ −10`) while the growth stifle's first rung is "any deficit at all",
  * which is `< 0` and is *not* `≤ 0` — a happiness of exactly zero is a balanced
  * empire, not a starving one. A rung applies when any comparator it declares is
  * satisfied; `stepPercent` takes the deepest rung that applies.
@@ -1524,8 +1486,9 @@ interface MeterRules {
   authority: AuthorityRules;
   /**
    * The bonus/malus ladder both meters read: `≥ +5 → +10%`, `≥ +10 → +20%`, and
-   * the mirror image below zero. *Which* yields each side of each meter moves is
-   * a design rule and lives in `meters.ts`; this is only how far.
+   * one malus rung, `≤ −10 → −20%` (the user's ruling of 2026-11-23: the step at
+   * −5 went). *Which* yields each side of each meter moves is a design rule and
+   * lives in `meters.ts`; this is only how far.
    */
   tiers: MeterStep[];
   /** Magnitude cap on a tier, however deep the table grows. */

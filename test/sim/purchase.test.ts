@@ -421,11 +421,11 @@ describe('buying a unit', () => {
   });
 
   it('sells one soldier a turn and no more, byte-identically, and buildings anyway', () => {
-    // User, 2026-08-28: "cities can only purchase a single unit per turn",
-    // widened 2026-09-02 to one *of each class*. A treasury that can turn coin
-    // into a garrison as fast as a player can click is the thing being refused;
-    // a town that buys a granary and a library on one afternoon has bought two
-    // things it then has to feed.
+    // User, 2026-08-28: "cities can only purchase a single unit per turn", and
+    // again on 2026-11-23: "One bought unit each turn". A treasury that can
+    // turn coin into a garrison as fast as a player can click is the thing
+    // being refused; a town that buys a granary and a library on one afternoon
+    // has bought two things it then has to feed.
     const g = game();
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
@@ -433,17 +433,16 @@ describe('buying a unit', () => {
     const gate = gatingTech('building', 'granary');
     if (gate) learn(g.state, 0, gate);
 
-    expect(city.purchasedUnitTurns).toBeUndefined();
+    expect(city.purchasedUnitTurn).toBeUndefined();
     expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
-    // An absolute turn, stamped into the bucket the purchase fell in — never a
-    // countdown, and never a stamp on the town as a whole.
-    expect(city.purchasedUnitTurns).toEqual({ militaryGold: g.state.turn });
+    // An absolute turn on the town, never a countdown.
+    expect(city.purchasedUnitTurn).toBe(g.state.turn);
 
     const goldAfterOne = player.gold;
     const before = snapshotState(g.state);
     const second = dispatch(g, buyCommand(city.id, WARRIOR));
     expect(second.ok).toBe(false);
-    expect(second.ok === false && second.error).toMatch(/already bought a military unit this turn/);
+    expect(second.ok === false && second.error).toMatch(/already bought a unit this turn/);
     expect(snapshotState(g.state)).toEqual(before);
     expect(player.gold).toBe(goldAfterOne);
 
@@ -454,21 +453,20 @@ describe('buying a unit', () => {
     // And the day rolls over on its own: nothing clears the stamp, the
     // comparison simply stops matching.
     for (const seat of g.state.players) dispatch(g, { type: 'endTurn', playerId: seat.id });
-    expect(city.purchasedUnitTurns!.militaryGold).toBeLessThan(g.state.turn);
+    expect(city.purchasedUnitTurn!).toBeLessThan(g.state.turn);
     // Yesterday's warrior is garrisoning the hex today, and item (hhhh) sells
     // nothing into an occupied slot — so it marches out, which is the sentence's
     // own instruction and the only thing this case needs from it.
     marchOut(g.state, city);
     expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
-    expect(city.purchasedUnitTurns!.militaryGold).toBe(g.state.turn);
+    expect(city.purchasedUnitTurn).toBe(g.state.turn);
   });
 
-  it('keeps the three classes on their own allowances', () => {
-    // The user's widening, 2026-09-02: "cities should be able to only buy one
-    // unit of each *type* — faith buying, buying a civilian unit, and buying a
-    // military unit all counted separately". A town calling an augur has not
-    // spent the afternoon it would have given a spearman, and a worker is not a
-    // garrison. Three buckets, one apiece, all on the same day.
+  it('counts every unit against the one allowance, in any currency', () => {
+    // The user's ruling of 2026-11-23 (`docs/flags.md`, "Eight simpler rules",
+    // item 8): the three classes (military for gold, civilian for gold, faith)
+    // become one stamp. After any unit purchase the town buys no other unit
+    // that turn.
     const g = game();
     learn(g.state, 0, 'theHighTemple');
     const city = found(g.state, 0);
@@ -476,35 +474,39 @@ describe('buying a unit', () => {
     player.faithPool = 500;
     player.gold = 4000;
 
-    // Each delivery is walked out of the gate before the next is bought — the
-    // three buckets are the subject here, and item (hhhh)'s one-piece-per-hex is
-    // a different rule with its own case below.
     expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
+    // The delivery walks out of the gate, so item (hhhh)'s one-piece-per-hex
+    // rule is not what refuses the next purchase.
     marchOut(g.state, city);
-    expect(dispatch(g, buyCommand(city.id, WORKER)).ok).toBe(true);
-    marchOut(g.state, city);
+    expect(city.purchasedUnitTurn).toBe(g.state.turn);
+
+    for (const [item, currency] of [
+      [WARRIOR, 'gold'],
+      [WORKER, 'gold'],
+      [PROPHET, 'faith'],
+    ] as const) {
+      const before = snapshotState(g.state);
+      const blocked = dispatch(g, buyCommand(city.id, item, currency));
+      expect(blocked.ok).toBe(false);
+      expect(blocked.ok === false && blocked.error).toMatch(/already bought a unit this turn/);
+      expect(snapshotState(g.state)).toEqual(before);
+    }
+  });
+
+  it('stamps a faith purchase too, and then refuses a unit for gold', () => {
+    const g = game();
+    learn(g.state, 0, 'theHighTemple');
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 500;
+    player.gold = 4000;
+
     expect(dispatch(g, buyCommand(city.id, PROPHET, 'faith')).ok).toBe(true);
     marchOut(g.state, city);
-    expect(city.purchasedUnitTurns).toEqual({
-      militaryGold: g.state.turn,
-      civilianGold: g.state.turn,
-      faith: g.state.turn,
-    });
-
-    // And each bucket is now spent, in its own words.
-    for (const [item, words] of [
-      [WARRIOR, /already bought a military unit this turn/],
-      [WORKER, /already bought a civilian unit this turn/],
-    ] as const) {
-      const blocked = dispatch(g, buyCommand(city.id, item));
-      expect(blocked.ok).toBe(false);
-      expect(blocked.ok === false && blocked.error).toMatch(words);
-    }
-    const prophetBlocked = dispatch(g, buyCommand(city.id, PROPHET, 'faith'));
-    expect(prophetBlocked.ok).toBe(false);
-    expect(prophetBlocked.ok === false && prophetBlocked.error).toMatch(
-      /already bought a unit with faith this turn/,
-    );
+    expect(city.purchasedUnitTurn).toBe(g.state.turn);
+    const blocked = dispatch(g, buyCommand(city.id, WORKER));
+    expect(blocked.ok).toBe(false);
+    expect(blocked.ok === false && blocked.error).toMatch(/already bought a unit this turn/);
   });
 
   it('still buys a prophet with faith, into the same routine', () => {
@@ -559,6 +561,11 @@ describe('placement of a purchased unit', () => {
     expect(g.state.units[g.state.units.length - 1]).toMatchObject({ col: city.col, row: city.row });
     const first = purchasedUnitTile(g.state, city, 'settler')!;
     expect(wrappedDistance(g.state.map, tileHex(first), tileHex(getTileAt(g.state.map, city.col, city.row)!))).toBe(1);
+    // A town buys one unit a turn in any currency (the ruling of 2026-11-23),
+    // so the stamp is cleared as if a turn had passed. The placement is the
+    // subject here; the one-a-turn rule has its own cases above.
+    delete city.purchasedUnitTurn;
+    bumpRevision(g.state);
     expect(dispatch(g, buyCommand(city.id, SETTLER)).ok).toBe(true);
     expect(g.state.units[g.state.units.length - 1]).toMatchObject({ col: first.col, row: first.row });
   });
@@ -879,10 +886,10 @@ describe('the bank’s shortfall, read beside the gate', () => {
     // The wrong bank, and a bank that does not sell the thing here.
     refusedTwice(PROPHET, 'gold', 'a prophet for gold');
     refusedTwice(WARRIOR, 'faith', 'a warrior for faith with no Cathedral');
-    // The town has already bought a soldier today.
-    city.purchasedUnitTurns = { militaryGold: g.state.turn };
+    // The town has already bought a unit today.
+    city.purchasedUnitTurn = g.state.turn;
     bumpRevision(g.state);
-    refusedTwice(WARRIOR, 'gold', 'a soldier already bought today');
+    refusedTwice(WARRIOR, 'gold', 'a unit already bought today');
     // A puppet spends nothing.
     city.puppet = true;
     bumpRevision(g.state);

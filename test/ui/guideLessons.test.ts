@@ -21,7 +21,8 @@ const LESSONS: readonly LessonDef[] = GUIDE_LESSONS;
 const FIRST_CONTACT: Readonly<Record<string, readonly string[]>> = {
   cards: ['firstHand', 'seatCard', 'fullChairs', 'commission', 'charter', 'levy', 'tendedWork', 'newBand'],
   empire: ['authority', 'happiness', 'workers', 'discovery', 'camps'],
-  war: ['forecast', 'warAndPeace', 'capture', 'weariness', 'ranks'],
+  // `weariness` left with war weariness (the user's ruling of 2026-11-23).
+  war: ['forecast', 'warAndPeace', 'capture', 'ranks'],
   faith: ['pantheon', 'prophet', 'followerBelief', 'enhancerBelief', 'caravan', 'greatPerson'],
   endgame: ['wager', 'beads', 'magnumOpus'],
 };

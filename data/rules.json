@@ -128,12 +128,7 @@
       "rebelEveryTurns": 0,
       "halts": ["production", "science", "culture"]
     },
-    "weariness": {
-      "windowTurns": 20,
-      "unitLoss": 1,
-      "townLoss": 8,
-      "happinessPerPoint": 1
-    }
+    "lossWindowTurns": 20
   },
   "barbarians": {
     "firstCampTurn": 6,
@@ -188,14 +183,11 @@
     "borderCostExponent": 1.45,
     "tilePurchase": {
       "ringBase": [
-        40,
-        40,
-        40,
+        30,
+        30,
+        30,
         60
-      ],
-      "progressFactor": 2,
-      "roundTo": 5,
-      "perPriorPurchase": 4
+      ]
     },
     "levy": {
       "everyTurns": 5,
@@ -360,10 +352,6 @@
         "percent": 20
       },
       {
-        "whenAtOrBelow": -5,
-        "percent": -10
-      },
-      {
         "whenAtOrBelow": -10,
         "percent": -20
       }
@@ -372,14 +360,10 @@
     "growthStifle": [
       {
         "whenBelow": 0,
-        "percent": -50
+        "percent": -75
       },
       {
         "whenAtOrBelow": -10,
-        "percent": -80
-      },
-      {
-        "whenAtOrBelow": -20,
         "percent": -100
       }
     ],
@@ -478,7 +462,7 @@
   "upkeep": {
     "goldPerUnitAge": 1,
     "goldPerBuildingAge": 1,
-    "debtPercent": -25,
+    "debtPercent": -20,
     "disbandBelow": -10
   },
   "wager": {

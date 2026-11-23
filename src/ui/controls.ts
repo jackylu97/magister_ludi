@@ -1442,7 +1442,7 @@ export function unrestSentence(report: UnrestReport, cityName: string): string {
  * **A warning and never a blocker** (Entry XLI, and the deficit lines' rule
  * exactly): a debt is a legal gambit, End Turn does not stop on one, and the
  * reducer has never heard of this function. What it is *not* is silent — the
- * penalty is a quarter off science and culture, which is the kind of loss a
+ * penalty is a fifth off science and culture, which is the kind of loss a
  * player reads as the game being slow rather than as a bill they are paying.
  *
  * **Two sentences, because there are two states and only the second is

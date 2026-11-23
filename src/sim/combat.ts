@@ -288,11 +288,11 @@
  *     fight, so there is no capacity, no loading, and no hold to sink. What
  *     crossing the waterline costs either side is *Across the waterline* above,
  *     and it is four clauses rather than a transport system.
- *   · **Happiness changing how a fight goes.** War weariness exists since batch
- *     WC2 (`weariness.ts`), but it lowers the losing empire's happiness and
- *     never a unit's strength. All a fight does for it is record each unit or
- *     town one empire loses to another (`recordWarLoss`, called here and from
- *     `arriveOnTile`).
+ *   · **Happiness changing how a fight goes.** Happiness never changes a unit's
+ *     strength. A fight records each unit or town one empire loses to another
+ *     (`recordWarLoss`, `warLosses.ts`, called here and from `arriveOnTile`),
+ *     and only the bots read that record. War weariness was removed on
+ *     2026-11-23.
  *   · **Damage scaling with health.** A unit at 10 hit points hits exactly as
  *     hard as one at full, so a fight is a grind rather than an avalanche.
  *
@@ -423,8 +423,8 @@ import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
 import { bumpEconomy } from './slate';
 import { endUnrest, startUnrest } from './unrest';
-import { recordWarLoss } from './weariness';
-// A leaf over the rule book and `state.ts`, like `weariness.ts`, so this edge
+import { recordWarLoss } from './warLosses';
+// A leaf over the rule book and `state.ts`, like `warLosses.ts`, so this edge
 // cannot make a cycle either.
 import { awardExperience, rankStrengthLines } from './ranks';
 
@@ -1248,8 +1248,7 @@ function clampCityHp(state: GameState, city: City, shelf: BuildingShelf): void {
  * Rule 5 applied to violence, and the shape the *next* such bonus joins rather
  * than a barbarian special case: a rank or a great general says "so many
  * points, to this side, because of that" and belongs in this list (a rank since
- * batch WC3, `ranks.ts`). War weariness does not: since batch WC2 it costs
- * happiness and nothing in a fight, see `weariness.ts`.
+ * batch WC3, `ranks.ts`).
  *
  * Flat points rather than a fraction, and added **after** the multipliers, which
  * is a rules decision and not a rounding one. Terrain and fortification multiply
@@ -2796,7 +2795,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         // ground, once a turn for each card (`turningCardFor`). The disposal
         // is the same capture, so it pays no kill or death riders and writes
         // no kill or loss tallies either. The one record it does write is the
-        // war's: an empire lost a soldier, so its war weariness counts it.
+        // war's: an empire lost a soldier, so its war losses list it.
         //
         // One clause serves both rules, so `combat.ts` still holds one
         // `captureUnit` call (pinned in `combat.test.ts`).
@@ -2821,9 +2820,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           // whatever took the piece. The capture arm above deliberately writes
           // neither: nothing died.
           tallyFall(state, attacker.ownerId, fallenOwner);
-          // And the war's own record of it, for war weariness (batch WC2). The
-          // same death read per enemy and over a window; nothing is written
-          // when either side is the wild.
+          // And the war's own record of it (batch WC2, `warLosses.ts`), which
+          // the bots read. Nothing is written when either side is the wild.
           recordWarLoss(state, fallenOwner, attacker.ownerId, 'unit');
           // Two riders on one death, and they belong to two empires: the killer's
           // `kill` and the fallen's `death`. Both are paid, in that order, because
@@ -3386,8 +3384,8 @@ function payBattleRiders(
  * WC1: only a town taken by force enters it). Those are the conquest, and they
  * stay in `captureCity`. A town ceded while it is in unrest keeps its record as
  * it stands, because nothing here touches it. The same goes for the war loss
- * (batch WC2): a town handed over at a treaty table adds nothing to its old
- * owner's war weariness, so `recordWarLoss` is called from `captureCity` only.
+ * (batch WC2): a town handed over at a treaty table is not a war loss of its old
+ * owner, so `recordWarLoss` is called from `captureCity` only.
  */
 export function handOverCity(state: GameState, city: City, ownerId: number): void {
   const loser = city.ownerId;
@@ -3530,8 +3528,8 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // whose law pacifies a captured town ends the unrest at the moment of
   // capture, so the pacified moment pays now (The Provincial Census).
   if (cardActionRule(state, ownerId, 'pacifyOnCapture')) endUnrest(state, city);
-  // **War weariness** (batch WC2, `docs/flags.md` (rrrrrr) part 2): a town
-  // taken by force is a loss to the empire that held it. Here and not in
+  // **The war loss** (batch WC2, `warLosses.ts`): a town taken by force is a
+  // loss to the empire that held it. Here and not in
   // `handOverCity`, for `capturedOn`'s reason: a town handed over in a peace
   // deal was not taken by force, and is not a loss.
   recordWarLoss(state, loser, ownerId, 'town');
