@@ -3663,9 +3663,11 @@ Puppets and trade routes do not change. The eight changes:
    - My readings, not the user's words. "Below 10" means −10, and the step
      starts at −10 itself, as the old table did. The bonus for a happy
      empire stays (+10% at 5, +20% at 10). The old −10% step at −5 and the
-     growth step at −20 go. Borders still stop below 0
-     (`meters.borderFreeze`); the user did not name that rule. If authority
-     reads the same yield table (`meters.tiers`), authority follows it.
+     growth step at −20 go. If authority reads the same yield table
+     (`meters.tiers`), authority follows it.
+   - The user, later the same day: "borders are unaffected by happiness
+     (authority does that currently)". So `meters.borderFreeze` is
+     authority's rule and does not change.
 3. **A hex costs 30 gold, or 60 in the outer ring, times the buyer's age.**
    The age counts from 1. `progressFactor`, `perPriorPurchase` and `roundTo`
    leave the rules. A card that changes the price still applies after.
@@ -3674,9 +3676,11 @@ Puppets and trade routes do not change. The eight changes:
    capital's own pressure go (`roadStrength`, `capitalStrength`,
    `capitalRange`, and the card rules of the same names). The Long Road
    keeps its trade route half: "Your religion presses 2 harder along trade
-   routes." My reading of "Temples raise pressure in cities": the temple
-   rule stays as it is (a temple doubles the founder's own pressure in its
-   town and lets a rival press at 75%), so Inquisition still works.
+   routes." A temple doubles the founder's own pressure in its town
+   (`templeOwnPercent` 200). The user, later the same day: "lets remove the
+   temples' 75% to rival strength." So `templeForeignPercent` goes, a rival
+   presses a town with a temple at full strength, and the belief Inquisition
+   has no effect and is retired until the user gives it a new one.
 5. **Naval combat.** An embarked land unit fights at −15 (was −20). A land
    bow against a ship stays at −6 and land siege against a ship at +6. The
    line bonus for adjacent ships goes. My reading: hit and run (a light ship
@@ -3692,3 +3696,47 @@ Puppets and trade routes do not change. The eight changes:
 Also ruled in the same message, not yet designed: "trading strategic
 resources should give a quantity of resource, you almost never want just a
 single copy of a strategic resource."
+
+## Strategic resources are traded in a quantity (ruled 2026-11-23)
+
+The user: "trading strategic resources should give a quantity of resource,
+you almost never want just a single copy of a strategic resource." On the
+proposal below: "Your strategic resource changes look good."
+
+- **A strategic row in an offer carries a number of copies**, from 1 to the
+  free copies of the side that gives. A luxury row stays at one copy.
+- **The foreign courts screen** puts a stepper on a strategic chip. My
+  reading, the user did not answer: a new row starts at half of the free
+  copies, rounded up.
+- **The bot prices each copy** (see the next section).
+
+## How a bot values and writes a trade (ruled 2026-11-23)
+
+The user, after the table of the bot's prices (gold at face value, 24 coin
+for a coin a turn, 120 for a resource it lacks and 0 for a second copy, 60
+for open borders, 145 to 273 for a town): "How long is a gold per turn trade?
+there should be some premium to getting gold up front instead of over time.
+bot's should value resources based on their current happiness and the value
+of the resource, less for duplicate copies. A 1:1 trade of duplicates should
+generally always be accepted. A town should probably be worth way more gold,
+we probably need to adjust the formula for how that's calculated. Also, a
+bot should not try to trade things that it would not accept itself, trading
+a duplicate for the player's last copy or trading a single strategic for a
+luxury is tedious to decline."
+
+- **Gold now is worth more than gold over time.** A deal lasts 20 turns
+  (`rules.war.dealTurns`). Today the bot prices one coin a turn at 24 coin,
+  which is more than the 20 it pays. The price must be below 20. My starting
+  figure: 15.
+- **A resource is priced by what it does for this seat now.** A luxury is
+  worth more to an unhappy empire and less to a happy one. A strategic copy
+  is worth what the seat can build with it. A duplicate is worth less than a
+  first copy, and more than nothing.
+- **A swap of one duplicate for one duplicate is accepted** in general.
+- **A town is worth much more gold.** The price needs a new formula that
+  reads the town (its citizens, its buildings, the age), in place of one
+  weight for every town.
+- **A bot does not write an offer that it would refuse if the seats were
+  exchanged.** Two named cases: a duplicate for the other side's last copy,
+  and one strategic copy for a luxury.
+- This is bot work, so it is Astra's. The handoff has the note.

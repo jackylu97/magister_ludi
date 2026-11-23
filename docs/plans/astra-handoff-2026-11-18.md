@@ -425,6 +425,42 @@ The board and the hover panel read the same answer from `createWorkerAdviceReade
   Compendium pass (`src/ui/compendium*.ts`, `describers.ts`: a new
   `describeUnitRow`).
 
+
+## 0.1m Bot trade prices, and strategic copies in a quantity (2026-11-23)
+
+Two rulings in `docs/flags.md`: "How a bot values and writes a trade" and
+"Strategic resources are traded in a quantity". Read both; the user's words
+are there.
+
+**Yours (bots, `src/ai/diplomacy.ts`, `data/ai.json`):**
+- `explainSide` prices a coin a turn at `luxuryGoldBaseline ÷
+  luxuryGptBaseline` = 24, over a 20 turn deal. The user wants gold now to be
+  worth more than gold over time, so the rate goes below 20 (start at 15).
+- A resource that arrives is 120 or 0 today. Price it by the seat's
+  happiness (luxury) or by what the seat can build (strategic), with a
+  smaller price for a duplicate.
+- Accept a swap of one duplicate for one duplicate.
+- A town is `weights.city` (145 to 273). The user wants much more, from a
+  formula that reads the town.
+- `writeSwap` must not write a paper that the bot would refuse with the seats
+  exchanged: no duplicate for the human's last copy, no single strategic copy
+  for a luxury. The human's last-copy check and price must be the same code
+  the bot uses on itself.
+
+**The Claude session's (rule and screen):** `DealTerms.strategics` will carry
+a count for each resource in place of one copy a row, and the foreign courts
+screen gets a stepper. That build has not started. When it lands it will
+change `loanedResources`, `dealSideError` and `tradeSupply`'s callers, and
+this note will name the commit. Price strategic copies one by one from then.
+
+**Also landing today (rules, version 265):** eight simpler rules, see
+"Eight simpler rules" in `docs/flags.md`. War weariness is removed, so
+`war.wearinessWeight`, `war.unhappyWearinessWeight` and `wearinessTerms` go.
+The digest pins and the slow replays need a new record after it.
+
+The lines in 0.1k and 0.1l that say the play clone stays at `12947dfb` are
+out of date. The user allowed the pull, and the clone follows `decks` again.
+
 ## 1. Who owns what
 
 | Area | Owner | Main folders |
