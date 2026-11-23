@@ -1,8 +1,9 @@
 # Home healing and city roads
 
-Status: implemented on `codex/home-healing-city-roads`. Focused tests and
-TypeScript checks pass; parent integration is pending. The branch starts at
-`decks` commit `14f8ee07`.
+Status: implemented on `codex/home-healing-city-roads`. The user authorized
+integration and the port 5199 update. The combined release gate passes at
+save version 261. The branch starts at `decks` commit `14f8ee07` and includes
+the latest handoff from `e892e8b8`.
 The frozen bot valuation study is unchanged.
 
 ## Specs
@@ -67,8 +68,7 @@ Validation on 2026-11-22 ran serially at low priority with one test worker:
 | `nice -n 15 npm run typecheck` | Exit 0; both TypeScript configurations pass. |
 | `git diff --check` | Exit 0. |
 
-The parent must run the complete batch gate after integration. The explicit
-schema assertion in `test/sim/state.test.ts` now expects 261. The two
+The explicit schema assertion in `test/sim/state.test.ts` now expects 261. The two
 `RANGED_BOARDS` hashes in `test/sim/explore.test.ts` now reflect this isolated
 branch's version 261:
 
@@ -85,5 +85,27 @@ city road rules cause no additional change in these two games.
 The combined wager integration still needs its own final schema version and
 replay validation. These isolated-branch hashes must not be copied over that
 validation.
-No full suite, long bot digest, commit or play-server update ran in this
-subagent.
+The initial delegated work ran only these focused checks. The user then
+authorized this agent to integrate and update the play server.
+
+## Release validation
+
+- Feature commit: `534fda11`. The current `decks` handoff was merged in
+  `351c32a5`. The handoff conflict contained adjacent additions; both remain.
+- `nice -n 15 npm run typecheck`: exit 0 for both TypeScript configurations.
+- `nice -n 15 npm run test -- --maxWorkers=1 --minWorkers=1`: exit 0,
+  571 files and 12,913 tests pass in 243.73 seconds.
+- `nice -n 15 npm run build`: exit 0, completed in 15.29 seconds. Vite reports
+  its large-chunk warning.
+- The parent first found one stale Roger Bacon sentence in the core run.
+  The reference now matches the current describer. Its data and effects did
+  not change, and the combined core run passes.
+- No slow-tier bot digest, main-branch change or push is part of this release.
+  No bot source, tuning data or frozen-study report is included.
+- The play clone starts at `14f8ee07`. The rollback tag is
+  `codex/play-before-home-healing-2026-11-22`. Deployment uses a fast-forward
+  and a Vite config reload; it does not terminate the existing server.
+
+The separate wager redesign is not in this release. Handoff section 0.1i,
+moving the difficulty-rule sentences into data or shared describers, also
+remains to do.

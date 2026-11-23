@@ -3461,7 +3461,7 @@ resource requirements, yields and worker charge cost. Include this with the
 first-age changes in the next play build. The changed unlock requires a new
 save version.
 
-## Units heal faster at home and in a city (ruled 2026-11-22, not built)
+## Units heal faster at home and in a city (ruled 2026-11-22, built in version 261)
 
 The user: "units should heal more quickly when in friendly territory, and
 should heal even more quickly in a city. Lets say +20 in friendly territory
@@ -3485,7 +3485,7 @@ siege."
   rest.
 - Owner: Astra.
 
-## A city hex counts as a road for movement (ruled 2026-11-22, not built)
+## A city hex counts as a road for movement (ruled 2026-11-22, built in version 261)
 
 The user: "right now cities don't count as having roads, so walking from a
 city to a road costs full movement. ideally, moving from the city tile and

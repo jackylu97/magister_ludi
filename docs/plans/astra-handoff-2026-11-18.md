@@ -280,8 +280,8 @@ owner's city. New labelled lines in `explainUnitHeal`: +10 for its own land,
 and +10 more in its own city, but not while the city is under siege (then it
 heals 20). Figures in `rules.healing`.
 
-Implementation: `codex/home-healing-city-roads`; focused tests and TypeScript
-checks pass. Parent integration is pending. See
+Implementation: complete at save version 261. The combined TypeScript checks,
+571 core test files (12,913 tests), and production build pass. See
 `home-healing-city-roads-2026-11-22.md`.
 
 ### 0.1h A city hex counts as a road for movement (2026-11-22)
@@ -291,7 +291,7 @@ movement". A step between a city's hex and a paved neighbour is a road step.
 Make it one derived reading in `stepCost` and `cheapestStepCostFor`; do not
 write `Tile.road` on a city's hex.
 
-Implementation: the same isolated branch. Movement profiles carry city tiles;
+Implementation: the same release. Movement profiles carry city tiles;
 city centers are excluded from road maintenance. Validation is recorded in
 `home-healing-city-roads-2026-11-22.md`.
 
