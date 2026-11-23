@@ -137,7 +137,7 @@ The user's words: "paradise garden sounds good. panegyric, how about gain 1 free
 - **Point 1, settled.** Commission: The Paradise Garden's reward is "each great-person work gives +2 of its own yield for each other work in its town".
 - **Point 2, settled.** The Panegyric: "When one of your great people acts, you gain one free reroll."
 - **Point 3, settled.** The swap card gains on every seating.
-- **Point 4, open.** The user asked for the effects of the three cards before deciding.
+- **Point 4, settled.** The user, after reading the three effects: "roll of musters can go. garden courts can go. sed festival is fine." The Roll of Masters and The Garden Courts are retired. The Sed Festival stays.
 - **Points 5 and 6.** The user's "#5" was the fifth question in chat, which is point 6 here: percentages do not raise a one-time grant, and that rule stays. Point 5 (a free great person raises the next price) is not changed.
 - **No card build starts now.** The settled changes are queued until the user's friend has played the branch as it is.
 
