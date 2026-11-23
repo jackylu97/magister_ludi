@@ -44,6 +44,9 @@ branches remain as the control and for jobs outside this planner's scope.
   enemy replies. Clock time never changes a decision.
 - The planner skips swap searches because this version does not select swaps.
   Ordinary movement still uses the shared pathfinding rules.
+- The final comparison keeps an escape candidate for each participating unit.
+  A group can order a unit other than the one that started the assessment, so
+  preserving only that first unit's escape can discard another unit's safe move.
 - Immutable projections can reuse ground indexes when city, player, map and
   ownership records are unchanged. They keep separate economy and movement
   caches. A city capture refuses this reuse.
@@ -69,14 +72,15 @@ from 26,145 ms to 17,293 ms. The complete command sequence matched with the
 cache bypassed. Local searches fell from 504 to 280; projected positions fell
 from 32,033 to 18,003. This remains a significant late-game cost.
 
-## Validation in progress
+## Validation
 
-The implementation checkpoint passes typecheck, all 574 core files with
-12,986 tests, and the production build. The core run includes 25 tactical
+The implementation checkpoint `a7abe4cc` passes typecheck, all 574 core files
+with 12,986 tests, and the production build. That run includes 25 tactical
 fixtures and 13 planned-combat tests, including the page/worker comparison.
-The stable policy's long replay pins and sixty-turn worker comparison are
-checked separately. No full slow-tier sweep or deployment is part of this
-checkpoint.
+Seven long checks also pass: the stable policy's 120-turn duel and standard
+board replay pins, card-stamp checks, and the sixty-turn page/worker
+comparison. The worker check produces the same command log and state on both
+paths. No full slow-tier sweep or deployment is part of this checkpoint.
 
 Focused fixtures cover uncertain kills, source-state and RNG isolation,
 health caps before counters, captured wall health, repeated-attack strength,
@@ -125,6 +129,36 @@ Artifacts are in `/private/tmp/webciv-bot-combat-2026-11-22`: `tactics-round2`,
 the paired `tactics-profile-cached` / `tactics-profile-uncached` reports.
 The uncached profile bypasses only `cachedTacticalPlan` in a frozen diagnostic
 bundle. It does not change the planner, its limits or its weights.
+
+## First corrected game and retreat review
+
+Checkpoint `a7abe4cc` completed seed 72839 in 506 seconds and passed exact
+combat replay. It logged no refused commands. Deaths after advances fell from
+8 of 57 to 5 of 92. Losses to barbarians fell from 54 to 35. Captures rose from
+1 to 5, but mean income fell from 2,506 to 2,032 and total unit losses rose
+from 65 to 96. This is a mixed result, not evidence for promotion.
+
+The review captured the original private planning board for spearman 554 at
+turn 68, command 3342. The complete command prefix matched. Reassessing that
+board reproduced the selected attack and its scores. The unit had no legal
+ordinary move destinations. The full movement query did offer a swap with
+swordsman 61 at `(33, 21)`, which this planner does not search. The missing
+ordinary retreat was not a discarded safe move. The planner preferred damage before death over
+holding under a projected lethal archer reply. That does not establish that
+the sacrifice was best across all possible responses. This is a concrete
+case for adding swaps and checking replacement garrisons before promotion.
+
+The review did identify a separate shortlist defect: only the assessment's
+first unit kept an escape candidate. A group can order any of its units, so
+the final comparison must retain escapes for the others too. A focused
+fixture failed under the earlier code and passes with that change. It uses
+a fixed guard and a wounded ally with a safe retreat. All 26 tactical tests
+and 13 planned-combat tests pass after the correction. The correction also
+passes typecheck, the production build, and all 574 core files with 12,987 tests.
+
+The remaining `a7abe4cc` games were stopped during seed 48017. Its partial
+output is not a completed game. The completed seed and the captured decision
+remain under `tactics-shared` and `tactics-spearman554` in the artifact folder.
 
 ## Limits
 

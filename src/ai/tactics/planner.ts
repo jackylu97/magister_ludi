@@ -166,7 +166,7 @@ export function planTacticalCombat(
   }
   let frontier: Choice[] = [{ position: initial, quick: quickScore(ctx, initial) }];
   const candidates: Choice[] = [];
-  let escape: Choice | undefined;
+  const escapes: Choice[] = [];
   for (let depth = 0; depth < ai.tactics.depth && frontier.length; depth++) {
     const next: Choice[] = [];
     for (const parent of frontier) {
@@ -175,18 +175,25 @@ export function planTacticalCombat(
     }
     if (depth === 0) {
       const targets = targetCells(state, ctx.enemies, ctx.cities);
-      escape = next.filter(choice => choice.position.actions[0]?.kind === 'move' && choice.position.actions[0]?.unitId === anchor.id)
-        .sort((a, b) => {
-          const gap = (choice: Choice): number => Math.min(...targets.map(target => distance(state, choice.position.actions[0]!.to, target)));
-          return gap(b) - gap(a);
-        })[0];
+      // Any group member can act first. Keep a retreat for each one so the
+      // quick shortlist cannot trade away an ally whose safer move it dropped.
+      for (const id of ctx.units) {
+        const escape = next.filter(choice => choice.position.actions[0]?.kind === 'move' && choice.position.actions[0]?.unitId === id)
+          .sort((a, b) => {
+            const gap = (choice: Choice): number => Math.min(...targets.map(target => distance(state, choice.position.actions[0]!.to, target)));
+            return gap(b) - gap(a);
+          })[0];
+        if (escape) escapes.push(escape);
+      }
     }
     frontier = keepDifferentStarts(next, ai.tactics.beam);
     candidates.push(...frontier);
     if (ctx.stats.limited) break;
   }
   const finalists = keepDifferentStarts(candidates, ai.tactics.choices);
-  if (escape && !finalists.some(row => actionKey(row.position.actions[0]!) === actionKey(escape!.position.actions[0]!))) finalists.push(escape);
+  for (const escape of escapes) {
+    if (!finalists.some(row => actionKey(row.position.actions[0]!) === actionKey(escape.position.actions[0]!))) finalists.push(escape);
+  }
   // Holding is always assessed first and wins equal scores.
   finalists.unshift({ position: hold, quick: quickScore(ctx, hold) });
   const rows: BotCandidate[] = [];

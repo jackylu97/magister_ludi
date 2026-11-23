@@ -293,6 +293,21 @@ describe('bounded tactical planning', () => {
     expect(reply.state.units.find(unit => unit.id === mine.id)?.hp).toBeGreaterThan(0);
   });
 
+  it('keeps a wounded ally\'s retreat when a locked unit starts the group assessment', () => {
+    const state = board();
+    const guard = createUnit(state, 0, 'spearman', 5, 5);
+    const wounded = createUnit(state, 0, 'spearman', 6, 5);
+    wounded.hp = 20;
+    const enemy = createUnit(state, 1, 'warrior', 7, 5);
+    enemy.hp = 70;
+    createUnit(state, 1, 'archer', 8, 5);
+    recomputeAllVisibility(state);
+    const plan = planTacticalCombat(state, 0, guard.id, aiConfigFor(), { locked: [guard.id] });
+    expect(plan?.candidates.some(candidate => candidate.label.startsWith(`${wounded.id}: move `))).toBe(true);
+    expect(plan?.action.unitId).toBe(wounded.id);
+    expect(plan?.action.kind).toBe('move');
+  });
+
   it('compares group actions, preserves the board and prints scores that fold exactly', () => {
     const state = board();
     const spear = createUnit(state, 0, 'spearman', 5, 5);
