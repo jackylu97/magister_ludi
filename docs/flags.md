@@ -3577,3 +3577,36 @@ moves left?"
 - Another seat's units and the barbarians never fade.
 - One bit joined the unit fingerprint (`signUnits`), so the layer redraws when
   a unit fortifies or sleeps without moving.
+
+## A queue completes as much as it can pay for in one turn (ruled 2026-11-23)
+
+The user: "what are the overflow rules? If a city has enough production to
+complete multiple things in the queue, it should complete all of them in a
+single turn. We should not drop any overflow, same goes with technologies, it
+should clear multiple things in the queue if able."
+
+The rule before this ruling: a city completes at most one queue row a turn and
+an empire at most one technology a turn. The remainder is kept in the basket
+or the pool and pays toward the next row. Nothing is dropped, but a large
+remainder waits a turn for each row.
+
+The new rule:
+
+- **Production.** When a city's basket covers the front row, the row
+  completes, the remainder moves to the next row, and the city tries again.
+  It stops at the first row that the basket cannot pay for, or that holds for
+  another reason (population too low, a missing resource, nowhere for the
+  unit to stand), or at a project, or at an empty queue. This applies at the
+  end of the turn and when a windfall of production lands during a turn.
+- **Research.** When the pool covers the current technology, it completes,
+  the next technology in the research queue becomes the aim, and the empire
+  tries again. It stops when the pool cannot pay, or when the queue is empty.
+  With an empty queue the pool is kept, as today.
+- **Each completion is reported.** The turn report, the grants and the
+  wonder news carry every row that completed, not only the first.
+- **The Common Purse (the remainder is doubled) doubles once in each
+  settlement, on the first completion.** My reading, not the user's words.
+  Doubling at every completion in the chain grows the basket without limit
+  and empties any queue each turn. The user can rule otherwise.
+- **Do not put this on the play server until the user says so.** The user:
+  "Don't move this to the playtest server, i want to finish my game".
