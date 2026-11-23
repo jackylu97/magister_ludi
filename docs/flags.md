@@ -3772,3 +3772,20 @@ convention of the game, maybe this is the one instance where its fine."
   Astra's work, in the handoff.
 - **The strategic copies build is delegated** (see "Strategic resources are
   traded in a quantity").
+
+## Deck direction review: the user's comments (2026-11-23)
+
+The user commented on the review page. Every comment is recorded in the user's
+own words in `docs/plans/deck-direction-review-2026-11-23.md`, section "The
+user's comments, 2026-11-23". That section is the specification for the build.
+It holds:
+
+- twenty settled points (The Mausoleum doubles a work's own yields only, the
+  nerfs to six Magisterial cards, the tier moves, Pax Romana, The Armoury
+  Patterns, and discounts on great people rewritten as more renown);
+- three new cards in the user's words (unseated Orders pay the capital culture,
+  a card that gains on each reroll, a card that gains on each swap);
+- six open points that wait for the user;
+- four reviews the user asked for (Dominion, Commerce, Devotion, Scientific).
+
+No card data has changed.

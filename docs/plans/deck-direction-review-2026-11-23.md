@@ -70,6 +70,81 @@ Changes 1 to 8 are the nerf. Together they cut a typical age 4 work from about 6
 
 ---
 
+## The user's comments, 2026-11-23
+
+The user commented on the review page (33 comments). This section records each comment in the user's words and what it settles. **Where this section and the text below disagree, this section is right.** The sections below are the review as first written.
+
+### Settled
+
+| # | Card or point | The user's words | Result |
+|---|---|---|---|
+| 1 | The Mausoleum | "yeah, have this apply to just the +4/6/8 that they give by default, i.e. the academy should not multiply all science bonuses stacked on top of it." | Option 1. The Mausoleum doubles a work's own yields only. |
+| 2 | The Peregrini | "good" | Its discount goes. The +1 food and +1 production beside a work stays. |
+| 3 | The Honoured Dead | "let's just nerf the effect. +5 science and +5 production in your capital" | It keeps its shape (it gains each time you gain a great person). The gain is +5 and +5 (it was +8 and +8). The family count is dropped for this card. |
+| 4 | The Hall of Heroes | "Yeah, good." | +2 strength for each family of great person gained. |
+| 5 | The Golden Age | "yeah sounds good" | It fires on wonders only. |
+| 6 | The Symposium | "Ok, that's a good change i think" | It fires on a great person's act. |
+| 7 | Commission: The Eighth Wonder | "great" | Reward: a free great-person draft, and +3 culture for each wonder held. |
+| 8 | The Hanlin Academy | "let's modify: +20% renown towards scholars, works give +2 science. This is a scientific card? if not, lets make it scientific + magisterial" | New text: "+20% renown toward great scholars. Great-person works give +2 science." It is a Magisterial card today (`data/decks/magisterial.json`). It becomes a shared card of Scientific and Magisterial. |
+| 9 | All discounts on great people | "discounts should be rephrase as X% more renown, like for gold and faith purchasing" | A card, government or wonder no longer lowers the price of a great person. It raises renown. This covers Aristocracy (15) and Solomon's Temple (10). Recommended reading: keep each printed number, so "15% less" becomes "+15% renown". That is a little weaker than today. |
+| 10 | The Second Summons (new) | "thats cool, i like it" | Build it: "Your great people may act twice." |
+| 11 | The Pandects | "sure" | It moves from Tier III to Tier II. |
+| 12 | Commission: The Golden Bull | "sure" | It moves to Tier II, and its goal is 12 Orders. |
+| 13 | Pax Romana | "Sure, i'm down for this." | "Towns you capture are pacified at once, and each gains +5 food and +5 production for good." |
+| 14 | The Water Boards | "sure" | It moves from Tier IV to Tier III. |
+| 15 | The Armoury Patterns | "sure sounds good" | It becomes the pay-off: a kill on an empire with fewer technologies grants science equal to twice the unit's strength. |
+| 16 | The Pandidakterion | "sure" | It stays as Scientific's one doubler. It needs no change. |
+| 17 | Devotion Tier 0 | "rites aren't available in tier 0, i think tier 0 is probably fine for now." | Change 13 of the summary is dropped. My suggestion was wrong: a Tier 0 card cannot read a rite. |
+| 18 | The Ancient Constitution (proposed) | "not very fun." | Dropped. Its replacement is in the next table. |
+| 19 | The Tabularium (proposed) | "a bit boring" | Dropped. |
+| 20 | The Areopagus (proposed) | "this feels way too strong, could we not have it scale off of every town." | Dropped. Its replacements are in the next table. |
+
+The user did not comment on these, so the recommended reading stands until the user says otherwise:
+- The Drill Masters moves to Tier II and The Horde to Tier III.
+- The cluster of works stays a broken combo (The Divine Proportion, The Processional Way, Commission: The Ideal City are not changed).
+- The renown ladder stays as it is.
+
+### New cards from the user's comments
+
+| Card | The user's words | Proposed row | Shape |
+|---|---|---|---|
+| The Anteroom (it replaces The Areopagus, and the Tier III card of the same name) | "your capital gains +3 culture for each unslotted order in your hand." On the Tier III row: "suggested above, lets reconcile the two" | One card, Tier I, uncommon, Civic: "Your capital gains +3 culture for each Order you hold but have not seated." With four unseated Orders at Tier I it pays +12 culture. With 17 late it pays +51. | Existing shape, if the count that Scutage reads is open to a `pays` line. To check in the build. |
+| The reroll card (name to choose; it takes The Tabularium's place at Tier II) | "Each time you reroll a draft, this card gains +2 culture and +2 gold. rerolls cost 50% less faith." | Tier II, uncommon: the user's text as written. | The count `rerollsWhileSlotted` exists on a retired card (`data/statecraft.json`). The cheaper reroll is a small extension. |
+| The swap card (name to choose; it replaces The Ancient Constitution) | "scaling card that gains yields every time you swap a card into your government. cards are only locked for two turns." | Tier III, rare. The numbers and one rule are open (question 3 below). | The rule `sealTurns` exists (the seal is five turns today). The tally of cards seated is a small extension. |
+
+### Open after the comments
+
+1. **Commission: The Paradise Garden needs a new reward.** The user: "this isn't a great effect, that's basically just adding three population, no?" That is correct. Two suggestions:
+   - (recommended) "Reward: each great-person work gives +2 of its own yield for each other work in its town." Three works give +4 each. Six give +10 each. It pays for the cluster and it is not a doubling of the whole hex.
+   - "Reward: a free great-person draft each time that town completes a wonder."
+2. **The Panegyric needs a new shape.** The user: "+2/+2 is probably too weak to offset the benefits of planting. I think the shape of this is wrong, because by the time you reach late game it won't matter, and it ramps too slowly to be useful early." Two suggestions, both sized by the age so they do not ramp:
+   - (recommended) "When one of your great people acts, your capital gains +3 of that person's yield for each age you have reached, for good." An act in age 4 leaves +12 a turn, against a work at about 36 after the nerf, and the player also gets the act.
+   - "When one of your great people acts, your cities gain +20% science, gold and culture for ten turns. A later act restarts the ten turns." This is the half of The Golden Age that the nerf removed, moved to acts.
+3. **The swap card: what counts as a swap?** If every seating counts, the best play is to move a card every two turns in every chair, and that is a chore. Two readings:
+   - (recommended) It gains when you seat an Order that you have not seated before in this game. It then pays for a large collection, and it joins the council to the collection.
+   - It gains on every seating, as the user wrote it.
+4. **Which two or three great-person support cards to cut.** The user: "i think overall, we may have too many support cards for great people in the magisterial deck, i think we should cut 2-3". The Hanlin Academy moves to the shared pool, which is one. Recommended cuts (the rows are retired, not deleted):
+   - The Sed Festival: it is The Wandering Muse a second time (a free great-person draft on draft).
+   - The Roll of Masters: it is the third card that counts great people gained, after The Honoured Dead and The Encyclopedia.
+   - The Garden Courts: it is The Laureate a second time (a town working a work gains more).
+5. **Should a free great person raise the price of the next one?** The user: "in theory they shouldn't". Today they do: every pick raises `Player.greatPeopleRecruited`, however the offer opened (`settleGreatPersonChoice`, `src/sim/greatPeople.ts`). If free picks stop counting, each free draft is worth one whole step of the ladder more than today, and the loop gains supply. Recommended: decide after the nerf is on the play server.
+6. **Should percentages raise a one-time grant?** The user, on whether "production toward wonders" raises a windfall of production: "it should be, but i think it should. modifiers should affect all sources of a yield". Today a one-time grant is not raised by any percentage (design entry XVIII.5), and that rule covers every windfall in the game. I read the comment as a wish to change the rule. It is a large change, so it needs the user's plain yes first.
+
+### Reviews the user asked for
+
+| Deck | The user's words | The job |
+|---|---|---|
+| Dominion | "How is the scaling of the builds? i guess it isn't so important for dominion, i think dominion should also have a few late game options that feel a bit busted in the way magisterial works." | Check how each build grows across the ages. Propose two or three late cards that are broken combos. |
+| Commerce | "take a look at the scaling options, and see if they're competitive." | Compare the growing cards (the treasury, the gold buyers, the routes) with the Magisterial loop after the nerf. |
+| Devotion | "could we take a look at the religious beliefs and the synergy with the devotion cards? I think it's missing some cohesion." | Read every belief against the four Devotion builds and name the gaps. |
+| Scientific | "could we look at the strength of the other themes after this latest change? The charter technologies could overall be buffed i think, since the require investment to obtain." | Size the four themes that are not the Academy against the nerfed loop. Propose a raise for the charters. |
+
+### Facts the user confirmed
+
+- Great people in a game: "12 is reasonable, i got around 15-20 but that was because i was hunting them, and stacking renown".
+
+---
+
 ## Part 1: Magisterial
 
 ### 1.1 The core loop, with numbers
