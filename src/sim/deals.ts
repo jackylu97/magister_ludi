@@ -71,8 +71,13 @@ export interface DealTerms {
    * must be the giver's own: a copy lent to it cannot be lent on.
    */
   luxuries?: ResourceId[];
-  /** Each strategic loan supplies one copy until the deal ends. */
-  strategics?: ResourceId[];
+  /**
+   * Strategic resources lent, each with a number of copies. For the deal's
+   * life the receiver holds `copies` more of the resource and the giver holds
+   * `copies` fewer (`resourceCopies` in `cities.ts`). See `CopyLoan` for the
+   * shape and the gate that checks it.
+   */
+  strategics?: CopyLoan[];
   /**
    * This side's borders are open: the other empire's soldiers may cross its
    * territory at peace. Granted per side, so a one-sided right of way is
@@ -87,11 +92,78 @@ export interface DealTerms {
   cities?: number[];
 }
 
-/** A loan supplies the same copy to the receiver that it takes from the giver. */
+/**
+ * One resource on loan in one half of a bargain, and how many copies of it.
+ *
+ * **Why a count on each row, with each resource named once** (the ruling of
+ * 2026-11-23 in `docs/flags.md`, "Strategic resources are traded in a
+ * quantity"; the user: "you almost never want just a single copy of a
+ * strategic resource"). Each unit that needs a strategic resource holds one
+ * copy, so a seat that borrows iron wants several. This shape keeps one row
+ * for each resource:
+ *
+ *   - every reader finds the number in one field, and a reader that asks "is
+ *     iron on this paper" asks one row;
+ *   - a paper that changes only the number is a different paper (`termsKey`);
+ *   - the screen steps one figure on one chip.
+ *
+ * The other shape we looked at, one id repeated once for each copy, needs no
+ * new type, but then every reader must count repeats, and a reader that
+ * forgets to count reads four copies as one.
+ *
+ * `copies` is a whole number from 1 to the giver's free copies
+ * (`lendableCopies`). `dealSideError` (`diplomacy.ts`) checks the shape, the
+ * number and the supply before any state changes, and refuses a second row
+ * for the same resource. A luxury row stays a plain id in `luxuries`, because
+ * a luxury row lends one copy; `loanedCopies` reads it as a row of one copy.
+ */
+export interface CopyLoan {
+  id: ResourceId;
+  copies: number;
+}
+
+/**
+ * Every resource this half lends, with its copies: the luxuries at one copy
+ * each, then the strategic rows. The gate (`dealSideError`) and the bots read
+ * both lists through it, so a luxury and a strategic resource are read the
+ * same way. The copy counts (`lentCopiesAwayBy`, `lentCopiesToPlayer`) use
+ * the same arithmetic without the list (`addLoanedCopies`).
+ */
+export function loanedCopies(terms: DealTerms): readonly CopyLoan[] {
+  const rows: CopyLoan[] = (terms.luxuries ?? []).map((id) => ({ id, copies: 1 }));
+  for (const row of terms.strategics ?? []) rows.push(row);
+  return rows;
+}
+
+/** The resources this half lends, one entry for each row: `loanedCopies` without the counts. */
 export function loanedResources(terms: DealTerms): readonly ResourceId[] {
+  // No new list for a half that lends no strategic resource, the common case.
   if (!terms.strategics?.length) return terms.luxuries ?? [];
-  if (!terms.luxuries?.length) return terms.strategics;
-  return [...terms.luxuries, ...terms.strategics];
+  const ids: ResourceId[] = [...(terms.luxuries ?? [])];
+  for (const row of terms.strategics) ids.push(row.id);
+  return ids;
+}
+
+/** How many copies of this resource the half lends, or 0 when it lends none. */
+export function loanedCopiesOf(terms: DealTerms, id: ResourceId): number {
+  const tally: LentCopies = {};
+  addLoanedCopies(tally, terms);
+  return tally[id] ?? 0;
+}
+
+/**
+ * Adds what one half lends to a tally: one copy for each luxury row, and a
+ * strategic row's own count. `loanedCopies`' arithmetic without building a
+ * list, because `lentCopiesAwayBy` runs under every `resourceCopies`.
+ */
+function addLoanedCopies(tally: LentCopies, terms: DealTerms): void {
+  for (const id of terms.luxuries ?? []) tally[id] = (tally[id] ?? 0) + 1;
+  for (const row of terms.strategics ?? []) tally[row.id] = (tally[row.id] ?? 0) + row.copies;
+}
+
+/** How many entries the two loan lists hold. It reads no entry, so a malformed row cannot throw before the gate. */
+function loanRowCount(terms: DealTerms): number {
+  return (terms.luxuries ?? []).length + (terms.strategics ?? []).length;
 }
 
 /**
@@ -180,7 +252,8 @@ export function termsKey(terms: DealTerms): string {
   return [
     String(terms.gold ?? 0),
     String(terms.goldPerTurn ?? 0),
-    loanedResources(terms).join('+'),
+    // The copies are part of the key, so four iron and three iron are two papers.
+    loanedCopies(terms).map((row) => `${row.id}*${row.copies}`).join('+'),
     terms.openBorders === true ? 'open' : '',
     (terms.cities ?? []).join('+'),
   ].join('/');
@@ -191,7 +264,7 @@ export function termsAreEmpty(terms: DealTerms): boolean {
   return (
     (terms.gold ?? 0) === 0 &&
     (terms.goldPerTurn ?? 0) === 0 &&
-    loanedResources(terms).length === 0 &&
+    loanRowCount(terms) === 0 &&
     terms.openBorders !== true &&
     (terms.cities ?? []).length === 0
   );
@@ -210,7 +283,7 @@ export function termsAreEmpty(terms: DealTerms): boolean {
 function termsAreOngoing(terms: DealTerms): boolean {
   return (
     (terms.goldPerTurn ?? 0) > 0 ||
-    loanedResources(terms).length > 0 ||
+    loanRowCount(terms) > 0 ||
     terms.openBorders === true
   );
 }
@@ -235,7 +308,8 @@ function ongoingPart(terms: DealTerms): DealTerms {
   const kept: DealTerms = {};
   if ((terms.goldPerTurn ?? 0) > 0) kept.goldPerTurn = terms.goldPerTurn;
   if ((terms.luxuries ?? []).length > 0) kept.luxuries = [...terms.luxuries!];
-  if (terms.strategics?.length) kept.strategics = [...terms.strategics];
+  // Each row copied, so the register shares no object with the command.
+  if (terms.strategics?.length) kept.strategics = terms.strategics.map((row) => ({ id: row.id, copies: row.copies }));
   if (terms.openBorders === true) kept.openBorders = true;
   return kept;
 }
@@ -362,14 +436,16 @@ export type LentCopies = Partial<Record<ResourceId, number>>;
  * lent on). A copy lent to this empire can be used and not lent, so every row
  * counted here stands on a copy of the giver's own ground when it is signed
  * (`lendableCopies` in `cities.ts`, asked by `dealSideError`).
+ *
+ * **A strategic row lends its count** (the ruling of 2026-11-23, "Strategic
+ * resources are traded in a quantity"): a row of four iron is four copies
+ * here, and a luxury row is one (`loanedCopies`).
  */
 export function lentCopiesAwayBy(state: GameState, playerId: number): LentCopies {
   const copies: LentCopies = {};
   for (const deal of state.deals) {
     if (!dealIsLive(state, deal)) continue;
-    for (const id of loanedResources(sideGivenBy(deal, playerId))) {
-      copies[id] = (copies[id] ?? 0) + 1;
-    }
+    addLoanedCopies(copies, sideGivenBy(deal, playerId));
   }
   return copies;
 }
@@ -382,14 +458,18 @@ export function lentCopiesAwayBy(state: GameState, playerId: number): LentCopies
  * answers about a *tile*. Since the copies ruling neither half lives there —
  * both sides are arithmetic at empire scale, in `resourceCopies`, which is
  * where a reader now meets the whole of the rule at once.
+ *
+ * A strategic row counts its copies, as in `lentCopiesAwayBy`. When the deal
+ * ends the copies go back with the row: the receiver's units that hold them
+ * keep fighting, and `availableCopies` floors at nothing, so the receiver
+ * builds no more until it has free copies again. The same is true of one copy
+ * and of many.
  */
 export function lentCopiesToPlayer(state: GameState, playerId: number): LentCopies {
   const copies: LentCopies = {};
   for (const deal of state.deals) {
     if (!dealIsLive(state, deal)) continue;
-    for (const id of loanedResources(sideTakenBy(deal, playerId))) {
-      copies[id] = (copies[id] ?? 0) + 1;
-    }
+    addLoanedCopies(copies, sideTakenBy(deal, playerId));
   }
   return copies;
 }

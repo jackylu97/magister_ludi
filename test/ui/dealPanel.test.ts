@@ -54,9 +54,14 @@ import {
   luxuryRowShow,
   paperRunsLine,
   removeTerm,
+  STRATEGIC_START_COPIES,
+  stepStrategicCopies,
+  strategicStartCopies,
+  takesEveryFreeCopy,
   termItems,
   termLines,
   unusableNote,
+  writeStrategicCopies,
 } from '../../src/ui/diplomacyScreen';
 import { newGame } from '../sim/newGameHelpers';
 
@@ -239,11 +244,11 @@ describe('what a paper says', () => {
         gold: 40,
         goldPerTurn: 3,
         luxuries: ['silk'],
-        strategics: ['iron'],
+        strategics: [{ id: 'iron', copies: 4 }],
         openBorders: true,
         cities: [mine.id],
       }),
-    ).toEqual(['40 gold', '3 gold a turn', 'Silk', 'Iron', 'Open borders', mine.name]);
+    ).toEqual(['40 gold', '3 gold a turn', 'Silk', 'Iron ×4', 'Open borders', mine.name]);
   });
 
   it('says "Nothing" rather than printing an empty list', () => {
@@ -683,13 +688,15 @@ describe('the treaty desk (batch SS6)', () => {
   });
 
   it('lets a player read and remove a strategic loan from a counteroffer', () => {
-    const terms: Parameters<typeof removeTerm>[0] = { strategics: ['iron', 'horses'] };
+    const terms: Parameters<typeof removeTerm>[0] = {
+      strategics: [{ id: 'iron', copies: 3 }, { id: 'horses', copies: 1 }],
+    };
     expect(termItems(bench(), terms)).toEqual([
-      { key: 'strategic:iron', text: 'Iron' },
-      { key: 'strategic:horses', text: 'Horses' },
+      { key: 'strategic:iron', text: 'Iron ×3' },
+      { key: 'strategic:horses', text: 'Horses ×1' },
     ]);
     removeTerm(terms, 'strategic:iron');
-    expect(termLines(bench(), terms)).toEqual(['Horses']);
+    expect(termLines(bench(), terms)).toEqual(['Horses ×1']);
     removeTerm(terms, 'strategic:horses');
     expect(terms).toEqual({});
   });
@@ -820,7 +827,7 @@ describe('strategic loans', () => {
     // A legionary needs iron: the one copy is spoken for.
     createUnit(state, 0, 'legionary', 3, 4);
     bumpRevision(state);
-    const refusal = dealSideError(state, 0, 1, { strategics: ['iron'] }, false);
+    const refusal = dealSideError(state, 0, 1, { strategics: [{ id: 'iron', copies: 1 }] }, false);
     expect(refusal).toContain('spoken for');
     const row = dealPanel(state, 0, 1).yours.strategics[0]!;
     expect(row.error).toBe(refusal);
@@ -842,7 +849,7 @@ describe('strategic loans', () => {
     learnIron(state, 0);
     giveIron(state, ada, 2, 3, 2);
     // The reducer takes the loan before the receiver has the reveal technology.
-    expect(dealSideError(state, 0, 1, { strategics: ['iron'] }, false)).toBeNull();
+    expect(dealSideError(state, 0, 1, { strategics: [{ id: 'iron', copies: 1 }] }, false)).toBeNull();
     const row = dealPanel(state, 0, 1).yours.strategics[0]!;
     expect(row.error).toBeNull();
     expect(row.unusable).toBe(unusableNote(state, 1, 0, 'iron', 'bronzePanoply'));
@@ -856,20 +863,20 @@ describe('strategic loans', () => {
     learnIron(state, 0);
     learnIron(state, 1);
     giveIron(state, ada, 2, 3, 2);
-    const offer: Command = { type: 'proposeDeal', playerId: 0, targetId: 1, give: { strategics: ['iron'] }, take: {} };
+    const offer: Command = { type: 'proposeDeal', playerId: 0, targetId: 1, give: { strategics: [{ id: 'iron', copies: 1 }] }, take: {} };
     expect(applyCommand(state, offer).ok).toBe(true);
-    expect(dealPanel(state, 0, 1).proposals[0]!.give).toEqual(['Iron']);
-    expect(dealPanel(state, 1, 0).proposals[0]!.give).toEqual(['Iron']);
+    expect(dealPanel(state, 0, 1).proposals[0]!.give).toEqual(['Iron ×1']);
+    expect(dealPanel(state, 1, 0).proposals[0]!.give).toEqual(['Iron ×1']);
     expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: state.dealProposals[0]!.id }).ok).toBe(true);
     const mine = dealPanel(state, 0, 1).active[0]!;
-    expect(mine.give).toEqual(['Iron']);
+    expect(mine.give).toEqual(['Iron ×1']);
     expect(mine.take).toEqual(['Nothing']);
-    expect(dealPanel(state, 1, 0).active[0]!.take).toEqual(['Iron']);
+    expect(dealPanel(state, 1, 0).active[0]!.take).toEqual(['Iron ×1']);
     // The lent copy leaves the giver's free copies and joins the receiver's
     // holdings, where the receiver may not lend it on.
     expect(dealPanel(state, 0, 1).yours.strategics[0]!.spare).toBe(1);
     const borrowed = dealPanel(state, 1, 0).yours.strategics[0]!;
-    expect(borrowed.error).toBe(dealSideError(state, 1, 0, { strategics: ['iron'] }, false));
+    expect(borrowed.error).toBe(dealSideError(state, 1, 0, { strategics: [{ id: 'iron', copies: 1 }] }, false));
     expect(borrowed.borrowed?.head).toBe('Your copy is on loan');
 
     // A peace paper names it the same way.
@@ -877,10 +884,10 @@ describe('strategic loans', () => {
     learnIron(war.state, 0);
     giveIron(war.state, war.ada, 2, 3, 2);
     openWar(war.state, 0, 1);
-    const peace: Command = { type: 'proposePeace', playerId: 0, targetId: 1, give: { strategics: ['iron'] }, take: {} };
+    const peace: Command = { type: 'proposePeace', playerId: 0, targetId: 1, give: { strategics: [{ id: 'iron', copies: 1 }] }, take: {} };
     expect(applyCommand(war.state, peace).ok).toBe(true);
-    expect(dealPanel(war.state, 0, 1).peacePaper!.give).toEqual(['Iron']);
-    expect(dealPanel(war.state, 1, 0).peacePaper!.take).toEqual(['Iron']);
+    expect(dealPanel(war.state, 0, 1).peacePaper!.give).toEqual(['Iron ×1']);
+    expect(dealPanel(war.state, 1, 0).peacePaper!.take).toEqual(['Iron ×1']);
   });
 
   it('marks the last copy free to build with, which a borrowed copy can still be', () => {
@@ -888,23 +895,138 @@ describe('strategic loans', () => {
     learnIron(state, 0);
     learnIron(state, 1);
     giveIron(state, ada, 2, 3, 1);
-    expect(dealPanel(state, 0, 1).yours.strategics[0]!.lastFree).toBe(true);
+    expect(dealPanel(state, 0, 1).yours.strategics[0]!.free).toBe(1);
     // The Bors lend Ada a copy: she may still lend only her own, but lending it
     // leaves the borrowed one to build with.
     giveIron(state, bors, 11, 3, 2);
-    const offer: Command = { type: 'proposeDeal', playerId: 1, targetId: 0, give: { strategics: ['iron'] }, take: {} };
+    const offer: Command = { type: 'proposeDeal', playerId: 1, targetId: 0, give: { strategics: [{ id: 'iron', copies: 1 }] }, take: {} };
     expect(applyCommand(state, offer).ok).toBe(true);
     expect(applyCommand(state, { type: 'acceptDeal', playerId: 0, dealId: state.dealProposals[0]!.id }).ok).toBe(true);
     const row = dealPanel(state, 0, 1).yours.strategics[0]!;
     expect(row.spare).toBe(1);
-    expect(row.lastFree).toBeUndefined();
+    expect(row.free).toBe(2);
+    // Her own copy on the table leaves the borrowed one free: no warning.
+    expect(takesEveryFreeCopy(row, { strategics: [{ id: 'iron', copies: 1 }] })).toBe(false);
   });
 
   it('says the last free copy plainly, with no figure in the sentence', () => {
     const line = lastFreeCopyLine(['Iron']);
-    expect(line).toContain('last free copy of Iron');
+    expect(line).toContain('every free copy of Iron');
     expect(/\d/.test(line)).toBe(false);
     expect(/\d/.test(STRATEGIC_WORDS.none)).toBe(false);
+  });
+
+  // --- the count (the ruling of 2026-11-23, "Strategic resources are traded
+  // in a quantity") ------------------------------------------------------------
+
+  const iron = (copies: number) => ({ strategics: [{ id: 'iron' as const, copies }] });
+
+  it('starts a new row at four copies, or at every copy the side can lend when it has fewer', () => {
+    expect(STRATEGIC_START_COPIES).toBe(4);
+    expect([8, 5, 4, 3, 1].map(strategicStartCopies)).toEqual([4, 4, 4, 3, 1]);
+    const { state, ada, bors } = pair();
+    learnIron(state, 0);
+    learnIron(state, 1);
+    giveIron(state, ada, 2, 3, 6);
+    giveIron(state, bors, 11, 3, 2);
+    const model = dealPanel(state, 0, 1);
+    expect(strategicStartCopies(model.yours.strategics[0]!.spare!)).toBe(4);
+    expect(strategicStartCopies(model.theirs.strategics[0]!.spare!)).toBe(2);
+  });
+
+  it('steps the copies from one to the side’s free copies, and the reducer takes every step', () => {
+    expect(stepStrategicCopies(4, 1, 6)).toBe(5);
+    expect(stepStrategicCopies(6, 1, 6)).toBe(6);
+    expect(stepStrategicCopies(2, -1, 6)).toBe(1);
+    expect(stepStrategicCopies(1, -1, 6)).toBe(1);
+    // A count above the free copies (a unit took one after the row was
+    // written) comes down to them on either press.
+    expect(stepStrategicCopies(7, -1, 3)).toBe(3);
+    expect(stepStrategicCopies(7, 1, 3)).toBe(3);
+
+    const { state, ada } = pair();
+    learnIron(state, 0);
+    giveIron(state, ada, 2, 3, 5);
+    const spare = dealPanel(state, 0, 1).yours.strategics[0]!.spare!;
+    expect(spare).toBe(5);
+    for (let copies = 1; copies <= spare; copies++) {
+      expect(draftError(state, 0, 1, { give: iron(copies), take: {} }, false)).toBeNull();
+    }
+    expect(draftError(state, 0, 1, { give: iron(spare + 1), take: {} }, false)).toBe(
+      dealSideError(state, 0, 1, iron(spare + 1), false),
+    );
+  });
+
+  it('writes a row in place and deletes the line when the last row goes', () => {
+    const terms: Parameters<typeof writeStrategicCopies>[0] = {};
+    writeStrategicCopies(terms, 'iron', 4);
+    writeStrategicCopies(terms, 'horses', 2);
+    writeStrategicCopies(terms, 'iron', 5);
+    expect(terms).toEqual({ strategics: [{ id: 'iron', copies: 5 }, { id: 'horses', copies: 2 }] });
+    removeTerm(terms, 'strategic:iron');
+    expect(terms).toEqual({ strategics: [{ id: 'horses', copies: 2 }] });
+    writeStrategicCopies(terms, 'horses', 0);
+    expect(terms).toEqual({});
+  });
+
+  it('prints the count on the paper, on their offer, in the deals in force and in a peace', () => {
+    const { state, ada } = pair();
+    learnIron(state, 0);
+    learnIron(state, 1);
+    giveIron(state, ada, 2, 3, 5);
+    expect(termItems(state, iron(3))).toEqual([{ key: 'strategic:iron', text: 'Iron ×3' }]);
+    expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give: iron(3), take: {} }).ok).toBe(true);
+    expect(dealPanel(state, 0, 1).proposals[0]!.give).toEqual(['Iron ×3']);
+    expect(dealPanel(state, 1, 0).proposals[0]!.give).toEqual(['Iron ×3']);
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: state.dealProposals[0]!.id }).ok).toBe(true);
+    expect(dealPanel(state, 0, 1).active[0]!.give).toEqual(['Iron ×3']);
+    expect(dealPanel(state, 1, 0).active[0]!.take).toEqual(['Iron ×3']);
+    // The giver's chip now offers the two copies left. The receiver holds the
+    // three it borrowed and may lend none of them on.
+    expect(dealPanel(state, 0, 1).yours.strategics[0]!.spare).toBe(2);
+    expect(dealPanel(state, 1, 0).yours.strategics[0]!.copies).toBe(3);
+    expect(dealPanel(state, 1, 0).yours.strategics[0]!.spare).toBe(0);
+
+    const war = pair();
+    learnIron(war.state, 0);
+    giveIron(war.state, war.ada, 2, 3, 5);
+    openWar(war.state, 0, 1);
+    expect(applyCommand(war.state, { type: 'proposePeace', playerId: 0, targetId: 1, give: iron(4), take: {} }).ok).toBe(true);
+    expect(dealPanel(war.state, 0, 1).peacePaper!.give).toEqual(['Iron ×4']);
+  });
+
+  it('warns when the copies offered take every copy free to build with', () => {
+    const { state, ada } = pair();
+    learnIron(state, 0);
+    giveIron(state, ada, 2, 3, 3);
+    let row = dealPanel(state, 0, 1).yours.strategics[0]!;
+    expect(row.free).toBe(3);
+    expect(takesEveryFreeCopy(row, {})).toBe(false);
+    expect(takesEveryFreeCopy(row, iron(2))).toBe(false);
+    expect(takesEveryFreeCopy(row, iron(3))).toBe(true);
+    // A legionary holds one copy, so two now take every free copy.
+    createUnit(state, 0, 'legionary', 3, 4);
+    bumpRevision(state);
+    row = dealPanel(state, 0, 1).yours.strategics[0]!;
+    expect(row.free).toBe(2);
+    expect(takesEveryFreeCopy(row, iron(2))).toBe(true);
+    expect(uiSource('diplomacyScreen.ts')).toContain('model.yours.strategics.filter((c) => takesEveryFreeCopy(c, draft.give))');
+  });
+
+  it('draws the stepper with the open gold chip’s classes and named buttons', () => {
+    const screen = uiSource('diplomacyScreen.ts');
+    const chip = screen.slice(screen.indexOf('  function copiesChip('), screen.indexOf('  function amountChip('));
+    expect(chip).toContain("`dp-chip is-on is-open${error !== null ? ' is-refused' : ''}`");
+    expect(chip).toContain("button('dp-chip-toggle', choice.label)");
+    expect(chip).toContain("button('dp-step', '−')");
+    expect(chip).toContain("button('dp-step', '+')");
+    expect(chip).toContain("element('b', 'dp-chip-count', figure(copies))");
+    expect(chip).toContain('less.setAttribute(\'aria-label\', `Fewer copies of ${word}`)');
+    expect(chip).toContain('more.setAttribute(\'aria-label\', `More copies of ${word}`)');
+    expect(chip).toContain('less.disabled = copies <= 1;');
+    expect(chip).toContain('more.disabled = copies >= spare;');
+    // No new colour and no new class: the stylesheet gains no rule for it.
+    expect(chip).not.toMatch(/#[0-9a-f]{3,6}\b/i);
   });
 
   it('draws the group after the luxuries and writes the strategic term', () => {
@@ -914,7 +1036,9 @@ describe('strategic loans', () => {
       tray.indexOf("group(null, null, 'is-luxuries')"),
     );
     expect(tray).toContain('choiceChip(row, half, choice, `strategic:${id}`');
-    expect(tray).toContain('terms.strategics = held;');
+    // A picked chip starts at its starting count; a chip on the table steps.
+    expect(tray).toContain('writeStrategicCopies(terms, id, on ? strategicStartCopies(choice.spare ?? 0) : 0);');
+    expect(tray).toContain('copiesChip(row, model, side, half, choice, terms)');
     // A press on a struck chip says why under its own group.
     expect(screen).toContain("? 'is-strategics'");
     // The old sentence that said strategic resources cannot be traded is gone.

@@ -658,8 +658,9 @@ function lentHoldings(state: GameState, playerId: number): ResourceHolding[] {
  *   · **the tiles** are `openedResource` asked of every hex this empire owns, so
  *     a pillaged silver mine stops being a copy at exactly the moment it stops
  *     being a holding;
- *   · **minus what was promised** — one per deal row naming the kind (flags
- *     (tt), the user's two amber). Floored, because a save hand-edited into
+ *   · **minus what was promised** — one per deal row naming a luxury (flags
+ *     (tt), the user's two amber), and a strategic row's own count of copies
+ *     (the ruling of 2026-11-23). Floored, because a save hand-edited into
  *     promising three amber from two seams must not lend the third out of a
  *     negative number;
  *   · **plus what was promised to it**, which is a fact about a table and never

@@ -665,7 +665,13 @@ import {
 // one unit a turn in any currency: `City.purchasedUnitTurns` (a stamp for each
 // of three classes) becomes `City.purchasedUnitTurn` (one turn number). A v264
 // log replays to a different state. Nothing is migrated.
-export const SCHEMA_VERSION = 265;
+// Version 266: a strategic resource in a deal carries a number of copies (the
+// user's ruling of 2026-11-23, `docs/flags.md`, "Strategic resources are traded
+// in a quantity"). `DealTerms.strategics` changes from a list of ids, one copy
+// each, to a list of `{ id, copies }` rows (`CopyLoan`, `deals.ts`). A v265 log
+// names strategic loans in the old shape, which the deal gate now refuses.
+// Nothing is migrated.
+export const SCHEMA_VERSION = 266;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

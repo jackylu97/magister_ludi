@@ -3280,7 +3280,7 @@ describe('the copies model in the appraisal', () => {
       if (command.type !== 'proposeDeal') continue;
       for (const side of [command.give, command.take]) {
         for (const id of side.luxuries ?? []) expect(resourceDef(id).kind).toBe('luxury');
-        for (const id of side.strategics ?? []) expect(resourceDef(id).kind).toBe('strategic');
+        for (const { id } of side.strategics ?? []) expect(resourceDef(id).kind).toBe('strategic');
       }
     }
   });

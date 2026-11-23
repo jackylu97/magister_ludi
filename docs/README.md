@@ -2205,10 +2205,21 @@ Eight root pages, all named in `vite.config.ts` inputs:
     (`lendableCopies`, the reading `dealSideError` asks). A chip with no free
     copy is struck through, with the sim's refusal on hover. A chip the
     receiver cannot use yet (no reveal technology) can still be offered, and
-    its hover says so. "last free" marks the last copy free to build with, and
-    the paper warns when it is offered. Unlike a luxury, no strategic row is
-    hidden when both sides hold it. The paper, the drawer, the peace terms and
-    the offers list name a strategic loan as they name a luxury (`termItems`).
+    its hover says so. Unlike a luxury, no strategic row is hidden when both
+    sides hold it.
+  - **A strategic row carries a number of copies** (the ruling in
+    `docs/flags.md`, "Strategic resources are traded in a quantity";
+    `DealTerms.strategics` is a list of `{ id, copies }`, `CopyLoan` in
+    `deals.ts`). A chip that is picked puts `strategicStartCopies` on the
+    table: 4 copies, or every free copy when the side has fewer. A chip on the
+    table opens a stepper (`copiesChip`: minus, the count, plus) with the open
+    gold chip's classes. It runs from 1 to the free copies
+    (`stepStrategicCopies`), and pressing the name takes the row off. The
+    paper, the drawer, the peace terms and the offers list print the count
+    ("Iron ×4", `termItems`), one copy too ("Iron ×1"). "last free" marks a
+    chip with one copy free to build with (`DealChoice.free`,
+    `availableCopies`), and the paper warns when the copies offered take every
+    free copy (`takesEveryFreeCopy`). A luxury row stays at one copy.
 - **The simpler city screen** (`docs/plans/ui-critique-2026-10-16.md`,
   "City screen: simpler"; the fourth-pass frame is `city4` in
   `docs/plans/mockups/scholars-study/quiet-table-fourth-pass/build.py`). The

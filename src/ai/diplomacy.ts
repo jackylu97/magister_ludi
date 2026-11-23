@@ -110,6 +110,8 @@ import {
   dealPartnerSeats,
   proposalsFor,
   termsAreEmpty,
+  loanedCopies,
+  loanedCopiesOf,
   loanedResources,
 } from '../sim/deals';
 import {
@@ -624,15 +626,20 @@ function explainSide(
       value: perTurn * rate,
     });
   }
-  for (const id of loanedResources(terms)) {
+  for (const { id, copies } of loanedCopies(terms)) {
     // `null` is the giving side: what leaves is priced at the baseline whatever
     // this empire already holds, because that is what a seam costs.
     const wanted = lacking === null || lacking(id);
+    // **Each copy is priced as one copy is** (the ruling of 2026-11-23: a
+    // strategic row carries a count). A placeholder until the repricing in
+    // `docs/plans/astra-handoff-2026-11-18.md`, section 0.1m. One copy keeps
+    // its old label, so the bots' own one-copy papers read as before.
+    const name = copies === 1 ? resourceDef(id).name : `${copies} copies of ${resourceDef(id).name}`;
     lines.push({
       label: wanted
-        ? `${resourceDef(id).name} ${what} — at this seat's price for a seam`
-        : `${resourceDef(id).name} ${what} — this seat already has a spare copy`,
-      value: wanted ? ai.war.luxuryGoldBaseline : 0,
+        ? `${name} ${what} — at this seat's price for a seam${copies === 1 ? '' : ', for each copy'}`
+        : `${name} ${what} — this seat already has a spare copy`,
+      value: wanted ? ai.war.luxuryGoldBaseline * copies : 0,
     });
   }
   const lent = terms.luxuries ?? [];
@@ -730,8 +737,13 @@ function resourcesForTrade(state: GameState, playerId: number): ResourceId[] {
   return [...luxuries, ...controlledResources(state, playerId, 'strategic')];
 }
 
-function loanField(id: ResourceId): 'luxuries' | 'strategics' {
-  return resourceDef(id).kind === 'strategic' ? 'strategics' : 'luxuries';
+/**
+ * One copy of one resource as a half of a paper. The bots' own papers lend one
+ * copy of a strategic resource, as before the ruling of 2026-11-23 let a row
+ * carry more.
+ */
+function oneCopyTerms(id: ResourceId): DealTerms {
+  return resourceDef(id).kind === 'strategic' ? { strategics: [{ id, copies: 1 }] } : { luxuries: [id] };
 }
 
 /**
@@ -788,8 +800,10 @@ function asksOurLastCopy(
   player: Player,
   asked: DealTerms,
 ): ResourceId | null {
-  for (const id of loanedResources(asked)) {
-    if (tradeSupply(state, player.id, id) <= 1) return id;
+  // The seat keeps at least one free copy after the paper: a row of several
+  // strategic copies asks that many (the ruling of 2026-11-23).
+  for (const { id, copies } of loanedCopies(asked)) {
+    if (tradeSupply(state, player.id, id) - copies < 1) return id;
   }
   return null;
 }
@@ -852,7 +866,8 @@ function standingRefusal(
   const them = seatPeople(state, receiver.id);
   let asked = 0;
   for (const row of others) {
-    if (loanedResources(row.take).includes(wanted)) asked += 1;
+    // Copies, not papers: another seat's paper may ask for several.
+    asked += loanedCopiesOf(row.take, wanted);
     if (loanedResources(row.give).includes(offered)) {
       return `another empire's paper already offers the ${them} ${resourceDef(offered).name.toLowerCase()}`;
     }
@@ -1480,8 +1495,10 @@ export function counterTerms(
       // ruling of 2026-11-17), and the gate below would refuse the counter.
       if (lendableCopies(state, botSeat, id) < 1) continue;
       if (!resourceIsVisibleTo(id, asker.techsResearched) || tradeSupply(state, askerSeat, id) > 0) continue;
-      const field = loanField(id);
-      counter.take[field] = [...(counter.take[field] ?? []), id];
+      // One copy, as the bot's own papers lend.
+      const one = oneCopyTerms(id);
+      if (one.strategics) counter.take.strategics = [...(counter.take.strategics ?? []), ...one.strategics];
+      else counter.take.luxuries = [...(counter.take.luxuries ?? []), id];
       budget -= ai.war.luxuryGoldBaseline;
     }
     if (termsAreEmpty(counter.take)) return null;
@@ -1543,7 +1560,7 @@ function copyTerms(terms: DealTerms): DealTerms {
   if ((terms.gold ?? 0) > 0) copy.gold = terms.gold;
   if ((terms.goldPerTurn ?? 0) > 0) copy.goldPerTurn = terms.goldPerTurn;
   if ((terms.luxuries ?? []).length > 0) copy.luxuries = [...terms.luxuries!];
-  if (terms.strategics?.length) copy.strategics = [...terms.strategics];
+  if (terms.strategics?.length) copy.strategics = terms.strategics.map((row) => ({ id: row.id, copies: row.copies }));
   if (terms.openBorders === true) copy.openBorders = true;
   if ((terms.cities ?? []).length > 0) copy.cities = [...terms.cities!];
   return copy;
@@ -2188,7 +2205,7 @@ function swapDecision(
   // gone), and the seat kept no copy of its own.
   const standing = state.dealProposals.filter((row) => row.by === player.id);
   const promised = (id: ResourceId): number =>
-    standing.reduce((count, row) => count + (loanedResources(row.give).includes(id) ? 1 : 0), 0);
+    standing.reduce((count, row) => count + loanedCopiesOf(row.give, id), 0);
   // A spare is a kind held twice, of which one copy is its own and not yet
   // promised: a borrowed copy can be used and not lent (the ruling of
   // 2026-11-17), so a seat holding a kind only on loan offers none of it.
@@ -2217,8 +2234,8 @@ function swapDecision(
       if (asked.has(wanted)) continue;
       for (const offered of spare) {
         if (!resourceIsVisibleTo(offered, enemy.techsResearched) || tradeSupply(state, enemy.id, offered) > 0) continue;
-        const give: DealTerms = { [loanField(offered)]: [offered] };
-        const take: DealTerms = { [loanField(wanted)]: [wanted] };
+        const give = oneCopyTerms(offered);
+        const take = oneCopyTerms(wanted);
         const label = `${resourceDef(offered).name} for the ${seatPeople(state, enemy.id)}' ${resourceDef(wanted).name.toLowerCase()}`;
         if (reader !== null) {
           const crowded = standingRefusal(state, enemy, wanted, offered, others);

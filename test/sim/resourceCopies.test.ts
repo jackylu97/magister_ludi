@@ -58,7 +58,7 @@ import { applyCommand } from '../../src/sim/commands';
 import { improvementDef, improvementForResource } from '../../src/sim/improvementData';
 import { LEADER_IDS, leaderDef } from '../../src/sim/leaderData';
 import { dealSideError } from '../../src/sim/diplomacy';
-import { lentCopyCount } from '../../src/sim/deals';
+import { lentCopiesAwayBy, lentCopiesToPlayer, lentCopyCount } from '../../src/sim/deals';
 import { openWar } from '../../src/sim/wars';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { snapshotState } from '../../src/sim/game';
@@ -659,20 +659,20 @@ describe('a bargain may promise only available copies', () => {
     expect(dealSideError(state, 0, 1, { luxuries: ['iron'] }, false)).toBe(
       'Iron is not a luxury',
     );
-    expect(dealSideError(state, 0, 1, { strategics: ['furs'] }, false)).toContain('not a strategic resource');
-    expect(dealSideError(state, 0, 1, { strategics: ['iron', 'iron'] }, false)).toContain('named twice');
+    expect(dealSideError(state, 0, 1, { strategics: [{ id: 'furs', copies: 1 }] }, false)).toContain('not a strategic resource');
+    expect(dealSideError(state, 0, 1, { strategics: [{ id: 'iron', copies: 1 }, { id: 'iron', copies: 1 }] }, false)).toContain('named twice');
   });
 
   it('moves a signed iron loan into army supply and returns it at expiry', () => {
     const { state } = ironBench(1);
-    expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give: { strategics: ['iron'] }, take: {} }).ok).toBe(true);
+    expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give: { strategics: [{ id: 'iron', copies: 1 }] }, take: {} }).ok).toBe(true);
     const dealId = state.dealProposals[0]!.id;
     expect(resourceCopies(state, 1, 'iron')).toBe(0);
     expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId }).ok).toBe(true);
     expect(resourceCopies(state, 0, 'iron')).toBe(0);
     expect(availableCopies(state, 1, 'iron')).toBe(1);
     expect(lentCopyCount(state, 0)).toBe(0);
-    expect(dealSideError(state, 1, 0, { strategics: ['iron'] }, false)).toContain('only on loan');
+    expect(dealSideError(state, 1, 0, { strategics: [{ id: 'iron', copies: 1 }] }, false)).toContain('only on loan');
     const soldier = createUnit(state, 1, 'legionary', 9, 6);
     expect(availableCopies(state, 1, 'iron')).toBe(0);
     state.turn = state.deals[0]!.untilTurn;
@@ -684,7 +684,7 @@ describe('a bargain may promise only available copies', () => {
 
   it('checks the supply again before the other seat signs', () => {
     const { state } = ironBench(1);
-    expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give: { strategics: ['iron'] }, take: {} }).ok).toBe(true);
+    expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give: { strategics: [{ id: 'iron', copies: 1 }] }, take: {} }).ok).toBe(true);
     const dealId = state.dealProposals[0]!.id;
     createUnit(state, 0, 'legionary', 5, 5);
     const before = snapshotState(state);
@@ -695,11 +695,108 @@ describe('a bargain may promise only available copies', () => {
   it('keeps a peace proposal open if recruitment used its promised iron', () => {
     const { state } = ironBench(1);
     openWar(state, 0, 1);
-    expect(applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1, give: { strategics: ['iron'] } }).ok).toBe(true);
+    expect(applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1, give: { strategics: [{ id: 'iron', copies: 1 }] } }).ok).toBe(true);
     createUnit(state, 0, 'legionary', 5, 5);
     const before = snapshotState(state);
     expect(applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 }).ok).toBe(false);
     expect(snapshotState(state)).toBe(before);
+  });
+});
+
+// --- 7b. a strategic loan carries a number of copies -------------------------
+
+/**
+ * The ruling of 2026-11-23 (`docs/flags.md`, "Strategic resources are traded
+ * in a quantity"): a strategic row carries a number of copies, from 1 to the
+ * giver's free copies. For the deal's life the receiver holds that many more
+ * and the giver that many fewer. When the deal ends the copies go home, and
+ * units built with them keep fighting, as with one copy.
+ */
+describe('a strategic loan carries a number of copies', () => {
+  const iron = (copies: number) => ({ strategics: [{ id: 'iron' as const, copies }] });
+
+  it('lends from one copy to every free copy, and refuses a bad count in plain words', () => {
+    const { state } = ironBench(4);
+    expect(dealSideError(state, 0, 1, iron(1), false)).toBeNull();
+    expect(dealSideError(state, 0, 1, iron(4), false)).toBeNull();
+    expect(dealSideError(state, 0, 1, iron(5), false)).toBe(
+      'The A do not have that many free copies of iron to lend',
+    );
+    expect(dealSideError(state, 0, 1, iron(0), false)).toBe('A loan of iron must lend at least one copy');
+    expect(dealSideError(state, 0, 1, iron(-2), false)).toBe('A loan of iron must lend at least one copy');
+    expect(dealSideError(state, 0, 1, iron(1.5), false)).toBe('A loan of iron must be a whole number of copies');
+    // The old shape, a bare id, is not a row.
+    const bare = { strategics: ['iron'] } as unknown as Parameters<typeof dealSideError>[3];
+    expect(dealSideError(state, 0, 1, bare, false)).toBe(
+      'A strategic resource on loan needs a name and a number of copies',
+    );
+    // A unit takes a copy, so the most the empire can lend is one fewer.
+    createUnit(state, 0, 'legionary', 5, 5);
+    expect(dealSideError(state, 0, 1, iron(4), false)).toContain('that many free copies');
+    expect(dealSideError(state, 0, 1, iron(3), false)).toBeNull();
+  });
+
+  it('refuses a bad count as a command and leaves the state byte-identical', () => {
+    const { state } = ironBench(2);
+    const before = snapshotState(state);
+    for (const give of [iron(3), iron(0), { strategics: [null] }, { strategics: ['iron'] }]) {
+      const command = { type: 'proposeDeal', playerId: 0, targetId: 1, give, take: {} } as unknown as Parameters<typeof applyCommand>[1];
+      expect(applyCommand(state, command).ok).toBe(false);
+      expect(snapshotState(state)).toBe(before);
+    }
+  });
+
+  it('moves the count for the deal’s life and sends it home at the end', () => {
+    const { state } = ironBench(4);
+    expect(applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1, give: iron(3), take: {} }).ok).toBe(true);
+    const dealId = state.dealProposals[0]!.id;
+    expect(applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId }).ok).toBe(true);
+    // The row keeps the count, and shares no object with the paper.
+    expect(state.deals[0]!.terms.a).toEqual(iron(3));
+    expect(lentCopiesAwayBy(state, 0)).toEqual({ iron: 3 });
+    expect(lentCopiesToPlayer(state, 1)).toEqual({ iron: 3 });
+    expect(resourceCopies(state, 0, 'iron')).toBe(1);
+    expect(availableCopies(state, 0, 'iron')).toBe(1);
+    expect(resourceCopies(state, 1, 'iron')).toBe(3);
+    expect(availableCopies(state, 1, 'iron')).toBe(3);
+    // The borrower builds with two of them.
+    const soldiers = [createUnit(state, 1, 'legionary', 9, 6), createUnit(state, 1, 'legionary', 9, 7)];
+    expect(availableCopies(state, 1, 'iron')).toBe(1);
+
+    state.turn = state.deals[0]!.untilTurn;
+    bumpRevision(state);
+    expect(resourceCopies(state, 0, 'iron')).toBe(4);
+    expect(availableCopies(state, 0, 'iron')).toBe(4);
+    expect(resourceCopies(state, 1, 'iron')).toBe(0);
+    // Floored at nothing: the two soldiers keep fighting, and no new unit can
+    // be raised on iron until the borrower has a free copy again.
+    expect(availableCopies(state, 1, 'iron')).toBe(0);
+    for (const soldier of soldiers) expect(state.units.find((unit) => unit.id === soldier.id)).toBe(soldier);
+  });
+
+  it('checks the count again before the other seat signs, in a bargain and in a peace', () => {
+    const deal = ironBench(3).state;
+    expect(applyCommand(deal, { type: 'proposeDeal', playerId: 0, targetId: 1, give: iron(3), take: {} }).ok).toBe(true);
+    createUnit(deal, 0, 'legionary', 5, 5);
+    const signed = snapshotState(deal);
+    expect(applyCommand(deal, { type: 'acceptDeal', playerId: 1, dealId: deal.dealProposals[0]!.id }).ok).toBe(false);
+    expect(snapshotState(deal)).toBe(signed);
+
+    const peace = ironBench(3).state;
+    openWar(peace, 0, 1);
+    expect(applyCommand(peace, { type: 'proposePeace', playerId: 0, targetId: 1, give: iron(3) }).ok).toBe(true);
+    createUnit(peace, 0, 'legionary', 5, 5);
+    const before = snapshotState(peace);
+    expect(applyCommand(peace, { type: 'proposePeace', playerId: 1, targetId: 0 }).ok).toBe(false);
+    expect(snapshotState(peace)).toBe(before);
+  });
+
+  it('reads a paper that changes only the count as a new paper', () => {
+    const { state } = ironBench(4);
+    openWar(state, 0, 1);
+    expect(applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1, give: iron(2) }).ok).toBe(true);
+    expect(applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1, give: iron(2) }).ok).toBe(false);
+    expect(applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1, give: iron(3) }).ok).toBe(true);
   });
 });
 
