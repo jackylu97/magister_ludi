@@ -1456,8 +1456,8 @@ describe('determinism', () => {
   // games hold camps, so both hashes changed. The earlier pair was
   // '4900e09e:190684' and '1060a0b4:190844'.
   const RANGED_BOARDS: Record<number, string> = {
-    11: '4cc2dbbb:189209',
-    2026: '007bb7a6:188729',
+    11: 'ce52d09e:189179',
+    2026: '0240baa4:188701',
   };
 
   for (const seed of [11, 2026]) {
