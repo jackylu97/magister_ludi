@@ -3705,9 +3705,11 @@ proposal below: "Your strategic resource changes look good."
 
 - **A strategic row in an offer carries a number of copies**, from 1 to the
   free copies of the side that gives. A luxury row stays at one copy.
-- **The foreign courts screen** puts a stepper on a strategic chip. My
-  reading, the user did not answer: a new row starts at half of the free
-  copies, rounded up.
+- **The foreign courts screen** puts a stepper on a strategic chip. The
+  user: "let's have max(4,available copies) as the starting number". My
+  reading: a new row starts at 4 copies, or at all the free copies if the
+  side has fewer than 4 (the smaller of the two, because a row cannot hold
+  more copies than the side has).
 - **The bot prices each copy** (see the next section).
 
 ## How a bot values and writes a trade (ruled 2026-11-23)
