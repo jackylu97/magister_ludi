@@ -60,6 +60,7 @@ import {
   pieceMaterials,
   placePiece,
   rankBossPosition,
+  badgeIsSpent,
   signUnits,
   unitColor,
   unitStackIndices,
@@ -1839,28 +1840,46 @@ describe('the worker charge badge', () => {
   });
 
   /**
-   * The other side of the fingerprint trap, and the answer to the question the
-   * scout's movement buff raises: does a change to what a unit can *do* need a
-   * rebuild?
+   * A movement allowance alone is not in the fingerprint: a scout with three
+   * points and a scout with two are drawn the same, and a hash that moved with
+   * `movesLeft` would rebuild the units layer for nothing.
    *
-   * No, and it must not get one. The trap in `CLAUDE.md` is about properties
-   * that are *visible* — position, health, owner — and a movement allowance is
-   * not one of them: a scout with three points and a scout with none are the
-   * same piece standing on the same hex, drawn identically. Every unit on the
-   * board spends its allowance every turn, so a fingerprint that moved with
-   * `movesLeft` would rebuild the whole units layer on every step of every
-   * march — the one thing this renderer refuses to do — and it would do it to
-   * redraw exactly what was already there.
-   *
-   * Pinned rather than left implicit because the natural mistake, on being told
-   * "the scout's moves changed", is to add the field to the hash.
+   * What is in it is one bit: does the unit still await orders
+   * (`unitAwaitsOrders`). The badge of the seat's own unit goes faint when it
+   * has nothing left to do this turn (the user, 2026-11-23, `badgeIsSpent`), and
+   * a unit that fortifies, sleeps or spends its last point changes nothing else
+   * that the hash reads.
    */
-  it('leaves the fingerprint alone when only a movement allowance changed', () => {
-    const spent = state([{ type: 'scout' }]);
+  it('leaves the fingerprint alone when a movement allowance changed and the unit still awaits orders', () => {
+    const tired = state([{ type: 'scout' }]);
     const fresh = state([{ type: 'scout' }]);
+    tired.units[0]!.movesLeft = fresh.units[0]!.movesLeft - 1;
+    expect(tired.units[0]!.movesLeft).toBeGreaterThan(0);
+    expect(signUnits(tired)).toBe(signUnits(fresh));
+  });
+
+  it('moves the fingerprint when a unit has nothing left to do this turn', () => {
+    const fresh = state([{ type: 'warrior' }]);
+    const spent = state([{ type: 'warrior' }]);
+    const asleep = state([{ type: 'warrior' }]);
     spent.units[0]!.movesLeft = 0;
-    expect(fresh.units[0]!.movesLeft).not.toBe(spent.units[0]!.movesLeft);
-    expect(signUnits(spent)).toBe(signUnits(fresh));
+    asleep.units[0]!.sleeping = true;
+    expect(signUnits(spent)).not.toBe(signUnits(fresh));
+    expect(signUnits(asleep)).not.toBe(signUnits(fresh));
+  });
+
+  it('fades the badge of the seat\'s own spent unit and of no other', () => {
+    const board = state([{ type: 'warrior' }, { type: 'warrior' }]);
+    const mine = board.units[0]!;
+    const other = board.units[1]!;
+    other.ownerId = mine.ownerId + 1;
+    expect(badgeIsSpent(mine, mine.ownerId)).toBe(false);
+    mine.movesLeft = 0;
+    other.movesLeft = 0;
+    expect(badgeIsSpent(mine, mine.ownerId)).toBe(true);
+    expect(badgeIsSpent(other, mine.ownerId)).toBe(false);
+    // The board with no seat (the spectator's) fades nothing.
+    expect(badgeIsSpent(mine, null)).toBe(false);
   });
 
   /**
@@ -2051,6 +2070,10 @@ describe('the worker charge badge', () => {
       // without moving would otherwise keep the old one. The rank, never the
       // raw experience: see `rankIndex`.
       'rankIndex(unit)',
+      // Added deliberately with the faint badge (the user, 2026-11-23): the
+      // badge of a unit with nothing left to do this turn is drawn faint, and
+      // fortifying or sleeping moves nothing else here. See `badgeIsSpent`.
+      '(unitAwaitsOrders(unit)',
       'garrison',
     ]);
   });

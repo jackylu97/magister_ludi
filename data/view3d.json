@@ -587,6 +587,7 @@
       "warElephant": "warElephant"
     },
     "selectedRimShade": 0.3,
+    "spentOpacity": 0.45,
     "atlasCell": 256,
     "atlasColumns": 4,
     "iconScale": 0.66,

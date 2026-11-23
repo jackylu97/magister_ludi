@@ -167,7 +167,7 @@ import { unitHealthBonus } from '../sim/resourceEffects';
 // The simulation's own reading of "this piece occupies no slot", asked here for
 // the half of the same sentence that is about the picture — see
 // `coveredTraders`. Never a category compared against a name in the renderer.
-import { stacksFreely } from '../sim/units';
+import { stacksFreely, unitAwaitsOrders } from '../sim/units';
 
 import {
   type BadgeClass,
@@ -1005,6 +1005,24 @@ export function banneredTownCells(state: GameState, seat: number | null): Set<nu
   return cells;
 }
 
+/**
+ * Whether this seat sees the unit's badge faint: the unit is the seat's own and
+ * has nothing left to do this turn (the user, 2026-11-23: "can we fade the
+ * icons of units that have completed their turns/no moves left?").
+ *
+ * "Nothing left to do" is the simulation's own question, `unitAwaitsOrders`,
+ * turned round: no movement left, or a standing order (a march, fortified,
+ * asleep, exploring, a trade route). So the bright badges on the board are
+ * exactly the units End Turn would stop for. Another seat's units are never
+ * faint: their orders are not this seat's business.
+ *
+ * Shared with the city banner's garrison row, which carries the badge of a unit
+ * standing in a town.
+ */
+export function badgeIsSpent(unit: Unit, seat: number | null): boolean {
+  return seat !== null && unit.ownerId === seat && !unitAwaitsOrders(unit);
+}
+
 /** Rim ink is stored as a linear colour so it matches a material made from the same hex. */
 function badgeRimTint(ink: number, selected: boolean): Tint {
   const { r, g, b } = new Color(selected ? shade(ink, BADGE.selectedRimShade) : ink);
@@ -1271,6 +1289,7 @@ export class UnitLayer {
           faceCamera,
           badges,
           unit.id === selectedUnitId,
+          badgeIsSpent(unit, seat),
           slots,
         );
         if (icons && isBuilder(unit)) {
@@ -1382,6 +1401,7 @@ export class UnitLayer {
     faceCamera: Quaternion,
     badges: UnitBadges,
     selected: boolean,
+    spent: boolean,
     slots: InstanceHandle[],
   ): void {
     const anchor = placement.position
@@ -1389,6 +1409,8 @@ export class UnitLayer {
       .setY(placement.position.y + badgeCenterY(visualHeight));
     const size = new Vector3(badgeDiameter(), badgeDiameter(), 1);
     const wild = isBarbarian(state, unit.ownerId);
+    // One figure for the disc, the rim and the trim ring, so the badge fades whole.
+    const solid = spent ? BADGE.spentOpacity : 1;
 
     slots.push(
       collector.add(
@@ -1401,7 +1423,7 @@ export class UnitLayer {
         // if the two materials were ever made interchangeable.
         [wild ? BADGE.wildPaperColor : BADGE.paperColor],
         new Matrix4().compose(anchor, faceCamera, size),
-        { material: badges.materialFor(wild), order: RENDER_ORDER.badge },
+        { material: badges.materialFor(wild, spent), order: RENDER_ORDER.badge },
       ),
     );
 
@@ -1417,7 +1439,7 @@ export class UnitLayer {
       new Matrix4().compose(front, faceCamera, size),
       // Draw the rim before its disc so the paper covers the inner edge evenly.
       {
-        overlay: true, opacity: 1, order: RENDER_ORDER.badge - (VIEW3D.visualTest.northStar ? .4 : 0),
+        overlay: true, opacity: solid, order: RENDER_ORDER.badge - (VIEW3D.visualTest.northStar ? .4 : 0),
         tint: badgeRimTint(ink, selected), dynamicTint: true,
       },
     );
@@ -1441,7 +1463,7 @@ export class UnitLayer {
           [unitTrimColor(state, unit)],
           new Matrix4().compose(nearer, faceCamera, trimSize),
           // After the disc, so the paper never covers it.
-          { overlay: true, opacity: 1, order: RENDER_ORDER.badge + .4 },
+          { overlay: true, opacity: solid, order: RENDER_ORDER.badge + .4 },
         ),
       );
     }
@@ -1888,6 +1910,11 @@ export function signUnits(state: GameState, seat: number | null = null): number 
     h = Math.imul(h ^ routeBit(unit), 16777619);
     h = Math.imul(h ^ exploreBit(unit), 16777619);
     h = Math.imul(h ^ rankIndex(unit), 16777619);
+    // A unit that fortifies, sleeps or spends its last movement changes nothing
+    // else here, and its badge goes faint (`badgeIsSpent`). Hashed for every
+    // unit and not only the seat's, so the city banners, which ask with no
+    // seat, redraw their garrison rows on the same change.
+    h = Math.imul(h ^ (unitAwaitsOrders(unit) ? 1 : 0), 16777619);
     // A city can be founded or razed under a standing unit. Its banner takes over the unit's badge.
     const garrison = bannered?.has(tileIndex(state.map, unit.col, unit.row)) ? 1 : 0;
     h = Math.imul(h ^ garrison, 16777619);

@@ -3558,3 +3558,22 @@ do 3 camps every 5 turns." So `campEveryTurns` goes from 2 to 5.
 
 **Corrected a moment later:** the user: "oh shoot, let's make it every 3
 turns." So `campEveryTurns` is **3**, not 5: three camps every three turns.
+
+## A spent unit's badge is faint (ruled and built 2026-11-23)
+
+The user: "can we fade the icons of units that have completed their turns/no
+moves left?"
+
+- The badge of the local seat's own unit is drawn faint when the unit has
+  nothing left to do this turn. The test is `unitAwaitsOrders` turned round
+  (`badgeIsSpent` in `src/render3d/pieces.ts`): no movement left, or a
+  standing order (a march in progress, fortified, asleep, exploring, a trade
+  route). So the solid badges are the units that End Turn stops for.
+- The disc, the rim and the trim ring fade together, to
+  `badges.spentOpacity` (0.45) in `data/view3d.json`. The hit bar, the charge
+  number and the rank mark stay solid. The unit's figure does not change.
+- A unit in a town has its badge on the city banner. That roundel fades the
+  same way.
+- Another seat's units and the barbarians never fade.
+- One bit joined the unit fingerprint (`signUnits`), so the layer redraws when
+  a unit fortifies or sleeps without moving.
