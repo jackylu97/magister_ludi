@@ -130,6 +130,19 @@ The user did not comment on these, so the recommended reading stands until the u
 5. **Should a free great person raise the price of the next one?** The user: "in theory they shouldn't". Today they do: every pick raises `Player.greatPeopleRecruited`, however the offer opened (`settleGreatPersonChoice`, `src/sim/greatPeople.ts`). If free picks stop counting, each free draft is worth one whole step of the ladder more than today, and the loop gains supply. Recommended: decide after the nerf is on the play server.
 6. **Should percentages raise a one-time grant?** The user, on whether "production toward wonders" raises a windfall of production: "it should be, but i think it should. modifiers should affect all sources of a yield". Today a one-time grant is not raised by any percentage (design entry XVIII.5), and that rule covers every windfall in the game. I read the comment as a wish to change the rule. It is a large change, so it needs the user's plain yes first.
 
+### The user's answers to the open points (2026-11-23, in chat)
+
+The user's words: "paradise garden sounds good. panegyric, how about gain 1 free reroll when one of your great people acts. lets try with every seating. for #4 please list the card abiities, i dont know their effects by name. hmm, let's just not bother with #5 then. let's queue these items because i'd like my friend to playtest on the current branch, and get his thoughts, even if the game is broken."
+
+- **Point 1, settled.** Commission: The Paradise Garden's reward is "each great-person work gives +2 of its own yield for each other work in its town".
+- **Point 2, settled.** The Panegyric: "When one of your great people acts, you gain one free reroll."
+- **Point 3, settled.** The swap card gains on every seating.
+- **Point 4, settled.** The user, after reading the three effects: "roll of musters can go. garden courts can go. sed festival is fine." The Roll of Masters and The Garden Courts are retired. The Sed Festival stays.
+- **Points 5 and 6.** The user's "#5" was the fifth question in chat, which is point 6 here: percentages do not raise a one-time grant, and that rule stays. Point 5 (a free great person raises the next price) is not changed.
+- **No card build starts now.** The settled changes are queued until the user's friend has played the branch as it is.
+
+The user's questions for the four reviews, and one more job: "is the utility in the deck useful? Are there satisfying late game options for the current themes in the game? Could we design more synergy around the themes with other card combinations through _all_ decks and bonuses in the game? I also think a bunch of the wonders could use a re-work, i found them generally not useful, like library of ashurbanipal."
+
 ### Reviews the user asked for
 
 | Deck | The user's words | The job |
