@@ -1569,7 +1569,7 @@ export type CombatCondition =
    */
   | { test: 'coastal' }
   /**
-   * This piece is dug in (`Unit.fortifiedTurns`) — Jan Žižka's wagon fort.
+   * This piece is dug in (`Unit.fortified`) — Jan Žižka's wagon fort.
    *
    * A fact about the *piece* rather than about its type, which is precisely why
    * it is a condition and not a `UnitFilter` field: see that interface's
@@ -2388,7 +2388,11 @@ export type CountKind =
   | 'puppetPopulation'
   /** Combat units standing in this city (city-scoped). */
   | 'garrison'
-  /** Fortified garrison, each worth 1 + its fortification level (city-scoped). */
+  /**
+   * Fortified units in the city's garrison, each worth 1 (city-scoped). Each
+   * was worth 1 more for every turn it had been fortified, up to two, until the
+   * user's ruling of 2026-11-23 made fortification flat.
+   */
   | 'garrisonWatch'
   /**
    * **Fortified military units** of this empire inside its borders (Dominion
@@ -5066,11 +5070,10 @@ export type BehaviorRuleId =
    * `class`.
    *
    * Read through `blockades(state, unit)` (`blockade.ts`), which asks the row's
-   * own `UnitDef.blockades` marker first and this rule second. So the four
-   * places that ask whether a piece blockades (the harbour mouth, the sea lane
-   * in `siegeField`, and both halves of the line of battle) give a card's hulls
-   * what the marker gives the heavy line. Only a ship can blockade: the rule
-   * says nothing about a land piece.
+   * own `UnitDef.blockades` marker first and this rule second. So the places
+   * that ask whether a piece blockades (the harbour mouth and the sea lane in
+   * `siegeField`) give a card's hulls what the marker gives the heavy line. Only
+   * a ship can blockade: the rule says nothing about a land piece.
    */
   | 'blockades'
   /**
@@ -7608,7 +7611,7 @@ interface CardUnitStatEffect {
    *   · `'embarked'` — on water, which for a piece that is on the board at all
    *     means it embarked to get there (`isEmbarkableTerrain`, Entry XXVII).
    *     The Great Lighthouse's extra point of movement at sea.
-   *   · `'fortified'` — the piece has dug in (`Unit.fortifiedTurns`, presence is
+   *   · `'fortified'` — the piece has dug in (`Unit.fortified`, presence is
    *     the state). The Alchemical Codex's extra mending, and the only one of
    *     the three that is a fact about the *posture* rather than the ground.
    *   · `'grassOrPlains'` — **the open country**: flat or hilled grassland and
@@ -9847,25 +9850,8 @@ export type PressureRuleId =
   | 'siteStrength'
   | 'cityRange'
   | 'cityStrength'
-  | 'roadStrength'
   | 'routeStrength'
-  | 'capitalStrength'
-  /**
-   * **How far the seat of the faith carries** — Pilgrims' (the user's orders
-   * pass, `docs/flags.md` (xxx) mark 18).
-   *
-   * `capitalStrength`'s missing twin. Every other source in the tide is a pair —
-   * a strength and a reach — and the founder's capital had only the first: it
-   * held *itself* and drifted nowhere, which is `explainPressure`'s "a founder's
-   * capital does not drift". So `rules.religion.capitalRange` is **0** in every
-   * game nothing says otherwise, meaning the capital's own hex and nothing
-   * further, and the fold is byte-identical to the day before this existed.
-   * A card that shifts it gives the seat a reach, which is the whole of what
-   * Pilgrims is.
-   */
-  | 'capitalRange'
   | 'templeOwnPercent'
-  | 'templeForeignPercent'
   | 'bombRange'
   | 'bombRangePercent'
   | 'foreignBombPercent'

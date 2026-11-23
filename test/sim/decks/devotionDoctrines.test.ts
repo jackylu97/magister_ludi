@@ -836,12 +836,29 @@ describe('The Martyr’s Crown', () => {
   });
 
   it('counts a Temple’s share, as every lump does', () => {
+    // A Temple doubles a lump of the faith its town already follows
+    // (`templeShare`). The town follows the faith, seven citizens of twelve.
+    const { state, near, faith } = board();
+    near.population = 12;
+    near.followers = { [faith.id]: 7 };
+    addBuilding(state, near, 'temple');
+    bumpRevision(state);
+    hold(state, 'theMartyrsCrown', 1);
+    killSeatOnesWarrior(state);
+    // Thirty doubled is sixty: the five citizens left all turn. Without the
+    // Temple, thirty turns three.
+    expect(near.followers?.[faith.id]).toBe(12);
+  });
+
+  it('lets the lump through a Temple at full strength when the town keeps no faith', () => {
+    // Other religions press a town with a Temple at full strength (the user's
+    // ruling of 2026-11-23).
     const { state, near, faith } = board();
     addBuilding(state, near, 'temple');
     bumpRevision(state);
     hold(state, 'theMartyrsCrown', 1);
     killSeatOnesWarrior(state);
-    expect(near.followers?.[faith.id] ?? 0).toBeLessThan(3);
+    expect(near.followers?.[faith.id]).toBe(3);
   });
 
   it('is one rider on the death occasion, which presses thirty at a range of three', () => {

@@ -3579,7 +3579,7 @@ function wakeIdleWorker(state: GameState, player: Player, sitting?: BotSitting):
  * a blow ends one**: `breakFortify` (`state.ts`) has exactly three callers —
  * `advanceAlongPath` when a position changes, `applyCombat` when a piece swings,
  * and `captureUnit` — and `unitAwaitsOrders` answers *false* for anything
- * carrying `fortifiedTurns`. So a soldier that stood down once is a soldier
+ * carrying `fortified`. So a soldier that stood down once is a soldier
  * `firstBlocker` never names again, and this bot only ever hears about a piece
  * through `firstBlocker`. Every stand-down in this file therefore used to be
  * permanent, which is most of what the user was actually looking at
@@ -3627,11 +3627,11 @@ function wakeTheCampaign(
     if (unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
     if (!isFieldSoldier(unitDef(unit.type))) continue;
     // **The two ways a soldier stops asking**, and neither of them is a decision
-    // this bot ever took: a trench (`fortifiedTurns`) and a march to a hex it
+    // this bot ever took: a trench (`fortified`) and a march to a hex it
     // will never be allowed to stand on (`marchIsStalled`). Both make
     // `unitAwaitsOrders` answer *false* for ever. Asked last of these tests because
     // `canStopOn` is the dear one, and the order of pure tests changes no answer.
-    if (unit.fortifiedTurns === undefined && !marchIsStalled(state, unit)) continue;
+    if (unit.fortified === undefined && !marchIsStalled(state, unit)) continue;
     // **One call a piece a turn.** A march that takes no step does not break the
     // trench (`breakFortify` runs only when a piece changes hex), so a dug-in
     // piece that cannot take its first step (the hex it would have to stop on
@@ -3705,7 +3705,7 @@ function wakeTheHunt(state: GameState, player: Player, sitting?: BotSitting): Bo
   if (hunt.short.length === 0 && hunt.whole.length === 0) return null;
   for (const unit of state.units) {
     if (unit.ownerId !== player.id) continue;
-    if (unit.fortifiedTurns === undefined && unit.sleeping !== true) continue;
+    if (unit.fortified === undefined && unit.sleeping !== true) continue;
     if (unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
     if (own.called.has(unit.id)) continue;
     if (!isFieldSoldier(unitDef(unit.type))) continue;
@@ -10545,7 +10545,7 @@ function preferredCityCapture(
 function fortifiedRangedAttack(state: GameState, player: Player): BotDecision | null {
   const ai = aiFor(player);
   for (const unit of state.units) {
-    if (unit.ownerId !== player.id || unit.fortifiedTurns === undefined) continue;
+    if (unit.ownerId !== player.id || unit.fortified === undefined) continue;
     if (!isRanged(unitDef(unit.type)) || unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
     if (restAndHeal(state, player, unit) !== null) continue;
     const review: StrikeReview = { candidates: [], deferredToRanged: false };

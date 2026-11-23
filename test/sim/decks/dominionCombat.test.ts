@@ -220,13 +220,13 @@ describe('Dominion D2 — the attack rules', () => {
 
   it('The Marching Camps keep an attacker dug in', () => {
     const without = siege('knight');
-    without.piece.fortifiedTurns = 2;
+    without.piece.fortified = true;
     strike(without.state, without.piece, 8, 5);
-    expect(without.piece.fortifiedTurns).toBeUndefined();
+    expect(without.piece.fortified).toBeUndefined();
     const camps = siege('knight', 'dominionMarchDiscipline');
-    camps.piece.fortifiedTurns = 2;
+    camps.piece.fortified = true;
     strike(camps.state, camps.piece, 8, 5);
-    expect(camps.piece.fortifiedTurns).toBe(2);
+    expect(camps.piece.fortified).toBe(true);
   });
 
   it('The Swift Riders let a mounted attacker keep all but one point', () => {

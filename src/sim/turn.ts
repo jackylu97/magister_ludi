@@ -47,11 +47,11 @@
  * and it is the same argument twice: a unit that fought is not resting, so the
  * flag has to survive until healing has read it.
  *
- * Milestone 5's two additions sit where they do for reasons of their own.
  * `healCities` is a sibling of `healUnits` rather than part of it, because a
- * city heals unconditionally and a unit does not — one rule each, in one place
- * each. `advanceFortify` follows the healing so that "has this unit been still
- * all turn?" is asked once, of one board state, by both.
+ * city heals unconditionally and a unit does not: one rule each, in one place
+ * each. There was an `advanceFortify` phase after the healing, which raised a
+ * fortified unit's bonus each turn. The user's ruling of 2026-11-23 made the
+ * bonus flat, so the phase is gone.
  *
  * Entry XX adds one phase, `barbarians`, between `healCities` and `healUnits`,
  * and its position is that same argument read once more: the wild acts *after*
@@ -120,7 +120,6 @@ import { recordDeckTally } from "./ledgerFold";
 import {
   type CombatOutcome,
   type SiegeReport,
-  advanceFortify,
   healCities,
 } from "./combat";
 import { type PillageReport, raidFromTheSea } from "./improvements";
@@ -951,13 +950,6 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: healUnits,
   },
   {
-    name: "advanceFortify",
-    // Everybody still dug in digs a little deeper. After `healUnits`, because
-    // fortifying and resting are different questions and a unit that fortified
-    // this turn has still been standing still all of it.
-    run: advanceFortify,
-  },
-  {
     name: "marchTraders",
     // The caravans keep walking, turn around at each end, and drop a route that
     // has run out. Directly before `spendLeftoverMovement`, and the position is
@@ -969,9 +961,9 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // The explorers aim themselves at the next unseen hex, walk to it, aim
     // again, and stand down when there is none left within reach. Still
     // directly before `spendLeftoverMovement`, and for the seat's own reasons:
-    // everything a march must run *after* (the healing and the fortifying,
-    // which both ask whether a piece stood still all turn) is above it, and a
-    // piece this phase leaves jammed is the one spender's to try once more.
+    // everything a march must run *after* (the healing, which asks whether a
+    // piece stood still all turn) is above it, and a piece this phase leaves
+    // jammed is the one spender's to try once more.
     run: rangeExplorers,
   },
   {
@@ -1134,7 +1126,7 @@ function wakeSleepers(state: GameState): void {
       if (foreignSoldierInSight(state, unit, soldiers)) wakeUnit(unit);
       continue;
     }
-    if (unit.fortifiedTurns === undefined) continue;
+    if (unit.fortified === undefined) continue;
     if (isBarbarian(state, unit.ownerId)) continue;
     // Full health ends a wait to heal. The piece's own maximum, with its
     // empire's share, which is the bar `explainUnitHeal` caps the heal at.
@@ -1378,9 +1370,9 @@ function rangeExplorers(state: GameState, report: TurnReport): void {
  *     spends *this* turn's rather than next turn's. One line later and the
  *     allowance has been refilled, and the phase would be a free extra march
  *     every turn for every unit under orders.
- *   · **After `healUnits` and `advanceFortify`**, and this is the load-bearing
- *     half. Both ask "has this unit been still all turn?", and the answer must
- *     be about the turn the *player* had. Asking any earlier would make a
+ *   · **After `healUnits`**, and this is the load-bearing half. It asks "has
+ *     this unit been still all turn?", and the answer must be about the turn
+ *     the *player* had. Asking any earlier would make a
  *     unit's healing depend on whether a neighbour happened to step out of its
  *     way — a piece that sat jammed all turn would heal or not according to
  *     somebody else's marching order, which is a rule nobody could predict and

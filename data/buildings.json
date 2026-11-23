@@ -448,7 +448,7 @@
       "culture": 0,
       "faith": 2,
       "sciencePerPop": 0,
-      "note": "The religion this city follows presses on it more strongly, and other religions press on it less.",
+      "note": "The religion this city follows presses on it more strongly. Other religions press on it at full strength.",
       "requiresBuilding": "shrine"
     },
     "market": {

@@ -598,7 +598,7 @@ describe('the bot defends itself', () => {
     const campTile = at(state, 8, 5);
     state.camps = [{ col: campTile.col, row: campTile.row, foundedTurn: state.turn }];
     const wild = state.players.find((player) => player.barbarian)!;
-    createUnit(state, wild.id, 'warrior', campTile.col, campTile.row).fortifiedTurns = 2;
+    createUnit(state, wild.id, 'warrior', campTile.col, campTile.row).fortified = true;
     recomputeAllVisibility(state);
     bumpRevision(state);
     expect(findPath(state, free, campTile)).toBeNull();

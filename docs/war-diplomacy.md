@@ -100,9 +100,13 @@ and removed the counter from an embarked unit.
 - A **ship attacking an embarked piece** takes no counter-blow
   (`boardsAtSea`, a clause of `counters` in `planCombat`). The forecast shows
   no damage to the ship, as it does for a ranged shot.
-- The at-sea penalty is separate: `rules.naval.atSeaPenalty` is a *strength*
-  line on the defender, so the passenger is easier to kill, and a light hull
-  escort cancels it.
+- The at-sea penalty is separate: `rules.naval.atSeaPenalty` (15 since
+  2026-11-23, was 20) is a *strength* line on the defender, so the passenger is
+  easier to kill, and a light hull escort cancels it.
+- Ships get no bonus for friendly ships beside them. The line of battle
+  (`lineBonusPerHull`, `lineBonusMax`) was removed on 2026-11-23 (`docs/flags.md`,
+  "Eight simpler rules", item 5). Hit and run and the escort stay: they belong
+  to the unit rows.
 - **The scale everything here is measured on is the strength ladder** (batch U9,
   `docs/flags.md` (ttt); re-cut at the user's own figures by U9b, (yyy), which
   also raised every hull): every `combatStrength` and `rangedStrength` is Civ 6's

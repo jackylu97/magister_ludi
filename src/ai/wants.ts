@@ -1827,9 +1827,10 @@ function explainNextRung(
  * say.
  *
  * Crude in one stated way: a town inside the range is counted whether or not it
- * already follows somebody else's faith, and a rival temple halves what reaches
- * it. That is what `religion.tideShare` is for — the sheet's opinion of how much
- * of the reach becomes a congregation, in one number a tuner can move.
+ * already follows somebody else's faith, and a temple there doubles what that
+ * faith presses. That is what `religion.tideShare` is for — the sheet's
+ * opinion of how much of the reach becomes a congregation, in one number a
+ * tuner can move.
  */
 function tideReach(state: GameState, player: Player, ctx: ValueContext): number {
   const range = RULES.religion.siteRange;

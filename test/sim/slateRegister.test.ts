@@ -220,8 +220,8 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // count (The Fortress Empire) and the `fortifiedUnit` hex test (The Farming
   // Garrisons, The Castra) read.
   {
-    field: 'fortifiedTurns',
-    pattern: /\.fortifiedTurns\s*=[^=]|delete\s+\w+(\.\w+)*\.fortifiedTurns/,
+    field: 'fortified',
+    pattern: /\.fortified\s*=[^=]|delete\s+\w+(\.\w+)*\.fortified\b/,
   },
   // Dominion batch D7: the empires a seat has met, which The Defiant Kingdom's
   // condition (`rivalHoldsMoreTowns`) reads. `recordMeetings` writes it through
@@ -409,12 +409,12 @@ const ANNOUNCING = new Set([
   'state.ts#createUnit',
   'state.ts#removeUnit',
   'tech.ts#settleResearch',
-  // Dominion batch D7: the three writers of `Unit.fortifiedTurns` that hold the
-  // state: a unit told to fortify, the wild's warden digging in, and every
-  // fortified unit digging a turn deeper.
+  // Dominion batch D7: the two writers of `Unit.fortified` that hold the
+  // state: a unit told to fortify, and the wild's warden digging in. A third,
+  // `advanceFortify`, raised a turn count until the bonus became flat
+  // (2026-11-23).
   'commands.ts#applyFortify',
   'barbarians.ts#digIn',
-  'combat.ts#advanceFortify',
 ]);
 
 /**

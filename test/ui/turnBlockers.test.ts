@@ -103,12 +103,10 @@ describe('unitAwaitsOrders', () => {
     expect(unitAwaitsOrders(unit)).toBe(false);
   });
 
-  it('does not call a fortified unit idle, however long it has been dug in', () => {
+  it('does not call a fortified unit idle', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 3, 3);
-    unit.fortifiedTurns = 0;
-    expect(unitAwaitsOrders(unit)).toBe(false);
-    unit.fortifiedTurns = 5;
+    unit.fortified = true;
     expect(unitAwaitsOrders(unit)).toBe(false);
   });
 
@@ -160,7 +158,7 @@ describe('unitAwaitsOrders', () => {
     // caravan's next leg during resolution rather than the instant it arrives,
     // so a laden trader rests on the destination hex with a full allowance and
     // no stored `path` between legs. `Unit.trade` present is its standing
-    // order, exactly as `fortifiedTurns` and `sleeping` are.
+    // order, exactly as `fortified` and `sleeping` are.
     const state = flatState();
     const unit = createUnit(state, 0, 'trader', 3, 3);
     unit.trade = { from: 1, to: 2, outbound: false };
@@ -241,7 +239,7 @@ describe('unitOfferedForOrders', () => {
     expect(unitOfferedForOrders(asleep)).toBe(false);
 
     const dugIn = createUnit(state, 0, 'warrior', 4, 4);
-    dugIn.fortifiedTurns = 2;
+    dugIn.fortified = true;
     dugIn.path = [{ col: 5, row: 4 }];
     expect(unitOfferedForOrders(dugIn)).toBe(false);
 
@@ -365,7 +363,7 @@ describe('firstBlocker · idle units', () => {
     const state = settled();
     spentUnit(state, 0, 3, 3);
     createUnit(state, 0, 'warrior', 4, 3).path = [{ col: 5, row: 3 }];
-    createUnit(state, 0, 'warrior', 5, 4).fortifiedTurns = 2;
+    createUnit(state, 0, 'warrior', 5, 4).fortified = true;
     expect(firstBlocker(state, 0)).toBeNull();
   });
 

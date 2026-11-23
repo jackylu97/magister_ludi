@@ -105,7 +105,8 @@ describe('faithHoverText, on the seat’s own town', () => {
     const text = faithHoverText(state, state.cities[0]!, 0);
     expect(text.split('\n')).toEqual([
       'Uruk ✶ · Azure · 5 citizens · follows the Grain Cult',
-      'the Grain Cult · 3 of 5 — Holy site +6 · Your capital +4 — 10 a turn',
+      // The capital presses nothing of its own since 2026-11-23.
+      'the Grain Cult · 3 of 5 — Holy site +6 — 6 a turn',
       // A faith with followers and no pressure — the tide carried it here and
       // has since receded. Not "Nothing presses here.", which is the *card's*
       // sentence for a town nothing has reached.
@@ -125,7 +126,7 @@ describe('faithHoverText, on a foreign town the seat can see', () => {
       // with no followers here and real pressure is exactly the reading a
       // player raises this lens to get.
       'the Grain Cult · 0 of 4 — Holy site +6 — 6 a turn',
-      'the Way of the Hearth · 3 of 4 — Your capital +4 — 4 a turn',
+      'the Way of the Hearth · 3 of 4 — nothing presses',
       '1 of 4 follow the old gods.',
     ]);
   });

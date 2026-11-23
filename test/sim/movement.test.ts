@@ -172,7 +172,7 @@ describe('moveUnit onto one of your own soldiers', () => {
     const mover = createUnit(state, 0, 'warrior', 4, 4);
     const sitter = createUnit(state, 0, 'spearman', 5, 4);
     sitter.sleeping = true;
-    sitter.fortifiedTurns = 1;
+    sitter.fortified = true;
     const moverStart = mover.movesLeft;
     const sitterStart = sitter.movesLeft;
 
@@ -183,7 +183,7 @@ describe('moveUnit onto one of your own soldiers', () => {
     expect(mover.movesLeft).toBeLessThan(moverStart);
     expect(sitter.movesLeft).toBeLessThan(sitterStart);
     expect(sitter.sleeping).toBeUndefined();
-    expect(sitter.fortifiedTurns).toBeUndefined();
+    expect(sitter.fortified).toBeUndefined();
     expect(mover.path).toBeUndefined();
     expect(sitter.path).toBeUndefined();
   });

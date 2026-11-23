@@ -187,14 +187,13 @@ interface CombatRules {
   /** Half-width of the random band: the roll is uniform in `[1 − b, 1 + b]`. */
   rollBand: number;
   /**
-   * **Strength points** added per turn spent fortified, and points is the whole
-   * of the 2026-08-28 ruling: terrain, the trench, a card and a wall are one
-   * kind of number on one ledger (Civ VI's form), so nothing here is a fraction
-   * of a unit's own strength any more.
+   * **Strength points** a fortified unit gains when it defends. Flat, from the
+   * first turn the unit is fortified, and it does not grow (the user's ruling
+   * of 2026-11-23: "Fortify flat +4"). Points, as the 2026-08-28 ruling has it:
+   * terrain, the trench, a card and a wall are one kind of number on one
+   * ledger, so nothing here is a fraction of a unit's own strength.
    */
-  fortifyBonusPerTurn: number;
-  /** Cap on the fortify bonus in points, however long a unit sits still. */
-  fortifyMax: number;
+  fortifyBonus: number;
   /**
    * **Strength points** a melee attacker loses when it attacks across a river,
    * as one flat line on its side of the ledger (`planCombat`). A positive
@@ -306,19 +305,21 @@ interface RankRung {
 }
 
 /**
- * The six numbers the naval line spends. There were seven until the user's
+ * The four numbers the naval line spends. There were seven until the user's
  * ruling of 2026-11-21 removed the ship's share of the counter-blow from an
  * embarked unit (`embarkedCounterPercent`): an embarked unit does not hit back
- * at a ship now, so there is no figure to tune.
+ * at a ship now, so there is no figure to tune. The ruling of 2026-11-23
+ * removed the line of battle and its two numbers (`lineBonusPerHull`,
+ * `lineBonusMax`).
  *
  * Every *other* fact about a ship is on its roster row — the strengths, the
  * movement, the range, the labelled lines the triangle is made of — because they
  * describe *a hull* rather than the system, which is the same split `combat`
  * makes with `data/units.json` and the reason a thirteenth ship is a JSON row.
  * What is left here is what the **rules** say about being at sea at all: what an
- * attack costs a hull that keeps going, what a line of battle is worth, what a
- * soldier caught on the water loses, and — since the shore pass of 2026-09-09 —
- * what it costs to fight across the waterline in either direction.
+ * attack costs a hull that keeps going, what a soldier caught on the water
+ * loses, and (since the shore pass of 2026-09-09) what it costs to fight
+ * across the waterline in either direction.
  */
 interface NavalRules {
   /**
@@ -328,10 +329,6 @@ interface NavalRules {
    * anywhere to go.
    */
   hitAndRunCost: number;
-  /** Strength points a heavy hull gains per adjacent friendly heavy hull. */
-  lineBonusPerHull: number;
-  /** The most **the line** is ever worth, in strength points. */
-  lineBonusMax: number;
   /**
    * Strength points an **embarked** piece loses defending itself on the water,
    * unless a friendly light hull is sharing its hex. One labelled line, "At
@@ -1952,11 +1949,14 @@ interface OfferRules {
  * Every number the **tide of belief** is made of (`docs/religion-v2.md`).
  *
  * The pressure sources are quoted in *faith a turn*, and one convert costs
- * `pressurePerConvert` of it — so the whole model is two figures a designer can
- * reason about together: a holy site pressing 6 turns a size-4 town inside five
- * turns at 10 a convert, and a road pressing 4 does it in eight. The user's
- * ruling of 2026-08-27 was "make religion spread more aggressive than in Civ",
- * and those two sentences are what that means in numbers.
+ * `pressurePerConvert` of it. So a holy site pressing 6 turns a size-4 town
+ * inside five turns at 10 a convert. The user's ruling of 2026-08-27 was "make
+ * religion spread more aggressive than in Civ".
+ *
+ * There are three sources: the holy site, each city that follows, and each
+ * trade route (the user's ruling of 2026-11-23, `docs/flags.md` "Eight simpler
+ * rules"). Pressure along roads and the capital's own pressure were removed
+ * then, with their three numbers.
  *
  * Every one of these may be shifted by an enhancer belief through one shape
  * (`pressureRule`) read in one place (`explainPressure`).
@@ -1970,34 +1970,16 @@ interface ReligionRules {
   /** How far a following city reaches, and what it presses. */
   cityRange: number;
   cityStrength: number;
-  /** What a following city joined to this one by road presses, at any distance. */
-  roadStrength: number;
   /** What a caravan from a following city presses on its destination. */
   routeStrength: number;
-  /** What a founder's own capital presses for its own faith. A seat does not drift. */
-  capitalStrength: number;
   /**
-   * How far the seat of a faith carries, in hexes. **Zero** as shipped: the
-   * capital holds its own hex and nothing further, which is exactly the line
-   * `explainPressure` printed before this number existed. A card that gives the
-   * seat a reach shifts it (`PressureRuleId`'s `capitalRange`, Pilgrims').
-   */
-  capitalRange: number;
-  /**
-   * What a Temple does to the pressure on the town it stands in, in whole
-   * percent: `templeOwnPercent` to the faith the town already keeps and
-   * `templeForeignPercent` to everybody else's. Twice for its own, and a
-   * quarter off everybody else's — the defensive building, with no combat
-   * anywhere near it.
-   *
-   * The foreign figure was *half* until the tree re-cut of 2026-09-02, whose
-   * worksheet rules the Temple at "foreign religious pressure −25%". It is
-   * quoted as **what gets through** rather than as what is turned away, which
-   * is why the ruling reads here as 75 and not as 25: a smaller number is a
-   * stronger temple, and this is the one number in the file that runs backwards.
+   * What a Temple does to the pressure of the faith its town already follows,
+   * in whole percent: 200 doubles it. Other religions press a town with a
+   * Temple at full strength. The rival half of the rule (`templeForeignPercent`,
+   * 75) was removed by the user's ruling of 2026-11-23: "lets remove the
+   * temples' 75% to rival strength."
    */
   templeOwnPercent: number;
-  templeForeignPercent: number;
   /**
    * A prophet's proclamation: how far it reaches, and what it presses **once**.
    *
@@ -2007,8 +1989,8 @@ interface ReligionRules {
    * spot. So it is quoted in the same currency as `pressurePerConvert` rather
    * than in faith-a-turn like every source above it — 60 against 10 a convert is
    * six citizens, which is a majority in a town of eleven and half of one in a
-   * town of twelve. A temple takes a quarter off it (`templeForeignPercent`),
-   * which is the one number that decides whether a bomb lands.
+   * town of twelve. A temple does not weaken it, but a temple doubles a bomb
+   * of the faith its town already follows (`templeOwnPercent`).
    */
   bombRange: number;
   bombLump: number;

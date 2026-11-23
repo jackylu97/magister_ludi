@@ -280,8 +280,8 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     const garrison = createUnit(state, 0, 'warrior', city.col, city.row);
     touch(state);
     expect(hexPaid(state, field, 'theFarmingGarrisons')).toEqual({ food: 0, production: 0, science: 0 });
-    out.fortifiedTurns = 0;
-    garrison.fortifiedTurns = 0;
+    out.fortified = true;
+    garrison.fortified = true;
     touch(state);
     expect(hexPaid(state, field, 'theFarmingGarrisons')).toEqual({ food: 1, production: 1, science: 0 });
     // The town's centre counts too (the triage's reading 25).
@@ -293,7 +293,7 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     // A civilian is not a military unit, and another empire's unit is not yours.
     const empty = at(state, 4, 5);
     createUnit(state, 0, 'worker', empty.col, empty.row);
-    createUnit(state, 1, 'warrior', empty.col, empty.row).fortifiedTurns = 0;
+    createUnit(state, 1, 'warrior', empty.col, empty.row).fortified = true;
     touch(state);
     expect(hexPaid(state, empty, 'theFarmingGarrisons')).toEqual({ food: 0, production: 0, science: 0 });
   });
@@ -306,7 +306,7 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     slot(state, 0, 'theFarmingGarrisons');
     const defender = createUnit(state, 0, 'warrior', city.col + 2, city.row);
     const attacker = createUnit(state, 1, 'warrior', city.col + 3, city.row);
-    defender.fortifiedTurns = 0;
+    defender.fortified = true;
     touch(state);
     const view = previewCombat(state, attacker.id, { col: defender.col, row: defender.row });
     if (!view.ok) throw new Error(view.error);
@@ -321,7 +321,7 @@ describe('the fortified-unit hex test: The Farming Garrisons and The Castra', ()
     foundCityAt(state, 0, at(state, 4, 4));
     slot(state, 0, 'theCastra');
     const field = at(state, 5, 4);
-    createUnit(state, 0, 'warrior', field.col, field.row).fortifiedTurns = 0;
+    createUnit(state, 0, 'warrior', field.col, field.row).fortified = true;
     const keep = at(state, 3, 4);
     raiseImprovement(keep, 'citadel', state.turn);
     touch(state);
@@ -342,16 +342,16 @@ describe('The Fortress Empire: the fortified-units count', () => {
     expect(percent('science')).toBe(0);
     // Two fortified on the town's ground, one not fortified, one outside.
     const ground = [at(state, 4, 4), at(state, 5, 4)];
-    for (const tile of ground) createUnit(state, 0, 'warrior', tile.col, tile.row).fortifiedTurns = 0;
+    for (const tile of ground) createUnit(state, 0, 'warrior', tile.col, tile.row).fortified = true;
     createUnit(state, 0, 'warrior', 4, 5);
     const outside = createUnit(state, 0, 'warrior', 12, 8);
-    outside.fortifiedTurns = 0;
+    outside.fortified = true;
     expect(state.tileOwner[tileIndex(state.map, 12, 8)]).toBeNull();
     touch(state);
     expect(percent('science')).toBe(10);
     expect(percent('production')).toBe(10);
     // Seven more fortified at home: the ceiling is six helpings.
-    for (let n = 0; n < 7; n++) createUnit(state, 0, 'warrior', 4, 4).fortifiedTurns = 0;
+    for (let n = 0; n < 7; n++) createUnit(state, 0, 'warrior', 4, 4).fortified = true;
     touch(state);
     expect(percent('science')).toBe(30);
   });

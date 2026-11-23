@@ -484,6 +484,10 @@ Reference: **`docs/units.md`** (the roster; generated) and
   shot at a ship all add labelled strength lines. Cards use the same sum.
   Damage is an exponential in the *difference* of two effective strengths, so an
   edge is worth the same multiplier at any rung.
+- **Fortify is a flat bonus** (ruled 2026-11-23, `docs/flags.md`, "Eight
+  simpler rules"): `rules.combat.fortifyBonus` (+4) from the first turn, and it
+  does not grow. `Unit.fortified` is present or absent; there is no turn count
+  and no `advanceFortify` phase.
 - **A town is attacked in three beats** — walls → garrison → capture, off the
   plan. A **melee** kill on the garrison beat takes the town in the same blow; a
   ranged kill leaves it to be walked into. City strength is the best unit its
@@ -568,7 +572,10 @@ Reference: **`docs/units.md`** (the roster; generated) and
 - **The waterline**: a land piece that closes may not strike a water hex; an
   embarked piece may not strike a ship; a land bow shooting a ship takes a flat
   loss of strength and land siege a flat gain (`rules.naval`); a ship that
-  attacks an embarked unit takes no counter-blow.
+  attacks an embarked unit takes no counter-blow. An embarked land unit defends
+  at `rules.naval.atSeaPenalty` (−15) unless a light ship shares its hex
+  (`seaDefenceLines`). Ships get no bonus for friendly ships beside them: the
+  line of battle was removed on 2026-11-23.
 - Auto-upgrade (`upgradesTo`) is gated on the strategic resource. A unit whose
   successor the empire could field today is refused by `buildError` and hidden
   from the build list, but a row already queued builds out.
@@ -1037,7 +1044,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
   - A hex test asks whether a **fortified military unit** of the empire stands
     on the hex (`fortifiedUnit`), answered through the context's `GroundFacts`;
     the `fortifiedUnits` count counts those units inside a town's borders. A write
-    of `Unit.fortifiedTurns` moves the economy clock, in the writer or in its caller
+    of `Unit.fortified` moves the economy clock, in the writer or in its caller
     (`test/sim/slateRegister.test.ts`). An order to fortify and a step out of a
     trench move it only when the owner's law can read a trench (`lawReadsTrenches`).
   - **Disbanding a unit is a moment** (`disband`, paid in `applyDisbandUnit`):
@@ -1144,6 +1151,12 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
 Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
 (every row, sync-tested) · code: `src/sim/religion.ts`.
 
+- **Pressure has three sources** (ruled 2026-11-23, `docs/flags.md`, "Eight
+  simpler rules"): the holy site, each city that follows, and each trade route
+  from a city that follows (`explainPressure`). Roads and the founder's capital
+  press nothing. A wonder can add a line. A Temple doubles the pressure of the
+  faith its city follows, and other religions press it at full strength. The
+  belief Inquisition, which made a Temple hold rivals back harder, is retired.
 - **Religion is a tide, not a verb.** A city's religion is derived (the faith
   more than half its citizens follow), never stored. `spreadReligion` measures
   every town against one board, then moves every town; `bankPressure` has exactly

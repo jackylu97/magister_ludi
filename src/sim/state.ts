@@ -2131,7 +2131,7 @@ export interface Unit {
    * alongside the movement allowance, because they are the same allowance: one
    * attack per unit per turn, exactly as Civ V has it.
    *
-   * Always present rather than optional, unlike `path` and `fortifiedTurns`. It
+   * Always present rather than optional, unlike `path` and `fortified`. It
    * is a fact about every unit on every turn — a warrior that has not attacked
    * has *not attacked*, which is a real state and not an absent one — and the
    * healing rule reads it on every unit in the game every turn.
@@ -2167,7 +2167,7 @@ export interface Unit {
   /**
    * The rest of a march this unit has been ordered on, or the key is **absent**
    * when it is standing where it was put. Presence is the state, like
-   * `sleeping`'s and `fortifiedTurns`'.
+   * `sleeping`'s and `fortified`'s.
    *
    * Walked at the **end** of a turn, on the points that turn granted
    * (`spendLeftoverMovement` in `turn.ts`, and only there since 2026-09-08 —
@@ -2177,22 +2177,24 @@ export interface Unit {
    */
   path?: { col: number; row: number }[];
   /**
-   * How many turns this unit has been fortified, or the key is absent when it is
-   * not fortified at all.
+   * This unit is fortified, or the key is absent when it is not.
    *
    * Presence *is* the fortified state, which is `path`'s convention (see its
    * docblock) and it is here for the same reason: a unit that has never dug in
    * and a unit that has just been shaken out of a trench must serialise
    * identically, or two states that are the same game would not compare equal.
-   * Zero is a real value and means "fortified this turn, no bonus yet" — the
-   * `advanceFortify` phase raises it, capped by `combat.fortifyMax`.
+   *
+   * There is no turn count. The bonus is a flat `combat.fortifyBonus` from the
+   * first turn and does not grow (the user's ruling of 2026-11-23), so a unit
+   * is fortified or it is not. The field was `fortifiedTurns`, a count raised
+   * each turn by a phase, until then.
    */
-  fortifiedTurns?: number;
+  fortified?: true;
   /**
    * Improvement charges this unit has left, or the key is **absent** on
    * everything that never had any.
    *
-   * Presence *is* "this is a builder", which is `path`'s and `fortifiedTurns`'
+   * Presence *is* "this is a builder", which is `path`'s and `fortified`'s
    * convention and is here for the third time for the same reason: a warrior
    * and a worker must serialise differently in kind rather than by a zero, or a
    * state that gave every soldier `chargesLeft: 0` would be a state claiming
@@ -2211,7 +2213,7 @@ export interface Unit {
   /**
    * This unit has been told to sleep, or the key is **absent** when it has not.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`' and
+   * Presence is the state, which is `path`'s, `fortified`'s and
    * `chargesLeft`' convention and is here for the fourth time for the same
    * reason: a unit that has never slept and a unit just shaken awake must
    * serialise identically, or two states that are the same game would not
@@ -2238,7 +2240,7 @@ export interface Unit {
   /**
    * What a dug-in unit does about orders, or the key is **absent** for a plain
    * fortified unit that is quiet (and for every unit not dug in). It is only
-   * ever present beside `fortifiedTurns`.
+   * ever present beside `fortified`.
    *
    *   · `'untilHealed'`: told to fortify until healed. The unit is quiet while
    *     it heals and wakes at full health. The `fortify` command writes it
@@ -2249,7 +2251,7 @@ export interface Unit {
    *
    * Why a field of its own and not a value of `sleeping`: a dug-in unit can be
    * awake, and a field named `sleeping` cannot say that. A quiet fortified unit
-   * (`fortifiedTurns` alone) never asks for orders, so the awake state needs a
+   * (`fortified` alone) never asks for orders, so the awake state needs a
    * mark of its own. It was `untilHealed: 'waiting' | 'woken'` at schema 253
    * and 254, when only that order could wake.
    *
@@ -2288,7 +2290,7 @@ export interface Unit {
    * Effects that run out — a Blessing of Arms on this piece — or the key is
    * **absent**, which it is for every unit almost all of the time.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s
    * and `sleeping`'s convention and is here for the fifth time for the same
    * reason: a warrior that was never blessed and one whose blessing has been
    * swept away must serialise identically. See `TimedEffect` for why an expiry
@@ -2302,7 +2304,7 @@ export interface Unit {
    * **Which** great person this piece is, or the key is **absent** on every
    * ordinary unit — which is all of them but a handful in a whole game.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s,
    * `sleeping`'s and `timed`'s convention and is here for the sixth time for the
    * same reason: a warrior and Archimedes must serialise differently in kind.
    *
@@ -2355,7 +2357,7 @@ export interface Unit {
    * The trade route this piece is **carrying**, or the key is **absent** on
    * every unit that is not on the road — which is all of them but a handful.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s,
    * `sleeping`'s, `timed`'s and `person`'s convention and is here for the
    * seventh time for the same reason: a trader idling at home and one that has
    * never been sent must serialise identically, or two states that are the same
@@ -2379,7 +2381,7 @@ export interface Unit {
    * or the key is **absent**, which it is for every unit that was built, bought
    * or seated at the start.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s,
    * `sleeping`'s, `timed`'s, `person`'s and `trade`'s convention and is here for
    * the eighth time for the same reason: a warrior a city built and a warrior a
    * wonder handed over must serialise differently in kind rather than by a
@@ -2459,7 +2461,7 @@ export interface Unit {
    * or the key is **absent**, which it is for every unit born under a council
    * that had stamped nothing.
    *
-   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * Presence is the state, which is `path`'s, `fortified`'s, `chargesLeft`'s,
    * `sleeping`'s, `timed`'s, `person`'s, `trade`'s and `freeUpkeep`'s convention
    * and is here for the ninth time for the same reason: a warrior raised before
    * The Muster Roll and one raised after it must serialise differently in kind,
@@ -4831,8 +4833,8 @@ export function removeUnit(state: GameState, unitId: number): boolean {
 /**
  * Shakes a unit out of its trench. Returns whether it was in one.
  *
- * The key is *deleted* rather than zeroed, because presence is the state (see
- * `Unit.fortifiedTurns`) and a unit that never fortified must serialise
+ * The key is *deleted* rather than set false, because presence is the state
+ * (see `Unit.fortified`) and a unit that never fortified must serialise
  * identically to one that just stopped.
  *
  * It lives here, beside the other three one-line facts about a unit's existence,
@@ -4845,8 +4847,8 @@ export function removeUnit(state: GameState, unitId: number): boolean {
  * `applyCombat` when it attacks, and now a change of owner).
  */
 export function breakFortify(unit: Unit): boolean {
-  if (unit.fortifiedTurns === undefined) return false;
-  delete unit.fortifiedTurns;
+  if (unit.fortified === undefined) return false;
+  delete unit.fortified;
   // What the unit does about orders, and what it last saw, live in the trench.
   // Without a trench neither is left (see `Unit.dugIn`, `Unit.enemyInSight`).
   delete unit.dugIn;
@@ -4866,7 +4868,7 @@ export function breakFortify(unit: Unit): boolean {
  * it (`applyCombat`, `combat.ts`).
  */
 export function wakeInTrench(unit: Unit): boolean {
-  if (unit.fortifiedTurns === undefined || unit.dugIn === 'awake') return false;
+  if (unit.fortified === undefined || unit.dugIn === 'awake') return false;
   unit.dugIn = 'awake';
   return true;
 }

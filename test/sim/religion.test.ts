@@ -2652,7 +2652,9 @@ describe("the citizen model", () => {
     expect(cityReligion(target)).toBe(religion.id);
   });
 
-  it("converts a road-joined town in eight turns — the tuning, the other lever", () => {
+  it("presses nothing along a road", () => {
+    // The user's ruling of 2026-11-23: the sources are the holy site, each city
+    // that follows, and each trade route. A road is not one of them.
     const g = game();
     const seat = town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
@@ -2660,18 +2662,14 @@ describe("the citizen model", () => {
     const target = town(g.state, 1, 12, 6);
     target.population = 4;
     // A paved line between the two, and nothing else: six hexes is well beyond
-    // a following city's own reach, so the road is the whole of the pressure.
+    // a following city's own reach, so only a road could press here.
     for (let col = 7; col <= 11; col++)
       getTileAt(g.state.map, col, 6)!.road = 0;
-    expect(
-      explainPressure(g.state, target).find((line) => line.source === "Road")
-        ?.amount,
-    ).toBe(RULES.religion.roadStrength);
+    expect(explainPressure(g.state, target)).toEqual([]);
+    expect(pressureTotals(g.state, target)[religion.id]).toBe(0);
 
-    for (let turn = 0; turn < 7; turn++) spreadReligion(g.state);
+    for (let turn = 0; turn < 8; turn++) spreadReligion(g.state);
     expect(cityReligion(target)).toBeNull();
-    spreadReligion(g.state);
-    expect(cityReligion(target)).toBe(religion.id);
   });
 
   it("takes from the smallest congregation once nobody is unconverted", () => {
@@ -2728,49 +2726,39 @@ describe("the pressure ledger", () => {
     );
   });
 
-  it("pays a founder’s own capital for its own faith, and a following neighbour for the tide", () => {
+  it("gives a founder’s capital no pressure of its own, and a following neighbour the tide", () => {
+    // The capital's own pressure went with the user's ruling of 2026-11-23.
     const g = game();
     const capital = town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
     capital.followers = { [religion.id]: capital.population };
     const near = town(g.state, 0, 7, 6);
 
-    const own = explainPressure(g.state, capital);
-    expect(own.find((line) => line.source === "Your capital")?.amount).toBe(
-      RULES.religion.capitalStrength,
-    );
+    // The neighbour follows nothing, so nothing presses the capital.
+    expect(explainPressure(g.state, capital)).toEqual([]);
     const beside = explainPressure(g.state, near);
-    expect(beside.find((line) => line.source === "Nearby city")?.amount).toBe(
-      RULES.religion.cityStrength,
-    );
-    // **And the seat drifts nowhere** — `capitalRange` is 0 as shipped, which is
-    // the capital's own hex and nothing further. The number exists so a card can
-    // give the seat a reach (Pilgrims, `docs/flags.md` (xxx) mark 18); with no
-    // such card the line is exactly the line it always was.
-    expect(RULES.religion.capitalRange).toBe(0);
-    expect(beside.some((line) => line.source === "Your capital")).toBe(false);
+    expect(beside).toEqual([
+      { religion: religion.id, source: "Nearby city", amount: RULES.religion.cityStrength },
+    ]);
   });
 
   /**
-   * **Pilgrims** (batch O2, mark 18) — the seat of a faith gains a reach it
-   * never had, and the neighbour hears it.
+   * **Pilgrims** (batch O2, mark 18) is retired. Its first sentence gave the
+   * capital a reach, and the capital no longer presses at all, so the row keeps
+   * only its gold. A save that holds it changes no town's pressure.
    */
-  it("Pilgrims — the capital carries its faith to the towns around it", () => {
+  it("Pilgrims, retired, changes no town's pressure", () => {
     const g = game();
     const capital = town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
     capital.followers = { [religion.id]: capital.population };
     const near = town(g.state, 0, 7, 6);
-    const carried = (): number =>
-      explainPressure(g.state, near)
-        .filter((line) => line.source === "Your capital")
-        .reduce((sum, line) => sum + line.amount, 0);
-    expect(carried()).toBe(0);
+    const before = explainPressure(g.state, near);
     const sc = playerById(g.state, 0)!.statecraft;
     sc.orders.push("pilgrims" as never);
     sc.slots.push({ card: "pilgrims" as never, sealedUntil: 0 });
     bumpRevision(g.state);
-    expect(carried()).toBe(RULES.religion.capitalStrength);
+    expect(explainPressure(g.state, near)).toEqual(before);
   });
 
   /**
@@ -2801,7 +2789,7 @@ describe("the pressure ledger", () => {
     expect(small).toBeGreaterThan(0);
   });
 
-  it("doubles a town’s own faith at its temple and halves everybody else’s", () => {
+  it("doubles a town’s own faith at its temple and leaves everybody else’s alone", () => {
     const g = game();
     const seat = town(g.state, 0, 6, 6);
     const mine = faith(g.state, 0);
@@ -2820,18 +2808,21 @@ describe("the pressure ledger", () => {
     target.buildings.push("temple");
     bumpRevision(g.state);
     const walled = pressureTotals(g.state, target);
-    // Its own faith is doubled and the rival's halved — one multiplication,
-    // taken once, carried as the difference so the list still sums.
+    // Its own faith is doubled: one multiplication, taken once, carried as the
+    // difference so the list still sums. The rival presses at full strength
+    // (the user's ruling of 2026-11-23: "lets remove the temples' 75% to rival
+    // strength").
     expect(walled[theirs.id]).toBe(
       Math.floor((bare[theirs.id]! * RULES.religion.templeOwnPercent) / 100),
     );
-    expect(walled[mine.id]).toBe(
-      Math.floor((bare[mine.id]! * RULES.religion.templeForeignPercent) / 100),
-    );
+    expect(bare[mine.id]).toBeGreaterThan(0);
+    expect(walled[mine.id]).toBe(bare[mine.id]);
     const lines = explainPressure(g.state, target).filter(
       (line) => line.source === "Temple",
     );
-    expect(lines.length).toBe(2);
+    expect(lines).toEqual([
+      { religion: theirs.id, source: "Temple", amount: walled[theirs.id]! - bare[theirs.id]! },
+    ]);
   });
 
   /**
@@ -2898,19 +2889,16 @@ describe("the pressure ledger", () => {
     );
   });
 
-  it("lets a Temple blunt the bomb, exactly as it blunts the tide", () => {
+  it("lets a rival's bomb through a Temple at full strength, as the tide is", () => {
     const { g, religion, target, prophet } = bombWorld(7);
     target.buildings.push("temple");
     bumpRevision(g.state);
     proclaim(g, prophet.id);
-    // 75% of 60 is 45: four citizens of seven — a majority, which is the point
-    // of the re-cut's retune. The worksheet rules the Temple at "foreign
-    // religious pressure −25%" where it used to turn away half, and the number
-    // is quoted as *what gets through*, so a smaller number is a stronger
-    // temple. The one defensive building in the game, and it holds against an
-    // event exactly as it holds against a tide (`templeShare`, shared by both).
-    expect(target.followers?.[religion.id]).toBe(4);
-    expect(RULES.religion.templeForeignPercent).toBe(75);
+    // The whole 60 lands: six citizens of seven. A Temple doubles only the
+    // faith its town already follows, and this town follows nothing, so the
+    // bomb lands as it would with no Temple (`templeShare`, shared by the tide
+    // and the bomb).
+    expect(target.followers?.[religion.id]).toBe(6);
   });
 
   it("does not reach a town one hex past its range", () => {
@@ -2985,19 +2973,19 @@ describe("the pressure ledger", () => {
       wouldConvert: 6,
       wouldFollow: true,
     });
-    // The guarded town takes a quarter off rather than half since the re-cut of
-    // 2026-09-02 retuned `templeForeignPercent`, so four of its seven turn.
+    // The Temple takes nothing off a faith its town does not follow, so six of
+    // the guarded town's seven turn, as in the open town.
     expect(preview.cities).toContainEqual({
       cityId: guarded.id,
       population: 7,
-      wouldConvert: 4,
+      wouldConvert: 6,
       wouldFollow: true,
     });
 
     // A promise on a button is kept by the function that made it.
     proclaim(g, prophet.id);
     expect(target.followers?.[religion.id]).toBe(6);
-    expect(guarded.followers?.[religion.id]).toBe(4);
+    expect(guarded.followers?.[religion.id]).toBe(6);
   });
 
   it("refuses a preview to a prophet with no faith to proclaim", () => {
@@ -3089,10 +3077,9 @@ describe("the pressure ledger", () => {
     const g = game();
     town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
-    expect(cardPressureRule(g.state, 0, "roadStrength")).toBe(0);
+    expect(cardPressureRule(g.state, 0, "routeStrength")).toBe(0);
     religion.enhancer = ["theLongRoad"];
     bumpRevision(g.state);
-    expect(cardPressureRule(g.state, 0, "roadStrength")).toBe(2);
     expect(cardPressureRule(g.state, 0, "routeStrength")).toBe(2);
     expect(cardPressureRule(g.state, 0, "siteStrength")).toBe(0);
   });

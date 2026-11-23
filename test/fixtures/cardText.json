@@ -3126,10 +3126,6 @@
   ],
   "pilgrims": [
    {
-    "raw": "your capital carries its faith +6 hexes",
-    "text": "your capital carries its faith +6 hexes"
-   },
-   {
     "raw": "+1 gold per citizen of another empire who follows you",
     "text": "+1 gold per citizen of another empire who follows you"
    }
@@ -11593,15 +11589,12 @@
   ],
   "inquisition": [
    {
-    "raw": "rival religions press your cities with a Temple at 50% strength",
-    "text": "rival religions press your cities with a Temple at 50% strength"
+    "raw": "rival religions press your towns with a Temple more weakly — not built yet",
+    "text": "rival religions press your towns with a Temple more weakly — not built yet",
+    "deferred": true
    }
   ],
   "theLongRoad": [
-   {
-    "raw": "your religion presses +2 harder along roads",
-    "text": "your religion presses +2 harder along roads"
-   },
    {
     "raw": "your religion presses +2 harder along trade routes",
     "text": "your religion presses +2 harder along trade routes"

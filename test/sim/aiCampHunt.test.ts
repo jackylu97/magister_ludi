@@ -89,7 +89,7 @@ function slotOrder(state: GameState, playerId: number, id: OrderId): void {
 function campAt(state: GameState, col: number, row: number, guards: { type: string; col: number; row: number }[] = []): void {
   state.camps.push({ col, row, foundedTurn: state.turn });
   const warden = createUnit(state, wildId(state), 'warrior', col, row);
-  warden.fortifiedTurns = 2;
+  warden.fortified = true;
   for (const guard of guards) createUnit(state, wildId(state), guard.type as never, guard.col, guard.row);
   recomputeAllVisibility(state);
   bumpRevision(state);
@@ -249,7 +249,7 @@ describe('a force sized to the camp', () => {
 
   it('calls a dug-in piece out for the hunt, once a turn', () => {
     const { state, pieces } = guarded(4);
-    for (const piece of pieces) piece.fortifiedTurns = 3;
+    for (const piece of pieces) piece.fortified = true;
     bumpRevision(state);
     const sitting = botSitting(0);
     const order = orderFor(state, 0, pieces[0]!.id, sitting);
@@ -260,7 +260,7 @@ describe('a force sized to the camp', () => {
     const quiet = bench();
     twoTowns(quiet);
     const dug = createUnit(quiet, 0, 'warrior', 4, 6);
-    dug.fortifiedTurns = 3;
+    dug.fortified = true;
     bumpRevision(quiet);
     expect(orderFor(quiet, 0, dug.id)).toBeNull();
   });
@@ -273,7 +273,7 @@ describe('a force sized to the camp', () => {
    */
   it('leaves a hurt piece dug in on its own ground to mend, and calls the others out', () => {
     const { state, pieces } = guarded(5);
-    for (const piece of pieces) piece.fortifiedTurns = 3;
+    for (const piece of pieces) piece.fortified = true;
     const home = state.cities.find((city) => city.ownerId === 0)!;
     const hurt = pieces[0]!;
     hurt.hp = 30;
@@ -291,7 +291,7 @@ describe('a force sized to the camp', () => {
     expect(sent.some((decision) => /^Calls a dug-in piece out for the hunt/.test(decision.summary))).toBe(true);
     // The hurt one is sent nothing, and it is still dug in.
     expect(sent.filter((decision) => (decision.command as { unitId?: number }).unitId === hurt.id)).toEqual([]);
-    expect(hurt.fortifiedTurns).not.toBeUndefined();
+    expect(hurt.fortified).not.toBeUndefined();
   });
 });
 

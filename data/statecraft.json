@@ -7353,14 +7353,8 @@
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "They walk because the road is the prayer.",
-      "text": "Your capital carries its faith +6 hexes. +1 gold for each citizen of another empire who follows you.",
-      "note": "The seat of a faith held itself and drifted nowhere until this: now the towns around your capital hear it too.",
+      "text": "+1 gold for each citizen of another empire who follows you.",
       "effects": [
-        {
-          "kind": "pressureRule",
-          "rule": "capitalRange",
-          "delta": 6
-        },
         {
           "kind": "pays",
           "where": "empire",

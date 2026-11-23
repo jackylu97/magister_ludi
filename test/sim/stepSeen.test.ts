@@ -211,7 +211,7 @@ describe('a fortified piece leaving its trench', () => {
     )!;
     step(state, soldier, next);
 
-    expect(soldier.fortifiedTurns).toBeUndefined();
+    expect(soldier.fortified).toBeUndefined();
     expect(readEmpire(state, 0).totals.gold).toBeLessThan(dug);
     expectHonest(state, 0);
   });
@@ -255,7 +255,7 @@ describe('a piece with nothing to see it dig in', () => {
     expect(economyStamp(state)).toBe(economy);
 
     step(state, soldier, at(state, 21, 8));
-    expect(soldier.fortifiedTurns).toBeUndefined();
+    expect(soldier.fortified).toBeUndefined();
     expect(economyStamp(state)).toBe(economy);
   });
 

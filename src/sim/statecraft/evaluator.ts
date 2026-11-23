@@ -2287,7 +2287,7 @@ export function isRaisingWonderOrOpus(city: City): boolean {
  * `fortifiedUnits` count both ask this.
  */
 export function isFortifiedSoldier(unit: Unit): boolean {
-  return unit.fortifiedTurns !== undefined && unitDef(unit.type).category === 'military';
+  return unit.fortified !== undefined && unitDef(unit.type).category === 'military';
 }
 
 /** The names a row uses when it reads whether a piece is dug in. See `lawReadsTrenches`. */
@@ -2308,7 +2308,7 @@ function rowReadsTrench(effect: CardEffect): boolean {
 /**
  * **Can this empire's law tell whether one of its pieces is dug in?** Only the
  * `fortifiedUnits` and `garrisonWatch` counts and the `fortifiedUnit` hex test read
- * `Unit.fortifiedTurns` under a town's list, and each reads the pieces of the seat
+ * `Unit.fortified` under a town's list, and each reads the pieces of the seat
  * whose law holds the row. So a piece that fortifies, or leaves its trench, changes
  * no reading unless its own owner holds such a row (`applyFortify`, `stepIsSeen`).
  * Most seats do not, and a bot fortifies a dozen times a turn.
@@ -3663,13 +3663,13 @@ export function countOf(
     }
     case 'garrisonWatch': {
       if (!city) return 0;
-      // A fortified unit is worth 1, plus 1 more per turn it has been dug in —
-      // "the longer the watch, the steadier the town". An unfortified garrison
-      // is not a watch and pays nothing.
+      // Each fortified unit in the garrison is worth 1. An unfortified garrison
+      // is not a watch and pays nothing. A unit was worth 1 more for each turn
+      // it had been dug in until fortification became flat (2026-11-23).
       let total = 0;
       for (const unit of garrisonOf(state, city)) {
-        if (unit.fortifiedTurns === undefined) continue;
-        total += 1 + unit.fortifiedTurns;
+        if (unit.fortified === undefined) continue;
+        total += 1;
       }
       return total;
     }
@@ -8962,7 +8962,7 @@ function combatConditionHolds(
       // A fact about the piece this line is being asked for, whichever posture
       // it is in: a dug-in unit that sallies is still dug in until the reducer
       // breaks the fortification, and `breakFortify` is what decides that.
-      return situation.unit.fortifiedTurns !== undefined;
+      return situation.unit.fortified !== undefined;
     case 'hasRank':
       // The Tagmata (Dominion batch D2): the piece's own experience.
       return holdsRank(situation.unit, when.rank);
@@ -9684,12 +9684,12 @@ export function cardUnitStat(
     }
     if (effect.where === 'fortified') {
       // **Presence is the state**, `path`'s and `sleeping`'s convention: a piece
-      // that has dug in carries `fortifiedTurns` and one that has not carries no
+      // that has dug in carries `fortified` and one that has not carries no
       // key at all. The Alchemical Codex's extra mending, and it rides on the
       // *rested* rule the ordinary heal already keeps (`healUnits`) rather than
       // replacing it — a unit that dug in this turn spent no movement, so the
       // two agree by construction.
-      if (unit.fortifiedTurns === undefined) continue;
+      if (unit.fortified === undefined) continue;
     }
     if (effect.where === 'grassOrPlains') {
       // The open country, asked of the hex the piece is standing on — the

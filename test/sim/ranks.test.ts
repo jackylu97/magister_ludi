@@ -672,7 +672,7 @@ describe('the bots keep a wounded veteran out of a fight it is likely to lose', 
     state.nextEntityId = 1;
     const city = foundCityAt(state, 0, at(state, 2, 2));
     const garrison = createUnit(state, 0, 'warrior', city.col, city.row);
-    garrison.fortifiedTurns = 0;
+    garrison.fortified = true;
     state.players[0]!.gold = 120;
     openWar(state, 0, 1);
     const piece = createUnit(state, 0, 'spearman', 8, 6);

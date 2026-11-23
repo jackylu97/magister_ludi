@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyCombat,
-  navalLineLines,
   previewCombat,
   seaDefenceLines,
   siegeField,
@@ -675,6 +674,8 @@ describe('a soldier caught on the water', () => {
     if (!alone.ok) return;
     const sea = alone.defenderLines.find((l) => l.source === 'At sea');
     expect(sea, 'the unescorted malus').toBeDefined();
+    // −15 since the user's ruling of 2026-11-23 (it was −20).
+    expect(RULES.naval.atSeaPenalty).toBe(15);
     expect(sea!.amount).toBe(-RULES.naval.atSeaPenalty);
     // Rule 5 again: the headline is the fold of the list.
     const fold = alone.defenderLines.reduce((sum, l) => sum + l.amount, 0);
@@ -744,53 +745,35 @@ describe('a soldier caught on the water', () => {
   });
 });
 
-// --- the line of battle -----------------------------------------------------
+// --- no line of battle -----------------------------------------------------
 
+/**
+ * The line of battle (a bonus for each friendly heavy hull beside a heavy hull)
+ * was removed by the user's ruling of 2026-11-23 (`docs/flags.md`, "Eight
+ * simpler rules", item 5). A wall of heavy hulls fights at the strength of each
+ * hull alone, on both sides of the fight.
+ */
 describe('the line', () => {
-  it('pays two a hull, caps at four, and counts only friendly heavies', () => {
+  it('pays nothing for friendly heavy hulls beside a heavy hull', () => {
     const state = seaState();
     seeEverything(state);
     const flag = createUnit(state, 0, 'towerShip', 2, 4);
     const target = createUnit(state, 1, 'galley', 3, 4);
-
-    const alone = previewCombat(state, flag.id, { col: 3, row: 4 });
+    const alone = previewCombat(state, flag.id, { col: target.col, row: target.row });
     expect(alone.ok).toBe(true);
     if (!alone.ok) return;
-    expect(alone.attackerLines.some((l) => l.source === 'The line')).toBe(false);
 
     createUnit(state, 0, 'towerShip', 2, 3);
-    const paired = previewCombat(state, flag.id, { col: 3, row: 4 });
-    expect(paired.ok).toBe(true);
-    if (!paired.ok) return;
-    expect(paired.attackerLines.find((l) => l.source === 'The line')!.amount).toBe(
-      RULES.naval.lineBonusPerHull,
-    );
-
     createUnit(state, 0, 'towerShip', 2, 5);
     createUnit(state, 0, 'towerShip', 1, 4);
+    createUnit(state, 1, 'towerShip', 3, 3);
     const wall = previewCombat(state, flag.id, { col: target.col, row: target.row });
     expect(wall.ok).toBe(true);
     if (!wall.ok) return;
-    // Three neighbours is six points of raw bonus, capped at four.
-    expect(wall.attackerLines.find((l) => l.source === 'The line')!.amount).toBe(
-      RULES.naval.lineBonusMax,
-    );
-  });
-
-  it('pays nothing to a light hull, and nothing for an enemy’s line', () => {
-    const state = seaState();
-    seeEverything(state);
-    const light = createUnit(state, 0, 'galley', 2, 4);
-    createUnit(state, 0, 'galley', 2, 3);
-    createUnit(state, 1, 'towerShip', 3, 3);
-    const target = createUnit(state, 1, 'fireShip', 3, 4);
-    const preview = previewCombat(state, light.id, { col: target.col, row: target.row });
-    expect(preview.ok).toBe(true);
-    if (!preview.ok) return;
-    expect(preview.attackerLines.some((l) => l.source === 'The line')).toBe(false);
-    // The defender's own neighbour is a heavy hull of its side, so it *does*
-    // get one — which is the symmetry: a line is worth the same either way.
-    expect(preview.defenderLines.some((l) => l.source === 'The line')).toBe(false);
+    expect(wall.attackerLines).toEqual(alone.attackerLines);
+    expect(wall.defenderLines).toEqual(alone.defenderLines);
+    expect(wall.attackerLines.some((l) => l.source === 'The line')).toBe(false);
+    expect(wall.defenderLines.some((l) => l.source === 'The line')).toBe(false);
   });
 });
 
@@ -890,7 +873,7 @@ describe('the blockade', () => {
  * triage's readings 4 and 25): knowing Naval Gunnery gives the Gun Galley line
  * +3 strength and the blockade. Whether a piece blockades is a question about
  * the piece now: its row's marker, or its owner's `blockades` rule narrowed to
- * the line. So the harbour, the sea lane and the line of battle all read it.
+ * the line. So the harbour and the sea lane both read it.
  */
 describe('the Galleass', () => {
   it('lets a Gun Galley blockade once its owner knows Naval Gunnery, and no other hull of the line before it', () => {
@@ -925,16 +908,6 @@ describe('the Galleass', () => {
     state.players[1]!.techsResearched.push('navalGunnery');
     bumpRevision(state);
     expect(held()).toBe(true);
-  });
-
-  it('stands a Gun Galley in the line of battle, because the line asks the same question', () => {
-    const state = seaState();
-    const galley = createUnit(state, 0, 'gunGalley', 3, 4);
-    createUnit(state, 0, 'warGalley', 4, 4);
-    expect(navalLineLines(state, galley)).toEqual([]);
-    state.players[0]!.techsResearched.push('navalGunnery');
-    bumpRevision(state);
-    expect(navalLineLines(state, galley)).toEqual([{ source: 'The line', amount: RULES.naval.lineBonusPerHull }]);
   });
 
   it('adds three strength, labelled with the technology and the trait', () => {

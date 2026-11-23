@@ -58,7 +58,7 @@
  *   · **The warden** (the user, 2026-09-06) is the soldier standing *on* the
  *     camp, or, when nobody is, the nearest unspoken-for soldier inside
  *     `campUnitRadius`, which walks home. It fortifies through the same field a
- *     player's Fortify writes (`Unit.fortifiedTurns`), so `planCombat` pays it
+ *     player's Fortify writes (`Unit.fortified`), so `planCombat` pays it
  *     the ordinary entrenchment line. It never leaves the hex and strikes only
  *     what has come next to the camp.
  *   · **The guard** is the next nearest unspoken-for soldier inside
@@ -595,21 +595,19 @@ function musterTileFor(state: GameState, camp: BarbarianCamp, type: UnitTypeId):
 /**
  * Digs a unit in, through the player's own gate.
  *
- * One line and one field — `Unit.fortifiedTurns = 0`, exactly what `applyFortify`
- * writes and for the reason its comment gives: the bonus is paid for turns
- * *survived* dug in, and `advanceFortify` raises the counter at the end of every
- * turn the piece stays put. The wild fortifies through the same field so
- * `planCombat` prints the same labelled line for a warden as for a spearman on a
- * hill; there is no barbarian entrenchment rule.
+ * One line and one field: `Unit.fortified = true`, exactly what `applyFortify`
+ * writes. The wild fortifies through the same field so `planCombat` prints the
+ * same labelled line for a warden as for a spearman on a hill; there is no
+ * barbarian entrenchment rule.
  *
- * `fortifyError` is asked rather than reimplemented — a civilian has no trench,
- * and a piece already dug in must not have its counter reset to zero, which would
- * hand every warden a permanent first rung and never a second.
+ * `fortifyError` is asked rather than reimplemented: a civilian has no trench.
+ * A piece already dug in is left alone, so the write announces only when it
+ * changes something.
  */
 function digIn(state: GameState, unit: Unit): void {
   if (isFortified(unit)) return;
   if (fortifyError(unit, state) !== null) return;
-  unit.fortifiedTurns = 0;
+  unit.fortified = true;
   // Every write of a fortification announces (Dominion batch D7, `slate.ts`).
   bumpEconomy(state);
 }
@@ -1657,10 +1655,9 @@ function shadow(state: GameState, unit: Unit, cargoId: number): void {
  * Re-fortifying in the same phase after a blow is deliberate. `applyCombat`
  * breaks the trench, exactly as it does for a player's spearman — but a player
  * has a whole turn in which to press Fortify again and the wild has only this
- * one phase, so the warden climbs back in immediately and pays for the blow by
- * losing the rungs it had rather than by standing in the open. `advanceFortify`
- * raises the counter a few phases later, so a quiet warden reaches `fortifyMax`
- * on the ordinary schedule.
+ * one phase, so the warden climbs back in immediately. The bonus is flat
+ * (`fortifyBonus`), so the warden loses nothing by the blow but the trench it
+ * stood in until this phase.
  *
  * The one thing it cannot help: a **melee kill advances the winner**, so a
  * warden that destroys its attacker steps off the camp and is derived home again

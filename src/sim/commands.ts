@@ -625,10 +625,10 @@ interface AttackCommand extends PlayerCommand {
  * Digs a unit in where it stands.
  *
  * The cheapest possible order and the most valuable: it costs nothing, it can be
- * given with no movement left, and it pays `combat.fortifyBonusPerTurn` of
- * defence for every turn the unit then stays put, up to `combat.fortifyMax`. It
- * breaks the moment the unit moves or attacks (see `breakFortify`), so it is a
- * standing decision rather than a toggle to be micromanaged.
+ * given with no movement left, and it pays a flat `combat.fortifyBonus` of
+ * defence from the first turn, which does not grow. It breaks the moment the
+ * unit moves or attacks (see `breakFortify`), so it is a standing decision
+ * rather than a toggle to be micromanaged.
  *
  * It does *not* require movement, unlike founding a city. Fortifying is what a
  * unit that has already marched does with the rest of its turn, and requiring
@@ -3121,11 +3121,10 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
   const problem = untilHealed ? fortifyUntilHealedError(unit, state) : fortifyError(unit, state);
   if (problem) return fail(problem);
 
-  // Zero, not one: the bonus is paid for turns *survived* dug in, and
-  // `advanceFortify` raises this at the end of every turn the unit stays put.
-  // A unit already dug in keeps its count, so an awake unit told to fortify
-  // again, or a fortified one told to wait until healed, keeps its bonus.
-  if (unit.fortifiedTurns === undefined) unit.fortifiedTurns = 0;
+  // The bonus is flat from this turn on (`fortifyBonus`). A unit already dug
+  // in stays dug in, so an awake unit told to fortify again, or a fortified one
+  // told to wait until healed, keeps its bonus.
+  unit.fortified = true;
   // What the unit does about orders (`Unit.dugIn`). Written here and nowhere
   // else in a command: `applyCommand`'s seam clears it for every other order,
   // and leaves it alone for this one. A plain fortify makes the unit quiet.

@@ -574,7 +574,6 @@ describe("end-of-turn pipeline", () => {
       // marched or fought is not resting. See `barbarianTurn`.
       "barbarians",
       "healUnits",
-      "advanceFortify",
       // The caravans keep walking: a route's leg is turned around at each end
       // and a route that has run out is dropped, immediately before the two
       // phases that actually spend the movement it just aimed. See
@@ -586,8 +585,8 @@ describe("end-of-turn pipeline", () => {
       // piece goes, and the spender below walks it. See `marchExplorers`.
       "marchExplorers",
       // **The one phase that walks a standing order** (batch U1, 2026-09-08):
-      // every march goes on *this* turn's unspent points — after the two phases
-      // that ask "has this unit been still all turn?", so a piece's healing
+      // every march goes on *this* turn's unspent points — after the phase
+      // that asks "has this unit been still all turn?", so a piece's healing
       // never depends on whether a neighbour got out of its way, and
       // immediately before the refill, so the points it spends are the turn's
       // own. See `spendLeftoverMovement`.

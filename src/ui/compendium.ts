@@ -1120,10 +1120,6 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
     });
   }
   if (def.blockades === true) {
-    const naval = RULES.naval;
-    out.push({
-      text: `Gains ${signedFigure(naval.lineBonusPerHull)} combat strength for each friendly ship of its kind beside it, to at most ${signedFigure(naval.lineBonusMax)}.`,
-    });
     out.push({
       text: 'Blockades an enemy harbour beside it: the water around the ship is closed for a siege, and the trade routes of the city pay nothing.',
     });
@@ -1790,7 +1786,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   clauses.push(...laterGifts(id));
   clauses.push(...buildingMarkers(id));
   // The row's own note: a fact a player needs that no field of the row can
-  // print (the Temple's guard against other religions, the Relic's limit). The
+  // print (the Temple's hold on its own religion, the Relic's limit). The
   // notes were rewritten on 2026-11-21, and a note that said the generated
   // lines again was deleted from the data.
   if (def.note !== undefined && !buildingIsAbsent(id)) {

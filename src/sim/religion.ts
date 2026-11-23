@@ -105,10 +105,8 @@ import { buildingDef, isBuildingId, isWonder } from './buildingData';
 import {
   type Tile,
   getTileAt,
-  neighborTiles,
   raiseImprovement,
   tileHex,
-  tileIndex,
   wrappedDistance,
 } from './map';
 import {
@@ -3500,8 +3498,7 @@ export function proclamationHealingTargets(state: GameState, playerId: number, a
  *
  * That instantaneity is the *point* of the ruling and not an optimisation: a
  * player who spends a prophet's whole charge beside a rival's town sees what it
- * bought before the turn ends, and a temple standing in that town is the one
- * number that decides whether it was enough.
+ * bought before the turn ends.
  */
 export function proclaimAt(state: GameState, player: Player, unit: Unit): ProclamationReport {
   const religion = foundedReligion(state, player.id)!;
@@ -3900,10 +3897,10 @@ function purgeFigures(): BombFigures {
  *     inquisitor walked to a rival's border town and emptied of every faith is
  *     the aggressive half of the Holy Office, and the piece that only ever
  *     tidied its own realm would be a chore rather than a march.
- *   · **A temple does not resist it.** `templeShare` is the defence against
- *     *pressure arriving*; a purge takes away what is already banked and turns
- *     back people who already believe. The building that answers an inquisitor
- *     is the one your own inquisitor is standing in.
+ *   · **A temple does not change it.** `templeShare` applies to *pressure
+ *     arriving*; a purge takes away what is already banked and turns back
+ *     people who already believe. The building that answers an inquisitor is
+ *     the one your own inquisitor is standing in.
  *   · **`state.cities` in array order**, never a distance sort, because an
  *     outcome may only depend on an order the state carries (hard rule 2).
  *
@@ -4044,59 +4041,10 @@ export function holySites(state: GameState): HolySite[] {
   return out;
 }
 
-/**
- * The cities joined to this one by **road**, in `state.cities` order.
- *
- * A flood fill over paved hexes and the towns standing on them, hoisted for one
- * question and never stored — `connectedCities`' bargain, one rule wider: that
- * function answers "which of *my* towns reach my capital", and belief does not
- * care whose road it is walking on. A town is a junction whether or not anybody
- * paved its centre, which is what lets two empires' networks meet at a gate.
- */
-function roadReach(state: GameState, from: City): City[] {
-  const { map } = state;
-  const start = getTileAt(map, from.col, from.row);
-  const out: City[] = [];
-  if (!start) return out;
-  const cityAtIndex = new Map<number, City>();
-  for (const city of state.cities) cityAtIndex.set(tileIndex(map, city.col, city.row), city);
-  const seen = new Uint8Array(map.tiles.length);
-  const frontier: Tile[] = [start];
-  seen[tileIndex(map, start.col, start.row)] = 1;
-  while (frontier.length > 0) {
-    const tile = frontier.pop()!;
-    for (const neighbour of neighborTiles(map, tileHex(tile))) {
-      const index = tileIndex(map, neighbour.col, neighbour.row);
-      if (seen[index] === 1) continue;
-      const paved = neighbour.road !== undefined;
-      const town = cityAtIndex.get(index);
-      if (!paved && town === undefined) continue;
-      seen[index] = 1;
-      // A town is where a road ends, not a hex a road runs through: the fill
-      // stops at a foreign gate rather than treating every city as a junction
-      // onto whatever is paved on the other side of it. It is still *reached*,
-      // which is the whole of what pressure asks.
-      if (town !== undefined) {
-        if (town.id !== from.id) out.push(town);
-        if (!paved) continue;
-      }
-      frontier.push(neighbour);
-    }
-  }
-  // Sorted into `state.cities` order rather than fill order, because a fill's
-  // order is an artefact of the frontier and an outcome may only depend on an
-  // order the state carries.
-  const ordered: City[] = [];
-  for (const city of state.cities) {
-    if (out.includes(city)) ordered.push(city);
-  }
-  return ordered;
-}
-
 /** One labelled contribution to one religion's pull on one town. Rule 5, for a tide. */
 export interface PressureLine {
   religion: ReligionId;
-  /** Player-facing, and plain: "Holy site", "Road", "Proclamation". */
+  /** Player-facing, and plain: "Holy site", "Trade route", "Temple". */
   source: string;
   /** The faith this line presses. Whole, and already what the bank receives. */
   amount: number;
@@ -4107,10 +4055,12 @@ export interface PressureLine {
  * fold is the figure the bank receives.
  *
  * **The** reading of the tide (hard rule 5 at the scale of a faith), and it is
- * derived from the board with nothing stored: sites, following neighbours,
- * roads, caravans, proclamations, a temple's resistance, the founder's capital
- * and whatever the stones supply. Recomputed every turn by the `spreadReligion`
- * phase and by any surface that wants to explain a banner.
+ * derived from the board with nothing stored. There are three sources: the holy
+ * sites, the cities that follow the religion, and the trade routes from those
+ * cities (the user's ruling of 2026-11-23, `docs/flags.md` "Eight simpler
+ * rules"). A wonder that presses adds its own line, and a temple changes the
+ * total last. Roads and the founder's capital press nothing. Recomputed every
+ * turn by the `spreadReligion` phase and by any surface that explains a banner.
  *
  * Two orderings are load-bearing and neither is negotiable. The **religions** are
  * walked in `state.religions` order, which is founding order, so a fold is the
@@ -4136,17 +4086,13 @@ export function explainPressure(
   const eye = tileHex(here);
   // What the town holds (`townHoldsBuilding`, Expansionist batch E12).
   const hasTemple = townHoldsBuilding(state, city, TEMPLE);
-  // One fill for the whole town rather than one per religion: which towns this
-  // one is joined to by road is a fact about the board, not about a faith.
-  const byRoad = roadReach(state, city);
 
   for (const religion of state.religions) {
     // **The tide is bent by whoever holds the seat**, not by whoever first
     // raised it (the 2026-08-28 ruling): the enhancer pool pays the holy city's
     // owner, so the pressure rules it carries — and the wonders that press —
     // are asked of `religionFounder`. A conqueror who takes a holy city takes
-    // the reach of its faith with the stones. The capital line below follows
-    // for the same reason: the seat of a faith is where its seat *is*.
+    // the reach of its faith with the stones.
     const founder = religionFounder(state, religion);
     const rule = (id: PressureRuleId, base: number): number =>
       base + cardPressureRule(state, founder, id);
@@ -4174,7 +4120,6 @@ export function explainPressure(
     // through a rival's realm without anybody marching.
     const cityRange = rule('cityRange', rules.cityRange);
     const cityStrength = rule('cityStrength', rules.cityStrength);
-    const roadStrength = rule('roadStrength', rules.roadStrength);
     let fromCities = 0;
     for (const other of state.cities) {
       if (other.id === city.id) continue;
@@ -4185,13 +4130,6 @@ export function explainPressure(
       fromCities += cityStrength;
     }
     say('Nearby city', fromCities);
-
-    let fromRoads = 0;
-    for (const other of byRoad) {
-      if (cityReligion(other) !== religion.id) continue;
-      fromRoads += roadStrength;
-    }
-    say('Road', fromRoads);
 
     const routeStrength = rule('routeStrength', rules.routeStrength);
     const bothWays = rule('routeBothWays', 0) > 0;
@@ -4213,20 +4151,6 @@ export function explainPressure(
     // it is made (`pressLump`), not a source that presses every turn until it
     // fades. The tide is the standing world; a bomb is an event.
 
-    // **A founder's capital does not drift.** The seat of the faith holds
-    // itself — and, where a law gives it a reach, carries out to the towns
-    // around it (Pilgrims, `capitalRange`). The base range is **0**, which is
-    // the capital's own hex and nothing further, so an empire holding no such
-    // card reads exactly the line it always read.
-    const seat = capitalCityOf(state, founder);
-    if (seat) {
-      const seatTile = getTileAt(state.map, seat.col, seat.row);
-      const capitalRange = rule('capitalRange', rules.capitalRange);
-      if (seatTile && wrappedDistance(state.map, eye, tileHex(seatTile)) <= capitalRange) {
-        say('Your capital', rule('capitalStrength', rules.capitalStrength));
-      }
-    }
-
     // The stones. `cardPressureSources` keeps the town each one presses from,
     // which is what `liveEffects` deliberately forgets.
     let fromWonders = 0;
@@ -4238,14 +4162,12 @@ export function explainPressure(
     }
     say('Wonder', fromWonders);
 
-    // **The temple is the defence, and there is no other.** Twice for the faith
-    // the town already keeps, half for everybody else's — the design's answer to
-    // "how do I resist a conversion" that needs no combat and no unit. Last, and
+    // **The temple** doubles the faith the town already keeps. Other religions
+    // press at full strength (the user's ruling of 2026-11-23). Last, and
     // carried as a difference, so the list still sums to the total.
     //
-    // Through `templeShare`, which is the same arithmetic a proclamation's lump
-    // is put through: a temple that turned away a slow tide but not a bomb would
-    // be the one defensive building in the game with a hole in it.
+    // Through `templeShare`, the same arithmetic a proclamation's lump goes
+    // through, so a temple treats a slow tide and a bomb the same way.
     if (!hasTemple) continue;
     let subtotal = 0;
     for (let i = before; i < lines.length; i++) subtotal += lines[i]!.amount;
@@ -4267,7 +4189,7 @@ const TEMPLE: BuildingId = 'temple';
  *
  * A plain array indexed by id, because an id *is* an index into
  * `state.religions` and a sweep already holds the address. Totals are floored at
- * zero: a temple may cut a faith's pull, never turn it into a push.
+ * zero: a card may cut a faith's pull, never turn it into a push.
  */
 export function pressureTotals(
   state: GameState,
@@ -4564,16 +4486,16 @@ function purgePressure(
 /**
  * What one town's Temple lets through of one figure of one religion's pressure.
  *
- * **The** temple rule, and it is shared for the reason the converter is: the
- * per-turn tide applies it in `explainPressure` and a proclamation applies it in
- * `pressLump`, and a temple that resisted a slow tide but not a bomb would be
- * the one defensive building in the game with a hole in it (user, 2026-08-28:
- * "the temple rule applied … so a temple resists the bomb").
+ * **The** temple rule. The per-turn tide applies it in `explainPressure` and a
+ * proclamation applies it in `pressLump`, so a temple treats both the same way
+ * (user, 2026-08-28: "the temple rule applied … so a temple resists the bomb").
  *
- * Twice for the faith the town already keeps, half for everybody else's, whole
- * percentage points, floored once. Shifted by the pressure rules of **whoever
- * holds the seat** of the pressing faith (`religionFounder`) — the 2026-08-28
- * ruling that a conqueror takes the reach of a faith with the stones.
+ * A Temple doubles the faith its town already keeps (`templeOwnPercent`, whole
+ * percentage points, floored once), shifted by the pressure rules of **whoever
+ * holds the seat** of that faith (`religionFounder`). Every other religion gets
+ * its figure back at full strength: the user's ruling of 2026-11-23 removed the
+ * rival half of the rule ("lets remove the temples' 75% to rival strength").
+ * The owner's own cards may still weaken a rival first (`rivalShare`).
  *
  * A town with no Temple gets its figure back untouched, which is why callers do
  * not ask whether there is one.
@@ -4588,11 +4510,9 @@ export function templeShare(
   const shielded = rivalShare(state, city, religion, amount);
   // What the town holds (`townHoldsBuilding`, Expansionist batch E12).
   if (!townHoldsBuilding(state, city, TEMPLE)) return shielded;
-  const rules = RULES.religion;
+  if (cityReligion(city) !== religion.id) return shielded;
   const percent =
-    cityReligion(city) === religion.id
-      ? rules.templeOwnPercent + cardPressureRule(state, founder, 'templeOwnPercent')
-      : rules.templeForeignPercent + cardPressureRule(state, founder, 'templeForeignPercent');
+    RULES.religion.templeOwnPercent + cardPressureRule(state, founder, 'templeOwnPercent');
   return Math.max(0, Math.floor((shielded * Math.max(0, percent)) / 100));
 }
 
@@ -4677,7 +4597,7 @@ function majorityTarget(
 /** One town a proclamation landed on. See `ProclamationReport`. */
 interface ProclamationConversion {
   cityId: number;
-  /** Citizens that turned this instant. Zero for a town a temple held. */
+  /** Citizens that turned this instant. Zero for a town the lump did not turn. */
   converted: number;
   /** True when the town follows the proclaimed faith now the dust has settled. */
   nowFollows: boolean;
@@ -4692,7 +4612,7 @@ interface ProclamationConversion {
  * prophet had just spoken to — a diff of two states could not tell a bomb's
  * six converts from a turn of ordinary tide.
  *
- * Every town in range is listed, including the ones a temple held to nothing,
+ * Every town in range is listed, including the ones where nobody turned,
  * because "Nippur resisted" is exactly the news a player who spent a whole
  * prophet's charge needs.
  */

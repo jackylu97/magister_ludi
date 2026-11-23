@@ -959,26 +959,20 @@
       "name": "Inquisition",
       "axis": "war",
       "flavor": "Doubt is welcome. Bring it here, where we can look at it.",
-      "text": "Rival religions press your towns with a Temple at half strength.",
-      "effects": [
-        {
-          "kind": "pressureRule",
-          "rule": "templeForeignPercent",
-          "delta": -25
-        }
-      ]
+      "text": "This belief has no effect now.",
+      "effects": [],
+      "deferred": [
+        "rival religions press your towns with a Temple more weakly"
+      ],
+      "note": "Withdrawn: this belief is no longer offered. It made a Temple hold rival religions back harder, and a Temple no longer holds rival religions back at all.",
+      "retired": true
     },
     "theLongRoad": {
       "name": "The Long Road",
       "axis": "road",
       "flavor": "Every cart that leaves carries two things, and only one is grain.",
-      "text": "Your religion presses 2 harder along roads and trade routes.",
+      "text": "Your religion presses 2 harder along trade routes.",
       "effects": [
-        {
-          "kind": "pressureRule",
-          "rule": "roadStrength",
-          "delta": 2
-        },
         {
           "kind": "pressureRule",
           "rule": "routeStrength",

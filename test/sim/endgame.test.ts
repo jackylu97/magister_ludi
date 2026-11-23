@@ -484,7 +484,7 @@ describe('the three great works pay what their rows say', () => {
 
     // Presence is the state: no key, no extra mending.
     expect(cardUnitStat(g.state, soldier, 'heal')).toBe(0);
-    soldier.fortifiedTurns = 0;
+    soldier.fortified = true;
     expect(cardUnitStat(g.state, soldier, 'heal')).toBe(5);
   });
 

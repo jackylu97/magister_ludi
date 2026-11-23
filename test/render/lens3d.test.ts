@@ -274,9 +274,9 @@ describe('the faith lens', () => {
   it('washes a town’s ground in the ink of the faith pressing hardest on it', () => {
     const state = faithState();
     const id = found(state, 1);
-    // A town that already follows the faith is a source pressing on itself
-    // through its founder's capital rule — the simplest live tide there is, and
-    // it is the sim's own arithmetic either way: the lens asks `pressureTotals`.
+    // Two towns that follow the faith press on each other as nearby cities:
+    // the simplest live tide there is, and it is the sim's own arithmetic
+    // either way, because the lens asks `pressureTotals`.
     state.cities[0]!.followers = { [id]: state.cities[0]!.population };
     // A neighbouring town of the founder's, so there is something to press.
     foundCityAt(state, 1, at(state, 5, 4));
@@ -296,6 +296,8 @@ describe('the faith lens', () => {
     const state = faithState();
     const id = found(state, 0);
     state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+    // A holy site on the town's own ground, so something presses the town.
+    at(state, 3, 4).improvement = 'holySite';
     bumpRevision(state);
     const layer = build(state, grid(state, VISIBLE));
     let washes = 0;
@@ -369,21 +371,33 @@ describe('the faith lens', () => {
 
     it('rings a pressed-but-not-following town faint', () => {
       const state = faithState();
-      found(state, 1);
-      // Seat 1's own capital presses itself (the founder's capital rule) and
-      // carries no followers of its own — pressed, and not a majority.
+      const id = found(state, 1);
+      // Seat 0's town follows seat 1's faith and presses its neighbour as a
+      // nearby city. The neighbour, seat 1's own town, carries no followers of
+      // its own: pressed, and not a majority.
+      state.cities[0]!.followers = { [id]: state.cities[0]!.population };
       foundCityAt(state, 1, at(state, 5, 4));
       expect(state.cities[1]!.followers).toBeUndefined();
       const layer = build(state, grid(state, VISIBLE));
       expect(ringOn(layer, 5, 4)).toEqual([playerColor(state, 1)]);
-      // And it is the faint grade, not the strong one.
-      let faint = -1;
+      // And it is the faint grade, not the strong one: the opacity of the ring
+      // that stands on this town's hex.
+      const centre = cellCenter(5, 4);
+      const where = new Vector3();
+      const matrix = new Matrix4();
+      const opacities: number[] = [];
       for (const child of layer.group.children) {
-        if (child instanceof InstancedMesh && child.geometry === geometry.ring) {
-          faint = (child.material as MeshBasicMaterial).opacity;
+        if (!(child instanceof InstancedMesh) || child.geometry !== geometry.ring) continue;
+        for (let i = 0; i < child.count; i++) {
+          child.getMatrixAt(i, matrix);
+          where.setFromMatrixPosition(matrix);
+          if (Math.abs(where.x - centre.x) < 1e-6 && Math.abs(where.z - centre.z) < 1e-6) {
+            opacities.push((child.material as MeshBasicMaterial).opacity);
+          }
         }
       }
-      expect(faint).toBeCloseTo(VIEW3D.lens.faithPressedRingOpacity);
+      expect(opacities).toHaveLength(1);
+      expect(opacities[0]).toBeCloseTo(VIEW3D.lens.faithPressedRingOpacity);
       layer.dispose();
     });
 

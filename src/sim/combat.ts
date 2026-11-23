@@ -58,8 +58,8 @@
  * up. A percentage of the defender's own strength made a hill worth twice as
  * much to a longswordsman as to a warrior, which is a hill improved by Iron
  * Working. Terrain defence is summed from terrain, feature and hills (see
- * `terrainData.ts`, which itemises it); the fortify bonus is `turns × perTurn`
- * points, capped at `fortifyMax`.
+ * `terrainData.ts`, which itemises it); the fortify bonus is a flat
+ * `fortifyBonus` points from the first turn a unit is fortified.
  *
  * "Every flat line" is a list and not a fixed set: the wild's tax, the empire's
  * law, a citadel under the defender's feet, and — since 2026-08-28 — a **great
@@ -447,34 +447,23 @@ export { isCivilian, isCombatant, isRanged };
 
 // --- fortifying -------------------------------------------------------------
 
-/** Is this unit dug in? Presence of the counter *is* the state; see `Unit`. */
+/** Is this unit dug in? Presence of the flag *is* the state; see `Unit.fortified`. */
 export function isFortified(unit: Unit): boolean {
-  return unit.fortifiedTurns !== undefined;
+  return unit.fortified !== undefined;
 }
 
 /**
- * How many turns of fortification are worth counting: the point at which
- * `fortifyMax` is reached, and never more, so the stored counter cannot drift
- * upward for a hundred turns behind a bonus that stopped growing on turn two.
- */
-function maxFortifyTurns(): number {
-  const perTurn = COMBAT.fortifyBonusPerTurn;
-  if (perTurn <= 0) return 0;
-  return Math.ceil(COMBAT.fortifyMax / perTurn);
-}
-
-/**
- * The **strength points** this unit's entrenchment is worth right now.
+ * The **strength points** this unit's entrenchment is worth: a flat
+ * `combat.fortifyBonus` for a fortified unit, from the first turn, and nothing
+ * for one that is not.
  *
- * Points rather than the fraction this returned until 2026-08-28: a trench and a
- * hill are the same kind of advantage and belong on the same ledger (module
- * docblock). `maxFortifyTurns` is unchanged by the switch — `fortifyMax /
- * perTurn` is still 2 — so a save written before it deserialises identically.
+ * Points rather than a fraction since 2026-08-28: a trench and a hill are the
+ * same kind of advantage and belong on the same ledger (module docblock). Flat
+ * since the user's ruling of 2026-11-23 ("Fortify flat +4"); before it the bonus
+ * grew each turn up to a cap.
  */
 export function fortifyBonus(unit: Unit): number {
-  const turns = unit.fortifiedTurns;
-  if (turns === undefined) return 0;
-  return Math.min(turns * COMBAT.fortifyBonusPerTurn, COMBAT.fortifyMax);
+  return isFortified(unit) ? COMBAT.fortifyBonus : 0;
 }
 
 /**
@@ -1469,52 +1458,6 @@ function rowCombatLines(
 }
 
 /**
- * **The line of battle**: what standing shoulder to shoulder with other heavy
- * hulls is worth, as the one labelled line it adds — or nothing.
- *
- * `generalAuraLines`' shape at sea, and the resemblance is the design rather
- * than a copy: a fact about *where the piece is standing* is a flat labelled
- * point total, never a term in a multiplier. What differs is that this one
- * *counts* — `rules.naval.lineBonusPerHull` per neighbour, capped at
- * `lineBonusMax` — because a line of battle is a formation and a general is a
- * person, so one of them stacks and the other cannot.
- *
- * Four clauses, each a sentence. **Heavy hulls only**, asked of `blockades` —
- * the roster's own marker for the heavy line — so nothing here compares a type
- * against a name or switches on a model class, which is art. Since Scientific
- * batch S1 the question is about a piece, so a hull that blockades by a card
- * (the Galleass trait's Gun Galleys) stands in the line as well. **Its own side**,
- * the reading everything in this file gives "friendly". **Adjacent**, the six
- * neighbours and nothing further: a formation is contact, and a fleet spread
- * over a sea is not a line. **`state.units` in array order**, never a `Map`,
- * because the count reaches an outcome (hard rule 2).
- *
- * Read on both sides by `planCombat`, like every other flat line: a wall of
- * hulls is worth the same closing as it is holding.
- */
-export function navalLineLines(state: GameState, unit: Unit): CombatStrengthLine[] {
-  const per = RULES.naval.lineBonusPerHull;
-  if (per === 0) return [];
-  if (!blockades(state, unit)) return [];
-  const here = getTileAt(state.map, unit.col, unit.row);
-  if (!here) return [];
-  const eye = tileHex(here);
-  let neighbours = 0;
-  for (const other of state.units) {
-    if (other.id === unit.id) continue;
-    if (other.ownerId !== unit.ownerId) continue;
-    if (!blockades(state, other)) continue;
-    const stands = getTileAt(state.map, other.col, other.row);
-    if (!stands) continue;
-    if (wrappedDistance(state.map, eye, tileHex(stands)) !== 1) continue;
-    neighbours += 1;
-  }
-  if (neighbours === 0) return [];
-  const amount = Math.min(RULES.naval.lineBonusMax, neighbours * per);
-  return [{ source: 'The line', amount }];
-}
-
-/**
  * What being **on the water** is worth to a piece that does not belong there —
  * the escort's shelter, or the price of having none.
  *
@@ -1533,10 +1476,9 @@ export function navalLineLines(state: GameState, unit: Unit): CombatStrengthLine
  *     crossing is a column that cannot form up, and it is the whole reason a
  *     light hull is worth building alongside an invasion.
  *
- * The escort is asked of `hitAndRun`, the light line's own marker, for
- * `navalLineLines`' reason: the roster says what a hull is for, and a model
- * class is art. `stacksFreely` pieces are skipped so a caravan sharing the hex
- * is neither an escort nor in the way.
+ * The escort is asked of `hitAndRun`, the light line's own marker: the roster
+ * says what a hull is for, and a model class is art. `stacksFreely` pieces are
+ * skipped so a caravan sharing the hex is neither an escort nor in the way.
  */
 export function seaDefenceLines(
   state: GameState,
@@ -2171,14 +2113,15 @@ function planCombat(
    * The roster's own lines first (`rowCombatLines`) — the light hull's edge over
    * a gun deck, the ranged hull's fragility when a melee catches it, the
    * frigate's bombardment — read on whichever side the row is on, so one table
-   * answers for an attack and for a defence. Then **the line of battle**, both
-   * sides, beside the general's aura it is modelled on. Then the water, on the
-   * defender only: a piece caught crossing is worth less unless a light hull is
-   * standing over it, which is what `seaDefenceLines` is.
+   * answers for an attack and for a defence. Then the water, on the defender
+   * only: a piece caught crossing is worth less unless a light hull is standing
+   * over it, which is what `seaDefenceLines` is. The line of battle (a bonus for
+   * each friendly heavy ship beside a heavy ship) was removed by the user's
+   * ruling of 2026-11-23.
    *
    * That is the whole of the triangle in the simulation. There is no naval
    * branch in the damage curve, no second evaluator and no clause anywhere that
-   * asks whether a fight is at sea — three data rows and three folds, which is
+   * asks whether a fight is at sea — data rows and two folds, which is
    * the same bargain a luxury's signature and a card's effect make.
    */
   for (const line of rowCombatLines(
@@ -2190,9 +2133,6 @@ function planCombat(
   )) {
     bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
   }
-  for (const line of navalLineLines(state, attacker)) {
-    bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
-  }
   if (target.unit) {
     for (const line of rowCombatLines(
       unitDef(target.unit.type),
@@ -2201,9 +2141,6 @@ function planCombat(
       attacker.type,
       false,
     )) {
-      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
-    }
-    for (const line of navalLineLines(state, target.unit)) {
       bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
     for (const line of seaDefenceLines(state, target.unit, tile)) {
@@ -4013,25 +3950,4 @@ export function healCities(state: GameState, report?: { sieges: SiegeReport[] })
     }
     city.hp = Math.min(max, city.hp + amount);
   }
-}
-
-/**
- * `advanceFortify`: everybody still dug in digs a little deeper.
- *
- * The counter is capped at `maxFortifyTurns()` rather than left to climb, so
- * that a unit sitting on a hill for a hundred turns serialises the same as one
- * that has been there for three — the bonus stopped growing at two, and a number
- * that only differs where nothing differs is a number that breaks snapshot
- * comparison for no reason.
- */
-export function advanceFortify(state: GameState): void {
-  const cap = maxFortifyTurns();
-  for (const unit of state.units) {
-    const turns = unit.fortifiedTurns;
-    if (turns === undefined) continue;
-    unit.fortifiedTurns = Math.min(cap, turns + 1);
-  }
-  // A fortification is a line of the cards' counts (Dominion batch D7,
-  // `slate.ts`), so the phase announces after its writes.
-  bumpEconomy(state);
 }
