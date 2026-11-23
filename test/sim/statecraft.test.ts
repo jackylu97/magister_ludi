@@ -7578,7 +7578,8 @@ describe("the remembered walk", () => {
       },
     ];
     bumpRevision(state);
-    expect(lawOf(state, 0).some((line) => line.includes("turns left"))).toBe(
+    // One turn is left, and the label says "1 turn left".
+    expect(lawOf(state, 0).some((line) => line.includes("turn left"))).toBe(
       true,
     );
     // An expiry is a comparison, never a countdown — so the turn moving is the
@@ -7586,7 +7587,7 @@ describe("the remembered walk", () => {
     // the phase raises the counter; here the bench raises it.
     state.turn += 1;
     bumpRevision(state);
-    expect(lawOf(state, 0).some((line) => line.includes("turns left"))).toBe(
+    expect(lawOf(state, 0).some((line) => /turns? left/.test(line))).toBe(
       false,
     );
   });
