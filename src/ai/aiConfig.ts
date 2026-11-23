@@ -731,6 +731,10 @@ export interface AiConfig {
     screenHoldExchange: number;
     /** Extra combat score for a guaranteed city capture when another target is available. */
     cityCaptureValue: number;
+    /** Extra attack score for a midpoint unit kill or a certain capture. */
+    targetRemovalValue: number;
+    /** Score deducted when the counter forecast can kill the attacking unit. */
+    counterLossCost: number;
     /**
      * **The least a blow in the field must deal for every point it takes**
      * (ruled 2026-09-15, `docs/flags.md` (nnnnn): *"we should really tune its
@@ -961,12 +965,9 @@ export interface AiConfig {
     /** How far, in hexes, a soldier may stand and still be "coming to hold it". */
     razeReach: number;
     /**
-     * **Towns taken this war at which a winning seat sues for a white peace**
-     * (E1a, §2.6). A war with no goal is fought until the exchange turns, which
-     * is what the audit found: a winning seat has no reason to stop. At this
-     * many towns taken since the war began (`warLedger.ts`' count) and the
-     * exchange still ahead, the seat puts a white peace on the table rather than
-     * pressing on. Nought is today: no goal, no stopping.
+     * Offer white peace after this many captures from this opponent while the
+     * exchange is favorable. Only captures inside the current war and retained
+     * weariness window count. Zero disables this stopping rule.
      */
     goalTowns: number;
     /**
@@ -1035,24 +1036,11 @@ export interface AiConfig {
     /** Warscore below which a suing seat offers **tribute** rather than a white peace. */
     tributeFloor: number;
     /**
-     * **What this war has cost against what it has taken, at which a seat asks
-     * to stop** (ruled 2026-09-15, `docs/flags.md` (nnnnn), the addendum: *"the
-     * ai should have some idea of how many units it's lost to you vs how many
-     * it's killed, and factor that into it's decision for peace"*).
-     *
-     * The warscore is a comparison of *standing* — their army against ours,
-     * their conquests against ours, as careers — and a seat can be ahead on
-     * standing while feeding pieces into a line it cannot break, which is
-     * exactly the war the user was on the other side of. The **exchange** is the
-     * price of this war since it began (`src/ai/warLedger.ts`), pieces and towns
-     * at the warscore's own weights, read as *ours over theirs*: above one is a
-     * war going badly. At 1.3 a seat asks for peace once this war has cost it
-     * half again what it has cost them — **and** its army no longer clears the
-     * bar it would have declared at, because either clause alone is a seat that
-     * sues the moment it loses a skirmish.
-     *
-     * A persona may ask later: the warmonger's is high, which is the same seat
-     * that keeps fighting while it is ahead (`acceptCeiling`).
+     * Recent losses to this opponent divided by its losses to us, with unit
+     * and town weights. The bot proposes peace above this ratio if its army
+     * advantage is also insufficient. It may accept an offered peace on either
+     * condition. `warLedger.ts` limits records to this war and the retained
+     * weariness window, so other wars and barbarian losses cannot change it.
      */
     peaceExchange: number;
     /** Coin a point of warscore is worth, both as tribute offered and as tribute accepted. */

@@ -81,7 +81,6 @@ import type { BotDecision } from './decision';
 import { type FocusChoice, adoptFocusRoll, copyFocusRoll } from './focusRoll';
 import { type HarnessMemory, adoptHarnessMemory, readHarnessMemory } from './harnessMemory';
 import { markMusterTurn } from './musterRoll';
-import { adoptWarLedger, copyWarLedger } from './warLedger';
 import { type Command, type CommandResult, applyCommand } from '../sim/commands';
 import { greatPersonChoiceError } from '../sim/greatPeople';
 import { type GameState, playerById, unitById } from '../sim/state';
@@ -600,8 +599,6 @@ function withRealIds(command: Command, run: PlanRun): Command | null {
  * been put (whether it ran to the end or was cut), and before a live sitting
  * finishes the seat's turn.
  *
- *   - **The war windows** (`warLedger.ts`) are keyed by the seat that reads
- *     them. The windows this seat opened on its copy join the real ledger.
  *   - **The focus roll** (`focusRoll.ts`) is keyed by town. The rows this
  *     seat's copy wrote or changed are written onto the real roll, with a new
  *     town's id mapped. A row for a command that was cut does no harm: the
@@ -613,17 +610,6 @@ function withRealIds(command: Command, run: PlanRun): Command | null {
  */
 export function mergeSeatMemory(state: GameState, board: FrozenBoard, run: PlanRun): void {
   const seat = run.plan.playerId;
-  const prefix = `${seat}v`;
-  const ledger = copyWarLedger(state);
-  const held = new Set(ledger.map(([key]) => key));
-  let grew = false;
-  for (const entry of run.plan.memory.wars) {
-    if (!entry[0].startsWith(prefix) || held.has(entry[0])) continue;
-    ledger.push(entry);
-    grew = true;
-  }
-  if (grew) adoptWarLedger(state, ledger);
-
   const before = new Map(board.memory.focus.map((row) => [row.cityId, JSON.stringify(row)]));
   const roll = copyFocusRoll(state);
   let changed = false;

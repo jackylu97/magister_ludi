@@ -126,6 +126,8 @@
     "rangedDeferral": 25,
     "screenHoldExchange": 0,
     "cityCaptureValue": 0,
+    "targetRemovalValue": 50,
+    "counterLossCost": 100,
     "strikeFloor": 1,
     "hardTargetMargin": 1.2,
     "siegeStrikeFloor": 0,

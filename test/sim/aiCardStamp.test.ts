@@ -34,6 +34,7 @@ import {
   explainBeyondStamp,
   explainCardEffects,
   explainCardStamp,
+  stampSight,
 } from '../../src/ai/value';
 import type { Game } from '../../src/sim/game';
 import { FOLLOWER_BELIEF_IDS } from '../../src/sim/religionData';
@@ -49,7 +50,7 @@ import {
   isCharter,
   orderDef,
 } from '../../src/sim/statecraftData';
-import { cardsToPrice, effectsOf, stampOfTheSim } from './aiCardStampHelpers';
+import { cardsToPrice, effectsOf, footprintOf, meterAuditPosition, shapeOf, stampOfTheSim } from './aiCardStampHelpers';
 import { createGame } from './newGameHelpers';
 
 /** Six seats on the duel board, to the turn the decks have dealt a few hands. */
@@ -81,6 +82,25 @@ function seats(state: GameState): Player[] {
 }
 
 describe('the bot prices a card by its stamp', () => {
+  it.each([
+    ['theGoodYears', 'happinessTierBoost'],
+    ['theGloriousDead', 'rulePercent/townLossWeariness'],
+  ] as const)('measures %s in the controlled meter position', (id, shape) => {
+    const state = meterAuditPosition();
+    const player = state.players[0]!;
+    const ctx = valueContext(state, player);
+    expect(cardsToPrice(state, player)).toContain(id);
+    const effect = effectsOf(id).find((entry) => shapeOf(entry) === shape)!;
+    expect(stampSight(effect)).toBe('books');
+    expect(footprintOf(ctx, id, effect)).toBeGreaterThan(0);
+    const stamp = explainCardStamp(ctx, id);
+    const sim = stampOfTheSim(state, player.id, id, ctx);
+    expect(stamp).not.toBeNull();
+    expect(sim).not.toBeNull();
+    expect(stamp!.total).toBeCloseTo(sim!.worth, 9);
+    expect(sim!.meterLinesOff).toEqual([]);
+  });
+
   it('reads every card it stamps as the sim’s own stamp, card by card', () => {
     const state = board();
     let checked = 0;

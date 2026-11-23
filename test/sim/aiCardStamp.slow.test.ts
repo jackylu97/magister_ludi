@@ -35,6 +35,9 @@
  *
  * Slow by kind: a hundred and twenty turns of six seats, then some thousands of
  * stamps.
+ *
+ * Additional controlled positions cover recent losses and spare happiness.
+ * These conditions must stay covered when bot changes alter the played game.
  */
 
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -56,6 +59,7 @@ import {
   cardsToPrice,
   effectsOf,
   footprintOf,
+  meterAuditPosition,
   shapeOf,
   stampOfTheSim,
 } from './aiCardStampHelpers';
@@ -108,6 +112,9 @@ function auditPositions(snapshots: readonly string[]): GameState[] {
     });
     positions.push(worn);
   }
+  // Keep conditional meter coverage even when the played seats have no spare
+  // happiness or no recent town losses. This private fixture is not a replay.
+  positions.push(meterAuditPosition());
   return positions;
 }
 

@@ -1,0 +1,6514 @@
+{
+  "sourceCommit": "096c9bc5",
+  "schema": 260,
+  "scope": "Historical snapshot, not a live balance-data mirror. 32 standard-map games, 5 seeds, 192 seats at turn 80. Same top and bottom 8 within each leader as the Order report. Later ownership does not establish an early cause.",
+  "aiSha256": "bbd8ba1f9280b3849b77a56d797176ab3325faa1d8034458043370f31b2f86c9",
+  "leaders": {
+    "alexanderTheGreat": {
+      "name": "Alexander the Great",
+      "abilities": [
+        {
+          "id": "unbrokenCharge",
+          "name": "The Unbroken Charge",
+          "text": "Your units gain +3 combat strength when they attack. Capturing a city heals all your units.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 3,
+              "side": "attack",
+              "when": {
+                "test": "always"
+              }
+            },
+            {
+              "kind": "windfallRider",
+              "occasion": "capture",
+              "grant": {
+                "healAll": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "royalArmy",
+          "name": "The Royal Army",
+          "text": "Gaining a military unit grants science equal to half its strength.",
+          "effects": [
+            {
+              "kind": "windfallRider",
+              "occasion": "unitCompletion",
+              "grant": {
+                "yield": "science",
+                "amount": 0.5,
+                "fromOccasion": "strength",
+                "whole": true
+              },
+              "class": {
+                "category": "military"
+              }
+            }
+          ]
+        }
+      ],
+      "decks": [
+        "dominion",
+        "expansionist"
+      ],
+      "medianTotal": 236.875,
+      "minTotal": 106.9,
+      "maxTotal": 734.345,
+      "seedMedians": {
+        "314": 198.1375,
+        "28411": 293.775,
+        "60137": 382.42,
+        "93647": 363.5625,
+        "117031": 193.9
+      },
+      "strongCaptures": 0,
+      "weakCaptures": 0
+    },
+    "jayavarmanVII": {
+      "name": "Jayavarman VII",
+      "abilities": [
+        {
+          "id": "hospitalsOfTheKing",
+          "name": "The Hospitals of the King",
+          "text": "Freshwater farms gain +1 food and +1 faith for each public work in their city.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "basis": "count",
+              "count": "publicWorks",
+              "within": "city",
+              "food": 1,
+              "faith": 1,
+              "on": {
+                "test": "all",
+                "of": [
+                  {
+                    "test": "improvement",
+                    "improvement": "farm"
+                  },
+                  {
+                    "test": "freshwater"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "greatCityOfAngkor",
+          "name": "The Great City",
+          "text": "Gain +1 culture and +1 faith for every four citizens in your empire.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "empire",
+              "basis": "count",
+              "to": "culture",
+              "amount": 1,
+              "count": "population",
+              "per": 4
+            },
+            {
+              "kind": "pays",
+              "where": "empire",
+              "basis": "count",
+              "to": "faith",
+              "amount": 1,
+              "count": "population",
+              "per": 4
+            }
+          ]
+        }
+      ],
+      "decks": [
+        "expansionist",
+        "devotion"
+      ],
+      "medianTotal": 272.70500000000004,
+      "minTotal": 133.5,
+      "maxTotal": 916.575,
+      "seedMedians": {
+        "314": 229.1275,
+        "28411": 342.1925,
+        "60137": 329,
+        "93647": 283.56,
+        "117031": 313.25
+      },
+      "strongCaptures": 0,
+      "weakCaptures": 0
+    },
+    "lorenzoDeMedici": {
+      "name": "Lorenzo de' Medici",
+      "abilities": [
+        {
+          "id": "mediciBank",
+          "name": "The Medici Bank",
+          "text": "Gain +1 renown per turn for every eight gold your empire earns per turn after costs.",
+          "effects": [
+            {
+              "kind": "renown",
+              "amount": 1,
+              "count": "empireYield",
+              "voice": "gold",
+              "countPer": 8
+            }
+          ]
+        },
+        {
+          "id": "florins",
+          "name": "Florins",
+          "text": "A city builds wonders 10% faster for every gold building in it.",
+          "effects": [
+            {
+              "kind": "productionBonus",
+              "category": "wonder",
+              "percent": 10,
+              "count": "buildingsOfCategory",
+              "countCategory": "gold"
+            }
+          ]
+        }
+      ],
+      "decks": [
+        "commerce",
+        "magisterial"
+      ],
+      "medianTotal": 881.6937500000001,
+      "minTotal": 104.5,
+      "maxTotal": 2412.685,
+      "seedMedians": {
+        "314": 846.195,
+        "28411": 1864.2428999999997,
+        "60137": 747.8449999999999,
+        "93647": 976.69435,
+        "117031": 187.05
+      },
+      "strongCaptures": 0,
+      "weakCaptures": 0
+    },
+    "mansaMusa": {
+      "name": "Mansa Musa",
+      "abilities": [
+        {
+          "id": "goldOfWangara",
+          "name": "The Gold of Wangara",
+          "text": "+2 gold on mines and camps, and +1 gold on every desert hex worked.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "gold": 2,
+              "on": {
+                "test": "anyImprovement",
+                "improvements": [
+                  "mine",
+                  "camp"
+                ]
+              }
+            },
+            {
+              "kind": "pays",
+              "where": "hex",
+              "gold": 1,
+              "on": {
+                "test": "terrain",
+                "terrain": "desert"
+              }
+            }
+          ]
+        },
+        {
+          "id": "theHajj",
+          "name": "The Hajj",
+          "text": "Trade routes that begin or end at a city holding a holy site pay +2 gold and +2 faith.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "route",
+              "gold": 2,
+              "faith": 2,
+              "origin": {
+                "test": "hasImprovement",
+                "improvement": "holySite"
+              }
+            },
+            {
+              "kind": "pays",
+              "where": "route",
+              "gold": 2,
+              "faith": 2,
+              "destination": {
+                "test": "hasImprovement",
+                "improvement": "holySite"
+              }
+            }
+          ],
+          "note": "A road with a holy site standing at both ends is paid at both ends."
+        }
+      ],
+      "decks": [
+        "commerce",
+        "devotion"
+      ],
+      "medianTotal": 261.73,
+      "minTotal": 79.375,
+      "maxTotal": 1447.2,
+      "seedMedians": {
+        "314": 261.73,
+        "28411": 414.1675,
+        "60137": 204.4,
+        "93647": 204.0,
+        "117031": 767.8850000000001
+      },
+      "strongCaptures": 0,
+      "weakCaptures": 0
+    },
+    "mehmedTheConqueror": {
+      "name": "Mehmed the Conqueror",
+      "abilities": [
+        {
+          "id": "enderun",
+          "name": "The Enderun",
+          "text": "Each Barracks gives +1 science, and +1 more for every great scholar and great general you have gained this game.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              },
+              "science": 1
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "science",
+              "amount": 1,
+              "count": "greatPeopleGained",
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              },
+              "family": "scholar",
+              "onNamedBuilding": true
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "science",
+              "amount": 1,
+              "count": "greatPeopleGained",
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              },
+              "family": "general",
+              "onNamedBuilding": true
+            }
+          ]
+        },
+        {
+          "id": "greatBombard",
+          "name": "The Great Bombard",
+          "text": "Your units gain +5 combat strength against cities. Capturing a city grants science equal to thirty times its population.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 5,
+              "side": "attack",
+              "when": {
+                "test": "vsCity"
+              }
+            },
+            {
+              "kind": "windfallRider",
+              "occasion": "capture",
+              "grant": {
+                "yield": "science",
+                "amount": 30,
+                "fromOccasion": "population"
+              }
+            }
+          ]
+        }
+      ],
+      "decks": [
+        "dominion",
+        "scientific"
+      ],
+      "medianTotal": 367.695,
+      "minTotal": 112.65,
+      "maxTotal": 895.5375000000001,
+      "seedMedians": {
+        "314": 310.45000000000005,
+        "28411": 395.8,
+        "60137": 580.65,
+        "93647": 785.2012500000001,
+        "117031": 246.15
+      },
+      "strongCaptures": 3,
+      "weakCaptures": 0
+    },
+    "sejongTheGreat": {
+      "name": "Sejong the Great",
+      "abilities": [
+        {
+          "id": "correctSounds",
+          "name": "The Correct Sounds",
+          "text": "Every city gains +1 science and +1 culture for every four citizens.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "science",
+              "amount": 1,
+              "count": "population",
+              "per": 4,
+              "within": "city"
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "culture",
+              "amount": 1,
+              "count": "population",
+              "per": 4,
+              "within": "city"
+            }
+          ]
+        },
+        {
+          "id": "royalLectures",
+          "name": "The Royal Lectures",
+          "text": "Each technology you complete grants three turns of renown, with the same share for each family.",
+          "effects": [
+            {
+              "kind": "windfallRider",
+              "occasion": "tech",
+              "grant": {
+                "renown": 3,
+                "fromRate": "renownPerTurn"
+              }
+            }
+          ]
+        }
+      ],
+      "decks": [
+        "scientific",
+        "magisterial"
+      ],
+      "medianTotal": 295.03,
+      "minTotal": 23.95,
+      "maxTotal": 1763.77,
+      "seedMedians": {
+        "314": 526.4475,
+        "28411": 173.6925,
+        "60137": 171.8,
+        "93647": 341.575,
+        "117031": 781.4870000000001
+      },
+      "strongCaptures": 0,
+      "weakCaptures": 0
+    }
+  },
+  "groups": [
+    {
+      "leader": "alexanderTheGreat",
+      "sizePerGroup": 8,
+      "doctrinesAt80": [
+        {
+          "id": "theCuratorOfWaters",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "theGeorgics",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "theSoldiersShare",
+          "strong": 4,
+          "weak": 2
+        },
+        {
+          "id": "humanSacrifice",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theCommanderies",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theConsularRoads",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theCensors",
+          "strong": 2,
+          "weak": 2
+        },
+        {
+          "id": "theMarianReforms",
+          "strong": 1,
+          "weak": 2
+        },
+        {
+          "id": "centurions",
+          "strong": 0,
+          "weak": 2
+        },
+        {
+          "id": "theSteppeConfederacy",
+          "strong": 2,
+          "weak": 4
+        }
+      ],
+      "wondersAt80": [
+        {
+          "id": "templeOfArtemis",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "ironPillar",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "pyramids",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "statueOfZeus",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "stonehenge",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "templeOfThoth",
+          "strong": 1,
+          "weak": 0
+        }
+      ]
+    },
+    {
+      "leader": "jayavarmanVII",
+      "sizePerGroup": 8,
+      "doctrinesAt80": [
+        {
+          "id": "theGiftOfTheRiver",
+          "strong": 3,
+          "weak": 0
+        },
+        {
+          "id": "theCommanderies",
+          "strong": 3,
+          "weak": 1
+        },
+        {
+          "id": "theCuratorOfWaters",
+          "strong": 3,
+          "weak": 2
+        },
+        {
+          "id": "theRitesOfZhou",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "humanSacrifice",
+          "strong": 1,
+          "weak": 1
+        },
+        {
+          "id": "theCapitularyOfHerstal",
+          "strong": 1,
+          "weak": 1
+        },
+        {
+          "id": "theGeorgics",
+          "strong": 1,
+          "weak": 1
+        },
+        {
+          "id": "theCensors",
+          "strong": 2,
+          "weak": 3
+        },
+        {
+          "id": "theHighlandClans",
+          "strong": 0,
+          "weak": 2
+        },
+        {
+          "id": "theTheoricFund",
+          "strong": 1,
+          "weak": 5
+        }
+      ],
+      "wondersAt80": [
+        {
+          "id": "greatZiggurat",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "hangingGardens",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "ironPillar",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "pyramids",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "templeOfArtemis",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "templeOfThoth",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "greatLighthouse",
+          "strong": 1,
+          "weak": 1
+        }
+      ]
+    },
+    {
+      "leader": "lorenzoDeMedici",
+      "sizePerGroup": 8,
+      "doctrinesAt80": [
+        {
+          "id": "theBarmakids",
+          "strong": 4,
+          "weak": 0
+        },
+        {
+          "id": "theChoregia",
+          "strong": 5,
+          "weak": 1
+        },
+        {
+          "id": "magisterialTheSteleofDeeds",
+          "strong": 5,
+          "weak": 2
+        },
+        {
+          "id": "theJinshi",
+          "strong": 4,
+          "weak": 1
+        },
+        {
+          "id": "theCouncilOfTen",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "theSogdianColonies",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "theTurnpikeTrusts",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "theArthashastra",
+          "strong": 2,
+          "weak": 1
+        },
+        {
+          "id": "theBourgs",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theForbiddenSilks",
+          "strong": 2,
+          "weak": 1
+        },
+        {
+          "id": "theMagnaura",
+          "strong": 3,
+          "weak": 2
+        },
+        {
+          "id": "theMuda",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theGrandCanal",
+          "strong": 0,
+          "weak": 1
+        },
+        {
+          "id": "theLaurionLeases",
+          "strong": 0,
+          "weak": 2
+        },
+        {
+          "id": "theApoikia",
+          "strong": 1,
+          "weak": 4
+        },
+        {
+          "id": "thePeregrini",
+          "strong": 0,
+          "weak": 3
+        }
+      ],
+      "wondersAt80": [
+        {
+          "id": "mausoleum",
+          "strong": 7,
+          "weak": 0
+        },
+        {
+          "id": "pyramids",
+          "strong": 8,
+          "weak": 1
+        },
+        {
+          "id": "greatSphinx",
+          "strong": 6,
+          "weak": 0
+        },
+        {
+          "id": "ironPillar",
+          "strong": 6,
+          "weak": 0
+        },
+        {
+          "id": "theOracle",
+          "strong": 8,
+          "weak": 2
+        },
+        {
+          "id": "theatreOfDionysus",
+          "strong": 8,
+          "weak": 2
+        },
+        {
+          "id": "wallsOfUruk",
+          "strong": 7,
+          "weak": 1
+        },
+        {
+          "id": "greatLighthouse",
+          "strong": 5,
+          "weak": 0
+        },
+        {
+          "id": "greatZiggurat",
+          "strong": 6,
+          "weak": 2
+        },
+        {
+          "id": "templeOfThoth",
+          "strong": 4,
+          "weak": 0
+        },
+        {
+          "id": "greatStelaeOfAksum",
+          "strong": 3,
+          "weak": 0
+        },
+        {
+          "id": "hangingGardens",
+          "strong": 5,
+          "weak": 2
+        },
+        {
+          "id": "templeOfArtemis",
+          "strong": 5,
+          "weak": 2
+        },
+        {
+          "id": "colossus",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "forbiddenCity",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "petra",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "weiyangPalace",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "statueOfZeus",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "stonehenge",
+          "strong": 3,
+          "weak": 2
+        },
+        {
+          "id": "terracottaArmy",
+          "strong": 1,
+          "weak": 0
+        }
+      ]
+    },
+    {
+      "leader": "mansaMusa",
+      "sizePerGroup": 8,
+      "doctrinesAt80": [
+        {
+          "id": "theForbiddenSilks",
+          "strong": 6,
+          "weak": 3
+        },
+        {
+          "id": "theSerapeum",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "theTemenos",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "theApoikia",
+          "strong": 4,
+          "weak": 3
+        },
+        {
+          "id": "theHouseOfWorship",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theCapitularyOfHerstal",
+          "strong": 1,
+          "weak": 1
+        },
+        {
+          "id": "theSogdianColonies",
+          "strong": 1,
+          "weak": 1
+        },
+        {
+          "id": "theLaurionLeases",
+          "strong": 0,
+          "weak": 1
+        },
+        {
+          "id": "theDelianLeague",
+          "strong": 0,
+          "weak": 2
+        },
+        {
+          "id": "theRitesOfZhou",
+          "strong": 0,
+          "weak": 2
+        }
+      ],
+      "wondersAt80": [
+        {
+          "id": "hangingGardens",
+          "strong": 1,
+          "weak": 0
+        }
+      ]
+    },
+    {
+      "leader": "mehmedTheConqueror",
+      "sizePerGroup": 8,
+      "doctrinesAt80": [
+        {
+          "id": "thePythagoreanBrotherhood",
+          "strong": 5,
+          "weak": 1
+        },
+        {
+          "id": "centurions",
+          "strong": 2,
+          "weak": 1
+        },
+        {
+          "id": "theConsularRoads",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theJixianAcademy",
+          "strong": 2,
+          "weak": 1
+        },
+        {
+          "id": "theKulliye",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theMarianReforms",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "thePandidakterion",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theAcademyOfGondishapur",
+          "strong": 2,
+          "weak": 4
+        },
+        {
+          "id": "theLawsOfLordShang",
+          "strong": 0,
+          "weak": 2
+        },
+        {
+          "id": "theSteppeConfederacy",
+          "strong": 1,
+          "weak": 3
+        },
+        {
+          "id": "theWorkshopsOfSyracuse",
+          "strong": 1,
+          "weak": 4
+        }
+      ],
+      "wondersAt80": [
+        {
+          "id": "hangingGardens",
+          "strong": 6,
+          "weak": 0
+        },
+        {
+          "id": "greatLighthouse",
+          "strong": 3,
+          "weak": 0
+        },
+        {
+          "id": "pyramids",
+          "strong": 3,
+          "weak": 0
+        },
+        {
+          "id": "greatZiggurat",
+          "strong": 4,
+          "weak": 2
+        },
+        {
+          "id": "terracottaArmy",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "forbiddenCity",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "greatSphinx",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "greatWall",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "ironPillar",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "templeOfArtemis",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theOracle",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "statueOfZeus",
+          "strong": 0,
+          "weak": 3
+        }
+      ]
+    },
+    {
+      "leader": "sejongTheGreat",
+      "sizePerGroup": 8,
+      "doctrinesAt80": [
+        {
+          "id": "theJinshi",
+          "strong": 8,
+          "weak": 2
+        },
+        {
+          "id": "theKulliye",
+          "strong": 4,
+          "weak": 0
+        },
+        {
+          "id": "thePythagoreanBrotherhood",
+          "strong": 7,
+          "weak": 3
+        },
+        {
+          "id": "theCouncilOfTen",
+          "strong": 3,
+          "weak": 0
+        },
+        {
+          "id": "theBarmakids",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "theAcademyOfGondishapur",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theCarroccio",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theChoregia",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "theMagnaura",
+          "strong": 4,
+          "weak": 4
+        },
+        {
+          "id": "theArthashastra",
+          "strong": 0,
+          "weak": 1
+        },
+        {
+          "id": "theJixianAcademy",
+          "strong": 2,
+          "weak": 3
+        },
+        {
+          "id": "theRemovalToXianyang",
+          "strong": 0,
+          "weak": 1
+        },
+        {
+          "id": "theWorkshopsOfSyracuse",
+          "strong": 0,
+          "weak": 1
+        },
+        {
+          "id": "thePericleanWorks",
+          "strong": 0,
+          "weak": 2
+        }
+      ],
+      "wondersAt80": [
+        {
+          "id": "theatreOfDionysus",
+          "strong": 8,
+          "weak": 0
+        },
+        {
+          "id": "pyramids",
+          "strong": 7,
+          "weak": 0
+        },
+        {
+          "id": "greatSphinx",
+          "strong": 8,
+          "weak": 2
+        },
+        {
+          "id": "greatZiggurat",
+          "strong": 6,
+          "weak": 0
+        },
+        {
+          "id": "terracottaArmy",
+          "strong": 6,
+          "weak": 0
+        },
+        {
+          "id": "theOracle",
+          "strong": 7,
+          "weak": 1
+        },
+        {
+          "id": "mausoleum",
+          "strong": 5,
+          "weak": 0
+        },
+        {
+          "id": "weiyangPalace",
+          "strong": 5,
+          "weak": 0
+        },
+        {
+          "id": "stonehenge",
+          "strong": 4,
+          "weak": 0
+        },
+        {
+          "id": "ironPillar",
+          "strong": 3,
+          "weak": 0
+        },
+        {
+          "id": "libraryOfAshurbanipal",
+          "strong": 3,
+          "weak": 0
+        },
+        {
+          "id": "statueOfZeus",
+          "strong": 5,
+          "weak": 2
+        },
+        {
+          "id": "templeOfArtemis",
+          "strong": 5,
+          "weak": 2
+        },
+        {
+          "id": "wallsOfUruk",
+          "strong": 6,
+          "weak": 3
+        },
+        {
+          "id": "circusMaximus",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "greatLighthouse",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "templeOfThoth",
+          "strong": 2,
+          "weak": 0
+        },
+        {
+          "id": "angkorWat",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "greatLibrary",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "greatStelaeOfAksum",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "greatWall",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "solomonsTemple",
+          "strong": 1,
+          "weak": 0
+        },
+        {
+          "id": "hangingGardens",
+          "strong": 1,
+          "weak": 2
+        }
+      ]
+    }
+  ],
+  "doctrineCatalog": {
+    "boundToTheSoil": {
+      "id": "boundToTheSoil",
+      "class": "doctrine",
+      "name": "Bound to the Soil",
+      "text": "Workers gain +1 charge. Farms gain +1 food and +1 production.",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "type": "worker"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "farm"
+          },
+          "food": 1,
+          "production": 1
+        }
+      ]
+    },
+    "centurions": {
+      "id": "centurions",
+      "class": "doctrine",
+      "name": "Centurions",
+      "text": "Each Elite unit gives +3 strength to your units beside it, and costs 1 less upkeep.",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "adjacentFriendlies",
+            "per": 1,
+            "rank": "elite"
+          }
+        },
+        {
+          "kind": "upkeepRebate",
+          "amount": 1,
+          "rank": "elite"
+        }
+      ]
+    },
+    "combinedArms": {
+      "id": "combinedArms",
+      "class": "doctrine",
+      "name": "Combined Arms",
+      "text": "Your units gain +3 strength, doubled beside one of your siege units. Siege units beside one of your melee units cannot be attacked in melee.",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "beside",
+            "class": {
+              "modelClass": "siege"
+            }
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "siegeScreened"
+        }
+      ]
+    },
+    "humanSacrifice": {
+      "id": "humanSacrifice",
+      "class": "doctrine",
+      "name": "Human Sacrifice",
+      "text": "Your towns may levy every two turns instead of every five. Your capital may levy a citizen to perform a rite across your empire.",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "levy",
+          "every": 2
+        },
+        {
+          "kind": "levy",
+          "use": "rite",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "magisterialTheSteleofDeeds": {
+      "id": "magisterialTheSteleofDeeds",
+      "class": "doctrine",
+      "name": "The Stele of Deeds",
+      "text": "You have one more Wildcard chair for every three wonders you hold, at most two more.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "slotRider",
+          "count": "wonders",
+          "per": 3,
+          "max": 2,
+          "extra": 1
+        }
+      ]
+    },
+    "scutage": {
+      "id": "scutage",
+      "class": "doctrine",
+      "name": "Scutage",
+      "text": "Orders you hold but have not seated pay half their yields. You have one fewer Wildcard chair.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "collectionPays",
+          "percent": 50
+        },
+        {
+          "kind": "slotRider",
+          "extra": -1
+        }
+      ]
+    },
+    "theAcademyOfGondishapur": {
+      "id": "theAcademyOfGondishapur",
+      "class": "doctrine",
+      "name": "The Academy of Gondishapur",
+      "text": "Towns with an empire building gain +15% science. +20% production toward empire buildings, except the Magnum Opus and its works.",
+      "decks": [
+        "scientific"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 15,
+          "scope": {
+            "test": "hasEmpireBuilding"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": true,
+          "percent": 20,
+          "skipsBeadRows": true
+        }
+      ]
+    },
+    "theApoikia": {
+      "id": "theApoikia",
+      "class": "doctrine",
+      "name": "The Apoikia",
+      "text": "Your gold buys 100% more when buying settlers and workers.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {
+            "type": "settler"
+          },
+          "on": "unit",
+          "currency": "gold",
+          "percent": -50
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {
+            "type": "worker"
+          },
+          "on": "unit",
+          "currency": "gold",
+          "percent": -50
+        }
+      ]
+    },
+    "theArthashastra": {
+      "id": "theArthashastra",
+      "class": "doctrine",
+      "name": "The Arthashastra",
+      "text": "You have one more Wildcard chair. The card seated in it counts twice.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "slotRider",
+          "extra": 1
+        },
+        {
+          "kind": "slotPosition",
+          "slot": "wildcard",
+          "position": -1,
+          "factor": 2,
+          "whole": true
+        }
+      ]
+    },
+    "theBarmakids": {
+      "id": "theBarmakids",
+      "class": "doctrine",
+      "name": "The Barmakids",
+      "text": "Each great person you have gained gives every town +1 food and +1 production.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "greatPeopleGained",
+          "to": "food",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "greatPeopleGained",
+          "to": "production",
+          "amount": 1
+        }
+      ]
+    },
+    "theBourgs": {
+      "id": "theBourgs",
+      "class": "doctrine",
+      "name": "The Bourgs",
+      "text": "Towns working a great-person work grow 50% faster.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 50,
+          "scope": {
+            "test": "workingGreatWork"
+          }
+        }
+      ]
+    },
+    "theCapitularyOfHerstal": {
+      "id": "theCapitularyOfHerstal",
+      "class": "doctrine",
+      "name": "The Capitulary of Herstal",
+      "text": "Rites cost half as much.",
+      "decks": [
+        "devotion"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "riteCost",
+          "percent": -50
+        }
+      ]
+    },
+    "theCarroccio": {
+      "id": "theCarroccio",
+      "class": "doctrine",
+      "name": "The Carroccio",
+      "text": "Your units gain +1 strength for each wonder you hold, at most +8.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "wonders",
+            "per": 1,
+            "max": 8
+          }
+        }
+      ]
+    },
+    "theCensors": {
+      "id": "theCensors",
+      "class": "doctrine",
+      "name": "The Censors",
+      "text": "When the world takes a census, each of your towns gains a citizen. If you lead the census, each of your towns also gains +1 happiness for the rest of the game.",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "census",
+          "grant": {
+            "citizens": 1,
+            "toEveryTown": true
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "censusesLed",
+          "within": "city",
+          "sinceDoctrine": "theCensors",
+          "to": "happiness",
+          "amount": 1
+        }
+      ]
+    },
+    "theChoregia": {
+      "id": "theChoregia",
+      "class": "doctrine",
+      "name": "The Choregia",
+      "text": "Culture buildings give +3 culture and +2 renown each.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "buildingsOfCategory",
+          "category": "culture",
+          "within": "city",
+          "to": "culture",
+          "amount": 3
+        },
+        {
+          "kind": "renown",
+          "amount": 2,
+          "per": "buildingOfCategory",
+          "category": "culture"
+        }
+      ]
+    },
+    "theColleganza": {
+      "id": "theColleganza",
+      "class": "doctrine",
+      "name": "The Colleganza",
+      "text": "Luxuries you lend in a deal still count for you. Your units lose 4 strength. A luxury you have traded away cannot be traded to a second empire.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "percent": 100,
+          "target": "lentLuxuryCopies"
+        },
+        {
+          "kind": "combatLine",
+          "amount": -4,
+          "side": "both",
+          "when": {
+            "test": "always"
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "oneBorrowerPerLuxury"
+        }
+      ]
+    },
+    "theCommanderies": {
+      "id": "theCommanderies",
+      "class": "doctrine",
+      "name": "The Commanderies",
+      "text": "Each of your towns costs 1 less authority, minimum one. Your borders grow 30% more slowly.",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": -1
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "borderCulture",
+          "percent": -30
+        }
+      ]
+    },
+    "theConsularRoads": {
+      "id": "theConsularRoads",
+      "class": "doctrine",
+      "name": "The Consular Roads",
+      "text": "Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once.",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 5,
+          "culture": 5,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "connected"
+              },
+              {
+                "test": "garrisoned"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "pacified",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "connected"
+              },
+              {
+                "test": "garrisoned"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theCouncilOfTen": {
+      "id": "theCouncilOfTen",
+      "class": "doctrine",
+      "name": "The Council of Ten",
+      "text": "You have two more Wildcard chairs.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "slotRider",
+          "extra": 2
+        }
+      ]
+    },
+    "theCuratorOfWaters": {
+      "id": "theCuratorOfWaters",
+      "class": "doctrine",
+      "name": "The Curator of Waters",
+      "text": "Public works give +2 happiness and are built 50% faster.",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "publicWorks",
+          "within": "city",
+          "to": "happiness",
+          "amount": 2
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "publicWork": true,
+          "percent": 50
+        }
+      ]
+    },
+    "theDelianLeague": {
+      "id": "theDelianLeague",
+      "class": "doctrine",
+      "name": "The Delian League",
+      "text": "Your coastal towns gain +3 production and +3 gold.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "coastal"
+          },
+          "production": 3,
+          "gold": 3
+        }
+      ]
+    },
+    "theFlyingMoney": {
+      "id": "theFlyingMoney",
+      "class": "doctrine",
+      "name": "The Flying Money",
+      "text": "In towns with a gold building, your gold buys 25% more when buying units and buildings. Your other towns cannot buy them with gold.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "all",
+          "currency": "gold",
+          "percent": -20,
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "gold",
+            "atLeast": 1
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "buysOnlyInScope",
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "gold",
+            "atLeast": 1
+          }
+        }
+      ]
+    },
+    "theForbiddenSilks": {
+      "id": "theForbiddenSilks",
+      "class": "doctrine",
+      "name": "The Forbidden Silks",
+      "text": "Your luxuries give twice their happiness. You cannot lend luxuries in deals.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "luxuryHappiness",
+          "percent": 100
+        },
+        {
+          "kind": "rule",
+          "rule": "noLuxuryLending"
+        }
+      ]
+    },
+    "theGeorgics": {
+      "id": "theGeorgics",
+      "class": "doctrine",
+      "name": "The Georgics",
+      "text": "Your works count as having stood twice as long. Improvements that have stood for twenty turns gain +1 production.",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "workAge",
+          "factor": 2
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improved"
+              },
+              {
+                "test": "standingSince",
+                "turns": 20
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theGiftOfTheRiver": {
+      "id": "theGiftOfTheRiver",
+      "class": "doctrine",
+      "name": "The Gift of the River",
+      "text": "Worked tiles beside a river gain +1 food and +1 production. Towns away from fresh water cost 3 more happiness.",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "production": 1,
+          "on": {
+            "test": "river"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": -3,
+          "per": "city",
+          "scope": {
+            "test": "notFreshwater"
+          }
+        }
+      ]
+    },
+    "theGrandCanal": {
+      "id": "theGrandCanal",
+      "class": "doctrine",
+      "name": "The Grand Canal",
+      "text": "Each of your domestic routes carries half of its origin's surplus food to its destination.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "routesCarrySurplus",
+          "percent": 50
+        }
+      ]
+    },
+    "theHighlandClans": {
+      "id": "theHighlandClans",
+      "class": "doctrine",
+      "name": "The Highland Clans",
+      "text": "Towns on hills cost 1 less authority. Hills beside a town gain +1 food.",
+      "decks": [
+        "expansionist"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": -1,
+          "scope": {
+            "test": "onHills"
+          },
+          "noMinimum": true
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hills"
+              },
+              {
+                "test": "beside",
+                "of": {
+                  "test": "townCentre"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theHouseOfWorship": {
+      "id": "theHouseOfWorship",
+      "class": "doctrine",
+      "name": "The House of Worship",
+      "text": "Your devout towns may hold all four faith houses: the Mosque, the Wat, the Gurdwara and the Dar-e Mehr. Each is bought with faith. Buildings that supply faith give +1 science and +1 culture.",
+      "decks": [
+        "devotion"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "mosque",
+          "scope": {
+            "test": "ownersFaith",
+            "keeps": true
+          }
+        },
+        {
+          "kind": "unlocksBuilding",
+          "building": "wat",
+          "scope": {
+            "test": "ownersFaith",
+            "keeps": true
+          }
+        },
+        {
+          "kind": "unlocksBuilding",
+          "building": "gurdwara",
+          "scope": {
+            "test": "ownersFaith",
+            "keeps": true
+          }
+        },
+        {
+          "kind": "unlocksBuilding",
+          "building": "darEMehr",
+          "scope": {
+            "test": "ownersFaith",
+            "keeps": true
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "buildingsSupplying",
+          "voice": "faith",
+          "within": "city",
+          "onCountedBuilding": true
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "buildingsSupplying",
+          "voice": "faith",
+          "within": "city",
+          "onCountedBuilding": true
+        }
+      ]
+    },
+    "theJinshi": {
+      "id": "theJinshi",
+      "class": "doctrine",
+      "name": "The Jinshi",
+      "text": "You have two more Civic chairs.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "slotRider",
+          "slot": "civic",
+          "extra": 2
+        }
+      ]
+    },
+    "theJixianAcademy": {
+      "id": "theJixianAcademy",
+      "class": "doctrine",
+      "name": "The Jixian Academy",
+      "text": "Completing a technology grants culture equal to a fifth of its cost.",
+      "decks": [
+        "scientific"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": {
+            "yield": "culture",
+            "amount": 0.2,
+            "fromOccasion": "techCost"
+          }
+        }
+      ]
+    },
+    "theKulliye": {
+      "id": "theKulliye",
+      "class": "doctrine",
+      "name": "The Mustansiriya",
+      "text": "Towns with an Academy may build their own copy of each empire building. +50% production toward empire buildings, except the Magnum Opus and its works.",
+      "decks": [
+        "scientific"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "buildsEverywhere",
+          "empireBuilding": true,
+          "scope": {
+            "test": "hasImprovement",
+            "improvement": "academy"
+          },
+          "skipsBeadRows": true
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": true,
+          "percent": 50,
+          "skipsBeadRows": true
+        }
+      ]
+    },
+    "theLaurionLeases": {
+      "id": "theLaurionLeases",
+      "class": "doctrine",
+      "name": "The Laurion Leases",
+      "text": "Your gold buys 300% more when buying a hex with a resource.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "tilePurchase",
+          "percent": -75,
+          "tile": {
+            "test": "hasResource"
+          }
+        }
+      ]
+    },
+    "theLawsOfLordShang": {
+      "id": "theLawsOfLordShang",
+      "class": "doctrine",
+      "name": "The Laws of Lord Shang",
+      "text": "While a town builds a military unit, its surplus food goes into the unit instead of into growth.",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "surplusToProduction",
+          "category": "unit",
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
+    },
+    "theMagnaura": {
+      "id": "theMagnaura",
+      "class": "doctrine",
+      "name": "The Magnaura",
+      "text": "Each town gains +2 science for each Civic card you have seated.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "slottedOrdersOfSlot",
+          "slot": "civic",
+          "to": "science",
+          "amount": 2
+        }
+      ]
+    },
+    "theMarianReforms": {
+      "id": "theMarianReforms",
+      "class": "doctrine",
+      "name": "The Marian Reforms",
+      "text": "Your military units cost no upkeep, but your towns build them 25% more slowly. Buying them is unaffected.",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "free": true,
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": -25,
+          "class": {
+            "category": "military"
+          },
+          "stage": "empire"
+        }
+      ]
+    },
+    "theMuda": {
+      "id": "theMuda",
+      "class": "doctrine",
+      "name": "The Muda",
+      "text": "Your trade routes to other empires pay +6 science and +6 culture, and cannot be plundered.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "international",
+          "science": 6,
+          "culture": 6
+        },
+        {
+          "kind": "rule",
+          "rule": "foreignTradersUnplunderable"
+        }
+      ]
+    },
+    "thePandidakterion": {
+      "id": "thePandidakterion",
+      "class": "doctrine",
+      "name": "The Pandidakterion",
+      "text": "Hexes with an Academy have double yields, applied after every other change to the hex.",
+      "decks": [
+        "scientific"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          },
+          "wholePercent": 100,
+          "appliedLast": true
+        }
+      ]
+    },
+    "thePeregrini": {
+      "id": "thePeregrini",
+      "class": "doctrine",
+      "name": "The Peregrini",
+      "text": "Great-person works give +1 food and +1 production to every hex beside them. Laying a great-person work makes your next great person cost 20% less.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "production": 1,
+          "on": {
+            "test": "beside",
+            "of": {
+              "test": "greatWork"
+            }
+          },
+          "perNeighbour": {
+            "test": "greatWork"
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "workCheapensPerson",
+          "percent": 20
+        }
+      ]
+    },
+    "thePericleanWorks": {
+      "id": "thePericleanWorks",
+      "class": "doctrine",
+      "name": "The Periclean Works",
+      "text": "Each wonder you hold gives +2 production in every town.",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "wonders",
+          "to": "production",
+          "amount": 2
+        }
+      ]
+    },
+    "thePeripateticSchool": {
+      "id": "thePeripateticSchool",
+      "class": "doctrine",
+      "name": "The Peripatetic School",
+      "text": "Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown.",
+      "decks": [
+        "scientific"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "science": 2,
+          "production": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          }
+        },
+        {
+          "kind": "cityRenownPercent",
+          "percent": 30,
+          "of": {
+            "category": "science",
+            "wonder": true
+          }
+        }
+      ]
+    },
+    "thePythagoreanBrotherhood": {
+      "id": "thePythagoreanBrotherhood",
+      "class": "doctrine",
+      "name": "The Pythagorean Brotherhood",
+      "text": "+2 science in every city, doubled in cities with a Shrine.",
+      "decks": [
+        "scientific"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shrine"
+          }
+        }
+      ]
+    },
+    "theRemovalToXianyang": {
+      "id": "theRemovalToXianyang",
+      "class": "doctrine",
+      "name": "The Removal to Xianyang",
+      "text": "Your towns grow 30% faster. Settlers cost twice as much.",
+      "decks": [
+        "scientific"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 30
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "settlerCost",
+          "percent": 100
+        }
+      ]
+    },
+    "theRitesOfZhou": {
+      "id": "theRitesOfZhou",
+      "class": "doctrine",
+      "name": "The Rites of Zhou",
+      "text": "Each town holding a rite gains +2 food and +2 happiness.",
+      "decks": [
+        "devotion"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "scope": {
+            "test": "keepingRite"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "keepingRite"
+          }
+        }
+      ]
+    },
+    "theSerapeum": {
+      "id": "theSerapeum",
+      "class": "doctrine",
+      "name": "The Serapeum",
+      "text": "Each of your gods gives twice its effects.",
+      "decks": [
+        "devotion"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "metaRule",
+          "rule": "godsCountTwice",
+          "value": 2
+        }
+      ]
+    },
+    "theSogdianColonies": {
+      "id": "theSogdianColonies",
+      "class": "doctrine",
+      "name": "The Sogdian Colonies",
+      "text": "Each town holding your trading post, at home or abroad, gives you +3 culture and +3 renown, favouring merchants.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "allPostCities"
+        },
+        {
+          "kind": "renown",
+          "amount": 3,
+          "count": "allPostCities",
+          "family": "merchant"
+        }
+      ]
+    },
+    "theSoldiersShare": {
+      "id": "theSoldiersShare",
+      "class": "doctrine",
+      "name": "The Soldiers' Share",
+      "text": "Melee units gain +1 movement and +3 strength.",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "melee"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClass": "melee"
+          }
+        }
+      ]
+    },
+    "theSteppeConfederacy": {
+      "id": "theSteppeConfederacy",
+      "class": "doctrine",
+      "name": "The Steppe Confederacy",
+      "text": "+50% production toward mounted units. Mounted units gain +3 strength when attacking a wounded unit.",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 50,
+          "modelClass": "mounted"
+        },
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "attack",
+          "when": {
+            "test": "targetWounded"
+          },
+          "class": {
+            "modelClass": "mounted"
+          }
+        }
+      ]
+    },
+    "theTemenos": {
+      "id": "theTemenos",
+      "class": "doctrine",
+      "name": "The Temenos",
+      "text": "The hexes beside your towns with a Shrine gain +1 food and +1 faith.",
+      "decks": [
+        "devotion"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "beside",
+            "of": {
+              "test": "townCentre",
+              "building": "shrine"
+            }
+          },
+          "food": 1,
+          "faith": 1
+        }
+      ]
+    },
+    "theTheoricFund": {
+      "id": "theTheoricFund",
+      "class": "doctrine",
+      "name": "The Theoric Fund",
+      "text": "+1 culture for every 3 faith your empire makes.",
+      "decks": [
+        "devotion"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "fromRate": "faithPerTurn",
+          "per": 3,
+          "to": "culture",
+          "amount": 1
+        }
+      ]
+    },
+    "theTurnpikeTrusts": {
+      "id": "theTurnpikeTrusts",
+      "class": "doctrine",
+      "name": "The Turnpike Trusts",
+      "text": "Your gold buys 100% more when hiring caravans. Hexes with a road gain +1 gold.",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "route",
+          "percent": -50
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "on": {
+            "test": "road"
+          }
+        }
+      ]
+    },
+    "theUniversalMonarchy": {
+      "id": "theUniversalMonarchy",
+      "class": "doctrine",
+      "name": "The Universal Monarchy",
+      "text": "Towns you capture cost no authority, including those you already hold. Towns you found from now on cost twice as much authority.",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "value": 0,
+          "scope": {
+            "test": "captured"
+          }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "percent": 100,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "notCaptured"
+              },
+              {
+                "test": "foundedSince",
+                "doctrine": "theUniversalMonarchy"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theWorkshopsOfSyracuse": {
+      "id": "theWorkshopsOfSyracuse",
+      "class": "doctrine",
+      "name": "The Workshops of Syracuse",
+      "text": "Your military units gain +5 combat strength. They cost 50% more to build and to buy.",
+      "decks": [
+        "scientific"
+      ],
+      "band": 1,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "unitCost",
+          "percent": 50,
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
+    }
+  },
+  "wonderCatalog": {
+    "angkorWat": {
+      "name": "Angkor Wat",
+      "category": "faith",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "faith": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improved"
+              },
+              {
+                "test": "hasResource"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "faith": 3,
+          "on": {
+            "test": "improvement",
+            "improvement": "holySite"
+          }
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "circusMaximus": {
+      "name": "The Circus Maximus",
+      "category": "culture",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "happiness": 4,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "buildingsOfCategory",
+          "category": "military",
+          "excludeWonders": true
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "colossus": {
+      "name": "The Colossus",
+      "category": "gold",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 3,
+      "routeSlots": 1,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "requiresSite": {
+        "test": "coastal"
+      },
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "gold": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "water"
+              },
+              {
+                "test": "hasResource"
+              }
+            ]
+          }
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "forbiddenCity": {
+      "name": "The Forbidden City",
+      "category": "culture",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 5,
+      "effects": [
+        {
+          "kind": "slotRider"
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "greatLibrary": {
+      "name": "The Great Library",
+      "category": "science",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 8,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "onComplete": [
+        {
+          "grant": "greatPerson",
+          "family": "scholar"
+        }
+      ],
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "basis": "count",
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          },
+          "count": "greatPeopleGained",
+          "family": "scholar",
+          "science": 2,
+          "within": "empire"
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "greatLighthouse": {
+      "name": "The Great Lighthouse",
+      "category": "gold",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "requiresSite": {
+        "test": "coastal"
+      },
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "when": {
+            "test": "always"
+          },
+          "side": "both",
+          "class": {
+            "category": "naval"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "category": "naval"
+          }
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "greatSphinx": {
+      "name": "The Great Sphinx",
+      "category": "faith",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "buildingsSupplying",
+          "voice": "faith"
+        }
+      ],
+      "renown": {
+        "family": "general",
+        "onComplete": 10,
+        "perTurn": 2
+      },
+      "faith": 2,
+      "onComplete": [
+        {
+          "grant": "freeRerolls",
+          "amount": 5
+        }
+      ]
+    },
+    "greatStelaeOfAksum": {
+      "name": "The Great Stelae of Aksum",
+      "category": "gold",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "culture": 2,
+          "faith": 2
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "greatWall": {
+      "name": "The Great Wall",
+      "category": "military",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 5,
+          "scope": {
+            "test": "all",
+            "of": []
+          }
+        },
+        {
+          "kind": "cityStat",
+          "stat": "hp",
+          "amount": 25,
+          "scope": {
+            "test": "all",
+            "of": []
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": -1,
+          "enemyOccupant": true
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "greatZiggurat": {
+      "name": "The Great Ziggurat",
+      "category": "faith",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 0,
+      "faith": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shrine"
+          }
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "riteCost",
+          "percent": -30,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "greatZiggurat"
+          }
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "hangingGardens": {
+      "name": "The Hanging Gardens",
+      "category": "food",
+      "wonder": true,
+      "size": "wonder",
+      "food": 3,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 25
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "farm"
+              },
+              {
+                "test": "freshwater"
+              }
+            ]
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "hangingGardens"
+          }
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "ironPillar": {
+      "name": "The Iron Pillar",
+      "category": "production",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "buildingYieldPercent",
+          "category": "production",
+          "percent": 50
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "on": {
+            "test": "resourceKind",
+            "kind": "strategic"
+          }
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "libraryOfAshurbanipal": {
+      "name": "The Library of Ashurbanipal",
+      "category": "science",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 5,
+          "per": "city",
+          "family": "scholar",
+          "scope": {
+            "test": "captured"
+          }
+        },
+        {
+          "kind": "renown",
+          "amount": 15,
+          "per": "city",
+          "family": "scholar",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "captured"
+              },
+              {
+                "test": "hasWonder"
+              }
+            ]
+          }
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 10
+      }
+    },
+    "mausoleum": {
+      "name": "The Mausoleum",
+      "category": "gold",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "greatWork"
+          },
+          "wholePercent": 100,
+          "appliedLast": true
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 5
+      }
+    },
+    "petra": {
+      "name": "Petra",
+      "category": "gold",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "requiresSite": {
+        "test": "terrainBeside",
+        "terrain": "desert"
+      },
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "production": 1,
+          "on": {
+            "test": "terrain",
+            "terrain": "desert"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "on": {
+            "test": "feature",
+            "feature": "floodplain"
+          }
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "pyramidOfTheSun": {
+      "name": "The Pyramid of the Sun",
+      "category": "faith",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "levy",
+          "use": "faith",
+          "faithPerCitizen": 5,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "pyramidOfTheSun"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "holySite"
+          }
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 2
+      },
+      "faith": 2
+    },
+    "pyramids": {
+      "name": "The Pyramids",
+      "category": "production",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "type": "worker"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 20
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "solomonsTemple": {
+      "name": "Solomon's Temple",
+      "category": "faith",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "offerRider",
+          "offer": "greatPerson",
+          "extra": 1
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "greatPersonCost",
+          "percent": -10
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      },
+      "faith": 2
+    },
+    "statueOfZeus": {
+      "name": "The Statue of Zeus",
+      "category": "military",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 1,
+      "sciencePerPop": 0,
+      "onComplete": [
+        {
+          "grant": "unit",
+          "unit": "bestMelee"
+        },
+        {
+          "grant": "unit",
+          "unit": "bestMelee"
+        },
+        {
+          "grant": "unit",
+          "unit": "bestMelee"
+        }
+      ],
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "when": {
+            "test": "vsCity"
+          },
+          "side": "attack"
+        }
+      ],
+      "renown": {
+        "family": "general",
+        "onComplete": 10,
+        "perTurn": 1
+      }
+    },
+    "stonehenge": {
+      "name": "Stonehenge",
+      "category": "faith",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 3,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pantheonSlots",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "faith": 1,
+          "on": {
+            "test": "resource",
+            "resources": [
+              "stone",
+              "marble"
+            ]
+          }
+        }
+      ],
+      "onComplete": [
+        {
+          "grant": "faithRung"
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 1
+      }
+    },
+    "templeOfArtemis": {
+      "name": "The Temple of Artemis",
+      "category": "food",
+      "wonder": true,
+      "size": "wonder",
+      "food": 2,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 1,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "camp"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "pasture"
+          }
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 1
+      },
+      "happiness": 2
+    },
+    "templeOfThoth": {
+      "name": "The Temple of Thoth",
+      "category": "faith",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "to": "science",
+          "percent": 50,
+          "from": "faith",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "templeOfThoth"
+          }
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 2
+      },
+      "faith": 2,
+      "requiresSite": {
+        "test": "freshwater"
+      }
+    },
+    "terracottaArmy": {
+      "name": "The Terracotta Army",
+      "category": "military",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 2,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 6,
+          "when": {
+            "test": "inCity"
+          },
+          "side": "defend"
+        },
+        {
+          "kind": "unitStamp",
+          "strength": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "terracottaArmy"
+          }
+        }
+      ],
+      "renown": {
+        "family": "general",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "theOracle": {
+      "name": "The Oracle",
+      "category": "faith",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "faith": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "offerRider",
+          "offer": "order",
+          "extra": 1
+        },
+        {
+          "kind": "offerRider",
+          "offer": "doctrine",
+          "extra": 1
+        },
+        {
+          "kind": "renown",
+          "amount": 3
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 0
+      }
+    },
+    "theatreOfDionysus": {
+      "name": "The Theatre of Dionysus",
+      "category": "culture",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 4,
+      "sciencePerPop": 0,
+      "onComplete": [
+        {
+          "grant": "doctrineDraft"
+        },
+        {
+          "grant": "building",
+          "building": "amphitheater"
+        }
+      ],
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "buildingsOfKind",
+          "building": "amphitheater"
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "wallsOfUruk": {
+      "name": "The Walls of Uruk",
+      "category": "military",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "cityHp": 50,
+      "authorityCapacity": 2,
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "wallsOfUruk"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "when": {
+            "test": "ownTerritory"
+          },
+          "side": "both"
+        }
+      ],
+      "renown": {
+        "family": "general",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "weiyangPalace": {
+      "name": "The Weiyang Palace",
+      "category": "culture",
+      "wonder": true,
+      "size": "wonder",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 25,
+          "scope": {
+            "test": "trueCapital"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "buildingsInCity",
+          "scope": {
+            "test": "trueCapital"
+          }
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    }
+  },
+  "incomeInputAudit": {
+    "seats": 192,
+    "differingSeats": 154,
+    "wrongGoldSignCount": 7,
+    "wrongGoldSignCases": [
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 48.5,
+          "culturePerTurn": 65,
+          "goldPerTurn": -1,
+          "faithPerTurn": 3
+        },
+        "full": {
+          "sciencePerTurn": 53.5,
+          "culturePerTurn": 65,
+          "goldPerTurn": 4,
+          "faithPerTurn": 3
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side1/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 20.825,
+          "culturePerTurn": 8.15,
+          "goldPerTurn": -3,
+          "faithPerTurn": 12
+        },
+        "full": {
+          "sciencePerTurn": 20.825,
+          "culturePerTurn": 8.15,
+          "goldPerTurn": 7,
+          "faithPerTurn": 12
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-spending-only-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 174.77699999999996,
+          "culturePerTurn": 238.44000000000005,
+          "goldPerTurn": -5,
+          "faithPerTurn": 36
+        },
+        "full": {
+          "sciencePerTurn": 174.77699999999996,
+          "culturePerTurn": 250.44000000000005,
+          "goldPerTurn": 34,
+          "faithPerTurn": 127
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 28411,
+        "file": "complete-yields/profile-train/28411-profile-tall-wide-all/28411.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 15,
+          "culturePerTurn": 5,
+          "goldPerTurn": -1,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 25,
+          "culturePerTurn": 10,
+          "goldPerTurn": 4,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 93647,
+        "file": "complete-yields/profile-train/93647-profile-tall-wide-all/93647.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 64.9,
+          "culturePerTurn": 38.50000000000001,
+          "goldPerTurn": -4.699999999999999,
+          "faithPerTurn": 2
+        },
+        "full": {
+          "sciencePerTurn": 101.2,
+          "culturePerTurn": 38.50000000000001,
+          "goldPerTurn": 23.3,
+          "faithPerTurn": 2
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-neutral-all/117031.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 26.549999999999997,
+          "culturePerTurn": 36.89999999999999,
+          "goldPerTurn": -2,
+          "faithPerTurn": 29
+        },
+        "full": {
+          "sciencePerTurn": 34.65,
+          "culturePerTurn": 43.199999999999996,
+          "goldPerTurn": 8,
+          "faithPerTurn": 38
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 117031,
+        "file": "complete-yields/release-compare/117031-play-release-all/117031.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 32.75,
+          "culturePerTurn": 32,
+          "goldPerTurn": -12,
+          "faithPerTurn": 2
+        },
+        "full": {
+          "sciencePerTurn": 45.75,
+          "culturePerTurn": 57,
+          "goldPerTurn": 1,
+          "faithPerTurn": 2
+        }
+      }
+    ],
+    "cases": [
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-neutral-side-1/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 51.25,
+          "culturePerTurn": 45,
+          "goldPerTurn": 1,
+          "faithPerTurn": 30
+        },
+        "full": {
+          "sciencePerTurn": 63.25,
+          "culturePerTurn": 45,
+          "goldPerTurn": 13,
+          "faithPerTurn": 30
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-neutral-side-1/314.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 36.900000000000006,
+          "culturePerTurn": 40.800000000000004,
+          "goldPerTurn": 30,
+          "faithPerTurn": 6
+        },
+        "full": {
+          "sciencePerTurn": 59.7,
+          "culturePerTurn": 40.800000000000004,
+          "goldPerTurn": 49,
+          "faithPerTurn": 6
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-neutral-side-1/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 44.625,
+          "culturePerTurn": 30.75,
+          "goldPerTurn": -4,
+          "faithPerTurn": 8
+        },
+        "full": {
+          "sciencePerTurn": 44.625,
+          "culturePerTurn": 33,
+          "goldPerTurn": -4,
+          "faithPerTurn": 8
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-neutral-side-1/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 38.10000000000001,
+          "culturePerTurn": 26.4,
+          "goldPerTurn": 17,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 48.900000000000006,
+          "culturePerTurn": 26.4,
+          "goldPerTurn": 26,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-neutral-side-1/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 59.10000000000001,
+          "culturePerTurn": 129.6,
+          "goldPerTurn": 73,
+          "faithPerTurn": 27
+        },
+        "full": {
+          "sciencePerTurn": 59.10000000000001,
+          "culturePerTurn": 139.79999999999998,
+          "goldPerTurn": 85,
+          "faithPerTurn": 41.5
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-neutral-side-1/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 21.75,
+          "culturePerTurn": 14,
+          "goldPerTurn": 35.29999999999999,
+          "faithPerTurn": 30
+        },
+        "full": {
+          "sciencePerTurn": 21.75,
+          "culturePerTurn": 29,
+          "goldPerTurn": 35.29999999999999,
+          "faithPerTurn": 35
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-base-side0/314.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 28.2,
+          "culturePerTurn": 28.8,
+          "goldPerTurn": 19,
+          "faithPerTurn": 10
+        },
+        "full": {
+          "sciencePerTurn": 41.4,
+          "culturePerTurn": 28.8,
+          "goldPerTurn": 44,
+          "faithPerTurn": 17
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-base-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 73.99000000000001,
+          "culturePerTurn": 129,
+          "goldPerTurn": 7,
+          "faithPerTurn": 13
+        },
+        "full": {
+          "sciencePerTurn": 73.99000000000001,
+          "culturePerTurn": 135,
+          "goldPerTurn": 7,
+          "faithPerTurn": 56
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-base-side0/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 40.699999999999996,
+          "culturePerTurn": 20.900000000000002,
+          "goldPerTurn": 6,
+          "faithPerTurn": 7
+        },
+        "full": {
+          "sciencePerTurn": 58.3,
+          "culturePerTurn": 20.900000000000002,
+          "goldPerTurn": 22,
+          "faithPerTurn": 7
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-base-side0/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 15.9,
+          "culturePerTurn": 20.4,
+          "goldPerTurn": 7,
+          "faithPerTurn": 8
+        },
+        "full": {
+          "sciencePerTurn": 26.700000000000003,
+          "culturePerTurn": 22.8,
+          "goldPerTurn": 16,
+          "faithPerTurn": 10
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-base-side1/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 9.75,
+          "culturePerTurn": 11,
+          "goldPerTurn": 2,
+          "faithPerTurn": 3
+        },
+        "full": {
+          "sciencePerTurn": 12.75,
+          "culturePerTurn": 14,
+          "goldPerTurn": 15,
+          "faithPerTurn": 3
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-base-side1/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 147.875,
+          "culturePerTurn": 104.7,
+          "goldPerTurn": 8,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 167.875,
+          "culturePerTurn": 113.7,
+          "goldPerTurn": 8,
+          "faithPerTurn": 15
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-base-side1/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 18,
+          "culturePerTurn": 27,
+          "goldPerTurn": 76,
+          "faithPerTurn": 4
+        },
+        "full": {
+          "sciencePerTurn": 57,
+          "culturePerTurn": 66,
+          "goldPerTurn": 76,
+          "faithPerTurn": 4
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-base-side1/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 13.5,
+          "culturePerTurn": 13,
+          "goldPerTurn": 21.3,
+          "faithPerTurn": 14
+        },
+        "full": {
+          "sciencePerTurn": 13.5,
+          "culturePerTurn": 20,
+          "goldPerTurn": 21.3,
+          "faithPerTurn": 17
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side0/314.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 20.4,
+          "culturePerTurn": 20.4,
+          "goldPerTurn": 31,
+          "faithPerTurn": 4
+        },
+        "full": {
+          "sciencePerTurn": 28.799999999999997,
+          "culturePerTurn": 20.4,
+          "goldPerTurn": 38,
+          "faithPerTurn": 4
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 49.75,
+          "culturePerTurn": 37,
+          "goldPerTurn": 2,
+          "faithPerTurn": 5
+        },
+        "full": {
+          "sciencePerTurn": 49.75,
+          "culturePerTurn": 37,
+          "goldPerTurn": 6,
+          "faithPerTurn": 5
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side0/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 39.42,
+          "culturePerTurn": 15.599999999999996,
+          "goldPerTurn": 4,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 46.62,
+          "culturePerTurn": 15.599999999999996,
+          "goldPerTurn": 10,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side0/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 48.3,
+          "culturePerTurn": 75.6,
+          "goldPerTurn": 13,
+          "faithPerTurn": 38
+        },
+        "full": {
+          "sciencePerTurn": 83.1,
+          "culturePerTurn": 75.6,
+          "goldPerTurn": 33,
+          "faithPerTurn": 38
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side0/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 31.625,
+          "culturePerTurn": 18.7,
+          "goldPerTurn": 26,
+          "faithPerTurn": 14
+        },
+        "full": {
+          "sciencePerTurn": 49.225,
+          "culturePerTurn": 28.6,
+          "goldPerTurn": 42,
+          "faithPerTurn": 17
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side1/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 14.575,
+          "culturePerTurn": 15.399999999999999,
+          "goldPerTurn": 10,
+          "faithPerTurn": 13
+        },
+        "full": {
+          "sciencePerTurn": 14.575,
+          "culturePerTurn": 15.399999999999999,
+          "goldPerTurn": 18,
+          "faithPerTurn": 13
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side1/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 27,
+          "culturePerTurn": 46,
+          "goldPerTurn": -3,
+          "faithPerTurn": 8
+        },
+        "full": {
+          "sciencePerTurn": 27,
+          "culturePerTurn": 50,
+          "goldPerTurn": -3,
+          "faithPerTurn": 8
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side1/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 92.1625,
+          "culturePerTurn": 35,
+          "goldPerTurn": 36,
+          "faithPerTurn": 19
+        },
+        "full": {
+          "sciencePerTurn": 124.1625,
+          "culturePerTurn": 67,
+          "goldPerTurn": 44,
+          "faithPerTurn": 23
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side1/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 47.5,
+          "culturePerTurn": 37,
+          "goldPerTurn": 41,
+          "faithPerTurn": 27
+        },
+        "full": {
+          "sciencePerTurn": 50.5,
+          "culturePerTurn": 37,
+          "goldPerTurn": 44,
+          "faithPerTurn": 27
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-build-more-side1/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 19.31875,
+          "culturePerTurn": 18.095,
+          "goldPerTurn": 43.3,
+          "faithPerTurn": 10
+        },
+        "full": {
+          "sciencePerTurn": 19.31875,
+          "culturePerTurn": 26.895,
+          "goldPerTurn": 43.3,
+          "faithPerTurn": 15
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side0/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 25.25,
+          "culturePerTurn": 20,
+          "goldPerTurn": 4,
+          "faithPerTurn": 4
+        },
+        "full": {
+          "sciencePerTurn": 37.25,
+          "culturePerTurn": 20,
+          "goldPerTurn": 35,
+          "faithPerTurn": 6
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side0/314.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 45.696000000000005,
+          "culturePerTurn": 30.720000000000002,
+          "goldPerTurn": 45,
+          "faithPerTurn": 12
+        },
+        "full": {
+          "sciencePerTurn": 45.696000000000005,
+          "culturePerTurn": 40.32,
+          "goldPerTurn": 55,
+          "faithPerTurn": 20
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 48.5,
+          "culturePerTurn": 65,
+          "goldPerTurn": -1,
+          "faithPerTurn": 3
+        },
+        "full": {
+          "sciencePerTurn": 53.5,
+          "culturePerTurn": 65,
+          "goldPerTurn": 4,
+          "faithPerTurn": 3
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side0/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 149.28,
+          "culturePerTurn": 72,
+          "goldPerTurn": 23,
+          "faithPerTurn": 26
+        },
+        "full": {
+          "sciencePerTurn": 173.28,
+          "culturePerTurn": 128.4,
+          "goldPerTurn": 43,
+          "faithPerTurn": 66
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side0/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 16.75,
+          "culturePerTurn": 22,
+          "goldPerTurn": 33,
+          "faithPerTurn": 12
+        },
+        "full": {
+          "sciencePerTurn": 16.75,
+          "culturePerTurn": 31,
+          "goldPerTurn": 33,
+          "faithPerTurn": 21
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side1/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 20.825,
+          "culturePerTurn": 8.15,
+          "goldPerTurn": -3,
+          "faithPerTurn": 12
+        },
+        "full": {
+          "sciencePerTurn": 20.825,
+          "culturePerTurn": 8.15,
+          "goldPerTurn": 7,
+          "faithPerTurn": 12
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side1/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 55.900000000000006,
+          "culturePerTurn": 74.8,
+          "goldPerTurn": 2,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 55.900000000000006,
+          "culturePerTurn": 81.8,
+          "goldPerTurn": 14,
+          "faithPerTurn": 18
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side1/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 47.75,
+          "culturePerTurn": 33,
+          "goldPerTurn": 58,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 82.75,
+          "culturePerTurn": 73.8,
+          "goldPerTurn": 58,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side1/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 81.75,
+          "culturePerTurn": 86,
+          "goldPerTurn": 31,
+          "faithPerTurn": 45
+        },
+        "full": {
+          "sciencePerTurn": 81.75,
+          "culturePerTurn": 86,
+          "goldPerTurn": 41,
+          "faithPerTurn": 50
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-shortlist/314-culture-first-side1/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 20,
+          "culturePerTurn": 21,
+          "goldPerTurn": 15,
+          "faithPerTurn": 13
+        },
+        "full": {
+          "sciencePerTurn": 20,
+          "culturePerTurn": 28,
+          "goldPerTurn": 15,
+          "faithPerTurn": 16
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side0/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 11.25,
+          "culturePerTurn": 11,
+          "goldPerTurn": 10,
+          "faithPerTurn": 8
+        },
+        "full": {
+          "sciencePerTurn": 12.25,
+          "culturePerTurn": 11,
+          "goldPerTurn": 11,
+          "faithPerTurn": 8
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side0/314.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 58.8,
+          "culturePerTurn": 31.200000000000006,
+          "goldPerTurn": 2,
+          "faithPerTurn": 28
+        },
+        "full": {
+          "sciencePerTurn": 82.8,
+          "culturePerTurn": 31.200000000000006,
+          "goldPerTurn": 40,
+          "faithPerTurn": 28
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 142.4,
+          "culturePerTurn": 302.42,
+          "goldPerTurn": 50,
+          "faithPerTurn": 85
+        },
+        "full": {
+          "sciencePerTurn": 201.4,
+          "culturePerTurn": 339.42,
+          "goldPerTurn": 170,
+          "faithPerTurn": 90
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side0/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 121,
+          "culturePerTurn": 54.879999999999995,
+          "goldPerTurn": 56,
+          "faithPerTurn": 24
+        },
+        "full": {
+          "sciencePerTurn": 141,
+          "culturePerTurn": 60.48,
+          "goldPerTurn": 82,
+          "faithPerTurn": 27
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side0/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 48,
+          "culturePerTurn": 64,
+          "goldPerTurn": 52,
+          "faithPerTurn": 19
+        },
+        "full": {
+          "sciencePerTurn": 68,
+          "culturePerTurn": 64,
+          "goldPerTurn": 72,
+          "faithPerTurn": 41
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side0/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 15.75,
+          "culturePerTurn": 13,
+          "goldPerTurn": 28,
+          "faithPerTurn": 16
+        },
+        "full": {
+          "sciencePerTurn": 18.75,
+          "culturePerTurn": 29,
+          "goldPerTurn": 31,
+          "faithPerTurn": 36
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side1/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 28.75,
+          "culturePerTurn": 25,
+          "goldPerTurn": 5,
+          "faithPerTurn": 8
+        },
+        "full": {
+          "sciencePerTurn": 65.75,
+          "culturePerTurn": 62,
+          "goldPerTurn": 5,
+          "faithPerTurn": 16
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side1/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 312.65,
+          "culturePerTurn": 207,
+          "goldPerTurn": 56.5,
+          "faithPerTurn": 38
+        },
+        "full": {
+          "sciencePerTurn": 312.65,
+          "culturePerTurn": 221,
+          "goldPerTurn": 92.5,
+          "faithPerTurn": 113
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side1/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 55,
+          "culturePerTurn": 54,
+          "goldPerTurn": 70,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 130,
+          "culturePerTurn": 119,
+          "goldPerTurn": 70,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side1/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 107.99999999999999,
+          "culturePerTurn": 130.5,
+          "goldPerTurn": 154,
+          "faithPerTurn": 31
+        },
+        "full": {
+          "sciencePerTurn": 112.49999999999999,
+          "culturePerTurn": 130.5,
+          "goldPerTurn": 180,
+          "faithPerTurn": 31
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-steady-forecast-side1/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 52.800000000000004,
+          "culturePerTurn": 40.8,
+          "goldPerTurn": 48.519999999999996,
+          "faithPerTurn": 30
+        },
+        "full": {
+          "sciencePerTurn": 52.800000000000004,
+          "culturePerTurn": 58.8,
+          "goldPerTurn": 48.519999999999996,
+          "faithPerTurn": 35
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-spending-only-side0/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 18.75,
+          "culturePerTurn": 15,
+          "goldPerTurn": 14,
+          "faithPerTurn": 10
+        },
+        "full": {
+          "sciencePerTurn": 49.75,
+          "culturePerTurn": 46,
+          "goldPerTurn": 17,
+          "faithPerTurn": 10
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-spending-only-side0/314.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 45.3,
+          "culturePerTurn": 48,
+          "goldPerTurn": 65,
+          "faithPerTurn": 32
+        },
+        "full": {
+          "sciencePerTurn": 53.699999999999996,
+          "culturePerTurn": 48,
+          "goldPerTurn": 72,
+          "faithPerTurn": 32
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-spending-only-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 174.77699999999996,
+          "culturePerTurn": 238.44000000000005,
+          "goldPerTurn": -5,
+          "faithPerTurn": 36
+        },
+        "full": {
+          "sciencePerTurn": 174.77699999999996,
+          "culturePerTurn": 250.44000000000005,
+          "goldPerTurn": 34,
+          "faithPerTurn": 127
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-spending-only-side0/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 164.67000000000002,
+          "culturePerTurn": 199.2,
+          "goldPerTurn": 150.5,
+          "faithPerTurn": 47
+        },
+        "full": {
+          "sciencePerTurn": 207.87,
+          "culturePerTurn": 199.2,
+          "goldPerTurn": 197.5,
+          "faithPerTurn": 47
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-spending-only-side0/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 22.25,
+          "culturePerTurn": 19,
+          "goldPerTurn": 52,
+          "faithPerTurn": 22
+        },
+        "full": {
+          "sciencePerTurn": 34.25,
+          "culturePerTurn": 24,
+          "goldPerTurn": 64,
+          "faithPerTurn": 27
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-spending-only-side1/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 72,
+          "culturePerTurn": 64.8,
+          "goldPerTurn": 9,
+          "faithPerTurn": 5
+        },
+        "full": {
+          "sciencePerTurn": 91.19999999999999,
+          "culturePerTurn": 85.2,
+          "goldPerTurn": 80,
+          "faithPerTurn": 5
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-spending-only-side1/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 176.19299999999998,
+          "culturePerTurn": 82.79999999999998,
+          "goldPerTurn": 119,
+          "faithPerTurn": 39
+        },
+        "full": {
+          "sciencePerTurn": 200.19299999999998,
+          "culturePerTurn": 107.99999999999999,
+          "goldPerTurn": 145,
+          "faithPerTurn": 39
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-refine/314-spending-only-side1/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 25.5,
+          "culturePerTurn": 17,
+          "goldPerTurn": 33.05,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 25.5,
+          "culturePerTurn": 26,
+          "goldPerTurn": 33.05,
+          "faithPerTurn": 19
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-early-quarter-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 47.30625,
+          "culturePerTurn": 46.5,
+          "goldPerTurn": -4,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 47.30625,
+          "culturePerTurn": 46.5,
+          "goldPerTurn": -2,
+          "faithPerTurn": 16
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-early-quarter-side0/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 220.055,
+          "culturePerTurn": 347.35,
+          "goldPerTurn": 232,
+          "faithPerTurn": 116
+        },
+        "full": {
+          "sciencePerTurn": 220.055,
+          "culturePerTurn": 361.35,
+          "goldPerTurn": 235,
+          "faithPerTurn": 238
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-early-quarter-side0/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 6,
+          "culturePerTurn": 12,
+          "goldPerTurn": 29.2,
+          "faithPerTurn": 18
+        },
+        "full": {
+          "sciencePerTurn": 6,
+          "culturePerTurn": 35,
+          "goldPerTurn": 29.2,
+          "faithPerTurn": 35
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-early-quarter-side1/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 19.75,
+          "culturePerTurn": 18,
+          "goldPerTurn": 47.5,
+          "faithPerTurn": 27
+        },
+        "full": {
+          "sciencePerTurn": 36.75,
+          "culturePerTurn": 35,
+          "goldPerTurn": 47.5,
+          "faithPerTurn": 27
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-early-quarter-side1/314.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 52.50000000000001,
+          "culturePerTurn": 43.20000000000001,
+          "goldPerTurn": 21,
+          "faithPerTurn": 22
+        },
+        "full": {
+          "sciencePerTurn": 76.5,
+          "culturePerTurn": 43.20000000000001,
+          "goldPerTurn": 41,
+          "faithPerTurn": 22
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-early-quarter-side1/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 322.67625,
+          "culturePerTurn": 239.06787500000004,
+          "goldPerTurn": 35,
+          "faithPerTurn": 34.1
+        },
+        "full": {
+          "sciencePerTurn": 338.27625,
+          "culturePerTurn": 255.86787500000003,
+          "goldPerTurn": 35,
+          "faithPerTurn": 34.1
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-early-quarter-side1/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 34.8,
+          "culturePerTurn": 48.00000000000001,
+          "goldPerTurn": 17,
+          "faithPerTurn": 5
+        },
+        "full": {
+          "sciencePerTurn": 60.4,
+          "culturePerTurn": 48.00000000000001,
+          "goldPerTurn": 47,
+          "faithPerTurn": 10
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-early-quarter-side1/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 152.5,
+          "culturePerTurn": 75,
+          "goldPerTurn": 33,
+          "faithPerTurn": 23
+        },
+        "full": {
+          "sciencePerTurn": 181.5,
+          "culturePerTurn": 103,
+          "goldPerTurn": 55,
+          "faithPerTurn": 73
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-early-quarter-side1/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 45.599999999999994,
+          "culturePerTurn": 32.4,
+          "goldPerTurn": 24,
+          "faithPerTurn": 16
+        },
+        "full": {
+          "sciencePerTurn": 57.599999999999994,
+          "culturePerTurn": 44.4,
+          "goldPerTurn": 46,
+          "faithPerTurn": 27
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-late-half-side0/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 19.25,
+          "culturePerTurn": 15,
+          "goldPerTurn": 11,
+          "faithPerTurn": 9
+        },
+        "full": {
+          "sciencePerTurn": 56.25,
+          "culturePerTurn": 52,
+          "goldPerTurn": 15,
+          "faithPerTurn": 9
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-late-half-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 158.3,
+          "culturePerTurn": 135,
+          "goldPerTurn": 6.800000000000004,
+          "faithPerTurn": 33
+        },
+        "full": {
+          "sciencePerTurn": 173.3,
+          "culturePerTurn": 163,
+          "goldPerTurn": 22.800000000000004,
+          "faithPerTurn": 90
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-late-half-side0/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 108.9,
+          "culturePerTurn": 98.99999999999997,
+          "goldPerTurn": 139.5,
+          "faithPerTurn": 24
+        },
+        "full": {
+          "sciencePerTurn": 130.9,
+          "culturePerTurn": 120.99999999999997,
+          "goldPerTurn": 196.5,
+          "faithPerTurn": 56
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-late-half-side0/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 27,
+          "culturePerTurn": 23,
+          "goldPerTurn": 43,
+          "faithPerTurn": 14
+        },
+        "full": {
+          "sciencePerTurn": 41,
+          "culturePerTurn": 28,
+          "goldPerTurn": 63,
+          "faithPerTurn": 22
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-late-half-side1/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 72,
+          "culturePerTurn": 64.8,
+          "goldPerTurn": 9,
+          "faithPerTurn": 5
+        },
+        "full": {
+          "sciencePerTurn": 91.19999999999999,
+          "culturePerTurn": 85.2,
+          "goldPerTurn": 80,
+          "faithPerTurn": 5
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-late-half-side1/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 176.19299999999998,
+          "culturePerTurn": 82.79999999999998,
+          "goldPerTurn": 119,
+          "faithPerTurn": 39
+        },
+        "full": {
+          "sciencePerTurn": 200.19299999999998,
+          "culturePerTurn": 107.99999999999999,
+          "goldPerTurn": 145,
+          "faithPerTurn": 39
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-late-half-side1/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 25.5,
+          "culturePerTurn": 17,
+          "goldPerTurn": 33.05,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 25.5,
+          "culturePerTurn": 26,
+          "goldPerTurn": 33.05,
+          "faithPerTurn": 19
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-both-side0/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 47.30625,
+          "culturePerTurn": 46.5,
+          "goldPerTurn": -4,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 47.30625,
+          "culturePerTurn": 46.5,
+          "goldPerTurn": -2,
+          "faithPerTurn": 16
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-both-side0/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 246.71,
+          "culturePerTurn": 363.00000000000006,
+          "goldPerTurn": 225.5,
+          "faithPerTurn": 126
+        },
+        "full": {
+          "sciencePerTurn": 246.71,
+          "culturePerTurn": 378.00000000000006,
+          "goldPerTurn": 228.5,
+          "faithPerTurn": 254
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-both-side0/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 6,
+          "culturePerTurn": 12,
+          "goldPerTurn": 30.6,
+          "faithPerTurn": 18
+        },
+        "full": {
+          "sciencePerTurn": 6,
+          "culturePerTurn": 37,
+          "goldPerTurn": 30.6,
+          "faithPerTurn": 37
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-both-side1/314.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 16.75,
+          "culturePerTurn": 16,
+          "goldPerTurn": 25,
+          "faithPerTurn": 14
+        },
+        "full": {
+          "sciencePerTurn": 36.75,
+          "culturePerTurn": 36,
+          "goldPerTurn": 25,
+          "faithPerTurn": 14
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-both-side1/314.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 69.60000000000001,
+          "culturePerTurn": 72,
+          "goldPerTurn": 63,
+          "faithPerTurn": 28
+        },
+        "full": {
+          "sciencePerTurn": 93.60000000000001,
+          "culturePerTurn": 72,
+          "goldPerTurn": 116,
+          "faithPerTurn": 39
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-both-side1/314.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 513.6239999999999,
+          "culturePerTurn": 406.70000000000016,
+          "goldPerTurn": 50,
+          "faithPerTurn": 24.2
+        },
+        "full": {
+          "sciencePerTurn": 513.6239999999999,
+          "culturePerTurn": 469.1000000000002,
+          "goldPerTurn": 82,
+          "faithPerTurn": 24.2
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-both-side1/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 51.07499999999999,
+          "culturePerTurn": 68.4,
+          "goldPerTurn": 31.700000000000003,
+          "faithPerTurn": 40
+        },
+        "full": {
+          "sciencePerTurn": 90.67499999999998,
+          "culturePerTurn": 68.4,
+          "goldPerTurn": 51.7,
+          "faithPerTurn": 40
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-both-side1/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 179.70000000000002,
+          "culturePerTurn": 133.20000000000005,
+          "goldPerTurn": 90,
+          "faithPerTurn": 26
+        },
+        "full": {
+          "sciencePerTurn": 206.10000000000002,
+          "culturePerTurn": 133.20000000000005,
+          "goldPerTurn": 110,
+          "faithPerTurn": 26
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/standard-army/314-spending-both-side1/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 40.800000000000004,
+          "culturePerTurn": 38.4,
+          "goldPerTurn": 29,
+          "faithPerTurn": 11
+        },
+        "full": {
+          "sciencePerTurn": 49.2,
+          "culturePerTurn": 46.8,
+          "goldPerTurn": 44,
+          "faithPerTurn": 19
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-neutral-side-1/28411.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 26.25,
+          "culturePerTurn": 29,
+          "goldPerTurn": 38,
+          "faithPerTurn": 4
+        },
+        "full": {
+          "sciencePerTurn": 40.25,
+          "culturePerTurn": 29,
+          "goldPerTurn": 52,
+          "faithPerTurn": 4
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-neutral-side-1/28411.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 55.185,
+          "culturePerTurn": 88.5,
+          "goldPerTurn": 58,
+          "faithPerTurn": 23
+        },
+        "full": {
+          "sciencePerTurn": 55.185,
+          "culturePerTurn": 88.5,
+          "goldPerTurn": 58,
+          "faithPerTurn": 52
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-neutral-side-1/28411.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 48,
+          "culturePerTurn": 20,
+          "goldPerTurn": 66,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 95,
+          "culturePerTurn": 67,
+          "goldPerTurn": 66,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-neutral-side-1/28411.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 413.21070000000003,
+          "culturePerTurn": 342.396,
+          "goldPerTurn": 175.5,
+          "faithPerTurn": 87
+        },
+        "full": {
+          "sciencePerTurn": 431.21070000000003,
+          "culturePerTurn": 359.496,
+          "goldPerTurn": 369.5,
+          "faithPerTurn": 99
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-neutral-side-1/28411.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 47.5,
+          "culturePerTurn": 25,
+          "goldPerTurn": 3,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 47.5,
+          "culturePerTurn": 38,
+          "goldPerTurn": 15,
+          "faithPerTurn": 22
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side0/28411.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 53.1,
+          "culturePerTurn": 96,
+          "goldPerTurn": 88.25,
+          "faithPerTurn": 54
+        },
+        "full": {
+          "sciencePerTurn": 74.7,
+          "culturePerTurn": 96,
+          "goldPerTurn": 124.25,
+          "faithPerTurn": 72
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side0/28411.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 42.515,
+          "culturePerTurn": 34.1,
+          "goldPerTurn": 8,
+          "faithPerTurn": 9
+        },
+        "full": {
+          "sciencePerTurn": 50.214999999999996,
+          "culturePerTurn": 34.1,
+          "goldPerTurn": 8,
+          "faithPerTurn": 9
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side0/28411.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 48.6,
+          "culturePerTurn": 47.99999999999999,
+          "goldPerTurn": 22.1,
+          "faithPerTurn": 2
+        },
+        "full": {
+          "sciencePerTurn": 100.2,
+          "culturePerTurn": 88.8,
+          "goldPerTurn": 31.1,
+          "faithPerTurn": 2
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side0/28411.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 289.7328,
+          "culturePerTurn": 352.8119999999999,
+          "goldPerTurn": 55.5,
+          "faithPerTurn": 33
+        },
+        "full": {
+          "sciencePerTurn": 346.1328,
+          "culturePerTurn": 370.8119999999999,
+          "goldPerTurn": 115.5,
+          "faithPerTurn": 152
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side0/28411.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 56.65,
+          "culturePerTurn": 83.60000000000001,
+          "goldPerTurn": 41,
+          "faithPerTurn": 47
+        },
+        "full": {
+          "sciencePerTurn": 56.65,
+          "culturePerTurn": 97.9,
+          "goldPerTurn": 41,
+          "faithPerTurn": 60
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side1/28411.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 27.5,
+          "culturePerTurn": 14,
+          "goldPerTurn": 4,
+          "faithPerTurn": 10
+        },
+        "full": {
+          "sciencePerTurn": 29.5,
+          "culturePerTurn": 16,
+          "goldPerTurn": 12,
+          "faithPerTurn": 13
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side1/28411.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 42.5,
+          "culturePerTurn": 56,
+          "goldPerTurn": 70,
+          "faithPerTurn": 23
+        },
+        "full": {
+          "sciencePerTurn": 42.5,
+          "culturePerTurn": 74,
+          "goldPerTurn": 94,
+          "faithPerTurn": 32
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side1/28411.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 64.25,
+          "culturePerTurn": 24,
+          "goldPerTurn": 28,
+          "faithPerTurn": 8
+        },
+        "full": {
+          "sciencePerTurn": 74.25,
+          "culturePerTurn": 24,
+          "goldPerTurn": 38,
+          "faithPerTurn": 8
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side1/28411.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 43.6,
+          "culturePerTurn": 20,
+          "goldPerTurn": 21,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 43.6,
+          "culturePerTurn": 20,
+          "goldPerTurn": 30,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side1/28411.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 477.792,
+          "culturePerTurn": 353.5679999999999,
+          "goldPerTurn": 111.7,
+          "faithPerTurn": 53
+        },
+        "full": {
+          "sciencePerTurn": 477.792,
+          "culturePerTurn": 453.16799999999995,
+          "goldPerTurn": 111.7,
+          "faithPerTurn": 53
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 28411,
+        "file": "complete-yields/heldout/28411-selected-spending-side1/28411.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 31.075000000000006,
+          "culturePerTurn": 34.10000000000001,
+          "goldPerTurn": 2,
+          "faithPerTurn": 34
+        },
+        "full": {
+          "sciencePerTurn": 53.075,
+          "culturePerTurn": 52.80000000000001,
+          "goldPerTurn": 22,
+          "faithPerTurn": 40
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-neutral-side-1/93647.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 305.26320000000004,
+          "culturePerTurn": 98.208,
+          "goldPerTurn": 116,
+          "faithPerTurn": 26
+        },
+        "full": {
+          "sciencePerTurn": 305.26320000000004,
+          "culturePerTurn": 113.80799999999999,
+          "goldPerTurn": 248,
+          "faithPerTurn": 27
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-neutral-side-1/93647.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 20,
+          "culturePerTurn": 39,
+          "goldPerTurn": 29.1,
+          "faithPerTurn": 8
+        },
+        "full": {
+          "sciencePerTurn": 20,
+          "culturePerTurn": 44,
+          "goldPerTurn": 29.1,
+          "faithPerTurn": 26
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-neutral-side-1/93647.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 33.975,
+          "culturePerTurn": 51.29999999999999,
+          "goldPerTurn": 49.150000000000006,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 51.975,
+          "culturePerTurn": 51.29999999999999,
+          "goldPerTurn": 77.15,
+          "faithPerTurn": 15
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-neutral-side-1/93647.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 24.750000000000004,
+          "culturePerTurn": 12.099999999999998,
+          "goldPerTurn": 41,
+          "faithPerTurn": 7
+        },
+        "full": {
+          "sciencePerTurn": 33.550000000000004,
+          "culturePerTurn": 34.099999999999994,
+          "goldPerTurn": 49,
+          "faithPerTurn": 23
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-neutral-side-1/93647.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 35.75,
+          "culturePerTurn": 24,
+          "goldPerTurn": 5,
+          "faithPerTurn": 6
+        },
+        "full": {
+          "sciencePerTurn": 46.75,
+          "culturePerTurn": 24,
+          "goldPerTurn": 22,
+          "faithPerTurn": 6
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side0/93647.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 91.19249999999998,
+          "culturePerTurn": 78.3,
+          "goldPerTurn": 141.5,
+          "faithPerTurn": 37
+        },
+        "full": {
+          "sciencePerTurn": 91.19249999999998,
+          "culturePerTurn": 78.3,
+          "goldPerTurn": 151.5,
+          "faithPerTurn": 42
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side0/93647.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 99.65999999999998,
+          "culturePerTurn": 116.4,
+          "goldPerTurn": 80,
+          "faithPerTurn": 41
+        },
+        "full": {
+          "sciencePerTurn": 103.25999999999998,
+          "culturePerTurn": 138,
+          "goldPerTurn": 102,
+          "faithPerTurn": 82
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side0/93647.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 19.75,
+          "culturePerTurn": 14,
+          "goldPerTurn": 18,
+          "faithPerTurn": 18
+        },
+        "full": {
+          "sciencePerTurn": 19.75,
+          "culturePerTurn": 19,
+          "goldPerTurn": 26,
+          "faithPerTurn": 27
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side0/93647.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 36.300000000000004,
+          "culturePerTurn": 25.300000000000008,
+          "goldPerTurn": 27,
+          "faithPerTurn": 7
+        },
+        "full": {
+          "sciencePerTurn": 47.300000000000004,
+          "culturePerTurn": 31.90000000000001,
+          "goldPerTurn": 37,
+          "faithPerTurn": 7
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side0/93647.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 33.32,
+          "culturePerTurn": 15.68,
+          "goldPerTurn": 19,
+          "faithPerTurn": 12
+        },
+        "full": {
+          "sciencePerTurn": 40.32,
+          "culturePerTurn": 15.68,
+          "goldPerTurn": 26,
+          "faithPerTurn": 12
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side0/93647.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 90.89999999999999,
+          "culturePerTurn": 45.599999999999994,
+          "goldPerTurn": 15,
+          "faithPerTurn": 2
+        },
+        "full": {
+          "sciencePerTurn": 90.89999999999999,
+          "culturePerTurn": 45.599999999999994,
+          "goldPerTurn": 171,
+          "faithPerTurn": 2
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side1/93647.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 148.44,
+          "culturePerTurn": 129.6,
+          "goldPerTurn": 85,
+          "faithPerTurn": 58
+        },
+        "full": {
+          "sciencePerTurn": 172.44,
+          "culturePerTurn": 153.6,
+          "goldPerTurn": 254,
+          "faithPerTurn": 60
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side1/93647.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 67.5,
+          "culturePerTurn": 81.6,
+          "goldPerTurn": 65,
+          "faithPerTurn": 33
+        },
+        "full": {
+          "sciencePerTurn": 67.5,
+          "culturePerTurn": 90,
+          "goldPerTurn": 65,
+          "faithPerTurn": 40
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side1/93647.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 44.15625000000001,
+          "culturePerTurn": 21.599999999999994,
+          "goldPerTurn": -18,
+          "faithPerTurn": 26
+        },
+        "full": {
+          "sciencePerTurn": 116.15625,
+          "culturePerTurn": 78.3,
+          "goldPerTurn": -1,
+          "faithPerTurn": 26
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side1/93647.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 24.599999999999998,
+          "culturePerTurn": 25.2,
+          "goldPerTurn": 19,
+          "faithPerTurn": 3
+        },
+        "full": {
+          "sciencePerTurn": 33,
+          "culturePerTurn": 25.2,
+          "goldPerTurn": 26,
+          "faithPerTurn": 3
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 93647,
+        "file": "complete-yields/heldout/93647-selected-spending-side1/93647.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 96.9,
+          "culturePerTurn": 84,
+          "goldPerTurn": -8,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 108.9,
+          "culturePerTurn": 84,
+          "goldPerTurn": -8,
+          "faithPerTurn": 15
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 314,
+        "file": "complete-yields/profile-train/314-profile-tall-wide-all/314.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 52.800000000000004,
+          "culturePerTurn": 37.2,
+          "goldPerTurn": 26,
+          "faithPerTurn": 30
+        },
+        "full": {
+          "sciencePerTurn": 76.8,
+          "culturePerTurn": 37.2,
+          "goldPerTurn": 56,
+          "faithPerTurn": 35
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 314,
+        "file": "complete-yields/profile-train/314-profile-tall-wide-all/314.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 47.2,
+          "culturePerTurn": 27,
+          "goldPerTurn": 15.100000000000001,
+          "faithPerTurn": 4
+        },
+        "full": {
+          "sciencePerTurn": 65.2,
+          "culturePerTurn": 27,
+          "goldPerTurn": 33.1,
+          "faithPerTurn": 4
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 314,
+        "file": "complete-yields/profile-train/314-profile-tall-wide-all/314.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 274.26,
+          "culturePerTurn": 214.80000000000004,
+          "goldPerTurn": 60.5,
+          "faithPerTurn": 39
+        },
+        "full": {
+          "sciencePerTurn": 310.26,
+          "culturePerTurn": 264.00000000000006,
+          "goldPerTurn": 65.5,
+          "faithPerTurn": 40
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 314,
+        "file": "complete-yields/profile-train/314-profile-tall-wide-all/314.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 21.9,
+          "culturePerTurn": 31.2,
+          "goldPerTurn": 26,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 35.1,
+          "culturePerTurn": 54,
+          "goldPerTurn": 45,
+          "faithPerTurn": 35
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 28411,
+        "file": "complete-yields/profile-train/28411-profile-tall-wide-all/28411.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 63.675,
+          "culturePerTurn": 26.07,
+          "goldPerTurn": 36,
+          "faithPerTurn": 19
+        },
+        "full": {
+          "sciencePerTurn": 76.675,
+          "culturePerTurn": 39.07,
+          "goldPerTurn": 40,
+          "faithPerTurn": 33
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 28411,
+        "file": "complete-yields/profile-train/28411-profile-tall-wide-all/28411.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 15,
+          "culturePerTurn": 5,
+          "goldPerTurn": -1,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 25,
+          "culturePerTurn": 10,
+          "goldPerTurn": 4,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 28411,
+        "file": "complete-yields/profile-train/28411-profile-tall-wide-all/28411.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 22.0875,
+          "culturePerTurn": 37.5,
+          "goldPerTurn": 46.400000000000006,
+          "faithPerTurn": 2
+        },
+        "full": {
+          "sciencePerTurn": 85.0875,
+          "culturePerTurn": 94.5,
+          "goldPerTurn": 52.400000000000006,
+          "faithPerTurn": 2
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 28411,
+        "file": "complete-yields/profile-train/28411-profile-tall-wide-all/28411.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 204.89534999999998,
+          "culturePerTurn": 145.52549999999997,
+          "goldPerTurn": 70,
+          "faithPerTurn": 37
+        },
+        "full": {
+          "sciencePerTurn": 213.89534999999998,
+          "culturePerTurn": 152.72549999999995,
+          "goldPerTurn": 88,
+          "faithPerTurn": 41
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 28411,
+        "file": "complete-yields/profile-train/28411-profile-tall-wide-all/28411.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 38.699999999999996,
+          "culturePerTurn": 43.800000000000004,
+          "goldPerTurn": 35.5,
+          "faithPerTurn": 13
+        },
+        "full": {
+          "sciencePerTurn": 38.699999999999996,
+          "culturePerTurn": 47.400000000000006,
+          "goldPerTurn": 35.5,
+          "faithPerTurn": 30
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 93647,
+        "file": "complete-yields/profile-train/93647-profile-tall-wide-all/93647.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 103.25,
+          "culturePerTurn": 74,
+          "goldPerTurn": 70,
+          "faithPerTurn": 24
+        },
+        "full": {
+          "sciencePerTurn": 103.25,
+          "culturePerTurn": 93,
+          "goldPerTurn": 101,
+          "faithPerTurn": 30
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 93647,
+        "file": "complete-yields/profile-train/93647-profile-tall-wide-all/93647.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 125.46,
+          "culturePerTurn": 103.85999999999999,
+          "goldPerTurn": 56.75,
+          "faithPerTurn": 32.5
+        },
+        "full": {
+          "sciencePerTurn": 156.66,
+          "culturePerTurn": 199.85999999999999,
+          "goldPerTurn": 74.75,
+          "faithPerTurn": 67.5
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 93647,
+        "file": "complete-yields/profile-train/93647-profile-tall-wide-all/93647.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 53.5,
+          "culturePerTurn": 37,
+          "goldPerTurn": 23.5,
+          "faithPerTurn": 23
+        },
+        "full": {
+          "sciencePerTurn": 53.5,
+          "culturePerTurn": 42,
+          "goldPerTurn": 23.5,
+          "faithPerTurn": 28
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 93647,
+        "file": "complete-yields/profile-train/93647-profile-tall-wide-all/93647.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 31.799999999999997,
+          "culturePerTurn": 16.799999999999997,
+          "goldPerTurn": 31,
+          "faithPerTurn": 7
+        },
+        "full": {
+          "sciencePerTurn": 36.599999999999994,
+          "culturePerTurn": 19.199999999999996,
+          "goldPerTurn": 35,
+          "faithPerTurn": 7
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 93647,
+        "file": "complete-yields/profile-train/93647-profile-tall-wide-all/93647.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 64.9,
+          "culturePerTurn": 38.50000000000001,
+          "goldPerTurn": -4.699999999999999,
+          "faithPerTurn": 2
+        },
+        "full": {
+          "sciencePerTurn": 101.2,
+          "culturePerTurn": 38.50000000000001,
+          "goldPerTurn": 23.3,
+          "faithPerTurn": 2
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-neutral-all/60137.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 17.5,
+          "culturePerTurn": 27,
+          "goldPerTurn": 35.2,
+          "faithPerTurn": 4
+        },
+        "full": {
+          "sciencePerTurn": 17.5,
+          "culturePerTurn": 27,
+          "goldPerTurn": 35.2,
+          "faithPerTurn": 13
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-neutral-all/60137.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 17.5,
+          "culturePerTurn": 27,
+          "goldPerTurn": -5,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 20.5,
+          "culturePerTurn": 27,
+          "goldPerTurn": -2,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-neutral-all/60137.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 39.75,
+          "culturePerTurn": 31,
+          "goldPerTurn": 35,
+          "faithPerTurn": 3
+        },
+        "full": {
+          "sciencePerTurn": 83.75,
+          "culturePerTurn": 75,
+          "goldPerTurn": 35,
+          "faithPerTurn": 3
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-neutral-all/60137.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 138,
+          "culturePerTurn": 83.5,
+          "goldPerTurn": 71,
+          "faithPerTurn": 31
+        },
+        "full": {
+          "sciencePerTurn": 149,
+          "culturePerTurn": 99.5,
+          "goldPerTurn": 71,
+          "faithPerTurn": 31
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-neutral-all/60137.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 24,
+          "culturePerTurn": 21,
+          "goldPerTurn": 7,
+          "faithPerTurn": 18
+        },
+        "full": {
+          "sciencePerTurn": 32,
+          "culturePerTurn": 59,
+          "goldPerTurn": 15,
+          "faithPerTurn": 56
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-profile-tall-wide-all/60137.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 38.41874999999999,
+          "culturePerTurn": 42.29999999999999,
+          "goldPerTurn": -22.400000000000006,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 84.31875,
+          "culturePerTurn": 88.19999999999999,
+          "goldPerTurn": -22.400000000000006,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-profile-tall-wide-all/60137.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 37.75,
+          "culturePerTurn": 22,
+          "goldPerTurn": 2.6000000000000014,
+          "faithPerTurn": 7
+        },
+        "full": {
+          "sciencePerTurn": 57.75,
+          "culturePerTurn": 22,
+          "goldPerTurn": 22.6,
+          "faithPerTurn": 7
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-profile-tall-wide-all/60137.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 96.75000000000001,
+          "culturePerTurn": 37.800000000000004,
+          "goldPerTurn": 65,
+          "faithPerTurn": 46
+        },
+        "full": {
+          "sciencePerTurn": 96.75000000000001,
+          "culturePerTurn": 37.800000000000004,
+          "goldPerTurn": 73,
+          "faithPerTurn": 46
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-profile-tall-wide-all/60137.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 128.92499999999998,
+          "culturePerTurn": 58.50000000000001,
+          "goldPerTurn": 72,
+          "faithPerTurn": 29
+        },
+        "full": {
+          "sciencePerTurn": 145.12499999999997,
+          "culturePerTurn": 68.4,
+          "goldPerTurn": 105,
+          "faithPerTurn": 48
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 60137,
+        "file": "complete-yields/profile-validation/60137-profile-tall-wide-all/60137.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 47.75,
+          "culturePerTurn": 37,
+          "goldPerTurn": 30,
+          "faithPerTurn": 17
+        },
+        "full": {
+          "sciencePerTurn": 47.75,
+          "culturePerTurn": 50,
+          "goldPerTurn": 48,
+          "faithPerTurn": 42
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-neutral-all/117031.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 214.434,
+          "culturePerTurn": 122.88000000000001,
+          "goldPerTurn": 18,
+          "faithPerTurn": 14
+        },
+        "full": {
+          "sciencePerTurn": 261.234,
+          "culturePerTurn": 179.28,
+          "goldPerTurn": 41,
+          "faithPerTurn": 54
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-neutral-all/117031.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 15.75,
+          "culturePerTurn": 16,
+          "goldPerTurn": 8,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 22.75,
+          "culturePerTurn": 16,
+          "goldPerTurn": 15,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-neutral-all/117031.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 26.549999999999997,
+          "culturePerTurn": 36.89999999999999,
+          "goldPerTurn": -2,
+          "faithPerTurn": 29
+        },
+        "full": {
+          "sciencePerTurn": 34.65,
+          "culturePerTurn": 43.199999999999996,
+          "goldPerTurn": 8,
+          "faithPerTurn": 38
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-neutral-all/117031.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 47.5,
+          "culturePerTurn": 34,
+          "goldPerTurn": 29,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 51.5,
+          "culturePerTurn": 43,
+          "goldPerTurn": 29,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-neutral-all/117031.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 194.70000000000002,
+          "culturePerTurn": 409.2,
+          "goldPerTurn": 315,
+          "faithPerTurn": 150
+        },
+        "full": {
+          "sciencePerTurn": 194.70000000000002,
+          "culturePerTurn": 409.2,
+          "goldPerTurn": 366,
+          "faithPerTurn": 150
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-profile-tall-wide-all/117031.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 194.17799999999997,
+          "culturePerTurn": 141.6,
+          "goldPerTurn": 54,
+          "faithPerTurn": 23.625
+        },
+        "full": {
+          "sciencePerTurn": 218.17799999999997,
+          "culturePerTurn": 154.8,
+          "goldPerTurn": 81,
+          "faithPerTurn": 23.625
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-profile-tall-wide-all/117031.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 23.65,
+          "culturePerTurn": 14.3,
+          "goldPerTurn": 3,
+          "faithPerTurn": 15
+        },
+        "full": {
+          "sciencePerTurn": 35.75,
+          "culturePerTurn": 14.3,
+          "goldPerTurn": 14,
+          "faithPerTurn": 15
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-profile-tall-wide-all/117031.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 90.675,
+          "culturePerTurn": 64.8,
+          "goldPerTurn": 9,
+          "faithPerTurn": 110
+        },
+        "full": {
+          "sciencePerTurn": 90.675,
+          "culturePerTurn": 79.2,
+          "goldPerTurn": 56,
+          "faithPerTurn": 126
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 117031,
+        "file": "complete-yields/profile-validation/117031-profile-tall-wide-all/117031.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 133.005,
+          "culturePerTurn": 83.58,
+          "goldPerTurn": 87,
+          "faithPerTurn": 62
+        },
+        "full": {
+          "sciencePerTurn": 157.005,
+          "culturePerTurn": 83.58,
+          "goldPerTurn": 164,
+          "faithPerTurn": 135
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 60137,
+        "file": "complete-yields/release-compare/60137-play-release-all/60137.json",
+        "seat": 0,
+        "partial": {
+          "sciencePerTurn": 72.75,
+          "culturePerTurn": 85,
+          "goldPerTurn": 25.330000000000013,
+          "faithPerTurn": 27
+        },
+        "full": {
+          "sciencePerTurn": 92.75,
+          "culturePerTurn": 85,
+          "goldPerTurn": 45.33000000000001,
+          "faithPerTurn": 27
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 60137,
+        "file": "complete-yields/release-compare/60137-play-release-all/60137.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 32.25,
+          "culturePerTurn": 16,
+          "goldPerTurn": 9,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 39.25,
+          "culturePerTurn": 32,
+          "goldPerTurn": 16,
+          "faithPerTurn": 16
+        }
+      },
+      {
+        "leader": "sejongTheGreat",
+        "seed": 60137,
+        "file": "complete-yields/release-compare/60137-play-release-all/60137.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 29,
+          "culturePerTurn": 17,
+          "goldPerTurn": 4,
+          "faithPerTurn": 6
+        },
+        "full": {
+          "sciencePerTurn": 39,
+          "culturePerTurn": 17,
+          "goldPerTurn": 14,
+          "faithPerTurn": 6
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 60137,
+        "file": "complete-yields/release-compare/60137-play-release-all/60137.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 94.25,
+          "culturePerTurn": 79,
+          "goldPerTurn": 27,
+          "faithPerTurn": 12
+        },
+        "full": {
+          "sciencePerTurn": 94.25,
+          "culturePerTurn": 88,
+          "goldPerTurn": 27,
+          "faithPerTurn": 38
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 60137,
+        "file": "complete-yields/release-compare/60137-play-release-all/60137.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 104.75,
+          "culturePerTurn": 30,
+          "goldPerTurn": 40,
+          "faithPerTurn": 18
+        },
+        "full": {
+          "sciencePerTurn": 118.75,
+          "culturePerTurn": 44,
+          "goldPerTurn": 40,
+          "faithPerTurn": 18
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 60137,
+        "file": "complete-yields/release-compare/60137-play-release-all/60137.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 20,
+          "culturePerTurn": 33,
+          "goldPerTurn": 19,
+          "faithPerTurn": 32
+        },
+        "full": {
+          "sciencePerTurn": 20,
+          "culturePerTurn": 44,
+          "goldPerTurn": 33,
+          "faithPerTurn": 38
+        }
+      },
+      {
+        "leader": "mehmedTheConqueror",
+        "seed": 117031,
+        "file": "complete-yields/release-compare/117031-play-release-all/117031.json",
+        "seat": 1,
+        "partial": {
+          "sciencePerTurn": 32.75,
+          "culturePerTurn": 32,
+          "goldPerTurn": -12,
+          "faithPerTurn": 2
+        },
+        "full": {
+          "sciencePerTurn": 45.75,
+          "culturePerTurn": 57,
+          "goldPerTurn": 1,
+          "faithPerTurn": 2
+        }
+      },
+      {
+        "leader": "lorenzoDeMedici",
+        "seed": 117031,
+        "file": "complete-yields/release-compare/117031-play-release-all/117031.json",
+        "seat": 2,
+        "partial": {
+          "sciencePerTurn": 132,
+          "culturePerTurn": 144.00000000000003,
+          "goldPerTurn": 67,
+          "faithPerTurn": 36
+        },
+        "full": {
+          "sciencePerTurn": 132,
+          "culturePerTurn": 164.4,
+          "goldPerTurn": 67,
+          "faithPerTurn": 36
+        }
+      },
+      {
+        "leader": "jayavarmanVII",
+        "seed": 117031,
+        "file": "complete-yields/release-compare/117031-play-release-all/117031.json",
+        "seat": 3,
+        "partial": {
+          "sciencePerTurn": 40.25,
+          "culturePerTurn": 39,
+          "goldPerTurn": 12,
+          "faithPerTurn": 8
+        },
+        "full": {
+          "sciencePerTurn": 55.25,
+          "culturePerTurn": 45,
+          "goldPerTurn": 27,
+          "faithPerTurn": 14
+        }
+      },
+      {
+        "leader": "alexanderTheGreat",
+        "seed": 117031,
+        "file": "complete-yields/release-compare/117031-play-release-all/117031.json",
+        "seat": 4,
+        "partial": {
+          "sciencePerTurn": 15.950000000000001,
+          "culturePerTurn": 17.6,
+          "goldPerTurn": 28,
+          "faithPerTurn": 0
+        },
+        "full": {
+          "sciencePerTurn": 29.15,
+          "culturePerTurn": 30.8,
+          "goldPerTurn": 28,
+          "faithPerTurn": 0
+        }
+      },
+      {
+        "leader": "mansaMusa",
+        "seed": 117031,
+        "file": "complete-yields/release-compare/117031-play-release-all/117031.json",
+        "seat": 5,
+        "partial": {
+          "sciencePerTurn": 109.80000000000001,
+          "culturePerTurn": 44.4,
+          "goldPerTurn": 64,
+          "faithPerTurn": 43
+        },
+        "full": {
+          "sciencePerTurn": 127.80000000000001,
+          "culturePerTurn": 62.400000000000006,
+          "goldPerTurn": 64,
+          "faithPerTurn": 43
+        }
+      }
+    ],
+    "timing": {
+      "20": {
+        "seats": 192,
+        "differingSeats": 3,
+        "wrongGoldSignCount": 0,
+        "voiceCounts": {
+          "sciencePerTurn": 0,
+          "culturePerTurn": 3,
+          "goldPerTurn": 0,
+          "faithPerTurn": 3
+        }
+      },
+      "40": {
+        "seats": 192,
+        "differingSeats": 88,
+        "wrongGoldSignCount": 7,
+        "voiceCounts": {
+          "sciencePerTurn": 42,
+          "culturePerTurn": 59,
+          "goldPerTurn": 40,
+          "faithPerTurn": 36
+        }
+      },
+      "60": {
+        "seats": 192,
+        "differingSeats": 132,
+        "wrongGoldSignCount": 6,
+        "voiceCounts": {
+          "sciencePerTurn": 84,
+          "culturePerTurn": 93,
+          "goldPerTurn": 83,
+          "faithPerTurn": 54
+        }
+      },
+      "80": {
+        "seats": 192,
+        "differingSeats": 154,
+        "wrongGoldSignCount": 7,
+        "voiceCounts": {
+          "sciencePerTurn": 104,
+          "culturePerTurn": 100,
+          "goldPerTurn": 113,
+          "faithPerTurn": 79
+        }
+      }
+    }
+  }
+}

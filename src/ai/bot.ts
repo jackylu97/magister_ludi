@@ -344,7 +344,7 @@ import {
 // and the Ledger do. See `readings.ts`.
 import { readCity, readEmpirePercents, readEmpireRates } from '../sim/readings';
 import { slateMemo } from '../sim/slate';
-import { type CombatForecast, fortifyError, isFortified, previewCombat } from '../sim/combat';
+import { type CombatForecast, attackRange, fortifyError, isFortified, previewCombat } from '../sim/combat';
 // A unit's rank, read from its experience (batch WC3). The wounded-veteran
 // clause in `favourableBlow` asks it.
 import { rankName, rankOf } from '../sim/ranks';
@@ -2197,9 +2197,8 @@ function theLoop(state: GameState, player: Player, sitting: BotSitting, blocker:
  * would still have done is counted (`phaseTally.endFound`). The copy keeps the
  * sitting's per-piece and per-town bounds, so it asks what the old order would
  * have asked at this point; it opens every phase again, diplomacy included.
- * The harness memories are read before and put back after, because two arms
- * write while they read (the war windows, and the focus roll's basket), so the
- * check changes no later decision.
+ * Restore the harness memories afterward. Reading the focus choices can
+ * change them, and this diagnostic must not affect a later decision.
  */
 function checkTheEnd(state: GameState, player: Player, sitting: BotSitting): void {
   const memory = readHarnessMemory(state);
@@ -10357,45 +10356,13 @@ function soldierCommand(
       ),
     );
   }
-  // The wild's exchange is `military.wildAggression` (E1a); nought is the old
-  // rule — dealt must beat taken, whatever the seat thinks of its neighbours.
-  // **A full force at a camp** (batch BP8, P5) takes the assault's exchange
-  // against the guard beside the camp, through the siege appetite's door: the
-  // next piece of the force finishes what this one starts. See `campAssault`.
-  const wildBlow = stays ? null : favourableBlow(
-    state, player, unit, holdsWild, ai.military.wildAggression, strikes, campAssault(state, player, unit),
-  );
-  // **A seat at war swings at what is beside it, whatever its temperament**, and
-  // since §13.2 that is *all* the appetite decides. It used to decide two
-  // things: how bad an exchange a piece would accept, and whether the empire
-  // went looking for a fight at all (`ai.military.aggression > 0` gated the
-  // march). The second is gone — **the war is the permission** — because the
-  // declaration policy and the prosecution policy disagreed: a balanced seat
-  // would declare at 4.5× and then never send anybody, which is the user's own
-  // finding (2026-09-07: *"they're just being annoying. Not sending army to
-  // attack me but parking units near my lands"*). What the appetite does now is
-  // loosen this exchange bar and **nothing else**.
-  //
-  // A seat with no war on has nothing to swing at: `holdsRival` is gated on
-  // `atWar`, and `previewCombat` refuses a peacetime blow besides.
-  const firstBlow = wildBlow ?? (stays ? null : favourableBlow(
-    state,
-    player,
-    unit,
-    holdsRival,
-    ai.military.aggression,
-    strikes,
-    // **The siege appetite** (§13.3), and only while the force is actually at
-    // the walls: a blow on the town this army is pushing on, or on a defender
-    // standing beside it, clears `war.siegeExchange` instead. Everywhere else on
-    // the map the seat's own temperament still decides.
-    plan !== null && plan.pushing
+  // Compare targets together while preserving the different assault thresholds.
+  const strike = stays ? null : favourableBlow(state, player, unit, strikes, {
+    wild: campAssault(state, player, unit),
+    rival: plan !== null && plan.pushing
       ? { appetite: ai.war.siegeExchange, at: plan.target, within: ai.war.siegeWithin }
       : undefined,
-  ));
-  const strike = !stays && ai.military.cityCaptureValue > 0
-    ? preferredCityCapture(state, player, unit, ai.military.cityCaptureValue, firstBlow)
-    : firstBlow;
+  });
   if (strike !== null) {
     return {
       command: { type: 'attack', playerId: player.id, unitId: unit.id, target: strike.at },
@@ -10501,56 +10468,16 @@ interface UnitTarget {
 }
 
 /**
- * If the seat prefers a capture over its first ordinary attack, use the same
- * forecast as the player. A possible kill at the middle roll is insufficient.
- */
-function preferredCityCapture(
-  state: GameState, player: Player, unit: Unit, value: number, first: UnitTarget | null,
-): UnitTarget | null {
-  if (isRanged(unitDef(unit.type))) return first;
-  const here = getTileAt(state.map, unit.col, unit.row);
-  if (!here) return first;
-  let best = first;
-  let bestScore = first?.candidates.find(row => row.chosen)?.score ?? -Infinity;
-  for (const near of mapRange(state.map, tileHex(here), 1)) {
-    const city = cityAt(state, near.col, near.row);
-    if (!city || city.ownerId === player.id || !atWar(state, player.id, city.ownerId)) continue;
-    const at = { col: near.col, row: near.row };
-    const preview = previewCombat(state, unit.id, at);
-    if (!preview.ok) continue;
-    const certain = preview.capturesCity || (preview.capturesCityOnKill && preview.damageToDefenderMin >= preview.defenderHp);
-    if (!certain || preview.damageToAttackerMax >= unit.hp) continue;
-    const terms: ValueTerm[] = [
-      { label: 'Certain city capture', value },
-      { label: 'Minimum damage dealt', value: preview.damageToDefenderMin },
-      { label: 'Maximum damage taken', value: preview.damageToAttackerMax, op: 'sub' },
-    ];
-    const score = foldTerms(terms);
-    if (score <= bestScore) continue;
-    bestScore = score;
-    const label = `Take ${city.name}`;
-    const other = first?.candidates.filter(row => !row.chosen || first.at.col !== at.col || first.at.row !== at.row) ?? [];
-    best = {
-      at, summary: `${label}. This seat values a certain capture at ${value} points.`,
-      candidates: [...other.map(row => ({ ...row, chosen: false })), { label, terms, chosen: true, score }],
-    };
-  }
-  return best;
-}
-
-/**
  * Fortified archers can fire without leaving their defensive positions. They
  * must not depend on a camp march or a war against another nation to act.
  */
 function fortifiedRangedAttack(state: GameState, player: Player): BotDecision | null {
-  const ai = aiFor(player);
   for (const unit of state.units) {
     if (unit.ownerId !== player.id || unit.fortifiedTurns === undefined) continue;
     if (!isRanged(unitDef(unit.type)) || unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
     if (restAndHeal(state, player, unit) !== null) continue;
     const review: StrikeReview = { candidates: [], deferredToRanged: false };
-    const strike = favourableBlow(state, player, unit, holdsWild, ai.military.wildAggression, review)
-      ?? favourableBlow(state, player, unit, holdsRival, ai.military.aggression, review);
+    const strike = favourableBlow(state, player, unit, review);
     if (strike === null) continue;
     return {
       kind: 'unitOrder',
@@ -10564,88 +10491,52 @@ function fortifiedRangedAttack(state: GameState, player: Player): BotDecision | 
   return null;
 }
 
-/** Keep both target scans so a unit that holds can explain the reason. */
+/** Keep considered attacks so a unit that holds can explain the reason. */
 interface StrikeReview {
   candidates: BotCandidate[];
   deferredToRanged: boolean;
   heldScreen?: boolean;
 }
 
+interface AssaultThreshold {
+  appetite: number;
+  at: { col: number; row: number };
+  within: number;
+}
+
 /**
- * An adjacent hex holding a target this piece would come off better against, or
- * `null`.
+ * Compare legal targets through the shared combat calculation's UI forecast.
+ * Keep the existing exchange and ranged-first guards. Among accepted attacks,
+ * value damage, target removal and survival rather than taking the first one.
  *
- * The whole exchange is asked of `previewCombat`, which is the *same* plan the
- * reducer resolves — so the movement, the one-blow-a-turn rule, the range, the
- * terrain and the fortification are all already in the answer and none of them
- * is restated here. "Better off" is the naive reading: the defender dies, or the
- * midpoint roll hurts them more than it hurts us.
+ * Finishing a target needs its own value because damage stops at remaining
+ * health. Otherwise a full-health target can outrank a nearly defeated unit
+ * that could still attack next turn. Certain city captures also receive the
+ * existing city preference. No unseen target enters this scan.
  *
- * The first scan checks barbarian targets. The second checks rivals at war
- * with this seat. Both keep their candidates for the spectator.
- *
- * `aggression` loosens the exchange the piece will accept, and nothing else. At
- * 0 the rule is the one it always was — deal more than you take. At 1 any blow
- * that deals anything is taken. In between, the blow must deal more than
- * `(1 − aggression)` of what it takes, which is a seat that is willing to trade
- * down to break a line.
- *
- * **Under all of that sits a floor** (ruled 2026-09-15, `docs/flags.md`
- * (nnnnn)): `military.strikeFloor` is the least a blow may deal per point it
- * takes, and the appetite cannot loosen past it. The user watched five empires
- * feed a defended line one piece a turn, and the arithmetic that let them was
- * exactly this: a warmonger's 0.6 turned "deal more than you take" into "deal
- * more than four tenths of what you take", which is a piece thrown away with
- * the seat's own approval printed beside it.
- *
- * **And one blow is refused outright**: a *melee* piece at a town, or at a
- * fortified piece standing on ground that pays it, that would come off worse
- * (`military.hardTargetMargin`). Bows and siege engines take no counter-blow, so
- * they clear it by construction and go first — which is the ruling's *"ranged
- * and siege first, or wait"* — and a decisive blow is never held back by it.
- * This one outranks the siege appetite, deliberately: `war.siegeExchange` exists
- * so a stack will *lose* hit points to a wall, and without a clause over it that
- * became the licence a swordsman used to charge a palisade. What the siege
- * appetite still buys is the other half of a push — the pieces standing *beside*
- * the town, which are exactly what an army trades down to break — and a tuner
- * who wants the old behaviour back sets `hardTargetMargin` to nought.
- *
- * **`siege` replaces that appetite for the hexes a push is about** (§13.3): the
- * town the army is pushing on and everything standing beside it. A wall is a
- * thing an army loses hit points to on purpose, so a stack reading its seat's
- * ordinary bar there would take one look, refuse the exchange and park — which
- * is exactly what the old warmonger's lone pieces did. It is scoped to the
- * hexes rather than switched on for the whole piece, so the same swordsman that
- * will trade down at the gate still wants a favourable exchange in the field.
- *
- * **The one thing that can stop an exchange the appetite would take** is the
- * ranged deferral (2026-09-04): a melee piece holds when a bowman of ours can
- * hit the same target this turn and has not shot yet, unless the blow is
- * decisive. Crude v1 and written down as one — it asks nothing about whether
- * the archer will *choose* that target when its own turn comes, only that it
- * could, so a spearman can hold for a bowman that then shoots something else.
- * The sweep order is the log's, so the answer is the same on every machine.
+ * Map order breaks equal scores. A single scan gives the spectator every
+ * candidate and avoids a second search just for city captures.
  */
 function favourableBlow(
   state: GameState,
   player: Player,
   unit: Unit,
-  holds: (state: GameState, player: Player, tile: Tile) => boolean,
-  aggression: number,
   review: StrikeReview,
-  /** The hexes a push is about, and the appetite they are weighed at. */
-  siege?: { appetite: number; at: { col: number; row: number }; within: number },
+  assaults?: { wild?: AssaultThreshold; rival?: AssaultThreshold },
 ): UnitTarget | null {
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
   const ai = aiFor(player);
   const shoots = isRanged(unitDef(unit.type));
   const tried = review.candidates;
-  const ordinary = Math.max(0, Math.min(1, aggression));
-  const siegeHex = siege === undefined ? null : getTileAt(state.map, siege.at.col, siege.at.row);
-  for (const near of mapRange(state.map, tileHex(here), unitDef(unit.type).range ?? 1)) {
+  let best: { target: UnitTarget; row: BotCandidate } | null = null;
+  for (const near of mapRange(state.map, tileHex(here), attackRange(state, unit))) {
     if (near.col === unit.col && near.row === unit.row) continue;
-    if (!holds(state, player, near)) continue;
+    const wild = holdsWild(state, player, near);
+    if (!wild && !holdsRival(state, player, near)) continue;
+    const ordinary = Math.max(0, Math.min(1, wild ? ai.military.wildAggression : ai.military.aggression));
+    const siege = wild ? assaults?.wild : assaults?.rival;
+    const siegeHex = siege === undefined ? null : getTileAt(state.map, siege.at.col, siege.at.row);
     const besieging =
       siege !== undefined &&
       siegeHex !== undefined &&
@@ -10665,7 +10556,9 @@ function favourableBlow(
     // capture of a civilian, capture of a town — the preview's own three words,
     // asked here so the heal arm and the ranged deferral share one reading of
     // "this is worth doing whatever else is true".
-    const decisive = kills || preview.capturesUnit || preview.capturesCity;
+    const certainCity = preview.capturesCity ||
+      (preview.capturesCityOnKill && preview.damageToDefenderMin >= preview.defenderHp);
+    const decisive = kills || preview.capturesUnit || preview.capturesCity || preview.plundersUnit;
     // **Ranged before melee** (ruled 2026-09-04). A spearman holds when a bowman
     // of ours can hit the same hex and has not shot yet: the archer's blow costs
     // this empire nothing in return, so spending a melee piece's turn — and its
@@ -10673,13 +10566,24 @@ function favourableBlow(
     // should make. It is a *charge on the candidate* rather than a silent skip,
     // for `scoutGlutPenalty`'s reason: a reader of the feed has to see the hold.
     const defer = !shoots && !decisive ? rangedFriendReady(state, player, unit, near) : null;
-    // **The exchange, as the reducer previews it.** The score is the naive
-    // reading the bot actually uses: damage dealt less damage taken. Nothing
-    // else is weighed — no lookahead, no valuation of the piece at risk.
+    // Damage is already capped by the health actually available. Add the
+    // removal value separately so a finishing hit can beat a larger wound.
     const terms: ValueTerm[] = [
       { label: `${preview.damageToDefender} damage dealt (defender on ${preview.defenderHp})`, value: preview.damageToDefender },
       { label: `${preview.damageToAttacker} damage taken`, value: preview.damageToAttacker, op: 'sub' },
     ];
+    if (kills || preview.capturesUnit || preview.plundersUnit || certainCity) {
+      terms.push({
+        label: certainCity ? 'Certain city capture' : kills ? 'Predicted unit kill' : 'Civilian capture or trade plunder',
+        value: ai.military.targetRemovalValue,
+      });
+    }
+    if (certainCity && preview.damageToAttackerMax < preview.attackerHp) {
+      terms.push({ label: 'Extra value for a certain city capture', value: ai.military.cityCaptureValue });
+    }
+    if (preview.damageToAttackerMax >= preview.attackerHp) {
+      terms.push({ label: 'The counter forecast can kill this unit', value: ai.military.counterLossCost, op: 'sub' });
+    }
     if (defer !== null) {
       review.deferredToRanged = true;
       terms.push({
@@ -10723,6 +10627,7 @@ function favourableBlow(
       !shoots &&
       preview.damageToDefender < preview.damageToAttacker * Math.max(0, ai.military.hardTargetMargin);
     if (heldBack) {
+      exchange.rejected = 'The melee exchange is below the defended-target threshold.';
       terms.push({
         label:
           preview.cityPhase !== undefined
@@ -10742,20 +10647,23 @@ function favourableBlow(
     // reason every stand-down in this file gives. See `woundedVeteranHolds`.
     const caution = decisive ? null : woundedVeteranHolds(player, unit, preview);
     if (caution !== null) {
+      exchange.rejected = caution;
       terms.push({ label: caution, value: ai.military.rangedDeferral, op: 'sub' });
       exchange.score = foldTerms(terms);
       tried.push(exchange);
       continue;
     }
     if (defer !== null) {
+      exchange.rejected = 'Waits for an available ranged attack.';
       tried.push(exchange);
       continue;
     }
-    const screen = !shoots && !decisive && !besieging && holds === holdsWild && ai.military.screenHoldExchange > 0
+    const screen = !shoots && !decisive && !besieging && wild && ai.military.screenHoldExchange > 0
       ? rangedUnitBehind(state, player, unit, near)
       : null;
     const screenBar = preview.damageToAttacker * ai.military.screenHoldExchange;
     if (screen !== null && preview.damageToDefender <= screenBar) {
+      exchange.rejected = 'Keeps the melee screen in place.';
       review.heldScreen = true;
       terms.push({
         label: `Protects ${unitLabel(screen)}: requires more than ${round1(screenBar)} damage to leave the defensive line`,
@@ -10767,9 +10675,9 @@ function favourableBlow(
       continue;
     }
     if (decisive || preview.damageToDefender > bar) {
-      exchange.chosen = true;
       tried.push(exchange);
-      return {
+      if (best !== null && exchange.score <= best.row.score) continue;
+      const target: UnitTarget = {
         at: { col: near.col, row: near.row },
         summary: preview.capturesCity || preview.capturesUnit
           ? `Captures ${preview.defenderName}.`
@@ -10784,10 +10692,15 @@ function favourableBlow(
               : `A favourable exchange: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} taken.`,
         candidates: tried,
       };
+      best = { target, row: exchange };
+      continue;
     }
+    exchange.rejected = `Damage must exceed the attack threshold of ${round1(bar)}.`;
     tried.push(exchange);
   }
-  return null;
+  if (best === null) return null;
+  best.row.chosen = true;
+  return best.target;
 }
 
 /**
@@ -11049,7 +10962,7 @@ function decisiveBlowAt(
 ): { col: number; row: number } | null {
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
-  for (const near of mapRange(state.map, tileHex(here), unitDef(unit.type).range ?? 1)) {
+  for (const near of mapRange(state.map, tileHex(here), attackRange(state, unit))) {
     if (near.col === unit.col && near.row === unit.row) continue;
     if (!holdsWild(state, player, near) && !holdsRival(state, player, near)) continue;
     const preview = previewCombat(state, unit.id, { col: near.col, row: near.row });
@@ -11401,9 +11314,8 @@ function campaignMarch(
   const unclaimed = (tile: Tile): boolean => !claimed.has(tileIndex(state.map, tile.col, tile.row));
 
   if (plan.pushing) {
-    // A shooter closes to its own range; everything else to the wall. Asked of
-    // the row (`isSiegePiece`, `UnitDef.range`) and never of a type name.
-    const reach = isSiegePiece(def) ? Math.max(1, def.range ?? 1) : 1;
+    // Siege units keep their effective range, including research bonuses.
+    const reach = isSiegePiece(def) ? Math.max(1, attackRange(state, unit)) : 1;
     if (wrappedDistance(state.map, from, tileHex(walls)) <= reach) return null;
     const goals = approachHexes(state, unit, plan.target, reach)
       .filter(unclaimed)

@@ -1843,7 +1843,7 @@ function planCombat(
     // Skirmishers' Creed. Through `cardUnitStat`, which is the single evaluator
     // for the stat — so the reducer, the forecast and the attackable-tile tint
     // all agree about how far an archer reaches.
-    const range = def.range! + cardUnitStat(state, attacker, 'range');
+    const range = attackRange(state, attacker);
     if (distance > range) {
       return {
         ok: false,
@@ -2519,6 +2519,12 @@ function planCombat(
       breaches,
     },
   };
+}
+
+/** Use the same range for attack discovery and validation, including technology and card effects. */
+export function attackRange(state: GameState, unit: Unit): number {
+  const def = unitDef(unit.type);
+  return isRanged(def) ? def.range! + cardUnitStat(state, unit, 'range') : 1;
 }
 
 /**

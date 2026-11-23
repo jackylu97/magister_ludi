@@ -81,6 +81,8 @@ import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { type DoctrineId, slotLayout } from '../../src/sim/statecraftData';
 import { chairMisfitRefusal } from '../../src/sim/statecraft';
 import { closeWar, openWar, setPeaceOffer } from '../../src/sim/wars';
+import { lossTurnsCounted, pruneWarLosses, recordWarLoss } from '../../src/sim/weariness';
+import { readWarExchange } from '../../src/ai/warLedger';
 import { newGame } from './newGameHelpers';
 import { typeRowsByOldOffice } from './statecraftHelpers';
 
@@ -616,24 +618,15 @@ describe('suing for peace, and signing one', () => {
 
   // --- the exchange (2026-09-15, the addendum) ------------------------------
 
-  /**
-   * A war going evenly by the warscore, with the ledger's window open.
-   *
-   * The window is opened by the seat *looking* at its war, which is what
-   * happens on the first turn of one in a played game (`warLedger.ts` says why
-   * the memory is the harness's); after that the pieces start falling, and the
-   * exchange is what the seat reads when it decides whether to go on.
-   */
-  function evenWar(persona?: string): GameState {
-    const state = bench();
+  /** An even war, with losses recorded separately for each opponent. */
+  function evenWar(persona?: string, seats = 2): GameState {
+    const state = bench(seats);
     foundCityAt(state, 0, at(state.map, 4, 5));
     foundCityAt(state, 1, at(state.map, 12, 5));
     openWar(state, 0, 1);
     raise(state, 0, 4, 5, 5);
     raise(state, 1, 4, 11, 5);
     if (persona !== undefined) seat(state, 0).persona = persona;
-    // The seat looks at the war once: the exchange's zero.
-    abroad(state, 0);
     return state;
   }
 
@@ -644,12 +637,14 @@ describe('suing for peace, and signing one', () => {
     // piece raised here still stands — so the exchange is the only thing that
     // could be speaking.
     seat(state, 0).unitsLost += 9;
+    for (let i = 0; i < 9; i++) recordWarLoss(state, 0, 1, 'unit');
     seat(state, 0).unitsKilled += 1;
+    for (let i = 0; i < 1; i++) recordWarLoss(state, 1, 0, 'unit');
     expect(explainWarScore(state, seat(state, 0), seat(state, 1), aiConfigFor(undefined)).total).
       toBeGreaterThan(aiConfigFor(undefined).war.sueFloor);
     const decision = abroad(state, 0);
     expect(decision?.command).toMatchObject({ type: 'proposePeace', playerId: 0, targetId: 1 });
-    expect(decision!.summary).toMatch(/9 of ours have fallen and 1 of theirs since turn/);
+    expect(decision!.summary).toMatch(/since turn .*we lost 9 units to .*they lost 1 to us/);
     expect(decision!.summary).toMatch(/no longer clears the bar this seat declares at/);
     expect(applyCommand(state, decision!.command).ok).toBe(true);
   });
@@ -658,7 +653,9 @@ describe('suing for peace, and signing one', () => {
     // The other side of the ratio, and the only difference is what it killed.
     const state = evenWar();
     seat(state, 0).unitsLost += 9;
+    for (let i = 0; i < 9; i++) recordWarLoss(state, 0, 1, 'unit');
     seat(state, 0).unitsKilled += 9;
+    for (let i = 0; i < 9; i++) recordWarLoss(state, 1, 0, 'unit');
     const decision = abroad(state, 0);
     expect(decision === null || decision.command.type !== 'proposePeace').toBe(true);
   });
@@ -670,7 +667,9 @@ describe('suing for peace, and signing one', () => {
     const state = evenWar('warmonger');
     raise(state, 0, 8, 5, 6);
     seat(state, 0).unitsKilled += 9;
+    for (let i = 0; i < 9; i++) recordWarLoss(state, 1, 0, 'unit');
     seat(state, 0).unitsLost += 2;
+    for (let i = 0; i < 2; i++) recordWarLoss(state, 0, 1, 'unit');
     setPeaceOffer(state, 1, 0, true);
     bumpRevision(state);
     const answer = answerPeaceOffer(state, seat(state, 0), seat(state, 1), valueContext(state, seat(state, 0)));
@@ -683,7 +682,9 @@ describe('suing for peace, and signing one', () => {
     // The mirror: the same seat, the same offer, the losses the other way about.
     const state = evenWar('warmonger');
     seat(state, 0).unitsKilled += 1;
+    for (let i = 0; i < 1; i++) recordWarLoss(state, 1, 0, 'unit');
     seat(state, 0).unitsLost += 9;
+    for (let i = 0; i < 9; i++) recordWarLoss(state, 0, 1, 'unit');
     setPeaceOffer(state, 1, 0, true);
     bumpRevision(state);
     const answer = answerPeaceOffer(state, seat(state, 0), seat(state, 1), valueContext(state, seat(state, 0)));
@@ -691,6 +692,50 @@ describe('suing for peace, and signing one', () => {
     for (const row of answer!.candidates) {
       expect({ row: row.label, fold: foldTerms(row.terms) }).toEqual({ row: row.label, fold: row.score });
     }
+    expect(applyCommand(state, answer!.command).ok).toBe(true);
+  });
+
+  it('does not accept peace with a strong army because a barbarian killed a unit', () => {
+    const state = evenWar('warmonger', 3);
+    raise(state, 0, 8, 5, 6);
+    seat(state, 2).barbarian = true;
+    seat(state, 0).unitsLost += 1;
+    recordWarLoss(state, 0, 2, 'unit');
+    setPeaceOffer(state, 1, 0, true);
+    bumpRevision(state);
+    const answer = answerPeaceOffer(state, seat(state, 0), seat(state, 1), valueContext(state, seat(state, 0)));
+    expect(readWarExchange(state, seat(state, 0), seat(state, 1))?.lost).toBe(0);
+    expect(answer?.command.type).toBe('declinePeace');
+    expect(applyCommand(state, answer!.command).ok).toBe(true);
+  });
+
+  it("does not charge a second war's losses to the opponent offering peace", () => {
+    const state = evenWar('warmonger', 3);
+    raise(state, 0, 8, 5, 6);
+    openWar(state, 0, 2);
+    seat(state, 0).unitsLost += 1;
+    recordWarLoss(state, 0, 2, 'unit');
+    setPeaceOffer(state, 1, 0, true);
+    bumpRevision(state);
+    const answer = answerPeaceOffer(state, seat(state, 0), seat(state, 1), valueContext(state, seat(state, 0)));
+    expect(readWarExchange(state, seat(state, 0), seat(state, 1))?.lost).toBe(0);
+    expect(answer?.command.type).toBe('declinePeace');
+    expect(applyCommand(state, answer!.command).ok).toBe(true);
+  });
+
+  it('names the loss override when it signs peace despite a high war score', () => {
+    const state = evenWar('warmonger');
+    raise(state, 0, 8, 5, 6);
+    recordWarLoss(state, 0, 1, 'unit');
+    setPeaceOffer(state, 1, 0, true);
+    bumpRevision(state);
+    const ctx = valueContext(state, seat(state, 0));
+    expect(explainWarScore(state, seat(state, 0), seat(state, 1), ctx.ai).total).toBeGreaterThan(ctx.ai.war.acceptCeiling);
+    const answer = answerPeaceOffer(state, seat(state, 0), seat(state, 1), ctx);
+    expect(answer?.command.type).toBe('proposePeace');
+    expect(answer?.summary).toContain('recent losses to this opponent exceed the peace threshold');
+    expect(answer?.summary).not.toContain('at or below');
+    expect(abroad(state, 0)?.summary).toBe(answer?.summary);
     expect(applyCommand(state, answer!.command).ok).toBe(true);
   });
 
@@ -708,6 +753,57 @@ describe('suing for peace, and signing one', () => {
     // Nothing to say: it is over the ceiling it would sign at, and its own
     // score is nowhere near the floor it sues at.
     expect(decision === null || decision.command.type !== 'proposePeace').toBe(true);
+  });
+});
+
+describe('opponent-specific recent war losses', () => {
+  it("counts only this opponent's unit and town losses and changes no state", () => {
+    const state = bench(3);
+    openWar(state, 0, 1);
+    openWar(state, 0, 2);
+    recordWarLoss(state, 0, 1, 'unit');
+    recordWarLoss(state, 0, 2, 'unit');
+    recordWarLoss(state, 0, 2, 'town');
+    recordWarLoss(state, 1, 0, 'unit');
+    recordWarLoss(state, 1, 0, 'unit');
+    recordWarLoss(state, 1, 0, 'town');
+    recordWarLoss(state, 2, 0, 'town');
+    const before = JSON.stringify(state);
+    const reading = readWarExchange(state, seat(state, 0), seat(state, 1));
+    expect(reading).toEqual({ lost: 1, killed: 2, won: 1, given: 0, since: state.turn });
+    expect(readWarExchange(state, seat(state, 1), seat(state, 0))).toEqual({ lost: 2, killed: 1, won: 0, given: 1, since: state.turn });
+    const copy: GameState = structuredClone(state);
+    expect(readWarExchange(copy, seat(copy, 0), seat(copy, 1))).toEqual(reading);
+    expect(JSON.stringify(state)).toBe(before);
+  });
+
+  it('excludes losses before a new declaration even when records remain', () => {
+    const state = bench();
+    openWar(state, 0, 1);
+    recordWarLoss(state, 0, 1, 'unit');
+    recordWarLoss(state, 1, 0, 'town');
+    closeWar(state, 0, 1);
+    expect(readWarExchange(state, seat(state, 0), seat(state, 1))).toBeNull();
+    state.turn++;
+    openWar(state, 0, 1);
+    expect(readWarExchange(state, seat(state, 0), seat(state, 1))).toEqual({ lost: 0, killed: 0, won: 0, given: 0, since: state.turn });
+    recordWarLoss(state, 0, 1, 'town');
+    expect(readWarExchange(state, seat(state, 0), seat(state, 1))?.given).toBe(1);
+  });
+
+  it('uses the retained window and gives the same result before and after pruning', () => {
+    const state = bench();
+    openWar(state, 0, 1);
+    const first = state.turn;
+    recordWarLoss(state, 0, 1, 'unit');
+    state.turn++;
+    recordWarLoss(state, 0, 1, 'town');
+    state.turn = first + lossTurnsCounted();
+    recordWarLoss(state, 1, 0, 'unit');
+    const expected = { lost: 0, killed: 1, won: 0, given: 1, since: first + 1 };
+    expect(readWarExchange(state, seat(state, 0), seat(state, 1))).toEqual(expected);
+    pruneWarLosses(state);
+    expect(readWarExchange(state, seat(state, 0), seat(state, 1))).toEqual(expected);
   });
 });
 
@@ -1336,14 +1432,14 @@ describe('the three tactics', () => {
   });
 
   it('lets the Arena give a certain city capture priority over a nearby raider', () => {
-    function opportunity(value: number, addRaider = true) {
+    function opportunity(value: number, addRaider = true, target: 'warrior' | 'worker' = 'warrior') {
       return withAiTuning({ military: { cityCaptureValue: value } }, () => {
         const { state } = front(true);
         const city = foundCityAt(state, 1, at(state.map, 8, 5));
         city.hp = 1;
         const spear = createUnit(state, 0, 'spearman', 7, 5);
         const wild = state.players.find(p => p.barbarian)!;
-        if (addRaider) createUnit(state, wild.id, 'warrior', 7, 4).hp = 1;
+        if (addRaider) createUnit(state, wild.id, target, 7, 4).hp = 1;
         recomputeAllVisibility(state);
         bumpRevision(state);
         const forecast = previewCombat(state, spear.id, { col: city.col, row: city.row });
@@ -1354,9 +1450,109 @@ describe('the three tactics', () => {
         return { target: (decision!.command as { target: { col: number; row: number } }).target, owner: city.ownerId };
       });
     }
-    expect(opportunity(0)).toEqual({ target: { col: 7, row: 4 }, owner: 1 });
+    expect(opportunity(0)).toEqual({ target: { col: 8, row: 5 }, owner: 0 });
+    expect(opportunity(0, true, 'worker')).toEqual({ target: { col: 7, row: 4 }, owner: 1 });
+    expect(opportunity(50, true, 'worker')).toEqual({ target: { col: 8, row: 5 }, owner: 0 });
     expect(opportunity(0, false)).toEqual({ target: { col: 8, row: 5 }, owner: 0 });
     expect(opportunity(50)).toEqual({ target: { col: 8, row: 5 }, owner: 0 });
+  });
+
+  it('can penalize a fatal counter when a safe alternative is available', () => {
+    function choose(cost: number) {
+      return withAiTuning({ military: {
+        targetRemovalValue: 0, counterLossCost: cost, healBelowHealth: 0, withdrawBelowHealth: 0,
+      } }, () => {
+        const { state } = front();
+        const spear = createUnit(state, 0, 'spearman', 5, 5);
+        spear.hp = 5;
+        const enemy = createUnit(state, 1, 'warrior', 5, 4);
+        createUnit(state, 1, 'worker', 6, 5);
+        recomputeAllVisibility(state);
+        bumpRevision(state);
+        const forecast = previewCombat(state, spear.id, enemy);
+        expect(forecast.ok && forecast.damageToAttackerMax >= spear.hp).toBe(true);
+        const decision = orderFor(state, 0, spear.id, 20)!;
+        expect(applyCommand(state, decision.command).ok).toBe(true);
+        return decision;
+      });
+    }
+    expect(choose(0).command).toMatchObject({ type: 'attack', target: { col: 5, row: 4 } });
+    expect(choose(100).command).toMatchObject({ type: 'attack', target: { col: 6, row: 5 } });
+  });
+
+  it('compares every shot and selects open ground over a defended target', () => {
+    const { state } = front();
+    const bow = createUnit(state, 0, 'archer', 5, 5);
+    const defended = createUnit(state, 1, 'warrior', 5, 4);
+    defended.fortifiedTurns = 2;
+    at(state.map, 5, 4).feature = 'forest';
+    const exposed = createUnit(state, 1, 'warrior', 6, 5);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const first = previewCombat(state, bow.id, defended);
+    const second = previewCombat(state, bow.id, exposed);
+    expect(first.ok && second.ok && second.damageToDefender > first.damageToDefender).toBe(true);
+    const decision = orderFor(state, 0, bow.id, 20);
+    expect(decision?.command).toMatchObject({ type: 'attack', target: { col: 6, row: 5 } });
+    expect(decision!.candidates.map(row => row.label)).toEqual(['strike (5,4)', 'strike (6,5)']);
+    expect(decision!.candidates.filter(row => row.chosen)).toHaveLength(1);
+    for (const row of decision!.candidates) expect(foldTerms(row.terms)).toBe(row.score);
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('can finish a rival instead of taking the first available barbarian shot', () => {
+    function choose(removal: number) {
+      return withAiTuning({ military: { targetRemovalValue: removal } }, () => {
+        const { state } = front(true);
+        const bow = createUnit(state, 0, 'archer', 5, 5);
+        const wild = state.players.find(player => player.barbarian)!;
+        createUnit(state, wild.id, 'warrior', 5, 4);
+        createUnit(state, 1, 'warrior', 6, 5).hp = 1;
+        recomputeAllVisibility(state);
+        bumpRevision(state);
+        const decision = orderFor(state, 0, bow.id, 20)!;
+        expect(decision.command.type).toBe('attack');
+        expect(decision.candidates).toHaveLength(2);
+        expect(applyCommand(state, decision.command).ok).toBe(true);
+        return decision;
+      });
+    }
+    expect(choose(50).command).toMatchObject({ target: { col: 6, row: 5 } });
+    expect(choose(0).command).toMatchObject({ target: { col: 5, row: 4 } });
+  });
+
+  it('uses stable map order when two legal attacks have equal value', () => {
+    const { state } = front();
+    const bow = createUnit(state, 0, 'archer', 5, 5);
+    createUnit(state, 1, 'warrior', 5, 4);
+    createUnit(state, 1, 'warrior', 6, 5);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const copy: GameState = structuredClone(state);
+    const decision = orderFor(state, 0, bow.id, 20)!;
+    expect(decision.candidates).toHaveLength(2);
+    expect(decision.candidates[0]!.score).toBe(decision.candidates[1]!.score);
+    expect(decision.command).toMatchObject({ type: 'attack', target: { col: 5, row: 4 } });
+    expect(orderFor(copy, 0, bow.id, 20)?.command).toEqual(decision.command);
+    expect(applyCommand(state, decision.command).ok).toBe(true);
+  });
+
+  it('uses the range granted by Mechanics when looking for a siege shot', () => {
+    const { state } = front();
+    const catapult = createUnit(state, 0, 'catapult', 5, 5);
+    catapult.fortifiedTurns = 2;
+    catapult.dugIn = 'awake';
+    createUnit(state, 0, 'warrior', 6, 5).fortifiedTurns = 2;
+    const enemy = createUnit(state, 1, 'warrior', 8, 5);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    expect(previewCombat(state, catapult.id, enemy).ok).toBe(false);
+    seat(state, 0).techsResearched.push('mechanics');
+    bumpRevision(state);
+    expect(previewCombat(state, catapult.id, enemy).ok).toBe(true);
+    const decision = orderFor(state, 0, catapult.id, 20);
+    expect(decision?.command).toMatchObject({ type: 'attack', target: { col: 8, row: 5 } });
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
   });
 
   it('fires a fortified city archer at a barbarian without a camp or a war against a nation', () => {

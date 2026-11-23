@@ -7,8 +7,7 @@
  * turn and disband it the next (the audit's build-and-disband loops,
  * `docs/audit/bot-pass-3-competitiveness.md` §3.2). A `Unit` carries no turn of
  * birth, and the bot may store nothing in `GameState`. So the bot keeps the date
- * itself, in the way the refusal memory (`dealMemory.ts`) and the war windows
- * (`warLedger.ts`) do:
+ * itself, like the refusal memory (`dealMemory.ts`):
  *
  *   - **beside the state, never in it.** The roll hangs off the live state
  *     object in a `WeakMap`. Nothing in a save can see it and no rule reads it.

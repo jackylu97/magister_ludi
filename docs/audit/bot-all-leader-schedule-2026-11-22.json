@@ -1,0 +1,92 @@
+{
+  "registeredBeforeResults": true,
+  "baselineCommit": "f6ff7e26",
+  "rulesVersion": 260,
+  "turnLimit": 100,
+  "parameterOverrides": {},
+  "leaderCoverage": {
+    "alexanderTheGreat": 2,
+    "joan": 2,
+    "qinShiHuang": 2,
+    "jayavarmanVII": 2,
+    "cyrusTheGreat": 2,
+    "cleopatra": 2,
+    "mehmedTheConqueror": 2,
+    "pachacuti": 2,
+    "nezahualcoyotl": 2,
+    "mansaMusa": 2,
+    "lorenzoDeMedici": 2,
+    "justinian": 2,
+    "harunAlRashid": 2,
+    "sejongTheGreat": 2,
+    "genghisKhan": 2
+  },
+  "lineups": [
+    {
+      "seed": 72839,
+      "sizeName": "standard",
+      "leaders": [
+        "alexanderTheGreat",
+        "joan",
+        "qinShiHuang",
+        "jayavarmanVII",
+        "cyrusTheGreat",
+        "cleopatra"
+      ],
+      "seatTuning": {}
+    },
+    {
+      "seed": 48017,
+      "sizeName": "standard",
+      "leaders": [
+        "mehmedTheConqueror",
+        "pachacuti",
+        "nezahualcoyotl",
+        "mansaMusa",
+        "lorenzoDeMedici",
+        "justinian"
+      ],
+      "seatTuning": {}
+    },
+    {
+      "seed": 85211,
+      "sizeName": "standard",
+      "leaders": [
+        "jayavarmanVII",
+        "cyrusTheGreat",
+        "cleopatra",
+        "harunAlRashid",
+        "sejongTheGreat",
+        "genghisKhan"
+      ],
+      "seatTuning": {}
+    },
+    {
+      "seed": 39827,
+      "sizeName": "standard",
+      "leaders": [
+        "mansaMusa",
+        "lorenzoDeMedici",
+        "justinian",
+        "alexanderTheGreat",
+        "joan",
+        "qinShiHuang"
+      ],
+      "seatTuning": {}
+    },
+    {
+      "seed": 67153,
+      "sizeName": "standard",
+      "leaders": [
+        "harunAlRashid",
+        "sejongTheGreat",
+        "genghisKhan",
+        "mehmedTheConqueror",
+        "pachacuti",
+        "nezahualcoyotl"
+      ],
+      "seatTuning": {}
+    }
+  ],
+  "aggregation": "Paired by seed and seat; equal weight per leader; report losses and captures, not only yield."
+}

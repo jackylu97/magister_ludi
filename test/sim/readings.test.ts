@@ -889,19 +889,6 @@ describe('nobody rebuilds the town’s list', () => {
         );
         continue;
       }
-      if (path.endsWith('/warLedger.ts')) {
-        // **The second exception, since W1 (`docs/flags.md` (nnnnn)), and the
-        // same kind of thing**: a war's exchange since it was declared — what
-        // has *happened* since a turn, not a reading of the board — kept off
-        // the live state so a save loaded mid-war simply starts its count
-        // there. A revision would erase the baseline on the next command.
-        expect(`${path} says what it keys on`).toBe(
-          /declar/.test(text) && /turn/.test(text)
-            ? `${path} says what it keys on`
-            : `${path} says nothing about what it keys on`,
-        );
-        continue;
-      }
       if (path.endsWith('/musterRoll.ts')) {
         // **The third exception, since batch BP1** (`docs/flags.md` (ooooooo)
         // P2), and the same kind of thing again: the first entity id handed out

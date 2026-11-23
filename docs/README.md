@@ -1485,7 +1485,8 @@ army it raised. A war is then fought by a column that masses at a muster before
 it pushes, blows that must be favourable (a melee piece never walks into a wall
 at a loss — the bows go first), and hurt pieces that walk home. It ends on the
 warscore or on **this war's own exchange** — what it has cost against what it has
-taken, windowed by `warLedger.ts` off the simulation's own kill counters. Every
+taken. `warLedger.ts` reads recent, opponent-specific unit and town losses
+from the saved weariness records. Every
 peace decision also weighs the seat's own **war weariness** (batch WC2,
 `explainPeaceScore`: the warscore less `war.wearinessWeight` a point of
 happiness it costs, and `war.unhappyWearinessWeight` more for the part below

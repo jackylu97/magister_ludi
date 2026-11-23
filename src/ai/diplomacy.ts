@@ -66,14 +66,10 @@
  * That is the doc's "dumb logic" said out loud, and the honest fix is a register
  * in the state, which is a schema decision nobody has taken.
  *
- * **The peace has a second reading beside it since 2026-09-15** (§14's
- * addendum): the *exchange* of one war since it began — what it has cost this
- * empire against what it has cost the other, pieces and towns — which the
- * warscore's career totals cannot say. The counts are the simulation's own
- * (`Player.unitsKilled`/`unitsLost`); the *window* is `src/ai/warLedger.ts`',
- * opened from this side rather than by a schema, exactly as the refusal memory
- * is. `explainStanding` folds it, and three clauses spend it: sue, take a paper,
- * send the envoy home.
+ * Peace also considers recent losses to this opponent. `warLedger.ts` reads
+ * the saved weariness records for the current war, within their retained
+ * window. `explainStanding` applies the existing unit and town weights.
+ * Barbarian losses and other wars do not enter this exchange.
  *
  * **And a third since batch WC2: war weariness.** Every peace decision reads
  * `explainPeaceScore`, which is the warscore less what this seat's own
@@ -528,7 +524,7 @@ interface WarStanding {
   ahead: boolean;
   /** Its army advantage no longer clears the bar it would have declared at. */
   outArmed: boolean;
-  /** Towns taken since this war began — `war.goalTowns`' count (E1a). */
+  /** Town captures against this opponent inside the recent-loss window. */
   won: number;
   /** The lines, for the feed. */
   terms: ValueTerm[];
@@ -552,7 +548,7 @@ function explainStanding(
   const note =
     exchange === null
       ? 'no war'
-      : `${exchange.lost} of ours have fallen and ${exchange.killed} of theirs since turn ${exchange.since}` +
+      : `since turn ${exchange.since}, we lost ${exchange.lost} units to ${seatName(state, enemy.id)} and they lost ${exchange.killed} to us` +
         (exchange.won + exchange.given > 0
           ? `, with ${exchange.won} town${exchange.won === 1 ? '' : 's'} taken and ${exchange.given} lost`
           : '');
@@ -567,7 +563,7 @@ function explainStanding(
     note,
     terms: [
       {
-        label: `${note} — the exchange reads ${round1(ratio)} against the ${round1(ai.war.peaceExchange)} this seat sues at`,
+        label: `${note}; loss ratio ${round1(ratio)}, peace threshold ${round1(ai.war.peaceExchange)}`,
         value: 0,
       },
       advantage.term,
@@ -1096,13 +1092,14 @@ function peaceDecision(
     if (theirs) {
       // Their flag is up. What is on the table is *their* paper (or nothing at
       // all, which is a white peace), read from this seat's side.
-      const { value, fair, winning, refusal, because, standing: how } = readPeaceOffer(
+      const reading = readPeaceOffer(
         state,
         player,
         enemy,
         score,
         ctx,
       );
+      const { value, fair, winning, refusal, because, standing: how } = reading;
       if (fair && !winning && refusal === null) {
         // **The one row whose score is not the warscore alone**, and it is built
         // by `appraise` rather than described beside a number so the fold is the
@@ -1121,10 +1118,7 @@ function peaceDecision(
         taken = {
           enemy,
           command: { type: 'proposePeace', playerId: player.id, targetId: enemy.id },
-          summary:
-            `Signs the peace the ${seatPeople(state, enemy.id)} put up: the war reads ${round1(score.total)} for this empire, ` +
-            `under the ${ai.war.acceptCeiling} it would press on at, and the paper is worth ` +
-            `${round1(value.total)} against the ${round1(-owed)} the score says it owes.`,
+          summary: peaceAcceptanceSummary(state, enemy, reading),
         };
         continue;
       }
@@ -1140,7 +1134,7 @@ function peaceDecision(
     // **Two reasons to put peace on the table**, and they are different
     // sentences (the 2026-09-15 addendum). The warscore is a comparison of
     // standing: their army against ours, their conquests against ours, as
-    // careers. The **exchange** is what this war has cost since it started, and
+    // careers. The exchange counts recent losses to this opponent, and
     // a seat can be ahead on standing and still be feeding pieces into a line it
     // cannot break — which is exactly the war the user was on the other side of.
     // So a seat also sues when the exchange has run against it *and* its army no
@@ -1199,7 +1193,7 @@ function peaceDecision(
               (tribute > 0 ? `, so ${tribute} coin goes with the paper.` : ' — a white peace, nothing offered.')
             : goalMet && score.total >= ai.war.sueFloor
               ? `Offers the ${seatPeople(state, enemy.id)} a white peace: ${standing.won} town${standing.won === 1 ? '' : 's'} ` +
-                `taken this war is the ${ai.war.goalTowns} this seat set out for, and the exchange is still its own.`
+                `taken in the recent-loss period meets the goal of ${ai.war.goalTowns}, and the exchange is still favorable.`
               : `Sues the ${seatPeople(state, enemy.id)} for peace: the war reads ${round1(score.total)} for this ` +
                 `empire, under the ${ai.war.sueFloor} it sues at` +
                 (tribute > 0 ? `, and ${tribute} coin goes with the paper.` : ' — a white peace, nothing offered.'),
@@ -1274,6 +1268,13 @@ interface PeaceOfferReading {
   refusal: string | null;
   /** Why this seat will not sign, in its own words — the term and the sentence. */
   because: string;
+  /** The condition that allows acceptance, shared by the audience and turn loop. */
+  acceptanceReason: string;
+}
+
+function peaceAcceptanceSummary(state: GameState, enemy: Player, reading: PeaceOfferReading): string {
+  return `Signs the peace the ${seatPeople(state, enemy.id)} put up: ${reading.acceptanceReason}. ` +
+    `The offer is worth ${round1(reading.value.total)}.`;
 }
 
 function readPeaceOffer(
@@ -1330,6 +1331,11 @@ function readPeaceOffer(
     winning,
     standing,
     refusal,
+    acceptanceReason: yields && standing.bleeding
+      ? `recent losses to this opponent exceed the peace threshold; ${standing.note}`
+      : yields && standing.outArmed
+        ? 'the available army no longer has the required advantage over this opponent'
+        : `the war score ${round1(score.total)} is at or below the acceptance threshold ${ai.war.acceptCeiling}`,
     because: holds
       ? `this war is going its way — ${standing.note}`
       : winning
@@ -1378,10 +1384,7 @@ export function answerPeaceOffer(
       kind: 'war',
       command: { type: 'proposePeace', playerId: player.id, targetId: enemy.id },
       subject: seatName(state, enemy.id),
-      summary:
-        `Signs the peace the ${seatPeople(state, enemy.id)} put up: the war reads ${round1(score.total)} for this empire, ` +
-        `under the ${ctx.ai.war.acceptCeiling} it would press on at, and the paper is worth ` +
-        `${round1(reading.value.total)}.`,
+      summary: peaceAcceptanceSummary(state, enemy, reading),
       candidates: [
         {
           label: `${label} — sign what is on the table`,

@@ -1264,14 +1264,8 @@ describe('the bot module', () => {
     // there is no card to appraise and nothing left for that leaf to hold. The
     // appraisal it carried retired with the draft it served.
     //
-    // Seventeen since the peace addendum (2026-09-15, `docs/flags.md` (nnnnn)):
-    // `warLedger.ts` is the eighth leaf and the **second** module here that
-    // remembers anything — what one war has cost since it began, windowed off
-    // the simulation's own lifetime counters by a `WeakMap` on the live state.
-    // It is `dealMemory.ts`' bargain exactly, and it is a module rather than an
-    // arm of `diplomacy.ts` for the reason every leaf here is one: the memory
-    // has to be the *game's* rather than either loop's, and the file that holds
-    // it says once, in one place, what it can and cannot see.
+    // `warLedger.ts` derives recent losses from the saved, opponent-specific
+    // weariness records. It does not keep a second history in bot memory.
     //
     // Eighteen since the bot worker (2026-10-06, browser performance audit
     // findings 2 and 8): `harnessMemory.ts` lists those two memories as one

@@ -1,19 +1,10 @@
 /**
  * The bot memories that live beside the state rather than in it, as one value.
  *
- * Four bot memories hang off the live state object in a `WeakMap` instead of
- * being saved: the refusal memory (`dealMemory.ts`), the war windows
- * (`warLedger.ts`), the muster roll (`musterRoll.ts`, which dates the units a
- * seat raised) and the focus roll (`focusRoll.ts`, which keeps the focus the
- * bot chose for each town's build, bot batches BP9 and BP10). Each reads the rulings in its own
- * docblock: they are not facts about the world, so a save does not carry them.
- *
- * A second copy of the same game does not carry them either, and the bot
- * worker (`src/ui/bot.worker.ts`) drives the bots on exactly such a copy: a
- * structured clone of the page's state. Without these memories the copy's bots
- * would re-send a paper the page's bots remember was refused, or open a war
- * window on a later turn, and the two games would part. So every request to
- * the worker carries this value, and every reply brings it back.
+ * Three memories affect decisions: refused deals, unit recruitment dates and
+ * city focus choices. They belong to the bot driver rather than the saved game.
+ * A worker must receive them with its copy of the board, then return changes,
+ * so it makes the same decisions as the page.
  *
  * Since bot batch BP16, stage C1, each bot seat also plans its turn on its own
  * copy of the frozen board (`frozenBoard.ts`). Each copy is handed these
@@ -30,12 +21,10 @@
 import { type DealRefusalRecord, adoptDealMemory, copyDealMemory } from './dealMemory';
 import { type FocusChoice, adoptFocusRoll, copyFocusRoll } from './focusRoll';
 import { type MusterMark, adoptMusterRoll, copyMusterRoll } from './musterRoll';
-import { type WarLedgerEntry, adoptWarLedger, copyWarLedger } from './warLedger';
 import type { GameState } from '../sim/state';
 
 export interface HarnessMemory {
   deals: DealRefusalRecord[];
-  wars: WarLedgerEntry[];
   muster: MusterMark[];
   /** The focus roll (bot batches BP9 and BP10, `focusRoll.ts`). */
   focus: FocusChoice[];
@@ -45,7 +34,6 @@ export interface HarnessMemory {
 export function readHarnessMemory(state: GameState): HarnessMemory {
   return {
     deals: copyDealMemory(state),
-    wars: copyWarLedger(state),
     muster: copyMusterRoll(state),
     focus: copyFocusRoll(state),
   };
@@ -54,7 +42,6 @@ export function readHarnessMemory(state: GameState): HarnessMemory {
 /** Makes this state's harness memories a copy of `memory`, replacing what it held. */
 export function adoptHarnessMemory(state: GameState, memory: HarnessMemory): void {
   adoptDealMemory(state, memory.deals);
-  adoptWarLedger(state, memory.wars);
   adoptMusterRoll(state, memory.muster);
   adoptFocusRoll(state, memory.focus ?? []);
 }

@@ -54,6 +54,8 @@
   "military.mixBonus": { "min": 0, "max": 120 },
   "military.healBelowHealth": { "min": 0.2, "max": 0.8 },
   "military.cityCaptureValue": { "min": 0, "max": 150 },
+  "military.targetRemovalValue": { "min": 0, "max": 150 },
+  "military.counterLossCost": { "min": 0, "max": 200 },
   "military.screenHoldExchange": { "min": 0, "max": 4 },
   "military.rangedDeferral": { "min": 0, "max": 80 },
   "military.strikeFloor": { "min": 0.5, "max": 2 },

@@ -84,9 +84,8 @@ export function applyTwinReply(
 ): TwinOutcome {
   if (game.log.length !== reply.logLength) return 'moved';
   if (!replayBotAttempts(game, reply.attempts, report ? { report } : {})) return 'diverged';
-  // The war windows are written by reading, so the replay above cannot have
-  // written them; the worker's copy is the one that read. The refusal memory
-  // was banked by the replay already, and this sets it to the same records.
+  // Replaying commands does not reproduce the worker's city focus choices.
+  // Copy its memories so the next decision starts from the same history.
   adoptHarnessMemory(game.state, reply.memory);
   return 'applied';
 }

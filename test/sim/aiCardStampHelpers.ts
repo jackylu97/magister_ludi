@@ -18,11 +18,12 @@ import {
   explainCardImpact,
   foldCardImpact,
 } from '../../src/sim/cardImpact';
+import { foundCityAt } from '../../src/sim/cities';
 import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { ALL_BELIEF_IDS, beliefDef, beliefPoolOf, isBeliefId } from '../../src/sim/religionData';
 import { renownPerTurn } from '../../src/sim/renown';
 import { discardSlates } from '../../src/sim/slate';
-import { type GameState, type Player, foundedReligion } from '../../src/sim/state';
+import { type GameState, type Player, addBuilding, bumpRevision, foundedReligion } from '../../src/sim/state';
 import { expectedHandBags } from '../../src/sim/statecraft';
 import { neverSeatedError } from '../../src/sim/statecraft/council';
 import {
@@ -35,6 +36,8 @@ import {
   isOrderId,
   orderDef,
 } from '../../src/sim/statecraftData';
+import { recordWarLoss } from '../../src/sim/weariness';
+import { at, bareState } from './improvementHelpers';
 
 const VOICES = ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const;
 
@@ -192,4 +195,30 @@ export function shapeOf(effect: CardEffect): string {
 /** The effects on a card's row. */
 export function effectsOf(id: CardId): readonly CardEffect[] {
   return rowOf(id).effects ?? [];
+}
+
+/**
+ * Recorded games need not contain both spare happiness and a recent town loss.
+ * This position exercises those conditions without changing the played games.
+ * Population gives the happiness bonus enough science to survive yield rounding.
+ */
+export function meterAuditPosition(): GameState {
+  const state = bareState();
+  const city = foundCityAt(state, 0, at(state, 3, 5));
+  foundCityAt(state, 1, at(state, 9, 5));
+  city.population = 12;
+  addBuilding(state, city, 'library');
+  addBuilding(state, city, 'monument');
+  recordWarLoss(state, 0, 1, 'town');
+  bumpRevision(state);
+  const player = state.players[0]!;
+  const happiness = happinessOf(state, player.id);
+  player.timed = [{
+    card: 'theRoyalHousehold',
+    effect: { kind: 'happiness', amount: 5 - happiness },
+    expiresTurn: state.turn + 1,
+  }];
+  player.statecraft.orders.push('theGoodYears', 'theGloriousDead');
+  bumpRevision(state);
+  return state;
 }

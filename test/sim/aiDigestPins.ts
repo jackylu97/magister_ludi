@@ -1346,9 +1346,15 @@ import { digestOfState, type Played } from './aiDigestHelpers';
 // Raiders prefer reachable improvements before cities. Optional difficulty is saved;
 // these boards use tier zero. Bot prices also include balanced-focus production.
 // Both combined 120-turn games saved and replayed exactly, with no warning or stall.
+// Versions 261–262 include healing, city-road and barbarian rule changes.
+// The combat candidate also uses opponent-specific recent losses for peace,
+// compares legal targets together and includes technology bonuses in attack range.
+// Both 120-turn games completed without warnings or stalls and replayed exactly.
+// These replace the version-260 pins. The separate version-262 control and
+// combat-quality findings are in docs/audit/bot-combat-results-2026-11-22.md.
 const DIGESTS = {
-  duel: '4172463b:393230',
-  standard: '64733584:1087655',
+  duel: '236e0c96:420760',
+  standard: '5d52a388:1103269',
 };
 
 /** Check driver errors before comparing the state digest. */

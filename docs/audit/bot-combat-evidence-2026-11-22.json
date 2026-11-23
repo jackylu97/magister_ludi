@@ -1,0 +1,5785 @@
+{
+  "rulesVersion": 262,
+  "summaryScope": "One representative contested map. Full-roster outcomes are reported separately.",
+  "representativeGames": [
+    {
+      "variant": "baseline",
+      "seed": 48017,
+      "checkpoint": 100,
+      "replayMatched": true,
+      "seats": [
+        {
+          "id": 0,
+          "leader": "mehmedTheConqueror",
+          "commands": {
+            "foundCity": 13,
+            "setAutoExplore": 11,
+            "setCityProduction": 257,
+            "chooseResearch": 23,
+            "endTurn": 100,
+            "chooseDiscovery": 3,
+            "chooseOrder": 22,
+            "slotOrder": 15,
+            "fortify": 270,
+            "moveUnit": 1009,
+            "dismissCensus": 6,
+            "purchaseItem": 35,
+            "adoptGovernment": 3,
+            "chooseDoctrine": 3,
+            "unslotOrder": 6,
+            "setCitizenFocus": 38,
+            "buildImprovement": 86,
+            "declareWar": 8,
+            "attack": 309,
+            "proposeDeal": 1,
+            "declineDeal": 1,
+            "proposePeace": 3,
+            "buyRoute": 2,
+            "sleepUnit": 24,
+            "startRoute": 4,
+            "chooseBelief": 7,
+            "performRite": 16,
+            "chooseWager": 2,
+            "greatPersonAct": 6,
+            "chooseGreatPerson": 7,
+            "rerollOffer": 4,
+            "greatPersonWork": 2,
+            "plantHolySite": 1,
+            "gainBelief": 1
+          },
+          "attacks": 309,
+          "ranged": 218,
+          "againstWild": 40,
+          "fieldDamageDealt": 6707,
+          "fieldDamageTaken": 1563,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 41,
+          "advances": 46,
+          "advancesLostByNextTurn": 10,
+          "defended": 244,
+          "defendedAgainstWild": 44,
+          "knownFortifiedDefenses": 11,
+          "knownTerrainDefenses": 92,
+          "civilianLosses": 3,
+          "citiesLost": 0,
+          "lostToWild": 3,
+          "roster": {
+            "legionary": 16,
+            "compositeBowman": 9,
+            "swordsman": 28,
+            "spearWall": 24,
+            "warrior": 21,
+            "spearman": 3,
+            "scout": 2
+          }
+        },
+        {
+          "id": 1,
+          "leader": "pachacuti",
+          "commands": {
+            "foundCity": 7,
+            "setAutoExplore": 4,
+            "setCityProduction": 83,
+            "chooseResearch": 8,
+            "endTurn": 100,
+            "chooseDiscovery": 3,
+            "chooseOrder": 10,
+            "slotOrder": 11,
+            "fortify": 93,
+            "setCitizenFocus": 14,
+            "dismissCensus": 6,
+            "moveUnit": 219,
+            "purchaseItem": 11,
+            "sleepUnit": 33,
+            "cancelOrder": 2,
+            "attack": 98,
+            "adoptGovernment": 2,
+            "chooseDoctrine": 2,
+            "buildImprovement": 15,
+            "proposeDeal": 3,
+            "proposePeace": 2,
+            "declineDeal": 4,
+            "unslotOrder": 5,
+            "chooseWager": 2,
+            "repairImprovement": 1,
+            "skipOrderOffer": 1,
+            "buyRoute": 1
+          },
+          "attacks": 98,
+          "ranged": 76,
+          "againstWild": 12,
+          "fieldDamageDealt": 2104,
+          "fieldDamageTaken": 526,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 11,
+          "advances": 9,
+          "advancesLostByNextTurn": 1,
+          "defended": 103,
+          "defendedAgainstWild": 33,
+          "knownFortifiedDefenses": 3,
+          "knownTerrainDefenses": 48,
+          "civilianLosses": 5,
+          "citiesLost": 0,
+          "lostToWild": 3,
+          "roster": {
+            "scout": 2,
+            "warrior": 21,
+            "bowman": 10,
+            "chariot": 3
+          }
+        },
+        {
+          "id": 2,
+          "leader": "nezahualcoyotl",
+          "commands": {
+            "moveUnit": 283,
+            "setAutoExplore": 6,
+            "chooseResearch": 12,
+            "endTurn": 100,
+            "chooseDiscovery": 14,
+            "foundCity": 6,
+            "setCityProduction": 86,
+            "chooseOrder": 14,
+            "slotOrder": 12,
+            "fortify": 63,
+            "setCitizenFocus": 26,
+            "dismissCensus": 6,
+            "buildImprovement": 44,
+            "proposeDeal": 2,
+            "skipOrderOffer": 1,
+            "adoptGovernment": 2,
+            "chooseDoctrine": 2,
+            "acceptDeal": 2,
+            "performRite": 9,
+            "attack": 56,
+            "purchaseItem": 8,
+            "unslotOrder": 8,
+            "sleepUnit": 19,
+            "chooseBelief": 5,
+            "chooseWager": 2,
+            "cancelOrder": 1,
+            "chooseGreatPerson": 2,
+            "greatPersonWork": 1,
+            "disbandUnit": 2,
+            "greatPersonAct": 1,
+            "rerollOffer": 1,
+            "plantHolySite": 1,
+            "declineDeal": 1
+          },
+          "attacks": 56,
+          "ranged": 50,
+          "againstWild": 56,
+          "fieldDamageDealt": 1007,
+          "fieldDamageTaken": 154,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 12,
+          "advances": 5,
+          "advancesLostByNextTurn": 0,
+          "defended": 77,
+          "defendedAgainstWild": 76,
+          "knownFortifiedDefenses": 0,
+          "knownTerrainDefenses": 1,
+          "civilianLosses": 1,
+          "citiesLost": 0,
+          "lostToWild": 10,
+          "roster": {
+            "swordsman": 1,
+            "scout": 3,
+            "warrior": 10,
+            "bowman": 4,
+            "spearman": 1,
+            "chariot": 3
+          }
+        },
+        {
+          "id": 3,
+          "leader": "mansaMusa",
+          "commands": {
+            "moveUnit": 231,
+            "setAutoExplore": 12,
+            "chooseResearch": 16,
+            "endTurn": 100,
+            "chooseDiscovery": 10,
+            "foundCity": 8,
+            "setCityProduction": 95,
+            "chooseOrder": 13,
+            "fortify": 115,
+            "slotOrder": 15,
+            "setCitizenFocus": 21,
+            "dismissCensus": 6,
+            "proposeDeal": 8,
+            "purchaseItem": 16,
+            "adoptGovernment": 2,
+            "chooseDoctrine": 2,
+            "performRite": 12,
+            "sleepUnit": 16,
+            "unslotOrder": 9,
+            "buildImprovement": 20,
+            "skipOrderOffer": 2,
+            "acceptDeal": 10,
+            "attack": 148,
+            "proposePeace": 2,
+            "repairImprovement": 1,
+            "buyRoute": 3,
+            "chooseBelief": 2,
+            "chooseWager": 2,
+            "declineDeal": 1,
+            "chooseGreatPerson": 2,
+            "greatPersonWork": 2
+          },
+          "attacks": 148,
+          "ranged": 89,
+          "againstWild": 42,
+          "fieldDamageDealt": 3754,
+          "fieldDamageTaken": 1260,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 5,
+          "advances": 30,
+          "advancesLostByNextTurn": 5,
+          "defended": 210,
+          "defendedAgainstWild": 65,
+          "knownFortifiedDefenses": 31,
+          "knownTerrainDefenses": 17,
+          "civilianLosses": 8,
+          "citiesLost": 5,
+          "lostToWild": 9,
+          "roster": {
+            "legionary": 5,
+            "bowman": 5,
+            "scout": 2,
+            "swordsman": 7,
+            "warrior": 6
+          }
+        },
+        {
+          "id": 4,
+          "leader": "lorenzoDeMedici",
+          "commands": {
+            "moveUnit": 309,
+            "setAutoExplore": 8,
+            "chooseResearch": 14,
+            "endTurn": 100,
+            "chooseDiscovery": 6,
+            "foundCity": 9,
+            "setCityProduction": 140,
+            "fortify": 57,
+            "chooseOrder": 19,
+            "slotOrder": 17,
+            "dismissCensus": 6,
+            "purchaseTile": 1,
+            "setCitizenFocus": 49,
+            "buildImprovement": 53,
+            "proposeDeal": 13,
+            "acceptDeal": 8,
+            "declineDeal": 1,
+            "buyRoute": 12,
+            "adoptGovernment": 3,
+            "chooseDoctrine": 5,
+            "performRite": 14,
+            "sleepUnit": 14,
+            "unslotOrder": 8,
+            "purchaseItem": 6,
+            "attack": 43,
+            "proposePeace": 1,
+            "chooseBelief": 5,
+            "chooseGreatPerson": 8,
+            "greatPersonWork": 4,
+            "chooseWager": 2,
+            "greatPersonAct": 4,
+            "rerollOffer": 1,
+            "plantHolySite": 1
+          },
+          "attacks": 43,
+          "ranged": 25,
+          "againstWild": 41,
+          "fieldDamageDealt": 1376,
+          "fieldDamageTaken": 323,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 6,
+          "advances": 11,
+          "advancesLostByNextTurn": 0,
+          "defended": 53,
+          "defendedAgainstWild": 48,
+          "knownFortifiedDefenses": 0,
+          "knownTerrainDefenses": 2,
+          "civilianLosses": 2,
+          "citiesLost": 0,
+          "lostToWild": 7,
+          "roster": {
+            "legionary": 5,
+            "crossbowman": 7,
+            "horseman": 8
+          }
+        },
+        {
+          "id": 5,
+          "leader": "justinian",
+          "commands": {
+            "moveUnit": 184,
+            "setAutoExplore": 9,
+            "chooseResearch": 16,
+            "endTurn": 100,
+            "chooseDiscovery": 3,
+            "foundCity": 8,
+            "setCityProduction": 114,
+            "chooseOrder": 12,
+            "slotOrder": 16,
+            "fortify": 65,
+            "purchaseItem": 13,
+            "dismissCensus": 6,
+            "setCitizenFocus": 38,
+            "skipOrderOffer": 4,
+            "adoptGovernment": 2,
+            "chooseDoctrine": 2,
+            "sleepUnit": 15,
+            "buildImprovement": 35,
+            "chooseBelief": 6,
+            "performRite": 27,
+            "proposePeace": 1,
+            "rerollOffer": 1,
+            "proposeDeal": 8,
+            "declineDeal": 3,
+            "buyRoute": 6,
+            "unslotOrder": 9,
+            "chooseGreatPerson": 5,
+            "greatPersonAct": 4,
+            "cancelOrder": 1,
+            "chooseWager": 2,
+            "plantHolySite": 1,
+            "acceptDeal": 2,
+            "attack": 6,
+            "gainBelief": 1
+          },
+          "attacks": 6,
+          "ranged": 2,
+          "againstWild": 0,
+          "fieldDamageDealt": 287,
+          "fieldDamageTaken": 70,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 0,
+          "advances": 1,
+          "advancesLostByNextTurn": 0,
+          "defended": 60,
+          "defendedAgainstWild": 12,
+          "knownFortifiedDefenses": 6,
+          "knownTerrainDefenses": 6,
+          "civilianLosses": 4,
+          "citiesLost": 0,
+          "lostToWild": 4,
+          "roster": {
+            "legionary": 11,
+            "compositeBowman": 1,
+            "horseman": 2,
+            "spearWall": 3,
+            "horseArcher": 1,
+            "swordsman": 11,
+            "scout": 3
+          }
+        }
+      ]
+    },
+    {
+      "variant": "war-losses",
+      "seed": 48017,
+      "checkpoint": 100,
+      "replayMatched": true,
+      "seats": [
+        {
+          "id": 0,
+          "leader": "mehmedTheConqueror",
+          "commands": {
+            "foundCity": 11,
+            "setAutoExplore": 8,
+            "setCityProduction": 200,
+            "chooseResearch": 20,
+            "endTurn": 100,
+            "chooseDiscovery": 3,
+            "chooseOrder": 17,
+            "slotOrder": 16,
+            "fortify": 184,
+            "moveUnit": 908,
+            "dismissCensus": 6,
+            "purchaseItem": 27,
+            "adoptGovernment": 3,
+            "chooseDoctrine": 3,
+            "unslotOrder": 6,
+            "setCitizenFocus": 25,
+            "buildImprovement": 73,
+            "declareWar": 5,
+            "attack": 242,
+            "proposeDeal": 4,
+            "declineDeal": 1,
+            "proposePeace": 3,
+            "buyRoute": 5,
+            "startRoute": 2,
+            "skipOrderOffer": 1,
+            "rerollOffer": 3,
+            "chooseBelief": 6,
+            "sleepUnit": 9,
+            "cancelOrder": 3,
+            "performRite": 18,
+            "chooseWager": 2,
+            "acceptDeal": 2,
+            "chooseGreatPerson": 4,
+            "greatPersonAct": 4,
+            "plantHolySite": 1,
+            "gainBelief": 1
+          },
+          "attacks": 242,
+          "ranged": 196,
+          "againstWild": 36,
+          "fieldDamageDealt": 5880,
+          "fieldDamageTaken": 787,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 40,
+          "advances": 28,
+          "advancesLostByNextTurn": 4,
+          "defended": 98,
+          "defendedAgainstWild": 39,
+          "knownFortifiedDefenses": 1,
+          "knownTerrainDefenses": 34,
+          "civilianLosses": 0,
+          "citiesLost": 0,
+          "lostToWild": 4,
+          "roster": {
+            "legionary": 5,
+            "compositeBowman": 21,
+            "swordsman": 14,
+            "spearWall": 4,
+            "spearman": 8,
+            "warrior": 30,
+            "horseman": 3,
+            "scout": 1
+          }
+        },
+        {
+          "id": 1,
+          "leader": "pachacuti",
+          "commands": {
+            "foundCity": 6,
+            "setAutoExplore": 6,
+            "setCityProduction": 64,
+            "chooseResearch": 8,
+            "endTurn": 100,
+            "chooseDiscovery": 3,
+            "chooseOrder": 12,
+            "slotOrder": 11,
+            "fortify": 72,
+            "setCitizenFocus": 13,
+            "dismissCensus": 6,
+            "moveUnit": 169,
+            "purchaseItem": 20,
+            "sleepUnit": 7,
+            "cancelOrder": 1,
+            "attack": 49,
+            "adoptGovernment": 2,
+            "chooseDoctrine": 2,
+            "buildImprovement": 16,
+            "proposeDeal": 4,
+            "proposePeace": 2,
+            "declineDeal": 1,
+            "skipOrderOffer": 1,
+            "purchaseTile": 1,
+            "chooseWager": 2,
+            "unslotOrder": 6,
+            "acceptDeal": 2,
+            "rerollOffer": 1,
+            "chooseBelief": 1,
+            "performRite": 4
+          },
+          "attacks": 49,
+          "ranged": 33,
+          "againstWild": 14,
+          "fieldDamageDealt": 1069,
+          "fieldDamageTaken": 383,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 3,
+          "advances": 9,
+          "advancesLostByNextTurn": 1,
+          "defended": 149,
+          "defendedAgainstWild": 30,
+          "knownFortifiedDefenses": 33,
+          "knownTerrainDefenses": 71,
+          "civilianLosses": 4,
+          "citiesLost": 3,
+          "lostToWild": 3,
+          "roster": {
+            "scout": 3,
+            "swordsman": 1,
+            "warrior": 11,
+            "archer": 2
+          }
+        },
+        {
+          "id": 2,
+          "leader": "nezahualcoyotl",
+          "commands": {
+            "moveUnit": 291,
+            "setAutoExplore": 6,
+            "chooseResearch": 15,
+            "endTurn": 100,
+            "chooseDiscovery": 15,
+            "foundCity": 6,
+            "setCityProduction": 86,
+            "chooseOrder": 13,
+            "slotOrder": 13,
+            "fortify": 62,
+            "setCitizenFocus": 29,
+            "dismissCensus": 6,
+            "buildImprovement": 39,
+            "proposeDeal": 2,
+            "skipOrderOffer": 1,
+            "adoptGovernment": 2,
+            "chooseDoctrine": 2,
+            "acceptDeal": 3,
+            "performRite": 9,
+            "attack": 51,
+            "purchaseItem": 5,
+            "unslotOrder": 8,
+            "sleepUnit": 14,
+            "rerollOffer": 2,
+            "chooseBelief": 3,
+            "chooseWager": 2,
+            "repairImprovement": 6,
+            "chooseGreatPerson": 3,
+            "greatPersonAct": 2,
+            "buyRoute": 3,
+            "greatPersonWork": 1
+          },
+          "attacks": 51,
+          "ranged": 44,
+          "againstWild": 51,
+          "fieldDamageDealt": 1204,
+          "fieldDamageTaken": 252,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 11,
+          "advances": 6,
+          "advancesLostByNextTurn": 1,
+          "defended": 104,
+          "defendedAgainstWild": 104,
+          "knownFortifiedDefenses": 0,
+          "knownTerrainDefenses": 0,
+          "civilianLosses": 0,
+          "citiesLost": 0,
+          "lostToWild": 12,
+          "roster": {
+            "scout": 3,
+            "warrior": 10,
+            "bowman": 5,
+            "spearWall": 3
+          }
+        },
+        {
+          "id": 3,
+          "leader": "mansaMusa",
+          "commands": {
+            "moveUnit": 309,
+            "setAutoExplore": 10,
+            "chooseResearch": 18,
+            "endTurn": 100,
+            "chooseDiscovery": 10,
+            "foundCity": 12,
+            "setCityProduction": 126,
+            "chooseOrder": 21,
+            "fortify": 114,
+            "slotOrder": 17,
+            "setCitizenFocus": 35,
+            "dismissCensus": 6,
+            "proposeDeal": 14,
+            "purchaseItem": 41,
+            "adoptGovernment": 3,
+            "chooseDoctrine": 3,
+            "performRite": 18,
+            "sleepUnit": 21,
+            "unslotOrder": 9,
+            "buildImprovement": 41,
+            "skipOrderOffer": 2,
+            "acceptDeal": 12,
+            "attack": 54,
+            "proposePeace": 1,
+            "repairImprovement": 1,
+            "buyRoute": 14,
+            "rerollOffer": 1,
+            "chooseBelief": 6,
+            "purchaseTile": 1,
+            "chooseGreatPerson": 4,
+            "greatPersonAct": 4,
+            "chooseWager": 2,
+            "plantHolySite": 1,
+            "gainBelief": 1,
+            "declineDeal": 2
+          },
+          "attacks": 54,
+          "ranged": 25,
+          "againstWild": 42,
+          "fieldDamageDealt": 1545,
+          "fieldDamageTaken": 679,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 7,
+          "advances": 18,
+          "advancesLostByNextTurn": 4,
+          "defended": 119,
+          "defendedAgainstWild": 76,
+          "knownFortifiedDefenses": 9,
+          "knownTerrainDefenses": 19,
+          "civilianLosses": 6,
+          "citiesLost": 1,
+          "lostToWild": 13,
+          "roster": {
+            "legionary": 8,
+            "compositeBowman": 5,
+            "swordsman": 13,
+            "spearWall": 1,
+            "chariot": 3,
+            "scout": 1
+          }
+        },
+        {
+          "id": 4,
+          "leader": "lorenzoDeMedici",
+          "commands": {
+            "moveUnit": 350,
+            "setAutoExplore": 7,
+            "chooseResearch": 16,
+            "endTurn": 100,
+            "chooseDiscovery": 7,
+            "foundCity": 15,
+            "setCityProduction": 203,
+            "fortify": 65,
+            "chooseOrder": 25,
+            "slotOrder": 24,
+            "dismissCensus": 6,
+            "purchaseTile": 1,
+            "setCitizenFocus": 54,
+            "buildImprovement": 57,
+            "proposeDeal": 13,
+            "acceptDeal": 8,
+            "declineDeal": 2,
+            "buyRoute": 20,
+            "adoptGovernment": 3,
+            "chooseDoctrine": 5,
+            "performRite": 31,
+            "sleepUnit": 17,
+            "unslotOrder": 11,
+            "purchaseItem": 30,
+            "attack": 69,
+            "proposePeace": 1,
+            "rerollOffer": 4,
+            "chooseBelief": 6,
+            "chooseGreatPerson": 8,
+            "greatPersonAct": 8,
+            "chooseWager": 2,
+            "plantHolySite": 1,
+            "gainBelief": 1,
+            "levyCitizen": 1
+          },
+          "attacks": 69,
+          "ranged": 54,
+          "againstWild": 63,
+          "fieldDamageDealt": 2185,
+          "fieldDamageTaken": 251,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 12,
+          "advances": 5,
+          "advancesLostByNextTurn": 1,
+          "defended": 46,
+          "defendedAgainstWild": 33,
+          "knownFortifiedDefenses": 0,
+          "knownTerrainDefenses": 6,
+          "civilianLosses": 2,
+          "citiesLost": 0,
+          "lostToWild": 6,
+          "roster": {
+            "legionary": 27,
+            "compositeBowman": 17,
+            "scout": 2,
+            "horseman": 6,
+            "warElephant": 2,
+            "catapult": 1
+          }
+        },
+        {
+          "id": 5,
+          "leader": "justinian",
+          "commands": {
+            "moveUnit": 262,
+            "setAutoExplore": 4,
+            "chooseResearch": 20,
+            "endTurn": 100,
+            "chooseDiscovery": 3,
+            "foundCity": 9,
+            "setCityProduction": 112,
+            "chooseOrder": 12,
+            "slotOrder": 15,
+            "fortify": 57,
+            "purchaseItem": 35,
+            "dismissCensus": 6,
+            "setCitizenFocus": 33,
+            "skipOrderOffer": 7,
+            "adoptGovernment": 3,
+            "chooseDoctrine": 3,
+            "sleepUnit": 19,
+            "buildImprovement": 33,
+            "chooseBelief": 9,
+            "performRite": 24,
+            "proposePeace": 1,
+            "rerollOffer": 1,
+            "proposeDeal": 5,
+            "declineDeal": 6,
+            "buyRoute": 8,
+            "unslotOrder": 5,
+            "attack": 7,
+            "chooseWager": 2,
+            "chooseGreatPerson": 6,
+            "greatPersonAct": 5,
+            "plantHolySite": 4,
+            "acceptDeal": 3,
+            "purchaseTile": 1,
+            "gainBelief": 3,
+            "greatPersonWork": 1
+          },
+          "attacks": 7,
+          "ranged": 7,
+          "againstWild": 1,
+          "fieldDamageDealt": 362,
+          "fieldDamageTaken": 0,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 1,
+          "advances": 0,
+          "advancesLostByNextTurn": 0,
+          "defended": 43,
+          "defendedAgainstWild": 12,
+          "knownFortifiedDefenses": 0,
+          "knownTerrainDefenses": 5,
+          "civilianLosses": 0,
+          "citiesLost": 0,
+          "lostToWild": 3,
+          "roster": {
+            "swordsman": 2,
+            "warrior": 16,
+            "compositeBowman": 2
+          }
+        }
+      ]
+    },
+    {
+      "variant": "ranked-attacks",
+      "seed": 48017,
+      "checkpoint": 100,
+      "replayMatched": true,
+      "seats": [
+        {
+          "id": 0,
+          "leader": "mehmedTheConqueror",
+          "commands": {
+            "foundCity": 12,
+            "setAutoExplore": 5,
+            "setCityProduction": 230,
+            "chooseResearch": 19,
+            "endTurn": 100,
+            "chooseDiscovery": 3,
+            "chooseOrder": 20,
+            "slotOrder": 17,
+            "fortify": 149,
+            "moveUnit": 889,
+            "dismissCensus": 6,
+            "purchaseItem": 8,
+            "adoptGovernment": 3,
+            "chooseDoctrine": 3,
+            "unslotOrder": 8,
+            "setCitizenFocus": 28,
+            "buildImprovement": 61,
+            "declareWar": 5,
+            "attack": 302,
+            "proposeDeal": 2,
+            "declineDeal": 1,
+            "proposePeace": 1,
+            "buyRoute": 2,
+            "startRoute": 2,
+            "skipOrderOffer": 1,
+            "rerollOffer": 1,
+            "chooseBelief": 2,
+            "sleepUnit": 8,
+            "cancelOrder": 1,
+            "performRite": 16,
+            "chooseWager": 2,
+            "acceptDeal": 1,
+            "chooseGreatPerson": 4,
+            "greatPersonAct": 3,
+            "greatPersonWork": 1
+          },
+          "attacks": 302,
+          "ranged": 251,
+          "againstWild": 37,
+          "fieldDamageDealt": 6431,
+          "fieldDamageTaken": 1011,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 38,
+          "advances": 27,
+          "advancesLostByNextTurn": 4,
+          "defended": 164,
+          "defendedAgainstWild": 44,
+          "knownFortifiedDefenses": 4,
+          "knownTerrainDefenses": 25,
+          "civilianLosses": 1,
+          "citiesLost": 0,
+          "lostToWild": 2,
+          "roster": {
+            "legionary": 56,
+            "scout": 3,
+            "compositeBowman": 18,
+            "spearWall": 18,
+            "horseman": 3
+          }
+        },
+        {
+          "id": 1,
+          "leader": "pachacuti",
+          "commands": {
+            "foundCity": 6,
+            "setAutoExplore": 4,
+            "setCityProduction": 56,
+            "chooseResearch": 8,
+            "endTurn": 100,
+            "chooseDiscovery": 3,
+            "chooseOrder": 11,
+            "slotOrder": 11,
+            "fortify": 73,
+            "setCitizenFocus": 14,
+            "dismissCensus": 6,
+            "moveUnit": 151,
+            "purchaseItem": 19,
+            "sleepUnit": 13,
+            "cancelOrder": 1,
+            "attack": 42,
+            "adoptGovernment": 2,
+            "chooseDoctrine": 2,
+            "buildImprovement": 25,
+            "proposeDeal": 3,
+            "proposePeace": 2,
+            "declineDeal": 1,
+            "purchaseTile": 1,
+            "unslotOrder": 6,
+            "chooseWager": 2,
+            "acceptDeal": 3,
+            "chooseBelief": 1,
+            "performRite": 1
+          },
+          "attacks": 42,
+          "ranged": 23,
+          "againstWild": 13,
+          "fieldDamageDealt": 937,
+          "fieldDamageTaken": 480,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 2,
+          "advances": 10,
+          "advancesLostByNextTurn": 1,
+          "defended": 87,
+          "defendedAgainstWild": 32,
+          "knownFortifiedDefenses": 25,
+          "knownTerrainDefenses": 29,
+          "civilianLosses": 5,
+          "citiesLost": 1,
+          "lostToWild": 4,
+          "roster": {
+            "scout": 2,
+            "swordsman": 3,
+            "warrior": 11,
+            "archer": 7
+          }
+        },
+        {
+          "id": 2,
+          "leader": "nezahualcoyotl",
+          "commands": {
+            "moveUnit": 270,
+            "setAutoExplore": 6,
+            "chooseResearch": 14,
+            "endTurn": 100,
+            "chooseDiscovery": 13,
+            "foundCity": 12,
+            "setCityProduction": 83,
+            "chooseOrder": 12,
+            "slotOrder": 8,
+            "fortify": 71,
+            "setCitizenFocus": 27,
+            "dismissCensus": 6,
+            "buildImprovement": 27,
+            "proposeDeal": 2,
+            "skipOrderOffer": 1,
+            "adoptGovernment": 2,
+            "chooseDoctrine": 2,
+            "acceptDeal": 3,
+            "performRite": 9,
+            "attack": 25,
+            "purchaseItem": 15,
+            "unslotOrder": 3,
+            "sleepUnit": 20,
+            "chooseBelief": 2,
+            "chooseWager": 2,
+            "rerollOffer": 1,
+            "chooseGreatPerson": 2,
+            "greatPersonWork": 1,
+            "repairImprovement": 1,
+            "buyRoute": 1,
+            "greatPersonAct": 1
+          },
+          "attacks": 25,
+          "ranged": 18,
+          "againstWild": 25,
+          "fieldDamageDealt": 499,
+          "fieldDamageTaken": 352,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 2,
+          "advances": 5,
+          "advancesLostByNextTurn": 1,
+          "defended": 105,
+          "defendedAgainstWild": 105,
+          "knownFortifiedDefenses": 0,
+          "knownTerrainDefenses": 0,
+          "civilianLosses": 4,
+          "citiesLost": 0,
+          "lostToWild": 11,
+          "roster": {
+            "warrior": 23,
+            "scout": 3,
+            "compositeBowman": 1,
+            "spearman": 1,
+            "horseman": 1
+          }
+        },
+        {
+          "id": 3,
+          "leader": "mansaMusa",
+          "commands": {
+            "moveUnit": 399,
+            "setAutoExplore": 15,
+            "chooseResearch": 15,
+            "endTurn": 100,
+            "chooseDiscovery": 11,
+            "foundCity": 8,
+            "setCityProduction": 109,
+            "chooseOrder": 16,
+            "fortify": 149,
+            "slotOrder": 14,
+            "setCitizenFocus": 25,
+            "dismissCensus": 6,
+            "proposeDeal": 8,
+            "purchaseItem": 41,
+            "adoptGovernment": 2,
+            "chooseDoctrine": 2,
+            "performRite": 22,
+            "sleepUnit": 14,
+            "unslotOrder": 8,
+            "buildImprovement": 33,
+            "skipOrderOffer": 1,
+            "acceptDeal": 8,
+            "attack": 121,
+            "proposePeace": 1,
+            "repairImprovement": 1,
+            "buyRoute": 7,
+            "rerollOffer": 2,
+            "chooseBelief": 5,
+            "chooseGreatPerson": 4,
+            "greatPersonAct": 3,
+            "chooseWager": 2,
+            "plantHolySite": 1,
+            "declineDeal": 1,
+            "greatPersonWork": 1,
+            "purchaseTile": 1
+          },
+          "attacks": 121,
+          "ranged": 76,
+          "againstWild": 40,
+          "fieldDamageDealt": 4259,
+          "fieldDamageTaken": 1073,
+          "counterDeaths": 2,
+          "counterDeathsWithoutKill": 2,
+          "rangedKills": 21,
+          "advances": 21,
+          "advancesLostByNextTurn": 3,
+          "defended": 214,
+          "defendedAgainstWild": 76,
+          "knownFortifiedDefenses": 12,
+          "knownTerrainDefenses": 22,
+          "civilianLosses": 6,
+          "citiesLost": 2,
+          "lostToWild": 15,
+          "roster": {
+            "legionary": 8,
+            "swordsman": 11,
+            "compositeBowman": 3,
+            "warrior": 14,
+            "scout": 1
+          }
+        },
+        {
+          "id": 4,
+          "leader": "lorenzoDeMedici",
+          "commands": {
+            "moveUnit": 265,
+            "setAutoExplore": 6,
+            "chooseResearch": 18,
+            "endTurn": 100,
+            "chooseDiscovery": 7,
+            "foundCity": 9,
+            "setCityProduction": 133,
+            "fortify": 74,
+            "chooseOrder": 30,
+            "slotOrder": 20,
+            "dismissCensus": 6,
+            "purchaseTile": 2,
+            "setCitizenFocus": 36,
+            "buildImprovement": 42,
+            "proposeDeal": 10,
+            "acceptDeal": 6,
+            "declineDeal": 1,
+            "buyRoute": 16,
+            "adoptGovernment": 4,
+            "chooseDoctrine": 5,
+            "performRite": 17,
+            "sleepUnit": 10,
+            "unslotOrder": 9,
+            "purchaseItem": 32,
+            "attack": 45,
+            "proposePeace": 1,
+            "chooseBelief": 7,
+            "chooseGreatPerson": 7,
+            "greatPersonAct": 6,
+            "chooseWager": 2,
+            "greatPersonWork": 1,
+            "plantHolySite": 1,
+            "rerollOffer": 2,
+            "gainBelief": 1
+          },
+          "attacks": 45,
+          "ranged": 25,
+          "againstWild": 41,
+          "fieldDamageDealt": 1741,
+          "fieldDamageTaken": 344,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 6,
+          "advances": 11,
+          "advancesLostByNextTurn": 0,
+          "defended": 31,
+          "defendedAgainstWild": 28,
+          "knownFortifiedDefenses": 0,
+          "knownTerrainDefenses": 2,
+          "civilianLosses": 1,
+          "citiesLost": 0,
+          "lostToWild": 4,
+          "roster": {
+            "legionary": 12,
+            "compositeBowman": 7,
+            "scout": 3,
+            "horseman": 6,
+            "spearWall": 3
+          }
+        },
+        {
+          "id": 5,
+          "leader": "justinian",
+          "commands": {
+            "moveUnit": 216,
+            "setAutoExplore": 6,
+            "chooseResearch": 17,
+            "endTurn": 100,
+            "chooseDiscovery": 3,
+            "foundCity": 13,
+            "setCityProduction": 105,
+            "chooseOrder": 19,
+            "slotOrder": 19,
+            "fortify": 64,
+            "purchaseItem": 18,
+            "dismissCensus": 6,
+            "setCitizenFocus": 32,
+            "skipOrderOffer": 5,
+            "adoptGovernment": 3,
+            "chooseDoctrine": 4,
+            "sleepUnit": 27,
+            "buildImprovement": 35,
+            "chooseBelief": 7,
+            "performRite": 25,
+            "proposePeace": 1,
+            "rerollOffer": 2,
+            "proposeDeal": 7,
+            "declineDeal": 2,
+            "buyRoute": 5,
+            "unslotOrder": 11,
+            "attack": 6,
+            "chooseWager": 2,
+            "chooseGreatPerson": 5,
+            "greatPersonAct": 5,
+            "plantHolySite": 1,
+            "acceptDeal": 5,
+            "gainBelief": 2
+          },
+          "attacks": 6,
+          "ranged": 3,
+          "againstWild": 0,
+          "fieldDamageDealt": 280,
+          "fieldDamageTaken": 45,
+          "counterDeaths": 0,
+          "counterDeathsWithoutKill": 0,
+          "rangedKills": 0,
+          "advances": 1,
+          "advancesLostByNextTurn": 0,
+          "defended": 79,
+          "defendedAgainstWild": 10,
+          "knownFortifiedDefenses": 5,
+          "knownTerrainDefenses": 6,
+          "civilianLosses": 0,
+          "citiesLost": 0,
+          "lostToWild": 4,
+          "roster": {
+            "legionary": 16,
+            "compositeBowman": 3,
+            "scout": 1
+          }
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "variant": "baseline",
+      "seed": 48017,
+      "index": 2231,
+      "turn": 61,
+      "automatic": false,
+      "outcome": {
+        "kind": "melee",
+        "attackerId": 135,
+        "attackerName": "Swordsman",
+        "defenderName": "Worker",
+        "attackerOwnerId": 3,
+        "defenderOwnerId": 0,
+        "at": {
+          "col": 32,
+          "row": 14
+        },
+        "defenderUnitId": 119,
+        "defenderCityId": null,
+        "damageToDefender": 0,
+        "damageToAttacker": 0,
+        "killed": [],
+        "capturedUnitId": 119,
+        "plundered": null,
+        "capturedCityId": null,
+        "cityPhase": null,
+        "advanced": true,
+        "arrival": {
+          "discovery": null,
+          "camp": null,
+          "captured": [
+            {
+              "id": 119,
+              "type": "worker",
+              "fromOwnerId": 0,
+              "fromWild": false
+            }
+          ],
+          "plundered": []
+        },
+        "attackerSurvived": true
+      },
+      "attacker": {
+        "id": 135,
+        "ownerId": 3,
+        "type": "swordsman",
+        "hp": 28,
+        "col": 32,
+        "row": 15,
+        "terrain": "desert",
+        "feature": "floodplain",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 119,
+        "ownerId": 0,
+        "type": "worker",
+        "hp": 100,
+        "col": 32,
+        "row": 14,
+        "terrain": "desert",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": false
+      },
+      "context": {
+        "preview": {
+          "ok": true,
+          "kind": "melee",
+          "attackerId": 135,
+          "defenderUnitId": 119,
+          "defenderCityId": null,
+          "attackerName": "Swordsman",
+          "defenderName": "Worker",
+          "attackerStrength": 39,
+          "defenderStrength": 0,
+          "attackerLines": [
+            {
+              "source": "Swordsman",
+              "amount": 35
+            },
+            {
+              "source": "Veteran",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "amount": 1
+            }
+          ],
+          "defenderLines": [
+            {
+              "source": "Worker",
+              "amount": 0
+            }
+          ],
+          "terrainBonus": 0,
+          "fortifyBonus": 0,
+          "bonuses": [
+            {
+              "source": "Veteran",
+              "side": "attacker",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "side": "attacker",
+              "amount": 1
+            }
+          ],
+          "acrossRiver": false,
+          "damageToDefender": 0,
+          "damageToAttacker": 0,
+          "damageToDefenderMin": 0,
+          "damageToDefenderMax": 0,
+          "damageToAttackerMin": 0,
+          "damageToAttackerMax": 0,
+          "attackerHp": 28,
+          "attackerMaxHp": 100,
+          "defenderHp": 100,
+          "defenderMaxHp": 100,
+          "capturesUnit": true,
+          "plundersUnit": false,
+          "capturesCity": false,
+          "capturesCityOnKill": false
+        },
+        "nearby": [
+          {
+            "id": 119,
+            "ownerId": 0,
+            "type": "worker",
+            "hp": 100,
+            "col": 32,
+            "row": 14,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          },
+          {
+            "id": 120,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 100,
+            "col": 30,
+            "row": 13,
+            "terrain": "desert",
+            "feature": "oasis",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 135,
+            "ownerId": 3,
+            "type": "swordsman",
+            "hp": 28,
+            "col": 32,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 155,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 94,
+            "col": 33,
+            "row": 14,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": true,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 171,
+            "ownerId": 0,
+            "type": "bowman",
+            "hp": 100,
+            "col": 29,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 172,
+            "ownerId": 0,
+            "type": "bowman",
+            "hp": 100,
+            "col": 30,
+            "row": 11,
+            "terrain": "plains",
+            "feature": "none",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 182,
+            "ownerId": 0,
+            "type": "warrior",
+            "hp": 63,
+            "col": 30,
+            "row": 16,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 189,
+            "ownerId": 0,
+            "type": "bowman",
+            "hp": 100,
+            "col": 29,
+            "row": 14,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 199,
+            "ownerId": 3,
+            "type": "scout",
+            "hp": 100,
+            "col": 31,
+            "row": 14,
+            "terrain": "lake",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 200,
+            "ownerId": 0,
+            "type": "bowman",
+            "hp": 100,
+            "col": 30,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 258,
+            "ownerId": 3,
+            "type": "warrior",
+            "hp": 100,
+            "col": 33,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 2
+          },
+          {
+            "id": 277,
+            "ownerId": 0,
+            "type": "trader",
+            "hp": 100,
+            "col": 30,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          },
+          {
+            "id": 284,
+            "ownerId": 0,
+            "type": "settler",
+            "hp": 100,
+            "col": 30,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          }
+        ],
+        "cities": [
+          {
+            "id": 298,
+            "ownerId": 0,
+            "name": "Gao",
+            "col": 30,
+            "row": 13
+          },
+          {
+            "id": 320,
+            "ownerId": 3,
+            "name": "Walata",
+            "col": 33,
+            "row": 15
+          }
+        ]
+      },
+      "attackerLostByNextTurn": {
+        "turn": 62,
+        "index": 2283,
+        "by": 0
+      }
+    },
+    {
+      "variant": "baseline",
+      "seed": 48017,
+      "index": 2377,
+      "turn": 63,
+      "automatic": false,
+      "outcome": {
+        "kind": "melee",
+        "attackerId": 155,
+        "attackerName": "Swordsman",
+        "defenderName": "Worker",
+        "attackerOwnerId": 0,
+        "defenderOwnerId": 3,
+        "at": {
+          "col": 32,
+          "row": 15
+        },
+        "defenderUnitId": 119,
+        "defenderCityId": null,
+        "damageToDefender": 0,
+        "damageToAttacker": 0,
+        "killed": [],
+        "capturedUnitId": 119,
+        "plundered": null,
+        "capturedCityId": null,
+        "cityPhase": null,
+        "advanced": true,
+        "arrival": {
+          "discovery": null,
+          "camp": null,
+          "captured": [
+            {
+              "id": 119,
+              "type": "worker",
+              "fromOwnerId": 3,
+              "fromWild": false
+            }
+          ],
+          "plundered": []
+        },
+        "attackerSurvived": true
+      },
+      "attacker": {
+        "id": 155,
+        "ownerId": 0,
+        "type": "swordsman",
+        "hp": 59,
+        "col": 33,
+        "row": 14,
+        "terrain": "desert",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 119,
+        "ownerId": 3,
+        "type": "worker",
+        "hp": 100,
+        "col": 32,
+        "row": 15,
+        "terrain": "desert",
+        "feature": "floodplain",
+        "hills": false,
+        "ranged": false,
+        "military": false
+      },
+      "context": {
+        "preview": {
+          "ok": true,
+          "kind": "melee",
+          "attackerId": 155,
+          "defenderUnitId": 119,
+          "defenderCityId": null,
+          "attackerName": "Swordsman",
+          "defenderName": "Worker",
+          "attackerStrength": 39,
+          "defenderStrength": 0,
+          "attackerLines": [
+            {
+              "source": "Swordsman",
+              "amount": 35
+            },
+            {
+              "source": "Veteran",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "amount": 1
+            }
+          ],
+          "defenderLines": [
+            {
+              "source": "Worker",
+              "amount": 0
+            }
+          ],
+          "terrainBonus": 0,
+          "fortifyBonus": 0,
+          "bonuses": [
+            {
+              "source": "Veteran",
+              "side": "attacker",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "side": "attacker",
+              "amount": 1
+            }
+          ],
+          "acrossRiver": false,
+          "damageToDefender": 0,
+          "damageToAttacker": 0,
+          "damageToDefenderMin": 0,
+          "damageToDefenderMax": 0,
+          "damageToAttackerMin": 0,
+          "damageToAttackerMax": 0,
+          "attackerHp": 59,
+          "attackerMaxHp": 100,
+          "defenderHp": 100,
+          "defenderMaxHp": 100,
+          "capturesUnit": true,
+          "plundersUnit": false,
+          "capturesCity": false,
+          "capturesCityOnKill": false
+        },
+        "nearby": [
+          {
+            "id": 119,
+            "ownerId": 3,
+            "type": "worker",
+            "hp": 100,
+            "col": 32,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          },
+          {
+            "id": 120,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 100,
+            "col": 30,
+            "row": 13,
+            "terrain": "desert",
+            "feature": "oasis",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 1
+          },
+          {
+            "id": 155,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 59,
+            "col": 33,
+            "row": 14,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": true,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 171,
+            "ownerId": 0,
+            "type": "bowman",
+            "hp": 100,
+            "col": 31,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 181,
+            "ownerId": 2,
+            "type": "scout",
+            "hp": 100,
+            "col": 33,
+            "row": 17,
+            "terrain": "plains",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 182,
+            "ownerId": 0,
+            "type": "warrior",
+            "hp": 73,
+            "col": 32,
+            "row": 16,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 200,
+            "ownerId": 0,
+            "type": "bowman",
+            "hp": 100,
+            "col": 30,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 258,
+            "ownerId": 3,
+            "type": "swordsman",
+            "hp": 110,
+            "col": 33,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 2
+          },
+          {
+            "id": 277,
+            "ownerId": 0,
+            "type": "trader",
+            "hp": 100,
+            "col": 30,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          },
+          {
+            "id": 284,
+            "ownerId": 0,
+            "type": "settler",
+            "hp": 100,
+            "col": 30,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          },
+          {
+            "id": 289,
+            "ownerId": 3,
+            "type": "trader",
+            "hp": 100,
+            "col": 33,
+            "row": 16,
+            "terrain": "plains",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          },
+          {
+            "id": 306,
+            "ownerId": 0,
+            "type": "settler",
+            "hp": 100,
+            "col": 30,
+            "row": 17,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          },
+          {
+            "id": 389,
+            "ownerId": 3,
+            "type": "archer",
+            "hp": 110,
+            "col": 34,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          }
+        ],
+        "cities": [
+          {
+            "id": 298,
+            "ownerId": 0,
+            "name": "Gao",
+            "col": 30,
+            "row": 13
+          },
+          {
+            "id": 320,
+            "ownerId": 3,
+            "name": "Walata",
+            "col": 33,
+            "row": 15
+          }
+        ]
+      },
+      "attackerLostByNextTurn": {
+        "turn": 64,
+        "index": 2570,
+        "by": 3
+      }
+    },
+    {
+      "variant": "baseline",
+      "seed": 48017,
+      "index": 4316,
+      "turn": 80,
+      "automatic": false,
+      "outcome": {
+        "kind": "melee",
+        "attackerId": 357,
+        "attackerName": "Swordsman",
+        "defenderName": "Composite Bowman",
+        "attackerOwnerId": 3,
+        "defenderOwnerId": 0,
+        "at": {
+          "col": 39,
+          "row": 12
+        },
+        "defenderUnitId": 159,
+        "defenderCityId": null,
+        "damageToDefender": 22,
+        "damageToAttacker": 31,
+        "killed": [
+          {
+            "id": 159,
+            "type": "compositeBowman",
+            "ownerId": 0,
+            "col": 39,
+            "row": 12
+          }
+        ],
+        "capturedUnitId": null,
+        "plundered": null,
+        "capturedCityId": null,
+        "cityPhase": null,
+        "advanced": true,
+        "arrival": null,
+        "attackerSurvived": true
+      },
+      "attacker": {
+        "id": 357,
+        "ownerId": 3,
+        "type": "swordsman",
+        "hp": 76,
+        "col": 40,
+        "row": 12,
+        "terrain": "desert",
+        "feature": "floodplain",
+        "hills": false,
+        "ranged": false,
+        "military": true,
+        "fortifiedTurns": 2
+      },
+      "defender": {
+        "id": 159,
+        "ownerId": 0,
+        "type": "compositeBowman",
+        "hp": 22,
+        "col": 39,
+        "row": 12,
+        "terrain": "desert",
+        "feature": "none",
+        "hills": false,
+        "ranged": true,
+        "military": true
+      },
+      "context": {
+        "preview": {
+          "ok": true,
+          "kind": "melee",
+          "attackerId": 357,
+          "defenderUnitId": 159,
+          "defenderCityId": null,
+          "attackerName": "Swordsman",
+          "defenderName": "Composite Bowman",
+          "attackerStrength": 35,
+          "defenderStrength": 36,
+          "attackerLines": [
+            {
+              "source": "Swordsman",
+              "amount": 35
+            }
+          ],
+          "defenderLines": [
+            {
+              "source": "Composite Bowman",
+              "amount": 30
+            },
+            {
+              "source": "Elite",
+              "amount": 6
+            }
+          ],
+          "terrainBonus": 0,
+          "fortifyBonus": 0,
+          "bonuses": [
+            {
+              "source": "Elite",
+              "side": "defender",
+              "amount": 6
+            }
+          ],
+          "acrossRiver": false,
+          "damageToDefender": 22,
+          "damageToAttacker": 31,
+          "damageToDefenderMin": 22,
+          "damageToDefenderMax": 22,
+          "damageToAttackerMin": 25,
+          "damageToAttackerMax": 37,
+          "attackerHp": 76,
+          "attackerMaxHp": 110,
+          "defenderHp": 22,
+          "defenderMaxHp": 110,
+          "capturesUnit": false,
+          "plundersUnit": false,
+          "capturesCity": false,
+          "capturesCityOnKill": false
+        },
+        "nearby": [
+          {
+            "id": 146,
+            "ownerId": 0,
+            "type": "compositeBowman",
+            "hp": 71,
+            "col": 37,
+            "row": 13,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 159,
+            "ownerId": 0,
+            "type": "compositeBowman",
+            "hp": 22,
+            "col": 39,
+            "row": 12,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 179,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 110,
+            "col": 37,
+            "row": 15,
+            "terrain": "plains",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 2
+          },
+          {
+            "id": 210,
+            "ownerId": 0,
+            "type": "compositeBowman",
+            "hp": 105,
+            "col": 38,
+            "row": 12,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 248,
+            "ownerId": 3,
+            "type": "bowman",
+            "hp": 110,
+            "col": 40,
+            "row": 13,
+            "terrain": "plains",
+            "feature": "none",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 312,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 4,
+            "col": 36,
+            "row": 13,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": true,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 357,
+            "ownerId": 3,
+            "type": "swordsman",
+            "hp": 76,
+            "col": 40,
+            "row": 12,
+            "terrain": "desert",
+            "feature": "floodplain",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 2
+          },
+          {
+            "id": 376,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 64,
+            "col": 38,
+            "row": 14,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 1
+          },
+          {
+            "id": 382,
+            "ownerId": 0,
+            "type": "spearWall",
+            "hp": 120,
+            "col": 37,
+            "row": 14,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 2
+          },
+          {
+            "id": 383,
+            "ownerId": 3,
+            "type": "bowman",
+            "hp": 110,
+            "col": 41,
+            "row": 14,
+            "terrain": "plains",
+            "feature": "none",
+            "hills": true,
+            "ranged": true,
+            "military": true,
+            "fortifiedTurns": 0
+          },
+          {
+            "id": 406,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 68,
+            "col": 37,
+            "row": 11,
+            "terrain": "plains",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 407,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 110,
+            "col": 38,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": true,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 0
+          },
+          {
+            "id": 409,
+            "ownerId": 0,
+            "type": "swordsman",
+            "hp": 75,
+            "col": 38,
+            "row": 13,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 451,
+            "ownerId": 3,
+            "type": "bowman",
+            "hp": 110,
+            "col": 41,
+            "row": 12,
+            "terrain": "desert",
+            "feature": "oasis",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 465,
+            "ownerId": 3,
+            "type": "spearWall",
+            "hp": 89,
+            "col": 40,
+            "row": 14,
+            "terrain": "plains",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 0
+          },
+          {
+            "id": 571,
+            "ownerId": 0,
+            "type": "warrior",
+            "hp": 110,
+            "col": 37,
+            "row": 14,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 573,
+            "ownerId": 3,
+            "type": "swordsman",
+            "hp": 110,
+            "col": 41,
+            "row": 13,
+            "terrain": "plains",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 2
+          },
+          {
+            "id": 627,
+            "ownerId": 3,
+            "type": "greatPerson",
+            "hp": 100,
+            "col": 40,
+            "row": 15,
+            "terrain": "desert",
+            "feature": "none",
+            "hills": true,
+            "ranged": false,
+            "military": false
+          }
+        ],
+        "cities": [
+          {
+            "id": 16,
+            "ownerId": 3,
+            "name": "Niani",
+            "col": 40,
+            "row": 13
+          },
+          {
+            "id": 139,
+            "ownerId": 0,
+            "name": "Djenn\u00e9",
+            "col": 37,
+            "row": 15
+          }
+        ]
+      },
+      "attackerLostByNextTurn": {
+        "turn": 81,
+        "index": 4345,
+        "by": 0
+      }
+    },
+    {
+      "variant": "war-losses",
+      "seed": 48017,
+      "index": 1454,
+      "turn": 50,
+      "automatic": false,
+      "outcome": {
+        "kind": "melee",
+        "attackerId": 170,
+        "attackerName": "Warrior",
+        "defenderName": "Spearman",
+        "attackerOwnerId": 3,
+        "defenderOwnerId": 6,
+        "at": {
+          "col": 39,
+          "row": 26
+        },
+        "defenderUnitId": 277,
+        "defenderCityId": null,
+        "damageToDefender": 31,
+        "damageToAttacker": 24,
+        "killed": [],
+        "capturedUnitId": null,
+        "plundered": null,
+        "capturedCityId": null,
+        "cityPhase": null,
+        "advanced": false,
+        "arrival": null,
+        "attackerSurvived": true
+      },
+      "attacker": {
+        "id": 170,
+        "ownerId": 3,
+        "type": "warrior",
+        "hp": 52,
+        "col": 39,
+        "row": 25,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true,
+        "fortifiedTurns": 2
+      },
+      "defender": {
+        "id": 277,
+        "ownerId": 6,
+        "type": "spearman",
+        "hp": 100,
+        "col": 39,
+        "row": 26,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "context": {
+        "preview": {
+          "ok": true,
+          "kind": "melee",
+          "attackerId": 170,
+          "defenderUnitId": 277,
+          "defenderCityId": null,
+          "attackerName": "Warrior",
+          "defenderName": "Spearman",
+          "attackerStrength": 26,
+          "defenderStrength": 25,
+          "attackerLines": [
+            {
+              "source": "Warrior",
+              "amount": 20
+            },
+            {
+              "source": "Against barbarians",
+              "amount": 2
+            },
+            {
+              "source": "Veteran",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "amount": 1
+            }
+          ],
+          "defenderLines": [
+            {
+              "source": "Spearman",
+              "amount": 25
+            }
+          ],
+          "terrainBonus": 0,
+          "fortifyBonus": 0,
+          "bonuses": [
+            {
+              "source": "Against barbarians",
+              "side": "attacker",
+              "amount": 2
+            },
+            {
+              "source": "Veteran",
+              "side": "attacker",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "side": "attacker",
+              "amount": 1
+            }
+          ],
+          "acrossRiver": false,
+          "damageToDefender": 31,
+          "damageToAttacker": 29,
+          "damageToDefenderMin": 25,
+          "damageToDefenderMax": 37,
+          "damageToAttackerMin": 23,
+          "damageToAttackerMax": 35,
+          "attackerHp": 52,
+          "attackerMaxHp": 100,
+          "defenderHp": 100,
+          "defenderMaxHp": 100,
+          "capturesUnit": false,
+          "plundersUnit": false,
+          "capturesCity": false,
+          "capturesCityOnKill": false
+        },
+        "nearby": [
+          {
+            "id": 30,
+            "ownerId": 6,
+            "type": "warrior",
+            "hp": 25,
+            "col": 40,
+            "row": 26,
+            "terrain": "grassland",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 1
+          },
+          {
+            "id": 82,
+            "ownerId": 6,
+            "type": "worker",
+            "hp": 100,
+            "col": 40,
+            "row": 26,
+            "terrain": "grassland",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          },
+          {
+            "id": 170,
+            "ownerId": 3,
+            "type": "warrior",
+            "hp": 52,
+            "col": 39,
+            "row": 25,
+            "terrain": "grassland",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 2
+          },
+          {
+            "id": 277,
+            "ownerId": 6,
+            "type": "spearman",
+            "hp": 100,
+            "col": 39,
+            "row": 26,
+            "terrain": "grassland",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          }
+        ],
+        "cities": []
+      }
+    },
+    {
+      "variant": "ranked-attacks",
+      "seed": 48017,
+      "index": 1454,
+      "turn": 50,
+      "automatic": false,
+      "outcome": {
+        "kind": "melee",
+        "attackerId": 170,
+        "attackerName": "Warrior",
+        "defenderName": "Warrior",
+        "attackerOwnerId": 3,
+        "defenderOwnerId": 6,
+        "at": {
+          "col": 40,
+          "row": 26
+        },
+        "defenderUnitId": 30,
+        "defenderCityId": null,
+        "damageToDefender": 25,
+        "damageToAttacker": 22,
+        "killed": [
+          {
+            "id": 30,
+            "type": "warrior",
+            "ownerId": 6,
+            "col": 40,
+            "row": 26
+          }
+        ],
+        "capturedUnitId": null,
+        "plundered": null,
+        "capturedCityId": null,
+        "cityPhase": null,
+        "advanced": true,
+        "arrival": {
+          "discovery": null,
+          "camp": {
+            "gold": 25,
+            "food": 25,
+            "cityName": "Timbuktu",
+            "grownTo": 7,
+            "warning": null,
+            "lines": [],
+            "units": []
+          },
+          "captured": [
+            {
+              "id": 82,
+              "type": "worker",
+              "fromOwnerId": 6,
+              "fromWild": true
+            }
+          ],
+          "plundered": []
+        },
+        "attackerSurvived": true
+      },
+      "attacker": {
+        "id": 170,
+        "ownerId": 3,
+        "type": "warrior",
+        "hp": 52,
+        "col": 39,
+        "row": 25,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true,
+        "fortifiedTurns": 2
+      },
+      "defender": {
+        "id": 30,
+        "ownerId": 6,
+        "type": "warrior",
+        "hp": 25,
+        "col": 40,
+        "row": 26,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true,
+        "fortifiedTurns": 1
+      },
+      "context": {
+        "preview": {
+          "ok": true,
+          "kind": "melee",
+          "attackerId": 170,
+          "defenderUnitId": 30,
+          "defenderCityId": null,
+          "attackerName": "Warrior",
+          "defenderName": "Warrior",
+          "attackerStrength": 26,
+          "defenderStrength": 23,
+          "attackerLines": [
+            {
+              "source": "Warrior",
+              "amount": 20
+            },
+            {
+              "source": "Against barbarians",
+              "amount": 2
+            },
+            {
+              "source": "Veteran",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "amount": 1
+            }
+          ],
+          "defenderLines": [
+            {
+              "source": "Warrior",
+              "amount": 20
+            },
+            {
+              "source": "Fortified",
+              "amount": 3
+            }
+          ],
+          "terrainBonus": 0,
+          "fortifyBonus": 3,
+          "bonuses": [
+            {
+              "source": "Against barbarians",
+              "side": "attacker",
+              "amount": 2
+            },
+            {
+              "source": "Veteran",
+              "side": "attacker",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "side": "attacker",
+              "amount": 1
+            }
+          ],
+          "acrossRiver": false,
+          "damageToDefender": 25,
+          "damageToAttacker": 27,
+          "damageToDefenderMin": 25,
+          "damageToDefenderMax": 25,
+          "damageToAttackerMin": 21,
+          "damageToAttackerMax": 32,
+          "attackerHp": 52,
+          "attackerMaxHp": 100,
+          "defenderHp": 25,
+          "defenderMaxHp": 100,
+          "capturesUnit": false,
+          "plundersUnit": false,
+          "capturesCity": false,
+          "capturesCityOnKill": false
+        },
+        "nearby": [
+          {
+            "id": 30,
+            "ownerId": 6,
+            "type": "warrior",
+            "hp": 25,
+            "col": 40,
+            "row": 26,
+            "terrain": "grassland",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 1
+          },
+          {
+            "id": 82,
+            "ownerId": 6,
+            "type": "worker",
+            "hp": 100,
+            "col": 40,
+            "row": 26,
+            "terrain": "grassland",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": false
+          },
+          {
+            "id": 170,
+            "ownerId": 3,
+            "type": "warrior",
+            "hp": 52,
+            "col": 39,
+            "row": 25,
+            "terrain": "grassland",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 2
+          },
+          {
+            "id": 277,
+            "ownerId": 6,
+            "type": "spearman",
+            "hp": 100,
+            "col": 39,
+            "row": 26,
+            "terrain": "grassland",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          }
+        ],
+        "cities": []
+      },
+      "attackerLostByNextTurn": {
+        "turn": 51,
+        "index": 1531,
+        "by": 6
+      }
+    },
+    {
+      "variant": "ranked-attacks",
+      "seed": 48017,
+      "index": 2658,
+      "turn": 65,
+      "automatic": false,
+      "outcome": {
+        "kind": "melee",
+        "attackerId": 438,
+        "attackerName": "Warrior",
+        "defenderName": "Spearman",
+        "attackerOwnerId": 3,
+        "defenderOwnerId": 6,
+        "at": {
+          "col": 46,
+          "row": 14
+        },
+        "defenderUnitId": 288,
+        "defenderCityId": null,
+        "damageToDefender": 23,
+        "damageToAttacker": 37,
+        "killed": [
+          {
+            "id": 438,
+            "type": "warrior",
+            "ownerId": 3,
+            "col": 45,
+            "row": 13
+          }
+        ],
+        "capturedUnitId": null,
+        "plundered": null,
+        "capturedCityId": null,
+        "cityPhase": null,
+        "advanced": false,
+        "arrival": null,
+        "attackerSurvived": false
+      },
+      "attacker": {
+        "id": 438,
+        "ownerId": 3,
+        "type": "warrior",
+        "hp": 37,
+        "col": 45,
+        "row": 13,
+        "terrain": "plains",
+        "feature": "forest",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 288,
+        "ownerId": 6,
+        "type": "spearman",
+        "hp": 36,
+        "col": 46,
+        "row": 14,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true,
+        "fortifiedTurns": 1
+      },
+      "context": {
+        "preview": {
+          "ok": true,
+          "kind": "melee",
+          "attackerId": 438,
+          "defenderUnitId": 288,
+          "defenderCityId": null,
+          "attackerName": "Warrior",
+          "defenderName": "Spearman",
+          "attackerStrength": 26,
+          "defenderStrength": 28,
+          "attackerLines": [
+            {
+              "source": "Warrior",
+              "amount": 20
+            },
+            {
+              "source": "Against barbarians",
+              "amount": 2
+            },
+            {
+              "source": "Order \u00b7 The Zealots",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "amount": 1
+            }
+          ],
+          "defenderLines": [
+            {
+              "source": "Spearman",
+              "amount": 25
+            },
+            {
+              "source": "Fortified",
+              "amount": 3
+            }
+          ],
+          "terrainBonus": 0,
+          "fortifyBonus": 3,
+          "bonuses": [
+            {
+              "source": "Against barbarians",
+              "side": "attacker",
+              "amount": 2
+            },
+            {
+              "source": "Order \u00b7 The Zealots",
+              "side": "attacker",
+              "amount": 3
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "side": "attacker",
+              "amount": 1
+            }
+          ],
+          "acrossRiver": false,
+          "damageToDefender": 28,
+          "damageToAttacker": 32,
+          "damageToDefenderMin": 22,
+          "damageToDefenderMax": 33,
+          "damageToAttackerMin": 26,
+          "damageToAttackerMax": 37,
+          "attackerHp": 37,
+          "attackerMaxHp": 100,
+          "defenderHp": 36,
+          "defenderMaxHp": 100,
+          "capturesUnit": false,
+          "plundersUnit": false,
+          "capturesCity": false,
+          "capturesCityOnKill": false
+        },
+        "nearby": [
+          {
+            "id": 288,
+            "ownerId": 6,
+            "type": "spearman",
+            "hp": 36,
+            "col": 46,
+            "row": 14,
+            "terrain": "grassland",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 1
+          },
+          {
+            "id": 374,
+            "ownerId": 3,
+            "type": "scout",
+            "hp": 72,
+            "col": 47,
+            "row": 16,
+            "terrain": "grassland",
+            "feature": "forest",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 403,
+            "ownerId": 6,
+            "type": "swordsman",
+            "hp": 19,
+            "col": 45,
+            "row": 14,
+            "terrain": "grassland",
+            "feature": "forest",
+            "hills": true,
+            "ranged": false,
+            "military": true
+          },
+          {
+            "id": 430,
+            "ownerId": 3,
+            "type": "archer",
+            "hp": 100,
+            "col": 43,
+            "row": 13,
+            "terrain": "plains",
+            "feature": "forest",
+            "hills": false,
+            "ranged": true,
+            "military": true
+          },
+          {
+            "id": 438,
+            "ownerId": 3,
+            "type": "warrior",
+            "hp": 37,
+            "col": 45,
+            "row": 13,
+            "terrain": "plains",
+            "feature": "forest",
+            "hills": false,
+            "ranged": false,
+            "military": true
+          }
+        ],
+        "cities": []
+      }
+    },
+    {
+      "variant": "ranked-attacks",
+      "seed": 48017,
+      "index": 5336,
+      "turn": 94,
+      "automatic": false,
+      "outcome": {
+        "kind": "melee",
+        "attackerId": 178,
+        "attackerName": "Swordsman",
+        "defenderName": "Legionary",
+        "attackerOwnerId": 3,
+        "defenderOwnerId": 6,
+        "at": {
+          "col": 35,
+          "row": 2
+        },
+        "defenderUnitId": 768,
+        "defenderCityId": null,
+        "damageToDefender": 19,
+        "damageToAttacker": 25,
+        "killed": [
+          {
+            "id": 178,
+            "type": "swordsman",
+            "ownerId": 3,
+            "col": 35,
+            "row": 3
+          }
+        ],
+        "capturedUnitId": null,
+        "plundered": null,
+        "capturedCityId": null,
+        "cityPhase": null,
+        "advanced": false,
+        "arrival": null,
+        "attackerSurvived": false
+      },
+      "attacker": {
+        "id": 178,
+        "ownerId": 3,
+        "type": "swordsman",
+        "hp": 25,
+        "col": 35,
+        "row": 3,
+        "terrain": "tundra",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true,
+        "fortifiedTurns": 1
+      },
+      "defender": {
+        "id": 768,
+        "ownerId": 6,
+        "type": "legionary",
+        "hp": 22,
+        "col": 35,
+        "row": 2,
+        "terrain": "snow",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true,
+        "fortifiedTurns": 1
+      },
+      "context": {
+        "preview": {
+          "ok": true,
+          "kind": "melee",
+          "attackerId": 178,
+          "defenderUnitId": 768,
+          "defenderCityId": null,
+          "attackerName": "Swordsman",
+          "defenderName": "Legionary",
+          "attackerStrength": 42,
+          "defenderStrength": 48,
+          "attackerLines": [
+            {
+              "source": "Swordsman",
+              "amount": 35
+            },
+            {
+              "source": "Across a river",
+              "amount": -3
+            },
+            {
+              "source": "Against barbarians",
+              "amount": 2
+            },
+            {
+              "source": "Veteran",
+              "amount": 3
+            },
+            {
+              "source": "Order \u00b7 The Zealots",
+              "amount": 4
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "amount": 1
+            }
+          ],
+          "defenderLines": [
+            {
+              "source": "Legionary",
+              "amount": 45
+            },
+            {
+              "source": "Fortified",
+              "amount": 3
+            }
+          ],
+          "terrainBonus": 0,
+          "fortifyBonus": 3,
+          "bonuses": [
+            {
+              "source": "Across a river",
+              "side": "attacker",
+              "amount": -3
+            },
+            {
+              "source": "Against barbarians",
+              "side": "attacker",
+              "amount": 2
+            },
+            {
+              "source": "Veteran",
+              "side": "attacker",
+              "amount": 3
+            },
+            {
+              "source": "Order \u00b7 The Zealots",
+              "side": "attacker",
+              "amount": 4
+            },
+            {
+              "source": "Obsidian \u00b7 in battle",
+              "side": "attacker",
+              "amount": 1
+            }
+          ],
+          "acrossRiver": true,
+          "damageToDefender": 22,
+          "damageToAttacker": 24,
+          "damageToDefenderMin": 19,
+          "damageToDefenderMax": 22,
+          "damageToAttackerMin": 24,
+          "damageToAttackerMax": 24,
+          "attackerHp": 25,
+          "attackerMaxHp": 100,
+          "defenderHp": 22,
+          "defenderMaxHp": 110,
+          "capturesUnit": false,
+          "plundersUnit": false,
+          "capturesCity": false,
+          "capturesCityOnKill": false
+        },
+        "nearby": [
+          {
+            "id": 178,
+            "ownerId": 3,
+            "type": "swordsman",
+            "hp": 25,
+            "col": 35,
+            "row": 3,
+            "terrain": "tundra",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 1
+          },
+          {
+            "id": 768,
+            "ownerId": 6,
+            "type": "legionary",
+            "hp": 22,
+            "col": 35,
+            "row": 2,
+            "terrain": "snow",
+            "feature": "none",
+            "hills": false,
+            "ranged": false,
+            "military": true,
+            "fortifiedTurns": 1
+          }
+        ],
+        "cities": []
+      }
+    }
+  ],
+  "allLeaderComparison": {
+    "rulesVersion": 262,
+    "commonTurn": 100,
+    "summaries": {
+      "baseline": {
+        "meanYield": 2052.69165,
+        "medianYield": 1403.0237499999998,
+        "atLeast800": 22,
+        "meanScore": 1332.6,
+        "medianScore": 1036.0,
+        "meanScience": 438.65361000000007,
+        "medianScience": 203.161875,
+        "meanCulture": 299.4293833333333,
+        "medianCulture": 167.9,
+        "meanTechs": 30.166666666666668,
+        "meanDrafts": 20,
+        "captures": 14,
+        "citiesLost": 14,
+        "unitsLost": 498,
+        "meanMilitary": 41.5,
+        "eliminated": 0
+      },
+      "war-losses": {
+        "meanYield": 2702.8126563333335,
+        "medianYield": 1323.49,
+        "atLeast800": 23,
+        "meanScore": 1444.9,
+        "medianScore": 1040.0,
+        "meanScience": 697.3316616666667,
+        "medianScience": 212.539,
+        "meanCulture": 527.17546,
+        "medianCulture": 193.93050000000002,
+        "meanTechs": 31.6,
+        "meanDrafts": 21.566666666666666,
+        "captures": 13,
+        "citiesLost": 13,
+        "unitsLost": 444,
+        "meanMilitary": 40.96666666666667,
+        "eliminated": 0
+      },
+      "ranked-attacks": {
+        "meanYield": 2544.6167206666664,
+        "medianYield": 1185.275,
+        "atLeast800": 24,
+        "meanScore": 1382.2,
+        "medianScore": 1012.0,
+        "meanScience": 645.9701706666666,
+        "medianScience": 194.65,
+        "meanCulture": 527.0777941666666,
+        "medianCulture": 171.64999999999998,
+        "meanTechs": 30.433333333333334,
+        "meanDrafts": 20.666666666666668,
+        "captures": 7,
+        "citiesLost": 7,
+        "unitsLost": 456,
+        "meanMilitary": 39.13333333333333,
+        "eliminated": 0
+      }
+    },
+    "paired": {
+      "baseline -> war-losses": {
+        "yieldImproved": 17,
+        "yieldEqual": 0,
+        "scoreImproved": 19,
+        "medianYieldDelta": 47.31599999999992,
+        "cases": [
+          {
+            "seed": 72839,
+            "leader": "alexanderTheGreat",
+            "id": 0,
+            "yieldDelta": 35.94999999999993,
+            "scoreDelta": 88,
+            "captureDelta": 1,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "joan",
+            "id": 1,
+            "yieldDelta": -191.85000000000014,
+            "scoreDelta": -138,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "qinShiHuang",
+            "id": 2,
+            "yieldDelta": 1350.5229999999997,
+            "scoreDelta": 374,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "jayavarmanVII",
+            "id": 3,
+            "yieldDelta": 48.149999999999864,
+            "scoreDelta": -55,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "cyrusTheGreat",
+            "id": 4,
+            "yieldDelta": -1263.8417000000009,
+            "scoreDelta": 613,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "cleopatra",
+            "id": 5,
+            "yieldDelta": -320.70019999999977,
+            "scoreDelta": 40,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "mehmedTheConqueror",
+            "id": 0,
+            "yieldDelta": -1287.69,
+            "scoreDelta": -576,
+            "captureDelta": -1,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "pachacuti",
+            "id": 1,
+            "yieldDelta": -105.5,
+            "scoreDelta": -162,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "nezahualcoyotl",
+            "id": 2,
+            "yieldDelta": 70.09999999999991,
+            "scoreDelta": 65,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "mansaMusa",
+            "id": 3,
+            "yieldDelta": 2261.75,
+            "scoreDelta": 412,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "lorenzoDeMedici",
+            "id": 4,
+            "yieldDelta": 1422.7716000000005,
+            "scoreDelta": 457,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "justinian",
+            "id": 5,
+            "yieldDelta": 973.3127499999998,
+            "scoreDelta": 252,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "jayavarmanVII",
+            "id": 0,
+            "yieldDelta": -105.77599999999995,
+            "scoreDelta": -103,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "cyrusTheGreat",
+            "id": 1,
+            "yieldDelta": 2253.8520000000008,
+            "scoreDelta": 268,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "cleopatra",
+            "id": 2,
+            "yieldDelta": -69.10999999999967,
+            "scoreDelta": 9,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "harunAlRashid",
+            "id": 3,
+            "yieldDelta": -213.41599999999994,
+            "scoreDelta": -120,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "sejongTheGreat",
+            "id": 4,
+            "yieldDelta": 4855.746039999999,
+            "scoreDelta": 1166,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "genghisKhan",
+            "id": 5,
+            "yieldDelta": 159.61249999999995,
+            "scoreDelta": 15,
+            "captureDelta": 1,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "mansaMusa",
+            "id": 0,
+            "yieldDelta": 2599.7520000000004,
+            "scoreDelta": 55,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "lorenzoDeMedici",
+            "id": 1,
+            "yieldDelta": 46.48199999999997,
+            "scoreDelta": -14,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "justinian",
+            "id": 2,
+            "yieldDelta": -357.6400000000001,
+            "scoreDelta": -129,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "alexanderTheGreat",
+            "id": 3,
+            "yieldDelta": -652.875,
+            "scoreDelta": -79,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "joan",
+            "id": 4,
+            "yieldDelta": 83.32250000000022,
+            "scoreDelta": 23,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "qinShiHuang",
+            "id": 5,
+            "yieldDelta": 8415.940949999998,
+            "scoreDelta": 1078,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "harunAlRashid",
+            "id": 0,
+            "yieldDelta": -10.377499999999998,
+            "scoreDelta": 21,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "sejongTheGreat",
+            "id": 1,
+            "yieldDelta": -236.15499999999975,
+            "scoreDelta": -318,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "genghisKhan",
+            "id": 2,
+            "yieldDelta": 246.07500000000005,
+            "scoreDelta": 181,
+            "captureDelta": -2,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "mehmedTheConqueror",
+            "id": 3,
+            "yieldDelta": -817.5675000000003,
+            "scoreDelta": -152,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "pachacuti",
+            "id": 4,
+            "yieldDelta": 120.96999999999997,
+            "scoreDelta": 5,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "nezahualcoyotl",
+            "id": 5,
+            "yieldDelta": 191.81875000000036,
+            "scoreDelta": 93,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          }
+        ]
+      },
+      "war-losses -> ranked-attacks": {
+        "yieldImproved": 13,
+        "yieldEqual": 0,
+        "scoreImproved": 15,
+        "medianYieldDelta": -71.54999999999995,
+        "cases": [
+          {
+            "seed": 72839,
+            "leader": "alexanderTheGreat",
+            "id": 0,
+            "yieldDelta": -164.63999999999987,
+            "scoreDelta": -124,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "joan",
+            "id": 1,
+            "yieldDelta": -82.0,
+            "scoreDelta": 31,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "qinShiHuang",
+            "id": 2,
+            "yieldDelta": -304.5229999999997,
+            "scoreDelta": 58,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "jayavarmanVII",
+            "id": 3,
+            "yieldDelta": 528.7799999999997,
+            "scoreDelta": 298,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "cyrusTheGreat",
+            "id": 4,
+            "yieldDelta": -506.8925999999992,
+            "scoreDelta": -681,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 72839,
+            "leader": "cleopatra",
+            "id": 5,
+            "yieldDelta": 108.8901999999996,
+            "scoreDelta": -72,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "mehmedTheConqueror",
+            "id": 0,
+            "yieldDelta": 110.55499999999984,
+            "scoreDelta": 222,
+            "captureDelta": -1,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "pachacuti",
+            "id": 1,
+            "yieldDelta": 64.01999999999998,
+            "scoreDelta": 79,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "nezahualcoyotl",
+            "id": 2,
+            "yieldDelta": -20.65999999999991,
+            "scoreDelta": 87,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "mansaMusa",
+            "id": 3,
+            "yieldDelta": -1921.68,
+            "scoreDelta": -210,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "lorenzoDeMedici",
+            "id": 4,
+            "yieldDelta": -421.90939999999955,
+            "scoreDelta": -488,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 48017,
+            "leader": "justinian",
+            "id": 5,
+            "yieldDelta": -657.405,
+            "scoreDelta": 59,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "jayavarmanVII",
+            "id": 0,
+            "yieldDelta": 455.836,
+            "scoreDelta": 162,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "cyrusTheGreat",
+            "id": 1,
+            "yieldDelta": -3036.4919999999997,
+            "scoreDelta": -442,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "cleopatra",
+            "id": 2,
+            "yieldDelta": -766.9750000000003,
+            "scoreDelta": 0,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "harunAlRashid",
+            "id": 3,
+            "yieldDelta": 58.41599999999994,
+            "scoreDelta": 44,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "sejongTheGreat",
+            "id": 4,
+            "yieldDelta": 16735.636679999996,
+            "scoreDelta": 2114,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 85211,
+            "leader": "genghisKhan",
+            "id": 5,
+            "yieldDelta": -61.09999999999991,
+            "scoreDelta": 32,
+            "captureDelta": -1,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "mansaMusa",
+            "id": 0,
+            "yieldDelta": -2735.589,
+            "scoreDelta": -347,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "lorenzoDeMedici",
+            "id": 1,
+            "yieldDelta": 181.01000000000005,
+            "scoreDelta": 123,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "justinian",
+            "id": 2,
+            "yieldDelta": 1397.6975000000002,
+            "scoreDelta": 423,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "alexanderTheGreat",
+            "id": 3,
+            "yieldDelta": 329.8409999999999,
+            "scoreDelta": -21,
+            "captureDelta": -1,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "joan",
+            "id": 4,
+            "yieldDelta": -259.5550000000003,
+            "scoreDelta": -187,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 39827,
+            "leader": "qinShiHuang",
+            "id": 5,
+            "yieldDelta": -13162.70645,
+            "scoreDelta": -2928,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "harunAlRashid",
+            "id": 0,
+            "yieldDelta": 401.8525000000001,
+            "scoreDelta": 291,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "sejongTheGreat",
+            "id": 1,
+            "yieldDelta": -708.6200000000003,
+            "scoreDelta": -184,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "genghisKhan",
+            "id": 2,
+            "yieldDelta": 218.0069999999996,
+            "scoreDelta": -178,
+            "captureDelta": -1,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "mehmedTheConqueror",
+            "id": 3,
+            "yieldDelta": -273.89999999999986,
+            "scoreDelta": -111,
+            "captureDelta": -2,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "pachacuti",
+            "id": 4,
+            "yieldDelta": 397.18000000000006,
+            "scoreDelta": 147,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          },
+          {
+            "seed": 67153,
+            "leader": "nezahualcoyotl",
+            "id": 5,
+            "yieldDelta": -648.9525000000003,
+            "scoreDelta": -78,
+            "captureDelta": 0,
+            "aliveBefore": true,
+            "aliveAfter": true
+          }
+        ]
+      }
+    },
+    "leaders": {
+      "alexanderTheGreat": {
+        "baseline": {
+          "meanYield": 1289.535,
+          "medianYield": 1289.535,
+          "atLeast800": 2,
+          "meanScore": 950,
+          "medianScore": 950.0,
+          "meanScience": 139.25,
+          "medianScience": 139.25,
+          "meanCulture": 119.75,
+          "medianCulture": 119.75,
+          "meanTechs": 28,
+          "meanDrafts": 20,
+          "captures": 2,
+          "citiesLost": 0,
+          "unitsLost": 48,
+          "meanMilitary": 66,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 981.0725,
+          "medianYield": 981.0725,
+          "atLeast800": 2,
+          "meanScore": 954.5,
+          "medianScore": 954.5,
+          "meanScience": 151.6875,
+          "medianScience": 151.6875,
+          "meanCulture": 126.185,
+          "medianCulture": 126.185,
+          "meanTechs": 27.5,
+          "meanDrafts": 18,
+          "captures": 3,
+          "citiesLost": 0,
+          "unitsLost": 46,
+          "meanMilitary": 70,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 1063.673,
+          "medianYield": 1063.673,
+          "atLeast800": 2,
+          "meanScore": 882,
+          "medianScore": 882.0,
+          "meanScience": 137.125,
+          "medianScience": 137.125,
+          "meanCulture": 175.43,
+          "medianCulture": 175.43,
+          "meanTechs": 25.5,
+          "meanDrafts": 18,
+          "captures": 2,
+          "citiesLost": 0,
+          "unitsLost": 33,
+          "meanMilitary": 58,
+          "eliminated": 0
+        }
+      },
+      "joan": {
+        "baseline": {
+          "meanYield": 1318.5787500000001,
+          "medianYield": 1318.5787500000001,
+          "atLeast800": 2,
+          "meanScore": 1036,
+          "medianScore": 1036.0,
+          "meanScience": 202.075,
+          "medianScience": 202.075,
+          "meanCulture": 141.0,
+          "medianCulture": 141.0,
+          "meanTechs": 30.5,
+          "meanDrafts": 18.5,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 15,
+          "meanMilitary": 32,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 1264.315,
+          "medianYield": 1264.315,
+          "atLeast800": 2,
+          "meanScore": 978.5,
+          "medianScore": 978.5,
+          "meanScience": 203.225,
+          "medianScience": 203.225,
+          "meanCulture": 190.21,
+          "medianCulture": 190.21,
+          "meanTechs": 30,
+          "meanDrafts": 19.5,
+          "captures": 0,
+          "citiesLost": 2,
+          "unitsLost": 31,
+          "meanMilitary": 40,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 1093.5375,
+          "medianYield": 1093.5375,
+          "atLeast800": 2,
+          "meanScore": 900.5,
+          "medianScore": 900.5,
+          "meanScience": 161.325,
+          "medianScience": 161.325,
+          "meanCulture": 166.96,
+          "medianCulture": 166.96,
+          "meanTechs": 28,
+          "meanDrafts": 19,
+          "captures": 0,
+          "citiesLost": 1,
+          "unitsLost": 24,
+          "meanMilitary": 33,
+          "eliminated": 0
+        }
+      },
+      "qinShiHuang": {
+        "baseline": {
+          "meanYield": 5471.553250000001,
+          "medianYield": 5471.553250000001,
+          "atLeast800": 2,
+          "meanScore": 3245,
+          "medianScore": 3245.0,
+          "meanScience": 1423.3337500000005,
+          "medianScience": 1423.3337500000005,
+          "meanCulture": 735.0200000000001,
+          "medianCulture": 735.0200000000001,
+          "meanTechs": 39.5,
+          "meanDrafts": 26,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 16,
+          "meanMilitary": 52,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 10354.785225,
+          "medianYield": 10354.785225,
+          "atLeast800": 2,
+          "meanScore": 3971,
+          "medianScore": 3971.0,
+          "meanScience": 3116.8717750000005,
+          "medianScience": 3116.8717750000005,
+          "meanCulture": 2458.4102000000003,
+          "medianCulture": 2458.4102000000003,
+          "meanTechs": 44.5,
+          "meanDrafts": 33.5,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 18,
+          "meanMilitary": 57.5,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 3621.1704999999997,
+          "medianYield": 3621.1704999999997,
+          "atLeast800": 2,
+          "meanScore": 2536,
+          "medianScore": 2536.0,
+          "meanScience": 846.2669,
+          "medianScience": 846.2669,
+          "meanCulture": 413.1085999999999,
+          "medianCulture": 413.1085999999999,
+          "meanTechs": 38.5,
+          "meanDrafts": 25,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 22,
+          "meanMilitary": 46.5,
+          "eliminated": 0
+        }
+      },
+      "jayavarmanVII": {
+        "baseline": {
+          "meanYield": 990.595,
+          "medianYield": 990.595,
+          "atLeast800": 2,
+          "meanScore": 944,
+          "medianScore": 944.0,
+          "meanScience": 158.39999999999998,
+          "medianScience": 158.39999999999998,
+          "meanCulture": 112.08,
+          "medianCulture": 112.08,
+          "meanTechs": 26.5,
+          "meanDrafts": 17,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 19,
+          "meanMilitary": 39.5,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 961.7819999999999,
+          "medianYield": 961.7819999999999,
+          "atLeast800": 1,
+          "meanScore": 865,
+          "medianScore": 865.0,
+          "meanScience": 154.05,
+          "medianScience": 154.05,
+          "meanCulture": 106.9,
+          "medianCulture": 106.9,
+          "meanTechs": 26.5,
+          "meanDrafts": 17,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 19,
+          "meanMilitary": 27.5,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 1454.0899999999997,
+          "medianYield": 1454.0899999999997,
+          "atLeast800": 2,
+          "meanScore": 1095,
+          "medianScore": 1095.0,
+          "meanScience": 165.15000000000003,
+          "medianScience": 165.15000000000003,
+          "meanCulture": 185.45,
+          "medianCulture": 185.45,
+          "meanTechs": 27.5,
+          "meanDrafts": 19,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 21,
+          "meanMilitary": 29.5,
+          "eliminated": 0
+        }
+      },
+      "cyrusTheGreat": {
+        "baseline": {
+          "meanYield": 7318.94125,
+          "medianYield": 7318.94125,
+          "atLeast800": 2,
+          "meanScore": 3067,
+          "medianScore": 3067.0,
+          "meanScience": 1671.0497500000006,
+          "medianScience": 1671.0497500000006,
+          "meanCulture": 1078.0379999999998,
+          "medianCulture": 1078.0379999999998,
+          "meanTechs": 40,
+          "meanDrafts": 29,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 11,
+          "meanMilitary": 42.5,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 7813.9464,
+          "medianYield": 7813.9464,
+          "atLeast800": 2,
+          "meanScore": 3507.5,
+          "medianScore": 3507.5,
+          "meanScience": 2066.2089,
+          "medianScience": 2066.2089,
+          "meanCulture": 1378.3200000000002,
+          "medianCulture": 1378.3200000000002,
+          "meanTechs": 43,
+          "meanDrafts": 35,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 9,
+          "meanMilitary": 42,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 6042.2541,
+          "medianYield": 6042.2541,
+          "atLeast800": 2,
+          "meanScore": 2946,
+          "medianScore": 2946.0,
+          "meanScience": 1370.8906000000002,
+          "medianScience": 1370.8906000000002,
+          "meanCulture": 818.17,
+          "medianCulture": 818.17,
+          "meanTechs": 41.5,
+          "meanDrafts": 28,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 11,
+          "meanMilitary": 48,
+          "eliminated": 0
+        }
+      },
+      "cleopatra": {
+        "baseline": {
+          "meanYield": 1967.31,
+          "medianYield": 1967.31,
+          "atLeast800": 2,
+          "meanScore": 915,
+          "medianScore": 915.0,
+          "meanScience": 536.075,
+          "medianScience": 536.075,
+          "meanCulture": 535.14,
+          "medianCulture": 535.14,
+          "meanTechs": 34.5,
+          "meanDrafts": 24.5,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 16,
+          "meanMilitary": 29,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 1772.4049000000002,
+          "medianYield": 1772.4049000000002,
+          "atLeast800": 2,
+          "meanScore": 939.5,
+          "medianScore": 939.5,
+          "meanScience": 699.5040000000001,
+          "medianScience": 699.5040000000001,
+          "meanCulture": 321.96,
+          "medianCulture": 321.96,
+          "meanTechs": 38,
+          "meanDrafts": 22,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 10,
+          "meanMilitary": 26,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 1443.3625,
+          "medianYield": 1443.3625,
+          "atLeast800": 2,
+          "meanScore": 903.5,
+          "medianScore": 903.5,
+          "meanScience": 467.2125,
+          "medianScience": 467.2125,
+          "meanCulture": 289.35,
+          "medianCulture": 289.35,
+          "meanTechs": 32,
+          "meanDrafts": 22.5,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 19,
+          "meanMilitary": 38,
+          "eliminated": 0
+        }
+      },
+      "mehmedTheConqueror": {
+        "baseline": {
+          "meanYield": 2125.54125,
+          "medianYield": 2125.54125,
+          "atLeast800": 2,
+          "meanScore": 1640,
+          "medianScore": 1640.0,
+          "meanScience": 312.46875,
+          "medianScience": 312.46875,
+          "meanCulture": 179.88000000000005,
+          "medianCulture": 179.88000000000005,
+          "meanTechs": 33,
+          "meanDrafts": 19.5,
+          "captures": 9,
+          "citiesLost": 0,
+          "unitsLost": 72,
+          "meanMilitary": 97,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 1072.9125,
+          "medianYield": 1072.9125,
+          "atLeast800": 2,
+          "meanScore": 1276,
+          "medianScore": 1276.0,
+          "meanScience": 225.34749999999997,
+          "medianScience": 225.34749999999997,
+          "meanCulture": 111.08000000000001,
+          "medianCulture": 111.08000000000001,
+          "meanTechs": 32,
+          "meanDrafts": 17,
+          "captures": 8,
+          "citiesLost": 0,
+          "unitsLost": 43,
+          "meanMilitary": 84.5,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 991.24,
+          "medianYield": 991.24,
+          "atLeast800": 2,
+          "meanScore": 1331.5,
+          "medianScore": 1331.5,
+          "meanScience": 135.375,
+          "medianScience": 135.375,
+          "meanCulture": 115.01500000000001,
+          "medianCulture": 115.01500000000001,
+          "meanTechs": 28,
+          "meanDrafts": 19,
+          "captures": 5,
+          "citiesLost": 0,
+          "unitsLost": 72,
+          "meanMilitary": 81,
+          "eliminated": 0
+        }
+      },
+      "pachacuti": {
+        "baseline": {
+          "meanYield": 300.025,
+          "medianYield": 300.025,
+          "atLeast800": 0,
+          "meanScore": 546.5,
+          "medianScore": 546.5,
+          "meanScience": 60.125,
+          "medianScience": 60.125,
+          "meanCulture": 26,
+          "medianCulture": 26.0,
+          "meanTechs": 19.5,
+          "meanDrafts": 12.5,
+          "captures": 0,
+          "citiesLost": 2,
+          "unitsLost": 53,
+          "meanMilitary": 30.5,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 307.76,
+          "medianYield": 307.76,
+          "atLeast800": 0,
+          "meanScore": 468,
+          "medianScore": 468.0,
+          "meanScience": 52.0,
+          "medianScience": 52.0,
+          "meanCulture": 23.5,
+          "medianCulture": 23.5,
+          "meanTechs": 18.5,
+          "meanDrafts": 13,
+          "captures": 0,
+          "citiesLost": 4,
+          "unitsLost": 73,
+          "meanMilitary": 26,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 538.36,
+          "medianYield": 538.36,
+          "atLeast800": 1,
+          "meanScore": 581,
+          "medianScore": 581.0,
+          "meanScience": 65.25,
+          "medianScience": 65.25,
+          "meanCulture": 85.25,
+          "medianCulture": 85.25,
+          "meanTechs": 19,
+          "meanDrafts": 13,
+          "captures": 0,
+          "citiesLost": 1,
+          "unitsLost": 35,
+          "meanMilitary": 28,
+          "eliminated": 0
+        }
+      },
+      "nezahualcoyotl": {
+        "baseline": {
+          "meanYield": 919.8293749999999,
+          "medianYield": 919.8293749999999,
+          "atLeast800": 1,
+          "meanScore": 783,
+          "medianScore": 783.0,
+          "meanScience": 113.088125,
+          "medianScience": 113.088125,
+          "meanCulture": 158.60625,
+          "medianCulture": 158.60625,
+          "meanTechs": 26,
+          "meanDrafts": 17,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 22,
+          "meanMilitary": 20,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 1050.7887500000002,
+          "medianYield": 1050.7887500000002,
+          "atLeast800": 1,
+          "meanScore": 862,
+          "medianScore": 862.0,
+          "meanScience": 151.38500000000002,
+          "medianScience": 151.38500000000002,
+          "meanCulture": 247.33999999999997,
+          "medianCulture": 247.33999999999997,
+          "meanTechs": 28,
+          "meanDrafts": 18,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 21,
+          "meanMilitary": 24.5,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 715.9825,
+          "medianYield": 715.9825,
+          "atLeast800": 1,
+          "meanScore": 866.5,
+          "medianScore": 866.5,
+          "meanScience": 153.5125,
+          "medianScience": 153.5125,
+          "meanCulture": 71.94999999999999,
+          "medianCulture": 71.94999999999999,
+          "meanTechs": 27,
+          "meanDrafts": 15,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 21,
+          "meanMilitary": 26,
+          "eliminated": 0
+        }
+      },
+      "mansaMusa": {
+        "baseline": {
+          "meanYield": 2056.229,
+          "medianYield": 2056.229,
+          "atLeast800": 1,
+          "meanScore": 1105.5,
+          "medianScore": 1105.5,
+          "meanScience": 749.475,
+          "medianScience": 749.475,
+          "meanCulture": 395.81399999999996,
+          "medianCulture": 395.81399999999996,
+          "meanTechs": 28.5,
+          "meanDrafts": 23.5,
+          "captures": 0,
+          "citiesLost": 5,
+          "unitsLost": 55,
+          "meanMilitary": 32.5,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 4486.98,
+          "medianYield": 4486.98,
+          "atLeast800": 2,
+          "meanScore": 1339,
+          "medianScore": 1339.0,
+          "meanScience": 1795.9840000000002,
+          "medianScience": 1795.9840000000002,
+          "meanCulture": 1105.8,
+          "medianCulture": 1105.8,
+          "meanTechs": 35.5,
+          "meanDrafts": 30.5,
+          "captures": 0,
+          "citiesLost": 1,
+          "unitsLost": 30,
+          "meanMilitary": 34.5,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 2158.3455,
+          "medianYield": 2158.3455,
+          "atLeast800": 1,
+          "meanScore": 1060.5,
+          "medianScore": 1060.5,
+          "meanScience": 518.121,
+          "medianScience": 518.121,
+          "meanCulture": 485.87200000000007,
+          "medianCulture": 485.87200000000007,
+          "meanTechs": 30.5,
+          "meanDrafts": 22.5,
+          "captures": 0,
+          "citiesLost": 2,
+          "unitsLost": 54,
+          "meanMilitary": 33,
+          "eliminated": 0
+        }
+      },
+      "lorenzoDeMedici": {
+        "baseline": {
+          "meanYield": 1157.5753999999997,
+          "medianYield": 1157.5753999999997,
+          "atLeast800": 1,
+          "meanScore": 920,
+          "medianScore": 920.0,
+          "meanScience": 302.9694,
+          "medianScience": 302.9694,
+          "meanCulture": 183.64799999999997,
+          "medianCulture": 183.64799999999997,
+          "meanTechs": 27.5,
+          "meanDrafts": 18,
+          "captures": 0,
+          "citiesLost": 2,
+          "unitsLost": 68,
+          "meanMilitary": 17,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 1892.2022,
+          "medianYield": 1892.2022,
+          "atLeast800": 1,
+          "meanScore": 1141.5,
+          "medianScore": 1141.5,
+          "meanScience": 228.62219999999996,
+          "medianScience": 228.62219999999996,
+          "meanCulture": 347.65999999999997,
+          "medianCulture": 347.65999999999997,
+          "meanTechs": 26.5,
+          "meanDrafts": 20.5,
+          "captures": 0,
+          "citiesLost": 1,
+          "unitsLost": 36,
+          "meanMilitary": 39.5,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 1771.7525,
+          "medianYield": 1771.7525,
+          "atLeast800": 1,
+          "meanScore": 959,
+          "medianScore": 959.0,
+          "meanScience": 512.6375,
+          "medianScience": 512.6375,
+          "meanCulture": 503.93,
+          "medianCulture": 503.93,
+          "meanTechs": 29,
+          "meanDrafts": 23.5,
+          "captures": 0,
+          "citiesLost": 1,
+          "unitsLost": 24,
+          "meanMilitary": 26,
+          "eliminated": 0
+        }
+      },
+      "justinian": {
+        "baseline": {
+          "meanYield": 1079.1681250000001,
+          "medianYield": 1079.1681250000001,
+          "atLeast800": 1,
+          "meanScore": 995,
+          "medianScore": 995.0,
+          "meanScience": 226.33812500000002,
+          "medianScience": 226.33812500000002,
+          "meanCulture": 154.79250000000002,
+          "medianCulture": 154.79250000000002,
+          "meanTechs": 29.5,
+          "meanDrafts": 17,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 16,
+          "meanMilitary": 30.5,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 1387.0045,
+          "medianYield": 1387.0045,
+          "atLeast800": 2,
+          "meanScore": 1056.5,
+          "medianScore": 1056.5,
+          "meanScience": 297.13,
+          "medianScience": 297.13,
+          "meanCulture": 153.71999999999997,
+          "medianCulture": 153.71999999999997,
+          "meanTechs": 32.5,
+          "meanDrafts": 18,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 15,
+          "meanMilitary": 26.5,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 1757.15075,
+          "medianYield": 1757.15075,
+          "atLeast800": 2,
+          "meanScore": 1297.5,
+          "medianScore": 1297.5,
+          "meanScience": 405.96124999999995,
+          "medianScience": 405.96124999999995,
+          "meanCulture": 228.21250000000003,
+          "medianCulture": 228.21250000000003,
+          "meanTechs": 33,
+          "meanDrafts": 20.5,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 20,
+          "meanMilitary": 28.5,
+          "eliminated": 0
+        }
+      },
+      "harunAlRashid": {
+        "baseline": {
+          "meanYield": 642.0825,
+          "medianYield": 642.0825,
+          "atLeast800": 1,
+          "meanScore": 641,
+          "medianScore": 641.0,
+          "meanScience": 103.7625,
+          "medianScience": 103.7625,
+          "meanCulture": 113.3,
+          "medianCulture": 113.3,
+          "meanTechs": 26.5,
+          "meanDrafts": 16,
+          "captures": 0,
+          "citiesLost": 4,
+          "unitsLost": 22,
+          "meanMilitary": 10.5,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 530.1857500000001,
+          "medianYield": 530.1857500000001,
+          "atLeast800": 1,
+          "meanScore": 591.5,
+          "medianScore": 591.5,
+          "meanScience": 112.05775,
+          "medianScience": 112.05775,
+          "meanCulture": 116.52800000000002,
+          "medianCulture": 116.52800000000002,
+          "meanTechs": 26,
+          "meanDrafts": 16.5,
+          "captures": 0,
+          "citiesLost": 5,
+          "unitsLost": 32,
+          "meanMilitary": 19.5,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 760.32,
+          "medianYield": 760.32,
+          "atLeast800": 1,
+          "meanScore": 759,
+          "medianScore": 759.0,
+          "meanScience": 142.9,
+          "medianScience": 142.9,
+          "meanCulture": 87.5,
+          "medianCulture": 87.5,
+          "meanTechs": 26.5,
+          "meanDrafts": 16,
+          "captures": 0,
+          "citiesLost": 2,
+          "unitsLost": 46,
+          "meanMilitary": 15.5,
+          "eliminated": 0
+        }
+      },
+      "sejongTheGreat": {
+        "baseline": {
+          "meanYield": 2947.6121000000003,
+          "medianYield": 2947.6121000000003,
+          "atLeast800": 2,
+          "meanScore": 2015.5,
+          "medianScore": 2015.5,
+          "meanScience": 324.90000000000003,
+          "medianScience": 324.90000000000003,
+          "meanCulture": 423.9720000000001,
+          "medianCulture": 423.9720000000001,
+          "meanTechs": 32.5,
+          "meanDrafts": 24.5,
+          "captures": 0,
+          "citiesLost": 1,
+          "unitsLost": 33,
+          "meanMilitary": 57.5,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 5257.40762,
+          "medianYield": 5257.40762,
+          "atLeast800": 2,
+          "meanScore": 2439.5,
+          "medianScore": 2439.5,
+          "meanScience": 1048.6263000000004,
+          "medianScience": 1048.6263000000004,
+          "meanCulture": 1072.4162000000001,
+          "medianCulture": 1072.4162000000001,
+          "meanTechs": 37,
+          "meanDrafts": 27.5,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 21,
+          "meanMilitary": 36.5,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 13270.915959999998,
+          "medianYield": 13270.915959999998,
+          "atLeast800": 2,
+          "meanScore": 3404.5,
+          "medianScore": 3404.5,
+          "meanScience": 4336.825309999999,
+          "medianScience": 4336.825309999999,
+          "meanCulture": 4093.0228124999994,
+          "medianCulture": 4093.0228124999994,
+          "meanTechs": 41.5,
+          "meanDrafts": 31,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 21,
+          "meanMilitary": 32,
+          "eliminated": 0
+        }
+      },
+      "genghisKhan": {
+        "baseline": {
+          "meanYield": 1205.79875,
+          "medianYield": 1205.79875,
+          "atLeast800": 1,
+          "meanScore": 1185.5,
+          "medianScore": 1185.5,
+          "meanScience": 256.49375000000003,
+          "medianScience": 256.49375000000003,
+          "meanCulture": 134.4,
+          "medianCulture": 134.4,
+          "meanTechs": 30.5,
+          "meanDrafts": 17,
+          "captures": 3,
+          "citiesLost": 0,
+          "unitsLost": 32,
+          "meanMilitary": 66,
+          "eliminated": 0
+        },
+        "war-losses": {
+          "meanYield": 1408.6425,
+          "medianYield": 1408.6425,
+          "atLeast800": 1,
+          "meanScore": 1283.5,
+          "medianScore": 1283.5,
+          "meanScience": 157.275,
+          "medianScience": 157.275,
+          "meanCulture": 147.6025,
+          "medianCulture": 147.6025,
+          "meanTechs": 28.5,
+          "meanDrafts": 17.5,
+          "captures": 2,
+          "citiesLost": 0,
+          "unitsLost": 40,
+          "meanMilitary": 60,
+          "eliminated": 0
+        },
+        "ranked-attacks": {
+          "meanYield": 1487.096,
+          "medianYield": 1487.096,
+          "atLeast800": 1,
+          "meanScore": 1210.5,
+          "medianScore": 1210.5,
+          "meanScience": 271.0,
+          "medianScience": 271.0,
+          "meanCulture": 186.94599999999997,
+          "medianCulture": 186.94599999999997,
+          "meanTechs": 29,
+          "meanDrafts": 18,
+          "captures": 0,
+          "citiesLost": 0,
+          "unitsLost": 33,
+          "meanMilitary": 64,
+          "eliminated": 0
+        }
+      }
+    },
+    "finalOutcomes": {
+      "baseline": [
+        {
+          "seed": 72839,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 0,
+          "declarations": 7,
+          "acceptedPeaces": 6
+        },
+        {
+          "seed": 48017,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 5,
+          "declarations": 8,
+          "acceptedPeaces": 3
+        },
+        {
+          "seed": 85211,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 0,
+          "declarations": 6,
+          "acceptedPeaces": 5
+        },
+        {
+          "seed": 39827,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 2,
+          "declarations": 5,
+          "acceptedPeaces": 2
+        },
+        {
+          "seed": 67153,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 7,
+          "declarations": 11,
+          "acceptedPeaces": 4
+        }
+      ],
+      "war-losses": [
+        {
+          "seed": 72839,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 1,
+          "declarations": 4,
+          "acceptedPeaces": 3
+        },
+        {
+          "seed": 48017,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 4,
+          "declarations": 5,
+          "acceptedPeaces": 3
+        },
+        {
+          "seed": 85211,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 1,
+          "declarations": 3,
+          "acceptedPeaces": 2
+        },
+        {
+          "seed": 39827,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 2,
+          "declarations": 4,
+          "acceptedPeaces": 1
+        },
+        {
+          "seed": 67153,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 5,
+          "declarations": 8,
+          "acceptedPeaces": 0
+        }
+      ],
+      "ranked-attacks": [
+        {
+          "seed": 72839,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 1,
+          "declarations": 4,
+          "acceptedPeaces": 3
+        },
+        {
+          "seed": 48017,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 3,
+          "declarations": 5,
+          "acceptedPeaces": 1
+        },
+        {
+          "seed": 85211,
+          "turn": 100,
+          "winner": "sejongTheGreat",
+          "warnings": 0,
+          "captures": 0,
+          "declarations": 6,
+          "acceptedPeaces": 4
+        },
+        {
+          "seed": 39827,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 1,
+          "declarations": 3,
+          "acceptedPeaces": 2
+        },
+        {
+          "seed": 67153,
+          "turn": 100,
+          "winner": null,
+          "warnings": 0,
+          "captures": 2,
+          "declarations": 6,
+          "acceptedPeaces": 0
+        }
+      ]
+    }
+  },
+  "firstAttackDifferences": [
+    {
+      "seed": 72839,
+      "turn": 60,
+      "sharedCommands": 2248,
+      "choices": [
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 0,
+            "unitId": 369,
+            "target": {
+              "col": 42,
+              "row": 22
+            }
+          },
+          "unit": {
+            "type": "bowman",
+            "hp": 73,
+            "col": 42,
+            "row": 24
+          },
+          "preview": {
+            "ok": true,
+            "kind": "ranged",
+            "attackerId": 369,
+            "defenderUnitId": 436,
+            "defenderCityId": null,
+            "attackerName": "Bowman",
+            "defenderName": "Swordsman",
+            "attackerStrength": 38,
+            "defenderStrength": 37,
+            "attackerLines": [
+              {
+                "source": "Bowman",
+                "amount": 28
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              },
+              {
+                "source": "Veteran",
+                "amount": 3
+              },
+              {
+                "source": "Order \u00b7 Blooded Spears",
+                "amount": 2
+              },
+              {
+                "source": "Leader \u00b7 The Unbroken Charge",
+                "amount": 3
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Swordsman",
+                "amount": 35
+              },
+              {
+                "source": "Hills",
+                "amount": 2
+              }
+            ],
+            "terrainBonus": 2,
+            "fortifyBonus": 0,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Veteran",
+                "side": "attacker",
+                "amount": 3
+              },
+              {
+                "source": "Order \u00b7 Blooded Spears",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Leader \u00b7 The Unbroken Charge",
+                "side": "attacker",
+                "amount": 3
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 31,
+            "damageToAttacker": 0,
+            "damageToDefenderMin": 25,
+            "damageToDefenderMax": 37,
+            "damageToAttackerMin": 0,
+            "damageToAttackerMax": 0,
+            "attackerHp": 73,
+            "attackerMaxHp": 100,
+            "defenderHp": 100,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        },
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 0,
+            "unitId": 369,
+            "target": {
+              "col": 43,
+              "row": 22
+            }
+          },
+          "unit": {
+            "type": "bowman",
+            "hp": 73,
+            "col": 42,
+            "row": 24
+          },
+          "preview": {
+            "ok": true,
+            "kind": "ranged",
+            "attackerId": 369,
+            "defenderUnitId": 30,
+            "defenderCityId": null,
+            "attackerName": "Bowman",
+            "defenderName": "Warrior",
+            "attackerStrength": 38,
+            "defenderStrength": 28,
+            "attackerLines": [
+              {
+                "source": "Bowman",
+                "amount": 28
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              },
+              {
+                "source": "Veteran",
+                "amount": 3
+              },
+              {
+                "source": "Order \u00b7 Blooded Spears",
+                "amount": 2
+              },
+              {
+                "source": "Leader \u00b7 The Unbroken Charge",
+                "amount": 3
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              },
+              {
+                "source": "Hills",
+                "amount": 2
+              },
+              {
+                "source": "Fortified",
+                "amount": 6
+              }
+            ],
+            "terrainBonus": 2,
+            "fortifyBonus": 6,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Veteran",
+                "side": "attacker",
+                "amount": 3
+              },
+              {
+                "source": "Order \u00b7 Blooded Spears",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Leader \u00b7 The Unbroken Charge",
+                "side": "attacker",
+                "amount": 3
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 45,
+            "damageToAttacker": 0,
+            "damageToDefenderMin": 36,
+            "damageToDefenderMax": 54,
+            "damageToAttackerMin": 0,
+            "damageToAttackerMax": 0,
+            "attackerHp": 73,
+            "attackerMaxHp": 100,
+            "defenderHp": 96,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        }
+      ]
+    },
+    {
+      "seed": 48017,
+      "turn": 50,
+      "sharedCommands": 1454,
+      "choices": [
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 3,
+            "unitId": 170,
+            "target": {
+              "col": 39,
+              "row": 26
+            }
+          },
+          "unit": {
+            "type": "warrior",
+            "hp": 52,
+            "col": 39,
+            "row": 25
+          },
+          "preview": {
+            "ok": true,
+            "kind": "melee",
+            "attackerId": 170,
+            "defenderUnitId": 277,
+            "defenderCityId": null,
+            "attackerName": "Warrior",
+            "defenderName": "Spearman",
+            "attackerStrength": 26,
+            "defenderStrength": 25,
+            "attackerLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              },
+              {
+                "source": "Veteran",
+                "amount": 3
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "amount": 1
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Spearman",
+                "amount": 25
+              }
+            ],
+            "terrainBonus": 0,
+            "fortifyBonus": 0,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Veteran",
+                "side": "attacker",
+                "amount": 3
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "side": "attacker",
+                "amount": 1
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 31,
+            "damageToAttacker": 29,
+            "damageToDefenderMin": 25,
+            "damageToDefenderMax": 37,
+            "damageToAttackerMin": 23,
+            "damageToAttackerMax": 35,
+            "attackerHp": 52,
+            "attackerMaxHp": 100,
+            "defenderHp": 100,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        },
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 3,
+            "unitId": 170,
+            "target": {
+              "col": 40,
+              "row": 26
+            }
+          },
+          "unit": {
+            "type": "warrior",
+            "hp": 52,
+            "col": 39,
+            "row": 25
+          },
+          "preview": {
+            "ok": true,
+            "kind": "melee",
+            "attackerId": 170,
+            "defenderUnitId": 30,
+            "defenderCityId": null,
+            "attackerName": "Warrior",
+            "defenderName": "Warrior",
+            "attackerStrength": 26,
+            "defenderStrength": 23,
+            "attackerLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              },
+              {
+                "source": "Veteran",
+                "amount": 3
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "amount": 1
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              },
+              {
+                "source": "Fortified",
+                "amount": 3
+              }
+            ],
+            "terrainBonus": 0,
+            "fortifyBonus": 3,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Veteran",
+                "side": "attacker",
+                "amount": 3
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "side": "attacker",
+                "amount": 1
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 25,
+            "damageToAttacker": 27,
+            "damageToDefenderMin": 25,
+            "damageToDefenderMax": 25,
+            "damageToAttackerMin": 21,
+            "damageToAttackerMax": 32,
+            "attackerHp": 52,
+            "attackerMaxHp": 100,
+            "defenderHp": 25,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        }
+      ]
+    },
+    {
+      "seed": 85211,
+      "turn": 41,
+      "sharedCommands": 831,
+      "choices": [
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 1,
+            "unitId": 197,
+            "target": {
+              "col": 43,
+              "row": 31
+            }
+          },
+          "unit": {
+            "type": "archer",
+            "hp": 100,
+            "col": 43,
+            "row": 33
+          },
+          "preview": {
+            "ok": true,
+            "kind": "ranged",
+            "attackerId": 197,
+            "defenderUnitId": 169,
+            "defenderCityId": null,
+            "attackerName": "Archer",
+            "defenderName": "Spearman",
+            "attackerStrength": 22,
+            "defenderStrength": 27,
+            "attackerLines": [
+              {
+                "source": "Archer",
+                "amount": 20
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Spearman",
+                "amount": 25
+              },
+              {
+                "source": "Hills",
+                "amount": 2
+              }
+            ],
+            "terrainBonus": 2,
+            "fortifyBonus": 0,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 25,
+            "damageToAttacker": 0,
+            "damageToDefenderMin": 20,
+            "damageToDefenderMax": 29,
+            "damageToAttackerMin": 0,
+            "damageToAttackerMax": 0,
+            "attackerHp": 100,
+            "attackerMaxHp": 100,
+            "defenderHp": 49,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        },
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 1,
+            "unitId": 197,
+            "target": {
+              "col": 44,
+              "row": 32
+            }
+          },
+          "unit": {
+            "type": "archer",
+            "hp": 100,
+            "col": 43,
+            "row": 33
+          },
+          "preview": {
+            "ok": true,
+            "kind": "ranged",
+            "attackerId": 197,
+            "defenderUnitId": 101,
+            "defenderCityId": null,
+            "attackerName": "Archer",
+            "defenderName": "Warrior",
+            "attackerStrength": 22,
+            "defenderStrength": 20,
+            "attackerLines": [
+              {
+                "source": "Archer",
+                "amount": 20
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              }
+            ],
+            "terrainBonus": 0,
+            "fortifyBonus": 0,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 32,
+            "damageToAttacker": 0,
+            "damageToDefenderMin": 26,
+            "damageToDefenderMax": 39,
+            "damageToAttackerMin": 0,
+            "damageToAttackerMax": 0,
+            "attackerHp": 100,
+            "attackerMaxHp": 100,
+            "defenderHp": 45,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        }
+      ]
+    },
+    {
+      "seed": 39827,
+      "turn": 48,
+      "sharedCommands": 1282,
+      "choices": [
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 0,
+            "unitId": 157,
+            "target": {
+              "col": 48,
+              "row": 51
+            }
+          },
+          "unit": {
+            "type": "warrior",
+            "hp": 73,
+            "col": 49,
+            "row": 51
+          },
+          "preview": {
+            "ok": true,
+            "kind": "melee",
+            "attackerId": 157,
+            "defenderUnitId": 266,
+            "defenderCityId": null,
+            "attackerName": "Warrior",
+            "defenderName": "Spearman",
+            "attackerStrength": 23,
+            "defenderStrength": 25,
+            "attackerLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "amount": 1
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Spearman",
+                "amount": 25
+              }
+            ],
+            "terrainBonus": 0,
+            "fortifyBonus": 0,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "side": "attacker",
+                "amount": 1
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 28,
+            "damageToAttacker": 32,
+            "damageToDefenderMin": 22,
+            "damageToDefenderMax": 33,
+            "damageToAttackerMin": 26,
+            "damageToAttackerMax": 39,
+            "attackerHp": 73,
+            "attackerMaxHp": 100,
+            "defenderHp": 77,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        },
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 0,
+            "unitId": 157,
+            "target": {
+              "col": 49,
+              "row": 50
+            }
+          },
+          "unit": {
+            "type": "warrior",
+            "hp": 73,
+            "col": 49,
+            "row": 51
+          },
+          "preview": {
+            "ok": true,
+            "kind": "melee",
+            "attackerId": 157,
+            "defenderUnitId": 21,
+            "defenderCityId": null,
+            "attackerName": "Warrior",
+            "defenderName": "Warrior",
+            "attackerStrength": 23,
+            "defenderStrength": 20,
+            "attackerLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "amount": 1
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              }
+            ],
+            "terrainBonus": 0,
+            "fortifyBonus": 0,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "side": "attacker",
+                "amount": 1
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 24,
+            "damageToAttacker": 27,
+            "damageToDefenderMin": 24,
+            "damageToDefenderMax": 24,
+            "damageToAttackerMin": 21,
+            "damageToAttackerMax": 32,
+            "attackerHp": 73,
+            "attackerMaxHp": 100,
+            "defenderHp": 24,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        }
+      ]
+    },
+    {
+      "seed": 67153,
+      "turn": 54,
+      "sharedCommands": 1858,
+      "choices": [
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 5,
+            "unitId": 313,
+            "target": {
+              "col": 28,
+              "row": 37
+            }
+          },
+          "unit": {
+            "type": "warrior",
+            "hp": 46,
+            "col": 29,
+            "row": 36
+          },
+          "preview": {
+            "ok": true,
+            "kind": "melee",
+            "attackerId": 313,
+            "defenderUnitId": 340,
+            "defenderCityId": null,
+            "attackerName": "Warrior",
+            "defenderName": "Spearman",
+            "attackerStrength": 27,
+            "defenderStrength": 25,
+            "attackerLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              },
+              {
+                "source": "Government \u00b7 War Chief",
+                "amount": 4
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "amount": 1
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Spearman",
+                "amount": 25
+              }
+            ],
+            "terrainBonus": 0,
+            "fortifyBonus": 0,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Government \u00b7 War Chief",
+                "side": "attacker",
+                "amount": 4
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "side": "attacker",
+                "amount": 1
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 32,
+            "damageToAttacker": 28,
+            "damageToDefenderMin": 26,
+            "damageToDefenderMax": 39,
+            "damageToAttackerMin": 22,
+            "damageToAttackerMax": 33,
+            "attackerHp": 46,
+            "attackerMaxHp": 100,
+            "defenderHp": 70,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        },
+        {
+          "command": {
+            "type": "attack",
+            "playerId": 5,
+            "unitId": 313,
+            "target": {
+              "col": 29,
+              "row": 37
+            }
+          },
+          "unit": {
+            "type": "warrior",
+            "hp": 46,
+            "col": 29,
+            "row": 36
+          },
+          "preview": {
+            "ok": true,
+            "kind": "melee",
+            "attackerId": 313,
+            "defenderUnitId": 35,
+            "defenderCityId": null,
+            "attackerName": "Warrior",
+            "defenderName": "Warrior",
+            "attackerStrength": 27,
+            "defenderStrength": 23,
+            "attackerLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              },
+              {
+                "source": "Against barbarians",
+                "amount": 2
+              },
+              {
+                "source": "Government \u00b7 War Chief",
+                "amount": 4
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "amount": 1
+              }
+            ],
+            "defenderLines": [
+              {
+                "source": "Warrior",
+                "amount": 20
+              },
+              {
+                "source": "Fortified",
+                "amount": 3
+              }
+            ],
+            "terrainBonus": 0,
+            "fortifyBonus": 3,
+            "bonuses": [
+              {
+                "source": "Against barbarians",
+                "side": "attacker",
+                "amount": 2
+              },
+              {
+                "source": "Government \u00b7 War Chief",
+                "side": "attacker",
+                "amount": 4
+              },
+              {
+                "source": "Obsidian \u00b7 in battle",
+                "side": "attacker",
+                "amount": 1
+              }
+            ],
+            "acrossRiver": false,
+            "damageToDefender": 35,
+            "damageToAttacker": 26,
+            "damageToDefenderMin": 28,
+            "damageToDefenderMax": 42,
+            "damageToAttackerMin": 20,
+            "damageToAttackerMax": 31,
+            "attackerHp": 46,
+            "attackerMaxHp": 100,
+            "defenderHp": 55,
+            "defenderMaxHp": 100,
+            "capturesUnit": false,
+            "plundersUnit": false,
+            "capturesCity": false,
+            "capturesCityOnKill": false
+          }
+        }
+      ]
+    }
+  ],
+  "replayChecks": {
+    "games": 15,
+    "allRecordedMetricsMatched": true,
+    "allDiagnosticReadsPreservedState": true
+  },
+  "armyExamples": [
+    {
+      "variant": "baseline",
+      "seed": 48017,
+      "seats": [
+        {
+          "id": 0,
+          "leader": "mehmedTheConqueror",
+          "roster": {
+            "legionary": 16,
+            "compositeBowman": 9,
+            "trader": 4,
+            "swordsman": 28,
+            "spearWall": 24,
+            "warrior": 21,
+            "worker": 4,
+            "spearman": 3,
+            "scout": 2
+          },
+          "unitsGained": {
+            "warrior": 75,
+            "settler": 11,
+            "scout": 12,
+            "worker": 16,
+            "archer": 12,
+            "spearman": 32,
+            "prophet": 2
+          },
+          "exchanges": [
+            {
+              "enemy": "pachacuti",
+              "exchange": {
+                "killed": 7,
+                "lost": 10,
+                "won": 0,
+                "given": 0,
+                "since": 82
+              }
+            },
+            {
+              "enemy": "nezahualcoyotl",
+              "exchange": {
+                "killed": 1,
+                "lost": 0,
+                "won": 0,
+                "given": 0,
+                "since": 94
+              }
+            },
+            {
+              "enemy": "mansaMusa",
+              "exchange": {
+                "killed": 16,
+                "lost": 10,
+                "won": 2,
+                "given": 0,
+                "since": 82
+              }
+            },
+            {
+              "enemy": "lorenzoDeMedici",
+              "exchange": {
+                "killed": 1,
+                "lost": 0,
+                "won": 0,
+                "given": 0,
+                "since": 82
+              }
+            },
+            {
+              "enemy": "justinian",
+              "exchange": {
+                "killed": 2,
+                "lost": 1,
+                "won": 0,
+                "given": 0,
+                "since": 82
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "war-losses",
+      "seed": 48017,
+      "seats": [
+        {
+          "id": 0,
+          "leader": "mehmedTheConqueror",
+          "roster": {
+            "legionary": 5,
+            "compositeBowman": 21,
+            "swordsman": 14,
+            "trader": 5,
+            "spearWall": 4,
+            "spearman": 8,
+            "warrior": 30,
+            "worker": 4,
+            "horseman": 3,
+            "settler": 1,
+            "scout": 1
+          },
+          "unitsGained": {
+            "warrior": 53,
+            "settler": 10,
+            "scout": 7,
+            "worker": 17,
+            "archer": 24,
+            "spearman": 13,
+            "prophet": 2,
+            "chariot": 2,
+            "horseman": 1
+          },
+          "exchanges": [
+            {
+              "enemy": "pachacuti",
+              "exchange": {
+                "killed": 31,
+                "lost": 1,
+                "won": 3,
+                "given": 0,
+                "since": 82
+              }
+            },
+            {
+              "enemy": "nezahualcoyotl",
+              "exchange": null
+            },
+            {
+              "enemy": "mansaMusa",
+              "exchange": null
+            },
+            {
+              "enemy": "lorenzoDeMedici",
+              "exchange": {
+                "killed": 3,
+                "lost": 2,
+                "won": 0,
+                "given": 0,
+                "since": 82
+              }
+            },
+            {
+              "enemy": "justinian",
+              "exchange": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "ranked-attacks",
+      "seed": 48017,
+      "seats": [
+        {
+          "id": 0,
+          "leader": "mehmedTheConqueror",
+          "roster": {
+            "legionary": 56,
+            "scout": 3,
+            "compositeBowman": 18,
+            "trader": 2,
+            "spearWall": 18,
+            "horseman": 3,
+            "worker": 2
+          },
+          "unitsGained": {
+            "warrior": 69,
+            "settler": 10,
+            "scout": 5,
+            "worker": 14,
+            "archer": 28,
+            "spearman": 23,
+            "chariot": 2,
+            "horseman": 1
+          },
+          "exchanges": [
+            {
+              "enemy": "pachacuti",
+              "exchange": {
+                "killed": 10,
+                "lost": 2,
+                "won": 0,
+                "given": 0,
+                "since": 82
+              }
+            },
+            {
+              "enemy": "nezahualcoyotl",
+              "exchange": null
+            },
+            {
+              "enemy": "mansaMusa",
+              "exchange": {
+                "killed": 25,
+                "lost": 16,
+                "won": 2,
+                "given": 0,
+                "since": 82
+              }
+            },
+            {
+              "enemy": "lorenzoDeMedici",
+              "exchange": {
+                "killed": 0,
+                "lost": 0,
+                "won": 0,
+                "given": 0,
+                "since": 82
+              }
+            },
+            {
+              "enemy": "justinian",
+              "exchange": {
+                "killed": 1,
+                "lost": 1,
+                "won": 0,
+                "given": 0,
+                "since": 82
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

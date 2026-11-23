@@ -56,8 +56,8 @@ It shows the original scores and the command sent to the real board.
    already checked, and the research changes already used. It reopens spending
    once because it reads new purchase priorities from the live board. All other
    phases keep their previous status.
-5. **Memories.** The seat's war windows and focus rows from its copy join the
-   real state's (`mergeSeatMemory`) after its plan, before any live sitting.
+5. **Memories.** The seat's focus choices return to the real state through
+   `mergeSeatMemory`. War losses come from the saved state and need no bot memory.
 6. **End Turn.** A plan that ran to its end sends the seat's End Turn and asks
    nothing more.
 
@@ -263,7 +263,7 @@ until the tuner's first run):
   `weights.techByAge` (was `weights.tech`).
 - **The war's why**: `war.targetValueWeight` (the target town's `explainSite`
   reading against `weights.city`, folded into the declaration),
-  `war.goalTowns` (towns taken this war at which a winning seat offers a white
+  `war.goalTowns` (recent captures from this opponent at which a winning seat offers a white
   peace), `war.aheadMargin`, `war.siegePiecesWanted`, `war.tributeShare`,
   `war.siegeWithin`.
 - **The levy's shape**: `military.levyCapMultiple`, `military.levySurplusSlope`

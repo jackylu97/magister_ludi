@@ -14,7 +14,8 @@ import { describe, expect, it } from 'vitest';
 import { answerAudience, driveBots } from '../../src/ai/driver';
 import { dealMemorySize } from '../../src/ai/dealMemory';
 import { readHarnessMemory } from '../../src/ai/harnessMemory';
-import { warLedgerSize } from '../../src/ai/warLedger';
+import { readWarExchange } from '../../src/ai/warLedger';
+import { recordWarLoss } from '../../src/sim/weariness';
 import { type Command } from '../../src/sim/commands';
 import { type Game, dispatch } from '../../src/sim/game';
 import { bumpRevision, playerById } from '../../src/sim/state';
@@ -154,21 +155,24 @@ describe('the audience through the worker', () => {
     expect(digestOfState(answerThere.state)).toBe(digestOfState(answerHere.state));
   });
 
-  it('brings back the war window the bot opened by reading it', () => {
+  it('uses the same saved war losses in the worker and on the page', () => {
     const answerHere = table();
     const answerThere = table();
     for (const g of [answerHere, answerThere]) {
       openWar(g.state, 0, 1);
+      recordWarLoss(g.state, 1, 0, 'unit');
+      expect(readWarExchange(g.state, g.state.players[1]!, g.state.players[0]!)?.lost).toBe(1);
       expect(dispatch(g, { type: 'proposePeace', playerId: 0, targetId: 1 }).ok).toBe(true);
     }
-    answerAudience(answerHere, { seatId: 1, askerId: 0 });
+    const here = answerAudience(answerHere, { seatId: 1, askerId: 0 });
     const reply = structuredClone(
       answerBotWorker(structuredClone({ ...driveRequest(answerThere), kind: 'audience', seatId: 1, askerId: 0 })),
     );
     if (reply.kind !== 'answered') throw new Error('the worker did not answer');
     expect(applyTwinReply(answerThere, reply)).toBe('applied');
     expect(atWar(answerThere.state, 0, 1)).toBe(false);
-    expect(warLedgerSize(answerThere.state)).toBeGreaterThan(0);
+    expect(reply.decision).toEqual(here);
+    expect(digestOfState(answerThere.state)).toBe(digestOfState(answerHere.state));
     expect(readHarnessMemory(answerThere.state)).toEqual(readHarnessMemory(answerHere.state));
   });
 });
@@ -261,7 +265,7 @@ const AI_SOURCES = import.meta.glob('../../src/ai/*.ts', { query: '?raw', import
 describe('the bots’ memories beside the state', () => {
   it('carries bot memory to the worker and rebuilds board caches when their inputs change', () => {
     // The driver carries memories that affect a decision. A copy can rebuild town folds and worker advice from its board.
-    const carried = ['dealMemory.ts', 'focusRoll.ts', 'musterRoll.ts', 'warLedger.ts'];
+    const carried = ['dealMemory.ts', 'focusRoll.ts', 'musterRoll.ts'];
     const caches = ['townFolds.ts', 'bot.ts'];
     const found: string[] = [];
     for (const [path, text] of Object.entries(AI_SOURCES)) {

@@ -828,23 +828,19 @@ swordsmen wait for the bows.
 The user: *"the ai should have some idea of how many units it's lost to you vs
 how many it's killed, and factor that into it's decision for peace."*
 
-The simulation already counts the pieces — `Player.unitsKilled` and
-`unitsLost`, written at the two seams in `applyCombat` where a piece leaves the
-board, the wild excluded — and counts them as **careers**. A peace decision
-wants the window since *this* war began, and nothing on the board carries one.
-`src/ai/warLedger.ts` opens the window from the bot's side, the way the refusal
-memory does (ruling (ggg)): a `WeakMap` on the live state, the career counts of
-the first look becoming that war's zero, keyed by the pair and the declaration's
-own turn. No schema, no save, no migration; a save loaded mid-war reads the
-exchange as even for a turn and goes on from there. The towns need no baseline —
-`City.capturedOn` is an absolute stamp, so a town taken on or after the
-declaration and standing in one of the two hands is a town this war moved.
+`src/ai/warLedger.ts` reads `Player.warLosses`, the saved records used for war
+weariness. Each record names the opponent, turn and loss kind. The bot counts
+unit losses and town captures against this opponent only. Losses to barbarians
+or another empire do not enter the reading.
 
-**If the exchange is ever wanted as a fact of the world** rather than as a
-bot's reading — a war screen showing the butcher's bill, say — the field to
-propose is a pair of counters on `WarState` (`killedA`/`killedB`, raised in
-`applyCombat` beside the lifetime ones), which is a schema decision and
-`src/sim/`'s to make.
+The window starts at the later of this war's declaration and the oldest turn
+retained by `lossTurnsCounted()`. It is a recent exchange, not the whole war.
+Town counts describe capture events in that window, not current ownership.
+Both sides can have a town loss if they capture and recapture a city.
+
+This is a pure reading. Loading a save or copying a board to a worker preserves
+it. There is no separate bot ledger to initialize or transport. The broader
+warscore still uses lifetime totals; that separate limitation remains.
 
 The reading is `explainStanding` (`src/ai/diplomacy.ts`): the war's cost against
 its takings, pieces and towns at the warscore's own weights
