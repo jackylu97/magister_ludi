@@ -3526,3 +3526,27 @@ barbarians, lets have them start with 1 unit instead of 2."
   wrote for that tier.
 - The roll changes every seeded game, so the recorded replays need a new
   recording. Owner: Astra.
+
+## Barbarians: a slower muster and a reach of eight hexes (ruled 2026-11-22)
+
+The user: "What would be a good nerf for barbs, i think they're too strong
+currently", then: "how about this: start with 1 unit, on the fifth turn and
+after, spawn a new unit with 50% likelihood. Lets give camps a maximum radius
+of 8 that it will attack." The user gave this build to the Claude session
+("you can implement this one, astra is working on bot logic").
+
+- **A camp starts with one unit.** Built, save version 262.
+- **The muster is a coin.** A camp's muster comes round every
+  `unitEveryTurns` (5) turns, as today. At each one, the camp trains a unit
+  with a chance of `musterChancePercent` (50), rolled on `state.rng`. So a
+  camp gains a unit about every ten turns. Read this way because the user's
+  aim is a weaker wild; a roll on every single turn after the fifth would
+  make more units than today.
+- **A camp attacks only within `campAttackRadius` (8) hexes of itself.** Its
+  raiders choose towns, improvements and units to attack only inside that
+  distance, measured from their own camp. A raider with nothing in reach
+  stays near its camp. A unit whose camp is gone keeps the radius around the
+  hex where the camp stood, or goes back to the older rule: the build decides
+  and says which.
+- Unchanged: the cap of two guards a camp, two raiders a camp across the
+  world, the +2 strength, and difficulty tier 3's wave.
