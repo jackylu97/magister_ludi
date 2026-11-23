@@ -16,6 +16,28 @@ This is a design review. It changes no data, no code and no test. No test, bot g
 
 ---
 
+## The user's comments, 2026-11-23
+
+The user commented on the review page (9 comments) and wrote in chat. **Where this section and the text below disagree, this section is right.** Nothing is built yet.
+
+The user in chat: "i think all the points it brought up were very good, but the revisions didn't really address them. I added comments, I think the religious beliefs need a bit more synergy with the devotion deck and are not very impactful, could you have the devotion agent work on both in conjunction? I'm also not sure if faith as a resource has enough utility in the game; for the things it can purchase its very strong, but devotion needs a way to convert faith into economy outside of simple conversions (X% of faith becomes culture). What do you think? I also think there's currently not a strong incentive to spread your faith, or produce faith units in general."
+
+| # | Point | The user's words | Result |
+|---|---|---|---|
+| 1 | Change 1, one word for each count | "sure" | Settled. |
+| 2 | Change 2, Feast Days: "A town that follows gains +1 faith for every two citizens while it keeps a rite." | "Cool, great" | Settled. |
+| 3 | Change 3, The Truce of God (+1 authority for each town keeping a rite) | "not needed i think, i think we need more payoff cards for empires with lots of authority" | Dropped. The deck needs pay-offs for authority, not more supply. |
+| 4 | Change 4, The Patriarchate | "let's make this a tier 2" | Settled, at Tier II: "Your holy city gains +2 production and +2 science for each point of spare authority." |
+| 5 | Fold the Rite of Hallowing into a card | "Great" | Settled: "Towns keeping a rite gain +1 faith on each improved hex." |
+| 6 | Fold the Rite of Naming into a card | "great" | Settled: "Towns keeping a rite gain +1 food for each citizen." |
+| 7 | Fold the Votive Offering into a card | "great" | Settled: "Towns keeping a rite gain production equal to half their faith." |
+| 8 | Fold the Restoring of the Host | "too strong, maybe: your units heal an addition 20 in towns keeping a rite" | Settled with the user's text: "Your units heal an additional 20 in towns keeping a rite." |
+| 9 | The Bell Tower | "cut" | The building and its card are retired. |
+
+A second pass follows: `docs/plans/devotion-beliefs-pass-2026-11-23.md`. It works on the beliefs and the deck together, on a use for faith that is not a plain conversion, and on a reason to spread a religion and to make faith units.
+
+---
+
 ## Summary
 
 ### Findings
