@@ -3309,19 +3309,21 @@ function applyChopFeature(state: GameState, command: ChopFeatureCommand): Comman
   // lookup the mechanism and the preview use, so all three name one city.
   const paid = chopCity(state, tile);
   chopFeatureAt(state, unit, tile);
-  const done = paid ? settleProductionWindfall(state, paid) : null;
+  const done = paid ? settleProductionWindfall(state, paid) : [];
   // Timber can finish a **wonder**, and a wonder finishing is news to the whole
   // world (`CommandResult.wonders`) — including to the empires whose baskets it
   // has just turned into gold. Reported here rather than only from `endTurn`
   // because a windfall completion is a completion: the claim is made and the
   // refunds are paid by the same routine either way, and a channel that only
   // carried the end-of-turn half would be a silence nobody could explain.
+  // The timber can finish several rows (the ruling of 2026-11-23), and every
+  // one of them is reported, in the order they completed.
   return ok(
     undefined,
     undefined,
-    done?.wonder ? [done.wonder] : undefined,
+    done.flatMap((completed) => (completed.wonder ? [completed.wonder] : [])),
     undefined,
-    done?.grants,
+    done.flatMap((completed) => completed.grants ?? []),
   );
 }
 
@@ -3884,8 +3886,17 @@ function applyContribute(state: GameState, command: ContributeCommand): CommandR
 
   const city = cityById(state, command.cityId)!;
   const done = contributeAt(state, actor, city, command.currency as PurchaseCurrency);
-  const result = ok();
-  if (result.ok && done?.consecration) result.consecrations = [done.consecration];
+  // A contribution can finish more than one row (the ruling of 2026-11-23):
+  // every wonder, grant and dedication among them rides out on the result.
+  const result = ok(
+    undefined,
+    undefined,
+    done.flatMap((completed) => (completed.wonder ? [completed.wonder] : [])),
+    undefined,
+    done.flatMap((completed) => completed.grants ?? []),
+  );
+  const consecrations = done.flatMap((completed) => (completed.consecration ? [completed.consecration] : []));
+  if (result.ok && consecrations.length > 0) result.consecrations = consecrations;
   return result;
 }
 

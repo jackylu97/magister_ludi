@@ -702,15 +702,17 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   },
   {
     name: "advanceProduction",
-    // Completes at most one item per city, carrying the overflow forward — and
-    // reports any wonder claimed, which is the one completion the whole world
+    // Completes as many items in each city as its basket pays for, carrying
+    // the overflow from each row to the next (the ruling of 2026-11-23). It
+    // reports every wonder claimed, which is the one completion the whole world
     // hears about. The second phase to write into the report, after the wild.
     run: advanceProduction,
   },
   {
     name: "advanceResearch",
-    // Spends `Player.sciencePool` on the tech it is aimed at, and marches the
-    // army up its upgrade chains the moment one lands.
+    // Spends `Player.sciencePool` on the tech it is aimed at, and then on each
+    // queued tech the remainder pays for, and marches the army up its upgrade
+    // chains the moment one lands.
     run: advanceResearch,
   },
   {

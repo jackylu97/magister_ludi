@@ -1048,7 +1048,7 @@ interface GreatPersonAct {
   family: Family;
   /** The town it landed in, or `null` for a boon that lands on the empire. */
   city: City | null;
-  /** The technology the beakers completed, or `null`. */
+  /** The technologies the beakers completed, by name and in order, or `null`. */
   research: string | null;
   /** Pieces a general's aura reached, in `state.units` order. */
   blessed: number[];
@@ -1168,7 +1168,10 @@ export function greatPersonActAt(
       player.sciencePool += gained(actGainOf(state, player.id, 'science'));
       // The banks are a line of the meters too (batch M3, `slate.ts`).
       bumpEconomy(state);
-      done.research = settleResearchWindfall(state, player)?.name ?? null;
+      // Every technology the beakers finished is named (the ruling of
+      // 2026-11-23).
+      const learnt = settleResearchWindfall(state, player);
+      done.research = learnt.length > 0 ? learnt.map((tech) => tech.name).join(', ') : null;
       break;
     }
     case 'engineer': {

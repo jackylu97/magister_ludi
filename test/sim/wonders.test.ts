@@ -376,6 +376,52 @@ describe('being beaten to a wonder', () => {
     ]);
     expect(playerById(g.state, 1)!.gold).toBe(Math.floor(200 * REFUND_RATE));
   });
+
+  it('lets a wonder at the second row of an earlier city beat the front row of a later one', () => {
+    // The ruling of 2026-11-23: a city finishes its whole chain before the
+    // sweep reaches the next city, so the race is still settled by
+    // `state.cities` order.
+    const g = game();
+    const first = found(g.state, 0);
+    const second = found(g.state, 1);
+    learn(g.state, 0, 'husbandry', 'divination');
+    racing(g.state, second, 200);
+    first.queue = [
+      { kind: 'building', id: 'shrine' },
+      { kind: 'building', id: WONDER },
+    ];
+    first.hammerBasket = buildingProductionCost('shrine', g.state, 0) + buildingProductionCost(WONDER, g.state, 0);
+
+    const report = emptyTurnReport();
+    advanceProduction(g.state, report);
+
+    expect(first.buildings).toContain('shrine');
+    expect(first.buildings).toContain(WONDER);
+    expect(second.buildings).not.toContain(WONDER);
+    expect(second.queue).toEqual([]);
+    expect(report.wonders.map((done) => done.cityId)).toEqual([first.id]);
+    expect(report.wonders[0]!.refunds.map((refund) => refund.cityId)).toEqual([second.id]);
+  });
+
+  it('reports every wonder one chain completes, in the order it completed them', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    learn(g.state, 0, 'husbandry', 'divination');
+    city.queue = [
+      { kind: 'building', id: WONDER },
+      { kind: 'building', id: 'hangingGardens' },
+    ];
+    city.hammerBasket =
+      buildingProductionCost(WONDER, g.state, 0) + buildingProductionCost('hangingGardens', g.state, 0) + 4;
+
+    const report = emptyTurnReport();
+    advanceProduction(g.state, report);
+
+    expect(report.wonders.map((done) => done.building)).toEqual([WONDER, 'hangingGardens']);
+    expect(g.state.wonders.map((claim) => claim.building)).toEqual([WONDER, 'hangingGardens']);
+    expect(city.queue).toEqual([]);
+    expect(city.hammerBasket).toBe(4);
+  });
 });
 
 // --- a bought wonder ----------------------------------------------------------

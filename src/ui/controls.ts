@@ -408,6 +408,7 @@ import {
 import { type TurnBlocker, allBlockers, firstBlocker, firstUnitOffer } from './turnBlockers';
 import { prefersReducedMotion } from './motion';
 import { withArticle } from './dom';
+import { listWords } from './faithReading';
 import { wonderTriumphPairs } from './wonderPlate';
 import { seatName, seatPeople } from '../sim/leaderData';
 
@@ -1078,7 +1079,10 @@ function grantSentence(report: CompletionGrantReport): string {
     return report.done ? `${withArticle(report.name)} answers the call` : 'nothing answered the call';
   }
   if (report.grant === 'tech') {
-    return report.done ? `${report.name} is understood` : 'nothing was being researched';
+    // The research queue can go on with the science that was left over (the
+    // ruling of 2026-11-23), and those technologies are named after it.
+    const then = report.then !== undefined && report.then.length > 0 ? `, then ${listWords(report.then)}` : '';
+    return report.done ? `${report.name} is understood${then}` : 'nothing was being researched';
   }
   if (report.grant === 'faithRung') {
     // The failure arm names no cause, the unit arm's discipline: `done: false`
@@ -6740,8 +6744,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
-   * A city's queue as the announcement needs to read it: how long it is, and
-   * what stands at the front.
+   * A city's queue as the announcement needs to read it: the name of every
+   * row, in order.
    *
    * Taken before a windfall and again after it, because a completion is only
    * visible as a *difference* — the same reading `reportCombat` takes of a
@@ -6750,10 +6754,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * last stacking slot by consuming its own worker would make the prediction and
    * the reducer disagree.
    */
-  function queueReading(city: City | null): { queued: number; front: string | null } | null {
+  function queueReading(city: City | null): { names: string[] } | null {
     if (!city) return null;
-    const front = city.queue[0];
-    return { queued: city.queue.length, front: front ? queueItemName(front) : null };
+    return { names: city.queue.map(queueItemName) };
   }
 
   /**
@@ -6766,17 +6769,32 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * XVIII.4). Which is also why the tail changes: "choose the next work" is the
    * honest ask only when there is no next work, and a queue that still has a
    * warrior in it says so instead.
+   *
+   * The timber can finish several rows (the ruling of 2026-11-23), so the line
+   * names every row that left the queue: "⚒ Shrine and Monument completed in
+   * Uruk". In a settlement a row leaves the queue when it completes. (The one
+   * other case is a row that can never be built, which a normal game does not
+   * reach.) So the rows in the reading before and not after are the ones the
+   * chop finished.
    */
   function announceSettlement(
     cityId: number,
-    before: { queued: number; front: string | null },
+    before: { names: string[] },
   ): void {
     const { state } = getGame();
     const city = cityById(state, cityId);
-    if (!city || city.queue.length >= before.queued || before.front === null) return;
+    if (!city) return;
+    const still = city.queue.map(queueItemName);
+    const finished: string[] = [];
+    for (const name of before.names) {
+      const at = still.indexOf(name);
+      if (at >= 0) still.splice(at, 1);
+      else finished.push(name);
+    }
+    if (finished.length === 0) return;
     const next = city.queue[0];
     const tail = next ? `${queueItemName(next)} is next.` : 'choose the next work.';
-    announce(`⚒ ${before.front} completed in ${cityDisplayName(state, city)} — ${tail}`, {
+    announce(`⚒ ${listWords(finished)} completed in ${cityDisplayName(state, city)} — ${tail}`, {
       cell: { col: city.col, row: city.row },
     });
   }

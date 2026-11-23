@@ -8,8 +8,8 @@
  * is why a project is a repeatable item rather than a mode the city is switched
  * into: everything the queue already knows how to do (price a row, estimate its
  * turns, overflow into the next item, be finished early by a chop) works on it
- * unchanged, and `advanceProduction`'s "at most one item per city per turn" is
- * the rate limiter for free.
+ * unchanged. The rate limiter is the queue chain's own stop: a settlement that
+ * reaches a project pays it once and ends there (`settleProductionQueue`).
  *
  * Why it lives in `buildings.json`
  * --------------------------------
@@ -110,7 +110,7 @@ interface ProjectDef {
    * The one field that separates an endeavour from Tithes, and everything else
    * about a race project is read off the three below it. `settleProduction`
    * splices a finishing project out of the queue exactly as it splices a
-   * building, so "at most one item per city per turn" and the overflow rule are
+   * building, so the queue chain goes on past it and the overflow rule is
    * inherited rather than re-stated.
    */
   finishes?: true;

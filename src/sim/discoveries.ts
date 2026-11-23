@@ -364,7 +364,11 @@ interface DiscoverySettlement {
   amount: number;
   cityName: string | null;
   unitName: string | null;
-  /** What settled on the spot — "Granary", "Mining", "size 4" — or `null`. */
+  /**
+   * What settled on the spot — "Granary", "Granary, Monument", "Mining",
+   * "size 4" — or `null`. Several rows are named when the boon finished
+   * several.
+   */
   completed: string | null;
   /** Why nothing landed, when nothing did. */
   warning: string | null;
@@ -452,11 +456,12 @@ function payDiscovery(
       };
     }
     city.hammerBasket += effect.amount;
+    // Every row the hammers finished is named (the ruling of 2026-11-23).
     const built = settleProductionWindfall(state, city);
     return {
       cityName: city.name,
       unitName: null,
-      completed: built ? built.name : null,
+      completed: built.length > 0 ? built.map((done) => done.name).join(', ') : null,
       warning: null,
     };
   }
@@ -471,11 +476,12 @@ function payDiscovery(
     player.sciencePool += effect.amount;
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
+    // Every technology the beakers finished is named (the ruling of 2026-11-23).
     const learnt = settleResearchWindfall(state, player);
     return {
       cityName: null,
       unitName: null,
-      completed: learnt ? learnt.name : null,
+      completed: learnt.length > 0 ? learnt.map((done) => done.name).join(', ') : null,
       warning: null,
     };
   }

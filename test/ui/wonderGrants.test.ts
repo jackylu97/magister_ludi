@@ -103,6 +103,19 @@ describe('wonderGrantNotices', () => {
     expect(texts(notices)).toEqual(['✶ The House of Wisdom · Mathematics is understood']);
   });
 
+  it('names the technologies the left-over science finished after the granted one', () => {
+    // The ruling of 2026-11-23: the research queue goes on with what is left
+    // in the pool, and those technologies ride on the same report.
+    const notices = wonderGrantNotices(
+      [wonder('houseOfWisdom', 'The House of Wisdom')],
+      [{ grant: 'tech', name: 'Mathematics', done: true, then: ['Philosophy', 'Astronomy'] }],
+      SEAT,
+    );
+    expect(texts(notices)).toEqual([
+      '✶ The House of Wisdom · Mathematics is understood, then Philosophy and Astronomy',
+    ]);
+  });
+
   it('opens the Doctrine, and says so', () => {
     const notices = wonderGrantNotices(
       [wonder('theatreOfDionysus', 'The Theatre of Dionysus')],

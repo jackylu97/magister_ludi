@@ -59,6 +59,11 @@
  * on the player's behalf; the one exception is starvation, which empties the
  * food basket outright because a negative basket that survived would starve the
  * city again next turn for the same debt.
+ *
+ * A queue completes as many rows in one settlement as its basket pays for (the
+ * ruling of 2026-11-23, `docs/flags.md`). The remainder of each row pays for the
+ * next row at once, and the chain stops at the first row it cannot finish. See
+ * `settleProductionQueue`.
  */
 
 import { difficultyBuildCost, rivalGrowthAndProduction } from './difficulty';
@@ -5481,14 +5486,16 @@ interface WonderRefund {
 }
 
 /**
- * Completes **at most one** item at the front of this city's queue, if the
- * basket covers it. The one production-completion routine in the game.
+ * Completes **one** item at the front of this city's queue, if the basket
+ * covers it. The one production-completion routine in the game.
+ * `settleProductionQueue` calls it again and again until the queue stops, so a
+ * settlement can finish several rows. This function still settles one row.
  *
  * Extracted from `advanceProduction` (Entry XVIII.1) so that the end-of-turn
  * phase and a mid-turn windfall are the same code: spawn tile, escalation
  * ladder, overflow and the queue pop all happen here, once, or the two paths
- * drift the first time one of them is touched. The phase is now a sweep of this
- * over `state.cities`; a chop that covers the front item calls it for one city.
+ * drift the first time one of them is touched. Both paths reach it through
+ * `settleProductionQueue`.
  *
  * Overflow is "whatever the basket keeps": the cost is subtracted, nothing is
  * zeroed, and the remainder pays for the next item. A windfall therefore behaves
@@ -5562,13 +5569,23 @@ function payProject(state: GameState, playerId: number, id: ProjectId): void {
 
 export function settleProduction(state: GameState, city: City): ProductionCompletion | null {
   const plan = planProduction(state, city);
-  return plan === null ? null : settleProductionPlan(state, city, plan);
+  return plan === null ? null : settleProductionPlan(state, city, plan, true);
 }
 
+/**
+ * Settles one planned row.
+ *
+ * `doubles` says whether The Common Purse may double the remainder of this
+ * completion. A settlement that finishes several rows doubles only the first
+ * one (`settleProductionQueue`), so the chain passes true for its first
+ * completion and false after that. If it doubled every row, the basket would
+ * grow with each completion and empty any queue in one turn.
+ */
 function settleProductionPlan(
   state: GameState,
   city: City,
   plan: ProductionPlan,
+  doubles: boolean,
 ): ProductionCompletion | null {
   // What the basket is aimed at going in. Every arm below that changes the queue
   // hands this to `reaimProduction`, which is the one seam a town's hammers may
@@ -5625,7 +5642,7 @@ function settleProductionPlan(
         name: queueItemName(plan.item),
         cost: plan.cost,
       };
-      if (city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
+      if (doubles && city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
         city.hammerBasket += city.hammerBasket;
       }
       reaimProduction(city, before, false);
@@ -5652,7 +5669,8 @@ function settleProductionPlan(
   // the one completion routine, so a windfall-completed item overflows by the
   // same rule an end-of-turn one does. What is left in the basket after the cost
   // is subtracted is the overflow, so doubling it is one addition of itself.
-  if (city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
+  // Only the first completion of a settlement doubles (`doubles`).
+  if (doubles && city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
     city.hammerBasket += city.hammerBasket;
   }
   // The overflow follows the queue to whatever came up, and that row's own
@@ -5673,6 +5691,59 @@ function settleProductionPlan(
     id: plan.id,
     tile: plan.tile,
   }).unitId;
+  return done;
+}
+
+/**
+ * **Settles this city's queue as far as its basket pays** (the ruling of
+ * 2026-11-23, `docs/flags.md`). This is the loop around
+ * `settleProductionPlan`, which settles one row. The end-of-turn phase and
+ * every windfall reach the queue through here.
+ *
+ * Each step plans the front again (`planProduction`), so each row is priced
+ * when the chain reaches it. A unit that completes raises the escalation price
+ * of the next unit of its type, and the next step reads the new price.
+ *
+ * The chain stops:
+ *   - at a row the basket cannot pay for, or a row that holds for another
+ *     reason (population too low, a missing resource, nowhere for the unit
+ *     to stand). `planProduction` returns `null` for these;
+ *   - at an empty queue, where `planProduction` also returns `null`;
+ *   - after a project that stays in the queue. The project pays once and the
+ *     chain ends, because a project never leaves the queue. A loop over it
+ *     would turn the whole basket into its payout;
+ *   - after as many steps as the queue had rows at the start. Every step
+ *     that goes on removes one row (a completion or a `drop`), so an ordinary
+ *     game never reaches this limit. It is the guard that stops the loop if
+ *     a completion ever adds a row to the queue.
+ *
+ * A `drop` (a building the town already has, a wonder someone else claimed)
+ * is not a completion and is not reported, but the chain continues after it.
+ *
+ * The Common Purse doubles the remainder of the first completion only. The
+ * second argument of `settleProductionPlan` carries that.
+ *
+ * `first` is a plan the caller has already made (the Order grant that
+ * completes the front row of every town, in `raiseOnDraft`). The chain
+ * settles it first and then plans the rest.
+ *
+ * Returns every completion in order, a project's payment included. The list
+ * is empty when nothing completed.
+ */
+export function settleProductionQueue(
+  state: GameState,
+  city: City,
+  first?: ProductionPlan,
+): ProductionCompletion[] {
+  const done: ProductionCompletion[] = [];
+  const steps = city.queue.length;
+  for (let step = 0; step < steps; step++) {
+    const plan = step === 0 && first !== undefined ? first : planProduction(state, city);
+    if (plan === null) break;
+    const completed = settleProductionPlan(state, city, plan, done.length === 0);
+    if (completed !== null) done.push(completed);
+    if (plan.kind === 'project' && !projectFinishes(plan.id)) break;
+  }
   return done;
 }
 
@@ -5823,6 +5894,12 @@ export interface CompletionGrantReport {
   done: boolean;
   /** The unit that arrived, for a `unit` grant that landed. */
   unitId?: number;
+  /**
+   * For a `tech` grant: the technologies the research queue completed after
+   * the granted one, in order, with the science that was left over (the
+   * ruling of 2026-11-23). Absent when there were none.
+   */
+  then?: string[];
 }
 
 /**
@@ -6163,8 +6240,8 @@ export function realiseItem(
  * **One exception:** a unit gained already holding a rank is earned inside a
  * completion (`realiseItem`, which passes `insideCompletion`), and there the
  * hammers wait for the next production step, for `payCompletionRiders`'
- * reason: `settleProduction` completes at most one item for each town in each
- * call. Culture settles the draft basket.
+ * reason: a completion is already settling that town's queue. Culture settles
+ * the draft basket.
  */
 export function settleRanksEarned(
   state: GameState,
@@ -6429,12 +6506,17 @@ export function payGrants(
       continue;
     }
     if (grant.grant === 'tech') {
-      const done = completeCurrentResearch(state, player);
-      reports.push({
+      // The first completion is the granted technology. Any after it are the
+      // research queue, paid for by the science that was left over, and they
+      // ride on the same report so no completion goes unannounced.
+      const [granted, ...then] = completeCurrentResearch(state, player);
+      const report: CompletionGrantReport = {
         grant: 'tech',
-        name: done?.name ?? 'a technology',
-        done: done !== null,
-      });
+        name: granted?.name ?? 'a technology',
+        done: granted !== undefined,
+      };
+      if (then.length > 0) report.then = then.map((done) => done.name);
+      reports.push(report);
       continue;
     }
     if (grant.grant === 'building') {
@@ -7010,10 +7092,12 @@ function payCompletionRiders(
     // science toward a technology, a free draft (Dominion batch D5) or The
     // Coming of the Water's marks (Expansionist batch E3) is paid too.
     if (windfallPayoutIsEmpty(payout)) continue;
-    // Food a rider pays settles into growth; hammers deliberately do **not**
-    // settle here, because this *is* a completion and `settleProduction` allows
-    // at most one item per city per call — a rider that finished the next item
-    // in the same breath would break the phase's own rule.
+    // Food a rider pays settles into growth. Hammers do **not** settle here,
+    // because this is a completion: the chain in `settleProductionQueue` is
+    // settling this town's queue, and its next step spends hammers a rider put
+    // in this town's basket. A settlement started here would run one chain
+    // inside another. Hammers paid into another town wait for that town's next
+    // settlement.
     for (const paid of payWindfallGrants(state, player, payout, at)) {
       settleGrowthWindfall(state, paid);
     }
@@ -7038,17 +7122,23 @@ function payCompletionRiders(
  * Every future windfall that pays hammers calls **this**, never
  * `settleProduction` directly, so that "what does a mid-turn completion owe the
  * interface" is answered in one place.
+ *
+ * A windfall settles the queue as far as the basket pays, as the end-of-turn
+ * phase does (`settleProductionQueue`). It returns every completion in order,
+ * and an empty list when nothing completed.
  */
 export function settleProductionWindfall(
   state: GameState,
   city: City,
   plan?: ProductionPlan,
-): ProductionCompletion | null {
-  const done = plan === undefined ? settleProduction(state, city) : settleProductionPlan(state, city, plan);
+): ProductionCompletion[] {
+  const done = settleProductionQueue(state, city, plan);
   // A completed building can change what a citizen is worth on a tile, so the
   // dots are re-seated before the panel next reads them — through the one
   // helper every mid-turn mutation goes through. See `refreshCityDerived`.
-  if (done) refreshCityDerived(state, city);
+  // Once after the whole chain is enough, because the plan of each step does
+  // not read the citizens.
+  if (done.length > 0) refreshCityDerived(state, city);
   return done;
 }
 
@@ -7072,19 +7162,20 @@ export function productionSettledBy(
 }
 
 /**
- * `advanceProduction`: finish the front of every city's queue, if it can.
+ * `advanceProduction`: settle every city's queue as far as its basket pays.
  *
- * At most one item completes per city per turn, exactly as Civ does it — a city
- * that banks four hundred hammers does not empty its whole queue in one turn.
- * The remainder stays in the basket and pays for the next item, which is the
- * only kind of overflow this game has.
+ * A city completes as many rows in one turn as its basket pays for (the ruling
+ * of 2026-11-23, `docs/flags.md`). The remainder of each row pays for the next
+ * row at once, and the chain stops at the first row it cannot finish. Nothing
+ * is dropped: what is left stays in the basket for the next turn.
  *
- * The completion itself is `settleProduction`, which is deliberately *not*
- * inlined here any more: a windfall settles the same queue by the same rules
- * mid-turn (Entry XVIII), and two implementations of "finish the front item"
- * would disagree about a spawn tile or an escalation ladder within a month.
- * This phase is the sweep — one city at a time, in `state.cities` order, at most
- * one item each — and nothing else.
+ * The completion itself is `settleProduction`'s one-row routine, and the chain
+ * is `settleProductionQueue`. Neither is inlined here: a windfall settles the
+ * same queue by the same rules mid-turn (Entry XVIII), and two implementations
+ * of "finish the front item" would disagree about a spawn tile or an
+ * escalation ladder within a month. This phase is the sweep, and nothing else.
+ * It takes one city at a time, in `state.cities` order, and finishes that
+ * city's whole chain before it goes to the next city.
  *
  * Four things make production *hold* rather than fail, and all four keep the
  * basket: too few hammers, a population below the item's `minCityPop` (a settler
@@ -7121,25 +7212,30 @@ export function productionSettledBy(
 export function advanceProduction(state: GameState, report?: TurnReport): void {
   releaseOpusBanks(state);
   for (const city of state.cities) {
-    const done = settleProduction(state, city);
-    // A wonder is the one completion that is news to seats who had nothing to do
-    // with it, so it rides out on the pipeline's report exactly as a blow the
-    // wild landed does. **Contention is settled by this loop and nothing else**:
-    // two empires finishing the same wonder on the same turn are two cities in
-    // one sweep, the earlier one in `state.cities` order claims it, and by the
-    // time the later one is reached the row is no longer in its queue (see
-    // `refundBeatenWonders`) — so "first in the sweep wins" is a property of the
-    // state's own order, which is founding order, and not of the wall clock.
-    if (done?.wonder) report?.wonders.push(done.wonder);
-    // What a finished building handed over — a free sword, a technology, a
-    // Doctrine draft. News to its owner alone, unlike a wonder, but news that
-    // stops existing the instant the resolution is over: by the time anybody
-    // reads it the piece is on the board and the offer is on the seat.
-    if (done?.grants) report?.grants.push(...done.grants);
-    // And the saint a finished cathedral was dedicated to. `grants`' sibling —
-    // news to its owner alone, and a difference that stops existing the moment
-    // the resolution is over.
-    if (done?.consecration) report?.consecrations.push(done.consecration);
+    // Every completion of the chain is reported, in the order it happened.
+    for (const done of settleProductionQueue(state, city)) {
+      // A wonder is the one completion that is news to seats who had nothing to
+      // do with it, so it rides out on the pipeline's report exactly as a blow
+      // the wild landed does. **Contention is settled by this loop and nothing
+      // else**: two empires finishing the same wonder on the same turn are two
+      // cities in one sweep, the earlier one in `state.cities` order claims it,
+      // and by the time the later one is reached the row is no longer in its
+      // queue (see `refundBeatenWonders`) — so "first in the sweep wins" is a
+      // property of the state's own order, which is founding order, and not of
+      // the wall clock. A city finishes its whole chain first, so a wonder at
+      // the third row of an earlier city still beats the front row of a later
+      // city.
+      if (done.wonder) report?.wonders.push(done.wonder);
+      // What a finished building handed over — a free sword, a technology, a
+      // Doctrine draft. News to its owner alone, unlike a wonder, but news that
+      // stops existing the instant the resolution is over: by the time anybody
+      // reads it the piece is on the board and the offer is on the seat.
+      if (done.grants) report?.grants.push(...done.grants);
+      // And the saint a finished cathedral was dedicated to. `grants`' sibling —
+      // news to its owner alone, and a difference that stops existing the moment
+      // the resolution is over.
+      if (done.consecration) report?.consecrations.push(done.consecration);
+    }
   }
 }
 

@@ -325,6 +325,37 @@ unit" and "Barbarians: a slower muster and a reach of eight hexes".
   at any distance; a camp more than eight hexes away is now no threat, and a
   muster comes half as often.
 
+### 0.1k Two builds by the Claude session (2026-11-23)
+
+**A queue completes as much as it can pay for in one turn.** The ruling is the
+last section of `docs/flags.md`. Save version 263.
+
+- `settleProductionQueue` (`src/sim/cities.ts`) and `settleResearchQueue`
+  (`src/sim/tech.ts`) are the loops. Each one calls the old routine for one
+  row until the basket or pool cannot pay, a row holds, a project pays once,
+  or the queue is empty. The windfall paths chain too, and they now return
+  lists.
+- The Common Purse doubles the remainder once in each settlement, on the
+  first completion.
+- `queueTurns` in `tech.ts` no longer forces one turn for each queued
+  technology.
+- For you: record `aiDigestPins.ts` and the slow replay pins again. I recorded
+  only the two boards in `test/sim/explore.test.ts`. I did not run
+  `test/ui/botWorker.test.ts` or `test/sim/aiSittingPhases.test.ts`. The bots
+  were not changed: a bot that plans one row a turn for each city, or one
+  technology a turn, now under-counts a large basket or pool.
+- About twenty callers of `settleProductionWindfall` and
+  `settleResearchWindfall` ignore the returned list, as they ignored the one
+  value before. A wonder that such a windfall finishes still has no news line.
+- The user is finishing a game on the play server, so this build is not on
+  it. Do not pull the play clone past `12947dfb` until the user says so.
+
+**A spent unit's badge is faint** (`12947dfb`, section in `docs/flags.md`).
+`badgeIsSpent` in `src/render3d/pieces.ts`; one new bit in `signUnits`
+(`unitAwaitsOrders`); a second disc material, `UnitBadges.spentMaterial`, at
+`badges.spentOpacity`. I could not look at it in a browser. If your rendering
+work finds a blending fault on the faint badge, the fix is yours to make.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and

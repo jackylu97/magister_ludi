@@ -714,7 +714,7 @@ describe('the Opus closes the age by every road into a town', () => {
     town.hammerBasket += 5;
     const done = settleProductionWindfall(g.state, town);
 
-    expect(done).not.toBeNull();
+    expect(done).toHaveLength(1);
     expect(town.buildings).toContain(OPUS);
     expect(g.state.winnerId).toBe(0);
   });

@@ -232,6 +232,22 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   (`City.itemProgress`); switching starts the new thing at nought and the old
   thing is still standing when you come back. Overflow is the opposite rule and
   follows the *queue*.
+- **A queue completes as much as it can pay for in one turn** (ruled
+  2026-11-23, `docs/flags.md`). `settleProductionQueue` (`cities.ts`) and
+  `settleResearchQueue` (`tech.ts`) are loops around the one-row routines
+  (`settleProductionPlan`, `settleResearch`). The remainder of each row pays
+  for the next row at once.
+  - Production stops at a row the basket cannot pay for, at a hold (population,
+    resource, no hex for the unit), after a project (it pays once), or at an
+    empty queue. A guard ends the loop after as many steps as the queue had
+    rows.
+  - Research stops when the pool cannot pay or the queue is empty. With an
+    empty queue the pool is kept.
+  - The end-of-turn phases and every windfall (`settleProductionWindfall`,
+    `settleResearchWindfall`) go through the loops, and both return every
+    completion as a list. Each completion is reported.
+  - The Common Purse doubles the remainder of the first completion of a
+    settlement only.
 - **A lost wonder race** pays back, as gold, what each losing town banked
   toward the wonder, at any position of its queue (`refundBeatenWonders`).
   Since Magisterial batch MG9 a town whose owner holds `wonderHammersMoveOn`

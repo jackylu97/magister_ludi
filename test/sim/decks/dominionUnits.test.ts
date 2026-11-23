@@ -152,7 +152,7 @@ function finish(state: GameState, prereqs: string[], tech: string): void {
   delete player.researchQueue;
   player.sciencePool = 100000;
   touch(state);
-  expect(settleResearchWindfall(state, player)?.techId).toBe(tech);
+  expect(settleResearchWindfall(state, player)[0]?.techId).toBe(tech);
 }
 
 /** Seat 1's town at (6, 4), taken by seat 0's warrior. Seat 0's capital is at (1, 1). */

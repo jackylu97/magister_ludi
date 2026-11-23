@@ -2268,8 +2268,11 @@ function payRiteRiders(state: GameState, player: Player, city: City): WonderComp
   for (const touched of payWindfallGrants(state, player, payout, at)) {
     // A rider's hammers may finish a wonder, and the news goes out the same way
     // every other completion does. See `RitePerformance.wonders`.
-    const done = settleProductionWindfall(state, touched);
-    if (done?.wonder) wonders.push(done.wonder);
+    // The hammers can finish several rows (the ruling of 2026-11-23), and
+    // every wonder among them is reported.
+    for (const done of settleProductionWindfall(state, touched)) {
+      if (done.wonder) wonders.push(done.wonder);
+    }
     refreshCityDerived(state, touched);
   }
   return wonders;

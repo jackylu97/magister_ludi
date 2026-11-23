@@ -47,7 +47,7 @@ describe('Generic Orders that count finished buildings', () => {
 
     home.queue = [{ kind: 'building', id: 'monument' }];
     home.hammerBasket = 100000;
-    expect(settleProductionWindfall(state, home)?.item).toEqual({ kind: 'building', id: 'monument' });
+    expect(settleProductionWindfall(state, home)[0]?.item).toEqual({ kind: 'building', id: 'monument' });
     expect(tally()).toBe(1);
     expect(buy(state, home, 'granary', 'gold').ok).toBe(true);
     expect(tally()).toBe(2);

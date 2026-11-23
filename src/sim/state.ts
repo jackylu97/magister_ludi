@@ -655,7 +655,8 @@ import {
 // attack only within `campAttackRadius` (8) of their camp, and camps are founded
 // every three turns instead of every two (`campEveryTurns`). Nothing was released
 // between these changes, so they share the version.
-export const SCHEMA_VERSION = 262;
+// Version 263: a queue completes every row and technology its basket or pool pays for in one turn.
+export const SCHEMA_VERSION = 263;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -1869,7 +1869,7 @@ export function contributeAt(
   player: Player,
   city: City,
   currency: PurchaseCurrency,
-): ProductionCompletion | null {
+): ProductionCompletion[] {
   const offer = explainContribution(state, player.id, city.id, currency)!;
   if (currency === 'faith') {
     // Through the one subtraction (Devotion batch DV3), so faith poured into a
