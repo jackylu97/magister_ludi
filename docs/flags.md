@@ -3634,3 +3634,61 @@ mechanics, i'd love to simplify wherever we can."
 - What unrest does to a town does not change: no production, science or
   culture, and the borders do not grow.
 - Do not put this on the play server until the user's game is over.
+
+## Eight simpler rules (ruled 2026-11-23)
+
+The user, after a list of rules that could be simpler: "ok let's remove war
+weariness. Unhappiness should be very penalizing - let's simplify to two
+tiers. Below zero: -75% growth. Below 10, no growth, 20% reduction in yields.
+Puppets are fine. Let's simplify buying a hex, 30 gold, 60 in the outer ring,
+multiplied by age. trade routes are fine as is. Religious pressure: holy
+site, each city that follows, trade routes. Temples raise pressure in cities.
+Naval combot: -15 for embarked units. -6 for land bow +6 for land siege. In
+debt: -20% yields, units disband below -10. Fortify flat +4. One bought unit
+each turn."
+
+Puppets and trade routes do not change. The eight changes:
+
+1. **War weariness is removed.** A lost unit or town costs no happiness.
+   `rules.war.weariness`, `src/sim/weariness.ts`, the happiness line, the line
+   on the foreign courts screen and the lesson text all go. The two card
+   rules `unitLossWeariness` and `townLossWeariness` go. The Glorious Dead
+   keeps its production for a lost unit and loses its first sentence. The
+   Funeral Oration is already retired, and its row stays for saves. The bot's
+   two peace weights (`war.wearinessWeight`, `war.unhappyWearinessWeight`)
+   have nothing to read and go too.
+2. **Unhappiness has two steps.**
+   - Below 0: towns grow 75% slower.
+   - At −10 or below: towns do not grow, and yields are 20% lower.
+   - My readings, not the user's words. "Below 10" means −10, and the step
+     starts at −10 itself, as the old table did. The bonus for a happy
+     empire stays (+10% at 5, +20% at 10). The old −10% step at −5 and the
+     growth step at −20 go. Borders still stop below 0
+     (`meters.borderFreeze`); the user did not name that rule. If authority
+     reads the same yield table (`meters.tiers`), authority follows it.
+3. **A hex costs 30 gold, or 60 in the outer ring, times the buyer's age.**
+   The age counts from 1. `progressFactor`, `perPriorPurchase` and `roundTo`
+   leave the rules. A card that changes the price still applies after.
+4. **Religious pressure has three sources:** the holy site, each city that
+   follows the religion, and each trade route. Pressure along roads and the
+   capital's own pressure go (`roadStrength`, `capitalStrength`,
+   `capitalRange`, and the card rules of the same names). The Long Road
+   keeps its trade route half: "Your religion presses 2 harder along trade
+   routes." My reading of "Temples raise pressure in cities": the temple
+   rule stays as it is (a temple doubles the founder's own pressure in its
+   town and lets a rival press at 75%), so Inquisition still works.
+5. **Naval combat.** An embarked land unit fights at −15 (was −20). A land
+   bow against a ship stays at −6 and land siege against a ship at +6. The
+   line bonus for adjacent ships goes. My reading: hit and run (a light ship
+   attacks for one movement point and keeps the rest) is a unit ability and
+   not a penalty, and it stays.
+6. **Debt.** Yields are 20% lower in debt (was 25%). Units still disband
+   below −10 gold.
+7. **Fortify is a flat +4** from the first turn. It does not grow.
+   `fortifyBonusPerTurn` and `fortifyMax` become one number.
+8. **A city buys one unit each turn.** The three classes (military for gold,
+   civilian for gold, faith) become one stamp. Buildings stay uncounted.
+
+Also ruled in the same message, not yet designed: "trading strategic
+resources should give a quantity of resource, you almost never want just a
+single copy of a strategic resource."
