@@ -164,6 +164,10 @@ interface VisibilityRules {
 interface HealingRules {
   /** Hit points restored to a unit that spent none of its movement. */
   perTurnIfRested: number;
+  /** Extra rested healing on a tile owned by the unit's owner. */
+  ownTerritoryBonus: number;
+  /** Further rested healing in an owned city that is not under siege. */
+  ownCityBonus: number;
 }
 
 /**

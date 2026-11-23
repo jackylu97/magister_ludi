@@ -14,22 +14,23 @@
  *   2. A unit at full health heals nothing.
  *   3. Under the `noHealAbroad` law, a unit outside its owner's borders heals
  *      nothing. A hex nobody owns is outside the borders.
- *   4. Otherwise it heals `rules.healing.perTurnIfRested`, plus what its
- *      empire's cards add (`explainCardUnitStat`, one line per card), plus what
- *      the friendly buildings in or beside it mend (the Keep's line, one line a
- *      town).
+ *   4. A rested unit gains the base heal, the own-territory bonus, and the
+ *      own-city bonus if that city is not under siege. Cards and nearby
+ *      friendly buildings add their own lines.
  *   5. The sum is capped at the unit's maximum health (`unitMaxHp`), as a
  *      labelled line of its own, so the fold is the health the unit gains.
  *
- * `unitHealRefusal` says which of clauses 1 to 3 stops a heal, in a player's
- * words. `explainUnitHeal` returns an empty list exactly when it does.
+ * `unitHealRefusal` explains why the resting lines do not apply. Healing rites
+ * can still heal a unit that moved or attacked. They keep their existing range
+ * and full-health cap.
  *
- * A leaf: it imports the rules it reads and nothing imports it but the turn
- * phase and the interface, so it adds no import cycle.
+ * The siege reading uses the same field as city healing. Its memo expires on
+ * every command and phase, because moving an enemy can change the siege.
  */
 
 import { buildingAdjacentHeal } from './buildingEffects';
-import { tileOwnerPlayerId } from './cities';
+import { cityAt, tileOwnerPlayerId } from './cities';
+import { siegeField, underSiege } from './combat';
 import { getTileAt, tileHex, wrappedDistance } from './map';
 import { unitHealthBonus } from './resourceEffects';
 import { slateMemo } from './slate';
@@ -70,8 +71,8 @@ export function unitHealRefusal(state: GameState, unit: Unit): string | null {
 }
 
 /**
- * What this unit heals at the end of this turn, line by line, or an empty list
- * when `unitHealRefusal` gives a reason. See the module docblock for the rule.
+ * What this unit heals at the end of this turn. Resting and location lines
+ * require an eligible rest; healing rites keep their separate eligibility.
  */
 export function explainUnitHeal(state: GameState, unit: Unit): UnitHealLine[] {
   const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
@@ -94,6 +95,17 @@ export function explainUnitHeal(state: GameState, unit: Unit): UnitHealLine[] {
   const lines: UnitHealLine[] = [];
   if (unitHealRefusal(state, unit) === null) {
     lines.push({ label: 'Resting', amount: RULES.healing.perTurnIfRested });
+    if (tileOwnerPlayerId(state, unit.col, unit.row) === unit.ownerId) {
+      lines.push({ label: 'Own territory', amount: RULES.healing.ownTerritoryBonus });
+      const city = cityAt(state, unit.col, unit.row);
+      if (city?.ownerId === unit.ownerId) {
+        const field = slateMemo(state, 'revision', 'unitHealingSiege', String(unit.ownerId), () =>
+          siegeField(state, unit.ownerId));
+        if (!underSiege(state, city, field)) {
+          lines.push({ label: 'Own city', amount: RULES.healing.ownCityBonus });
+        }
+      }
+    }
     lines.push(...explainCardUnitStat(state, unit, 'heal'), ...keepHealLines(state, unit));
   }
   if (sources.length) {

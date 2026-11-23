@@ -408,6 +408,13 @@ Reference: **`docs/units.md`** (the roster; generated) and
   exempt. The Woodland Bands' `woodsWalk` rule (Expansionist batch E3) prices
   forest and jungle at the open-ground cost, through `MoveProfile.ignoresWoods`
   in `tileMoveCost`.
+- City centers count as paved for movement. A step between a city and a road,
+  or between adjacent cities, uses the road price. No road mark is added, and
+  city centers have no road maintenance. Foreign-city entry rules still apply.
+- A rested unit heals ten health outside its own territory, twenty on an owned
+  tile, and thirty in its own city. A besieged city gives only the territory
+  bonus. Cards, nearby Keeps and healing rites keep their own lines. The
+  unit panel and turn resolution use the same capped list in `healing.ts`.
 - **A lake is water like the coast** (the user's ruling of 2026-10-16,
   `docs/flags.md` (wwwwww)). The lake's terrain row is `embarkable`, and
   `openWater` reads that flag in `tileMoveCost`, so all four readers agree:
@@ -1311,7 +1318,7 @@ Reference: **`docs/trade.md`** and **`docs/luxuries.md`**.
   The figures are flat: the Market and the Lighthouse give 1 each and the
   Caravanserai gives 3, and no building's slots grow with its town.
 - **Roads**: `Tile.road = builderId`, written only by `layRoad`. Maintenance is
-  charged only on roads this empire's traders laid. City connections are a road
+  charged only on roads this empire's traders laid, excluding city centers. City connections are a road
   path from centre to capital.
 - **A luxury's signature is a list** on its row read by ONE evaluator
   (`resourceEffects.ts`). A luxury counts once per kind, not per tile — silver

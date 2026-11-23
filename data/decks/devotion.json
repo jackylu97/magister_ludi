@@ -61,7 +61,7 @@
         }
       ],
       "name": "The Healer-Priests",
-      "text": "Your units heal twice as fast in your own territory.",
+      "text": "Your units gain +10 healing per turn in your own territory.",
       "rarity": "common",
       "type": "military",
       "band": 0

@@ -648,7 +648,8 @@ import {
 // Version 257 changes where citizens work; see above.
 // Version 258 changes the first-age build list, research order and culture from combat losses.
 // A tier changes combat, production, camp placement and Order draws during replay.
-export const SCHEMA_VERSION = 260;
+// Version 261 changes rested healing at home and movement through city centers.
+export const SCHEMA_VERSION = 261;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

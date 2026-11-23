@@ -82,10 +82,14 @@ export function roadsBuiltBy(state: GameState, playerId: number): number {
   const posted = cardBehaviorRule(state, playerId, 'freeCityRoads')
     ? postedHexes(state, playerId)
     : null;
+  // A city is already a road junction. A trader's older road mark there must
+  // not charge upkeep for paving the city already supplies.
+  const cityCells = new Set(state.cities.map(city => tileIndex(state.map, city.col, city.row)));
   let count = 0;
   for (let index = 0; index < state.map.tiles.length; index++) {
     const tile = state.map.tiles[index];
     if (tile.road !== playerId || tile.roadFree === true) continue;
+    if (cityCells.has(index)) continue;
     if (posted?.has(index) === true) continue;
     count += 1;
   }

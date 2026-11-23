@@ -1448,9 +1448,11 @@ describe('determinism', () => {
   // Version 259 adds optional difficulty. Both of these games use tier zero.
   // Version 260 moves the Camp unlock. Neither seat builds improvements here.
   // Printing version 259 restores both previous hashes exactly.
+  // Version 261 changes home healing and city road movement. These games have
+  // no cities. Printing version 260 restores both previous hashes exactly.
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'bb316119:190684',
-    2026: 'd14b59a3:190844',
+    11: '4900e09e:190684',
+    2026: '1060a0b4:190844',
   };
 
   for (const seed of [11, 2026]) {

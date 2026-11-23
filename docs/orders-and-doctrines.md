@@ -648,7 +648,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Household Gods | 0 | ● | S | +2 faith in every town. |
 | The First Offering | 0 | ● | S | On draft: gain 60 faith. |
 | Commission: The Anointing | 3 | ◆ | S | Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture. |
-| The Healer-Priests | 0 | ● | S | Your units heal twice as fast in your own territory. |
+| The Healer-Priests | 0 | ● | S | Your units gain +10 healing per turn in your own territory. |
 | The Defenders of the Faith | 3 | ● | S | Your units gain +1 strength for every three towns that follow your religion. |
 | The Zealots | 1 | ● | S | Your units gain +1 strength for every 10 faith you make each turn, at most +5. |
 | The Prince-Bishops | 3 | ◆ | E | Your faith buildings yield twice as much. |

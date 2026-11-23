@@ -353,8 +353,12 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
 - A **road step** (both hexes paved) costs exact thirds inside `stepCost`
   and replaces the ground's price; rivers/embark/ZoC untouched. Anybody
   walks a road.
+- A city center counts as paved for movement, including a step between
+  adjacent cities. The movement profile holds the city tiles for the search.
+  This does not write `Tile.road` or permit entry into a foreign city.
 - **Maintenance**: charged only on roads this empire's traders laid
   (`roadsBuiltBy`), 1💰 per 4 hexes, one line in the empire fold.
+  City centers cost nothing, including those with a trader's older road mark.
   `roadFree` marks decreed hexes (free for the count).
 - Rendering: a per-hex dressing layer patched in place (`signRoadCells`).
 

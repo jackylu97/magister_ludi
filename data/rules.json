@@ -23,7 +23,9 @@
     "citySight": 2
   },
   "healing": {
-    "perTurnIfRested": 10
+    "perTurnIfRested": 10,
+    "ownTerritoryBonus": 10,
+    "ownCityBonus": 10
   },
   "combat": {
     "baseDamage": 30,

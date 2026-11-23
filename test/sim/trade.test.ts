@@ -1163,7 +1163,8 @@ describe('the shuttle', () => {
     runUntil(state, () => trader.col === home.col && trader.row === home.row);
     expect(trader.trade!.outbound).toBe(false);
     expect(at(state, 3, 4).road).toBe(0);
-    expect(roadsBuiltBy(state, 0)).toBe(8);
+    // The two city centers are road junctions without a maintenance charge.
+    expect(roadsBuiltBy(state, 0)).toBe(6);
   });
 
   it('runs on with no term: out, home and out again, still carrying the route', () => {
@@ -1756,7 +1757,7 @@ describe('the city connection', () => {
     pave(state, 4, 3, 10);
 
     expect(connectedCities(state, 0)).toEqual([{ city: partner, gold: 3 }]);
-    expect(roadsBuiltBy(state, 0)).toBe(8);
+    expect(roadsBuiltBy(state, 0)).toBe(6);
     // Four lines since the maintenance ruling (2026-08-28), and the fixture's
     // capital holds a market — an age-two institution, so 2💰 a turn. The
     // caravan pays no maintenance at all (`trades`), which is why there is no
@@ -1767,7 +1768,7 @@ describe('the city connection', () => {
     // lines are **bills** and are charged flat.
     expect(explainEmpireGold(state, 0)).toEqual([
       { source: 'City connections · 1 city', gold: 3, kind: 'income' },
-      { source: 'Road maintenance · 8 hexes', gold: -2, kind: 'bill' },
+      { source: 'Road maintenance · 6 hexes', gold: -1, kind: 'bill' },
       { source: 'Building maintenance · 1 building', gold: -2, kind: 'bill' },
     ]);
   });

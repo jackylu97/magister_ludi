@@ -29,7 +29,7 @@ The deck has 78 Orders of its own, 27 Orders shared with another deck, and 17 Do
 | **Lay Offerings** | common | implemented | Pastures, camps and plantations gain +1 faith and +1 food. | Economic |
 | **The Calling** | common | implemented | Your capital gains +3 faith. | Civic |
 | **The First Offering** | common | implemented | On draft: gain 60 faith. | Civic |
-| **The Healer-Priests** | common | implemented | Your units heal twice as fast in your own territory. | Military |
+| **The Healer-Priests** | common | implemented | Your units gain +10 healing per turn in your own territory. | Military |
 | **The Household Gods** | common | implemented | +2 faith in every town. | Civic |
 | **The Tithe Barns** | common | implemented | Cities with a Granary gain +1 faith and +1 production. | Economic |
 | **The Megaliths** | uncommon | implemented | Workers may raise one stone circle in each town, on flat land: +2 faith and +1 culture, and +1 faith more for each pasture, camp or plantation beside it. | Economic |

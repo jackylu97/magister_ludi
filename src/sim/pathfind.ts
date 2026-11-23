@@ -256,6 +256,8 @@ function cheapestStepCostFor(mover?: MoveProfile): number {
   // step the card was taken for. The road's argument one clause over, and the
   // same floor: what a search may assume is the cheapest edge *this* mover has.
   if (mover?.freeLanding === true) return 0;
+  // City centers also use this road price. The bound already assumes a road,
+  // so it remains valid when a city has no Tile.road mark.
   return Math.min(cheapestStepCost, mover?.roadStep ?? Number.POSITIVE_INFINITY);
 }
 
@@ -282,7 +284,8 @@ export function snapMovement(points: number): number {
 /**
  * Is this step taken **along a road** — both feet on paving?
  *
- * The one reading of `Tile.road`, and it asks nothing about *whose* road it is:
+ * A city center counts as paved even without a road mark. The shared paving
+ * test asks nothing about whose road it is:
  * anybody walks a highway, which is Civ's rule and the honest one (an invader
  * uses your roads). The builder's seat on the field is for maintenance, and
  * maintenance alone.
@@ -293,8 +296,13 @@ export function snapMovement(points: number): number {
  * the forest, and one stepping onto the highway from a forest pays the forest
  * too. Half a road is no road.
  */
-function isRoadStep(from: Tile, to: Tile): boolean {
-  return from.road !== undefined && to.road !== undefined;
+function isRoadStep(from: Tile, to: Tile, mover?: MoveProfile): boolean {
+  return pavedForMovement(from, mover) && pavedForMovement(to, mover);
+}
+
+/** City centers join roads without creating a road mark or maintenance charge. */
+function pavedForMovement(tile: Tile, mover?: MoveProfile): boolean {
+  return tile.road !== undefined || mover?.cityTiles?.has(tile) === true;
 }
 
 /**
@@ -513,6 +521,8 @@ export interface MoveProfile {
    * is.
    */
   roadStep?: number;
+  /** City centers count as paving. Hoisted once, so an edge does not scan cities. */
+  cityTiles?: ReadonlySet<Tile>;
   /**
    * The **land** hexes a ship may stand on at all: coastal city centres, and
    * nothing else (the user's ruling, 2026-08-29 — "a coastal city's hex is the
@@ -686,6 +696,12 @@ function closedBordersFor(state: GameState, unit: Unit, def: UnitDef): ClosedBor
 export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   const def = unitDef(unit.type);
   const owner = playerById(state, unit.ownerId);
+  const cityTiles = new Set<Tile>();
+  for (const city of state.cities) {
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (tile) cityTiles.add(tile);
+  }
+  const cities = cityTiles.size ? { cityTiles } : {};
   // The borders this piece may not cross, hoisted here beside the embark and
   // port lookups and for their reason: a fact about the mover's *empire*, asked
   // of the state exactly once for the sweep. `undefined` for everything it does
@@ -752,6 +768,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
       ocean,
       full,
       roadStep,
+      ...cities,
       ...freeLanding,
       ...ignoresZoc,
       ports: navalPorts(state),
@@ -779,6 +796,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     ocean,
     full,
     roadStep,
+    ...cities,
     ...freeLanding,
     ...ignoresZoc,
     ...ignoresWoods,
@@ -1946,7 +1964,7 @@ export function stepCost(
   // a caravan wading off the end of one is wading, not driving. (Nothing lays
   // paving on water, so the two can only ever meet on the dry half of the step.)
   // Like the road, it *replaces* the ground's price rather than discounting it.
-  let base = isRoadStep(from, to) ? (mover?.roadStep ?? roadStepCost) : ground;
+  let base = isRoadStep(from, to, mover) ? (mover?.roadStep ?? roadStepCost) : ground;
   if (mover !== undefined && isShoreStep(from, to, mover)) base = shoreStepCost(mover, from, to);
   // **Riders of the Steppe walk past the picket for nothing.** Asked here, where
   // the toll is added, so the four readers cannot disagree about one step — and

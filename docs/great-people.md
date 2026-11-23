@@ -358,7 +358,7 @@ The 157 people below can appear in offers. Three retired rows remain in the data
 |---|---|---|---|---|---|---|
 | al-Khwārizmī | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | +10% faith in every city with a University · you may buy buildings that supply science with faith |  |
 | Maimonides | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | +1 happiness per 2 buildings in your cities that supply science | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
-| Roger Bacon | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | completing a technology grants +15% food in every city; +15% production in every city for 3 turns | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
+| Roger Bacon | Scholar | ◆ strong | 8 turns of science | Academy (+4 science) | completing a technology grants +15% food and +15% production in every city for 3 turns | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
 | Āryabhaṭa | Scholar | ○ situational | 8 turns of science | Academy (+4 science) | Each building that supplies science gains +1 faith · Each building that supplies science gains +1 renown per turn |  |
 | Murasaki Shikibu | Artist | ◆ strong | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | +4 culture per melee unit in the field |  |
 | Rūmī | Artist | ○ situational | 8 turns of culture and 2 happiness for 10 turns | Landmark (+4 culture) | your Temples pay +100%, counted after every other bonus on them |  |
