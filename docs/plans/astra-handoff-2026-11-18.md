@@ -295,6 +295,15 @@ Implementation: the same isolated branch. Movement profiles carry city tiles;
 city centers are excluded from road maintenance. Validation is recorded in
 `home-healing-city-roads-2026-11-22.md`.
 
+### 0.1i The tier chooser is built; one item for you (2026-11-22)
+
+The setup screen has a tier chooser, and the game menu, the Load sheet, the
+standings and the Opus close name the tier (`src/ui/difficultyTier.ts`, on
+`decks`). `data/difficulty.json` has no player-facing sentence for a rule, so
+one sentence per rule key lives in that UI file, with every number read from
+the data row. Please move the sentences into the data, or give each rule a
+describer, so that a change to a rule changes its words too.
+
 ### 0.2 Built, as far as the data shows (no action, unless you know otherwise)
 
 - 3.6 the wonders rework (the new wonders have rows), 3.7 Dominion and
