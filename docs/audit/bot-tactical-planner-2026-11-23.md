@@ -699,3 +699,10 @@ All benchmark and validation processes ended.
 
 Balance analysis is deferred at the user's request; these results do not
 establish deck balance.
+
+The [follow-up trade review](bot-combat-trades-2026-11-23.md) corrects the
+interpretation of immediate sacrifices. Four targets died to an ally within
+two turns, two attacks lost a possible finishing roll, and two reviewed units
+had no ordinary retreat free of a known lethal attack. These deaths are not
+automatically mistakes. The review also records the next civilian protection
+experiment and its limits.

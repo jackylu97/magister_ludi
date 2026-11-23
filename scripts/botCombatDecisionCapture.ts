@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runBotTurn } from '../src/ai/driver';
+import { setAiTuning } from '../src/ai/aiConfig';
 import { askTheBot } from '../src/ai/frozenBoard';
 import type { BotDecision } from '../src/ai/decision';
 import { createGame, snapshotState, type SaveFile } from '../src/sim/game';
 
-const [savePath, turnText, playerText, unitText, output] = process.argv.slice(2);
+const [savePath, turnText, playerText, unitText, output, tuningPath] = process.argv.slice(2);
 const turn = Number(turnText);
 const playerId = Number(playerText);
 const unitId = Number(unitText);
@@ -16,6 +17,7 @@ if (!savePath || !output || !Number.isSafeInteger(turn) || turn < 1 ||
   throw Error('Pass save path, turn, player id, unit id and output directory. Use the same code and AI settings as the saved game.');
 }
 const saved = JSON.parse(readFileSync(savePath, 'utf8')) as SaveFile;
+if (tuningPath) setAiTuning(JSON.parse(readFileSync(tuningPath, 'utf8')));
 const game = createGame(saved.config);
 // The driver may remap a command's unit ids, but keeps its candidate array.
 // Match that object, not an explanation that another decision could share.

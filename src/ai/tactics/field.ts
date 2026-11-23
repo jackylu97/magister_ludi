@@ -15,7 +15,7 @@ interface Reach {
   reads: ReadonlySet<number>;
   occupancy: string;
   checked: GameState;
-  coverage: Map<number, TacticalAction | null>;
+  coverage: Map<number, { scanned: number; origins: TacticalAction[] }>;
 }
 export interface Battlefield {
   state: GameState;
@@ -88,19 +88,29 @@ export function enemyReach(field: Battlefield, enemy: Unit): Reach {
 }
 
 /** Cheap coverage includes real paths and sight, but is not a promised enemy sequence. */
-export function threateningOrigin(field: Battlefield, enemy: Unit, target: Unit): TacticalAction | undefined {
+export function threateningOrigin(
+  field: Battlefield, enemy: Unit, target: Unit,
+  accepts: (origin: TacticalAction) => boolean = () => true,
+): TacticalAction | undefined {
   if (!isCombatant(unitDef(enemy.type))) return undefined;
   const reach = enemyReach(field, enemy);
   const index = tileIndex(field.state.map, target.col, target.row);
   // The same destination occurs in movement, attack and low-roll candidates.
   // Coverage depends on the range's guarded paths and terrain, not target health.
-  if (reach.coverage.has(index)) return reach.coverage.get(index) ?? undefined;
+  let coverage = reach.coverage.get(index);
+  if (!coverage) reach.coverage.set(index, coverage = { scanned: 0, origins: [] });
+  const cached = coverage.origins.find(accepts);
+  if (cached) return cached;
   const tile = getTileAt(field.state.map, target.col, target.row)!;
-  const origin = reach.origins.find(origin => {
+  // Most queries need only the first origin. Scan farther only when another
+  // candidate occupies it or another enemy already uses it in this estimate.
+  while (coverage.scanned < reach.origins.length) {
+    const origin = reach.origins[coverage.scanned++]!;
     const gap = distance(field.state, origin.to, target);
-    return gap > 0 && gap <= reach.range && (!isRanged(unitDef(enemy.type)) ||
-      hasLineOfSight(field.state.map, getTileAt(field.state.map, origin.to.col, origin.to.row)!, tile));
-  });
-  reach.coverage.set(index, origin ?? null);
-  return origin;
+    if (gap <= 0 || gap > reach.range || (isRanged(unitDef(enemy.type)) &&
+      !hasLineOfSight(field.state.map, getTileAt(field.state.map, origin.to.col, origin.to.row)!, tile))) continue;
+    coverage.origins.push(origin);
+    if (accepts(origin)) return origin;
+  }
+  return undefined;
 }

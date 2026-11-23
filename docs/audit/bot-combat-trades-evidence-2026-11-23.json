@@ -1,0 +1,3415 @@
+{
+  "date": "2026-11-23",
+  "parentCommit": "bfb01201",
+  "branch": "codex/bot-position-262",
+  "defaultPolicyUnchanged": true,
+  "port5199Unchanged": true,
+  "economicAndDeckSettingsUnchanged": true,
+  "ruling": "Preserve useful sacrifices. Compare damage and capture progress with actual alternatives; attacker death alone is not a mistake.",
+  "sources": {
+    "src/ai/tactics/field.ts": {
+      "path": "/private/tmp/webciv-bot-target-262/src/ai/tactics/field.ts",
+      "sha256": "c363723752232b6c8a2c737a69a3a4dd14758b4c99363dbd425db79ca89cacb3"
+    },
+    "src/ai/tactics/unitPlanner.ts": {
+      "path": "/private/tmp/webciv-bot-target-262/src/ai/tactics/unitPlanner.ts",
+      "sha256": "ddd8e08bcdc41b5cbb654a27621e38e6b38ff5a6f40dc7115adac55211994d28"
+    },
+    "src/ai/tactics/memo.ts": {
+      "path": "/private/tmp/webciv-bot-target-262/src/ai/tactics/memo.ts",
+      "sha256": "8735c67f084b7fa55f728a8bbbe9fa7c9f8d811a5b103932ad42754670b275e8"
+    },
+    "src/ai/tactics/assessment.ts": {
+      "path": "/private/tmp/webciv-bot-target-262/src/ai/tactics/assessment.ts",
+      "sha256": "1a91d766245fdb2c24e4f90f9f2fe76b669e68f7d45ee1149ffd5dd616bdddf3"
+    },
+    "test/sim/aiUnitTactics.test.ts": {
+      "path": "/private/tmp/webciv-bot-target-262/test/sim/aiUnitTactics.test.ts",
+      "sha256": "bdf9c806be635a42c03e2d04b439b9396e92217feca65861a2b0a744062417de"
+    },
+    "scripts/botCombatDecisionCapture.ts": {
+      "path": "/private/tmp/webciv-bot-target-262/scripts/botCombatDecisionCapture.ts",
+      "sha256": "860e0a4c788057482a7fad8ec6b1a80e17af30cfd2e06f208fc76914ad94ef51"
+    },
+    "scripts/botCombatQualityAudit.ts": {
+      "path": "/private/tmp/webciv-bot-target-262/scripts/botCombatQualityAudit.ts",
+      "sha256": "7f291bb57ba1a3975852cffb68e39cc56fadd9e4091009f585381fd008ea2ac2"
+    },
+    "data/ai.json": {
+      "path": "/private/tmp/webciv-bot-target-262/data/ai.json",
+      "sha256": "c01772d63d08d8d1041f8ec168ff69c5ff6b99b86238817a5dc47a77b6a46481"
+    }
+  },
+  "bundles": {
+    "trades-capture-base.mjs": {
+      "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-capture-base.mjs",
+      "sha256": "610a2bf2f9cbca2521d78b6d221db7ee6fec2dfb9cebb009981d3433f1127917"
+    },
+    "trades-retreat.mjs": {
+      "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-retreat.mjs",
+      "sha256": "a066169e48a20c5cdb26dba21f4d3c07f691af1795db7e3c19a1cffb8ba96298"
+    },
+    "trades-reassess.mjs": {
+      "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-reassess.mjs",
+      "sha256": "3b42c7193e41c58f039f34d5d31608b5e27d4cadfd543f1f1da29ed659d81740"
+    },
+    "trades-games-v1.mjs": {
+      "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-games-v1.mjs",
+      "sha256": "9b83f3dfc82ef39c7d4fbb793f01862321b06d5687fab2cda56032a235240be8"
+    },
+    "trades-profile-v1.mjs": {
+      "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-profile-v1.mjs",
+      "sha256": "b3d33a71bea7cd16cb2dd90ff2dd372ea99e66ccc6d231b68a36c78e8a2cafd7"
+    },
+    "trades-quality.mjs": {
+      "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-quality.mjs",
+      "sha256": "9c81a1765ae9456794633fedd2820b74566361d9a97376205637d8eebafca39a"
+    },
+    "unit-profile-v9.mjs": {
+      "path": "/private/tmp/webciv-bot-combat-2026-11-22/unit-profile-v9.mjs",
+      "sha256": "88fa836a3cdf19488040a5bcd1ae692dbb5eac95421fc70ec4c14972218ab9c9"
+    }
+  },
+  "diagnosticHelper": {
+    "path": "/private/tmp/webciv-bot-target-262/scripts/botRetreatOptionsAudit.ts",
+    "sha256": "6d9edce1b3f7743f76e0bc3780672af6d55c6834833df60c4c5273da20f9fa6d",
+    "note": "This helper had preexisting uncommitted edits. It was read and run without edits, and is excluded from this commit."
+  },
+  "priorEvidence": "docs/audit/bot-unit-tactics-2026-11-23.json",
+  "originalCounterDeaths": [
+    {
+      "seed": 39827,
+      "index": 1451,
+      "turn": 49,
+      "attacker": {
+        "id": 99,
+        "ownerId": 0,
+        "type": "warrior",
+        "hp": 19,
+        "col": 60,
+        "row": 44,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 44,
+        "ownerId": 6,
+        "type": "warrior",
+        "hp": 57,
+        "col": 60,
+        "row": 43,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true,
+        "fortifiedTurns": 1
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 0,
+        "unitId": 99,
+        "target": {
+          "col": 60,
+          "row": 43
+        }
+      },
+      "chosen": {
+        "label": "99: attack (60,43)",
+        "score": -93.34782608695652,
+        "terms": [
+          {
+            "label": "19 health lost by Warrior 99",
+            "value": 19,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of Warrior 99",
+            "value": 100,
+            "op": "sub"
+          },
+          {
+            "label": "31 health lost by Warrior 44",
+            "value": 26.956521739130434,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 1.304347826086957,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 29,
+      "cityTarget": null,
+      "classification": "target_removed_by_ally_within_two_turns",
+      "followupRemovals": [
+        {
+          "index": 1452,
+          "turn": 49,
+          "ownerId": 0,
+          "killedWhileAttackingAlly": false
+        }
+      ]
+    },
+    {
+      "seed": 39827,
+      "index": 1719,
+      "turn": 52,
+      "attacker": {
+        "id": 200,
+        "ownerId": 3,
+        "type": "warrior",
+        "hp": 12,
+        "col": 54,
+        "row": 16,
+        "terrain": "plains",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 276,
+        "ownerId": 6,
+        "type": "spearman",
+        "hp": 31,
+        "col": 54,
+        "row": 15,
+        "terrain": "plains",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 3,
+        "unitId": 200,
+        "target": {
+          "col": 54,
+          "row": 15
+        }
+      },
+      "chosen": {
+        "label": "200: attack (54,15)",
+        "score": 35.076086956521735,
+        "terms": [
+          {
+            "label": "11 health lost by Warrior 200",
+            "value": 11,
+            "op": "sub"
+          },
+          {
+            "label": "31 health lost by Spearman 276",
+            "value": 33.69565217391304,
+            "op": "add"
+          },
+          {
+            "label": "Removal of Spearman 276",
+            "value": 54.347826086956516,
+            "op": "add"
+          },
+          {
+            "label": "Progress toward an attack for Warrior 200",
+            "value": -2
+          },
+          {
+            "label": "Estimated damage and loss risk before the next action",
+            "value": 0,
+            "op": "sub"
+          },
+          {
+            "label": "Estimated wall damage at this position",
+            "value": 0,
+            "op": "sub"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 39.96739130434783,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 25,
+      "cityTarget": null,
+      "classification": "failed_finishing_gamble",
+      "followupRemovals": []
+    },
+    {
+      "seed": 39827,
+      "index": 3555,
+      "turn": 72,
+      "attacker": {
+        "id": 385,
+        "ownerId": 3,
+        "type": "chariot",
+        "hp": 17,
+        "col": 31,
+        "row": 6,
+        "terrain": "tundra",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 321,
+        "ownerId": 6,
+        "type": "spearman",
+        "hp": 41,
+        "col": 30,
+        "row": 5,
+        "terrain": "tundra",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 3,
+        "unitId": 385,
+        "target": {
+          "col": 30,
+          "row": 5
+        }
+      },
+      "chosen": {
+        "label": "385: attack (30,5)",
+        "score": -130.48,
+        "terms": [
+          {
+            "label": "17 health lost by War Chariot 385",
+            "value": 24.48,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of War Chariot 385",
+            "value": 144,
+            "op": "sub"
+          },
+          {
+            "label": "40 health lost by Spearman 321",
+            "value": 40,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 2,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 37,
+      "cityTarget": null,
+      "classification": "failed_finishing_gamble",
+      "followupRemovals": []
+    },
+    {
+      "seed": 48017,
+      "index": 2603,
+      "turn": 63,
+      "attacker": {
+        "id": 311,
+        "ownerId": 2,
+        "type": "warrior",
+        "hp": 18,
+        "col": 61,
+        "row": 27,
+        "terrain": "plains",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 314,
+        "ownerId": 6,
+        "type": "spearman",
+        "hp": 100,
+        "col": 60,
+        "row": 27,
+        "terrain": "plains",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 2,
+        "unitId": 311,
+        "target": {
+          "col": 60,
+          "row": 27
+        }
+      },
+      "chosen": {
+        "label": "311: attack (60,27)",
+        "score": -68.9,
+        "terms": [
+          {
+            "label": "re-asked: the board has moved under its march to (58,30); the arm now names (60,27)",
+            "value": 0
+          },
+          {
+            "label": "18 health lost by Warrior 311",
+            "value": 14.4,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of Warrior 311",
+            "value": 80,
+            "op": "sub"
+          },
+          {
+            "label": "27 health lost by Spearman 314",
+            "value": 27,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 1.5,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 22,
+      "cityTarget": null,
+      "classification": "all_ordinary_retreats_allow_known_lethal_attack",
+      "followupRemovals": []
+    },
+    {
+      "seed": 67153,
+      "index": 1066,
+      "turn": 43,
+      "attacker": {
+        "id": 191,
+        "ownerId": 1,
+        "type": "warrior",
+        "hp": 25,
+        "col": 48,
+        "row": 15,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 188,
+        "ownerId": 6,
+        "type": "chariot",
+        "hp": 62,
+        "col": 49,
+        "row": 16,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 1,
+        "unitId": 191,
+        "target": {
+          "col": 49,
+          "row": 16
+        }
+      },
+      "chosen": {
+        "label": "191: attack (49,16)",
+        "score": -74.91999999999999,
+        "terms": [
+          {
+            "label": "re-asked: the board has moved under its march to (48,18); the arm now names (49,16)",
+            "value": 0
+          },
+          {
+            "label": "25 health lost by Warrior 191",
+            "value": 20,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of Warrior 191",
+            "value": 80,
+            "op": "sub"
+          },
+          {
+            "label": "20 health lost by War Chariot 188",
+            "value": 26.400000000000002,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 1.3200000000000003,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 24,
+      "cityTarget": null,
+      "classification": "target_removed_by_ally_within_two_turns",
+      "followupRemovals": [
+        {
+          "index": 1114,
+          "turn": 44,
+          "ownerId": 1,
+          "killedWhileAttackingAlly": false
+        }
+      ]
+    },
+    {
+      "seed": 67153,
+      "index": 1655,
+      "turn": 51,
+      "attacker": {
+        "id": 183,
+        "ownerId": 2,
+        "type": "warrior",
+        "hp": 14,
+        "col": 45,
+        "row": 4,
+        "terrain": "tundra",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 234,
+        "ownerId": 6,
+        "type": "spearman",
+        "hp": 49,
+        "col": 46,
+        "row": 4,
+        "terrain": "tundra",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 2,
+        "unitId": 183,
+        "target": {
+          "col": 46,
+          "row": 4
+        }
+      },
+      "chosen": {
+        "label": "183: attack (46,4)",
+        "score": -74.38,
+        "terms": [
+          {
+            "label": "14 health lost by Warrior 183",
+            "value": 12.880000000000003,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of Warrior 183",
+            "value": 92,
+            "op": "sub"
+          },
+          {
+            "label": "32 health lost by Spearman 234",
+            "value": 32,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 1.5,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 34,
+      "cityTarget": null,
+      "classification": "target_removed_by_ally_within_two_turns",
+      "followupRemovals": [
+        {
+          "index": 1712,
+          "turn": 51,
+          "ownerId": 2,
+          "killedWhileAttackingAlly": true
+        }
+      ]
+    },
+    {
+      "seed": 67153,
+      "index": 1813,
+      "turn": 53,
+      "attacker": {
+        "id": 120,
+        "ownerId": 1,
+        "type": "warrior",
+        "hp": 13,
+        "col": 45,
+        "row": 11,
+        "terrain": "plains",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 213,
+        "ownerId": 2,
+        "type": "warrior",
+        "hp": 95,
+        "col": 45,
+        "row": 10,
+        "terrain": "plains",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 1,
+        "unitId": 120,
+        "target": {
+          "col": 45,
+          "row": 10
+        }
+      },
+      "chosen": {
+        "label": "120: attack (45,10)",
+        "score": -105.44999999999999,
+        "terms": [
+          {
+            "label": "13 health lost by Warrior 120",
+            "value": 14.95,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of Warrior 120",
+            "value": 114.99999999999999,
+            "op": "sub"
+          },
+          {
+            "label": "26 health lost by Warrior 213",
+            "value": 26,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 1.5,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 29,
+      "cityTarget": null,
+      "classification": "needs_alternatives_review",
+      "followupRemovals": []
+    },
+    {
+      "seed": 67153,
+      "index": 1826,
+      "turn": 53,
+      "attacker": {
+        "id": 152,
+        "ownerId": 2,
+        "type": "warrior",
+        "hp": 30,
+        "col": 28,
+        "row": 6,
+        "terrain": "tundra",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 277,
+        "ownerId": 6,
+        "type": "chariot",
+        "hp": 80,
+        "col": 27,
+        "row": 7,
+        "terrain": "plains",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 2,
+        "unitId": 152,
+        "target": {
+          "col": 27,
+          "row": 7
+        }
+      },
+      "chosen": {
+        "label": "152: attack (27,7)",
+        "score": -65.10606060606061,
+        "terms": [
+          {
+            "label": "30 health lost by Warrior 152",
+            "value": 20.90909090909091,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of Warrior 152",
+            "value": 69.6969696969697,
+            "op": "sub"
+          },
+          {
+            "label": "27 health lost by War Chariot 277",
+            "value": 27,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 1.5,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 24,
+      "cityTarget": null,
+      "classification": "target_removed_by_ally_within_two_turns",
+      "followupRemovals": [
+        {
+          "index": 2059,
+          "turn": 55,
+          "ownerId": 2,
+          "killedWhileAttackingAlly": true
+        }
+      ]
+    },
+    {
+      "seed": 67153,
+      "index": 5543,
+      "turn": 85,
+      "attacker": {
+        "id": 224,
+        "ownerId": 3,
+        "type": "swordsman",
+        "hp": 5,
+        "col": 56,
+        "row": 38,
+        "terrain": "plains",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "defender": null,
+      "command": {
+        "type": "attack",
+        "playerId": 3,
+        "unitId": 224,
+        "target": {
+          "col": 55,
+          "row": 39
+        }
+      },
+      "chosen": {
+        "label": "224: attack (55,39)",
+        "score": -94.04545454545455,
+        "terms": [
+          {
+            "label": "re-asked: the board has moved under its march to (56,39); the arm now names (55,39)",
+            "value": 0
+          },
+          {
+            "label": "5 health lost by Swordsman 224",
+            "value": 4.545454545454546,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of Swordsman 224",
+            "value": 100,
+            "op": "sub"
+          },
+          {
+            "label": "Wall damage at Rayy",
+            "value": 11,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 0.5,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 14,
+      "cityTarget": 737,
+      "classification": "all_ordinary_retreats_allow_known_lethal_attack",
+      "followupRemovals": []
+    },
+    {
+      "seed": 67153,
+      "index": 5945,
+      "turn": 87,
+      "attacker": {
+        "id": 117,
+        "ownerId": 3,
+        "type": "swordsman",
+        "hp": 37,
+        "col": 54,
+        "row": 35,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 773,
+        "ownerId": 0,
+        "type": "horseman",
+        "hp": 73,
+        "col": 55,
+        "row": 36,
+        "terrain": "grassland",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 3,
+        "unitId": 117,
+        "target": {
+          "col": 55,
+          "row": 36
+        }
+      },
+      "chosen": {
+        "label": "117: attack (55,36)",
+        "score": -102.60314685314685,
+        "terms": [
+          {
+            "label": "37 health lost by Swordsman 117",
+            "value": 30.186480186480185,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of Swordsman 117",
+            "value": 89.74358974358975,
+            "op": "sub"
+          },
+          {
+            "label": "14 health lost by Horseman 773",
+            "value": 18.30769230769231,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 0.98076923076923,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 14,
+      "cityTarget": null,
+      "classification": "needs_alternatives_review",
+      "followupRemovals": []
+    },
+    {
+      "seed": 85211,
+      "index": 4997,
+      "turn": 86,
+      "attacker": {
+        "id": 671,
+        "ownerId": 5,
+        "type": "warrior",
+        "hp": 21,
+        "col": 16,
+        "row": 48,
+        "terrain": "tundra",
+        "feature": "none",
+        "hills": true,
+        "ranged": false,
+        "military": true
+      },
+      "defender": {
+        "id": 569,
+        "ownerId": 6,
+        "type": "swordsman",
+        "hp": 72,
+        "col": 15,
+        "row": 48,
+        "terrain": "tundra",
+        "feature": "none",
+        "hills": false,
+        "ranged": false,
+        "military": true,
+        "fortifiedTurns": 2
+      },
+      "command": {
+        "type": "attack",
+        "playerId": 5,
+        "unitId": 671,
+        "target": {
+          "col": 15,
+          "row": 48
+        }
+      },
+      "chosen": {
+        "label": "671: attack (15,48)",
+        "score": -51.801948051948045,
+        "terms": [
+          {
+            "label": "re-asked: the board has moved under its march to (15,49); the arm now names (15,48)",
+            "value": 0
+          },
+          {
+            "label": "21 health lost by Warrior 671",
+            "value": 10.90909090909091,
+            "op": "sub"
+          },
+          {
+            "label": "Loss of Warrior 671",
+            "value": 57.14285714285714,
+            "op": "sub"
+          },
+          {
+            "label": "17 health lost by Swordsman 569",
+            "value": 17,
+            "op": "add"
+          },
+          {
+            "label": "Cost of the low-damage scenario",
+            "value": 0.75,
+            "op": "sub"
+          }
+        ],
+        "chosen": true
+      },
+      "damageDealt": 16,
+      "cityTarget": null,
+      "classification": "needs_alternatives_review",
+      "followupRemovals": []
+    }
+  ],
+  "followupWindow": {
+    "turns": 2,
+    "limit": "Observed later outcomes are not proof that the sacrifice caused the result."
+  },
+  "originalPlanningBoardChecks": [
+    {
+      "unitId": 311,
+      "index": 2603,
+      "turn": 63,
+      "acceptedPrefixMatched": true,
+      "originalSnapshot": {
+        "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-private-311/position-2603.json",
+        "sha256": "257ce9d4f9123095371c5b4462dcc1f81e5da7d13e8a2a6a558bb9be9bcd0309"
+      },
+      "capture": {
+        "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-private-311/capture.json",
+        "sha256": "cb1c2b5795d8ad063286e3efe3d31dfc5a8f1bc1c47df76fa04c33a8085c6a13"
+      },
+      "retreatChecks": {
+        "unit": {
+          "id": 311,
+          "ownerId": 2,
+          "type": "warrior",
+          "col": 61,
+          "row": 27,
+          "hp": 18,
+          "movesLeft": 2,
+          "hasAttacked": false,
+          "experience": 3,
+          "path": [
+            {
+              "col": 60,
+              "row": 27
+            },
+            {
+              "col": 60,
+              "row": 28
+            },
+            {
+              "col": 59,
+              "row": 28
+            },
+            {
+              "col": 58,
+              "row": 29
+            },
+            {
+              "col": 58,
+              "row": 30
+            }
+          ]
+        },
+        "visibleEnemyIds": [
+          44,
+          106,
+          150,
+          221,
+          314
+        ],
+        "scope": "Original private planning board. Independently possible attacks by originally visible enemies with a full movement allowance, assuming the destination is visible to them. This conservative bound does not predict their choices or combine contested firing positions. Swap destinations are excluded.",
+        "rows": [
+          {
+            "command": {
+              "type": "fortify",
+              "playerId": 2,
+              "unitId": 311
+            },
+            "end": {
+              "col": 61,
+              "row": 27,
+              "hp": 18,
+              "terrain": "plains",
+              "feature": "none",
+              "hills": false
+            },
+            "threats": [
+              {
+                "enemy": 221,
+                "ownerId": 6,
+                "type": "spearman",
+                "from": {
+                  "col": 61,
+                  "row": 28
+                },
+                "cost": 0,
+                "min": 18,
+                "midpoint": 18,
+                "max": 18
+              },
+              {
+                "enemy": 314,
+                "ownerId": 6,
+                "type": "spearman",
+                "from": {
+                  "col": 60,
+                  "row": 27
+                },
+                "cost": 0,
+                "min": 18,
+                "midpoint": 18,
+                "max": 18
+              }
+            ]
+          },
+          {
+            "command": {
+              "type": "moveUnit",
+              "playerId": 2,
+              "unitId": 311,
+              "target": {
+                "col": 62,
+                "row": 28
+              }
+            },
+            "end": {
+              "col": 62,
+              "row": 28,
+              "hp": 18,
+              "terrain": "plains",
+              "feature": "none",
+              "hills": false
+            },
+            "threats": [
+              {
+                "enemy": 221,
+                "ownerId": 6,
+                "type": "spearman",
+                "from": {
+                  "col": 61,
+                  "row": 28
+                },
+                "cost": 0,
+                "min": 18,
+                "midpoint": 18,
+                "max": 18
+              },
+              {
+                "enemy": 314,
+                "ownerId": 6,
+                "type": "spearman",
+                "from": {
+                  "col": 61,
+                  "row": 27
+                },
+                "cost": 1,
+                "min": 18,
+                "midpoint": 18,
+                "max": 18
+              }
+            ]
+          }
+        ]
+      },
+      "candidateCommand": {
+        "type": "attack",
+        "playerId": 2,
+        "unitId": 311,
+        "target": {
+          "col": 60,
+          "row": 27
+        }
+      },
+      "candidateScoresMatchOriginal": true,
+      "note": "The original driver adds a zero-value explanation about reconsidering a march. The local reassessment omits that driver note.",
+      "reassessment": {
+        "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-reassess-311.json",
+        "sha256": "9b758d1836a3b780da98d424d7f0fff18ba89a714fc5b23b65b53945e5f39ac3"
+      }
+    },
+    {
+      "unitId": 224,
+      "index": 5543,
+      "turn": 85,
+      "acceptedPrefixMatched": true,
+      "originalSnapshot": {
+        "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-private-224/position-5543.json",
+        "sha256": "6539fc3704bfe4a3b7cce89eea0b8329d9528f37a30f375185cb8f2a6c9140cd"
+      },
+      "capture": {
+        "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-private-224/capture.json",
+        "sha256": "6759867682493143d0ced750e56637d2a9634d7dcf2ee82874c38260cc5e31ee"
+      },
+      "retreatChecks": {
+        "unit": {
+          "id": 224,
+          "ownerId": 3,
+          "type": "swordsman",
+          "col": 56,
+          "row": 38,
+          "hp": 5,
+          "movesLeft": 2,
+          "hasAttacked": false,
+          "experience": 5,
+          "path": [
+            {
+              "col": 56,
+              "row": 39
+            }
+          ]
+        },
+        "visibleEnemyIds": [
+          62,
+          89,
+          91,
+          302,
+          303,
+          362,
+          402,
+          437,
+          446,
+          551,
+          759,
+          762
+        ],
+        "scope": "Original private planning board. Independently possible attacks by originally visible enemies with a full movement allowance, assuming the destination is visible to them. This conservative bound does not predict their choices or combine contested firing positions. Swap destinations are excluded.",
+        "rows": [
+          {
+            "command": {
+              "type": "fortify",
+              "playerId": 3,
+              "unitId": 224
+            },
+            "end": {
+              "col": 56,
+              "row": 38,
+              "hp": 5,
+              "terrain": "plains",
+              "feature": "none",
+              "hills": false
+            },
+            "threats": [
+              {
+                "enemy": 402,
+                "ownerId": 0,
+                "type": "compositeBowman",
+                "from": {
+                  "col": 55,
+                  "row": 39
+                },
+                "cost": 0,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              }
+            ]
+          },
+          {
+            "command": {
+              "type": "moveUnit",
+              "playerId": 3,
+              "unitId": 224,
+              "target": {
+                "col": 55,
+                "row": 36
+              }
+            },
+            "end": {
+              "col": 55,
+              "row": 36,
+              "hp": 5,
+              "terrain": "grassland",
+              "feature": "none",
+              "hills": false
+            },
+            "threats": [
+              {
+                "enemy": 62,
+                "ownerId": 0,
+                "type": "swordsman",
+                "from": {
+                  "col": 54,
+                  "row": 36
+                },
+                "cost": 1,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              },
+              {
+                "enemy": 402,
+                "ownerId": 0,
+                "type": "compositeBowman",
+                "from": {
+                  "col": 55,
+                  "row": 38
+                },
+                "cost": 1,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              },
+              {
+                "enemy": 759,
+                "ownerId": 0,
+                "type": "spearman",
+                "from": {
+                  "col": 54,
+                  "row": 36
+                },
+                "cost": 1,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              }
+            ]
+          },
+          {
+            "command": {
+              "type": "moveUnit",
+              "playerId": 3,
+              "unitId": 224,
+              "target": {
+                "col": 54,
+                "row": 37
+              }
+            },
+            "end": {
+              "col": 54,
+              "row": 37,
+              "hp": 5,
+              "terrain": "plains",
+              "feature": "forest",
+              "hills": false
+            },
+            "threats": [
+              {
+                "enemy": 62,
+                "ownerId": 0,
+                "type": "swordsman",
+                "from": {
+                  "col": 54,
+                  "row": 36
+                },
+                "cost": 1,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              },
+              {
+                "enemy": 402,
+                "ownerId": 0,
+                "type": "compositeBowman",
+                "from": {
+                  "col": 55,
+                  "row": 39
+                },
+                "cost": 0,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              },
+              {
+                "enemy": 759,
+                "ownerId": 0,
+                "type": "spearman",
+                "from": {
+                  "col": 53,
+                  "row": 37
+                },
+                "cost": 0,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              }
+            ]
+          },
+          {
+            "command": {
+              "type": "moveUnit",
+              "playerId": 3,
+              "unitId": 224,
+              "target": {
+                "col": 56,
+                "row": 37
+              }
+            },
+            "end": {
+              "col": 56,
+              "row": 37,
+              "hp": 5,
+              "terrain": "plains",
+              "feature": "none",
+              "hills": true
+            },
+            "threats": [
+              {
+                "enemy": 402,
+                "ownerId": 0,
+                "type": "compositeBowman",
+                "from": {
+                  "col": 55,
+                  "row": 39
+                },
+                "cost": 0,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              }
+            ]
+          },
+          {
+            "command": {
+              "type": "moveUnit",
+              "playerId": 3,
+              "unitId": 224,
+              "target": {
+                "col": 55,
+                "row": 38
+              }
+            },
+            "end": {
+              "col": 55,
+              "row": 38,
+              "hp": 5,
+              "terrain": "plains",
+              "feature": "none",
+              "hills": false
+            },
+            "threats": [
+              {
+                "enemy": 402,
+                "ownerId": 0,
+                "type": "compositeBowman",
+                "from": {
+                  "col": 55,
+                  "row": 39
+                },
+                "cost": 0,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              }
+            ]
+          },
+          {
+            "command": {
+              "type": "moveUnit",
+              "playerId": 3,
+              "unitId": 224,
+              "target": {
+                "col": 57,
+                "row": 38
+              }
+            },
+            "end": {
+              "col": 57,
+              "row": 38,
+              "hp": 5,
+              "terrain": "plains",
+              "feature": "none",
+              "hills": true
+            },
+            "threats": [
+              {
+                "enemy": 402,
+                "ownerId": 0,
+                "type": "compositeBowman",
+                "from": {
+                  "col": 55,
+                  "row": 39
+                },
+                "cost": 0,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              }
+            ]
+          },
+          {
+            "command": {
+              "type": "moveUnit",
+              "playerId": 3,
+              "unitId": 224,
+              "target": {
+                "col": 56,
+                "row": 39
+              }
+            },
+            "end": {
+              "col": 56,
+              "row": 39,
+              "hp": 5,
+              "terrain": "lake",
+              "feature": "none",
+              "hills": false
+            },
+            "threats": [
+              {
+                "enemy": 402,
+                "ownerId": 0,
+                "type": "compositeBowman",
+                "from": {
+                  "col": 55,
+                  "row": 39
+                },
+                "cost": 0,
+                "min": 5,
+                "midpoint": 5,
+                "max": 5
+              }
+            ]
+          }
+        ]
+      },
+      "candidateCommand": {
+        "type": "attack",
+        "playerId": 3,
+        "unitId": 224,
+        "target": {
+          "col": 55,
+          "row": 39
+        }
+      },
+      "candidateScoresMatchOriginal": true,
+      "note": "The original driver adds a zero-value explanation about reconsidering a march. The local reassessment omits that driver note.",
+      "reassessment": {
+        "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-reassess-224.json",
+        "sha256": "3716ab670db28585ab89683dffbd21fd1bf45972d31a726ca44881697a3393fa"
+      }
+    }
+  ],
+  "pilot": {
+    "scope": "Two reused development maps, all six seats run the same policy, completed turn 100. Not a mixed-policy tournament.",
+    "settings": {
+      "tactics": {
+        "enabled": 1,
+        "moveRadius": 2,
+        "replyOrigins": 1
+      }
+    },
+    "schedule": {
+      "registeredBeforeResults": true,
+      "baselineCommit": "de26f9c8",
+      "rulesVersion": 262,
+      "turnLimit": 100,
+      "parameterOverrides": {},
+      "leaderCoverage": {
+        "alexanderTheGreat": 2,
+        "joan": 2,
+        "qinShiHuang": 2,
+        "jayavarmanVII": 2,
+        "cyrusTheGreat": 2,
+        "cleopatra": 2,
+        "mehmedTheConqueror": 2,
+        "pachacuti": 2,
+        "nezahualcoyotl": 2,
+        "mansaMusa": 2,
+        "lorenzoDeMedici": 2,
+        "justinian": 2,
+        "harunAlRashid": 2,
+        "sejongTheGreat": 2,
+        "genghisKhan": 2
+      },
+      "lineups": [
+        {
+          "seed": 48017,
+          "sizeName": "standard",
+          "leaders": [
+            "mehmedTheConqueror",
+            "pachacuti",
+            "nezahualcoyotl",
+            "mansaMusa",
+            "lorenzoDeMedici",
+            "justinian"
+          ],
+          "seatTuning": {}
+        },
+        {
+          "seed": 67153,
+          "sizeName": "standard",
+          "leaders": [
+            "harunAlRashid",
+            "sejongTheGreat",
+            "genghisKhan",
+            "mehmedTheConqueror",
+            "pachacuti",
+            "nezahualcoyotl"
+          ],
+          "seatTuning": {}
+        }
+      ],
+      "aggregation": "Paired by seed and seat; equal weight per leader; report losses and captures, not only yield."
+    },
+    "newGameProcesses": [
+      {
+        "seed": 48017,
+        "exitCode": 0,
+        "seconds": 70.270832125
+      },
+      {
+        "seed": 67153,
+        "exitCode": 0,
+        "seconds": 107.484837708
+      }
+    ],
+    "variants": {
+      "previous": {
+        "games": [
+          {
+            "seed": 48017,
+            "scenario": {
+              "sizeName": "standard",
+              "leaders": [
+                "mehmedTheConqueror",
+                "pachacuti",
+                "nezahualcoyotl",
+                "mansaMusa",
+                "lorenzoDeMedici",
+                "justinian"
+              ],
+              "seatTuning": {}
+            },
+            "warnings": [],
+            "report": {
+              "path": "/private/tmp/webciv-bot-combat-2026-11-22/unit-v6/48017/48017.json",
+              "sha256": "48adf7a1c1fcc3af3d8db1fc17d35f24a12240be8f328e4cb3bdee4ea0b268f9"
+            },
+            "save": {
+              "path": "/private/tmp/webciv-bot-combat-2026-11-22/unit-v6/48017/48017-100.save.json",
+              "sha256": "908c995e5935dfe44a969ce74116df6ffb91d3dcb2304ff996cb42f8b1542a40"
+            },
+            "combatReplayMatched": true,
+            "combatSeats": [
+              {
+                "id": 0,
+                "leader": "mehmedTheConqueror",
+                "attacks": 213,
+                "ranged": 171,
+                "fieldDamageDealt": 4896,
+                "fieldDamageTaken": 902,
+                "counterDeaths": 3,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 29,
+                "advances": 23,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 0,
+                "citiesLost": 0,
+                "lostToWild": 7
+              },
+              {
+                "id": 1,
+                "leader": "pachacuti",
+                "attacks": 26,
+                "ranged": 18,
+                "fieldDamageDealt": 608,
+                "fieldDamageTaken": 250,
+                "counterDeaths": 2,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 1,
+                "advances": 2,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 2,
+                "citiesLost": 3,
+                "lostToWild": 4
+              },
+              {
+                "id": 2,
+                "leader": "nezahualcoyotl",
+                "attacks": 40,
+                "ranged": 39,
+                "fieldDamageDealt": 1019,
+                "fieldDamageTaken": 18,
+                "counterDeaths": 1,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 12,
+                "advances": 0,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 2,
+                "citiesLost": 0,
+                "lostToWild": 10
+              },
+              {
+                "id": 3,
+                "leader": "mansaMusa",
+                "attacks": 84,
+                "ranged": 61,
+                "fieldDamageDealt": 2829,
+                "fieldDamageTaken": 453,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 14,
+                "advances": 14,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 2,
+                "citiesLost": 0,
+                "lostToWild": 6
+              },
+              {
+                "id": 4,
+                "leader": "lorenzoDeMedici",
+                "attacks": 36,
+                "ranged": 26,
+                "fieldDamageDealt": 1220,
+                "fieldDamageTaken": 170,
+                "counterDeaths": 1,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 10,
+                "advances": 5,
+                "advancesLostByNextTurn": 1,
+                "civilianLosses": 0,
+                "citiesLost": 0,
+                "lostToWild": 5
+              },
+              {
+                "id": 5,
+                "leader": "justinian",
+                "attacks": 17,
+                "ranged": 17,
+                "fieldDamageDealt": 390,
+                "fieldDamageTaken": 0,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 3,
+                "advances": 0,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 3,
+                "citiesLost": 0,
+                "lostToWild": 3
+              }
+            ],
+            "captureEvents": [
+              {
+                "index": 3758,
+                "turn": 74,
+                "ownerId": 0,
+                "cityId": 316
+              },
+              {
+                "index": 4745,
+                "turn": 82,
+                "ownerId": 0,
+                "cityId": 124
+              },
+              {
+                "index": 5455,
+                "turn": 88,
+                "ownerId": 0,
+                "cityId": 317
+              }
+            ]
+          },
+          {
+            "seed": 67153,
+            "scenario": {
+              "sizeName": "standard",
+              "leaders": [
+                "harunAlRashid",
+                "sejongTheGreat",
+                "genghisKhan",
+                "mehmedTheConqueror",
+                "pachacuti",
+                "nezahualcoyotl"
+              ],
+              "seatTuning": {}
+            },
+            "warnings": [],
+            "report": {
+              "path": "/private/tmp/webciv-bot-combat-2026-11-22/unit-v6/67153/67153.json",
+              "sha256": "78f6a528cf297d1a0e56f1f0c89b743b2ba307b827f7c4b661a439daac9f5f6c"
+            },
+            "save": {
+              "path": "/private/tmp/webciv-bot-combat-2026-11-22/unit-v6/67153/67153-100.save.json",
+              "sha256": "7b74f5d0df8e08dc2b3cfa0393458f1c16238b79cc1467e0a0e5e084e900e36e"
+            },
+            "combatReplayMatched": true,
+            "combatSeats": [
+              {
+                "id": 0,
+                "leader": "harunAlRashid",
+                "attacks": 70,
+                "ranged": 49,
+                "fieldDamageDealt": 2911,
+                "fieldDamageTaken": 363,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 8,
+                "advances": 14,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 1,
+                "citiesLost": 0,
+                "lostToWild": 3
+              },
+              {
+                "id": 1,
+                "leader": "sejongTheGreat",
+                "attacks": 51,
+                "ranged": 32,
+                "fieldDamageDealt": 1652,
+                "fieldDamageTaken": 362,
+                "counterDeaths": 2,
+                "counterDeathsFollowedByAlliedKill": 1,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 7,
+                "advances": 13,
+                "advancesLostByNextTurn": 1,
+                "civilianLosses": 2,
+                "citiesLost": 0,
+                "lostToWild": 7
+              },
+              {
+                "id": 2,
+                "leader": "genghisKhan",
+                "attacks": 170,
+                "ranged": 78,
+                "fieldDamageDealt": 6402,
+                "fieldDamageTaken": 1024,
+                "counterDeaths": 2,
+                "counterDeathsFollowedByAlliedKill": 2,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 25,
+                "advances": 56,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 1,
+                "citiesLost": 0,
+                "lostToWild": 9
+              },
+              {
+                "id": 3,
+                "leader": "mehmedTheConqueror",
+                "attacks": 92,
+                "ranged": 68,
+                "fieldDamageDealt": 2470,
+                "fieldDamageTaken": 460,
+                "counterDeaths": 2,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 13,
+                "advances": 11,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 2,
+                "citiesLost": 0,
+                "lostToWild": 3
+              },
+              {
+                "id": 4,
+                "leader": "pachacuti",
+                "attacks": 29,
+                "ranged": 22,
+                "fieldDamageDealt": 566,
+                "fieldDamageTaken": 139,
+                "counterDeaths": 1,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 3,
+                "advances": 6,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 6,
+                "citiesLost": 5,
+                "lostToWild": 6
+              },
+              {
+                "id": 5,
+                "leader": "nezahualcoyotl",
+                "attacks": 56,
+                "ranged": 48,
+                "fieldDamageDealt": 1495,
+                "fieldDamageTaken": 178,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 11,
+                "advances": 5,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 8,
+                "citiesLost": 0,
+                "lostToWild": 5
+              }
+            ],
+            "captureEvents": [
+              {
+                "index": 4293,
+                "turn": 78,
+                "ownerId": 2,
+                "cityId": 329
+              },
+              {
+                "index": 5094,
+                "turn": 83,
+                "ownerId": 2,
+                "cityId": 14
+              },
+              {
+                "index": 5645,
+                "turn": 86,
+                "ownerId": 2,
+                "cityId": 48
+              },
+              {
+                "index": 5884,
+                "turn": 87,
+                "ownerId": 2,
+                "cityId": 229
+              },
+              {
+                "index": 6740,
+                "turn": 91,
+                "ownerId": 2,
+                "cityId": 285
+              }
+            ]
+          }
+        ],
+        "seats": [
+          {
+            "seed": 48017,
+            "id": 0,
+            "leader": "mehmedTheConqueror",
+            "alive": true,
+            "score": 1558,
+            "total": 975.8199999999999,
+            "rates": {
+              "foodPerTurn": 361.5,
+              "productionPerTurn": 281.2,
+              "goldPerTurn": -3,
+              "sciencePerTurn": 185.79999999999998,
+              "culturePerTurn": 124.31999999999998,
+              "faithPerTurn": 26
+            },
+            "cumulative": 36736.534999999996,
+            "techs": 33,
+            "column": 8,
+            "age": 3,
+            "drafts": 20,
+            "captures": 3,
+            "citiesLost": 0,
+            "unitsLost": 19,
+            "enemiesKilled": 53,
+            "campsCleared": 4,
+            "military": 126
+          },
+          {
+            "seed": 48017,
+            "id": 1,
+            "leader": "pachacuti",
+            "alive": true,
+            "score": 257,
+            "total": 110.45,
+            "rates": {
+              "foodPerTurn": 46,
+              "productionPerTurn": 42.9,
+              "goldPerTurn": -6.199999999999999,
+              "sciencePerTurn": 8.75,
+              "culturePerTurn": 17,
+              "faithPerTurn": 2
+            },
+            "cumulative": 6160.799999999997,
+            "techs": 13,
+            "column": 4,
+            "age": 2,
+            "drafts": 12,
+            "captures": 0,
+            "citiesLost": 3,
+            "unitsLost": 26,
+            "enemiesKilled": 16,
+            "campsCleared": 2,
+            "military": 23
+          },
+          {
+            "seed": 48017,
+            "id": 2,
+            "leader": "nezahualcoyotl",
+            "alive": true,
+            "score": 824,
+            "total": 452.0000000000001,
+            "rates": {
+              "foodPerTurn": 174,
+              "productionPerTurn": 92.40000000000002,
+              "goldPerTurn": 24.200000000000003,
+              "sciencePerTurn": 87.20000000000002,
+              "culturePerTurn": 47.20000000000002,
+              "faithPerTurn": 27
+            },
+            "cumulative": 17031.399999999998,
+            "techs": 23,
+            "column": 7,
+            "age": 3,
+            "drafts": 15,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 10,
+            "enemiesKilled": 33,
+            "campsCleared": 2,
+            "military": 28
+          },
+          {
+            "seed": 48017,
+            "id": 3,
+            "leader": "mansaMusa",
+            "alive": true,
+            "score": 816,
+            "total": 605.9780000000001,
+            "rates": {
+              "foodPerTurn": 137,
+              "productionPerTurn": 162.9,
+              "goldPerTurn": 33,
+              "sciencePerTurn": 97.85700000000003,
+              "culturePerTurn": 130.221,
+              "faithPerTurn": 45
+            },
+            "cumulative": 23606.08574999999,
+            "techs": 26,
+            "column": 7,
+            "age": 3,
+            "drafts": 19,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 11,
+            "enemiesKilled": 37,
+            "campsCleared": 6,
+            "military": 56
+          },
+          {
+            "seed": 48017,
+            "id": 4,
+            "leader": "lorenzoDeMedici",
+            "alive": true,
+            "score": 1154,
+            "total": 2020.33,
+            "rates": {
+              "foodPerTurn": 243,
+              "productionPerTurn": 639.0120000000001,
+              "goldPerTurn": 554.45,
+              "sciencePerTurn": 296.868,
+              "culturePerTurn": 240,
+              "faithPerTurn": 47
+            },
+            "cumulative": 36838.96200000001,
+            "techs": 30,
+            "column": 9,
+            "age": 4,
+            "drafts": 20,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 6,
+            "enemiesKilled": 23,
+            "campsCleared": 4,
+            "military": 15
+          },
+          {
+            "seed": 48017,
+            "id": 5,
+            "leader": "justinian",
+            "alive": true,
+            "score": 1103,
+            "total": 3434.861,
+            "rates": {
+              "foodPerTurn": 305.75,
+              "productionPerTurn": 996.6,
+              "goldPerTurn": 129.25,
+              "sciencePerTurn": 452.961,
+              "culturePerTurn": 1071.3000000000002,
+              "faithPerTurn": 479
+            },
+            "cumulative": 37133.011999999995,
+            "techs": 29,
+            "column": 8,
+            "age": 3,
+            "drafts": 23,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 8,
+            "enemiesKilled": 5,
+            "campsCleared": 1,
+            "military": 17
+          },
+          {
+            "seed": 67153,
+            "id": 0,
+            "leader": "harunAlRashid",
+            "alive": true,
+            "score": 1051,
+            "total": 1041.5,
+            "rates": {
+              "foodPerTurn": 285,
+              "productionPerTurn": 277,
+              "goldPerTurn": 31.5,
+              "sciencePerTurn": 179.5,
+              "culturePerTurn": 101.5,
+              "faithPerTurn": 167
+            },
+            "cumulative": 31745.124999999996,
+            "techs": 30,
+            "column": 7,
+            "age": 3,
+            "drafts": 20,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 5,
+            "enemiesKilled": 35,
+            "campsCleared": 5,
+            "military": 35
+          },
+          {
+            "seed": 67153,
+            "id": 1,
+            "leader": "sejongTheGreat",
+            "alive": true,
+            "score": 980,
+            "total": 729.3299999999999,
+            "rates": {
+              "foodPerTurn": 168,
+              "productionPerTurn": 195.02999999999994,
+              "goldPerTurn": 42.8,
+              "sciencePerTurn": 191.5,
+              "culturePerTurn": 76,
+              "faithPerTurn": 56
+            },
+            "cumulative": 27565.6025,
+            "techs": 33,
+            "column": 8,
+            "age": 3,
+            "drafts": 16,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 12,
+            "enemiesKilled": 25,
+            "campsCleared": 4,
+            "military": 33
+          },
+          {
+            "seed": 67153,
+            "id": 2,
+            "leader": "genghisKhan",
+            "alive": true,
+            "score": 2419,
+            "total": 3298.1800000000003,
+            "rates": {
+              "foodPerTurn": 664,
+              "productionPerTurn": 986.7600000000001,
+              "goldPerTurn": 740,
+              "sciencePerTurn": 424.41999999999996,
+              "culturePerTurn": 347,
+              "faithPerTurn": 136
+            },
+            "cumulative": 72127.6,
+            "techs": 35,
+            "column": 8,
+            "age": 3,
+            "drafts": 22,
+            "captures": 5,
+            "citiesLost": 0,
+            "unitsLost": 12,
+            "enemiesKilled": 97,
+            "campsCleared": 22,
+            "military": 117
+          },
+          {
+            "seed": 67153,
+            "id": 3,
+            "leader": "mehmedTheConqueror",
+            "alive": true,
+            "score": 1044,
+            "total": 996.0300000000001,
+            "rates": {
+              "foodPerTurn": 326,
+              "productionPerTurn": 253.18000000000004,
+              "goldPerTurn": 195.10000000000002,
+              "sciencePerTurn": 120.60000000000001,
+              "culturePerTurn": 66.14999999999999,
+              "faithPerTurn": 35
+            },
+            "cumulative": 30710.665000000005,
+            "techs": 27,
+            "column": 7,
+            "age": 3,
+            "drafts": 17,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 16,
+            "enemiesKilled": 34,
+            "campsCleared": 6,
+            "military": 75
+          },
+          {
+            "seed": 67153,
+            "id": 4,
+            "leader": "pachacuti",
+            "alive": true,
+            "score": 325,
+            "total": 108.2,
+            "rates": {
+              "foodPerTurn": 24,
+              "productionPerTurn": 29.7,
+              "goldPerTurn": 7,
+              "sciencePerTurn": 27.5,
+              "culturePerTurn": 18,
+              "faithPerTurn": 2
+            },
+            "cumulative": 10514.500000000002,
+            "techs": 18,
+            "column": 5,
+            "age": 2,
+            "drafts": 12,
+            "captures": 0,
+            "citiesLost": 5,
+            "unitsLost": 44,
+            "enemiesKilled": 13,
+            "campsCleared": 3,
+            "military": 17
+          },
+          {
+            "seed": 67153,
+            "id": 5,
+            "leader": "nezahualcoyotl",
+            "alive": true,
+            "score": 1003,
+            "total": 1184.25,
+            "rates": {
+              "foodPerTurn": 190,
+              "productionPerTurn": 440.55,
+              "goldPerTurn": 88.5,
+              "sciencePerTurn": 151,
+              "culturePerTurn": 188.19999999999996,
+              "faithPerTurn": 126
+            },
+            "cumulative": 26354.920999999988,
+            "techs": 29,
+            "column": 7,
+            "age": 3,
+            "drafts": 19,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 4,
+            "enemiesKilled": 22,
+            "campsCleared": 4,
+            "military": 39
+          }
+        ],
+        "aggregate": {
+          "seats": 12,
+          "meanScore": 1044.5,
+          "medianRecurringYields": 985.925,
+          "seatsAt800": 7,
+          "totalUnitLosses": 173,
+          "captures": 8,
+          "combat": {
+            "attacks": 884,
+            "ranged": 629,
+            "fieldDamageDealt": 26458,
+            "fieldDamageTaken": 4319,
+            "counterDeaths": 14,
+            "counterDeathsFollowedByAlliedKill": 3,
+            "counterDeathsFollowedByCityCapture": 0,
+            "rangedKills": 136,
+            "advances": 149,
+            "advancesLostByNextTurn": 2,
+            "civilianLosses": 29,
+            "citiesLost": 8,
+            "lostToWild": 68
+          }
+        }
+      },
+      "candidate": {
+        "games": [
+          {
+            "seed": 48017,
+            "scenario": {
+              "seed": 48017,
+              "sizeName": "standard",
+              "leaders": [
+                "mehmedTheConqueror",
+                "pachacuti",
+                "nezahualcoyotl",
+                "mansaMusa",
+                "lorenzoDeMedici",
+                "justinian"
+              ],
+              "seatTuning": {}
+            },
+            "warnings": [],
+            "report": {
+              "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-v1/48017/48017.json",
+              "sha256": "eb6e87e820a2832e5b7dc754aa097cb6a5dce0c143d129a9e78171855b605685"
+            },
+            "save": {
+              "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-v1/48017/48017-100.save.json",
+              "sha256": "d126d67d2b9c2ceae3364d258fe32143da3afd20370c7f688a856495ffdbe4cd"
+            },
+            "combatReplayMatched": true,
+            "combatSeats": [
+              {
+                "id": 0,
+                "leader": "mehmedTheConqueror",
+                "attacks": 175,
+                "ranged": 146,
+                "fieldDamageDealt": 5282,
+                "fieldDamageTaken": 428,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 37,
+                "advances": 20,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 1,
+                "citiesLost": 0,
+                "lostToWild": 6
+              },
+              {
+                "id": 1,
+                "leader": "pachacuti",
+                "attacks": 54,
+                "ranged": 48,
+                "fieldDamageDealt": 827,
+                "fieldDamageTaken": 222,
+                "counterDeaths": 1,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 2,
+                "advances": 4,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 3,
+                "citiesLost": 4,
+                "lostToWild": 2
+              },
+              {
+                "id": 2,
+                "leader": "nezahualcoyotl",
+                "attacks": 44,
+                "ranged": 39,
+                "fieldDamageDealt": 996,
+                "fieldDamageTaken": 131,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 12,
+                "advances": 5,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 0,
+                "citiesLost": 0,
+                "lostToWild": 5
+              },
+              {
+                "id": 3,
+                "leader": "mansaMusa",
+                "attacks": 56,
+                "ranged": 43,
+                "fieldDamageDealt": 1488,
+                "fieldDamageTaken": 263,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 13,
+                "advances": 7,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 1,
+                "citiesLost": 0,
+                "lostToWild": 6
+              },
+              {
+                "id": 4,
+                "leader": "lorenzoDeMedici",
+                "attacks": 31,
+                "ranged": 22,
+                "fieldDamageDealt": 1083,
+                "fieldDamageTaken": 234,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 5,
+                "advances": 3,
+                "advancesLostByNextTurn": 1,
+                "civilianLosses": 0,
+                "citiesLost": 0,
+                "lostToWild": 3
+              },
+              {
+                "id": 5,
+                "leader": "justinian",
+                "attacks": 17,
+                "ranged": 16,
+                "fieldDamageDealt": 373,
+                "fieldDamageTaken": 40,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 2,
+                "advances": 1,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 0,
+                "citiesLost": 0,
+                "lostToWild": 1
+              }
+            ],
+            "captureEvents": [
+              {
+                "index": 2906,
+                "turn": 67,
+                "ownerId": 0,
+                "cityId": 124
+              },
+              {
+                "index": 4279,
+                "turn": 82,
+                "ownerId": 0,
+                "cityId": 368
+              },
+              {
+                "index": 4651,
+                "turn": 86,
+                "ownerId": 0,
+                "cityId": 14
+              },
+              {
+                "index": 6484,
+                "turn": 100,
+                "ownerId": 0,
+                "cityId": 318
+              }
+            ]
+          },
+          {
+            "seed": 67153,
+            "scenario": {
+              "seed": 67153,
+              "sizeName": "standard",
+              "leaders": [
+                "harunAlRashid",
+                "sejongTheGreat",
+                "genghisKhan",
+                "mehmedTheConqueror",
+                "pachacuti",
+                "nezahualcoyotl"
+              ],
+              "seatTuning": {}
+            },
+            "warnings": [],
+            "report": {
+              "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-v1/67153/67153.json",
+              "sha256": "b948c39444892dfbc05445adac574a11c123b33b8f669ece8d6384e58fc93d74"
+            },
+            "save": {
+              "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-v1/67153/67153-100.save.json",
+              "sha256": "1acb4c54c51626d9a83227db8ebf03866f17bb9c138916be28f21941d29f22be"
+            },
+            "combatReplayMatched": true,
+            "combatSeats": [
+              {
+                "id": 0,
+                "leader": "harunAlRashid",
+                "attacks": 26,
+                "ranged": 16,
+                "fieldDamageDealt": 1118,
+                "fieldDamageTaken": 165,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 3,
+                "advances": 6,
+                "advancesLostByNextTurn": 2,
+                "civilianLosses": 1,
+                "citiesLost": 0,
+                "lostToWild": 5
+              },
+              {
+                "id": 1,
+                "leader": "sejongTheGreat",
+                "attacks": 60,
+                "ranged": 51,
+                "fieldDamageDealt": 1832,
+                "fieldDamageTaken": 173,
+                "counterDeaths": 2,
+                "counterDeathsFollowedByAlliedKill": 1,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 15,
+                "advances": 6,
+                "advancesLostByNextTurn": 1,
+                "civilianLosses": 3,
+                "citiesLost": 0,
+                "lostToWild": 11
+              },
+              {
+                "id": 2,
+                "leader": "genghisKhan",
+                "attacks": 124,
+                "ranged": 54,
+                "fieldDamageDealt": 4384,
+                "fieldDamageTaken": 881,
+                "counterDeaths": 2,
+                "counterDeathsFollowedByAlliedKill": 2,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 15,
+                "advances": 42,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 0,
+                "citiesLost": 0,
+                "lostToWild": 9
+              },
+              {
+                "id": 3,
+                "leader": "mehmedTheConqueror",
+                "attacks": 68,
+                "ranged": 49,
+                "fieldDamageDealt": 1760,
+                "fieldDamageTaken": 377,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 9,
+                "advances": 7,
+                "advancesLostByNextTurn": 3,
+                "civilianLosses": 2,
+                "citiesLost": 0,
+                "lostToWild": 6
+              },
+              {
+                "id": 4,
+                "leader": "pachacuti",
+                "attacks": 31,
+                "ranged": 24,
+                "fieldDamageDealt": 547,
+                "fieldDamageTaken": 243,
+                "counterDeaths": 2,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 1,
+                "advances": 4,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 3,
+                "citiesLost": 4,
+                "lostToWild": 6
+              },
+              {
+                "id": 5,
+                "leader": "nezahualcoyotl",
+                "attacks": 45,
+                "ranged": 36,
+                "fieldDamageDealt": 1205,
+                "fieldDamageTaken": 165,
+                "counterDeaths": 0,
+                "counterDeathsFollowedByAlliedKill": 0,
+                "counterDeathsFollowedByCityCapture": 0,
+                "rangedKills": 10,
+                "advances": 4,
+                "advancesLostByNextTurn": 0,
+                "civilianLosses": 8,
+                "citiesLost": 0,
+                "lostToWild": 6
+              }
+            ],
+            "captureEvents": [
+              {
+                "index": 4152,
+                "turn": 75,
+                "ownerId": 2,
+                "cityId": 329
+              },
+              {
+                "index": 4897,
+                "turn": 81,
+                "ownerId": 2,
+                "cityId": 14
+              },
+              {
+                "index": 5573,
+                "turn": 86,
+                "ownerId": 2,
+                "cityId": 48
+              },
+              {
+                "index": 5604,
+                "turn": 86,
+                "ownerId": 2,
+                "cityId": 229
+              }
+            ]
+          }
+        ],
+        "seats": [
+          {
+            "seed": 48017,
+            "id": 0,
+            "leader": "mehmedTheConqueror",
+            "alive": true,
+            "score": 1719,
+            "total": 1641.3519000000001,
+            "rates": {
+              "foodPerTurn": 411,
+              "productionPerTurn": 567.6768,
+              "goldPerTurn": 9.900000000000006,
+              "sciencePerTurn": 293.51750000000004,
+              "culturePerTurn": 291.2576,
+              "faithPerTurn": 68
+            },
+            "cumulative": 45459.292400000006,
+            "techs": 37,
+            "column": 8,
+            "age": 3,
+            "drafts": 22,
+            "captures": 4,
+            "citiesLost": 0,
+            "unitsLost": 14,
+            "enemiesKilled": 59,
+            "campsCleared": 5,
+            "military": 89
+          },
+          {
+            "seed": 48017,
+            "id": 1,
+            "leader": "pachacuti",
+            "alive": true,
+            "score": 164,
+            "total": 10.95,
+            "rates": {
+              "foodPerTurn": 5,
+              "productionPerTurn": 3.6,
+              "goldPerTurn": -5.9,
+              "sciencePerTurn": 1.25,
+              "culturePerTurn": 7,
+              "faithPerTurn": 0
+            },
+            "cumulative": 4727.450000000002,
+            "techs": 13,
+            "column": 4,
+            "age": 2,
+            "drafts": 11,
+            "captures": 0,
+            "citiesLost": 4,
+            "unitsLost": 33,
+            "enemiesKilled": 16,
+            "campsCleared": 1,
+            "military": 8
+          },
+          {
+            "seed": 48017,
+            "id": 2,
+            "leader": "nezahualcoyotl",
+            "alive": true,
+            "score": 1029,
+            "total": 729.17,
+            "rates": {
+              "foodPerTurn": 203.725,
+              "productionPerTurn": 200.80000000000004,
+              "goldPerTurn": 56.8,
+              "sciencePerTurn": 161.29999999999995,
+              "culturePerTurn": 75.91999999999999,
+              "faithPerTurn": 30.625
+            },
+            "cumulative": 22716.952499999996,
+            "techs": 29,
+            "column": 7,
+            "age": 3,
+            "drafts": 16,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 5,
+            "enemiesKilled": 29,
+            "campsCleared": 3,
+            "military": 24
+          },
+          {
+            "seed": 48017,
+            "id": 3,
+            "leader": "mansaMusa",
+            "alive": true,
+            "score": 928,
+            "total": 986.59,
+            "rates": {
+              "foodPerTurn": 182,
+              "productionPerTurn": 239.85000000000002,
+              "goldPerTurn": 167.9,
+              "sciencePerTurn": 162.39999999999998,
+              "culturePerTurn": 177.44000000000003,
+              "faithPerTurn": 57
+            },
+            "cumulative": 26970.821000000004,
+            "techs": 29,
+            "column": 8,
+            "age": 3,
+            "drafts": 21,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 9,
+            "enemiesKilled": 33,
+            "campsCleared": 6,
+            "military": 25
+          },
+          {
+            "seed": 48017,
+            "id": 4,
+            "leader": "lorenzoDeMedici",
+            "alive": true,
+            "score": 770,
+            "total": 1319.174,
+            "rates": {
+              "foodPerTurn": 99,
+              "productionPerTurn": 258.214,
+              "goldPerTurn": 149.8,
+              "sciencePerTurn": 393.96,
+              "culturePerTurn": 301.2,
+              "faithPerTurn": 117
+            },
+            "cumulative": 30812.589,
+            "techs": 31,
+            "column": 8,
+            "age": 3,
+            "drafts": 21,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 6,
+            "enemiesKilled": 17,
+            "campsCleared": 3,
+            "military": 18
+          },
+          {
+            "seed": 48017,
+            "id": 5,
+            "leader": "justinian",
+            "alive": true,
+            "score": 1028,
+            "total": 1680.5968,
+            "rates": {
+              "foodPerTurn": 157,
+              "productionPerTurn": 346.03,
+              "goldPerTurn": 103.5,
+              "sciencePerTurn": 440.11080000000004,
+              "culturePerTurn": 412.95599999999996,
+              "faithPerTurn": 221
+            },
+            "cumulative": 32705.6808,
+            "techs": 29,
+            "column": 8,
+            "age": 3,
+            "drafts": 22,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 4,
+            "enemiesKilled": 4,
+            "campsCleared": 2,
+            "military": 20
+          },
+          {
+            "seed": 67153,
+            "id": 0,
+            "leader": "harunAlRashid",
+            "alive": true,
+            "score": 959,
+            "total": 1167.38,
+            "rates": {
+              "foodPerTurn": 273,
+              "productionPerTurn": 344.52,
+              "goldPerTurn": 105,
+              "sciencePerTurn": 185.7,
+              "culturePerTurn": 144.16000000000005,
+              "faithPerTurn": 115
+            },
+            "cumulative": 27499.504999999997,
+            "techs": 28,
+            "column": 7,
+            "age": 3,
+            "drafts": 18,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 7,
+            "enemiesKilled": 16,
+            "campsCleared": 2,
+            "military": 32
+          },
+          {
+            "seed": 67153,
+            "id": 1,
+            "leader": "sejongTheGreat",
+            "alive": true,
+            "score": 1071,
+            "total": 1006.0324999999999,
+            "rates": {
+              "foodPerTurn": 198,
+              "productionPerTurn": 178,
+              "goldPerTurn": 126.8,
+              "sciencePerTurn": 299.8325,
+              "culturePerTurn": 161.39999999999998,
+              "faithPerTurn": 42
+            },
+            "cumulative": 29214.465,
+            "techs": 37,
+            "column": 9,
+            "age": 4,
+            "drafts": 18,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 13,
+            "enemiesKilled": 29,
+            "campsCleared": 4,
+            "military": 28
+          },
+          {
+            "seed": 67153,
+            "id": 2,
+            "leader": "genghisKhan",
+            "alive": true,
+            "score": 2712,
+            "total": 3744.67195,
+            "rates": {
+              "foodPerTurn": 637,
+              "productionPerTurn": 1115.1792,
+              "goldPerTurn": 73.39999999999998,
+              "sciencePerTurn": 761.4087499999999,
+              "culturePerTurn": 1023.684,
+              "faithPerTurn": 134
+            },
+            "cumulative": 71853.52704999999,
+            "techs": 38,
+            "column": 10,
+            "age": 4,
+            "drafts": 31,
+            "captures": 4,
+            "citiesLost": 0,
+            "unitsLost": 12,
+            "enemiesKilled": 76,
+            "campsCleared": 15,
+            "military": 116
+          },
+          {
+            "seed": 67153,
+            "id": 3,
+            "leader": "mehmedTheConqueror",
+            "alive": true,
+            "score": 1087,
+            "total": 1693.5450000000003,
+            "rates": {
+              "foodPerTurn": 402,
+              "productionPerTurn": 471.84500000000014,
+              "goldPerTurn": 245.5,
+              "sciencePerTurn": 236.4,
+              "culturePerTurn": 214.8,
+              "faithPerTurn": 123
+            },
+            "cumulative": 32612.785,
+            "techs": 26,
+            "column": 7,
+            "age": 3,
+            "drafts": 18,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 12,
+            "enemiesKilled": 29,
+            "campsCleared": 5,
+            "military": 56
+          },
+          {
+            "seed": 67153,
+            "id": 4,
+            "leader": "pachacuti",
+            "alive": true,
+            "score": 349,
+            "total": 145.4875,
+            "rates": {
+              "foodPerTurn": 43,
+              "productionPerTurn": 33,
+              "goldPerTurn": 8,
+              "sciencePerTurn": 30.4375,
+              "culturePerTurn": 27.05,
+              "faithPerTurn": 4
+            },
+            "cumulative": 10646.787499999999,
+            "techs": 18,
+            "column": 5,
+            "age": 2,
+            "drafts": 12,
+            "captures": 0,
+            "citiesLost": 4,
+            "unitsLost": 29,
+            "enemiesKilled": 9,
+            "campsCleared": 3,
+            "military": 20
+          },
+          {
+            "seed": 67153,
+            "id": 5,
+            "leader": "nezahualcoyotl",
+            "alive": true,
+            "score": 982,
+            "total": 1594.3399999999997,
+            "rates": {
+              "foodPerTurn": 265.9,
+              "productionPerTurn": 421.59,
+              "goldPerTurn": 290.04999999999995,
+              "sciencePerTurn": 167.10000000000002,
+              "culturePerTurn": 349.19999999999993,
+              "faithPerTurn": 100.5
+            },
+            "cumulative": 29351.360500000003,
+            "techs": 29,
+            "column": 8,
+            "age": 3,
+            "drafts": 22,
+            "captures": 0,
+            "citiesLost": 0,
+            "unitsLost": 5,
+            "enemiesKilled": 17,
+            "campsCleared": 4,
+            "military": 26
+          }
+        ],
+        "aggregate": {
+          "seats": 12,
+          "meanScore": 1066.5,
+          "medianRecurringYields": 1243.277,
+          "seatsAt800": 9,
+          "totalUnitLosses": 149,
+          "captures": 8,
+          "combat": {
+            "attacks": 731,
+            "ranged": 544,
+            "fieldDamageDealt": 20895,
+            "fieldDamageTaken": 3322,
+            "counterDeaths": 7,
+            "counterDeathsFollowedByAlliedKill": 3,
+            "counterDeathsFollowedByCityCapture": 0,
+            "rangedKills": 124,
+            "advances": 109,
+            "advancesLostByNextTurn": 7,
+            "civilianLosses": 22,
+            "citiesLost": 8,
+            "lostToWild": 66
+          }
+        }
+      }
+    }
+  },
+  "timing": {
+    "scope": "Complete six-seat headless turn; includes bot queries, dispatch and diagnostics; excludes loading. Serial runs without concurrent tests or benchmarks.",
+    "order": [
+      "original",
+      "previous",
+      "candidate",
+      "candidate",
+      "previous",
+      "original"
+    ],
+    "fixtures": [
+      {
+        "path": "/private/tmp/webciv-bot-combat-2026-11-22/combat-facts/67153/67153-80.save.json",
+        "sha256": "8a3aaaaabb9da47b00d285ea9818df5d8d9a3431d26969dad765048a8d7e716d"
+      },
+      {
+        "path": "/private/tmp/webciv-bot-combat-2026-11-22/tactics-round2/48017/48017-90.save.json",
+        "sha256": "c10fde2c223c250733cb50c59b5a5c9fc4cbbfc9964ef7b5da58deed0262b4af"
+      }
+    ],
+    "rows": [
+      {
+        "case": "war80",
+        "policy": "original",
+        "repeat": 1,
+        "exitCode": 0,
+        "elapsedMs": 1476.1485830000001,
+        "queries": 199,
+        "tactics": {
+          "calls": 0,
+          "engagements": 0,
+          "positions": 0,
+          "forecasts": 0,
+          "replies": 0,
+          "limited": 0,
+          "cacheHits": 0
+        },
+        "perUnit": {
+          "assessments": 0,
+          "planReuses": 0,
+          "firstAssessments": 0,
+          "localChanges": 0,
+          "economyChanges": 0,
+          "reachBuilds": 0,
+          "reachReuses": 0,
+          "tiles": 0,
+          "forecasts": 0
+        },
+        "planning": {
+          "landed": 60,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 3
+          },
+          "cutWhy": {
+            "combat: health or strength changed": 2,
+            "combat: attack target is unavailable": 1
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "7e4b3e96bb9e1ec073e3fdd93e38fc26680d3baf09a1775f5ed04cbf03eb9fb5",
+        "stateSha256": "cd215d953bc192de0aceaa2644b936c8c26cbb360a1080e3131f02aef8e9b4a8"
+      },
+      {
+        "case": "war80",
+        "policy": "previous",
+        "repeat": 1,
+        "exitCode": 0,
+        "elapsedMs": 1959.3360830000001,
+        "queries": 245,
+        "tactics": {
+          "calls": 659,
+          "engagements": 82,
+          "positions": 343,
+          "forecasts": 454,
+          "replies": 190,
+          "limited": 0,
+          "cacheHits": 216
+        },
+        "perUnit": {
+          "assessments": 659,
+          "planReuses": 216,
+          "firstAssessments": 178,
+          "localChanges": 234,
+          "economyChanges": 247,
+          "reachBuilds": 322,
+          "reachReuses": 5282,
+          "tiles": 3208,
+          "forecasts": 454
+        },
+        "planning": {
+          "landed": 37,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 4
+          },
+          "cutWhy": {
+            "combat: local tactical position changed": 4
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "58a96d68ada4a3657fbeab9574f40ad21e3de504beabeb31e2d68f0248e1d67a",
+        "stateSha256": "b69e7ca17748cff7edbe88835b7601fc19be22430c6773245530780c0d06ce4c"
+      },
+      {
+        "case": "war80",
+        "policy": "candidate",
+        "repeat": 1,
+        "exitCode": 0,
+        "elapsedMs": 1950.7652909999997,
+        "queries": 245,
+        "tactics": {
+          "calls": 659,
+          "engagements": 82,
+          "positions": 343,
+          "forecasts": 454,
+          "replies": 190,
+          "limited": 0,
+          "cacheHits": 216
+        },
+        "perUnit": {
+          "assessments": 659,
+          "planReuses": 216,
+          "firstAssessments": 178,
+          "localChanges": 234,
+          "economyChanges": 247,
+          "reachBuilds": 322,
+          "reachReuses": 5494,
+          "tiles": 3208,
+          "forecasts": 454
+        },
+        "planning": {
+          "landed": 37,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 4
+          },
+          "cutWhy": {
+            "combat: local tactical position changed": 4
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "58a96d68ada4a3657fbeab9574f40ad21e3de504beabeb31e2d68f0248e1d67a",
+        "stateSha256": "b69e7ca17748cff7edbe88835b7601fc19be22430c6773245530780c0d06ce4c"
+      },
+      {
+        "case": "war80",
+        "policy": "candidate",
+        "repeat": 2,
+        "exitCode": 0,
+        "elapsedMs": 1931.337458,
+        "queries": 245,
+        "tactics": {
+          "calls": 659,
+          "engagements": 82,
+          "positions": 343,
+          "forecasts": 454,
+          "replies": 190,
+          "limited": 0,
+          "cacheHits": 216
+        },
+        "perUnit": {
+          "assessments": 659,
+          "planReuses": 216,
+          "firstAssessments": 178,
+          "localChanges": 234,
+          "economyChanges": 247,
+          "reachBuilds": 322,
+          "reachReuses": 5494,
+          "tiles": 3208,
+          "forecasts": 454
+        },
+        "planning": {
+          "landed": 37,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 4
+          },
+          "cutWhy": {
+            "combat: local tactical position changed": 4
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "58a96d68ada4a3657fbeab9574f40ad21e3de504beabeb31e2d68f0248e1d67a",
+        "stateSha256": "b69e7ca17748cff7edbe88835b7601fc19be22430c6773245530780c0d06ce4c"
+      },
+      {
+        "case": "war80",
+        "policy": "previous",
+        "repeat": 2,
+        "exitCode": 0,
+        "elapsedMs": 1941.396917,
+        "queries": 245,
+        "tactics": {
+          "calls": 659,
+          "engagements": 82,
+          "positions": 343,
+          "forecasts": 454,
+          "replies": 190,
+          "limited": 0,
+          "cacheHits": 216
+        },
+        "perUnit": {
+          "assessments": 659,
+          "planReuses": 216,
+          "firstAssessments": 178,
+          "localChanges": 234,
+          "economyChanges": 247,
+          "reachBuilds": 322,
+          "reachReuses": 5282,
+          "tiles": 3208,
+          "forecasts": 454
+        },
+        "planning": {
+          "landed": 37,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 4
+          },
+          "cutWhy": {
+            "combat: local tactical position changed": 4
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "58a96d68ada4a3657fbeab9574f40ad21e3de504beabeb31e2d68f0248e1d67a",
+        "stateSha256": "b69e7ca17748cff7edbe88835b7601fc19be22430c6773245530780c0d06ce4c"
+      },
+      {
+        "case": "war80",
+        "policy": "original",
+        "repeat": 2,
+        "exitCode": 0,
+        "elapsedMs": 1491.3107089999994,
+        "queries": 199,
+        "tactics": {
+          "calls": 0,
+          "engagements": 0,
+          "positions": 0,
+          "forecasts": 0,
+          "replies": 0,
+          "limited": 0,
+          "cacheHits": 0
+        },
+        "perUnit": {
+          "assessments": 0,
+          "planReuses": 0,
+          "firstAssessments": 0,
+          "localChanges": 0,
+          "economyChanges": 0,
+          "reachBuilds": 0,
+          "reachReuses": 0,
+          "tiles": 0,
+          "forecasts": 0
+        },
+        "planning": {
+          "landed": 60,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 3
+          },
+          "cutWhy": {
+            "combat: health or strength changed": 2,
+            "combat: attack target is unavailable": 1
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "7e4b3e96bb9e1ec073e3fdd93e38fc26680d3baf09a1775f5ed04cbf03eb9fb5",
+        "stateSha256": "cd215d953bc192de0aceaa2644b936c8c26cbb360a1080e3131f02aef8e9b4a8"
+      },
+      {
+        "case": "heavy90",
+        "policy": "original",
+        "repeat": 1,
+        "exitCode": 0,
+        "elapsedMs": 1368.7127089999994,
+        "queries": 162,
+        "tactics": {
+          "calls": 0,
+          "engagements": 0,
+          "positions": 0,
+          "forecasts": 0,
+          "replies": 0,
+          "limited": 0,
+          "cacheHits": 0
+        },
+        "perUnit": {
+          "assessments": 0,
+          "planReuses": 0,
+          "firstAssessments": 0,
+          "localChanges": 0,
+          "economyChanges": 0,
+          "reachBuilds": 0,
+          "reachReuses": 0,
+          "tiles": 0,
+          "forecasts": 0
+        },
+        "planning": {
+          "landed": 76,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 2
+          },
+          "cutWhy": {
+            "combat: attack target is unavailable": 1,
+            "combat: health or strength changed": 1
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "2b1c34bc48cd338c1eb6893cd9d0f61779006f5dca76655f7b0af56ae33d94b4",
+        "stateSha256": "4d6894e55712140907104a47a8ef39d5b631c1697a8279701a020542e4d18fab"
+      },
+      {
+        "case": "heavy90",
+        "policy": "previous",
+        "repeat": 1,
+        "exitCode": 0,
+        "elapsedMs": 1841.1721669999997,
+        "queries": 200,
+        "tactics": {
+          "calls": 300,
+          "engagements": 85,
+          "positions": 263,
+          "forecasts": 324,
+          "replies": 168,
+          "limited": 0,
+          "cacheHits": 78
+        },
+        "perUnit": {
+          "assessments": 300,
+          "planReuses": 78,
+          "firstAssessments": 98,
+          "localChanges": 87,
+          "economyChanges": 115,
+          "reachBuilds": 298,
+          "reachReuses": 6398,
+          "tiles": 1800,
+          "forecasts": 324
+        },
+        "planning": {
+          "landed": 70,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 3
+          },
+          "cutWhy": {
+            "combat: local tactical position changed": 3
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "62ecd895495432d2eed5e89441ed9370cc5611434c459eedba62c0547124f7bd",
+        "stateSha256": "cc78cad6f33c9320d7b51365ade953d790373fccaa518d6fdff0761c9875e4d2"
+      },
+      {
+        "case": "heavy90",
+        "policy": "candidate",
+        "repeat": 1,
+        "exitCode": 0,
+        "elapsedMs": 1871.5855000000001,
+        "queries": 200,
+        "tactics": {
+          "calls": 300,
+          "engagements": 85,
+          "positions": 263,
+          "forecasts": 324,
+          "replies": 168,
+          "limited": 0,
+          "cacheHits": 78
+        },
+        "perUnit": {
+          "assessments": 300,
+          "planReuses": 78,
+          "firstAssessments": 98,
+          "localChanges": 87,
+          "economyChanges": 115,
+          "reachBuilds": 298,
+          "reachReuses": 6605,
+          "tiles": 1800,
+          "forecasts": 324
+        },
+        "planning": {
+          "landed": 70,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 3
+          },
+          "cutWhy": {
+            "combat: local tactical position changed": 3
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "62ecd895495432d2eed5e89441ed9370cc5611434c459eedba62c0547124f7bd",
+        "stateSha256": "cc78cad6f33c9320d7b51365ade953d790373fccaa518d6fdff0761c9875e4d2"
+      },
+      {
+        "case": "heavy90",
+        "policy": "candidate",
+        "repeat": 2,
+        "exitCode": 0,
+        "elapsedMs": 1851.306541,
+        "queries": 200,
+        "tactics": {
+          "calls": 300,
+          "engagements": 85,
+          "positions": 263,
+          "forecasts": 324,
+          "replies": 168,
+          "limited": 0,
+          "cacheHits": 78
+        },
+        "perUnit": {
+          "assessments": 300,
+          "planReuses": 78,
+          "firstAssessments": 98,
+          "localChanges": 87,
+          "economyChanges": 115,
+          "reachBuilds": 298,
+          "reachReuses": 6605,
+          "tiles": 1800,
+          "forecasts": 324
+        },
+        "planning": {
+          "landed": 70,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 3
+          },
+          "cutWhy": {
+            "combat: local tactical position changed": 3
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "62ecd895495432d2eed5e89441ed9370cc5611434c459eedba62c0547124f7bd",
+        "stateSha256": "cc78cad6f33c9320d7b51365ade953d790373fccaa518d6fdff0761c9875e4d2"
+      },
+      {
+        "case": "heavy90",
+        "policy": "previous",
+        "repeat": 2,
+        "exitCode": 0,
+        "elapsedMs": 1870.2551249999997,
+        "queries": 200,
+        "tactics": {
+          "calls": 300,
+          "engagements": 85,
+          "positions": 263,
+          "forecasts": 324,
+          "replies": 168,
+          "limited": 0,
+          "cacheHits": 78
+        },
+        "perUnit": {
+          "assessments": 300,
+          "planReuses": 78,
+          "firstAssessments": 98,
+          "localChanges": 87,
+          "economyChanges": 115,
+          "reachBuilds": 298,
+          "reachReuses": 6398,
+          "tiles": 1800,
+          "forecasts": 324
+        },
+        "planning": {
+          "landed": 70,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 3
+          },
+          "cutWhy": {
+            "combat: local tactical position changed": 3
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "62ecd895495432d2eed5e89441ed9370cc5611434c459eedba62c0547124f7bd",
+        "stateSha256": "cc78cad6f33c9320d7b51365ade953d790373fccaa518d6fdff0761c9875e4d2"
+      },
+      {
+        "case": "heavy90",
+        "policy": "original",
+        "repeat": 2,
+        "exitCode": 0,
+        "elapsedMs": 1361.1806659999993,
+        "queries": 162,
+        "tactics": {
+          "calls": 0,
+          "engagements": 0,
+          "positions": 0,
+          "forecasts": 0,
+          "replies": 0,
+          "limited": 0,
+          "cacheHits": 0
+        },
+        "perUnit": {
+          "assessments": 0,
+          "planReuses": 0,
+          "firstAssessments": 0,
+          "localChanges": 0,
+          "economyChanges": 0,
+          "reachBuilds": 0,
+          "reachReuses": 0,
+          "tiles": 0,
+          "forecasts": 0
+        },
+        "planning": {
+          "landed": 76,
+          "refused": {},
+          "refusedWhy": {},
+          "cut": {
+            "combat": 2
+          },
+          "cutWhy": {
+            "combat: attack target is unavailable": 1,
+            "combat: health or strength changed": 1
+          },
+          "unlike": {}
+        },
+        "commandsSha256": "2b1c34bc48cd338c1eb6893cd9d0f61779006f5dca76655f7b0af56ae33d94b4",
+        "stateSha256": "4d6894e55712140907104a47a8ef39d5b631c1697a8279701a020542e4d18fab"
+      }
+    ],
+    "summaries": [
+      {
+        "case": "war80",
+        "meanMs": {
+          "original": 1483.7296459999998,
+          "previous": 1950.3665,
+          "candidate": 1941.0513744999998
+        },
+        "candidateToOriginalRatio": 1.3082244327549146,
+        "samePolicyRepeatsMatched": true,
+        "previousAndCandidateMatched": true
+      },
+      {
+        "case": "heavy90",
+        "meanMs": {
+          "original": 1364.9466874999994,
+          "previous": 1855.7136459999997,
+          "candidate": 1861.4460205
+        },
+        "candidateToOriginalRatio": 1.363749981993345,
+        "samePolicyRepeatsMatched": true,
+        "previousAndCandidateMatched": true
+      }
+    ]
+  },
+  "validation": {
+    "typecheck": {
+      "command": "npm run typecheck",
+      "exitCode": 0
+    },
+    "core": {
+      "command": "npm run test",
+      "exitCode": 0,
+      "files": 575,
+      "tests": 13012,
+      "seconds": 78.09,
+      "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-core.log",
+      "sha256": "c3451d9ad1fc160ddab394bb4732b8161be05bfb8024a33698c2baa5eb891e1f"
+    },
+    "build": {
+      "command": "npm run build",
+      "exitCode": 0,
+      "path": "/private/tmp/webciv-bot-combat-2026-11-22/trades-build.log",
+      "sha256": "bb1ac993659dec9d46aafb22bf82d86a77077295469d21da706616ef7edfaa21"
+    },
+    "slowSuiteRun": false,
+    "pushed": false,
+    "deployed": false
+  }
+}

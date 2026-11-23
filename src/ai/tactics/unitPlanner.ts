@@ -1,10 +1,11 @@
 /** Rank one unit's positions, then forecast only a small set of attacks. */
-import { attackRange, fortifyBonus, hasLineOfSight, pieceStrength, previewCombatSample } from '../../sim/combat';
+import { attackRange, fortifyBonus, hasLineOfSight, pieceStrength, previewCombatSample, type CombatSample } from '../../sim/combat';
 import { getTileAt, mapRange, tileHex, tileIndex } from '../../sim/map';
 import { unitHealthBonus } from '../../sim/resourceEffects';
 import { RULES } from '../../sim/rulesData';
 import { inheritGroundReadings } from '../../sim/slate';
-import { breakFortify, type GameState, type Unit } from '../../sim/state';
+import { breakFortify, isBarbarian, type GameState, type Unit } from '../../sim/state';
+import { cardBehaviorRule } from '../../sim/statecraft/evaluator';
 import { defenseBonus } from '../../sim/terrainData';
 import { isCombatant, isRanged, unitDef, unitMaxHp } from '../../sim/unitData';
 import { fullMovement } from '../../sim/units';
@@ -23,18 +24,52 @@ function health(state: GameState, unit: Unit): number {
   return unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
 }
 
+function freeOrigin(state: GameState, enemy: Unit, origin: TacticalAction): boolean {
+  return !state.units.some(other => other.id !== enemy.id && isCombatant(unitDef(other.type)) &&
+    other.col === origin.to.col && other.row === origin.to.row);
+}
+
 function threats(ctx: TacticalContext, field: Battlefield, unit: Unit, state: GameState) {
   const tile = getTileAt(state.map, unit.col, unit.row)!;
   const defence = Math.max(1, pieceStrength(unit) + defenseBonus(tile.terrain, tile.feature, tile.hills) + fortifyBonus(unit));
   return ctx.enemies.flatMap(id => {
     const enemy = state.units.find(piece => piece.id === id && piece.ownerId !== ctx.playerId);
     if (!enemy) return [];
-    const origin = threateningOrigin(field, enemy, unit);
+    const origin = threateningOrigin(field, enemy, unit, from => freeOrigin(state, enemy, from));
     if (!origin) return [];
     // A ratio is a cheap ranking estimate, not a second combat resolver.
     const power = Math.max(pieceStrength(enemy), unitDef(enemy.type).rangedStrength ?? 0, 1);
     return [{ enemy, origin, estimate: RULES.combat.baseDamage * power / defence }];
   }).sort((a, b) => b.estimate - a.estimate || a.enemy.id - b.enemy.id);
+}
+
+/** Reuse known approaches, but validate the forecast on the candidate board. */
+function replyForecast(
+  ctx: TacticalContext, field: Battlefield, position: TacticalPosition, enemy: Unit,
+  target: Unit, used: ReadonlySet<string>,
+): { origin: TacticalAction; forecast: CombatSample } | null {
+  let found: { origin: TacticalAction; forecast: CombatSample } | null = null;
+  let attempts = 0;
+  threateningOrigin(field, enemy, target, origin => {
+    if (used.has(`${origin.to.col}:${origin.to.row}`) || !freeOrigin(position.state, enemy, origin) ||
+      attempts >= ctx.ai.tactics.choices) return false;
+    attempts++;
+    const actor = { ...enemy, col: origin.to.col, row: origin.to.row,
+      movesLeft: fullMovement(enemy, position.state) - origin.cost, hasAttacked: false, firstAttackTurn: undefined };
+    if (origin.kind === 'move') breakFortify(actor);
+    const visible = position.state.visibility[actor.ownerId]!.slice();
+    visible[tileIndex(position.state.map, target.col, target.row)] = VISIBLE;
+    const board = { ...position.state,
+      units: position.state.units.map(other => other.id === actor.id ? actor : other),
+      visibility: position.state.visibility.map((row, owner) => owner === actor.ownerId ? visible : row) };
+    inheritGroundReadings(position.state, board);
+    ctx.stats.forecasts++;
+    const forecast = previewCombatSample(board, actor.id, target, 'middle');
+    if (!forecast.ok) return false;
+    found = { origin, forecast };
+    return true;
+  });
+  return found;
 }
 
 function lossTerm(ctx: TacticalContext, unit: Unit, damage: number, future = false): ValueTerm {
@@ -51,41 +86,55 @@ function lossTerm(ctx: TacticalContext, unit: Unit, damage: number, future = fal
  * search response sequences or assume the opponent always attacks this unit.
  * The forecast retains combat modifiers, terrain, fortification and water rules.
  */
-function exposure(ctx: TacticalContext, field: Battlefield, position: TacticalPosition): ValueTerm[] {
+function exposure(ctx: TacticalContext, field: Battlefield, position: TacticalPosition): { terms: ValueTerm[]; capturesCover: boolean } {
   const unit = position.state.units.find(row => row.id === ctx.units[0]);
-  if (!unit) return [];
+  if (!unit) return { terms: [], capturesCover: false };
   const origins = new Set<string>();
   let damage = 0;
   let wallDamage = 0;
   let replies = 0;
+  let capturesCover = false;
   for (const threat of threats(ctx, field, unit, position.state)) {
     if (replies >= ctx.ai.tactics.replies) break;
-    const { enemy, origin } = threat;
+    const result = replyForecast(ctx, field, position, threat.enemy, unit, origins);
+    if (!result) continue;
+    const { origin, forecast } = result;
     const key = `${origin.to.col}:${origin.to.row}`;
-    if (origins.has(key)) continue;
-    // A projection may have removed an enemy or occupied its planned origin.
-    if (position.state.units.some(other => other.id !== enemy.id && isCombatant(unitDef(other.type)) &&
-      other.col === origin.to.col && other.row === origin.to.row)) continue;
-    const actor = { ...enemy, col: origin.to.col, row: origin.to.row,
-      movesLeft: fullMovement(enemy, position.state) - origin.cost, hasAttacked: false, firstAttackTurn: undefined };
-    if (origin.kind === 'move') breakFortify(actor);
-    const visible = position.state.visibility[actor.ownerId]!.slice();
-    visible[tileIndex(position.state.map, unit.col, unit.row)] = VISIBLE;
-    const board = { ...position.state,
-      units: position.state.units.map(other => other.id === actor.id ? actor : other),
-      visibility: position.state.visibility.map((row, owner) => owner === actor.ownerId ? visible : row) };
-    inheritGroundReadings(position.state, board);
-    ctx.stats.forecasts++;
-    const forecast = previewCombatSample(board, actor.id, unit, 'middle');
-    if (!forecast.ok) continue;
     origins.add(key);
     replies++;
+    capturesCover ||= forecast.advances;
     if (forecast.defenderUnitId === unit.id) damage += forecast.damageToDefender;
     else if (forecast.defenderCityId !== null) wallDamage += forecast.damageToDefender;
   }
   ctx.stats.replies += replies;
-  return [lossTerm(ctx, unit, damage, true), { label: 'Expected wall damage at this position',
-    value: wallDamage * ctx.ai.tactics.threatConfidence, op: 'sub' }];
+  return { terms: [lossTerm(ctx, unit, damage, true), { label: 'Expected wall damage at this position',
+    value: wallDamage * ctx.ai.tactics.threatConfidence, op: 'sub' }], capturesCover };
+}
+
+/** A retreat or attack can leave civilians behind, even if the soldier survives. */
+function civilianExposure(ctx: TacticalContext, field: Battlefield, position: TacticalPosition, capturesCover: boolean): ValueTerm[] {
+  if (!ctx.protectedUnits.length) return [];
+  const civilians = position.state.units.filter(unit => ctx.protectedUnits.includes(unit.id) && unit.ownerId === ctx.playerId);
+  const target = civilians[0];
+  if (!target) return [];
+  const loss: ValueTerm[] = [{ label: 'Civilians left without effective cover can be captured',
+    value: civilians.length * ctx.ai.tactics.civilian * ctx.ai.tactics.threatConfidence, op: 'sub' }];
+  const guard = position.state.units.find(unit => unit.ownerId === ctx.playerId && isCombatant(unitDef(unit.type)) &&
+    unit.col === target.col && unit.row === target.row);
+  // Waiting behind a guard that a retained melee forecast kills is not safe.
+  if (guard) return guard.id === ctx.units[0] && capturesCover ? loss : [];
+  const passive = cardBehaviorRule(position.state, ctx.playerId, 'barbariansPassive');
+  const used = new Set<string>();
+  for (const id of ctx.enemies) {
+    const enemy = position.state.units.find(unit => unit.id === id && unit.ownerId !== ctx.playerId);
+    if (!enemy || !isCombatant(unitDef(enemy.type)) || isRanged(unitDef(enemy.type)) ||
+      (passive && isBarbarian(position.state, enemy.ownerId))) continue;
+    const result = replyForecast(ctx, field, position, enemy, target, used);
+    if (result && (result.forecast.capturesUnit || result.forecast.plundersUnit)) {
+      return loss;
+    }
+  }
+  return [];
 }
 
 function cheapExposure(ctx: TacticalContext, field: Battlefield, position: TacticalPosition): number {
@@ -138,7 +187,9 @@ function supportTerms(ctx: TacticalContext, position: TacticalPosition): ValueTe
 }
 
 function score(ctx: TacticalContext, field: Battlefield, position: TacticalPosition): ValueTerm[] {
-  return [...positionTerms(ctx, position), ...quietTerms(ctx, position), ...supportTerms(ctx, position), ...exposure(ctx, field, position)];
+  const danger = exposure(ctx, field, position);
+  return [...positionTerms(ctx, position), ...quietTerms(ctx, position), ...supportTerms(ctx, position),
+    ...danger.terms, ...civilianExposure(ctx, field, position, danger.capturesCover)];
 }
 
 export function planUnitCombat(
@@ -155,7 +206,9 @@ export function planUnitCombat(
     distance(state, unit, city) <= ai.tactics.radius).map(city => city.id);
   if (!enemies.length && !cities.length) return null;
   unitTacticalTally.assessments++;
-  const ctx: TacticalContext = { root: state, playerId, ai, units: [unitId], enemies, cities, protectedUnits: [], locked: options.locked ?? [],
+  const protectedUnits = state.units.filter(friend => friend.ownerId === playerId && !isCombatant(unitDef(friend.type)) &&
+    friend.col === unit.col && friend.row === unit.row).map(friend => friend.id);
+  const ctx: TacticalContext = { root: state, playerId, ai, units: [unitId], enemies, cities, protectedUnits, locked: options.locked ?? [],
     stats: { positions: 0, forecasts: 0, replies: 0, cacheHits: 0, limited: false }, worth: combatWorth(state, [unitId, ...enemies]) };
   const initial = initialPosition(state);
   const held = projectAction(initial, holdAction(state, unit))!.position;

@@ -1478,6 +1478,9 @@ primary sources with the current code and specifies bounded group planning.
 The [implementation and validation record](audit/bot-tactical-planner-2026-11-23.md)
 describes the new local planner and its limits. The `tactics.enabled` setting
 keeps the stable policy available while the new planner is tested.
+The [combat trade review](audit/bot-combat-trades-2026-11-23.md) checks whether
+lost attackers had useful alternatives. It also records the civilian protection
+changes. A sacrifice can be useful if it adds damage or advances a city capture.
 
 The bot prices things before it picks them. Each turn it builds a **want book**
 (`wants.ts`): one entry per thing a currency could be spent on, each carrying its

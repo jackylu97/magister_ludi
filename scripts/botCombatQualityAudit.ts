@@ -124,6 +124,10 @@ for (const variant of variants) for (const { seed } of schedule.lineups) {
     const defenses = events.filter(e => e.outcome.defenderOwnerId === player.id);
     const field = attacks.filter(e => e.context && e.context.preview.cityPhase === undefined && !e.context.preview.capturesUnit && !e.context.preview.plundersUnit);
     const advances = attacks.filter(e => e.outcome.advanced);
+    const counterLosses = attacks.filter(e => !e.outcome.attackerSurvived);
+    // These are observed follow-ups, not proof that the sacrifice caused them.
+    const afterTrade = (loss: Event, event: Event): boolean =>
+      event.index > loss.index && event.turn <= loss.turn + 2;
     return {
       id: player.id, leader: player.leader,
       commands: commandsBySeat[player.id], attacks: attacks.length,
@@ -131,8 +135,17 @@ for (const variant of variants) for (const { seed } of schedule.lineups) {
       againstWild: attacks.filter(e => e.outcome.defenderOwnerId !== null && isBarbarian(state, e.outcome.defenderOwnerId)).length,
       fieldDamageDealt: field.reduce((n, e) => n + e.outcome.damageToDefender, 0),
       fieldDamageTaken: field.reduce((n, e) => n + e.outcome.damageToAttacker, 0),
-      counterDeaths: attacks.filter(e => !e.outcome.attackerSurvived).length,
+      counterDeaths: counterLosses.length,
       counterDeathsWithoutKill: attacks.filter(e => !e.outcome.attackerSurvived && !e.outcome.killed.some(k => k.ownerId !== player.id)).length,
+      counterDeathsFollowedByAlliedKill: counterLosses.filter(loss => {
+        const target = loss.outcome.defenderUnitId;
+        return target !== null && events.some(event => afterTrade(loss, event) &&
+          event.outcome.killed.some(unit => unit.id === target) &&
+          (event.outcome.attackerId === target ? event.outcome.defenderOwnerId : event.outcome.attackerOwnerId) === player.id);
+      }).length,
+      counterDeathsFollowedByCityCapture: counterLosses.filter(loss =>
+        loss.outcome.defenderCityId !== null && events.some(event => afterTrade(loss, event) &&
+          event.outcome.capturedCityId === loss.outcome.defenderCityId && event.outcome.attackerOwnerId === player.id)).length,
       rangedKills: attacks.filter(e => e.outcome.kind === 'ranged').flatMap(e => e.outcome.killed).length,
       advances: advances.length,
       advancesLostByNextTurn: advances.filter(e => e.attackerLostByNextTurn).length,
@@ -154,9 +167,9 @@ for (const variant of variants) for (const { seed } of schedule.lineups) {
       }, {} as Record<string, number>),
     };
   });
-  const review = { variant, seed, checkpoint, replayMatched: true, seats, events };
+  const review = { variant, seed, checkpoint, replayMatched: true, tradeWindowTurns: 2, seats, events };
   writeFileSync(join(directory, 'combat-quality.json'), JSON.stringify(review) + '\n');
-  summaries.push({ variant, seed, checkpoint, replayMatched: true, seats });
+  summaries.push({ variant, seed, checkpoint, replayMatched: true, tradeWindowTurns: 2, seats });
   writeFileSync(join(root, `combat-quality-${variants.join('-')}.json`), JSON.stringify(summaries, null, 2) + '\n');
   console.log(`Reviewed ${variant}/${seed}: ${events.length} fights, exact replay matched.`);
 }

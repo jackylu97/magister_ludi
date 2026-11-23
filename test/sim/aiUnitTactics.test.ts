@@ -61,6 +61,64 @@ describe('per-unit tactical assessments', () => {
     expect(planTacticalCombat(state, 0, spear.id, aiConfigFor(), { locked: [spear.id] })?.action.kind).toBe('hold');
   });
 
+  it('fires while covering a worker instead of retreating and exposing it', () => {
+    const state = board();
+    const archer = createUnit(state, 0, 'archer', 5, 5);
+    createUnit(state, 0, 'worker', 5, 5);
+    createUnit(state, 1, 'warrior', 6, 5);
+    recomputeAllVisibility(state);
+    const plan = planTacticalCombat(state, 0, archer.id, aiConfigFor())!;
+    expect(plan.action.kind).toBe('attack');
+    const exposed = plan.candidates.filter(candidate => candidate.label.startsWith(`${archer.id}: move`));
+    expect(exposed.length).toBeGreaterThan(0);
+    expect(exposed.some(candidate => candidate.terms.some(term => term.label.includes('Civilians') && term.value > 0))).toBe(true);
+    expect(applyCommand(state, plan.action.command!).ok).toBe(true);
+  });
+
+  it('can remove the threat while protecting a civilian', () => {
+    const state = board();
+    const spear = createUnit(state, 0, 'spearman', 5, 5);
+    spear.hp = 1;
+    createUnit(state, 0, 'worker', 5, 5);
+    createUnit(state, 1, 'warrior', 6, 5).hp = 1;
+    recomputeAllVisibility(state);
+    const plan = planTacticalCombat(state, 0, spear.id, aiConfigFor())!;
+    expect(plan.action.kind).toBe('attack');
+    const chosen = plan.candidates.find(candidate => candidate.chosen)!;
+    expect(chosen.terms.some(term => term.label.includes('Civilians'))).toBe(false);
+    expect(applyCommand(state, plan.action.command!).ok).toBe(true);
+  });
+
+  it('allows a last attack when waiting also loses the guard and civilian', () => {
+    const state = board();
+    for (const tile of state.map.tiles) tile.terrain = 'mountain';
+    getTileAt(state.map, 5, 5)!.terrain = 'grassland';
+    getTileAt(state.map, 6, 5)!.terrain = 'grassland';
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    warrior.hp = 19;
+    createUnit(state, 0, 'worker', 5, 5);
+    createUnit(state, 1, 'swordsman', 6, 5);
+    recomputeAllVisibility(state);
+    const plan = planTacticalCombat(state, 0, warrior.id, aiConfigFor())!;
+    expect(plan.action.kind).toBe('attack');
+    const held = plan.candidates.find(candidate => candidate.label.includes('hold'))!;
+    expect(held.terms.some(term => term.label.includes('Civilians') && term.value > 0)).toBe(true);
+  });
+
+  it('keeps an alternate enemy origin without losing the cached first origin', () => {
+    const state = board();
+    const target = createUnit(state, 0, 'archer', 5, 5);
+    const enemy = createUnit(state, 1, 'horseman', 8, 5);
+    recomputeAllVisibility(state); state.visibility[0]!.fill(2);
+    const field = battlefield(state, 0);
+    const first = threateningOrigin(field, enemy, target)!;
+    const next = threateningOrigin(field, enemy, target, origin =>
+      origin.to.col !== first.to.col || origin.to.row !== first.to.row);
+    expect(next).toBeDefined();
+    expect(next).not.toBe(first);
+    expect(threateningOrigin(field, enemy, target)).toBe(first);
+  });
+
   it('does not change its decisions when hidden units change', () => {
     const state = board();
     const spear = createUnit(state, 0, 'spearman', 5, 5);
