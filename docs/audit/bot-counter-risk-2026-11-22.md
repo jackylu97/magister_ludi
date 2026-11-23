@@ -2,7 +2,8 @@
 
 This follows the [combat comparison](bot-combat-results-2026-11-22.md).
 The starting candidate is `8d9927e6`, on rules version 262. The all-leader
-comparison is complete. The final checks are in progress. Port 5199 is unchanged.
+comparison and development checks passed. The candidate is committed as
+`379aab0b`. Port 5199 is unchanged.
 
 ## Problem
 
@@ -240,8 +241,10 @@ the absence of one is not proof that death was unavoidable.
 - All five final-save metric checks and all ten combat replay reviews passed.
 - Both original planning captures matched their complete accepted prefixes.
   The retreat diagnostic left its source snapshot unchanged.
-- The four relevant slow bot test files are still running at this checkpoint.
-  No full core-plus-slow push gate has run, and nothing is being pushed to main.
+- All four relevant slow bot test files passed, with twelve tests. These cover
+  war, card valuation, the Standard-map digest and worker/page parity. The
+  sixty-turn worker comparison matched every command and the final state.
+- No full core-plus-slow push gate has run, and nothing is being pushed to main.
 
 Keep this candidate off port 5199. It corrects the immediate counter-risk
 reading and makes some attacks refuse a lethal gamble. The games still expose

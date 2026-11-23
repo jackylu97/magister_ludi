@@ -8942,5 +8942,112 @@
       "seconds": 531.75
     }
   ],
-  "repoRetreatDiagnosticMatched": true
+  "repoRetreatDiagnosticMatched": true,
+  "validation": {
+    "candidate": "379aab0b",
+    "results": [
+      {
+        "name": "game-48017",
+        "exitCode": 0,
+        "seconds": 148.06
+      },
+      {
+        "name": "first-difference-one",
+        "exitCode": 0,
+        "seconds": 2.49
+      },
+      {
+        "name": "combat-quality-one",
+        "exitCode": 0,
+        "seconds": 32.91
+      },
+      {
+        "name": "game-72839",
+        "exitCode": 0,
+        "seconds": 275.07
+      },
+      {
+        "name": "game-85211",
+        "exitCode": 0,
+        "seconds": 400.19
+      },
+      {
+        "name": "game-39827",
+        "exitCode": 0,
+        "seconds": 680.91
+      },
+      {
+        "name": "game-67153",
+        "exitCode": 0,
+        "seconds": 182.29
+      },
+      {
+        "name": "comparison",
+        "exitCode": 0,
+        "seconds": 1.61
+      },
+      {
+        "name": "first-difference",
+        "exitCode": 0,
+        "seconds": 12.34
+      },
+      {
+        "name": "replay-audit",
+        "exitCode": 0,
+        "seconds": 163.95
+      },
+      {
+        "name": "digest-duel",
+        "exitCode": 0,
+        "seconds": 123.57
+      },
+      {
+        "name": "digest-standard",
+        "exitCode": 0,
+        "seconds": 307.64
+      },
+      {
+        "name": "typecheck",
+        "exitCode": 0,
+        "seconds": 19.46
+      },
+      {
+        "name": "core",
+        "exitCode": 0,
+        "seconds": 393.58
+      },
+      {
+        "name": "build",
+        "exitCode": 0,
+        "seconds": 29.83
+      },
+      {
+        "name": "bot-slow",
+        "exitCode": 0,
+        "seconds": 671.3
+      }
+    ],
+    "coreFiles": 572,
+    "coreTests": 12948,
+    "slowFiles": 4,
+    "slowTests": 12,
+    "digests": [
+      {
+        "size": "duel",
+        "digest": "f4252d13:414938",
+        "turns": 120,
+        "warnings": 0,
+        "replayMatched": true
+      },
+      {
+        "size": "standard",
+        "digest": "fd817247:1126826",
+        "turns": 120,
+        "warnings": 0,
+        "replayMatched": true
+      }
+    ],
+    "fullPushGateRun": false,
+    "deployed": false
+  }
 }
