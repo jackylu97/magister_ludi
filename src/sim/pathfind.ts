@@ -2524,14 +2524,14 @@ export function findPathAround(
  * where the purse runs out — the rule drawn on the board rather than explained
  * in a tooltip, and by the same arithmetic a forest is.
  */
-export function reachableTiles(state: GameState, unit: Unit, options: { swaps?: boolean; radius?: number } = {}): ReachableTile[] {
+export function reachableTiles(state: GameState, unit: Unit, options: { swaps?: boolean; radius?: number; readTiles?: Set<number> } = {}): ReachableTile[] {
   const start = getTileAt(state.map, unit.col, unit.row);
   if (!start || unit.movesLeft <= 0) return [];
   // Each swap checks two routes on the same board as the movement range.
-  return withFieldsHeld(() => reachableFrom(state, unit, start, options.swaps !== false, options.radius));
+  return withFieldsHeld(() => reachableFrom(state, unit, start, options.swaps !== false, options.radius, options.readTiles));
 }
 
-function reachableFrom(state: GameState, unit: Unit, start: Tile, swaps: boolean, radius?: number): ReachableTile[] {
+function reachableFrom(state: GameState, unit: Unit, start: Tile, swaps: boolean, radius?: number, readTiles?: Set<number>): ReachableTile[] {
   const { map } = state;
   const results: ReachableTile[] = [];
   const budget = unit.movesLeft;
@@ -2547,6 +2547,7 @@ function reachableFrom(state: GameState, unit: Unit, start: Tile, swaps: boolean
   const best = new Float64Array(count).fill(Infinity);
   const settled = new Uint8Array(count);
   const startIndex = tileIndex(map, start.col, start.row);
+  readTiles?.add(startIndex);
   const origin = tileHex(start);
 
   best[startIndex] = 0;
@@ -2580,6 +2581,9 @@ function reachableFrom(state: GameState, unit: Unit, start: Tile, swaps: boolean
       // full range, and every retained path uses the same movement prices.
       if (radius !== undefined && wrappedDistance(map, origin, tileHex(neighbor)) > radius) continue;
       const index = tileIndex(map, neighbor.col, neighbor.row);
+      // A blocked frontier matters too: removing that occupant can open a path.
+      // Callers that cache the range also include adjacent control sources.
+      readTiles?.add(index);
       if (settled[index] === 1) continue;
       if (!canTransit(state, unit, neighbor, mover, ground)) continue;
       const price = stepCost(map, tile, neighbor, mover, field);

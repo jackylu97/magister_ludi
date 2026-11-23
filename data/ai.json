@@ -428,6 +428,11 @@
   },
   "tactics": {
     "enabled": 0,
+    "perUnit": 1,
+    "finalists": 2,
+    "attacks": 2,
+    "support": 12,
+    "threatConfidence": 1,
     "radius": 6,
     "moveRadius": 2,
     "replyOrigins": 1,

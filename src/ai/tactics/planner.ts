@@ -1,4 +1,5 @@
 /** A bounded local search returns one command; the next decision reads its actual outcome. */
+import { planUnitCombat } from './unitPlanner';
 import { isCombatant, isRanged, unitDef } from '../../sim/unitData';
 import type { GameState, Unit } from '../../sim/state';
 import { isVisibleTo } from '../../sim/visibility';
@@ -20,6 +21,8 @@ export interface TacticalOptions {
   locked?: readonly number[];
 }
 export interface TacticalPlan {
+  /** Movement and control cells consulted by the per-unit assessment. */
+  reads?: ReadonlySet<number>;
   action: TacticalAction;
   sequence: readonly TacticalAction[];
   candidates: BotCandidate[];
@@ -150,6 +153,16 @@ export function planTacticalCombat(
   state: GameState, playerId: number, unitId: number, ai: AiConfig, options: TacticalOptions = {},
 ): TacticalPlan | null {
   tacticalTally.calls++;
+  if (ai.tactics.perUnit > 0) {
+    const plan = planUnitCombat(state, playerId, unitId, ai, options);
+    if (plan) {
+      tacticalTally.engagements++;
+      tacticalTally.positions += plan.stats.positions;
+      tacticalTally.forecasts += plan.stats.forecasts;
+      tacticalTally.replies += plan.stats.replies;
+    }
+    return plan;
+  }
   // Hidden occupants must not change the search through pathfinding queries.
   const visible = { ...state, units: state.units.filter(unit => unit.ownerId === playerId || isVisibleTo(state, playerId, unit.col, unit.row)) };
   inheritGroundReadings(state, visible);

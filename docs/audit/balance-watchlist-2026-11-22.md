@@ -398,3 +398,28 @@ The tactical report separates the turn-93 finish from the turn-100 benchmark
 and records the lower median and the remaining defensive gaps. Keep the
 existing Order, Doctrine and wonder candidates open; none was isolated in
 this experiment.
+
+### Context from the smaller tactical search
+
+The next experiment limits friendly move choices to two hexes and uses a
+cheaper enemy-reply search. The [comparison report](bot-tactical-planner-2026-11-23.md)
+and [recorded results](bot-tactical-local-search-2026-11-23.json) contain the
+measurements. The same five maps cover fifteen paired-deck leaders twice each.
+They do not cover Ibn Battuta. Economic preferences and balance rows stay fixed.
+
+- Qin wins seed 39827 on turn 92. All policies are compared at that turn on
+  this map. It is excluded from every policy's turn-100 income benchmark.
+- On the other four maps, nineteen of twenty-four seats reach 800 recurring
+  yields. The original bot reaches twenty; the previous tactical search
+  reaches fourteen. Median income is 1,451, compared with 1,300 and 1,145.
+- Across the matched thirty seats, civilian losses fall to 57 from the original
+  bot's 74. Losses to barbarians fall to 149 from 244. Total unit losses are
+  similar, at 386 versus 383. City captures are nine versus eight.
+- The original bot, previous tactical search and smaller search have mean
+  scores of 1,354, 1,473 and 1,469 on the matched horizons.
+
+These results show that combat policy changes development and survival without
+changing content. They do not establish new strong or weak cards, Doctrines,
+leaders or wonders. No new content-level attribution was performed for this
+batch. Keep the existing candidates open and do not count these repeated maps
+as independent balance samples.

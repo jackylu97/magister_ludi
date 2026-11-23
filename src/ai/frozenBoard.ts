@@ -374,7 +374,8 @@ export function planSeat(
     const ai = aiConfigFor(state.players[playerId]?.persona, playerId);
     const tactics = ai.tactics.enabled > 0 && (decision?.tacticalOrigin || command.type === 'attack')
       ? tacticalDependencies(state, playerId, command, ai.tactics.radius,
-        decision?.tacticalOrigin ? [decision.tacticalOrigin, ...('target' in command ? [command.target] : [])] : undefined)
+        decision?.tacticalOrigin ? [decision.tacticalOrigin, ...('target' in command ? [command.target] : [])] : undefined,
+        ai.tactics.perUnit > 0 && decision?.tacticalOrigin !== undefined)
       : null;
     const result = applyCommand(state, command);
     if (result.ok) {
@@ -535,7 +536,7 @@ export function applyNextStep(
     if (taken !== null) return cut(run, 'taken', taken);
   }
   if (step.tactics) {
-    const actual = tacticalDependencies(state, playerId, command, step.tactics.radius, step.tactics.centres);
+    const actual = tacticalDependencies(state, playerId, command, step.tactics.radius, step.tactics.centres, step.tactics.fullEnemyAllowance);
     if (!actual || !sameTacticalDependencies(step.tactics, actual, id => mappedEntityId(run, id))) {
       return cut(run, 'combat', 'local tactical position changed');
     }

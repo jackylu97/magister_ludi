@@ -9,6 +9,7 @@ import { isVisibleTo } from '../../sim/visibility';
 import { distance } from './position';
 
 export interface TacticalDependencies {
+  fullEnemyAllowance?: boolean;
   centres: { col: number; row: number }[];
   radius: number;
   units: { id: number; facts: string }[];
@@ -25,6 +26,7 @@ export interface TacticalDependencies {
 export function tacticalDependencies(
   state: GameState, playerId: number, command: Command, radius: number,
   centres?: TacticalDependencies['centres'],
+  fullEnemyAllowance = false,
 ): TacticalDependencies | null {
   if (!('unitId' in command) || !['attack', 'moveUnit', 'fortify'].includes(command.type)) return null;
   const actor = state.units.find(unit => unit.id === command.unitId);
@@ -39,11 +41,19 @@ export function tacticalDependencies(
     if (!tile) continue;
     for (const cell of mapRange(state.map, tileHex(tile), radius)) indices.push(tileIndex(state.map, cell.col, cell.row));
   }
-  const ground = [...new Set(indices)].sort((a, b) => a - b).map(index => [index, state.map.tiles[index], state.tileOwner[index]]);
+  const ground = [...new Set(indices)].sort((a, b) => a - b).map(index => [index, state.map.tiles[index], state.tileOwner[index], state.visibility[playerId]?.[index]]);
   return {
+    ...(fullEnemyAllowance ? { fullEnemyAllowance: true } : {}),
     centres: at, radius,
     units: units.map(unit => {
       const { id, path: _path, ...facts } = unit;
+      // The per-unit policy forecasts the next enemy opportunity. Spent enemy
+      // movement and attack allowances do not change that assessment.
+      if (fullEnemyAllowance && unit.ownerId !== playerId) {
+        facts.movesLeft = 0;
+        facts.hasAttacked = false;
+        delete facts.firstAttackTurn;
+      }
       const { ports: _ports, def: _def, ...profile } = moveProfile(state, unit);
       return { id, facts: JSON.stringify([facts, profile, attackRange(state, unit), pieceStrength(unit)]) };
     }),

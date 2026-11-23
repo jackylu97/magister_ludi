@@ -478,3 +478,224 @@ to test is:
 Economic weights stay fixed. The performance target must be checked alongside
 combat quality, including captures, civilian protection and losses after advances.
 The planner remains disabled by default, and port 5199 remains unchanged.
+
+## Per-unit assessment experiment
+
+The user approved implementation on 23 November. Replace routine overlapping
+group searches with one main assessment per unit and small updates when its
+inputs change. Keep the original policy and group-search control available.
+Do not update port 5199.
+
+- Share known enemy movement and attack coverage between nearby units. Use
+  the normal movement rules and visible information only.
+- Rank reachable positions within two hexes, including holding, using role
+  weights for danger, useful attacks, healing and objective progress.
+- Use exact combat forecasts for shortlisted attacks. Include forced advances
+  and the health left after counters. Recheck the real result before follow-ups.
+- Reuse unchanged assessments. Invalidate affected movement, threat and attack
+  inputs after local changes, new information or relevant empire effects.
+- Keep explanatory score terms and the shared spectator/worker policy.
+- Compare saved-turn runtime against the original bot. Compare combat quality
+  on the fixed development maps, then use additional maps where practical.
+  Keep economic, production and diplomacy weights fixed.
+- Record assessments, reuse, invalidation reasons and exact forecast counts.
+  Runtime parity is a measurement target, not a guaranteed result.
+
+### Implementation under comparison
+
+The experimental policy now uses `tactics.perUnit: 1`. Zero keeps the earlier
+group search. `tactics.enabled: 0` still selects the original bot. The Arena
+generates both controls from the data. Economic, production and diplomatic
+preferences remain unchanged.
+
+- One unit ranks its reachable positions. The default radius is two hexes.
+  The shortlist keeps holding, the best ranked moves and a separate escape.
+  It forecasts a few attacks, including moving before shooting.
+- Cheap attack estimates include counter-damage. Exact shortlisted attacks
+  use the shared combat forecast, including advances and a low-damage case.
+- Friendly melee/ranged support contributes one score term. A ready ranged
+  unit can take its independently selected shot before a nearby melee unit.
+- Enemy coverage uses full movement, shared path prices and line of sight.
+  It is not limited to the friendly two-hex search. Retaliation estimates
+  consider a few separate enemy attacks rather than searching their sequences.
+- Movement searches record the cells they read, including blocked frontiers.
+  The cached range also watches adjacent control sources. A distant movement
+  can leave a range intact; removing a blocking unit must invalidate it.
+- The plan memo reuses local facts between decisions. Economic changes still
+  invalidate it conservatively because Orders can turn income into strength.
+  The counters count planning contexts, including private and live copies;
+  initial assessments are not a count of distinct units in the live game.
+- A distant enemy that supplies neither a local attack nor a threat leaves
+  movement to the existing strategic planner. This avoids several short
+  commands replacing one safe long march.
+- The execution guard for this policy ignores spent enemy movement and attack
+  allowances. Its threat estimate already assumes their next full opportunity.
+  Positions, health, fortification and combat effects still invalidate a plan.
+  The old group policy retains its original allowance checks.
+
+### Development checks before the wider comparison
+
+The first per-unit candidate sharply reduced forecasts but repeatedly replaced
+safe strategic marches with local moves. The later candidate restored that
+boundary and added support and ranged action ordering.
+
+On the contested development map, seed 48017, that intermediate version lost
+75 units and captured one city by turn 100. The original bot lost 110 and
+captured two. This was a warning against treating fewer losses as success by
+itself. The next iteration retained an escape in the shortlist and charged
+likely counter-damage during cheap ranking. It lost 80 units and captured
+three cities. Its median recurring income was about 791, versus 768 for the
+original. Three seats met 800 in each version. These are successive trials on
+one reused map, not independent validation.
+
+An earlier version also produced one repeated escort order on seed 85211.
+The command guard stopped it. Later candidates must report their warnings
+separately; the earlier failure must not be hidden by pooling runs.
+
+The five-map replay found eleven deaths to immediate counters without a kill.
+In each stored decision, the planner scored possible future attacks alongside
+the immediate attack. Several wounded units preferred certain death because
+the model assumed that the available enemies would all attack them next turn.
+This does not establish that every holding position was safe.
+
+The next isolated experiment adds `tactics.threatConfidence`. It discounts the
+cost of the enemy attacks that the position permits. It does not discount an
+immediate counter or change combat rules. Test 0.7 against 1 on the two maps
+with the most counter deaths. Keep economic settings and all other tactical
+weights fixed. This is a planning assumption, not a measured probability.
+
+### Completed per-unit comparison
+
+The [evidence file](bot-unit-tactics-2026-11-23.json) includes every seat,
+combat replay checks, all timing repeats, the counter-death decisions, source
+hashes and settings. The default remains `tactics.enabled: 0`. The per-unit
+policy is an experiment, with the original and group policies available as
+controls. Port 5199 remains unchanged. No economic or deck balance was changed.
+
+The comparison uses completed turn 90 for all five maps. This avoids comparing
+full turns with games that ended early. Every policy uses all six seats in its
+game; this is not a head-to-head tournament. These five maps were reused during
+development. They cover the fifteen paired-deck leaders twice each.
+
+| Turn 90, thirty seats | Original | Smaller group search | Per-unit |
+| --- | ---: | ---: | ---: |
+| Total unit losses | 291 | 252 | 245 |
+| Losses to barbarians | 208 | 133 | 151 |
+| City captures | 4 | 9 | 10 |
+| Civilian losses in combat arrivals | 57 | 52 | 70 |
+| Deaths to immediate counters | 0 | 0 | 11 |
+| Advances followed by death by next turn | 25 / 258 | 22 / 285 | 7 / 222 |
+| Ranged attacks | 961 | 1,015 | 1,092 |
+| Median recurring yields | 905 | 945 | 846 |
+| Seats with at least 800 recurring yields | 19 | 17 | 16 |
+| Mean researched nodes | 27.03 | 26.93 | 25.83 |
+| Mean score | 1,017 | 1,068 | 1,020 |
+
+All fifteen game replays matched the normal save loader exactly. All completed
+games had no live-driver warnings. The per-unit policy makes safer advances and
+uses more ranged attacks, but civilian protection and immediate sacrifices need
+work. Lower total losses do not establish better tactics by themselves. Its
+economic consistency also falls short of the original in this sample.
+
+The turn-100 comparison uses only seeds 48017 and 67153, where all three policies
+completed that checkpoint. The original, group and per-unit policies reach 800
+recurring yields in 8, 9 and 7 of twelve seats. Their median yields are 888,
+1,289 and 986. Do not compare those twelve seats directly with an earlier
+twenty-four-seat benchmark. The per-unit games won seeds 72839 and 85211 before
+turn 100 completed; the group policy also won seed 39827 early.
+
+### Separate map check
+
+Seed 60217 was registered before running it. Its six-seat roster includes Ibn
+Battuta, so the combined sample includes every leader. It compares the original
+and per-unit policies, not the group policy. Both turn-90 combat replays match
+and both completed games have no driver warnings.
+
+- Total unit losses: 50 original, 38 per-unit.
+- Losses to barbarians: 49 original, 37 per-unit.
+- Deaths after advances: 6 of 41 original, 3 of 37 per-unit.
+- Civilian losses: 9 original, 16 per-unit. Neither policy captured a city.
+- Neither policy lost an attacker to an immediate counter.
+- Median recurring yields: 977 original, 834 per-unit. Each has three seats
+  above 800 at turn 90. Mean score falls from 1,124 to 1,088.
+
+This supports the advance-survival result, but also repeats the civilian
+protection problem. It is one map, not a broad validation sample.
+
+### Future-danger experiment
+
+The 0.7 confidence experiment used seeds 39827 and 67153, the two development
+maps with the most immediate counter deaths. All other settings stayed fixed.
+Both completed turn-90 replays match and neither game has driver warnings.
+
+| Turn 90, twelve seats | Confidence 1 | Confidence 0.7 |
+| --- | ---: | ---: |
+| Immediate counter deaths without a kill | 9 | 0 |
+| Civilian losses | 30 | 18 |
+| Total unit losses | 105 | 106 |
+| City captures | 4 | 1 |
+| Deaths after advances | 5 / 126 | 8 / 117 |
+| Median recurring yields | 792 | 622 |
+
+The discount addresses the immediate-sacrifice problem, but it does not improve
+the whole result. Keep confidence 1 as the comparison setting. Confidence 0.7
+remains an Arena setting for further tests, not a promoted default. An attack
+can change later random draws and every player's decisions, so these games do
+not isolate a direct causal effect on income or captures.
+
+### Final planning cost and reuse checks
+
+The final implementation also reuses enemy attack coverage for each destination.
+That reuses paths and line-of-sight checks between movement, attack and low-roll
+candidates. The range's existing occupancy, terrain and economy guards protect
+this memo. A test checks that removing a blocker opens a formerly unavailable
+attack origin.
+
+The final serial test used original/per-unit/per-unit/original order for each
+saved turn. No other benchmark or test ran alongside it. It includes all six
+seats, bot queries, command execution and diagnostics; it does not measure FPS.
+
+| Saved turn | Original mean | Per-unit mean | Ratio |
+| --- | ---: | ---: | ---: |
+| Early game, turn 40 | 512 ms | 520 ms | 1.02 |
+| War, turn 80 | 1,497 ms | 1,965 ms | 1.31 |
+| Busy late game, turn 90 | 1,428 ms | 1,905 ms | 1.33 |
+
+Both repeats produced identical commands and final states for each policy.
+All six case/policy combinations also match the preceding V6 implementation.
+The completed game cohort uses that V6 bundle. The final coverage memo therefore
+has three saved-turn equivalence checks, rather than a second full-game cohort.
+
+The earlier three-policy timing block had substantial machine variance. It is
+retained in the evidence file, not discarded. On its busy fixture, the group
+search made 12,613 forecasts and the per-unit policy made 324. Forecast counts
+do not include the original bot's older combat forecasts. Timing variability
+prevents attributing the entire elapsed-time gain to the last cache change.
+
+Runtime is now close to the original in the early fixture and about one third
+higher on the two busy fixtures. Parity is not achieved. The remaining cost is
+partly repeated non-combat planning when a changed fight invalidates a frozen
+plan. The per-unit policy also asks more decisions on the busy fixtures.
+
+### Remaining work before promotion
+
+1. Review the civilian losses and escort transitions. Keep protection useful
+   when the soldier's own safest position would expose a worker or trader.
+2. Distinguish immediate losses from possible enemy replies without assuming
+   every enemy attacks one unit. The global confidence discount is insufficient.
+3. Check alternate enemy origins after a projected move or kill changes a path.
+   The coverage heuristic is based on the current board, and it can miss an
+   alternative when its first origin becomes occupied in a projection.
+4. Keep exact legality checks. Investigate reuse across frozen-plan interruptions
+   before narrowing safety guards or removing tactical candidates.
+5. Use additional maps and mixed-policy seats before changing the default.
+
+Final validation passes typecheck, all 575 core files with 13,008 tests, and the
+production build. The core suite took 85 seconds and the build took 12 seconds.
+The first core run caught a missing update to the integer-parameter register;
+the corrected register and the complete rerun pass. The existing large-chunk
+build warning remains. No slow-tier sweep, push or deployment was performed.
+All benchmark and validation processes ended.
+
+Balance analysis is deferred at the user's request; these results do not
+establish deck balance.

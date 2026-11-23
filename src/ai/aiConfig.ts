@@ -64,6 +64,13 @@ export interface AiConfig {
   tactics: {
     /** Zero keeps the control policy available for paired comparisons. */
     enabled: number;
+    /** One uses per-unit scoring; zero keeps the group-search control. */
+    perUnit: number;
+    finalists: number;
+    attacks: number;
+    support: number;
+    /** Future enemy attacks are possible, while immediate counters are certain. */
+    threatConfidence: number;
     radius: number;
     /** Friendly movement search radius. Zero keeps the full reachable area. */
     moveRadius: number;

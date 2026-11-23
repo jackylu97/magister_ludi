@@ -19,6 +19,11 @@ import { openWar } from '../../src/sim/wars';
 import type { DoctrineId, OrderId } from '../../src/sim/statecraftData';
 import { newGame } from './newGameHelpers';
 
+function groupConfig() {
+  const ai = aiConfigFor();
+  return { ...ai, tactics: { ...ai.tactics, perUnit: 0 } };
+}
+
 function board(): GameState {
   const state = newGame({ seed: 11, sizeName: 'duel', barbarians: false, players: [
     { name: 'A', color: '#a00' }, { name: 'B', color: '#00a' },
@@ -37,7 +42,7 @@ function board(): GameState {
 function replyContext(state: GameState, mine: number, enemy: number): TacticalContext {
   return {
     root: state, playerId: 0, units: [mine], enemies: [enemy], cities: [], protectedUnits: [], locked: [],
-    ai: aiConfigFor(), worth: new Map([[mine, 1], [enemy, 1]]),
+    ai: groupConfig(), worth: new Map([[mine, 1], [enemy, 1]]),
     stats: { positions: 0, forecasts: 0, replies: 0, cacheHits: 0, limited: false },
   };
 }
@@ -261,7 +266,7 @@ describe('bounded tactical planning', () => {
     enemy.movesLeft = 0;
     recomputeAllVisibility(state);
     state.visibility[0]!.fill(2);
-    expect(planTacticalCombat(state, 0, mine.id, aiConfigFor())?.enemies).toContain(enemy.id);
+    expect(planTacticalCombat(state, 0, mine.id, groupConfig())?.enemies).toContain(enemy.id);
     const ctx = replyContext(state, mine.id, enemy.id);
     const reply = enemyReply(ctx, initialPosition(state), true);
     expect(reply.actions.some(action => action.kind === 'move' && distance(state, action.from, action.to) > 2)).toBe(true);
@@ -310,7 +315,7 @@ describe('bounded tactical planning', () => {
     const enemy = createUnit(state, 1, 'warrior', 6, 5);
     const distant = createUnit(state, 0, 'scout', 12, 10);
     recomputeAllVisibility(state);
-    const base = aiConfigFor();
+    const base = groupConfig();
     const ai = { ...base, tactics: { ...base.tactics, radius: 2 } };
     const first = cachedTacticalPlan(state, 0, mine.id, ai, {})!;
     distant.row = 9;
@@ -333,7 +338,7 @@ describe('bounded tactical planning', () => {
     const hidden = createUnit(state, 1, 'spearman', 6, 5);
     recomputeAllVisibility(state);
     state.visibility[0]![tileIndex(state.map, hidden.col, hidden.row)] = 1;
-    const plan = planTacticalCombat(state, 0, mine.id, aiConfigFor())!;
+    const plan = planTacticalCombat(state, 0, mine.id, groupConfig())!;
     for (const action of plan.sequence.filter(action => action.kind === 'move')) {
       expect(state.visibility[0]![tileIndex(state.map, action.to.col, action.to.row)]).toBe(2);
     }
@@ -345,7 +350,7 @@ describe('bounded tactical planning', () => {
     const archer = createUnit(state, 0, 'archer', 4, 5);
     createUnit(state, 1, 'warrior', 6, 5);
     recomputeAllVisibility(state);
-    const plan = planTacticalCombat(state, 0, spear.id, aiConfigFor())!;
+    const plan = planTacticalCombat(state, 0, spear.id, groupConfig())!;
     expect(plan.action.kind).toBe('attack');
     expect(plan.action.unitId).toBe(archer.id);
   });
@@ -358,7 +363,7 @@ describe('bounded tactical planning', () => {
     archer.fortifiedTurns = 2;
     createUnit(state, 1, 'warrior', 6, 5);
     recomputeAllVisibility(state);
-    const plan = planTacticalCombat(state, 0, spear.id, aiConfigFor(), { locked: [spear.id] })!;
+    const plan = planTacticalCombat(state, 0, spear.id, groupConfig(), { locked: [spear.id] })!;
     expect(plan.action.command?.type).toBe('attack');
     expect(plan.action.unitId).toBe(archer.id);
   });
@@ -373,7 +378,7 @@ describe('bounded tactical planning', () => {
     recomputeAllVisibility(state);
     const ctx: TacticalContext = {
       root: state, playerId: 0, units: [mine.id], enemies: [first.id, second.id], cities: [], protectedUnits: [], locked: [],
-      ai: aiConfigFor(), worth: new Map([[mine.id, 1], [first.id, 1], [second.id, 1]]),
+      ai: groupConfig(), worth: new Map([[mine.id, 1], [first.id, 1], [second.id, 1]]),
       stats: { positions: 0, forecasts: 0, replies: 0, cacheHits: 0, limited: false },
     };
     const reply = enemyReply(ctx, initialPosition(state), true);
@@ -390,7 +395,7 @@ describe('bounded tactical planning', () => {
     enemy.hp = 70;
     createUnit(state, 1, 'archer', 8, 5);
     recomputeAllVisibility(state);
-    const plan = planTacticalCombat(state, 0, guard.id, aiConfigFor(), { locked: [guard.id] });
+    const plan = planTacticalCombat(state, 0, guard.id, groupConfig(), { locked: [guard.id] });
     expect(plan?.candidates.some(candidate => candidate.label.startsWith(`${wounded.id}: move `))).toBe(true);
     expect(plan?.action.unitId).toBe(wounded.id);
     expect(plan?.action.kind).toBe('move');
@@ -403,13 +408,13 @@ describe('bounded tactical planning', () => {
     createUnit(state, 1, 'warrior', 6, 5);
     recomputeAllVisibility(state);
     const before = snapshotState(state);
-    const plan = planTacticalCombat(state, 0, spear.id, aiConfigFor())!;
+    const plan = planTacticalCombat(state, 0, spear.id, groupConfig())!;
     expect(plan).not.toBeNull();
     expect(plan.candidates.filter(row => row.chosen)).toHaveLength(1);
     for (const row of plan.candidates) expect(foldTerms(row.terms)).toBe(row.score);
-    expect(plan.stats.positions).toBeLessThanOrEqual(aiConfigFor().tactics.projections);
+    expect(plan.stats.positions).toBeLessThanOrEqual(groupConfig().tactics.projections);
     expect(snapshotState(state)).toBe(before);
-    expect(planTacticalCombat(state, 0, spear.id, aiConfigFor())?.action).toEqual(plan.action);
+    expect(planTacticalCombat(state, 0, spear.id, groupConfig())?.action).toEqual(plan.action);
     expect(plan.action.command).not.toBeNull();
     expect(applyCommand(state, plan.action.command!).ok).toBe(true);
   });
@@ -422,7 +427,7 @@ describe('bounded tactical planning', () => {
     recomputeAllVisibility(state);
     const previous = slateShadow();
     setSlateShadow(true);
-    try { expect(planTacticalCombat(state, 0, spear.id, aiConfigFor())).not.toBeNull(); }
+    try { expect(planTacticalCombat(state, 0, spear.id, groupConfig())).not.toBeNull(); }
     finally { setSlateShadow(previous); }
   });
 
@@ -431,7 +436,7 @@ describe('bounded tactical planning', () => {
     const spear = createUnit(state, 0, 'spearman', 5, 5);
     createUnit(state, 1, 'warrior', 6, 5).hp = 1;
     recomputeAllVisibility(state);
-    const plan = planTacticalCombat(state, 0, spear.id, aiConfigFor(), { locked: [spear.id] })!;
+    const plan = planTacticalCombat(state, 0, spear.id, groupConfig(), { locked: [spear.id] })!;
     expect(plan.action.kind).toBe('hold');
   });
 
@@ -443,13 +448,13 @@ describe('bounded tactical planning', () => {
     recomputeAllVisibility(state);
     state.visibility[0]![tileIndex(state.map, hidden.col, hidden.row)] = 0;
     state.visibility[0]![tileIndex(state.map, 7, 6)] = 0;
-    const first = planTacticalCombat(state, 0, spear.id, aiConfigFor());
+    const first = planTacticalCombat(state, 0, spear.id, groupConfig());
     hidden.col = 7;
     hidden.row = 6;
     hidden.hp = 1;
     state.visibility[0]![tileIndex(state.map, hidden.col, hidden.row)] = 0;
     bumpRevision(state);
-    const second = planTacticalCombat(state, 0, spear.id, aiConfigFor());
+    const second = planTacticalCombat(state, 0, spear.id, groupConfig());
     expect(second?.action).toEqual(first?.action);
     expect(second?.candidates).toEqual(first?.candidates);
   });

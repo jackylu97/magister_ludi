@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { setAiTuning, type PersonaOverride } from '../src/ai/aiConfig';
 import { driveBots, runBotTurn } from '../src/ai/driver';
 import { frozenTally } from '../src/ai/frozenBoard';
+import { unitTacticalTally } from '../src/ai/tactics/metrics';
 import { tacticalTally } from '../src/ai/tactics/planner';
 import type { BotDecision } from '../src/ai/decision';
 import { createGame, saveGame } from '../src/sim/game';
@@ -128,6 +129,6 @@ while (state.turn <= limit && state.winnerId === null) {
 writeFileSync(`${output}/${seed}.json`, JSON.stringify({
   metricVersion: 2, seed, tuning, scenario, turn: state.turn, winner: state.winnerId, checkpoints, warnings,
   planning: structuredClone(frozenTally),
-  tactics: { ...tacticalTally },
+  tactics: { ...tacticalTally }, perUnit: { ...unitTacticalTally },
   ...(decisionsThrough > 0 || recordWars || recordCombat ? { decisions } : {}),
 }) + '\n');

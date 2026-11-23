@@ -2,7 +2,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { setAiTuning } from '../src/ai/aiConfig';
 import { runBotTurn } from '../src/ai/driver';
-import { askTheBot } from '../src/ai/frozenBoard';
+import { askTheBot, frozenTally } from '../src/ai/frozenBoard';
+import { unitTacticalTally } from '../src/ai/tactics/metrics';
 import { tacticalTally } from '../src/ai/tactics/planner';
 import { loadGame, snapshotState } from '../src/sim/game';
 
@@ -33,7 +34,7 @@ try {
     if (step.decision.command.type === 'endTurn') console.log(`Finished seat ${step.playerId}.`);
   }
 } finally {
-  const report = { elapsedMs: performance.now() - started, rows, tactics: { ...tacticalTally } };
+  const report = { elapsedMs: performance.now() - started, rows, tactics: { ...tacticalTally }, perUnit: { ...unitTacticalTally }, planning: frozenTally };
   writeFileSync(`${output}.json`, JSON.stringify(report, null, 2));
   writeFileSync(`${output}.state.json`, snapshotState(game.state));
   console.log(JSON.stringify({ ...report, rows: [...rows].sort((a, b) => b.ms - a.ms).slice(0, 8) }));

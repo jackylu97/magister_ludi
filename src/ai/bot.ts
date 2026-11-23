@@ -10317,7 +10317,21 @@ function tacticalUnitChoice(state: GameState, player: Player, unit: Unit, sittin
   const ours = state.units.filter(piece => piece.ownerId === player.id);
   const excluded = ours.filter(piece => escorts.has(piece.id) || guards.has(piece.id) || !isFieldSoldier(unitDef(piece.type))).map(piece => piece.id);
   const locked = ours.filter(piece => !isRedundant(state, player, piece) || unrestTownHeldBy(state, player, piece) !== null).map(piece => piece.id);
-  const plan = cachedTacticalPlan(state, player.id, unit.id, ai, { excluded, locked });
+  // A ready ranged attack can soften a target before the melee unit acts.
+  // Reuse that archer's own assessment, rather than searching group sequences.
+  let plan: ReturnType<typeof cachedTacticalPlan> = null;
+  if (ai.tactics.perUnit > 0 && !isRanged(unitDef(unit.type))) {
+    for (const friend of ours) {
+      if (excluded.includes(friend.id) || !isRanged(unitDef(friend.type)) || friend.movesLeft <= 0 || friend.hasAttacked ||
+          tacticalDistance(state, unit, friend) > ai.tactics.radius) continue;
+      const range = attackRange(state, friend);
+      if (!state.units.some(enemy => atWar(state, player.id, enemy.ownerId) && isVisibleTo(state, player.id, enemy.col, enemy.row) &&
+          tacticalDistance(state, friend, enemy) <= range)) continue;
+      const ready = cachedTacticalPlan(state, player.id, friend.id, ai, { excluded, locked });
+      if (ready?.action.kind === 'attack') { plan = ready; break; }
+    }
+  }
+  plan ??= cachedTacticalPlan(state, player.id, unit.id, ai, { excluded, locked });
   if (plan === null) return undefined;
   const command = plan.action.command;
   if (command === null) return null;
@@ -10325,7 +10339,9 @@ function tacticalUnitChoice(state: GameState, player: Player, unit: Unit, sittin
   return {
     command, subject: unitLabel(actor),
     tacticalOrigin: { col: unit.col, row: unit.row },
-    summary: `Compares attacking, moving and holding with a feasible enemy reply. Plans ${plan.sequence.length} local actions and executes the first.`,
+    summary: ai.tactics.perUnit > 0
+      ? 'Ranks nearby positions and attacks, including estimated enemy damage. Executes the first action and checks the actual result.'
+      : `Compares attacking, moving and holding with a feasible enemy reply. Plans ${plan.sequence.length} local actions and executes the first.`,
     candidates: plan.candidates, focus: plan.action.to,
   };
 }

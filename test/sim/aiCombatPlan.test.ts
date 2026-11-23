@@ -74,6 +74,21 @@ function checkCut(state: GameState, run: ReturnType<typeof startPlanRun>, reason
 }
 
 describe('planned combat facts', () => {
+  it('keeps a per-unit plan when only an enemy attack allowance was spent', () => {
+    withAiTuning({ tactics: { enabled: 1, perUnit: 1 } }, () => {
+      const { state, command, defender } = front();
+      const actor = unitById(state, command.unitId)!;
+      const plan = oneAttack(state, command, { col: actor.col, row: actor.row });
+      expect(plan.steps[0]?.tactics?.fullEnemyAllowance).toBe(true);
+      defender.movesLeft = 0;
+      defender.hasAttacked = true;
+      bumpRevision(state);
+      const run = startPlanRun(plan);
+      expect(applyNextStep(state, run, order => applyCommand(state, order))?.result.ok).toBe(true);
+      expect(run.cut).toBeNull();
+    });
+  });
+
   it('keeps the group origin when a different unit acts first', () => {
     withAiTuning({ tactics: { enabled: 1, radius: 2 } }, () => {
       const { state, command } = front();
