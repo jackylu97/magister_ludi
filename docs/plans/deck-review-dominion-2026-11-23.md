@@ -17,6 +17,23 @@ The user's questions for all four reviews: "is the utility in the deck useful? A
 
 ---
 
+## The user's comments, 2026-11-23
+
+The user commented on the review page (11 comments) and said in chat: "i like the changes." **Where this section and the text below disagree, this section is right.** Nothing is built yet. These changes wait in the queue behind the playtest.
+
+| # | Card or point | The user's words | Result |
+|---|---|---|---|
+| 1 | The Companion Cavalry | On the finding: "attacks should refresh too". On the proposed text: "great". On decision 1: "yes". | New text: "A unit of yours that kills a unit regains its movement and may attack again." |
+| 2 | The Sacred Band (new) | "thats cool, lets add it", and on decision 2: "yes" | Build it: "When one of your Elite units dies, gain a melee unit in your capital. It starts as a Veteran." |
+| 3 | The Huscarls (new) | "sure", then: "it should probably read as \"elite units in a garrison give twice the garrison bonus from other effects\" or something" | Build it, with the user's wording as the base: "Elite units in a garrison give twice the garrison bonus of your other cards." The build chooses the final words. |
+| 4 | Interior Lines | "lets cut", and on its replacement by The Huscarls: "great" | Retired. The Huscarls takes its place at Tier III. |
+| 5 | The Tributary Kings | On the utility row: "cut" (22:58). On the proposal to read captured towns: "cool i like it" (23:01). | The two comments disagree. The later one is taken: the card stays and reads citizens in captured towns. To confirm with the user. |
+| 6 | Spare authority | "let's make a note: there should be maybe more payoff for spare authority in the deck" | A note for the next Dominion pass: the deck supplies spare authority (Hegemony, The Universal Monarchy) and has no card that reads it. The readers are in Devotion, Expansionist and Magisterial. |
+
+The user did not comment on decision 4 (the drill loop of The Drill Masters with Up Through the Ranks, about 200 to 300 renown a turn). It stays open. The orchestrator's view: size it together with the Magisterial renown supply before The Drill Masters moves to Tier II.
+
+---
+
 ## E. Summary
 
 ### Findings
