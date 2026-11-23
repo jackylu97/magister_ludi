@@ -466,9 +466,14 @@ i think it should probably value it based on the yields the tile provides".
 So: the bot's cost of a hex is the sim's own price, and its worth is the
 yields the hex gives the town.
 
-The eight rules landed at `c971330a` on `decks`. A follow-up build (the new
-Inquisition, the unhappiness yields, the multiplied growth penalty) and the
-strategic copies build are in flight; this note will name their commits.
+The eight rules landed at `c971330a` on `decks`. The strategic copies build landed
+at `30bef026` (version 266): `DealTerms.strategics` is a list of
+`{ id, copies }` rows, the bots price each copy as one copy and still write
+one copy in their own papers (`oneCopyTerms`). The follow-up build landed
+after it: Inquisition is live again, unhappiness at −10 lowers gold, science,
+culture and faith, the growth penalty multiplies as its own step, and the
+tide now applies `rivalPressurePercent` in towns without a temple. The digest
+pins and the slow replays need a new record on this head.
 
 The lines in 0.1k and 0.1l that say the play clone stays at `12947dfb` are
 out of date. The user allowed the pull, and the clone follows `decks` again.
