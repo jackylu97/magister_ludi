@@ -3550,3 +3550,8 @@ of 8 that it will attack." The user gave this build to the Claude session
   and says which.
 - Unchanged: the cap of two guards a camp, two raiders a camp across the
   world, the +2 strength, and difficulty tier 3's wave.
+
+**Added the same day:** the user, on learning that three camps appear every
+two turns from turn 6: "oh i didn't realize camp sapwns were so quick. Let's
+do 3 camps every 5 turns." So `campEveryTurns` goes from 2 to 5.
+`campsPerSpawn` 3, `firstCampTurn` 6 and `maxCamps` 24 do not change.
