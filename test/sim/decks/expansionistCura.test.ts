@@ -384,6 +384,7 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
   'state.ts › buildingBank': { reads: 1, why: 'built: how a building was paid for' },
   'state.ts › buildingAge': { reads: 1, why: 'built: a building\'s age (a held one has none)' },
   'state.ts › wondersHeldBy': { reads: 1, why: 'one of a kind: the wonders an empire holds' },
+  'statecraft/evaluator.ts › buildingRelicOffer': { reads: 1, why: 'built: placing a relic requires a completed building' },
   'statecraft/evaluator.ts › buildLiveEffects': {
     reads: 1,
     why: 'one of a kind: the empire walk, which may not ask the law it is building',
@@ -394,7 +395,7 @@ const BUILT_READERS: Record<string, { reads: number; why: string }> = {
   },
   'statecraft/evaluator.ts › ghostWorksInTown': { reads: 1, why: 'one of a kind: each built wonder counts as a great work' },
   'statecraft/evaluator.ts › wonderWorkYieldLines': { reads: 1, why: 'one of a kind: the yield lists are per built wonder' },
-  'statecraft/evaluator.ts › countOf': {
+  'statecraft/evaluator.ts › rawCountOf': {
     reads: 4,
     why: 'one of a kind (wonders in a town or empire and empire buildings), and built (`purchasedBuildings`, how it was paid for)',
   },
@@ -462,7 +463,7 @@ const MOVED_READERS: Record<string, string> = {
   'statecraft/evaluator.ts › cityBuildingEffects': 'the building\'s own effects (a `liveEffects` source)',
   'statecraft/evaluator.ts › buildingsOfCategoryIn': 'the `buildingsOfCategory` scope and count',
   'statecraft/evaluator.ts › cityScopeAdmits': '`hasBuilding` and `hasBuildingYielding`',
-  'statecraft/evaluator.ts › countOf':
+  'statecraft/evaluator.ts › rawCountOf':
     '`buildingsOfKind`, `buildingsInCity`, `buildingsOfCategories`, `defensiveBuildings`, `distinctBuildingCategories`, `publicWorks`, `buildingsSupplying`',
   // Batch R2b: a building's package carries card and luxury lines only for a
   // building the town holds.

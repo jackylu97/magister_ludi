@@ -2333,7 +2333,9 @@ describe('the marginal draft reading', () => {
     // The Privy Council now pays the yields of Wildcard chairs through the chair reader.
     expect(hasFoldReadEngine(orderDef('thePrivyCouncil').effects)).toBe(false);
     expect(hasFoldReadEngine(orderDef('thePrinceBishops').effects)).toBe(true);
-    expect(engines).toBe(30);
+    // Hanlin now reads the scholar share of the empire's recurring renown.
+    expect(hasFoldReadEngine(orderDef('magisterialTheHanlinAcademy').effects)).toBe(true);
+    expect(engines).toBe(31);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books

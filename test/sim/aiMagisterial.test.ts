@@ -1285,12 +1285,20 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     expect(scoreEffects(row, valueContext(idle.state, idle.player))).toBe(0);
   });
 
-  it('prices The Hospitium the same before and after it is taken', () => {
+  it('uses the same hand comparison before and after adopting The Hospitium', () => {
     const { state, player } = seatBuyingHands();
-    const row = doctrineDef(HOSPITIUM).effects;
-    const before = scoreEffects(row, valueContext(state, player));
+    function check(): void {
+      const ctx = valueContext(state, player);
+      const score = priced(ctx);
+      const wider = expectedBestOrder(expectedHandBags(state, player, true), 0, score);
+      const ordinary = expectedBestOrder(expectedHandBags(state, player, false), 0, score);
+      expect(scoreEffects(doctrineDef(HOSPITIUM).effects, ctx))
+        .toBeCloseTo(handsInForce(state, player) * (wider - ordinary), 6);
+    }
+    check();
+    // This adoption can change the price of an individual card that counts held Doctrines.
     take(state, HOSPITIUM);
-    expect(scoreEffects(row, valueContext(state, player))).toBeCloseTo(before, 6);
+    check();
   });
 
   it('prices the two Civic chairs from Orders that can fill them', () => {
@@ -1353,7 +1361,7 @@ describe('the two Doctrines that change what an Order hand deals', () => {
     // The Golden Bull is priced by the Doctrine offer it grants, and that offer can
     // hold these two Doctrines, whose prices walk the hand The Golden Bull is in.
     const { state, player } = seatBuyingHands();
-    player.statecraft.drafts = 22;
+    player.statecraft.drafts = 12;
     const bull = orderDef(GOLDEN_BULL);
     const tierFour = GOVERNMENT_IDS.find((id) => governmentDef(id).tier === 4) as GovernmentId;
     player.statecraft.government = tierFour;

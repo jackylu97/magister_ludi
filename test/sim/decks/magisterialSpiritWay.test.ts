@@ -151,7 +151,7 @@ describe('The Spirit Way and The Paradise Garden', () => {
     expect(runCommissions(state).map(report => report.card)).toContain(GARDEN);
     const doubled = foldTile(tile, cityContext(state, city));
     expect(before.culture).toBeGreaterThan(0);
-    expect(doubled.culture).toBe(2 * before.culture);
+    expect(doubled.culture).toBe(before.culture + 4);
     damageImprovement(tile, state.turn);
     bumpRevision(state);
     expect(foldTile(tile, cityContext(state, city)).culture).toBeLessThan(doubled.culture);

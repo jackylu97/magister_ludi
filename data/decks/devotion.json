@@ -324,7 +324,6 @@
       "name": "The Sacred Bequests",
       "text": "Spending faith grants science equal to a fourth of it.",
       "rarity": "common",
-      "type": "civic",
       "band": 3,
       "retired": true
     },
@@ -420,7 +419,6 @@
       "name": "The Bell Towers",
       "text": "Unlocks the Bell Tower, a faith building: +1 faith, and its town presses your religion +1 harder for each faith building it holds.",
       "rarity": "common",
-      "type": "civic",
       "band": 2,
       "charter": {
         "unlocks": {
@@ -1275,7 +1273,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "The ones who kept the calendar also kept the accounts.",
       "text": "+2 science and +2 culture for every 10 faith your empire makes each turn.",
       "effects": [
@@ -1471,7 +1468,6 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
-      "type": "civic",
       "flavor": "Every hearth that keeps the faith sends a coal to the great fire.",
       "text": "Gain 1 faith each turn for every two citizens in the world who follow your religion.",
       "effects": [

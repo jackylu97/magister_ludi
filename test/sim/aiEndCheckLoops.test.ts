@@ -39,7 +39,7 @@ import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../../
 import { foundReligion, religionBeliefPool } from '../../src/sim/religion';
 import { BELIEF_IDS } from '../../src/sim/religionData';
 import { type City, type GameState, type Player, addBuilding, bumpRevision, createUnit, playerById, queueItemKey } from '../../src/sim/state';
-import { foundCityAt, foundingErrorAt, refreshCityDerived } from '../../src/sim/cities';
+import { assignableTiles, foundCityAt, foundingErrorAt, refreshCityDerived } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { createMap } from '../../src/sim/map';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
@@ -298,6 +298,19 @@ describe('the focus changes only by a clear margin (bot batch BP11, driver.focus
   function leaning(): { game: Game; city: City; edge: number } {
     const game = grownGame(10);
     const city = firstCity(game.state, 0);
+    // Keep both assignments fed while leaving one citizen a food/production choice.
+    const tiles = assignableTiles(game.state, city);
+    tiles.forEach((tile, index) => {
+      tile.terrain = 'grassland';
+      tile.feature = 'none';
+      tile.improvement = undefined;
+      tile.hills = index % 2 === 0;
+      tile.resource = tile.hills ? undefined : 'wheat';
+    });
+    city.population = 3;
+    city.lockedTiles = tiles.filter(tile => tile.resource === 'wheat').slice(0, 2)
+      .map(({ col, row }) => ({ col, row }));
+    bumpRevision(game.state);
     expect(dispatch(game, { type: 'setCitizenFocus', playerId: 0, cityId: city.id, focus: 'production' }).ok).toBe(true);
     const reading = withAiTuning(TWO as never, () => focusReading(game.state, city, valueContext(game.state, seat(game.state, 0))));
     // The fixture's claim: the balanced ordering wins, by a score and not by a gate.

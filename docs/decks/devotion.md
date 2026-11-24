@@ -5,11 +5,11 @@ The deck has 78 Orders of its own, 27 Orders shared with another deck, and 17 Do
 | Tier | Implemented | Modify | Add | All | Charters |
 | --- | --- | --- | --- | --- | --- |
 | Tier 0 | 8 | 0 | 0 | 8 | 1 |
-| Tier I | 17 | 0 | 0 | 17 | 3 |
-| Tier II | 22 | 0 | 0 | 22 | 4 |
-| Tier III | 21 | 0 | 0 | 21 | 2 |
-| Tier IV | 10 | 0 | 0 | 10 | 0 |
-| All | 78 | 0 | 0 | 78 | 10 |
+| Tier I | 17 | 0 | 0 | 17 | 2 |
+| Tier II | 22 | 0 | 0 | 22 | 3 |
+| Tier III | 19 | 0 | 0 | 19 | 1 |
+| Tier IV | 9 | 0 | 0 | 9 | 0 |
+| All | 75 | 0 | 0 | 75 | 7 |
 | Shared | 27 | 0 | 0 | 27 | 2 |
 
 | Tier | Military | Economic | Civic | Wildcard |
@@ -17,9 +17,9 @@ The deck has 78 Orders of its own, 27 Orders shared with another deck, and 17 Do
 | Tier 0 | 1 | 3 | 4 | 0 |
 | Tier I | 1 | 6 | 9 | 1 |
 | Tier II | 3 | 5 | 12 | 2 |
-| Tier III | 2 | 7 | 10 | 2 |
-| Tier IV | 2 | 1 | 6 | 1 |
-| All | 9 | 22 | 41 | 6 |
+| Tier III | 2 | 7 | 8 | 2 |
+| Tier IV | 2 | 1 | 5 | 1 |
+| All | 9 | 22 | 38 | 6 |
 | Shared | 5 | 3 | 19 | 0 |
 
 ## Tier 0

@@ -70,7 +70,6 @@ import {
   type CombatSituation,
   cardBehaviorRuleFor,
   cardCapitalIds,
-  cardCityStat,
   cardLimitLifts,
   cardProspectCityCost,
   cardUpgradeStrength,
@@ -1701,7 +1700,7 @@ describe('The Two Capitals (batch DT17)', () => {
       expect(pays(state, third, 'marketDay', 'gold')).toBe(0);
     });
 
-    it('counts both capitals’ citizens on an empire row, up to its cap (The Round City)', () => {
+    it('counts both capitals’ citizens on an uncapped empire row (The Round City)', () => {
       const { state, capital, second, third } = board();
       slot(state, 'theRoundCity');
       const percent = (city: City): number =>
@@ -1713,7 +1712,7 @@ describe('The Two Capitals (batch DT17)', () => {
       for (const city of [capital, second, third]) expect(percent(city)).toBe(both);
       second.population = 40;
       bumpRevision(state);
-      expect(percent(third)).toBe(30);
+      expect(percent(third)).toBe(capital.population + second.population);
     });
 
     it('counts the capital’s citizens alone on the same row without the Doctrine', () => {
@@ -1955,20 +1954,16 @@ describe('The Two Capitals (batch DT17)', () => {
       expect(percent(third)).toBe(0);
     });
 
-    it('keeps the Walls of Uruk’s defence in their town and grants strength throughout friendly territory', () => {
+    it('pays the Walls of Uruk bonus only where a Palisade stands', () => {
       const { state, capital, second } = board();
       addBuilding(state, capital, 'wallsOfUruk');
+      addBuilding(state, capital, 'palisade');
       bumpRevision(state);
-      const defence = (city: City): number =>
-        cardCityStat(state, city, 'defense')
-          .filter((entry) => entry.card === 'wallsOfUruk')
-          .reduce((sum, entry) => sum + entry.amount, 0);
-      expect(defence(capital)).toBe(10);
-      expect(defence(second)).toBe(0);
-      const unit = createUnit(state, 0, 'warrior', second.col, second.row);
-      const strength = buildingDef('wallsOfUruk').effects!.find((row) => row.kind === 'combatLine') as CardCombatLineEffect;
-      expect(combatLineAmount(state, fightAt(state, unit, capital), strength)).toBe(2);
-      expect(combatLineAmount(state, fightAt(state, unit, second), strength)).toBe(2);
+      expect(pays(state, capital, 'wallsOfUruk', 'production')).toBe(2);
+      expect(pays(state, second, 'wallsOfUruk', 'production')).toBe(0);
+      addBuilding(state, second, 'palisade');
+      bumpRevision(state);
+      expect(pays(state, second, 'wallsOfUruk', 'production')).toBe(2);
     });
 
     // Divine Mandate's capital rows left with batch G1: the new Divine Mandate

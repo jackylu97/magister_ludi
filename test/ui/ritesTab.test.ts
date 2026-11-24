@@ -440,7 +440,7 @@ describe('starting a rite', () => {
     expect(model(state, view).faith.history).toBeNull();
   });
 
-  it('offers the Votive Offering in towns with and without a queue', () => {
+  it('offers the Rite of the Harvest in towns with and without a queue', () => {
     const { state, towns } = world();
     const gifts = 'theVotiveGifts' as OrderId;
     const player = playerById(state, 0)!;
@@ -449,7 +449,7 @@ describe('starting a rite', () => {
     for (const town of towns) town.queue = [];
     towns[0]!.queue = [{ kind: 'unit', id: 'warrior' }];
     bumpRevision(state);
-    const shown = model(state, selectRite(freshRitesView(state.turn), 'votiveOffering'));
+    const shown = model(state, selectRite(freshRitesView(state.turn), 'riteOfTheHarvest'));
     expect(shown.refusalHead).toEqual([]);
     for (const town of towns) {
       const row = shown.free.find((entry) => entry.cityId === town.id)!;

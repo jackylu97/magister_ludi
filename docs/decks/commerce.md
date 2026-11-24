@@ -217,7 +217,6 @@ Gold and faith purchases use the same calculation. Add the applicable buying pow
 | The Offering Chests | 25% | All faith purchases, including Great People |
 | The Canons of the Holy Sepulchre | 40% | Faith purchases in towns with a Holy Site |
 | Apostles | 40% | Apostles bought with faith |
-| The Alms Box | 25% | Faith purchases in a town that follows this religion |
 | Crassus | 25% | Unit and building purchases |
 | Jakob Fugger | 11.11% | Unit and building purchases |
 | Fan Li | 17.65% | Building purchases |

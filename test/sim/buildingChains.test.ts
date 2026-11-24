@@ -202,6 +202,7 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
         // the withdrawn row re-opened as the engine-and-bow drill hall at
         // Mathematics, one id rather than a second Armoury beside a withdrawn one.
         'baths',
+        'bellTower',
         'clocktower',
         'examinationHall',
         'funeralGames',
@@ -258,7 +259,9 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
     // run rather than only in a doc.
     const orphaned = TECH_IDS.filter((tech) => {
       const rows = techDef(tech).unlocks.buildings ?? [];
-      return rows.length > 0 && rows.every((id) => buildingDef(id).retired === true);
+      const unlocks = techDef(tech).unlocks;
+      const otherGifts = (unlocks.units?.length ?? 0) + (unlocks.abilities?.length ?? 0);
+      return rows.length > 0 && otherGifts === 0 && rows.every((id) => buildingDef(id).retired === true);
     });
     // Movable Type left the list in batch E4b: the Printing House it opens is
     // live again, so the node hands over something buildable once more.

@@ -334,7 +334,7 @@ describe('the religious agents’ sheet', () => {
     // whole. Four prophet rows plus the empire rite's own sub-rows, the
     // apostle's three, the apostle's planting row under The Abbeys (Devotion
     // batch DV7) and the inquisitor's one — every row, one `ended ??`.
-    expect(rows.match(/ended \?\?/g) ?? []).toHaveLength(10);
+    expect(rows.match(/ended \?\?/g) ?? []).toHaveLength(11);
   });
 
   it('is offered only to the two agents, and asked of the markers rather than names', () => {
@@ -411,7 +411,7 @@ describe('the religious agents’ sheet', () => {
     // row the same way. Not one figure is written into the interface.
     expect(
       (rows.match(/cost: chargeCostWords\(state, localPlayerId, '[a-zA-Z]+'\)/g) ?? []).length,
-    ).toBe(7);
+    ).toBe(8);
     expect(rows).toContain('cost: founding,');
     expect(rows).toContain('cost: site,');
     expect(rows).toContain("const site = chargeCostWords(state, localPlayerId, 'plantHolySite');");

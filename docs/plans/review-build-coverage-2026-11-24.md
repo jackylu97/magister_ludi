@@ -28,3 +28,7 @@ This checklist covers the settled and default rows in the card-change index, the
 The proposed new effects for Second Prophet, Mission Houses and Holy Inquisition still need a ruling. State Church loses authority and keeps its existing happiness amount. Founder share remains deferred. The Great Mosque of Djenné, the other wonder cut candidates and the wider cross-deck wonder pass remain deferred. The drill loop, the spare-authority engine and Licence to Teach await playtest evidence. Wager calibration and UI work are separate from this index.
 
 The source comparison cannot establish play frequency, balance or bot performance. Check those in the serial validation and playtest.
+
+## Release validation exception
+
+The user asked for an immediate release after the production build, accepted minor bugs, and waived further tests. The first core run passed the new Magisterial and Commerce regression cases but failed older fixtures and exposed integration bugs. Those bugs were repaired. A second core run was stopped at the user’s request with remaining failures in religion, Devotion, doctrine offers, Commerce bot valuation, and citizen-focus fixtures. Complete those checks in follow-up work. The slow tier was not run.

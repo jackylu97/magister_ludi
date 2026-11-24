@@ -282,7 +282,7 @@ describe('Magisterial batch MG1: the rows', () => {
     const retired = DECK_FILE_ORDERS.magisterial.filter((id) => orderDef(id).retired === true);
     // 62 since batch MG1. Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`)
     // retired seven more.
-    expect(retired).toHaveLength(76);
+    expect(retired).toHaveLength(78);
     // The one card this pass cut that still had a live row.
     expect(retired).toContain('thePerformersTreasury');
     for (const id of [...retired, 'theImperialExaminations', 'triumphalArches'] as OrderId[]) {
@@ -406,11 +406,11 @@ describe('Magisterial batch MG2: the rows', () => {
     // Repertory and The Siting Masters. Each keeps its tier, rarity and effect
     // for saves, so the tests below still read them. It has no type and is
     // not dealt.
-    const retiredInDs1 = ['theRepertory', 'theSitingMasters', 'theCourtPainter'];
+    const retiredRows = ['theRepertory', 'theSitingMasters', 'theCourtPainter'];
     const pool = ordersForDecks(['magisterial']);
     for (const [id, band, rarity, type] of MG2_ROWS) {
       const def = orderDef(id as OrderId);
-      const retired = retiredInDs1.includes(id);
+      const retired = retiredRows.includes(id);
       expect(def.retired === true, id).toBe(retired);
       expect(orderIsDealt(id as OrderId), id).toBe(!retired);
       expect(pool.includes(id as OrderId), id).toBe(!retired);
@@ -795,12 +795,12 @@ describe('Magisterial batch MG3: the rows', () => {
     // Gazetteers, The Magister's Court and The Bulwark of Marvels. Each keeps
     // its tier, rarity and effect for saves, so the tests below still read
     // them. It has no type and is not dealt.
-    const retiredInDs1 = ['theGazetteers', 'magisterialTheMagistersCourt', 'theBulwarkOfMarvels'];
+    const retiredRows = ['theGazetteers', 'magisterialTheMagistersCourt', 'theBulwarkOfMarvels', 'theRollOfMasters', 'theGardenCourts'];
     expect(WONDERS.every((id) => WONDER_IDS.includes(id as BuildingId))).toBe(true);
     const pool = ordersForDecks(['magisterial']);
     for (const [id, band, rarity, type] of MG3_ROWS) {
       const def = orderDef(id as OrderId);
-      const retired = retiredInDs1.includes(id);
+      const retired = retiredRows.includes(id);
       expect(def.retired === true, id).toBe(retired);
       expect(orderIsDealt(id as OrderId), id).toBe(!retired);
       expect(pool.includes(id as OrderId), id).toBe(!retired);

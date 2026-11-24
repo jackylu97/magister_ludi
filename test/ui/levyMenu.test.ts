@@ -127,8 +127,7 @@ describe('the rite line (Human Sacrifice, batch DT19)', () => {
     expect(fasting.blocked).toBeNull();
     expect(fasting.words).toBe(riteOfferText(g.state, 0, FASTING));
     const votive = line.rites!.find((entry) => entry.rite === VOTIVE)!;
-    expect(votive.blocked).toBeNull();
-    expect(votive.words).toBe(riteOfferText(g.state, 0, VOTIVE));
+    expect(votive).toBeUndefined();
   });
 
   it('says what the rite costs: the citizen, and the rise in the next rite’s price', () => {

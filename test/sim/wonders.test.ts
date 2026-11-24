@@ -704,7 +704,8 @@ describe('the ratified roster', () => {
       'effectAmplifier',
       'rulePercent',
       'unitStat',
-      'cityStat',
+      'windfallRider',
+      'cityRenownPercent',
       'percentYields',
       'offerRider',
       // Bot batch BP7: the Forbidden City's chair.

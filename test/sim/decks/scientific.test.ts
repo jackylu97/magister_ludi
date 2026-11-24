@@ -151,10 +151,8 @@ const DEALT_CHARTERS: readonly OrderId[] = [
   'theSurveyorsCharter',
   'theLibrariansCharter',
   'thePaperMakersCharter',
-  'thePhysiciansCharter',
   'thePrintersCharter',
   'theGunfoundersCharter',
-  'theMilitaryEngineersCharter',
   'theClosedBook',
 ];
 
@@ -776,7 +774,7 @@ describe('the live rows’ effects', () => {
 // --- the charters ------------------------------------------------------------
 
 describe('the research charters', () => {
-  it('names the fourteen Scientific charter technologies, one row each, deferred until their gift is built', () => {
+  it('names the twelve live Scientific charter technologies and preserves retired technologies', () => {
     expect(CHARTERS).toHaveLength(12);
     const techs = CHARTERS.map((id) => orderDef(id).charter!.unlocks.tech);
     // The fourteenth charter technology, Scholasticism, belongs to the shared
@@ -797,7 +795,7 @@ describe('the research charters', () => {
     expect([...DEALT_CHARTERS].sort()).toEqual([...CHARTERS].sort());
   });
 
-  it('names nodes the tree holds off the sky, and the retired rows name none it holds', () => {
+  it('keeps charter technologies off the ordinary tree, including retained retired rows', () => {
     const sky = new Set<string>(TECH_IDS);
     for (const id of CHARTERS) {
       const tech = orderDef(id).charter!.unlocks.tech!;
@@ -807,7 +805,7 @@ describe('the research charters', () => {
     }
     for (const id of RETIRED) {
       const tech = orderDef(id).charter?.unlocks.tech;
-      if (tech !== undefined) expect(isTechId(tech), id).toBe(tech === 'navalGunnery');
+      if (tech !== undefined) expect(isTechId(tech), id).toBe(['navalGunnery', 'medicine', 'militaryArchitecture'].includes(tech));
     }
   });
 

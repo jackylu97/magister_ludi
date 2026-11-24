@@ -283,7 +283,7 @@ describe("The World's Fair", () => {
   it('prints its goal and its reward', () => {
     const text = describeCard(WORLDS_FAIR).map((clause) => stripRefs(clause.text));
     expect(text[0]).toBe('Commission');
-    expect(text[1]).toContain('trade routes to 4 other empires');
+    expect(text[1]).toContain('trade with 4 empires at once');
     expect(text[1]).toMatch(/100%|twice|double/);
     const goal = orderDef(WORLDS_FAIR).commission!.goals[0]!;
     expect(commissionCounterWords(goal)).toBe('empires your trade routes reach');

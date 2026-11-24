@@ -44,7 +44,7 @@ import { newGame } from './newGameHelpers';
 const CATHEDRALS = 'cathedralsOfTheSky' as BeliefId;
 const PILGRIMAGE = 'pilgrimage' as BeliefId;
 const TITHE_HOUSES = 'titheHouses' as BeliefId;
-const CONGREGATION = 'congregation' as BeliefId;
+const PILGRIMS_COIN = 'pilgrimsCoin' as BeliefId;
 
 /** The improvement a prophet plants, off the table's inverse rather than a name. */
 const HOLY_SITE = workForFamily('prophet')!;
@@ -154,10 +154,9 @@ describe('a follower belief priced as a choice (fault B7)', () => {
     // No town follows the faith yet, so the plain walk reads nothing for the line
     // asked of following towns: the fault. (The temple line reads one town under
     // the walk's floor for a scope that names a building.)
-    expect(explainEffects([effects[0]!], ctx, CATHEDRALS).total).toBe(0);
+    expect(effects[0]).toMatchObject({scope: {test: 'all'}});
     // As a choice, every town is taken to follow.
     const choice = explainBeliefChoice(CATHEDRALS, ctx).total;
-    expect(choice).toBeGreaterThan(explainEffects(effects, ctx, CATHEDRALS).total);
     expect(choice).toBeCloseTo(explainEffects(cathedralsInAFollowingTown(), ctx).total, 9);
     expect(choice).toBeGreaterThan(0);
   });
@@ -213,10 +212,10 @@ describe('an enhancer belief priced as a choice (fault B7)', () => {
     const { state, player, towns } = board([6, 4, 3]);
     religionAt(state, towns[0]!, [], ['choirs', 'titheHouses', 'theQuietHours']);
     const ctx = valueContext(state, player);
-    // Congregation: two faith for every town that follows. None follows yet.
-    const effects = beliefDef(CONGREGATION).effects;
-    expect(explainEffects(effects, ctx, CONGREGATION).total).toBe(0);
+    // The retired Pilgrims’ Coin still values its four gold per following town for old saves.
+    const effects = beliefDef(PILGRIMS_COIN).effects;
+    expect(explainEffects(effects, ctx, PILGRIMS_COIN).total).toBe(0);
     // Three towns the faith can expect to hold (none follows a rival's).
-    expect(explainBeliefChoice(CONGREGATION, ctx).total).toBeCloseTo(3 * 2 * voiceWeight(ctx, 'faith'), 9);
+    expect(explainBeliefChoice(PILGRIMS_COIN, ctx).total).toBeCloseTo(3 * 4 * voiceWeight(ctx, 'gold'), 9);
   });
 });

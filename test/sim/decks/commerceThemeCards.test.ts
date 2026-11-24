@@ -251,8 +251,10 @@ describe('Commerce batch T1: the cards that pay something new', () => {
     const card = 'boughtAndPaidFor' as OrderId;
     purchaseItemAt(state, player, city, { kind: 'building', id: 'granary' }, 'gold');
     player.faithPool = 10000;
-    purchaseItemAt(state, player, city, { kind: 'building', id: 'shrine' }, 'faith');
-    addBuilding(state, city, 'library');
+    player.legacies.push({ id: 'alKhwarizmi', age: 4 });
+    bumpRevision(state);
+    purchaseItemAt(state, player, city, { kind: 'building', id: 'library' }, 'faith');
+    addBuilding(state, city, 'shrine');
     slot(state, 0, card);
     for (const owned of [city, other]) {
       expect(townPercent(state, owned, card, 'production')).toBe(4);
@@ -426,7 +428,7 @@ describe('Commerce batch T1: tiers, retirements and moves', () => {
       expect(def.note ?? '', id).not.toMatch(/[0-9]/);
     }
     expect(orderDef('exportGuilds' as OrderId).text).toContain('lend to another empire in a deal');
-    expect(orderDef('theTreatyPorts' as OrderId).text).toContain('each empire you hold a deal with');
+    expect(orderDef('theTreatyPorts' as OrderId).text).toContain('each empire you trade with');
     expect(orderDef('theReturnLeg' as OrderId).text).toContain('everything they pay their destination');
   });
 

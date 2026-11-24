@@ -115,7 +115,6 @@ import { lendDoctrineEffects } from '../statecraftHelpers';
 
 /** The rows built so far in this deck, each with the band its table gives it. */
 const ROWS: readonly (readonly [string, number])[] = [
-  ['theTheoricFund', 1],
   ['theRitesOfZhou', 1],
   ['theSerapeum', 1],
   ['thePaean', 1],
@@ -211,7 +210,7 @@ describe('Devotion’s rows', () => {
       expect(def.retired, id).toBeUndefined();
       expect(poolDoctrines(def.tier), id).toContain(id);
     }
-    expect([...DECK_FILE_DOCTRINES.devotion].sort()).toEqual(ROWS.map(([id]) => id).sort());
+    expect(DECK_FILE_DOCTRINES.devotion.filter(id => !doctrineDef(id).retired).sort()).toEqual(ROWS.map(([id]) => id).sort());
   });
 
   it('offers a Devotion seat its rows when it adopts a tier-4 government', () => {
@@ -224,7 +223,7 @@ describe('Devotion’s rows', () => {
       ],
     });
     expect(doctrineBagFor(g.state, seat(g.state), 4)).toEqual(
-      expect.arrayContaining(['theTheoricFund', 'theRitesOfZhou']),
+      expect.arrayContaining(['theRitesOfZhou']),
     );
     expect(doctrineBagFor(g.state, seat(g.state, 1), 4)).not.toContain('theTheoricFund');
   });
@@ -2028,7 +2027,7 @@ describe('The Apostolic Camera (batch DT15)', () => {
     expect(lines.map((line) => [line.science, line.culture])).toEqual([
       [2, 2],
       [0, 2], // one culture for each four of eight citizens
-      [0, 2], // nine citizens make two whole helpings
+      [0, 3], // nine citizens make three whole helpings
     ]);
   });
 
@@ -2049,10 +2048,10 @@ describe('The Apostolic Camera (batch DT15)', () => {
     hold(state, CARD);
     const lines = explainEmpireLines(state, 0);
     const paid = lines.filter((line) => line.card === CARD);
-    expect(paid.reduce((sum, line) => sum + line.culture, 0)).toBe(6);
+    expect(paid.reduce((sum, line) => sum + line.culture, 0)).toBe(7);
     expect(paid.reduce((sum, line) => sum + line.science, 0)).toBe(2);
     const fold = foldEmpireLines(lines);
-    expect(fold.culture).toBe(without.culture + 6);
+    expect(fold.culture).toBe(without.culture + 7);
     expect(fold.science).toBe(without.science + 2);
     // The same board without the card banks exactly that much less.
     const { state: plain } = board();
@@ -2061,7 +2060,7 @@ describe('The Apostolic Camera (batch DT15)', () => {
       return [seat(game).culturePool, seat(game).sciencePool];
     };
     const [culture, science] = report(plain);
-    expect(report(state)).toEqual([culture! + 6, science! + 2]);
+    expect(report(state)).toEqual([culture! + 7, science! + 2]);
   });
 
   it('pays no hex line, no meter and no percentage', () => {
@@ -2151,7 +2150,7 @@ describe('The Apostolic Camera (batch DT15)', () => {
     bumpRevision(state);
     const ctx = valueContext(state, seat(state));
     expect(explainFollowerLinesAbroad(state, 0)).toHaveLength(3);
-    const today = valueOfYields({ science: 2, culture: 6 }, ctx);
+    const today = valueOfYields({ science: 2, culture: 7, gold: 5 }, ctx);
     expect(scoreEffects(row, ctx)).toBeCloseTo(today, 6);
     expect(today).toBeGreaterThan(0);
     // The pagan town could still turn once the seat knows of it, so the card reads more
@@ -2181,7 +2180,7 @@ describe('The Apostolic Camera (batch DT15)', () => {
   it('shows in the card’s impact stamp at the offer', () => {
     const { state } = board();
     const offered = foldCardImpact(explainCardImpact(state, 0, { kind: 'doctrine', id: CARD as DoctrineId }));
-    expect(offered.culture).toBe(6);
+    expect(offered.culture).toBe(7);
     expect(offered.science).toBe(2);
   });
 });

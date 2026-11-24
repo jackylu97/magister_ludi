@@ -331,7 +331,7 @@ describe('a pool shorter than the offer', () => {
     const g = game();
     const player = g.state.players[0]!;
     // Every god but two is held, so a four-card consecration deals two.
-    player.pantheon.beliefs.push(...BELIEF_IDS.slice(0, BELIEF_IDS.length - 2));
+    player.pantheon.beliefs.push(...BELIEF_IDS.filter(id => !beliefDef(id).retired).slice(0, -2));
     bumpRevision(g.state);
     withEffects(buildingDef('theOracle'), [rider('belief')], () => {
       raiseOracle(g.state, 0);

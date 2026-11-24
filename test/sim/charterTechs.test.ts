@@ -415,15 +415,15 @@ describe('what completing one does not do', () => {
     player.techsResearched.push('earthenware');
     player.charteredTechs.push('herbals');
     expect(dispatch(g, choose(0, 'herbals')).ok).toBe(true);
-    player.sciencePool = 23;
-    // One beaker short of the column price: not yet.
+    player.sciencePool = 11;
+    // One science short of the discounted charter price.
     expect(settleResearch(g.state, player)).toBeNull();
     player.sciencePool = 40;
     const done = settleResearch(g.state, player)!;
     expect(done.techId).toBe('herbals');
-    // Since batch DS9 the column price is the whole price.
-    expect(done.cost).toBe(24);
-    expect(player.sciencePool).toBe(16);
+    // The charter costs half its column price.
+    expect(done.cost).toBe(12);
+    expect(player.sciencePool).toBe(28);
     expect(player.techsResearched).toContain('herbals');
     expect(g.state.firsts.some((record) => record.key === 'herbals')).toBe(false);
   });

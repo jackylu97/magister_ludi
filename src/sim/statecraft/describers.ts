@@ -3659,7 +3659,7 @@ function describeEffect(
         out.push({
           text:
             `${occasion} ${grant.timed.townsInReach ? 'gives your towns within its reach' : pays ? 'grants' : 'costs your empire'} ` +
-            `${inner.map((clause) => clause.text).join('; ')} ${howLong}${per}`,
+            `${inner.map((clause) => grant.timed?.townsInReach ? clause.text.replace(' in every city', '') : clause.text).join('; ')} ${howLong}${per}`,
         });
       }
       // Scientific batch S8, The Invitations: a great person to call, the
@@ -3775,7 +3775,7 @@ function describeEffect(
           out.push({
             text: turnsEveryone
               ? `${occasion} turns every citizen of that city to your religion${per}`
-              : `${occasion} spreads your religion to ${reach}${scaled}${per}`,
+              : `${occasion} spreads your religion to ${reach}${scaled || ` with ${grant.pressure.amount} pressure`}${per}`,
           });
         }
       }
@@ -7080,8 +7080,8 @@ const RULE_WORDS: Record<CardRule, (percent: number, effect: RulePercentEffect) 
       : `your trade routes reach ${percent}% further`,
   rerollCost: (percent) =>
     percent < 0
-      ? `rerolling an Order hand costs ${-percent}% less faith`
-      : `rerolling an Order hand costs ${percent}% more faith`,
+      ? `rerolling a draft costs ${-percent}% less faith`
+      : `rerolling a draft costs ${percent}% more faith`,
   faithContribution: (percent) =>
     percent < 0
       ? `faith you give to a build buys ${-percent}% less production`
@@ -7440,7 +7440,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   purchase: 'buying anything',
   declareWar: 'declaring war',
   periodic: 'a boon coming round',
-  greatPersonAct: 'a great person spending themselves on their boon',
+  greatPersonAct: 'one of your great people using their action',
   improvementBuilt: 'building an improvement',
   // Dominion batch D1. The windfall rider's rank filter rewrites "earning a
   // rank" to name the rank ("becoming an Elite"), so the phrase keeps it.

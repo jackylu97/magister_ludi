@@ -486,7 +486,8 @@ describe('the current rite rules', () => {
     capital.buildings.push('chapel', 'chichenItza');
     for (const id of ['theRitesCommonwealth', 'devotionTheQuietHours'] as OrderId[]) slot(state, 0, id);
     expect(applyCommand(state, { type: 'performRite', playerId: 0, cityId: capital.id, rite: FASTING }).ok).toBe(true);
-    state.turn += 29;
+    state.turn = Math.max(...capital.timed!.map(entry => entry.expiresTurn)) - 1;
+    bumpRevision(state);
     expect(realmRiteError(state, 0, SABBATH)).toContain('across the realm');
     expect(riteError(state, 0, capital.id, SABBATH)).not.toBeNull();
     expect(cityRite(state, second)).toBe(FASTING);

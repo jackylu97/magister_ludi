@@ -814,6 +814,7 @@ function openedByCard(kind: 'unit' | 'building', id: string, gate: TechId | null
   // No live card names the row: the card that opened it is withdrawn, so
   // nobody can get it now.
   if (card === null) {
+    if (gate !== null) return openedByTech(gate);
     return { text: 'Unlocked by a card that is withdrawn: nobody can get this now.' };
   }
   const by = `${card.noun} ${card.ref}`;
@@ -994,7 +995,7 @@ function unitIsAbsent(type: UnitTypeId): boolean {
   const def = unitDef(type);
   if (def.retired === true || def.awaitsTech === true) return true;
   if (def.unlockedByLeader === true && leaderThatOpens('unit', type) === null) return true;
-  return def.unlockedByCard === true && cardThatOpens('unit', type) === null;
+  return def.unlockedByCard === true && cardThatOpens('unit', type) === null && gatingTech('unit', type) === null;
 }
 
 /** The heading a unit's page is filed under. See `ROW_GROUPS`. */
@@ -1480,7 +1481,8 @@ function buildingIsAbsent(id: BuildingId): boolean {
   const def = buildingDef(id);
   if (def.awaitsTech === true) return true;
   if (def.unlockedByLeader === true && leaderThatOpens('building', id) === null) return true;
-  return def.unlockedByCard === true && cardThatOpens('building', id) === null;
+  return def.unlockedByCard === true && cardThatOpens('building', id) === null &&
+    gatingTech('building', id) === null && def.worldUnlockTech === undefined;
 }
 
 /** The heading a building's page is filed under: its category. See `BUILDING_GROUPS`. */
@@ -2220,20 +2222,12 @@ function techEntry(id: TechId): CompendiumEntry {
  */
 export const CHARTER_TECH_GROUP = 'Charter technologies';
 
-/**
- * **A charter technology's price, before any card changes it**: the first line
- * of `explainTechCost` (`tech.ts`), the column price. Since batch DS9 a charter
- * technology costs the ordinary price (`docs/flags.md` item (hhhhhhh)), so the
- * premium line the page printed is gone.
- *
- * The book takes no game, and `explainTechCost` needs one to read the cards an
- * empire holds, so the line is read here from the row.
- * `test/ui/compendiumCharterTechs.test.ts` checks it against `explainTechCost`
- * for a seat that holds no card, so the book and the price the game charges
- * cannot drift apart.
- */
+/** The book has no player, so it prints the base charter price before card discounts.
+ * The price fixture compares this with the simulation's own cost breakdown. */
 export function charterTechPrice(id: TechId): number {
-  return techDef(id).cost;
+  const def = techDef(id);
+  const share = def.charter === true ? RULES.research.charterCostPercent / 100 : 1;
+  return Math.max(1, Math.floor(def.cost * share));
 }
 
 /**
@@ -2246,8 +2240,8 @@ export function charterTechPrice(id: TechId): number {
  *     card's page. `charterOpening` (`charterTech.ts`) is the star chart's
  *     reading of the same question.
  *   - **The price is printed** before any card (`charterTechPrice`): the
- *     column price, which since batch DS9 is the whole price. The star chart
- *     prints the lines for an empire with its cards in them.
+ *     discounted column price. The star chart prints the lines for an empire
+ *     with its cards in them.
  *   - **What knowing it gives is said in full**, its rules and its line traits
  *     both, never as a named rule. The words are the star chart's short lines
  *     (batch TT3): `techRuleLines` for the rules, and `describeTraitLines` for
@@ -2294,7 +2288,7 @@ function charterTechEntry(id: TechId): CompendiumEntry {
   if ((def.traits ?? []).length > 0) {
     clauses.push({ text: 'A line trait stays with its units through every upgrade.', note: true });
   }
-  // What is true of every charter technology (its price is the ordinary one,
+  // What is true of every charter technology (its price uses the charter discount,
   // it does not count toward an age) is on the Technology page of the Concepts
   // shelf, one time, and not on each of these pages.
   return {

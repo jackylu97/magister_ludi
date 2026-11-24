@@ -276,7 +276,7 @@ function charterSection(): string {
   const lines: string[] = [
     '### The charter technologies',
     '',
-    `Only a seat that drafted the charter may research these. Each sits one column right of its one parent, inside its own age, and costs its column's price, as an ordinary technology there does. None moves an empire's age or counts as a world first.`,
+    `Only a seat that drafted the charter may research these. Each sits one column right of its one parent, inside its own age, and costs half its column's price. The table below lists the base column price before this discount. None moves an empire's age or counts as a world first. Scholasticism follows Epic Poetry so its extra column remains inside age II; its lane is unchanged.`,
     '',
     '| node | æra | column | 🔬 | prereq | opened by | units | buildings | abilities & gifts |',
     '|---|---|---|---|---|---|---|---|---|',

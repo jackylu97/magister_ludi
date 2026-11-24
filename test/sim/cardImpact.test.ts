@@ -745,7 +745,7 @@ describe('a belief', () => {
     // ruling of 2026-11-23 that lowers culture by the tier's malus.
     const happiness = happinessOf(state, 0);
     expect(happiness).toBeLessThanOrEqual(-10);
-    expect(fold.culture).toBeCloseTo(3 * (1 + tierPercent(happiness) / 100), 9);
+    expect(fold.culture).toBeCloseTo(4 * (1 + tierPercent(happiness) / 100), 9);
   });
 
   /** And it is the difference the turn resolution would bank, drafted for real. */

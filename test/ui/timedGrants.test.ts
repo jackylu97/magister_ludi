@@ -51,7 +51,7 @@ function row(state: GameState): ReturnType<typeof inPlayLayout>['stacks'][number
   return council.entries.find((entry) => entry.card === CARD)!;
 }
 
-describe('The Golden Age applies by each of its two moments', () => {
+describe('The Golden Age starts on wonder completion', () => {
   it('starts when a wonder is finished', () => {
     const { state, city } = seated();
     expect(percent(state, city, 'production')).toBe(0);
@@ -61,7 +61,7 @@ describe('The Golden Age applies by each of its two moments', () => {
     expect(percent(state, city, 'culture')).toBe(25);
   });
 
-  it('starts when a great person is gained, by the one route a great person arrives', () => {
+  it('keeps the bonus at zero when a great person is gained, by the one route a great person arrives', () => {
     // A called person, a bought one and one a card or a wonder grants all end
     // in an offer, and `settleGreatPersonChoice` is the one function that
     // settles an offer. It announces the moment.
@@ -71,9 +71,9 @@ describe('The Golden Age applies by each of its two moments', () => {
     player.greatPersonOffer = { options: [person] };
     settleGreatPersonChoice(state, player, 0);
     bumpRevision(state);
-    expect((player.timed ?? []).filter((entry) => entry.card === CARD)).toHaveLength(2);
-    expect(percent(state, city, 'production')).toBe(25);
-    expect(percent(state, city, 'culture')).toBe(25);
+    expect((player.timed ?? []).filter((entry) => entry.card === CARD)).toHaveLength(0);
+    expect(percent(state, city, 'production')).toBe(0);
+    expect(percent(state, city, 'culture')).toBe(0);
   });
 });
 
@@ -169,9 +169,9 @@ describe('the words for the turns left', () => {
 });
 
 describe('the card’s text', () => {
-  it('is one sentence: both moments, both yields, the length said one time', () => {
+  it('names the trigger, both yields and the duration', () => {
     expect(describeCard(CARD).map((clause) => stripRefs(clause.text))).toEqual([
-      'completing a wonder or gaining a great person grants +25% production and +25% culture in every city for 10 turns, restarted each time',
+      'completing a wonder grants +25% production and +25% culture in every city for 10 turns, restarted each time',
     ]);
   });
 });

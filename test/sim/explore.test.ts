@@ -1485,7 +1485,10 @@ describe('determinism', () => {
       // The order really was given: a pin over a game where nothing ranged
       // would be green for the wrong reason.
       expect(game.log.some((command) => command.type === 'setAutoExplore')).toBe(true);
-      expect(digest(snapshotState(game.state))).toBe(RANGED_BOARDS[seed]);
+      // Keep the old state pins and isolate the expected save-version change.
+      // Every other byte must still match the version-266 result.
+      const snapshot = snapshotState(game.state).replace(/"schemaVersion":\d+/, '"schemaVersion":266');
+      expect(digest(snapshot)).toBe(RANGED_BOARDS[seed]);
     });
   }
 });

@@ -517,7 +517,7 @@ describe("the card table", () => {
     expect(said("priestKing")).toEqual(["+1 science, +1 faith in every city"]);
     expect(said("tyranny")).toEqual(["+5 authority capacity", "your units cost 30% less gold in maintenance"]);
     expect(said("republic")).toEqual(["+1 trade route", "+1 culture in every city per 5 citizens there"]);
-    expect(said("aristocracy")).toEqual(["+2 science in every city", "great people cost 15% less renown"]);
+    expect(said("aristocracy")).toEqual(["+2 science in every city", "+15% renown"]);
     expect(said("imperium")).toEqual([
       "all units: +1 movement",
       "+10% science and +10% culture in every captured city",
@@ -8645,6 +8645,8 @@ describe("the engine shapes", () => {
    * percentages, a shape that predates batch A.
    */
   const ORDERS_USING_A_SHAPE: readonly string[] = [
+    "aristocracy · cityRenownPercent",
+    "magisterialTheHanlinAcademy · cityRenownPercent",
     "thePrinceBishops · buildingYieldPercent",
     "thePoorTables · empireYield",
     // Dominion batch D8: The Strategoi's "+30% renown", the Doctrine that
@@ -8929,6 +8931,7 @@ describe("the engine shapes", () => {
       "tetzcotzinco · cityRenownPercent",
       "funduq · routeYield",
       "funduq · routeYield",
+      "solomonsTemple · cityRenownPercent",
       "ironPillar · buildingYieldPercent",
       "greatStelaeOfAksum · routeYield",
       // No technology carries one of these shapes since batch TT1

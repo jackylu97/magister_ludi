@@ -265,7 +265,7 @@ describe('the Commerce deck is one deck', () => {
     expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([23, 28, 44, 32, 17]);
     const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
     expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
-      15, 19, 21, 20, 10,
+      15, 19, 18, 20, 10,
     ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
@@ -510,7 +510,6 @@ describe('a live Commerce row is a card', () => {
       'cityRenownPercent',
       'combatLine',
       'effectAmplifier',
-      'landfall',
       'offerRider',
       'pays',
       'percentYields',

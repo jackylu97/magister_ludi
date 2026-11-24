@@ -156,12 +156,12 @@ describe('Magisterial batch MG15: the rows', () => {
   it('carries the text of the sheet and the shapes the triage names', () => {
     // Batch DS7 gave it a shorter text with the same effect.
     expect(orderDef(GARDEN).text).toBe(
-      'Goal: have one town work three great-person works. Reward: your great-person works yield double.',
+      'Goal: have one town work three great-person works. Reward: each great-person work gives +2 of its own yield for each other work in its town.',
     );
     expect(orderDef(GARDEN).effects).toEqual([]);
     expect(orderDef(GARDEN).commission).toEqual({
       goals: [{ kind: 'reached', figure: 'oneTownWorksWorked', count: 3 }],
-      reward: [{ lasting: [expect.objectContaining({ kind: 'pays', on: { test: 'greatWork' }, wholePercent: 100 })] }],
+      reward: [{ lasting: [expect.objectContaining({ kind: 'pays', on: { test: 'greatWork' }, ownYieldOnly: true, count: 'tilesInBorders', within: 'city', countAbove: 1 })] }],
     });
     expect(orderDef(PROCESSION).text).toBe(
       'Hexes beside two or more great-person works give +10 culture and +10 science.',

@@ -224,7 +224,7 @@ const S7: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     band: 2,
     rarity: 'uncommon',
     type: 'civic',
-    text: "+1% production and culture for each citizen in your capital, at most +30%.",
+    text: "+1% production and culture for each citizen in your capital.",
   },
   {
     id: 'theCityArchitects',

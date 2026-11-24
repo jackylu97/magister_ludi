@@ -37,6 +37,7 @@ import {
   type GameState,
   type Player,
   bumpRevision,
+  createUnit,
   playerById,
 } from '../../../src/sim/state';
 import { getTileAt } from '../../../src/sim/map';
@@ -46,13 +47,12 @@ import {
   cityRite,
   explainRerollCost,
   performRiteAt,
-  riteCostFor,
   riteError,
   templeShare,
 } from '../../../src/sim/religion';
 import { explainContribution, purchaseError } from '../../../src/sim/purchase';
 import { commissionFigure } from '../../../src/sim/commissions';
-import { explainUnitHeal } from '../../../src/sim/healing';
+import { cardUnitStat } from '../../../src/sim/statecraft/evaluator';
 import { foldCity } from '../../../src/sim/yields/town';
 import { cardAuthority } from '../../../src/sim/statecraft/evaluator';
 import { applyCommand } from '../../../src/sim/commands';
@@ -109,7 +109,6 @@ const DEFERRED = STANDING.filter((id) => !orderIsDealt(id));
 const KINDS_USED = [
   'pays',
   'unitStamp',
-  'authority',
   'buildingYieldPercent',
   'percentYields',
   // `productionBonus` left with First Rites' and The Cathedral Works' lines
@@ -216,7 +215,7 @@ function linesOf(state: GameState, city: City, card: string) {
 // --- the shelf ---------------------------------------------------------------
 
 describe('the Devotion deck folds', () => {
-  it('carries 123 rows including 78 live Orders and 45 retired Orders', () => {
+  it('carries 124 rows including 75 live Orders and 49 retired Orders', () => {
     // Batch DV1: 77 rows before, less the six that moved to common.json. Four
     // rows retired, three live and one deferred. Batch DV2 added seven live
     // rows, batch DV3 four more, batch DV4 three more, batch DV5 three more,
@@ -226,13 +225,13 @@ describe('the Devotion deck folds', () => {
     // (`docs/plans/deck-simplification-2026-11-10.md`) retired six live rows.
     // Batch DS5 added The Household Gods and The First Offering. Batch R1
     // added The Pilgrim Staff.
-    expect(DEVOTION).toHaveLength(123);
-    expect(LIVE).toHaveLength(78);
+    expect(DEVOTION).toHaveLength(124);
+    expect(LIVE).toHaveLength(75);
     expect(DEFERRED).toHaveLength(0);
-    expect(RETIRED).toHaveLength(45);
+    expect(RETIRED).toHaveLength(49);
   });
 
-  it('spreads its 78 standing Orders across five tiers', () => {
+  it('spreads its 75 standing Orders across five tiers', () => {
     // Batch DV1 moved The Second Prophet, The Living Hymnal and The Mission
     // from Tier I to Tier II, and The Conversion of Kings and The Pious Masons
     // from Tier IV to Tier III. Batch DV2 added three rows at Tier II, three
@@ -254,9 +253,9 @@ describe('the Devotion deck folds', () => {
     // Cathedral Works from Tier II to Tier III. Batch DS5 added The Household
     // Gods and The First Offering at Tier 0. Batch R1 added The Pilgrim Staff
     // at Tier I.
-    expect(STANDING).toHaveLength(78);
+    expect(STANDING).toHaveLength(75);
     const perBand = BANDS.map((band) => STANDING.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([8, 17, 22, 21, 10]);
+    expect(perBand).toEqual([8, 17, 22, 19, 9]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {
@@ -289,7 +288,7 @@ describe('the Devotion deck folds', () => {
     // 25 cut on 2026-10-06 and 2026-10-12, the four of batch DV1, the
     // three of batch R2c (the user, 2026-10-28: "remove"), and the six of
     // batch DS1.
-    expect(RETIRED).toHaveLength(45);
+    expect(RETIRED).toHaveLength(49);
     for (const id of [
       'pastoralShrines',
       'theConsolation',
@@ -444,38 +443,28 @@ describe('the age gate', () => {
 // --- the mechanics -----------------------------------------------------------
 
 describe('the card-taught rites', () => {
-  it('The Votive Gifts teaches an offering that turns the rite’s faith into the current build', () => {
+  it('The Votive Gifts adds production from faith during a living rite', () => {
     const g = akhenaten();
     const { seat: player, city } = town(g);
-    const rite = 'votiveOffering' as RiteId;
+    city.buildings.push('shrine', 'temple');
     player.faithPool = 500;
-    city.queue = [{ kind: 'building', id: 'granary' as BuildingId }];
-    city.hammerBasket = 0;
-    expect(riteError(g.state, 0, city.id, rite)).toMatch(/not known/);
+    player.charteredRites.push('riteOfFasting');
     seat(g.state, ['theVotiveGifts' as OrderId]);
-    expect(riteError(g.state, 0, city.id, rite)).toBeNull();
-    city.buildings.push('shrine');
-    bumpRevision(g.state);
+    expect(riteError(g.state, 0, city.id, 'votiveOffering')).not.toBeNull();
     const before = foldCity(g.state, city, []);
-    const cost = riteCostFor(g.state, 0);
-    performRiteAt(g.state, player, city, rite);
-    expect(player.faithPool).toBe(500 - cost);
-    expect(city.hammerBasket).toBe(0);
+    performRiteAt(g.state, player, city, 'riteOfFasting');
     const after = foldCity(g.state, city, []);
     expect(after.production).toBeGreaterThan(before.production);
-    expect(linesOf(g.state, city, rite).reduce((sum, line) => sum + line.production, 0)).toBe(before.faith);
-    // Once a turn: the town is keeping it now.
-    expect(cityRite(g.state, city)).toBe(rite);
-    expect(riteError(g.state, 0, city.id, rite)).toMatch(/already keeping/);
   });
 
-  it('lets a town start the production rite when it is building a wonder', () => {
+  it('lets a town start a rite when it is building a wonder', () => {
     const g = akhenaten();
     const { seat: player, city } = town(g);
+    player.charteredRites.push('riteOfFasting');
     seat(g.state, ['theVotiveGifts' as OrderId]);
     player.faithPool = 500;
     city.queue = [{ kind: 'building', id: 'pyramids' as BuildingId }];
-    expect(riteError(g.state, 0, city.id, 'votiveOffering' as RiteId)).toBeNull();
+    expect(riteError(g.state, 0, city.id, 'riteOfFasting' as RiteId)).toBeNull();
   });
 
   it('The Fast’s charter opens a rite that stops growth and pays science and culture for every citizen', () => {
@@ -507,24 +496,16 @@ describe('the card-taught rites', () => {
     ]);
   });
 
-  it('The Host Restored heals nearby units on each turn', () => {
+  it('The Host Restored heals a unit in its own town during a rite', () => {
     const g = akhenaten();
     const { seat: player, city } = town(g);
-    holyCity(g.state, city);
-    seat(g.state, ['theHostRestored' as OrderId]);
     player.faithPool = 500;
-    const home = g.state.units.find((u) => u.ownerId === 0 && u.col === city.col && u.row === city.row);
-    const away = g.state.units.find((u) => u.ownerId === 0 && (u.col !== city.col || u.row !== city.row));
-    expect(home).toBeDefined();
-    home!.hp = 10;
-    if (away) {
-      away.col = (city.col + 12) % g.state.map.width;
-      away.hp = 10;
-    }
-    expect(riteError(g.state, 0, city.id, 'restoringOfTheHost' as RiteId)).toBeNull();
-    performRiteAt(g.state, player, city, 'restoringOfTheHost' as RiteId);
-    expect(explainUnitHeal(g.state, home!).find(line => line.label === 'Restoring of the Host')?.amount).toBe(25);
-    if (away) expect(explainUnitHeal(g.state, away).some(line => line.label === 'Restoring of the Host')).toBe(false);
+    player.charteredRites.push('riteOfFasting');
+    const unit = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    seat(g.state, ['theHostRestored' as OrderId]);
+    const before = cardUnitStat(g.state, unit, 'heal');
+    performRiteAt(g.state, player, city, 'riteOfFasting');
+    expect(cardUnitStat(g.state, unit, 'heal')).toBe(before + 20);
   });
 });
 
@@ -788,7 +769,7 @@ describe('the counted rite goal', () => {
     expect(tallyOf(player.statecraft, 'theFoundingVows' as OrderId)).toBe(2);
   });
 
-  it('The Founding Vows counts the Votive Offering as a rite', () => {
+  it('The Founding Vows counts two successive rites', () => {
     // Batch DV4 (the triage's reading 9): a rite started is a season. The
     // offering is said and done in one turn, so a town could say it every turn.
     // `devotionRites.test.ts` checks the prophet's rite over the realm.
@@ -798,10 +779,11 @@ describe('the counted rite goal', () => {
     player.faithPool = 5000;
     seat(g.state, ['theFoundingVows' as OrderId, 'theVotiveGifts' as OrderId]);
     city.queue = [{ kind: 'building', id: 'granary' as BuildingId }];
-    performRiteAt(g.state, player, city, 'votiveOffering' as RiteId);
-    expect(cityRite(g.state, city)).toBe('votiveOffering');
+    performRiteAt(g.state, player, city, 'riteOfFasting' as RiteId);
+    expect(cityRite(g.state, city)).toBe('riteOfFasting');
     expect(tallyOf(player.statecraft, 'theFoundingVows' as OrderId)).toBe(1);
     city.timed = [];
+    bumpRevision(g.state);
     performRiteAt(g.state, player, city, 'riteOfFasting' as RiteId);
     expect(tallyOf(player.statecraft, 'theFoundingVows' as OrderId)).toBe(2);
   });
@@ -1028,10 +1010,10 @@ function checkAgainstRow(card: SheetCard, id: OrderId): void {
 describe('the Devotion deck: the sheet of record', () => {
   it('holds the Doctrine rows to the sheet’s four tables', () => {
     // What each row does is checked in `devotionDoctrines.test.ts`.
-    expect(sheetDoctrines('devotion').length).toBe(17);
+    expect(sheetDoctrines('devotion').length).toBe(16);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('devotion').filter((row) => row.band === band).length),
-    ).toEqual([5, 4, 5, 3]);
+    ).toEqual([4, 4, 5, 3]);
     expectSheetDoctrinesMatchData('devotion');
   });
 
@@ -1143,15 +1125,15 @@ describe('the Devotion deck: the sheet of record', () => {
     // with data rows (The Household Gods, The First Offering) and two marked
     // `add` (The Votive Lamp, The Pilgrim Staff). Batch R1 dropped The Votive
     // Lamp and built The Pilgrim Staff, so no row is `add`.
-    expect(sheet).toHaveLength(78);
+    expect(sheet).toHaveLength(75);
     expect(sheet.filter((card) => card.status === 'add').map((card) => card.name)).toEqual([]);
     expect(sheet.some((card) => card.name === 'The Votive Lamp')).toBe(false);
-    expect(sheet.filter(isCharterRow)).toHaveLength(10);
+    expect(sheet.filter(isCharterRow)).toHaveLength(7);
     expect(shared).toHaveLength(27);
   });
 
-  it('types every listed row, 78 of this file and 27 shared, and nothing else of this file', () => {
-    expect(LISTED).toHaveLength(78);
+  it('types every listed row, 75 of this file and 27 shared, and nothing else of this file', () => {
+    expect(LISTED).toHaveLength(75);
     for (const id of DEVOTION) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();

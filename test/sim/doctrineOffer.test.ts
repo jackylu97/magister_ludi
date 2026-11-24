@@ -879,7 +879,7 @@ describe('the gates on the Doctrine offer (batch DT5)', () => {
     const bag = everyBag(state, seat);
     for (const id of NEEDS_RELIGION) expect(bag, id).not.toContain(id);
     // The gate takes those rows out and no others.
-    expect(bag).toContain('theTheoricFund');
+    expect(bag).not.toContain('theTheoricFund');
     expect(bag).toContain('theRitesOfZhou');
   });
 

@@ -334,13 +334,15 @@ describe('The Translation Movement', () => {
     const state = flat();
     const seat = playerById(state, 0)!;
     slot(state, 0, 'theTranslationMovement');
-    for (const tech of ['mining', 'smelting'] as const) expect(explainTechCost(state, seat, tech)).toHaveLength(1);
+    for (const tech of ['mining', 'smelting'] as const) {
+      expect(explainTechCost(state, seat, tech).some(line => line.source.includes('The Translation Movement'))).toBe(false);
+    }
     learn(state, 0, 'siegecraft');
     for (const tech of ['mining', 'smelting'] as const) {
       const lines = explainTechCost(state, seat, tech);
-      expect(lines).toHaveLength(2);
-      expect(lines[1]!.source).toContain('The Translation Movement');
-      expect(foldTechCost(lines)).toBe(Math.floor(techDef(tech).cost * 2 / 3));
+      expect(lines).toHaveLength(techDef(tech).charter ? 3 : 2);
+      expect(lines[lines.length - 1]!.source).toContain('The Translation Movement');
+      expect(foldTechCost(lines)).toBe(Math.floor(techDef(tech).cost * (techDef(tech).charter ? 0.5 : 1) * 2 / 3));
     }
     expect(explainTechCost(state, seat, 'siegecraft')).toHaveLength(1);
   });

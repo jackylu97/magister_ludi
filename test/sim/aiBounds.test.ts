@@ -113,6 +113,7 @@ const INTEGER_LEAVES = [
   'research.greatPersonTurns',
   // Batch BP4: the turns back a seat's recent pace is read over.
   'score.recentTurns',
+  'score.queueLookaheadTurns',
   // Batch BP7: the turn a game is expected to end on, and the turns a held
   // charter's technology is researched within.
   'score.gameTurns',

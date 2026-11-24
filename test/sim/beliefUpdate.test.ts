@@ -53,7 +53,7 @@ import {
   explainCardCityYields,
   stripRefs,
 } from '../../src/sim/statecraft';
-import { explainPurchaseCost } from '../../src/sim/purchase';
+import { cardActionRuleAt } from '../../src/sim/statecraft/evaluator';
 import { abilityDef } from '../../src/sim/techData';
 import { cityYieldPercents } from '../../src/sim/yields/town';
 import { createGame } from './newGameHelpers';
@@ -150,68 +150,18 @@ describe('the Faith house keyword', () => {
 // --- 2. the follower beliefs ---------------------------------------------------------
 
 describe('the changed and new follower beliefs, paid in the town that follows', () => {
-  it('The Alms Box takes 20% off what a following town buys with faith, and nothing else', () => {
+  it('allows food and production buildings in a following town, including a rival town', () => {
     const g = game();
     const religion = religionWith(g.state, 'theAlmsBox');
-    const devout = follows(g.state, town(g.state, 0, 6, 6), religion);
-    const lapsed = town(g.state, 0, 10, 6);
-    bumpRevision(g.state);
-    const alms = (city: City, kind: 'unit' | 'building', currency: 'faith' | 'gold') =>
-      cardPurchaseRiders(
-        g.state,
-        0,
-        kind,
-        kind === 'unit' ? 'prophet' : undefined,
-        city,
-        kind === 'building' ? 'mosque' : undefined,
-        currency,
-      ).filter((line) => line.card === 'theAlmsBox');
-    // A unit and a building, bought with faith, in the town that follows.
-    expect(alms(devout, 'unit', 'faith').map((line) => line.percent)).toEqual([-20]);
-    expect(alms(devout, 'building', 'faith').map((line) => line.percent)).toEqual([-20]);
-    // Not with gold, and not in a town of the same seat that does not follow.
-    expect(alms(devout, 'unit', 'gold')).toEqual([]);
-    expect(alms(lapsed, 'unit', 'faith')).toEqual([]);
-    // A follower belief is never the empire's law, so a price asked with no
-    // town in hand never sees it.
-    expect(
-      cardPurchaseRiders(g.state, 0, 'unit', 'prophet', undefined, undefined, 'faith').some(
-        (line) => line.card === 'theAlmsBox',
-      ),
-    ).toBe(false);
-    expect(beliefDef('theAlmsBox').axis).toBe('none');
-  });
-
-  it('The Alms Box lowers the printed price, as one labelled line of the price list', () => {
-    const g = game();
-    const religion = religionWith(g.state);
-    const devout = follows(g.state, town(g.state, 0, 6, 6), religion);
-    const prophet = { kind: 'unit', id: 'prophet' } as const;
-    const before = explainPurchaseCost(g.state, 0, devout.id, prophet, 'faith');
-    expect(before).not.toBeNull();
-    religion.follower = ['theAlmsBox'];
-    bumpRevision(g.state);
-    const after = explainPurchaseCost(g.state, 0, devout.id, prophet, 'faith')!;
-    expect(after.total).toBe(Math.floor((before!.total * 80) / 100));
-    expect(after.lines.some((line) => line.source.includes('The Alms Box'))).toBe(true);
-    // Rule 5 for a price: the fold of the printed lines is the total.
-    expect(after.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(after.total);
-  });
-
-  it('The Alms Box applies to whoever owns the town, a rival included', () => {
-    const g = game();
-    const religion = religionWith(g.state, 'theAlmsBox');
-    town(g.state, 0, 6, 6);
+    const home = town(g.state, 0, 6, 6);
     const theirs = follows(g.state, town(g.state, 1, 10, 6), religion);
-    expect(
-      cardPurchaseRiders(g.state, 1, 'unit', 'prophet', theirs, undefined, 'faith').map((line) => line.percent),
-    ).toEqual([-20]);
-    // The town's cards are read only for the seat that buys there.
-    expect(
-      cardPurchaseRiders(g.state, 0, 'unit', 'prophet', theirs, undefined, 'faith').some(
-        (line) => line.card === 'theAlmsBox',
-      ),
-    ).toBe(false);
+    for (const building of ['granary', 'workshop'] as const) {
+      expect(cardActionRuleAt(g.state, home, 'faithBuysBuildings', undefined, building)).toBe(false);
+      expect(cardActionRuleAt(g.state, theirs, 'faithBuysBuildings', undefined, building)).toBe(true);
+    }
+    expect(cardActionRuleAt(g.state, theirs, 'faithBuysBuildings', undefined, 'library')).toBe(false);
+    expect(cardPurchaseRiders(g.state, 1, 'unit', 'prophet', theirs, undefined, 'faith')
+      .some(line => line.card === 'theAlmsBox')).toBe(false);
   });
 
   it('Pilgrimage pays +1 faith for every 3 followers in the town', () => {
@@ -321,7 +271,7 @@ describe('the row held back', () => {
   it('pays Feast Days by population while the following town keeps a rite', () => {
     expect(beliefDef('feastDays').effects).toEqual([{
       kind: 'pays', where: 'city', basis: 'count', to: 'faith', count: 'population',
-      amount: 1, per: 2, within: 'city', scope: { test: 'keepingRite' }
+      amount: 1, per: 2, within: 'city', scope: { test: 'all', of: [{test: 'follows'}, {test: 'keepingRite'}] }
     }]);
   });
 });

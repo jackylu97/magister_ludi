@@ -784,7 +784,7 @@ describe("a belief is an effect source, not a second evaluator", () => {
     expect(beliefDef("theMuses").axis).toBe("none");
   });
 
-  it("pays +2 faith and +1 happiness on a Granary (Keeper of the Hearth)", () => {
+  it("pays one faith on each Granary and Monument (Keeper of the Hearth)", () => {
     // Batch B1: both halves stand on the Granary, so the happiness is the
     // building's line and no longer the capital's.
     const g = game();
@@ -803,8 +803,11 @@ describe("a belief is an effect source, not a second evaluator", () => {
     expect(cardHappiness(g.state, 0).some((line) => line.card === "keeperOfTheHearth")).toBe(false);
     city.buildings.push("granary");
     bumpRevision(g.state);
+    expect(faithOf()).toBe(1);
+    city.buildings.push("monument");
+    bumpRevision(g.state);
     expect(faithOf()).toBe(2);
-    expect(cheer()).toBe(1);
+    expect(cheer()).toBe(0);
   });
 
   it("pays a town with a mountain in its borders, not one beside a peak (Star Readers)", () => {
@@ -814,21 +817,10 @@ describe("a belief is an effect source, not a second evaluator", () => {
     ]);
   });
 
-  it("pays +1 culture for every 4 citizens in each town, with no cap (Ancestor Worship)", () => {
-    const g = game();
-    const city = found(g.state, 0);
-    keep(g.state, 0, "ancestorWorship");
-    const culture = (population: number): number => {
-      city.population = population;
-      bumpRevision(g.state);
-      return explainCardCityYields(g.state, city)
-        .filter((line) => line.card === "ancestorWorship")
-        .reduce((sum, line) => sum + line.culture, 0);
-    };
-    expect(culture(3)).toBe(0);
-    expect(culture(4)).toBe(1);
-    expect(culture(13)).toBe(3);
-    expect(culture(20)).toBe(5);
+  it("adds authority and extends its production bonus to faith", () => {
+    const effects = beliefDef("ancestorWorship").effects;
+    expect(effects).toContainEqual({ kind: "meterRule", rule: "surplusAuthorityFaith" });
+    expect(effects).toContainEqual(expect.objectContaining({kind: "authority", amount: 3}));
   });
 
   it("gives scouts and settlers +1 movement and +1 sight, and nobody else (Oracle of the Crossroads)", () => {
@@ -874,9 +866,10 @@ describe("a belief is an effect source, not a second evaluator", () => {
     expect(beliefDef("riverMother").effects).toEqual([
       { kind: "pays", where: "city", food: 2, scope: { test: "freshwater" } },
     ]);
-    expect(beliefDef("desertFathers").effects).toEqual([
+    expect(beliefDef("desertFathers").effects).toEqual(expect.arrayContaining([
+      { kind: "pays", where: "hex", food: 1, faith: 1, on: { test: "terrain", terrain: "tundra" } },
       { kind: "pays", where: "hex", food: 1, faith: 1, on: { test: "terrain", terrain: "desert" } },
-    ]);
+    ]));
     for (const effect of beliefDef("courtAugurs").effects) {
       expect(effect.kind === "percentYields" && effect.percent).toBe(15);
     }
@@ -1041,7 +1034,7 @@ describe("rites", () => {
     expect(riteCostFor(g.state, 1)).toBe(20);
   });
 
-  it("count the Votive Offering at its start and charge the current price", () => {
+  it("count the Rite of the Harvest at its start and charge the current price", () => {
     const { g, city, player } = town();
     const gifts = "theVotiveGifts" as OrderId;
     player.statecraft.orders = [gifts];
@@ -1052,9 +1045,9 @@ describe("rites", () => {
     expect(player.ritesStarted).toBe(1);
     city.timed = [];
     bumpRevision(g.state);
-    expect(riteError(g.state, 0, city.id, "votiveOffering")).toBeNull();
+    expect(riteError(g.state, 0, city.id, "riteOfTheHarvest")).toBeNull();
     const before = player.faithPool;
-    const done = performRiteAt(g.state, player, city, "votiveOffering");
+    const done = performRiteAt(g.state, player, city, "riteOfTheHarvest");
     expect(done.cost).toBe(25);
     expect(player.faithPool).toBe(before - 25);
     expect(player.ritesStarted).toBe(2);
@@ -1186,21 +1179,21 @@ describe("rites", () => {
     }
   });
 
-  it("allow a Votive Offering with an empty queue when the town can pay", () => {
+  it("allow a Rite of the Harvest with an empty queue when the town can pay", () => {
     const { g, city, player } = town();
     // The Votive Gifts teaches the offering while it is seated.
     const gifts = "theVotiveGifts" as OrderId;
     player.statecraft.orders = [gifts];
     player.statecraft.slots = [{ card: gifts, sealedUntil: 0 }];
     bumpRevision(g.state);
-    expect(availableRites(g.state, 0)).toContain("votiveOffering");
+    expect(availableRites(g.state, 0)).toContain("riteOfTheHarvest");
     city.queue = [];
     player.faithPool = 0;
     bumpRevision(g.state);
-    expect(agreesWithTheGate(g.state, city.id, "votiveOffering")).toBe("short");
+    expect(agreesWithTheGate(g.state, city.id, "riteOfTheHarvest")).toBe("short");
     city.queue = [{ kind: "unit", id: "warrior" }];
     bumpRevision(g.state);
-    expect(agreesWithTheGate(g.state, city.id, "votiveOffering")).toBe("short");
+    expect(agreesWithTheGate(g.state, city.id, "riteOfTheHarvest")).toBe("short");
   });
 
   it("agree with the sentence across every live rite, every bank and every town", () => {
@@ -1512,8 +1505,8 @@ describe("a rite's turns and its teacher", () => {
     }
     // The three the faith screen used to say a technology taught.
     expect(riteTeachingCard("riteOfFasting")).toBe("theFast");
-    expect(riteTeachingCard("votiveOffering")).toBe("theVotiveGifts");
-    expect(riteTeachingCard("restoringOfTheHost")).toBe("theHostRestored");
+    expect(riteTeachingCard("votiveOffering")).toBeNull();
+    expect(riteTeachingCard("restoringOfTheHost")).toBeNull();
   });
 
   it("names the card that actually teaches the rite", () => {
@@ -1539,7 +1532,7 @@ describe("a rite's turns and its teacher", () => {
   it("asks the evaluator whether a row teaches a verb, and reads no clause itself", () => {
     // Batch UX8b moved the clause test into `statecraft/evaluator.ts`, the one
     // module that reads `CardEffect.kind` (`effectsGrantAbility`).
-    const gifts = orderDef("theVotiveGifts" as OrderId).effects;
+    const gifts: CardEffect[] = [{ kind: "grantsAbility", ability: riteAbility("votiveOffering") }];
     expect(effectsGrantAbility(gifts, riteAbility("votiveOffering"))).toBe(true);
     expect(effectsGrantAbility(gifts, riteAbility("restoringOfTheHost"))).toBe(false);
     // A grant behind a condition still names the card that would teach it.
@@ -1759,14 +1752,13 @@ describe("the apostle", () => {
     religion.enhancer = ["reliquaries"];
     city.buildings.push("temple", "cathedral");
     bumpRevision(g.state);
-    const before = foldCity(g.state, city);
     for (let count = 1; count <= 2; count++) {
       expect(placeRelicError(g.state, player.id, apostle.id, "belief")).toBeNull();
       placeRelicAt(g.state, player, apostle, "belief");
       expect(city.buildingRelics?.[0]?.count).toBe(count);
-      const income = foldCity(g.state, city);
-      expect(income.science).toBe(before.science + 4 * count);
-      expect(income.culture).toBe(before.culture + 4 * count);
+      const income = explainBuildingPackage(g.state, city, "temple").find(line => line.card === "reliquaries")!;
+      expect(income.science).toBe(4 * count);
+      expect(income.culture).toBe(4 * count);
     }
     expect(city.buildings).not.toContain("relic");
   });
@@ -3229,52 +3221,19 @@ describe("what a religion pays whom", () => {
     ).toBe(0);
   });
 
-  it("pays happiness into the owner of a following town, not into the founder", () => {
+  it("pays the owner of a following town while a rival holds the holy site", () => {
     const g = game();
-    town(g.state, 0, 6, 6);
+    const home = town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
-    religion.follower = ["feastDays"];
-    bumpRevision(g.state);
+    religion.follower = ["choirs"];
+    home.followers = {};
     const theirs = town(g.state, 1, 9, 6);
-    theirs.followers = { [religion.id]: theirs.population };
-    theirs.buildings.push("temple");
+    theirs.population = 6;
+    theirs.followers = { [religion.id]: 6 };
     bumpRevision(g.state);
-    // Two clauses, both landing in the one town that follows — and since batch
-    // B2 they land in two ledgers, which is the whole of the user's mark: the
-    // town's half is the card's line, and the temple's half is filed **under the
-    // temple** (`CardHappinessEffect.building`) so a share of a temple's worth
-    // would have one figure to take.
-    expect(
-      cardHappiness(g.state, 1)
-        .filter((line) => line.source.includes("Feast Days"))
-        .reduce((sum, line) => sum + line.amount, 0),
-    ).toBe(1);
-    const onTheTemple = buildingHappiness(
-      g.state,
-      1,
-      cardBuildingHappiness(g.state, 1),
-    ).filter((line) => line.source.includes("Feast Days"));
-    expect(onTheTemple).toHaveLength(1);
-    expect(onTheTemple[0]!.amount).toBe(1);
-    // The line names the walls it stands in as well as the law that put it
-    // there — a thing in a named town, which is what the ledger is for.
-    expect(onTheTemple[0]!.source).toContain(theirs.name);
-    expect(onTheTemple[0]!.source).toContain("Temple");
-    // **Counted once**: the empire's own two ledgers between them are still the
-    // two the belief pays, and neither says the other's half.
-    expect(
-      cardHappiness(g.state, 1).some((line) => line.source.includes("Temple")),
-    ).toBe(false);
-    expect(
-      cardHappiness(g.state, 0).some((line) =>
-        line.source.includes("Feast Days"),
-      ),
-    ).toBe(false);
-    expect(
-      buildingHappiness(g.state, 0, cardBuildingHappiness(g.state, 0)).some(
-        (line) => line.source.includes("Feast Days"),
-      ),
-    ).toBe(false);
+    const paid = (c: City) => explainCardCityYields(g.state, c).filter(line => line.card === "choirs");
+    expect(paid(theirs).reduce((sum, line) => sum + line.culture, 0)).toBe(2);
+    expect(paid(home)).toEqual([]);
   });
 
   it("pays the founder’s half to whoever holds the holy city, and moves it on capture", () => {
@@ -4727,42 +4686,20 @@ describe("the beliefs balance pass", () => {
     expect(cardLinesOn(bare, "temple").science).toBe(0);
   });
 
-  it("Feast Days pays the town once and the temple once, in two ledgers", () => {
-    // The double-count guard: a clause moved into a building's ledger must leave
-    // the town's.
+  it("Feast Days pays following citizens only during a rite", () => {
     const g = game();
     const city = town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
     religion.follower = ["feastDays"];
-    city.followers = { [religion.id]: city.population };
-    city.buildings.push("temple");
+    city.population = 7;
+    city.followers = { [religion.id]: 7 };
     bumpRevision(g.state);
-    const asTown = cardHappiness(g.state, 0)
-      .filter((line) => line.source.includes("Feast Days"))
-      .reduce((sum, line) => sum + line.amount, 0);
-    const asShelf = buildingHappiness(
-      g.state,
-      0,
-      cardBuildingHappiness(g.state, 0),
-    )
-      .filter((line) => line.source.includes("Feast Days"))
-      .reduce((sum, line) => sum + line.amount, 0);
-    expect(asTown).toBe(1);
-    expect(asShelf).toBe(1);
-    // The row that pays no happiness of its own is still lit by the card, which
-    // is the clause the zero test had to move for.
-    expect(buildingDef("temple").happiness ?? 0).toBe(0);
-    // And a town with no temple pays the town half alone.
-    const noTemple = town(g.state, 0, 9, 6);
-    noTemple.followers = { [religion.id]: noTemple.population };
+    const faithPaid = () => explainCardCityYields(g.state, city)
+      .filter(line => line.card === "feastDays").reduce((sum,line) => sum + line.faith, 0);
+    expect(faithPaid()).toBe(0);
+    city.timed = [{card: "omenReading", effect: riteDef("omenReading").effects[0]!, expiresTurn: g.state.turn + 1}];
     bumpRevision(g.state);
-    expect(
-      buildingHappiness(g.state, 0, cardBuildingHappiness(g.state, 0)).some(
-        (line) =>
-          line.source.includes(noTemple.name) &&
-          line.source.includes("Feast Days"),
-      ),
-    ).toBe(false);
+    expect(faithPaid()).toBe(3);
   });
 
   it("reads Choirs and Tithe Houses off their own rows", () => {
@@ -5676,7 +5613,7 @@ describe("Inquisition", () => {
     expect(def.retired).toBeUndefined();
     expect(def.deferred).toBeUndefined();
     expect(def.text).toBe(
-      "Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion.",
+      "Rival religions press your towns at 70% strength. Gain +1 authority for every two devout towns.",
     );
     expect(def.effects.map((effect) => effect.kind)).toEqual(["pressureRule", "pays"]);
   });

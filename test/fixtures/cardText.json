@@ -1236,8 +1236,8 @@
   ],
   "theMartyrsCrown": [
    {
-    "raw": "losing a unit spreads your religion to every city within 3 hexes",
-    "text": "losing a unit spreads your religion to every city within 3 hexes"
+    "raw": "losing a unit spreads your religion to every city within 3 hexes with 30 pressure",
+    "text": "losing a unit spreads your religion to every city within 3 hexes with 30 pressure"
    }
   ],
   "theSaintPetersIndulgence": [
@@ -5574,8 +5574,8 @@
   ],
   "theRaisingOfTheLand": [
    {
-    "raw": "a great engineer spending themselves on their boon gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game",
-    "text": "a great engineer spending themselves on their boon gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game"
+    "raw": "one of your great people using their action gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game",
+    "text": "one of your great people using their action gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game"
    }
   ],
   "theAgeOfImprovement": [
@@ -5666,8 +5666,8 @@
   ],
   "theMasterOfWorks": [
    {
-    "raw": "a great engineer spending themselves on their boon in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a [[improvement:manufactory|Manufactory]]",
-    "text": "a great engineer spending themselves on their boon in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a Manufactory"
+    "raw": "one of your great people using their action in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a [[improvement:manufactory|Manufactory]]",
+    "text": "one of your great people using their action in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a Manufactory"
    }
   ],
   "thePhilosophersPeaks": [
@@ -7845,8 +7845,8 @@
   ],
   "pentecost": [
    {
-    "raw": "a foreign city turning to your religion spreads your religion to every city within 4 hexes",
-    "text": "a foreign city turning to your religion spreads your religion to every city within 4 hexes"
+    "raw": "a foreign city turning to your religion spreads your religion to every city within 4 hexes with 60 pressure",
+    "text": "a foreign city turning to your religion spreads your religion to every city within 4 hexes with 60 pressure"
    }
   ],
   "theMassBaptisms": [
@@ -9921,8 +9921,8 @@
   ],
   "theSymposium": [
    {
-    "raw": "a great person spending themselves on their boon deals you a free Order hand at once",
-    "text": "a great person spending themselves on their boon deals you a free Order hand at once"
+    "raw": "one of your great people using their action deals you a free Order hand at once",
+    "text": "one of your great people using their action deals you a free Order hand at once"
    }
   ],
   "lettersPatent": [
@@ -10221,8 +10221,8 @@
   ],
   "thePanegyric": [
    {
-    "raw": "a great person spending themselves on their boon grants 1 free reroll",
-    "text": "a great person spending themselves on their boon grants 1 free reroll"
+    "raw": "one of your great people using their action grants 1 free reroll",
+    "text": "one of your great people using their action grants 1 free reroll"
    }
   ],
   "theAnteroom": [
@@ -10241,8 +10241,8 @@
     "text": "Gains +2 culture and +2 gold each time you reroll a draft"
    },
    {
-    "raw": "rerolling an Order hand costs 50% less faith",
-    "text": "rerolling an Order hand costs 50% less faith"
+    "raw": "rerolling a draft costs 50% less faith",
+    "text": "rerolling a draft costs 50% less faith"
    }
   ],
   "theChangingCouncil": [
@@ -11178,8 +11178,8 @@
     "text": "+6 science and +6 culture per Order hand you have rerolled while this card is seated"
    },
    {
-    "raw": "rerolling an Order hand costs 30% less faith",
-    "text": "rerolling an Order hand costs 30% less faith"
+    "raw": "rerolling a draft costs 30% less faith",
+    "text": "rerolling a draft costs 30% less faith"
    }
   ],
   "theSpiritsOfPlace": [
@@ -11546,8 +11546,8 @@
   ],
   "feastDays": [
    {
-    "raw": "+1 faith in every city while it is keeping a rite per 2 citizens there",
-    "text": "+1 faith in every city while it is keeping a rite per 2 citizens there"
+    "raw": "+1 faith in every city that follows the religion while it is keeping a rite per 2 citizens there",
+    "text": "+1 faith in every city that follows the religion while it is keeping a rite per 2 citizens there"
    }
   ],
   "holyWater": [
@@ -11692,14 +11692,14 @@
   ],
   "thePulseOfBells": [
    {
-    "raw": "making a proclamation gives your towns within its reach +25% production in every city for 10 turns, restarted each time",
-    "text": "making a proclamation gives your towns within its reach +25% production in every city for 10 turns, restarted each time"
+    "raw": "making a proclamation gives your towns within its reach +25% production for 10 turns, restarted each time",
+    "text": "making a proclamation gives your towns within its reach +25% production for 10 turns, restarted each time"
    }
   ],
   "ecclesia": [
    {
-    "raw": "starting a rite spreads your religion to every city within 6 hexes",
-    "text": "starting a rite spreads your religion to every city within 6 hexes"
+    "raw": "starting a rite spreads your religion to every city within 6 hexes with 20 pressure",
+    "text": "starting a rite spreads your religion to every city within 6 hexes with 20 pressure"
    }
   ],
   "apostles": [
@@ -14178,8 +14178,8 @@
     "text": "killing a unit grants +8 faith"
    },
    {
-    "raw": "killing a unit spreads your religion to every city within 4 hexes",
-    "text": "killing a unit spreads your religion to every city within 4 hexes"
+    "raw": "killing a unit spreads your religion to every city within 4 hexes with 15 pressure",
+    "text": "killing a unit spreads your religion to every city within 4 hexes with 15 pressure"
    },
    {
     "raw": "+4 combat strength inside cities that follow your religion",
@@ -14408,8 +14408,8 @@
     "text": "killing a unit grants +8 faith"
    },
    {
-    "raw": "killing a unit spreads your religion to every city within 4 hexes",
-    "text": "killing a unit spreads your religion to every city within 4 hexes"
+    "raw": "killing a unit spreads your religion to every city within 4 hexes with 15 pressure",
+    "text": "killing a unit spreads your religion to every city within 4 hexes with 15 pressure"
    }
   ],
   "theMaid": [

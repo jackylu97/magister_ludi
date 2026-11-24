@@ -1726,9 +1726,7 @@
         {
           "kind": "pays",
           "where": "city",
-          "basis": "flat",
-          "to": "science",
-          "amount": 2,
+          "science": 2,
           "scope": {
             "test": "capital"
           }
@@ -1736,9 +1734,7 @@
         {
           "kind": "pays",
           "where": "city",
-          "basis": "flat",
-          "to": "culture",
-          "amount": 2,
+          "culture": 2,
           "scope": {
             "test": "capital"
           }

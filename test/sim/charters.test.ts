@@ -289,7 +289,9 @@ describe('the charters as a family', () => {
     const everyOpener = [...opened, ...byDoctrine, ...byBelief, ...byCharter, ...byTech, ...byEarlyOrder];
     expect(new Set(everyOpener).size).toBe(everyOpener.length);
     for (const id of BUILDING_IDS) {
-      if (buildingDef(id).unlockedByCard !== true) continue;
+      if (buildingDef(id).retired === true || buildingDef(id).unlockedByCard !== true) continue;
+      // A retained ordinary technology remains an unlock when its early card retires.
+      if (gatingTech('building', id) !== null) continue;
       expect(everyOpener, id).toContain(id);
     }
   });

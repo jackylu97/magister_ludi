@@ -247,7 +247,7 @@ reading for a once-per-empire row.
 | `museion` | The Museion | small | 5 | 88 |
 | `rupertsbergScriptorium` | The Scriptorium of Rupertsberg | large | 8 | 397 |
 | `funduq` | The Funduq | large | 8 | 397 |
-| `cathedralSchool` | Cathedral School | medium | 6 | 154 |
+| `cathedralSchool` | Cathedral School | medium | 5 | 117 |
 | `schoolOfMieza` | The School of Mieza | small | 2 | 39 |
 | `hallOfWorthies` | The Hall of Worthies | medium | 5 | 117 |
 | `basilica` | The Basilica | medium | 5 | 117 |

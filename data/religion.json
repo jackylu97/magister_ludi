@@ -677,7 +677,8 @@
           "per": 2,
           "within": "city",
           "scope": {
-            "test": "keepingRite"
+            "test": "all",
+            "of": [{ "test": "follows" }, { "test": "keepingRite" }]
           }
         }
       ]

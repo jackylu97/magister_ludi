@@ -100,7 +100,7 @@ describe('a charter technology’s page', () => {
     const ids = new Set(ENTRIES.map((entry) => entry.id));
     for (const tech of CHARTER_TECH_IDS) {
       const first = entryOf(compendiumId('tech', tech)).clauses[0]!;
-      if (tech === 'navalGunnery') {
+      if (['navalGunnery', 'medicine', 'militaryArchitecture'].includes(tech)) {
         expect(first.text).toBe('This technology’s charter has been withdrawn from the draft.');
         continue;
       }
@@ -112,7 +112,7 @@ describe('a charter technology’s page', () => {
     }
   });
 
-  it('prints the column price that a seat with no card is charged, with no premium (batch DS9)', () => {
+  it('prints the discounted charter price charged to a seat with no cost modifiers', () => {
     // The book takes no game, so it reads the price off the row; this holds it
     // to the game's own fold for a seat that holds no card.
     const state = newGame({
@@ -127,11 +127,11 @@ describe('a charter technology’s page', () => {
     const science = YIELD_GLYPH.science;
     for (const tech of CHARTER_TECH_IDS) {
       const lines = explainTechCost(state, player, tech);
-      expect(lines, tech).toHaveLength(1);
+      expect(lines, tech).toHaveLength(2);
       const price = charterTechPrice(tech);
-      expect(price, tech).toBe(lines[0]!.amount);
+      expect(lines[0]!.amount, tech).toBe(techDef(tech).cost);
       expect(price, tech).toBe(foldTechCost(lines));
-      expect(price, tech).toBe(techDef(tech).cost);
+      expect(price, tech).toBe(Math.floor(techDef(tech).cost / 2));
 
       const entry = entryOf(compendiumId('tech', tech));
       expect(rowOf(entry, 'Research cost'), tech).toBe(`${figure(price)}${science}`);
@@ -208,7 +208,9 @@ describe('the pages that name a charter technology link to it', () => {
         const section = isWonder(building) ? 'wonder' : 'building';
         const line = openingOf(entryOf(compendiumId(section, building)));
         expect(line, building).toBe(
-          `Unlocked by researching ${mark}, a charter technology that only an empire holding ${charterMark(tech)} may research.`,
+          ['navalGunnery', 'medicine', 'militaryArchitecture'].includes(tech)
+            ? `Unlocked by researching ${mark}, a charter technology.`
+            : `Unlocked by researching ${mark}, a charter technology that only an empire holding ${charterMark(tech)} may research.`,
         );
         linked += 1;
       }
@@ -216,7 +218,7 @@ describe('the pages that name a charter technology link to it', () => {
         if (improvementDef(work).requiresTech !== tech) continue;
         const line = openingOf(entryOf(compendiumId('improvement', work)));
         expect(line, work).toContain(mark);
-        expect(line, work).toContain(charterMark(tech));
+        if (!['navalGunnery', 'medicine', 'militaryArchitecture'].includes(tech)) expect(line, work).toContain(charterMark(tech));
         linked += 1;
       }
     }
@@ -226,7 +228,7 @@ describe('the pages that name a charter technology link to it', () => {
 
   it('on its charter card, in the describer’s words, after the Charter keyword', () => {
     for (const tech of CHARTER_TECH_IDS) {
-      if (tech === 'navalGunnery') continue;
+      if (['navalGunnery', 'medicine', 'militaryArchitecture'].includes(tech)) continue;
       const charter = charterOf(tech);
       const mark = `[[tech:${tech}|${techDef(tech).name}]]`;
       // The describer marks it, so every surface that prints the card links it.

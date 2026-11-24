@@ -323,14 +323,14 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | Surveying | II | 4 | 100 | The Wheel | The Surveyors' Charter | — | Aqueduct | workers may build Qanat |
 | Cataloguing | II | 4 | 100 | Writing | The Librarians' Charter | — | Mouseion ‡ | — |
 | Glassmaking | II | 5 | 190 | Chronology | The Glassmakers' Charter | — | Glasshouse | — |
-| Medicine | III | 6 | 360 | The High Temple | The Physicians' Charter | — | Bimaristan ‡ | — |
+| Medicine | III | 6 | 360 | The High Temple | — | — | Bimaristan ‡ | — |
 | Scholasticism | II | 5 | 190 | Epic Poetry | The Schoolmen's Charter | — | Cathedral School | — |
 | Papermaking | III | 7 | 650 | Rhetoric | The Paper-Makers' Charter | — | Scriptorium | — |
 | Printing | III | 7 | 650 | Rhetoric | The Printers' Charter | — | Aldine Press ‡ | — |
 | Mechanics | III | 8 | 1150 | Mathematics | The Mechanists' Charter | — | — | — |
 | Gunfounding | IV | 10 | 3250 | Machinery | The Gunfounders' Charter | — | Tophane ‡ | — |
 | Chemistry | IV | 10 | 3250 | Geomancy | The Alchemists' Charter | — | — | — |
-| Military Architecture | IV | 10 | 3250 | Castellany | The Military Engineers' Charter | — | Bastion | — |
+| Military Architecture | IV | 10 | 3250 | Castellany | — | — | Bastion | — |
 | Naval Gunnery | IV | 12 | 8000 | The Astrolabe | — | — | — | — |
 
 - **Liturgy** — Holy site pressure range +6 hexes

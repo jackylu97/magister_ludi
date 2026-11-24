@@ -146,8 +146,8 @@ describe('Renew rites · when it appears', () => {
 // --- 2 · when it does not ------------------------------------------------------------
 
 describe('Renew rites · when it stays quiet', () => {
-  it('offers renewal when the Votive Offering or the Restoring of the Host ends', () => {
-    for (const rite of ['votiveOffering', 'restoringOfTheHost'] as const) {
+  it('offers renewal when a chartered rite ends', () => {
+    for (const rite of ['riteOfFasting', 'riteOfTheSabbath'] as const) {
       const { state, home } = board();
       state.players[0]!.charteredRites = [rite];
       keepUntilNextTurn(state, home, rite);

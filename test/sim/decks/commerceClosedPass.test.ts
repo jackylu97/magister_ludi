@@ -48,7 +48,7 @@ describe('Commerce purchases', () => {
     visit(data);
     const section = commerceSheet.split('## Buying power')[1]!.split('##')[0]!;
     const listed = new Map(Array.from(section.matchAll(/^\| ([^|]+?) \| ([\d.]+%) \|/gm), match => [match[1]!, match[2]!]));
-    expect(discounts.size).toBe(15);
+    expect(discounts.size).toBe(14);
     expect(listed).toEqual(discounts);
   });
 

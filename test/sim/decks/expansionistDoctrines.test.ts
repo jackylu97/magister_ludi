@@ -2225,16 +2225,16 @@ describe('Human Sacrifice (batch DT19)', () => {
     expect(player.statecraft.tallies.find((row) => row.card === rogations)?.count).toBe(3);
   });
 
-  it('allows the lasting Votive Offering from either a levy or a prophet', () => {
+  it('allows the lasting Sabbath rite from either a levy or a prophet', () => {
     const { state, capital } = board();
-    seat(state).charteredRites.push(VOTIVE);
+    seat(state).charteredRites.push('riteOfTheSabbath');
     bumpRevision(state);
     const prophet = createUnit(state, 0, 'prophet', capital.col, capital.row);
     seat(state).faithPool = 100_000;
-    const refusal = levyError(state, 0, capital, 'rite', VOTIVE);
+    const refusal = levyError(state, 0, capital, 'rite', 'riteOfTheSabbath');
     expect(refusal).toBeNull();
-    expect(refusal).toBe(empireRiteError(state, 0, prophet.id, VOTIVE));
-    expect(sacrifice(state, capital, VOTIVE).ok).toBe(true);
+    expect(refusal).toBe(empireRiteError(state, 0, prophet.id, 'riteOfTheSabbath'));
+    expect(sacrifice(state, capital, 'riteOfTheSabbath').ok).toBe(true);
   });
 
   it('greys the line when the seat knows no rite that can reach every town', () => {
@@ -2242,11 +2242,11 @@ describe('Human Sacrifice (batch DT19)', () => {
     const player = seat(state);
     // The bench holds every technology, and the tree teaches most rites.
     player.techsResearched = [];
-    player.charteredRites = [VOTIVE];
+    player.charteredRites = ['riteOfTheSabbath'];
     bumpRevision(state);
     const line = levyOptions(state, 0, capital)[0]!;
     expect(line.blocked).toBeNull();
-    expect(line.rites?.map((choice) => choice.rite)).toEqual([VOTIVE]);
+    expect(line.rites?.map((choice) => choice.rite)).toEqual(['riteOfTheSabbath']);
     player.charteredRites = [];
     bumpRevision(state);
     expect(levyOptions(state, 0, capital)[0]!.blocked).toMatch(/no rite/);

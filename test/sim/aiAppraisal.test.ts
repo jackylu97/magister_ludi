@@ -117,6 +117,7 @@ import aiJson from '../../data/ai.json';
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
 import { LIVE_GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
 import {
+  assignableTiles,
   buildingProductionCost,
   foundCityAt,
   purchasableTiles,
@@ -3632,7 +3633,7 @@ describe('the two missing signs (batch X5)', () => {
 
   it('folds every wall row’s hit points as a share of the town’s own bar', () => {
     // The Great Wall grants hit points across the empire. These rows grant them locally.
-    expect(WALL_ROWS).toHaveLength(6);
+    expect(WALL_ROWS).toHaveLength(5);
     expect(WALL_ROWS.filter((id) => buildingDef(id).cityStat === undefined)).toHaveLength(2);
     const { state, player, cities } = realm(2);
     const ctx = valueContext(state, player);
@@ -4148,9 +4149,8 @@ describe('the growth channel charged (batch X5b)', () => {
    *     under the other;
    *   · the balanced ordering leaves a citizen on a hill, so the hex on offer
    *     (a hill with stone) is ground a citizen would actually move to;
-   *   · the town is at `production` already, so the arm answers *something* —
-   *     the lean starves this town, so the answer is the balanced ordering and
-   *     the table is printed either way.
+   * Two locked wheat tiles keep both assignments fed. The other citizens
+   * trade food for production, so this test can measure the growth delay.
    */
   function keepBench(): { state: GameState; player: Player; city: City } {
     const state = bench(2, { width: 20, height: 12 });
@@ -4162,6 +4162,10 @@ describe('the growth channel charged (batch X5b)', () => {
     recomputeAllVisibility(state);
     city.population = 4;
     city.focus = 'production';
+    // Two wheat tiles feed the city under either focus. The remaining citizens
+    // can trade food for production without the simulation rejecting that choice.
+    city.lockedTiles = assignableTiles(state, city).filter(tile => tile.resource === 'wheat')
+      .slice(0, 2).map(({ col, row }) => ({ col, row }));
     const player = seat(state, 0);
     player.gold = 2000;
     // The one hex on offer worth moving to: a hill with stone on it, which the

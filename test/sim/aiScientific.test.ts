@@ -189,7 +189,7 @@ describe('a technology charter is priced as what knowing its technology gives (S
     const { state, player } = board(3);
     const ctx = valueContext(state, player);
     // Includes every live technology charter in the Scientific and shared pools.
-    expect(LIVE_CHARTERS).toHaveLength(18);
+    expect(LIVE_CHARTERS).toHaveLength(16);
     for (const id of LIVE_CHARTERS) {
       const priced = explainCharter(id, ctx)!;
       expect(priced, id).not.toBeNull();
@@ -209,9 +209,8 @@ describe('a technology charter is priced as what knowing its technology gives (S
     const id = 'theBronzeFoundersCharter' as OrderId;
     const tech = 'casting' as TechId;
     const priced = explainCharter(id, ctx)!;
-    // The wait is read off the folded price, which since batch DS9 is
-    // Casting's column price: a charter technology pays no premium.
-    expect(techCostFor(ctx, tech)).toBe(techDef(tech).cost);
+    // The wait reads Casting's discounted charter price.
+    expect(techCostFor(ctx, tech)).toBe(Math.floor(techDef(tech).cost / 2));
     const beakers = foldedRoad(state, player, tech);
     expect(priced.terms[0]!.value).toBe(explainCharterKnowledge(tech, ctx).total);
     expect(priced.terms[1]!.op).toBe('mul');
@@ -278,13 +277,13 @@ describe('a technology charter is priced as what knowing its technology gives (S
     expect(knowing('optics' as TechId, 'the Glasshouse')).toBeGreaterThan(0);
   });
 
-  it('raises the Archive charter price as the seat learns charter technologies', () => {
+  it('raises the Archive charter price as the seat holds more charters', () => {
     const { state, player } = board(2);
     const worth = () => explainCharter('theArchivistsCharter', {
       ...valueContext(state, player), scienceRate: 500, medianProduction: 100,
     })!.total;
     const before = worth();
-    player.techsResearched.push('herbals', 'optics');
+    player.statecraft.orders.push('theHerbalistsCharter', 'theGlassmakersCharter');
     bumpRevision(state);
     expect(worth()).toBeGreaterThan(before);
   });
@@ -449,10 +448,9 @@ describe('research reads the folded price (S13)', () => {
     const tech = 'casting' as TechId;
     const road = researchRoad(state, player, ctx, tech);
     let column = 0;
-    for (const step of road.road) column += techDef(step).cost;
+    for (const step of road.road) column += Math.floor(techDef(step).cost * (techDef(step).charter ? 0.5 : 1));
     expect(road.beakers).toBe(foldedRoad(state, player, tech));
-    // Since batch DS9 a charter technology pays no premium, so with no card
-    // seated the folded road is the column prices added up.
+    // The road sums ordinary prices and the discounted charter price.
     expect(road.beakers).toBe(column);
     // The plan's landing reads the same price.
     const landing = reachableTechs(ctx).get(tech)!;
@@ -992,7 +990,8 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
   });
 
   it('prices The Great Catalogue per held charter, and The Great Designs at its share', () => {
-    const { state, player } = board(2, 20);
+    const { state, player, cities } = board(2, 20);
+    cities[0]!.queue = [{ kind: 'building', id: 'theMagnumOpus' }];
     const catalogue = orderDef('theGreatCatalogue' as OrderId).effects[0]!;
     const designs = orderDef('theGreatDesigns' as OrderId).effects[0]!;
     const flat = (effect: CardEffect): CardEffect => {

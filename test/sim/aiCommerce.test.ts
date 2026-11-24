@@ -379,7 +379,7 @@ describe('The Art Dealers', () => {
 });
 
 describe('Land Speculation', () => {
-  it('pays the hex planner half a hex’s price in culture, on bare ground too (batch DS4)', () => {
+  it('values six culture on the purchase of any hex', () => {
     const { state, player, towns } = board([6]);
     hold(state, 0, LAND_SPECULATION);
     const silk = giveLuxury(state, towns[0]!, 5, 4, 'silk');
@@ -388,7 +388,7 @@ describe('Land Speculation', () => {
     state.tileOwner[tileIndex(state.map, silk.col, silk.row)] = null;
     bumpRevision(state);
     const ctx = valueContext(state, player);
-    const want = explainLump({ culture: Math.floor(0.5 * 75) }, ctx).total;
+    const want = explainLump({ culture: 6 }, ctx).total;
     const term = hexPurchaseRiderTerm(ctx, silk, 75)!;
     expect(term).not.toBeNull();
     expect(term.value).toBe(want);
@@ -442,9 +442,7 @@ describe('Land Speculation', () => {
     const base = valueContext(state, player);
     const ctx: ValueContext = { ...base, wants: { ...base.wants, gold: [] } };
     const owned = ownedTiles(state, towns[0]!).length;
-    const price = RULES.cities.tilePurchase.ringBase[0]!;
-    // One firing in full, with no lump exchange (bot batch BP4).
-    const each = valueOfYields({ culture: Math.floor(0.5 * price) }, ctx);
+    const each = valueOfYields({ culture: 6 }, ctx);
     // The four bought, with the table's cautious default for the prior's turns.
     const prior = aiJson.score.commission.priorTurns;
     const fallback =
@@ -629,13 +627,20 @@ describe('the Commerce commissions', () => {
     expect(lasting.value).toBe(routeSlotTerm(2, ctx)!.value);
   });
 
-  it('values the four foreign routes the World’s Fair requires even before the first route opens', () => {
-    const { state, player } = board([6]);
-    const ctx = valueContext(state, player);
-    const reward = explainCommission(WORLDS_FAIR, ctx)!.terms[0]!;
-    const lasting = reward.parts!.find(term => term.label.includes('for the rest of the game'))!;
-    const { science, culture, gold } = RULES.trade.international;
-    expect(lasting.value).toBe(4 * valueOfYields({ science, culture, gold }, ctx));
+  it('values the World’s Fair route reward only when a route can benefit', () => {
+    const { state, player, towns } = board([6]);
+    const worth = () => {
+      const reward = explainCommission(WORLDS_FAIR, valueContext(state, player))!.terms[0]!;
+      return reward.parts!.find(term => term.label.includes('for the rest of the game'))!.value;
+    };
+    // Deals can fulfill the goal without providing any international route income.
+    expect(worth()).toBe(0);
+    const home = towns[0]!;
+    const away = rivalTown(state, 6);
+    const cart = createUnit(state, 0, 'trader', home.col, home.row);
+    cart.trade = { from: home.id, to: away.id, outbound: true };
+    bumpRevision(state);
+    expect(worth()).toBeGreaterThan(0);
   });
 });
 

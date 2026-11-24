@@ -104,17 +104,17 @@ describe('the Chiefdom’s three Wildcard chairs (batch DS9)', () => {
 
 // --- 2. the charter price ----------------------------------------------------------
 
-describe('a charter technology costs the ordinary price (batch DS9)', () => {
-  it('costs what an ordinary technology in its column costs', () => {
+describe('a charter technology costs half its ordinary column price', () => {
+  it('costs half what an ordinary technology in its column costs', () => {
     const g = researchingGame();
     const player: Player = playerById(g.state, 0)!;
     for (const id of CHARTER_TECH_IDS) {
       const column = techColumn(id);
       const ordinary = TECH_IDS.find((other) => techDef(other).charter !== true && techColumn(other) === column);
       const price = foldTechCost(explainTechCost(g.state, player, id));
-      expect(price, id).toBe(techDef(id).cost);
+      expect(price, id).toBe(Math.floor(techDef(id).cost / 2));
       if (ordinary !== undefined) {
-        expect(price, `${id} against ${ordinary}`).toBe(foldTechCost(explainTechCost(g.state, player, ordinary)));
+        expect(price, `${id} against ${ordinary}`).toBe(Math.floor(foldTechCost(explainTechCost(g.state, player, ordinary)) / 2));
       }
     }
   });

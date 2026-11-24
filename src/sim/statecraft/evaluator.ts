@@ -4948,7 +4948,7 @@ export function wonderWorkYieldLines(state: GameState, city: City): CardYieldLin
   const wonders = city.buildings.filter(isWonder);
   if (wonders.length === 0) return [];
   const lines = [...cardTileLines(state, city.ownerId), ...scopedCardTileLines(state, city)].filter(
-    line => admitsGhostWork(line.on) && !line.perAdjacentMountain && !line.perNeighbour,
+    line => admitsGhostWork(line.on) && !line.ownYieldOnly && !line.perAdjacentMountain && !line.perNeighbour,
   );
   const flat = lines.filter(line => line.card !== undefined && VOICES.some(voice => line[voice] !== 0));
   if (flat.length === 0) return [];

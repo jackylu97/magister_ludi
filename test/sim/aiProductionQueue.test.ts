@@ -67,10 +67,10 @@ describe('a bot uses its current production budget', () => {
   it('does not spend a later building\'s saved production on an unfinished head', () => {
     const { state, city, player } = board();
     city.hammerBasket = 0;
-    city.itemProgress = { 'building:library': 10000 };
-    const university: QueueItem = { kind: 'building', id: 'university' };
+    city.itemProgress = { 'building:granary': 10000 };
+    const library: QueueItem = { kind: 'building', id: 'library' };
     bumpRevision(state);
-    expect(productionQueueFor(state, player, city, ranked(university, buildings[2]!))).toEqual([university]);
+    expect(productionQueueFor(state, player, city, ranked(library, buildings[0]!))).toEqual([library]);
   });
 
   it('stops at a project because the project stays at the front', () => {

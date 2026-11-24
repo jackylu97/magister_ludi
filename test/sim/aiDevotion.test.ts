@@ -472,7 +472,7 @@ describe('the season rule', () => {
     const quiet = explainCounted(faith!, valueContext(state, player), ROGATIONS);
     expect(quiet.terms[1]!.value).toBe(TALLY.riteStarted);
     // Votive Offering now runs for ten turns and counts like the other rites.
-    keep(state, towns[0]!, 'votiveOffering');
+    keep(state, towns[0]!, 'riteOfTheHarvest');
     const offered = explainCounted(faith!, valueContext(state, player), ROGATIONS);
     expect(offered.terms[1]!.value).toBe(Math.max(HORIZON / 10, TALLY.riteStarted));
     towns[0]!.timed = [];
@@ -631,9 +631,7 @@ describe('Commission: The State Church', () => {
     const ctx = valueContext(state, player);
     const reward = explainCommission(STATE_CHURCH, ctx)!.terms[0]!;
     const lasting = allTerms(reward.parts ?? []).find((term) => term.label.includes('for the rest of the game'))!;
-    expect(lasting.value).toBeCloseTo(3 * meterWeight(ctx, 'authority'), 10);
-    const happiness = allTerms(reward.parts ?? []).filter((term) => term.label.includes('for the rest of the game'))[1]!;
-    expect(happiness.value).toBeCloseTo(3 * meterWeight(ctx, 'happiness'), 10);
+    expect(lasting.value).toBeCloseTo(3 * meterWeight(ctx, 'happiness'), 10);
   });
 });
 

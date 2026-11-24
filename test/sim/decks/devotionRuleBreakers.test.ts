@@ -74,7 +74,7 @@ const ASTRONOMERS = 'thePriestAstronomers' as OrderId;
 const OMEN: RiteId = 'omenReading';
 const HARVEST: RiteId = 'riteOfTheHarvest';
 const PLENTY: RiteId = 'riteOfPlenty';
-const VOTIVE: RiteId = 'votiveOffering';
+const VOTIVE: RiteId = 'riteOfTheHarvest';
 
 /** Puts an Order in a chair for this seat, the way the reading sees it. */
 function slot(state: GameState, playerId: number, card: OrderId): void {
@@ -341,7 +341,7 @@ describe('The Double Feast: the gate', () => {
     expect(tallyOf(player.statecraft, ROGATIONS)).toBe(2);
   });
 
-  it('counts the Votive Offering in a place while it runs', () => {
+  it('counts the Rite of the Harvest in a place while it runs', () => {
     const { state, player, towns } = realm([5]);
     const city = towns[0]!;
     slot(state, 0, FEAST);

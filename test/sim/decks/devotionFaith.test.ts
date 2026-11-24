@@ -347,7 +347,7 @@ describe('Commission: The State Church', () => {
     expect(runCommissions(state)).toEqual([]);
   });
 
-  it('leaves devout towns one authority cheaper for good, minimum one', () => {
+  it('pays happiness for each pair of devout towns', () => {
     const { state, towns, religion } = realm();
     const before = towns.map((city) => townWrit(state, city));
     slot(state, 0, STATE_CHURCH);
@@ -358,13 +358,13 @@ describe('Commission: The State Church', () => {
     const paid = () => [cardAuthority(state, 0), cardHappiness(state, 0)].map(lines =>
       lines.filter(line => line.card === STATE_CHURCH).reduce((sum, line) => sum + line.amount, 0));
     expect(towns.map(city => townWrit(state, city))).toEqual(before);
-    expect(paid()).toEqual([3, 3]);
+    expect(paid()).toEqual([0, 3]);
     const last = towns[towns.length - 1]!;
     last.followers = {};
     bumpRevision(state);
-    expect(paid()).toEqual([2, 2]);
+    expect(paid()).toEqual([0, 2]);
     last.followers = { [religion]: last.population };
     bumpRevision(state);
-    expect(paid()).toEqual([3, 3]);
+    expect(paid()).toEqual([0, 3]);
   });
 });

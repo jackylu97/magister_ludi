@@ -1469,6 +1469,12 @@ describe('what opens a thing', () => {
     }
   });
 
+  it('keeps the University reachable through Education after its early card retires', () => {
+    const entry = entryOf(buildingEntryId('university'));
+    expect(openingOf(entry)).toContain('[[tech:education|');
+    expect(openingOf(entry)).not.toContain('withdrawn');
+  });
+
   it('names the gate’s own node and no other, for every row — the mirror, read back', () => {
     // The reverse reading the page uses is the gate's (`gatingTech`, the tree's
     // `unlocks` inverted), with the world's door counted as the Opus's node the

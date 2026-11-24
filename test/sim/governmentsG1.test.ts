@@ -23,8 +23,8 @@ import { valueContext } from '../../src/ai/bot';
 import { scoreEffects } from '../../src/ai/value';
 import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
-import { renownThreshold } from '../../src/sim/renown';
-import { type City, type GameState, bumpRevision, createUnit, playerById } from '../../src/sim/state';
+import { renownPerTurn, renownThreshold } from '../../src/sim/renown';
+import { type City, type GameState, addBuilding, bumpRevision, createUnit, playerById } from '../../src/sim/state';
 import {
   cardCityStat,
   cardCombatLines,
@@ -234,26 +234,25 @@ describe('the card-type amplifier (the tier-26 governments)', () => {
     expect([rise.food, rise.gold]).toEqual([1, 1]);
   });
 
-  it('raises a percentage at its own stage, and leaves a cost as it is', () => {
+  it('raises a positive percentage at its own stage and leaves a negative percentage unchanged', () => {
     const { state, city } = board();
-    // Private Patronage: +25% gold since batch DS4. 30% of 25 is 7.5, which
-    // rounds to 8. The card lost its cost on ordinary buildings in that batch,
-    // so The Gilded Scaffold's 15% less production in every town stands in for
-    // the cost: it is not raised.
-    council(state, 'theEstates', [
-      [PATRONAGE, 'economic'],
-      ['theGildedScaffold' as OrderId, 'economic'],
-    ]);
-    const rises = explainCardPercentYields(state, city).filter((line) => line.card === 'theEstates');
-    expect(rises.map((line) => [line.yield, line.percent, line.stage])).toEqual([['gold', 8, 'city']]);
-    expect(
-      explainCardPercentYields(state, city).some(
-        (line) => line.card === 'theGildedScaffold' && line.yield === 'production' && line.percent < 0,
-      ),
-    ).toBe(true);
-    expect(
-      cardProduction(state, city, 'building', undefined, 'monument').filter((line) => line.card === 'theEstates'),
-    ).toEqual([]);
+    const fixture = orderDef('theGildedScaffold');
+    const original = fixture.effects;
+    // This fixture keeps the negative-effect coverage after the live card changed.
+    fixture.effects = [{ kind: 'percentYields', yield: 'production', percent: -15 }];
+    try {
+      council(state, 'theEstates', [
+        [PATRONAGE, 'economic'],
+        ['theGildedScaffold', 'economic'],
+      ]);
+      const lines = explainCardPercentYields(state, city);
+      const rises = lines.filter((line) => line.card === 'theEstates');
+      expect(rises.map((line) => [line.yield, line.percent, line.stage])).toEqual([['gold', 8, 'city']]);
+      expect(lines.find(line => line.card === 'theGildedScaffold' && line.yield === 'production')?.percent).toBe(-15);
+      expect(cardProduction(state, city, 'building', undefined, 'monument').filter(line => line.card === 'theEstates')).toEqual([]);
+    } finally {
+      fixture.effects = original;
+    }
   });
 
   it('raises a production bonus behind a build', () => {
@@ -360,13 +359,17 @@ describe('the card-type amplifier on a periodic boon', () => {
 // --- 3. the Aristocracy ---------------------------------------------------------------
 
 describe('the Aristocracy', () => {
-  it('cuts the price of the next great person by 15%, rounded down once', () => {
-    const { state } = board();
+  it('raises recurring renown by fifteen percent and leaves the recruitment price unchanged', () => {
+    const { state, city } = board();
     const player = playerById(state, 0)!;
-    const full = renownThreshold(state, player);
+    addBuilding(state, city, 'library');
+    const price = renownThreshold(state, player);
+    const renown = renownPerTurn(state, 0);
+    expect(renown).toBeGreaterThan(0);
     player.statecraft.government = 'aristocracy';
     bumpRevision(state);
-    expect(renownThreshold(state, player)).toBe(Math.floor((full * 85) / 100));
+    expect(renownThreshold(state, player)).toBe(price);
+    expect(renownPerTurn(state, 0)).toBeCloseTo(renown * 1.15);
   });
 });
 

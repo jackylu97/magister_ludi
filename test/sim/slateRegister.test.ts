@@ -649,7 +649,7 @@ function bodyOf(file: string, fn: string): string | null {
 const POSITION_READERS = new Map<string, string>([
   ['blockade.ts#cityBlockaded', 'clause 4: the piece blockades'],
   ['evaluator.ts#fortifiedHexTest', 'clause 1: a fortified piece that steps leaves its trench'],
-  ['evaluator.ts#countOf', 'clause 1: the `fortifiedUnits` count, for the same reason'],
+  ['evaluator.ts#rawCountOf', 'clause 1: the `fortifiedUnits` count, for the same reason'],
   ['evaluator.ts#generalPresent', 'clause 2: a town’s own hex'],
   ['evaluator.ts#garrisonOf', 'clause 2: a town’s own hex'],
   ['evaluator.ts#rebateReaches', 'clauses 2 and 3: `where` asks the gate or the border'],
