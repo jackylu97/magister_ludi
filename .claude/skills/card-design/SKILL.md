@@ -343,7 +343,7 @@ Every card has a type, which its face shows by its ink (the A3 face): **Military
 ## Writing a proposal
 
 **Never name a card without its text** (the user, 2026-11-24: "please give the card text description of each card name, or else i will have no idea what you're talking about [...] i can't do anything with just the name of the card"). In every review, audit, proposal, summary, decision list and final report:
-- each card, Doctrine, belief, wonder, government or rite that is named carries its effect text beside it, quoted from the data row, at least the first time in each section and every time in a summary or a decision;
+- each card, Doctrine, belief, wonder, government or rite that is named carries a short description of what it does beside it, at least the first time in each section and every time in a summary or a decision. It need not be the exact card text (the user: "just a short descriptor is fine"), but take it from the data row and keep the numbers that matter;
 - a change shows "Today" (live text, tier, rarity) and "Proposed" side by side;
 - a cut shows the text that is lost, and a new row says "New".
 
