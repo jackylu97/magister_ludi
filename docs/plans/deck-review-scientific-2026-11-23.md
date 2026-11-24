@@ -14,6 +14,27 @@ The user's words for this deck (2026-11-23): "could we look at the strength of t
 
 ---
 
+## The user's comments, 2026-11-24
+
+The user commented on the review page (13 comments). **Where this section and the text below disagree, this section is right.** Nothing is built yet. These changes wait in the queue behind the playtest.
+
+| # | Card or point | Today (live) | The user's words | Result |
+|---|---|---|---|---|
+| 1 | The raise for charters, rule A (culture equal to half the price when the technology is learned) | A charter technology costs the full price of its column and gives nothing when learned. | "i dont like this just because it adds more rules and isn't intuitive" | Rejected. |
+| 2 | The raise for charters, rule B | The same. | "this one is fine. lets go with B" | Adopted: "A charter technology costs half the price of its column." |
+| 3 | The Military Engineers' Charter (Tier III, common) | "Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points." | "Great, cut" | Retired. |
+| 4 | The Physicians' Charter (Tier II, common) | "Opens Medicine, which unlocks the Bimaristan: +25% food in its town." | "sure" | Retired. |
+| 5 | The Schoolmen's Charter (Tier I, uncommon) | "Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town." Scholasticism is an age 3 technology. | "Great, lets move the technology to age 2 too" | The card moves to Tier II, and Scholasticism moves to age 2. |
+| 6 | The Great Catalogue (Tier IV, common) | "+10% production toward the Magnum Opus for each charter technology you know, at most +40%." | "sure" | It loses "at most +40%". |
+| 7 | Charter counts read every charter the seat holds, from any deck (The Great Archive, The Alchemists' Charter, The Great Catalogue) | They count charter technologies known. The Alchemists' Charter: "Opens Chemistry: your warrior line gains +1 strength for each charter technology you know." | "Yup sounds good" | Adopted: the three count "each charter you hold". |
+| 8 | The Countermarch (new: "Completing a technology lets your units attack twice a turn for three turns.") | New | "I personally dont think scientific needs more combat bonuses, lets defer this line of thinking." and "Probably too strong, see above" | Not built. No more combat cards for Scientific for now. |
+| 9 | The Licence to Teach (new: "Gaining a great scholar completes the technology you are researching.") | New | "Hmmm i don't know if this is better than just raw science, wdyt?" and "not needed right now, lets see how magisterial plays after the nerf" | Not built now. Look again after the Magisterial nerf has been played. |
+| 10 | The "technologies completed" build | Five cards pay when a technology completes. | "thoughts here: i don't think 'technologies completed' should be a build. i think theres something more universal that scientific needs, technologies completed feels boring/something you'll do anyways. Maybe science gains synergy with population/happiness somehow, those mechanics are already intertwined. Maybe science can also interact with the map: instead of adding yields to tiles, it improves improvements (upgrades to a mine for example) but maybe thats just a semantic difference." | Open. It is a direction for a second Scientific pass, not a ruling. |
+
+The user did not comment on The Royal Academies ("+5% production and culture for each empire building you hold."; the review proposes that it becomes a rare). It stays open.
+
+---
+
 ## F. Summary
 
 ### Findings
