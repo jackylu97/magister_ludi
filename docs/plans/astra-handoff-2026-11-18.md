@@ -501,6 +501,7 @@ Details and limits: `docs/audit/bot-trade-and-tiles-2026-11-23.md`.
 The user asked to finish the confirmed implementation before testing. Run the
 full suite once this batch has settled. Record fresh bot digests after the
 planning and score changes, not from the earlier trade-only games.
+
 ## 0.1n The card, belief and wonder changes of the deck reviews (2026-11-24)
 
 **Read this file first: `docs/plans/card-changes-for-astra-2026-11-24.md`.** It is one index of every ruling the user made on 2026-11-23 and 2026-11-24 across eight design documents: 141 rows (72 changed, 13 new, 11 moved, 28 retired), each with the row id, today's text, the ruled text, the user's words, the size the review judged, and a status.
