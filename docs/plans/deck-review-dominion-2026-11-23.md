@@ -30,7 +30,7 @@ The user commented on the review page (11 comments) and said in chat: "i like th
 | 5 | The Tributary Kings | On the utility row: "cut" (22:58). On the proposal to read captured towns: "cool i like it" (23:01). | Settled. The user on 2026-11-24: "yup, tributary kings should be changed, the old effect cut." The card stays, and it reads citizens in captured towns. The puppet-town effect ("Your capital gains +2 production and +2 gold for each citizen in your puppet towns.") is removed. |
 | 6 | Spare authority | "let's make a note: there should be maybe more payoff for spare authority in the deck" | A note for the next Dominion pass: the deck supplies spare authority (Hegemony, The Universal Monarchy) and has no card that reads it. The readers are in Devotion, Expansionist and Magisterial. |
 
-The user did not comment on decision 4 (the drill loop of The Drill Masters with Up Through the Ranks, about 200 to 300 renown a turn). It stays open. The orchestrator's view: size it together with the Magisterial renown supply before The Drill Masters moves to Tier II.
+Decision 4, the drill loop, is settled. The Drill Masters ("Garrisoned units gain 1 experience each turn.") with Up Through the Ranks ("Each time one of your units becomes an Elite, gain 250 renown, favouring great generals.") pays about 200 to 300 renown a turn (estimate). The user on 2026-11-24, when asked to keep it, re-aim it or lower it: "yes keep it." It stays as a broken combo, with no change to either card. Watch in play whether moving units through garrisons is a chore.
 
 ---
 
