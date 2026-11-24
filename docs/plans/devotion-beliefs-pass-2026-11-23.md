@@ -26,26 +26,26 @@ This is a design proposal. It changes no data, no code and no test. No test, bot
 
 ### What changes, in order
 
-| # | Change | Size |
-|---|---|---|
-| 1 | The belief list goes from 56 to 46. Ten rows are cut or merged, twelve are re-aimed, and the rest stay. Each of the four builds gets a god, a follower belief and an enhancer belief. No belief prints a card's line. | Mostly existing shapes; three small extensions |
-| 2 | The founder's share: each foreign town that follows pays its founder +1 gold for every two citizens. It replaces +1 faith a town and +1 gold for two towns. | Existing shape, one data row |
-| 3 | Four enhancer beliefs pay for acts and moments: The Pulse of Bells (a proclamation speeds your towns), Reliquaries (relics), Congregation (a town turned brings a citizen), Ecclesia (a rite presses your religion). | Two existing shapes, two small extensions |
-| 4 | Two beliefs make faith a currency of its own: the god Patron of Merchants counts faith spent this game, and the follower belief The Alms Box lets a town that follows buy food and production buildings with faith. | Existing shape; small extension |
-| 5 | Authority pay-offs: The Holy Inquisition, Commission: The Anointing and The Second Prophet each lose a plain line and gain a pay-off for spare authority. The god Ancestor Worship widens the game's own bonus. | One existing shape, three small extensions |
-| 6 | Mission Houses becomes the grower of the spreading faith. | Existing shape |
-| 7 | To pay for it: retire The Learned Clergy, The Sacred Bequests, The Tithe of Nations and the Doctrine The Theoric Fund. The Holy Inquisition and Commission: The State Church lose their authority. Commission: The Anointing loses its flat yields. | Retired rows and text changes |
+| # | Today (live), in short | Change | Size |
+| --- | --- | --- | --- |
+| 1 | 56 live beliefs: 23 gods, 17 follower beliefs, 16 enhancer beliefs. Seven print a card's line. 21 serve one of the four builds. Section 1.3 has each live text. | The belief list goes from 56 to 46. Ten rows are cut or merged, twelve are re-aimed, and the rest stay. Each of the four builds gets a god, a follower belief and an enhancer belief. No belief prints a card's line. | Mostly existing shapes; three small extensions |
+| 2 | +1 faith for each foreign town that follows, and +1 gold for each two such towns (`founderTrickle` in `data/religion.json`). | The founder's share: each foreign town that follows pays its founder +1 gold for every two citizens. | Existing shape, one data row |
+| 3 | The Pulse of Bells: "A proclamation reaches 4 hexes further and presses 20 faith harder." Reliquaries: "+1 culture for every 3 faith you make each turn." Congregation: "+2 faith for every town in the world that follows your religion." Ecclesia: "Each holy site gives +1 faith for each town in the world that follows your religion." | Four enhancer beliefs pay for acts and moments: The Pulse of Bells (a proclamation speeds your towns), Reliquaries (relics), Congregation (a town turned brings a citizen), Ecclesia (a rite presses your religion). | Two existing shapes, two small extensions |
+| 4 | Patron of Merchants: "+1 faith and +2 gold for each different luxury you hold." The Alms Box: "Your faith buys 25% more in towns that follow this religion." | Two beliefs make faith a currency of its own: the god Patron of Merchants counts faith spent this game, and the follower belief The Alms Box lets a town that follows buy food and production buildings with faith. | Existing shape; small extension |
+| 5 | The Holy Inquisition (III, uncommon): "Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included." Commission: The Anointing (III, uncommon): "Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture." The Second Prophet (II, uncommon): "Prophets and apostles you buy start with one extra charge." Ancestor Worship: "+1 culture for every 4 citizens in a town." | Authority pay-offs: The Holy Inquisition, Commission: The Anointing and The Second Prophet each lose a plain line and gain a pay-off for spare authority. The god Ancestor Worship widens the game's own bonus. | One existing shape, three small extensions |
+| 6 | Mission Houses (II, common): "Your proclamations reach 50% farther and are 50% more effective in foreign cities." | Mission Houses becomes the grower of the spreading faith. | Existing shape |
+| 7 | The Learned Clergy (III): "+2 science and +2 culture for every 10 faith your empire makes each turn." The Sacred Bequests (III): "Spending faith grants science equal to a fourth of it." The Tithe of Nations (IV): "Gain 1 faith each turn for every two citizens in the world who follow your religion." The Theoric Fund (Doctrine I): "+1 culture for every 3 faith your empire makes." Commission: The State Church (II) reward: +1 authority and +1 happiness for every two devout towns. | To pay for it: retire The Learned Clergy, The Sacred Bequests, The Tithe of Nations and the Doctrine The Theoric Fund. The Holy Inquisition and Commission: The State Church lose their authority. Commission: The Anointing loses its flat yields. | Retired rows and text changes |
 
 No Tier 0 card changes. Nothing adds a player action: every proposal uses purchases, rites, proclamations, relics and commissions that exist.
 
 ### Decisions for you
 
-1. **A smaller belief list (46 rows) with re-aimed beliefs.** Recommended: yes. Section 1 has every row.
-2. **The founder's share by citizens (change 2).** Recommended: yes, at +1 gold for every two foreign citizens. It is the one base rule that this pass changes.
-3. **Should The Holy Inquisition and The State Church stop giving authority?** Recommended: yes. Your belief Inquisition and the Mosque are then the supply, and authority stays "a limiting factor for growth". A realm of 20 devout towns with Mosques falls from about 45 spare authority to about 25 (estimate).
-4. **Retire the four passive conversion rows (change 7).** Recommended: yes. They are the "X% of faith becomes Y" lines, and they pay for what this pass adds.
-5. **The Pulse of Bells: a proclamation gives your towns in its reach +25% production for ten turns.** Recommended: yes. It is the strongest reason in this pass to buy an apostle, and it is the largest number, so it is yours to decide.
-6. **Commission: The Anointing gives the realm rite** (the rule of The Rites Commonwealth) as its reward for 10 spare authority. Recommended: yes. It gives a second way to that rule, which today is dealt only in Tier I.
+1. **A smaller belief list (46 rows) with re-aimed beliefs.** Today the list has 56 rows, and 21 of them serve one of the four builds. Recommended: yes. Section 1.3 has every row with its live text.
+2. **The founder's share by citizens (change 2).** Today the share is +1 faith for each foreign town that follows, and +1 gold for each two such towns (`founderTrickle` in `data/religion.json`). Recommended: yes, at +1 gold for every two foreign citizens. It is the one base rule that this pass changes.
+3. **Should The Holy Inquisition and The State Church stop giving authority?** Today The Holy Inquisition says "Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included." The commission's reward today is "+1 authority and +1 happiness for every two devout towns." Recommended: yes. Your belief Inquisition and the Mosque are then the supply, and authority stays "a limiting factor for growth". A realm of 20 devout towns with Mosques falls from about 45 spare authority to about 25 (estimate).
+4. **Retire the four passive conversion rows (change 7).** Their live texts are in the summary table above and in section 2.3. Recommended: yes. They are the "X% of faith becomes Y" lines, and they pay for what this pass adds.
+5. **The Pulse of Bells: a proclamation gives your towns in its reach +25% production for ten turns.** Today: "A proclamation reaches 4 hexes further and presses 20 faith harder." Recommended: yes. It is the strongest reason in this pass to buy an apostle, and it is the largest number, so it is yours to decide.
+6. **Commission: The Anointing gives the realm rite** (the rule of The Rites Commonwealth) as its reward for 10 spare authority. Today its reward is "each devout town gains +3 faith and +3 culture." The Rites Commonwealth (Tier I, rare) says "A rite your capital starts is kept by every town you hold." Recommended: yes. It gives a second way to that rule, which today is dealt only in Tier I.
 
 ---
 
@@ -75,78 +75,78 @@ Every belief below raises or reads one of these. The Devotion cards do the same,
 ### 1.3 Every belief, with its verdict
 
 - Class: P pantheon (a god), F follower, E enhancer. Build: R rites, S faith spent, D devout towns and authority, B faith buildings, W the spreading faith. A dash means a plain row for any seat.
-- "Live" in the text column means that the text does not change. A new text is (proposed).
+- "Today (live)" is the row's `text` in `data/religion.json`, word for word. The game prints the describers' sentences, which say the same rule. "Proposed" is the new text, or "No change", or "Cut".
 
 **Gods (23 today, 19 after).**
 
-| God | Verdict | Text | Build | Makes a combination with | Shape |
-|---|---|---|---|---|---|
-| Goddess of the Harvest | Keep | Live: "Bonus resources that give food gain +1 food." | - | land cards of any deck | none needed |
-| Keeper of the Hearth | Re-aim; it takes in The Standing Stones | "Granaries and Monuments give +1 faith, and count as buildings that supply faith." | B | It raises the count that The Temple Workshops, The Temple Herds, The Quiet Hours, The Painted Chapels and The House of Worship read. Two more buildings a town from age 1. | Existing shape if a line written on the building counts for `buildingsSupplying`. To check (see the last section). |
-| The Standing Stones | Cut, merged above | | | | |
-| Star Readers | Keep | Live: "+4 science in every town with a mountain in its borders." | - | | |
-| Keeper of the Calendar | Cut | Vineyard Rites is the plantation god. | | | |
-| Ancestor Worship | Re-aim | "The bonus for spare authority also raises faith and culture." | D | The live bonus is +10% production at 5 spare and +20% at 10. Every source of authority now also pays faith and culture. With The Sovereign Writ the bonus has no ceiling. | Small extension: one more meter rule beside `writUncapped`, naming the yields the authority bonus raises. |
-| Lady of the Hunt | Keep | Live: "Camps gain +1 food and +1 gold." | - | Lay Offerings, The Temple Herds (the same hexes) | |
-| Spirits of the Wood | Keep | Live: "Unimproved forest and jungle hexes gain +1 faith and +1 culture." | - | Sacred Groves | |
-| River Mother | Keep | Live: "Towns on fresh water gain +2 food." | - | | |
-| Lord of the Sea | Keep | Live: "+1 production and +1 gold on every hex with a Fishing Boat." | - | | |
-| God of the Forge | Keep | Live: "Each military building gives +2 production." | - | | |
-| Rites of Blood | Re-aim. It was The Sacred Host's line. | "A unit of yours that dies in battle grants faith equal to twice its strength." | S | The Sacred Host pays on a kill, and this pays on a loss. The Martyrology and the Doctrine The Martyr's Crown read the same moment. | Existing shape: `windfallRider` on `death` with `fromOccasion: strength` (the Hall of Deeds). |
-| Oracle of the Crossroads | Keep | Live: "Scouts and settlers gain +1 movement and +1 sight." | - | | |
-| Sacred Fire | Keep | Live: "+2 production in every town." It is the plain yardstick for a god. | - | | |
-| Desert Fathers | Merge with Winter Mother | "Desert and tundra hexes gain +1 food and +1 faith." A name for both is needed, for example The Hermits. | - | | Existing shape: a hex line on `any` of two terrains. |
-| Winter Mother | Cut, merged above | | | | |
-| The Stone Hoard | Keep | Live: "Mines and quarries on a resource gain +1 culture and +1 faith." | - | The Blessed Forges | |
-| The Vigil | Keep | Live: "A town keeping a rite gains +15% science and culture." | R | every card that reads a town keeping a rite | |
-| Vineyard Rites | Keep | Live: "+1 food and +1 culture on every hex with a Plantation." | - | Lay Offerings, The Temple Herds | |
-| Cult of Heroes | Keep | Live: "+15% renown." | - | Sacred Patronage | |
-| Herd Gods | Keep | Live: "+1 production and +1 faith on every hex with a Pasture." | - | Lay Offerings, The Temple Herds | |
-| Patron of Merchants | Re-aim. It was The Incense Road's count. | "+1 gold each turn for every 50 faith you have spent this game." | S | Every sink raises it for good: gods, rites, religious units, rerolls, purchases. The Book of Life reads the same count for science and culture. The Offering Chests does not lower the count, because the count takes what was paid. | Existing shape: `pays`, `where: empire`, `basis: count`, `count: faithSpent`, `per: 50`. The Book of Life uses the count. |
-| The Muses | Cut | It turns culture into faith, which is a plain conversion. | | | |
+| God | Verdict | Today (live) | Proposed | Build | Makes a combination with | Shape |
+|---|---|---|---|---|---|---|
+| Goddess of the Harvest | Keep | "Bonus resources that give food gain +1 food." | No change. | - | land cards of any deck | none needed |
+| Keeper of the Hearth | Re-aim; it takes in The Standing Stones | "Granaries give +2 faith and +1 happiness." | "Granaries and Monuments give +1 faith, and count as buildings that supply faith." | B | It raises the count that The Temple Workshops, The Temple Herds, The Quiet Hours, The Painted Chapels and The House of Worship read. Two more buildings a town from age 1. | Existing shape if a line written on the building counts for `buildingsSupplying`. To check (see the last section). |
+| The Standing Stones | Cut, merged above | "Monuments give +2 culture and +1 faith." | Cut. Its line moves into the row above. |  |  |  |
+| Star Readers | Keep | "+4 science in every town with a mountain in its borders." | No change. | - |  |  |
+| Keeper of the Calendar | Cut | "Plantations gain +1 science." | Cut. Vineyard Rites is the plantation god. |  |  |  |
+| Ancestor Worship | Re-aim | "+1 culture for every 4 citizens in a town." | "The bonus for spare authority also raises faith and culture." | D | The live bonus is +10% production at 5 spare and +20% at 10. Every source of authority now also pays faith and culture. With The Sovereign Writ the bonus has no ceiling. | Small extension: one more meter rule beside `writUncapped`, naming the yields the authority bonus raises. |
+| Lady of the Hunt | Keep | "Camps gain +1 food and +1 gold." | No change. | - | Lay Offerings, The Temple Herds (the same hexes) |  |
+| Spirits of the Wood | Keep | "Unimproved forest and jungle hexes gain +1 faith and +1 culture." | No change. | - | Sacred Groves |  |
+| River Mother | Keep | "Towns on fresh water gain +2 food." | No change. | - |  |  |
+| Lord of the Sea | Keep | "+1 production and +1 gold on every hex with a Fishing Boat." | No change. | - |  |  |
+| God of the Forge | Keep | "Each military building gives +2 production." | No change. | - |  |  |
+| Rites of Blood | Re-aim. It was The Sacred Host's line. | "Killing a unit grants faith equal to its strength." | "A unit of yours that dies in battle grants faith equal to twice its strength." | S | The Sacred Host pays on a kill, and this pays on a loss. The Martyrology and the Doctrine The Martyr's Crown read the same moment. | Existing shape: `windfallRider` on `death` with `fromOccasion: strength` (the Hall of Deeds). |
+| Oracle of the Crossroads | Keep | "Scouts and settlers gain +1 movement and +1 sight." | No change. | - |  |  |
+| Sacred Fire | Keep | "+2 production in every town." | No change. It is the plain yardstick for a god. | - |  |  |
+| Desert Fathers | Merge with Winter Mother | "Desert hexes gain +1 food and +1 faith." | "Desert and tundra hexes gain +1 food and +1 faith." A name for both is needed, for example The Hermits. | - |  | Existing shape: a hex line on `any` of two terrains. |
+| Winter Mother | Cut, merged above | "+1 food and +1 faith on every tundra hex." | Cut. Its line moves into the row above. |  |  |  |
+| The Stone Hoard | Keep | "Mines and quarries on a resource gain +1 culture and +1 faith." | No change. | - | The Blessed Forges |  |
+| The Vigil | Keep | "A town keeping a rite gains +15% science and culture." | No change. | R | every card that reads a town keeping a rite |  |
+| Vineyard Rites | Keep | "+1 food and +1 culture on every hex with a Plantation." | No change. | - | Lay Offerings, The Temple Herds |  |
+| Cult of Heroes | Keep | "+15% renown." | No change. | - | Sacred Patronage |  |
+| Herd Gods | Keep | "+1 production and +1 faith on every hex with a Pasture." | No change. | - | Lay Offerings, The Temple Herds |  |
+| Patron of Merchants | Re-aim. It was The Incense Road's count. | "+1 faith and +2 gold for each different luxury you hold." | "+1 gold each turn for every 50 faith you have spent this game." | S | Every sink raises it for good: gods, rites, religious units, rerolls, purchases. The Book of Life reads the same count for science and culture. The Offering Chests does not lower the count, because the count takes what was paid. | Existing shape: `pays`, `where: empire`, `basis: count`, `count: faithSpent`, `per: 50`. The Book of Life uses the count. |
+| The Muses | Cut | "+1 faith for every 3 culture you make each turn." | Cut. It turns culture into faith, which is a plain conversion. |  |  |  |
 
 **Follower beliefs (17 today, 13 after).** A follower belief acts in the town, for whoever owns the town. None below pays an empire.
 
-| Belief | Verdict | Text | Build | Makes a combination with | Shape |
-|---|---|---|---|---|---|
-| Cathedrals of the Sky | Keep | Live: "Temples supply +2 science and +2 culture." | B | The Prince-Bishops, The Builders' Lodge | |
-| Pilgrimage | Cut | It is the third "faith for each citizen" line, after the Wat and Feast Days. | | | |
-| Feast Days | Settled (first pass) | "A town that follows gains +1 faith for every two citizens while it keeps a rite." | R | the rites cards; the readers of faith spent | Existing shape |
-| Holy Water | Cut | A narrow flat that joins nothing. | | | |
-| Lamps of the Shrine | Cut | The Sky Watchers (Scientific) prints nearly the same line. | | | |
-| Choirs | Keep; it takes in Tithe Houses | "A town that follows gains +1 culture and +1 gold for every three citizens." | D | The Deaconries and The Imarets (citizens of a devout town); every card that grows a town | Existing shape: the two live lines, with `per: 3`. |
-| Tithe Houses | Cut, merged above | | | | |
-| The Quiet Hours | Keep | Live: "In towns that follow, each building that supplies faith gives +2 culture and +1 happiness." | B | It reads the count that Keeper of the Hearth, The Chantries and the faith houses raise. | |
-| Warrior Monks | Keep | Live: "+10 combat strength for units defending a city that follows." | - | The Spiritual Host | |
-| Harvest Blessing | Keep | Live: "+1 food on every farm worked by a city that follows." | - | | |
-| Guild of the Faithful | Keep | Live: "+15% production toward buildings in every town that follows." | - | | |
-| Common Table | Keep | Live: "A city that follows keeps a quarter of its stored food when it grows." | D | The Imarets | |
-| Minarets | Keep | Live: "Unlocks the Mosque: +3 faith, +2 production and +1 authority." | D, B, S | It is supply for every authority pay-off in section 4. | |
-| Temple Spires | Keep | Live: "Unlocks the Wat: +3 happiness, and +1 faith for every 2 citizens." | B, S | | |
-| The Open Kitchen | Keep | Live: "Unlocks the Gurdwara: +3 food, +3 faith, and +1 science for every 3 citizens." | B, S | | |
-| The Eternal Flame | Keep | Live: "Unlocks the Dar-e Mehr: +25% faith in its town." | B, S | | |
-| The Alms Box | Re-aim. It was The Offering Chests' line. | "A town that follows may buy food and production buildings with faith." | S | The Gifts of the Faithful opens culture and faith buildings, so the two open four kinds. The Fabric Fund, The Offered Stones, The Consecration Feast and Patron of Merchants pay on each purchase. | Small extension: the rule `faithBuysBuildings` read from a town's follower beliefs. The purchase riders already read them (The Alms Box today). |
+| Belief | Verdict | Today (live) | Proposed | Build | Makes a combination with | Shape |
+|---|---|---|---|---|---|---|
+| Cathedrals of the Sky | Keep | "Temples supply +2 science and +2 culture." | No change. | B | The Prince-Bishops, The Builders' Lodge |  |
+| Pilgrimage | Cut | "A town that follows gains +1 faith for every 3 followers." | Cut. It is the third "faith for each citizen" line, after the Wat and Feast Days. |  |  |  |
+| Feast Days | Settled (first pass) | "+1 happiness for every city that follows, and Temples supply +1 happiness." | "A town that follows gains +1 faith for every two citizens while it keeps a rite." | R | the rites cards; the readers of faith spent | Existing shape |
+| Holy Water | Cut | "Towns that follow and stand on fresh water gain +10% food." | Cut. A narrow flat that joins nothing. |  |  |  |
+| Lamps of the Shrine | Cut | "Shrines in towns that follow give +2 science." | Cut. The Sky Watchers (Scientific) prints nearly the same line. |  |  |  |
+| Choirs | Keep; it takes in Tithe Houses | "+1 culture for every 4 citizens of a city that follows." | "A town that follows gains +1 culture and +1 gold for every three citizens." | D | The Deaconries and The Imarets (citizens of a devout town); every card that grows a town | Existing shape: the two live lines, with `per: 3`. |
+| Tithe Houses | Cut, merged above | "+1 gold for every 3 citizens of a city that follows." | Cut. Its line moves into the row above. |  |  |  |
+| The Quiet Hours | Keep | "In towns that follow, each building that supplies faith gives +2 culture and +1 happiness." | No change. | B | It reads the count that Keeper of the Hearth, The Chantries and the faith houses raise. |  |
+| Warrior Monks | Keep | "+10 combat strength for units defending a city that follows." | No change. | - | The Spiritual Host |  |
+| Harvest Blessing | Keep | "+1 food on every farm worked by a city that follows." | No change. | - |  |  |
+| Guild of the Faithful | Keep | "+15% production toward buildings in every town that follows." | No change. | - |  |  |
+| Common Table | Keep | "A city that follows keeps a quarter of its stored food when it grows." | No change. | D | The Imarets |  |
+| Minarets | Keep | "Unlocks the Mosque: +3 faith, +2 production and +1 authority." | No change. | D, B, S | It is supply for every authority pay-off in section 4. |  |
+| Temple Spires | Keep | "Unlocks the Wat: +3 happiness, and +1 faith for every 2 citizens." | No change. | B, S |  |  |
+| The Open Kitchen | Keep | "Unlocks the Gurdwara: +3 food, +3 faith, and +1 science for every 3 citizens." | No change. | B, S |  |  |
+| The Eternal Flame | Keep | "Unlocks the Dar-e Mehr: +25% faith in its town." | No change. | B, S |  |  |
+| The Alms Box | Re-aim. It was The Offering Chests' line. | "Your faith buys 25% more in towns that follow this religion." | "A town that follows may buy food and production buildings with faith." | S | The Gifts of the Faithful opens culture and faith buildings, so the two open four kinds. The Fabric Fund, The Offered Stones, The Consecration Feast and Patron of Merchants pay on each purchase. | Small extension: the rule `faithBuysBuildings` read from a town's follower beliefs. The purchase riders already read them (The Alms Box today). |
 
 **Enhancer beliefs (16 today, 14 after).** An enhancer pays the founder, who is the holder of the holy site.
 
-| Belief | Verdict | Text | Build | Makes a combination with | Shape |
-|---|---|---|---|---|---|
-| Reliquaries | Re-aim. It was The Theoric Fund's line. | "An apostle may leave a relic in a town of yours with a Temple. Each of your towns that holds a relic gives +4 science and +4 culture." | S, B | A relic is a building that supplies faith (+3 faith, live), so every reader of that count gains. Each relic is one apostle charge, so The Second Prophet and Apostles feed it. | The pay is an existing shape (`count: followingWithBuilding` with the relic). The Temple in place of the Cathedral is a small extension. |
-| Inquisition | Keep (your text), with the wording of the first pass | "Rival religions press your towns at 70% strength. +1 authority for every two devout towns." | D | The pay-offs of section 4. The cards no longer print this line. | |
-| The Long Road | Keep; it takes in Sacred Cartography | "Your trade routes press your religion at both ends, and 2 harder." | W | Pilgrim Markets, and every Commerce card that adds routes | Existing shape: the two live rules on one row. |
-| Sacred Cartography | Cut, merged above | | | | |
-| Itinerant Preachers | Keep | Live: "Towns that follow press your religion 5 hexes further." | W | | |
-| The Pulse of Bells | Re-aim. Mission Houses printed nearly the same line. | "A proclamation gives each of your towns in its reach +25% production for ten turns. A later one restarts the ten turns." | W, S | The Field Mass (a proclamation heals), The Second Prophet (more charges), Apostles (cheaper apostles). It is the reason to walk an apostle through your own towns. | Small extension: the `timed` grant, given to each own town in a proclamation's reach. `proclamationMade` is a live moment, and `healNearby` already walks the reach. |
-| Ecclesia | Re-aim. It was The Pilgrim Towns' count on the same hex. | "A town that starts a rite presses your religion on every town within four hexes." (proposed: 20 pressure, which turns two citizens) | R, W | It joins rites to the spread, which nothing does today. Under The Rites Commonwealth every town presses each time. Pentecost and The Mass Baptisms then fire from rites. | Existing shape: `windfallRider` on `rite` with a `pressure` grant (Pentecost has the grant, and The Psalter the moment). |
-| Apostles | Keep | Live: "Your faith buys 40% more when you buy an apostle." | S, W | Reliquaries, The Pulse of Bells | |
-| Holy Order | Keep | Live: "Unlocks Knights Templar, bought with faith. They gain +6 strength in land that follows your religion." | S | The Soldiers of God | |
-| Congregation | Re-aim. It paid faith for following towns. | "The first time a foreign town turns to your religion, your capital gains a citizen." | W | The Royal Cult, The Patrimony of Peter when the capital is the holy city, and every card that counts citizens. Each first conversion is a lasting gain, not a rate. | Existing shape: `windfallRider` on `townConverted` with `first: conversion` (The Mass Baptisms) and the grant `citizens` with `toCapital` (a live Dominion row). |
-| Pilgrims' Coin | Cut | The founder's share of section 3 is this belief as a base rule. | | | |
-| World Church | Keep | Live: "+15% culture for every empire in the world that follows you." | W | It is a deliberate strong pay-off for reaching other empires. | |
-| The Long Prayer | Keep, a little larger | "+1 culture for every 3 citizens in the world who follow you." (live: every 4) | W, D | The Tithe of Nations read the same count and is retired. | Number change |
-| The Crusade | Keep | Live: "Your units gain +6 strength in foreign land that follows your religion." | W | A reason for a Dominion seat to convert a town before it attacks. | |
-| Marvels of the Faith | Keep | Live: "+5 science and +5 culture for every city in the world that follows you and holds a wonder." | W | Sacred Commissions, The Pious Masons | |
-| The Scriptoria | Keep | Live: "+1 science for every faith building in a city that follows you." | B | It counts the faith category in every following town, at home and abroad. | |
+| Belief | Verdict | Today (live) | Proposed | Build | Makes a combination with | Shape |
+|---|---|---|---|---|---|---|
+| Reliquaries | Re-aim. It was The Theoric Fund's line. | "+1 culture for every 3 faith you make each turn." | "An apostle may leave a relic in a town of yours with a Temple. Each of your towns that holds a relic gives +4 science and +4 culture." | S, B | A relic is a building that supplies faith (+3 faith, live), so every reader of that count gains. Each relic is one apostle charge, so The Second Prophet and Apostles feed it. | The pay is an existing shape (`count: followingWithBuilding` with the relic). The Temple in place of the Cathedral is a small extension. |
+| Inquisition | Keep (your text), with the wording of the first pass | "Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion." | "Rival religions press your towns at 70% strength. +1 authority for every two devout towns." | D | The pay-offs of section 4. The cards no longer print this line. |  |
+| The Long Road | Keep; it takes in Sacred Cartography | "Your religion presses 2 harder along trade routes." | "Your trade routes press your religion at both ends, and 2 harder." | W | Pilgrim Markets, and every Commerce card that adds routes | Existing shape: the two live rules on one row. |
+| Sacred Cartography | Cut, merged above | "Your trade routes press your religion at both ends." | Cut. Its line moves into the row above. |  |  |  |
+| Itinerant Preachers | Keep | "Towns that follow press your religion 5 hexes further." | No change. | W |  |  |
+| The Pulse of Bells | Re-aim. Mission Houses printed nearly the same line. | "A proclamation reaches 4 hexes further and presses 20 faith harder." | "A proclamation gives each of your towns in its reach +25% production for ten turns. A later one restarts the ten turns." | W, S | The Field Mass (a proclamation heals), The Second Prophet (more charges), Apostles (cheaper apostles). It is the reason to walk an apostle through your own towns. | Small extension: the `timed` grant, given to each own town in a proclamation's reach. `proclamationMade` is a live moment, and `healNearby` already walks the reach. |
+| Ecclesia | Re-aim. It was The Pilgrim Towns' count on the same hex. | "Each holy site gives +1 faith for each town in the world that follows your religion." | "A town that starts a rite presses your religion on every town within four hexes." (proposed: 20 pressure, which turns two citizens) | R, W | It joins rites to the spread, which nothing does today. Under The Rites Commonwealth every town presses each time. Pentecost and The Mass Baptisms then fire from rites. | Existing shape: `windfallRider` on `rite` with a `pressure` grant (Pentecost has the grant, and The Psalter the moment). |
+| Apostles | Keep | "Your faith buys 40% more when you buy an apostle." | No change. | S, W | Reliquaries, The Pulse of Bells |  |
+| Holy Order | Keep | "Unlocks Knights Templar, bought with faith. They gain +6 strength in land that follows your religion." | No change. | S | The Soldiers of God |  |
+| Congregation | Re-aim. It paid faith for following towns. | "+2 faith for every town in the world that follows your religion." | "The first time a foreign town turns to your religion, your capital gains a citizen." | W | The Royal Cult, The Patrimony of Peter when the capital is the holy city, and every card that counts citizens. Each first conversion is a lasting gain, not a rate. | Existing shape: `windfallRider` on `townConverted` with `first: conversion` (The Mass Baptisms) and the grant `citizens` with `toCapital` (a live Dominion row). |
+| Pilgrims' Coin | Cut | "+4 gold for every city in the world that follows." | Cut. The founder's share of section 3 is this belief as a base rule. |  |  |  |
+| World Church | Keep | "+15% culture for every empire in the world that follows you." | No change. | W | It is a deliberate strong pay-off for reaching other empires. |  |
+| The Long Prayer | Keep, a little larger | "+1 culture for every 4 citizens in the world who follow you." | "+1 culture for every 3 citizens in the world who follow you." (live: every 4) | W, D | The Tithe of Nations read the same count and is retired. | Number change |
+| The Crusade | Keep | "Your units gain +6 strength in foreign land that follows your religion." | No change. | W | A reason for a Dominion seat to convert a town before it attacks. |  |
+| Marvels of the Faith | Keep | "+5 science and +5 culture for every city in the world that follows you and holds a wonder." | No change. | W | Sacred Commissions, The Pious Masons |  |
+| The Scriptoria | Keep | "+1 science for every faith building in a city that follows you." | No change. | B | It counts the faith category in every following town, at home and abroad. |  |
 
 ### 1.4 The check
 
@@ -160,15 +160,15 @@ Every belief below raises or reads one of these. The Devotion cards do the same,
 
 **The seven duplicates of the first pass.**
 
-| Belief | The card with the same line | What happens |
-|---|---|---|
-| Reliquaries | The Theoric Fund | The belief is re-aimed, and the Doctrine is retired. |
-| Rites of Blood | The Sacred Host | The belief pays on a loss, and the card on a kill. |
-| Patron of Merchants | The Incense Road | The belief counts faith spent. |
-| Inquisition | The Holy Inquisition, Commission: The State Church | The belief keeps the line. The two cards lose it (section 4). |
-| The Alms Box | The Offering Chests | The belief opens purchases. |
-| Ecclesia | The Pilgrim Towns | The belief reads rites. |
-| The Long Prayer | The Tithe of Nations | The belief keeps the line, and the card is retired. |
+| Belief | Today (live): the belief | Today (live): the card with the same line | What happens |
+|---|---|---|---|
+| Reliquaries | "+1 culture for every 3 faith you make each turn." | The Theoric Fund: "+1 culture for every 3 faith your empire makes." | The belief is re-aimed, and the Doctrine is retired. |
+| Rites of Blood | "Killing a unit grants faith equal to its strength." | The Sacred Host: "Kills grant faith equal to the strength of the unit you killed." | The belief pays on a loss, and the card on a kill. |
+| Patron of Merchants | "+1 faith and +2 gold for each different luxury you hold." | The Incense Road: "+2 faith for each different luxury you hold." | The belief counts faith spent. |
+| Inquisition | "Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion." | The Holy Inquisition: "Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included." Commission: The State Church: "Goal: hold six towns, all devout. Reward: +1 authority and +1 happiness for every two devout towns." | The belief keeps the line. The two cards lose it (section 4). |
+| The Alms Box | "Your faith buys 25% more in towns that follow this religion." | The Offering Chests: "Your faith buys 25% more." | The belief opens purchases. |
+| Ecclesia | "Each holy site gives +1 faith for each town in the world that follows your religion." | The Pilgrim Towns: "Holy sites gain +1 production and +1 culture for each town that follows your religion." | The belief reads rites. |
+| The Long Prayer | "+1 culture for every 4 citizens in the world who follow you." | The Tithe of Nations: "Gain 1 faith each turn for every two citizens in the world who follow your religion." | The belief keeps the line, and the card is retired. |
 
 **Size, three examples (estimate).**
 - Keeper of the Hearth, age 1: three towns with a Granary and a Monument give +6 faith. With The Temple Workshops those six buildings give +6 food and +6 production more. A headline Tier 0 card pays 10 to 15.
@@ -223,13 +223,13 @@ Every belief below raises or reads one of these. The Devotion cards do the same,
 
 ### 2.3 What leaves, to pay for it
 
-| Row | Live text | Why it goes | What a committed age 4 seat loses (estimate) |
+| Row | Today (live) | Why it goes | What a committed age 4 seat loses (estimate) |
 |---|---|---|---|
 | The Learned Clergy (III) | "+2 science and +2 culture for every 10 faith your empire makes each turn." | A plain conversion of faith made. | 120 a turn at 300 faith |
 | The Sacred Bequests (III) | "Spending faith grants science equal to a fourth of it." | The Pilgrim Staff a second time, with another yield. | 75 a turn |
 | The Tithe of Nations (IV) | "Gain 1 faith each turn for every two citizens in the world who follow your religion." | The Long Prayer's count, and it pays faith for followers. The founder's share now pays gold for the same thing. | about 150 faith a turn |
 | The Theoric Fund (Doctrine I) | "+1 culture for every 3 faith your empire makes." | A plain conversion with no chair. Tier I keeps four Doctrines. | 100 culture a turn |
-| The beliefs Pilgrims' Coin, Congregation, Ecclesia, Pilgrimage, The Muses, Reliquaries (old texts) | faith or gold for each following town, or one yield as a share of another | Cut or re-aimed in section 1. | about 100 a turn together |
+| The beliefs Pilgrims' Coin, Congregation, Ecclesia, Pilgrimage, The Muses, Reliquaries (old texts) | Pilgrims' Coin: "+4 gold for every city in the world that follows." Congregation: "+2 faith for every town in the world that follows your religion." Ecclesia: "Each holy site gives +1 faith for each town in the world that follows your religion." Pilgrimage: "A town that follows gains +1 faith for every 3 followers." The Muses: "+1 faith for every 3 culture you make each turn." Reliquaries: "+1 culture for every 3 faith you make each turn." | Cut or re-aimed in section 1. | about 100 a turn together |
 
 The Pilgrim Staff, The Fabric Fund, The Poor Tables and The Zealots stay. The Cloister and The Tithe are shared rares of other decks and are not mine to change here.
 
@@ -267,8 +267,8 @@ The Pilgrim Staff, The Fabric Fund, The Poor Tables and The Zealots stay. The Cl
 ### 3.4 The incentive
 
 **1. The founder's share (base rule).**
+- Today: +1 faith for each foreign town that follows, and +1 gold for each two such towns (`founderTrickle` in `data/religion.json`). A foreign town of any size pays the same.
 - Proposed: "Each foreign town that follows your religion pays you +1 gold for every two citizens."
-- Live: +1 faith for each foreign town, and +1 gold for each two.
 - Existing shape: the `founderTrickle` row with `count: followingForeignPop` and `per: 2`.
 - Size (estimate): a foreign town of 8 pays 4 gold. Ten foreign towns in age 3 pay 40 gold, when the median seat makes 47. Twenty-five towns of 12 in age 4 pay 150, when the median seat makes 298.
 - It pays gold, not faith, so faith is turned into another currency through the map.
@@ -277,14 +277,14 @@ The Pilgrim Staff, The Fabric Fund, The Poor Tables and The Zealots stay. The Cl
 
 **2. An act gives more than pressure (beliefs).**
 
-| Act or moment | What it gives after this pass | From |
-|---|---|---|
-| A proclamation | Your towns in its reach build 25% faster for ten turns. Your units near it heal. | The Pulse of Bells (belief), The Field Mass (live card) |
-| A relic left | +3 faith in the town (live), +4 science and +4 culture to the founder, and one more building that supplies faith. From a Temple, not a Cathedral. | Reliquaries (belief) |
-| A foreign town turns for the first time | A citizen in your capital. Science and culture equal to 20 times its citizens. Your religion presses every town within four hexes. | Congregation (belief), The Mass Baptisms, Pentecost (live cards) |
-| A foreign town turns, each time | The grower gains +3 gold and +3 culture. | Mission Houses (re-aimed, section 5) |
-| A town starts a rite | Your religion presses every town within four hexes. | Ecclesia (belief) |
-| A unit is bought | More charges for each ten points of spare authority. | The Second Prophet (re-aimed, section 5) |
+| Act or moment | Today (live) | What it gives after this pass | From |
+|---|---|---|---|
+| A proclamation | Pressure (60 from a prophet within 10 hexes, 30 from an apostle within 6). The Field Mass: "Your proclamations heal your units within three hexes by 25 health." The Pulse of Bells: "A proclamation reaches 4 hexes further and presses 20 faith harder." | Your towns in its reach build 25% faster for ten turns. Your units near it heal. | The Pulse of Bells (belief), The Field Mass (live card) |
+| A relic left | The relic gives +3 faith in its town. The building's note: "An apostle leaves one in a city that has a Cathedral. A city can hold only one." Reliquaries: "+1 culture for every 3 faith you make each turn." | +3 faith in the town (live), +4 science and +4 culture to the founder, and one more building that supplies faith. From a Temple, not a Cathedral. | Reliquaries (belief) |
+| A foreign town turns for the first time | The Mass Baptisms: "The first time a foreign town turns to your religion, gain science and culture equal to twenty times its population." Pentecost: "When a foreign town turns to your religion, your religion presses every town within four hexes of it." Congregation: "+2 faith for every town in the world that follows your religion." | A citizen in your capital. Science and culture equal to 20 times its citizens. Your religion presses every town within four hexes. | Congregation (belief), The Mass Baptisms, Pentecost (live cards) |
+| A foreign town turns, each time | The founder's share only: +1 faith for each foreign town that follows, and +1 gold for each two such towns (`founderTrickle` in `data/religion.json`). Mission Houses: "Your proclamations reach 50% farther and are 50% more effective in foreign cities." | The grower gains +3 gold and +3 culture. | Mission Houses (re-aimed, section 5) |
+| A town starts a rite | No pressure. Ecclesia: "Each holy site gives +1 faith for each town in the world that follows your religion." | Your religion presses every town within four hexes. | Ecclesia (belief) |
+| A unit is bought | The Second Prophet: "Prophets and apostles you buy start with one extra charge." | More charges for each ten points of spare authority. | The Second Prophet (re-aimed, section 5) |
 
 **3. What one apostle is worth after the changes (estimate, age 3, about 130 faith).**
 - Two proclamations in a cluster of five own towns under The Pulse of Bells: 5 towns × 15 production × 25% × 20 turns = 375 production. The same faith buys 65 production at the base rate.
@@ -303,6 +303,7 @@ Your rulings: "I'm kind of liking this authority-based religious play", "we need
 
 ### 4.1 Supply and pay-off today
 
+- **The Caliphate (Tier III, rare) does not change:** "Devout towns cost 1 authority."
 - **Supply (live):** the belief Inquisition (+1 for two devout towns), the Mosque (+1), The Holy Inquisition (+1 for each devout town), Commission: The State Church (+1 for two devout towns), The Caliphate (a devout town costs 1).
 - **Pay-off (live):** the game's own bonus (+10% production at 5 spare, +20% at 10, and no more after that), The Two Swords (III), Commission: The Anointing (III, a goal of 10 spare), The Commander of the Faithful (IV).
 - **Settled or proposed elsewhere:** The Patriarchate (Tier II, settled), The Missi Dominici (Expansionist and Dominion, proposed in the Expansionist review).
@@ -311,16 +312,16 @@ Five sources and three readers is the wrong way round. Three of the five sources
 
 ### 4.2 The path after this pass
 
-| Tier | Supply | Pay-off for spare authority | What the pay-off gives |
-|---|---|---|---|
-| Gods | | Ancestor Worship | The game's bonus also raises faith and culture. |
-| Beliefs | Inquisition, Minarets (the Mosque) | | |
-| II | | The Patriarchate | +2 production and +2 science in the holy city for each point. |
-| II | | The Second Prophet (re-aimed) | One more charge on prophets and apostles for each ten points. |
-| III | The Caliphate (a rule) | The Two Swords | +1 happiness for each two points. |
-| III | | Commission: The Anointing (re-aimed) | At 10 spare: the capital's rite is kept by every town. |
-| III | | The Holy Inquisition (re-aimed) | Holy sites press 1 harder for each four points. |
-| IV | | The Commander of the Faithful | +3 faith and +3 culture for each point. |
+| Tier | Supply | Pay-off for spare authority | Today (live) | What the pay-off gives after this pass |
+| --- | --- | --- | --- | --- |
+| Gods |  | Ancestor Worship | "+1 culture for every 4 citizens in a town." | The game's bonus also raises faith and culture. |
+| Beliefs | Inquisition, Minarets (the Mosque) |  | No change. Inquisition: "Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion." Minarets: "Unlocks the Mosque: +3 faith, +2 production and +1 authority." |  |
+| II |  | The Patriarchate | New (settled in the first pass). | +2 production and +2 science in the holy city for each point. |
+| II |  | The Second Prophet (re-aimed) | "Prophets and apostles you buy start with one extra charge." | One more charge on prophets and apostles for each ten points. |
+| III | The Caliphate (a rule) | The Two Swords | No change. "+1 happiness for every two points of spare authority." | +1 happiness for each two points. |
+| III |  | Commission: The Anointing (re-aimed) | "Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture." | At 10 spare: the capital's rite is kept by every town. |
+| III |  | The Holy Inquisition (re-aimed) | "Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included." | Holy sites press 1 harder for each four points. |
+| IV |  | The Commander of the Faithful | No change. "+3 faith and +3 culture for each point of spare authority." | +3 faith and +3 culture for each point. |
 
 - Each pay-off gives a different thing: yields in one town, unit charges, happiness, a rule, pressure, and faith with culture. They add to each other and do not repeat.
 - Three of them tie authority to religion in play: more acts for each unit, the realm rite, and a stronger tide.
@@ -345,8 +346,8 @@ At 20 spare the pay-offs give: +40 production and +40 science in the holy city, 
 | Field | |
 |---|---|
 | Name | The Holy Inquisition (Tier III, uncommon; no change) |
-| Text | "Rival religions press your towns 80% less. Your holy sites press 1 harder for every four points of spare authority." (proposed) |
-| Live text | "Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included." |
+| Today (live) | "Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included." |
+| Proposed | "Rival religions press your towns 80% less. Your holy sites press 1 harder for every four points of spare authority." (proposed) |
 | Age goal | Age 3: hold a wide empire together, and push the religion past its borders. |
 | Theme and role | Devout towns and authority: a pay-off (multiply). It was the third copy of the belief's supply line. |
 | Role | Pay-off. Floor: the 80% is the deck's safety net with no authority at all. Ceiling: 20 spare gives +5 on a base of 6 for each holy site. |
@@ -364,8 +365,8 @@ At 20 spare the pay-offs give: +40 production and +40 science in the holy city, 
 | Field | |
 |---|---|
 | Name | Commission: The Anointing (Tier III, uncommon; no change) |
-| Text | "Goal: hold 10 spare authority. Reward: a rite your capital starts is kept by every town you hold." (proposed) |
-| Live text | "Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture." |
+| Today (live) | "Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture." |
+| Proposed | "Goal: hold 10 spare authority. Reward: a rite your capital starts is kept by every town you hold." (proposed) |
 | Age goal | Age 3: the tall-or-wide step. |
 | Theme and role | Authority: a pay-off that is a rule. It is also a bridge to rites, which authority does not touch today. |
 | Role | Build-defining. Floor: one rite price for the whole realm, in any seat that reaches 10 spare. Ceiling: every card that reads towns keeping a rite, in every town. |
@@ -383,8 +384,8 @@ At 20 spare the pay-offs give: +40 production and +40 science in the holy city, 
 | Field | |
 |---|---|
 | Name | The Second Prophet (Tier II, uncommon; no change) |
-| Text | "Prophets and apostles you buy start with one more charge, and one more again for every ten points of spare authority." (proposed) |
-| Live text | "Prophets and apostles you buy start with one extra charge." |
+| Today (live) | "Prophets and apostles you buy start with one extra charge." |
+| Proposed | "Prophets and apostles you buy start with one more charge, and one more again for every ten points of spare authority." (proposed) |
 | Age goal | Age 2 and 3: commit to the religion. |
 | Theme and role | The spreading faith: supply of acts. Authority: a pay-off. It is the join between the two. |
 | Role | Pay-off. Floor: today's card. Ceiling: at 20 spare an apostle has five charges. |
@@ -404,8 +405,8 @@ A prophet with four charges can gain two beliefs. That is intended: authority th
 | Field | |
 |---|---|
 | Name | Mission Houses (Tier II, common; no change) |
-| Text | "Gains +3 gold and +3 culture each time a foreign town turns to your religion." (proposed) |
-| Live text | "Your proclamations reach 50% farther and are 50% more effective in foreign cities." |
+| Today (live) | "Your proclamations reach 50% farther and are 50% more effective in foreign cities." |
+| Proposed | "Gains +3 gold and +3 culture each time a foreign town turns to your religion." (proposed) |
 | Age goal | Age 2 and 3: commit to the spread. |
 | Theme and role | The spreading faith: the scaler that the theme lacks in Tiers I and II. |
 | Role | Pay-off. Floor: two towns turned give +6 and +6. Ceiling: twenty give +60 and +60, with no limit. |
@@ -420,13 +421,13 @@ A prophet with four charges can gain two beliefs. That is intended: authority th
 
 ### 5.5 Smaller changes
 
-| Card | Change | Size |
-|---|---|---|
-| Commission: The State Church (II) | Reward: "+1 happiness for every devout town." The authority half goes, because the belief Inquisition is that line. | Text and number change |
-| The Learned Clergy (III), The Sacred Bequests (III), The Tithe of Nations (IV), The Theoric Fund (Doctrine I) | Retired (section 2.3). | Retired rows |
-| The Patriarchate (II) | New, settled in the first pass. | Existing shape |
-| The Bell Towers (II) | Retired, settled in the first pass. | Retired row |
-| The founder's share | Section 3.4. | Data row |
+| Card | Today (live) | Proposed | Size |
+|---|---|---|---|
+| Commission: The State Church (II, uncommon) | "Goal: hold six towns, all devout. Reward: +1 authority and +1 happiness for every two devout towns." | Reward: "+1 happiness for every devout town." The authority half goes, because the belief Inquisition is that line. | Text and number change |
+| The Learned Clergy (III, uncommon), The Sacred Bequests (III, common), The Tithe of Nations (IV, uncommon), The Theoric Fund (Doctrine I) | The Learned Clergy: "+2 science and +2 culture for every 10 faith your empire makes each turn." The Sacred Bequests: "Spending faith grants science equal to a fourth of it." The Tithe of Nations: "Gain 1 faith each turn for every two citizens in the world who follow your religion." The Theoric Fund: "+1 culture for every 3 faith your empire makes." | Retired (section 2.3). | Retired rows |
+| The Patriarchate (II) | New | "Your holy city gains +2 production and +2 science for each point of spare authority." Settled in the first pass. | Existing shape |
+| The Bell Towers (II, common) | "Unlocks the Bell Tower, a faith building: +1 faith, and its town presses your religion +1 harder for each faith building it holds." | Retired, settled in the first pass. | Retired row |
+| The founder's share | +1 faith for each foreign town that follows, and +1 gold for each two such towns (`founderTrickle` in `data/religion.json`). | "Each foreign town that follows your religion pays you +1 gold for every two citizens." Section 3.4. | Data row |
 
 **Tier counts after both passes.** Tier II stays at 22 (The Patriarchate in, The Bell Towers out). Tier III goes from 21 to 19. Tier IV goes from 10 to 9.
 
