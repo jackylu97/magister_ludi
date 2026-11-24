@@ -36,6 +36,16 @@ The user did not comment on The Feitorias (the review proposes that it pays for 
 
 ### Section D.4 again, with each card's effect
 
+### The user's second round of comments on section D.4 (2026-11-24)
+
+| Group | The user's words | Result |
+|---|---|---|
+| The treasury | On The Monte di Pietà (Doctrine, Tier IV: "Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold."): "cut, not interesting" | The Monte di Pietà is retired. The Money Lenders and The Strongroom stay. |
+| Deals | "sure keep" | All five stay. |
+| Roads | "lets cut wayside inns, its too similar to market gardens" | The Wayside Inns (Tier II: "Hexes with a road gain +1 food and +1 production.") is retired. Market Gardens and The Turnpike Trusts stay. |
+| Plain hex cards | "great" | All three stay. |
+| Military singles | "Yeah, cut" | Foreign Procurement (Tier II: "You may buy units without their strategic resource.") and The Epibatai (Tier II: "Your units gain +5 strength for three turns after they land from the sea.") are retired. |
+
 **The treasury.** The review: keep all three, and call them the "save" side of the gold theme. No card changes.
 
 | Card | Tier | Effect today |
