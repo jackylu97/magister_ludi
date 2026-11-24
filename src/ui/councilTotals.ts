@@ -36,7 +36,7 @@ import type { MeterId } from '../sim/meters';
 import { CITY_YIELD_KEYS } from '../sim/resourceData';
 import { slateMemo } from '../sim/slate';
 import type { GameState } from '../sim/state';
-import { roundYield } from '../sim/yieldFormat';
+import { roundYield, roundYieldDifference } from '../sim/yieldFormat';
 import type { PlateFigure, PlateVoice } from './orderFace';
 import { type StagedSlots, stagedState } from './statecraftStaging';
 
@@ -110,7 +110,7 @@ export function councilPlate(council: Readonly<CouncilFigures>, card: readonly C
   const own = foldImpactVoices(card);
   const figures: PlateFigure[] = [];
   for (const voice of COUNCIL_VOICES) {
-    const amount = roundYield(council[voice]) - roundYield(council[voice] - own[voice]);
+    const amount = roundYield(council[voice]) - roundYieldDifference(council[voice], own[voice]);
     if (amount !== 0) figures.push({ voice, amount });
   }
   return figures;

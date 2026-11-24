@@ -220,7 +220,7 @@ import {
 } from '../sim/routes';
 // Commerce batch T9: The Return Leg is priced off the route's own fold, the
 // list the rule copies.
-import { explainRouteSenderYield, explainRouteYield, foldRouteYield } from '../sim/routeYields';
+import { explainRouteSenderYield, explainRouteYield, foldRouteYield, senderRouteYields } from '../sim/routeYields';
 // Commerce batch T9: the luxuries a seat holds, lends and borrows, read where
 // the happiness meter and the luxury yields read them.
 import {
@@ -7916,7 +7916,12 @@ function rewardTerms(
   for (const effect of reward.lasting ?? []) {
     // Price the reward on today's board and at the minimum its own goal requires.
     const guaranteed = guaranteedCount(effect, goals);
-    const board = lastingWorth(effect, ctx);
+    const foreignShare = effect.kind === 'pays' && effect.where === 'route' &&
+      effect.crossing === 'international' && effect.share?.length === 1 && effect.share[0]?.yield === 'all'
+      ? effect.share[0].percent / 100 : undefined;
+    // An active route can still earn the reward when there is no new route to open.
+    const board = foreignShare === undefined ? lastingWorth(effect, ctx)
+      : valueOfYields(foldRouteYield(senderRouteYields(ctx.state, ctx.playerId)), ctx) * foreignShare;
     const counted =
       guaranteed === 0
         ? 0
@@ -7927,13 +7932,12 @@ function rewardTerms(
     // `guaranteedTownsWorth`.
     const towns = guaranteedTownsWorth(effect, goals, ctx);
     let routesWorth = 0;
-    if (effect.kind === 'pays' && effect.where === 'route' && effect.crossing === 'international' &&
-        effect.share?.length === 1 && effect.share[0]?.yield === 'all') {
+    if (foreignShare !== undefined) {
       const base = RULES.trade.international;
       for (const goal of goals) {
         if (goal.kind !== 'reached' || goal.figure !== 'tradePartnerEmpires') continue;
         // Each required partner entails a route that pays the foreign sender rate.
-        routesWorth = goal.count * effect.share[0].percent / 100 *
+        routesWorth = goal.count * foreignShare *
           valueOfYields({ gold: base.gold, science: base.science, culture: base.culture }, ctx);
       }
     }

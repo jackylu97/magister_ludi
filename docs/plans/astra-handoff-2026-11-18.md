@@ -1086,3 +1086,7 @@ Two meeting points to watch:
 ### Release check exception (user, 2026-11-24)
 
 The user approved an immediate merge to `main` and push once the production build succeeds. They explicitly accepted minor bugs and asked us to stop waiting for tests. The core rerun was stopped; remaining fixture failures need follow-up. The slow tier was skipped. Preserve the pre-release `main` tag for rollback.
+
+The release reached `main` and 5199 at `831c0087`. The user then asked for the slow tests and follow-up fixes on `decks`. Do not push further changes to `main` or update 5199 without the user’s green light.
+
+Follow-up validation is complete on `decks`: typecheck, 13,140 core tests, affected slow checks, both saved 120-turn bot replays, and build passed. The full run and its corrections are recorded in `docs/audit/deck-review-validation-2026-11-24.md`. The hold on further `main` pushes and 5199 updates remains in effect.

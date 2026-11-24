@@ -130,7 +130,7 @@ describe('the two rows', () => {
 
   it('prints both rows through the describers in plain words', () => {
     expect(words(PENTECOST)).toEqual([
-      'a foreign city turning to your religion spreads your religion to every city within 4 hexes',
+      'a foreign city turning to your religion spreads your religion to every city within 4 hexes with 60 pressure',
     ]);
     expect(words(BAPTISMS)).toEqual([
       'a foreign city turning to your religion for the first time grants science equal to 20 times its population',

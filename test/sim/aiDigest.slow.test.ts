@@ -11,8 +11,8 @@ import { expectSixSeatDigest } from './aiDigestPins';
 describe('the six-seat digest', () => {
   it(
     'plays a hundred and twenty turns on the standard board to the state it always reaches',
-    () => {
-      expectSixSeatDigest('standard', playSeatedGame(sixSeatSpec('standard')));
+    async () => {
+      await expectSixSeatDigest('standard', playSeatedGame(sixSeatSpec('standard')));
     },
     900_000,
   );

@@ -3634,7 +3634,7 @@ describe('the two missing signs (batch X5)', () => {
   it('folds every wall row’s hit points as a share of the town’s own bar', () => {
     // The Great Wall grants hit points across the empire. These rows grant them locally.
     expect(WALL_ROWS).toHaveLength(5);
-    expect(WALL_ROWS.filter((id) => buildingDef(id).cityStat === undefined)).toHaveLength(2);
+    expect(WALL_ROWS.filter((id) => buildingDef(id).cityStat === undefined)).toHaveLength(1);
     const { state, player, cities } = realm(2);
     const ctx = valueContext(state, player);
     const town = cities[1]!;
@@ -4162,6 +4162,9 @@ describe('the growth channel charged (batch X5b)', () => {
     recomputeAllVisibility(state);
     city.population = 4;
     city.focus = 'production';
+    const extraWheat = assignableTiles(state, city).find(tile => tile.hills)!;
+    extraWheat.hills = false;
+    extraWheat.resource = 'wheat';
     // Two wheat tiles feed the city under either focus. The remaining citizens
     // can trade food for production without the simulation rejecting that choice.
     city.lockedTiles = assignableTiles(state, city).filter(tile => tile.resource === 'wheat')

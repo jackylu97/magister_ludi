@@ -39,7 +39,7 @@ import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../../
 import { foundReligion, religionBeliefPool } from '../../src/sim/religion';
 import { BELIEF_IDS } from '../../src/sim/religionData';
 import { type City, type GameState, type Player, addBuilding, bumpRevision, createUnit, playerById, queueItemKey } from '../../src/sim/state';
-import { assignableTiles, foundCityAt, foundingErrorAt, refreshCityDerived } from '../../src/sim/cities';
+import { ownedTiles, foundCityAt, foundingErrorAt, refreshCityDerived } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { createMap } from '../../src/sim/map';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
@@ -296,10 +296,21 @@ describe('the focus changes only by a clear margin (bot batch BP11, driver.focus
 
   /** The fixture's town put on the hammers, and the two-sheet table's reading of it. */
   function leaning(): { game: Game; city: City; edge: number } {
-    const game = grownGame(10);
-    const city = firstCity(game.state, 0);
+    // A fixed board keeps this policy test independent of which cards a bot drafts.
+    const game = grownGame(0);
+    const state = game.state;
+    state.map = createMap({ width: 20, height: 12, terrain: 'grassland' });
+    resetVisibility(state);
+    state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+    state.units = [];
+    state.cities = [];
+    state.camps = [];
+    state.nextEntityId = 1;
+    const city = foundCityAt(state, 0, getTileAt(state.map, 6, 6)!);
+    createUnit(state, 0, 'warrior', city.col, city.row);
+    recomputeAllVisibility(state);
     // Keep both assignments fed while leaving one citizen a food/production choice.
-    const tiles = assignableTiles(game.state, city);
+    const tiles = ownedTiles(game.state, city).filter(tile => tile.col !== city.col || tile.row !== city.row);
     tiles.forEach((tile, index) => {
       tile.terrain = 'grassland';
       tile.feature = 'none';
@@ -308,6 +319,8 @@ describe('the focus changes only by a clear margin (bot batch BP11, driver.focus
       tile.resource = tile.hills ? undefined : 'wheat';
     });
     city.population = 3;
+    delete city.avoidGrowth;
+    for (const family of Object.keys(city.specialists) as (keyof typeof city.specialists)[]) city.specialists[family] = 0;
     city.lockedTiles = tiles.filter(tile => tile.resource === 'wheat').slice(0, 2)
       .map(({ col, row }) => ({ col, row }));
     bumpRevision(game.state);

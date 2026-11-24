@@ -122,7 +122,6 @@ const KINDS_USED = [
   // `pantheonSlots` left with The Old Gods Remain, retired in batch R2c.
   'rule',
   'effectAmplifier',
-  'grantsAbility',
   'pressureRule',
   'cardYieldAmplifier',
   // `cityStat` left with The Peace of God, retired in batch DS1.

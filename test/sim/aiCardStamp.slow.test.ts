@@ -217,9 +217,9 @@ describe('the six-seat duel', () => {
   }, PATIENCE);
 
   describe('the six-seat digest', () => {
-    it('plays a hundred and twenty turns on the duel board to the state it always reaches', () => {
-      expectSixSeatDigest('duel', played);
-    });
+    it('plays a hundred and twenty turns on the duel board to the state it always reaches', async () => {
+      await expectSixSeatDigest('duel', played);
+    }, PATIENCE);
   });
 
   describe('the bot’s card price against the card’s stamp, over recorded positions (bot batch BP3)', () => {

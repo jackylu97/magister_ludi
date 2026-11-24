@@ -689,7 +689,7 @@ describe('the totals line (frame N4), and the change a held card would make (fra
     expect(totals).not.toContain('meterCardShares');
     expect(totals).not.toContain('foldDeck');
     expect(braceBody(totals, 'export function councilPlate(')).toContain(
-      'const amount = roundYield(council[voice]) - roundYield(council[voice] - own[voice]);',
+      'const amount = roundYield(council[voice]) - roundYieldDifference(council[voice], own[voice]);',
     );
     expect(braceBody(totals, 'export function councilChange(')).toContain('change[voice] = will[voice] - was[voice];');
     expect(SCREEN).not.toContain("from './ledgerScreen'");

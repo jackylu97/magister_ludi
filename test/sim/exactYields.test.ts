@@ -49,7 +49,7 @@ import { applyStages, foldStages, type StagedLine } from '../../src/sim/yields/s
 import { RULES } from '../../src/sim/rulesData';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { type GameState, bumpRevision } from '../../src/sim/state';
-import { roundYield, signedYield, yieldShows } from '../../src/sim/yieldFormat';
+import { roundYield, roundYieldDifference, signedYield, yieldShows } from '../../src/sim/yieldFormat';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { newGame } from './newGameHelpers';
@@ -251,6 +251,22 @@ describe('the surface rounds, and it is the only thing that does', () => {
     expect(roundYield(-2.5)).toBe(-3);
     // No `-0` ever reaches a printer.
     expect(Object.is(roundYield(-0.2), 0)).toBe(true);
+  });
+
+  it('shows the same half point from a direct total and a subtraction', () => {
+    // Both Orders leave the same base science. The Grand Army adds a larger amount.
+    const direct = 5.499999999999999;
+    const schoolsTotal = 18.7;
+    const armyTotal = 51.699999999999996;
+    const large = 2 ** 50;
+    for (const sign of [-1, 1]) {
+      expect(roundYield(sign * direct)).toBe(sign * 6);
+      expect(roundYieldDifference(sign * schoolsTotal, sign * 13.2)).toBe(sign * 6);
+      expect(roundYieldDifference(sign * armyTotal, sign * 46.2)).toBe(sign * 6);
+      expect(roundYield(sign * 5.4999999999)).toBe(sign * 5);
+      expect(roundYieldDifference(sign * 10002, sign * 9996.5000000001)).toBe(sign * 5);
+      expect(roundYield(sign * (large + 0.25))).toBe(sign * large);
+    }
   });
 
   it('signs a rounded figure in the house voice, and never signs a nought', () => {

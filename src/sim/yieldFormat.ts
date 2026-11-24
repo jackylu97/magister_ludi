@@ -48,8 +48,23 @@
  * it on a figure it then banks.
  */
 export function roundYield(value: number): number {
+  return roundAtPrecision(value, Math.abs(value));
+}
+
+/** Allow for the precision of both totals when their difference is small. */
+export function roundYieldDifference(left: number, right: number): number {
+  return roundAtPrecision(left - right, Math.abs(left) + Math.abs(right));
+}
+
+function roundAtPrecision(value: number, operandMagnitude: number): number {
   if (!Number.isFinite(value)) return 0;
-  const rounded = Math.sign(value) * Math.round(Math.abs(value));
+  const magnitude = Math.abs(value);
+  // Subtracting two large totals can leave their rounding error in a small difference.
+  // Limit the tolerance so large yields keep their quarter points.
+  const tolerance = Math.min(Number.EPSILON * operandMagnitude, 1e-12);
+  const shortOfHalf = 0.5 - (magnitude % 1);
+  const rounded = Math.sign(value) * (shortOfHalf > 0 && shortOfHalf <= tolerance
+    ? Math.ceil(magnitude) : Math.round(magnitude));
   return rounded === 0 ? 0 : rounded;
 }
 

@@ -341,7 +341,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 - **Printing** — Trade routes +1
 - **Mechanics** — Onager: Catapult and Trebuchet +1 range
 - **Mechanics** — Repeating Crossbow: Archer to Crossbowman move after attacking
-- **Chemistry** — Grenadier: Warrior to Longswordsman +1 combat strength per charter technology you know
+- **Chemistry** — Grenadier: Warrior to Longswordsman +1 combat strength per charter you hold
 - **Naval Gunnery** — Galleass: Gun Galley and Frigate +3 combat strength
 - **Naval Gunnery** — Galleass: Gun Galley and Frigate blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing
 

@@ -22,8 +22,18 @@
  */
 
 import { expect } from 'vitest';
+import { loadGame, saveGame, snapshotState } from '../../src/sim/game';
 
 import { digestOfState, type Played } from './aiDigestHelpers';
+
+// Keep optional Node diagnostics outside the browser type surface.
+declare const process: { env: Record<string, string | undefined> };
+const FS_SPECIFIER = 'node:fs';
+interface DigestFileSystem {
+  mkdirSync(path: string, options: { recursive: boolean }): void;
+  writeFileSync(path: string, data: string): void;
+}
+
 
 /**
  * The literals. Cut 2026-09-15 at schema 117 (L1's lifetime deck tally,
@@ -1370,13 +1380,34 @@ import { digestOfState, type Played } from './aiDigestHelpers';
 // The trade and tile valuation batch changes bot choices, not simulation rules.
 // Both 120-turn games completed without warnings or stalls. Their saved logs
 // replayed exactly. See docs/audit/bot-trade-and-tiles-2026-11-23.md.
+// Version 267 includes the reviewed card pools, charter prices, wonders, and
+// updated bot forecasts. Both measured games completed 120 turns without
+// warnings or stalls, and both saved command logs replayed exactly.
+// See docs/audit/deck-review-validation-2026-11-24.md.
 const DIGESTS = {
-  duel: '673a367f:421258',
-  standard: '9d59b709:1166432',
+  duel: '95725a88:437341',
+  standard: '806e8052:1159065',
 };
 
 /** Check driver errors before comparing the state digest. */
-export function expectSixSeatDigest(sizeName: keyof typeof DIGESTS, played: Played): void {
+export async function expectSixSeatDigest(sizeName: keyof typeof DIGESTS, played: Played): Promise<void> {
+  // Reuse the measured game for replay checks and baseline review. This does
+  // not change the expected digest or bypass the assertions below.
+  const reportDirectory = process.env.AI_DIGEST_REPORT_DIR;
+  if (reportDirectory) {
+    const io = await import(/* @vite-ignore */ FS_SPECIFIER) as DigestFileSystem;
+    io.mkdirSync(reportDirectory, { recursive: true });
+    const saved = saveGame(played.game);
+    const replayed = loadGame(saved);
+    const replayMatched = snapshotState(replayed.state) === snapshotState(played.game.state);
+    io.writeFileSync(`${reportDirectory}/${sizeName}.save.json`, saved);
+    io.writeFileSync(`${reportDirectory}/${sizeName}.json`, JSON.stringify({
+      sizeName, digest: digestOfState(played.game.state), turnsPlayed: played.turnsPlayed,
+      warnings: played.warnings, stalled: played.stalled, commands: played.game.log.length,
+      replayMatched,
+    }, null, 2) + '\n');
+    expect(replayMatched).toBe(true);
+  }
   expect({ sizeName, warnings: played.warnings, stalled: played.stalled }).toEqual({
     sizeName,
     warnings: 0,

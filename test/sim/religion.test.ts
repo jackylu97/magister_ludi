@@ -819,7 +819,7 @@ describe("a belief is an effect source, not a second evaluator", () => {
 
   it("adds authority and extends its production bonus to faith", () => {
     const effects = beliefDef("ancestorWorship").effects;
-    expect(effects).toContainEqual({ kind: "meterRule", rule: "surplusAuthorityFaith" });
+    expect(effects).toContainEqual({ kind: "meterRule", rule: "surplusAuthorityFaith", value: 1 });
     expect(effects).toContainEqual(expect.objectContaining({kind: "authority", amount: 3}));
   });
 
@@ -1752,7 +1752,14 @@ describe("the apostle", () => {
     religion.enhancer = ["reliquaries"];
     city.buildings.push("temple", "cathedral");
     bumpRevision(g.state);
+    const turnMovement = apostle.movesLeft;
     for (let count = 1; count <= 2; count++) {
+      if (count === 2) {
+        expect(apostle.movesLeft).toBe(0);
+        g.state.turn++;
+        apostle.movesLeft = turnMovement;
+        bumpRevision(g.state);
+      }
       expect(placeRelicError(g.state, player.id, apostle.id, "belief")).toBeNull();
       placeRelicAt(g.state, player, apostle, "belief");
       expect(city.buildingRelics?.[0]?.count).toBe(count);

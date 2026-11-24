@@ -187,7 +187,7 @@ function giveLuxury(state: GameState, city: City, col: number, row: number, id: 
   return tile;
 }
 
-/** A domestic caravan of seat 0 running from one town to another. */
+/** Opens a route for seat 0 through the same command a player uses. */
 function caravan(state: GameState, from: City, to: City): Unit {
   from.buildings.push('market');
   bumpRevision(state);
@@ -628,19 +628,21 @@ describe('the Commerce commissions', () => {
   });
 
   it('values the World’s Fair route reward only when a route can benefit', () => {
-    const { state, player, towns } = board([6]);
+    const { state, player, towns } = board([6, 6]);
     const worth = () => {
       const reward = explainCommission(WORLDS_FAIR, valueContext(state, player))!.terms[0]!;
       return reward.parts!.find(term => term.label.includes('for the rest of the game'))!.value;
     };
-    // Deals can fulfill the goal without providing any international route income.
-    expect(worth()).toBe(0);
-    const home = towns[0]!;
-    const away = rivalTown(state, 6);
-    const cart = createUnit(state, 0, 'trader', home.col, home.row);
-    cart.trade = { from: home.id, to: away.id, outbound: true };
+    const away = foundCityAt(state, 1, at(state.map, 3, 9));
+    openDeal(state, 900, 0, 1, { goldPerTurn: 1 }, {});
     bumpRevision(state);
-    expect(worth()).toBeGreaterThan(0);
+    expect(worth()).toBe(0);
+    caravan(state, towns[1]!, towns[0]!);
+    expect(worth()).toBe(0);
+    const cart = caravan(state, towns[0]!, away);
+    const income = foldRouteYield(explainRouteSenderYield(state, cart));
+    expect(income.gold).toBeGreaterThan(0);
+    expect(worth()).toBe(valueOfYields(income, valueContext(state, player)));
   });
 });
 

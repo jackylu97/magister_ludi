@@ -286,7 +286,7 @@ describe("The World's Fair", () => {
     expect(text[1]).toContain('trade with 4 empires at once');
     expect(text[1]).toMatch(/100%|twice|double/);
     const goal = orderDef(WORLDS_FAIR).commission!.goals[0]!;
-    expect(commissionCounterWords(goal)).toBe('empires your trade routes reach');
+    expect(commissionCounterWords(goal)).toBe('empires you trade with');
   });
 });
 

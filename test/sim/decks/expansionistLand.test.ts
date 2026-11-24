@@ -414,7 +414,7 @@ describe('the Expansionist batch E3: the words', () => {
       'citizens may work owned hexes one ring beyond the usual reach in every city of 10 or more citizens',
     ]);
     expect(said('theRaisingOfTheLand')).toEqual([
-      'a great engineer spending themselves on their boon gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game',
+      'one of your great engineers using their action gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game',
     ]);
     expect(said('theAgeOfImprovement')).toEqual([
       'what your other Orders pay on improved hexes is +100% more',

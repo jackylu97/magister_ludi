@@ -7634,6 +7634,7 @@ export function occasionWords(
   family?: Family,
 ): string {
   if (family !== undefined) {
+    if (occasion === 'greatPersonAct') return OCCASION_WORDS[occasion].replace('great people', `great ${family}s`);
     // The same substitution `familyNarrowed` makes one table over, on the only
     // phrase any occasion uses for a person: an occasion with nobody in it comes
     // back untouched, which is the honest answer for a row that narrowed a

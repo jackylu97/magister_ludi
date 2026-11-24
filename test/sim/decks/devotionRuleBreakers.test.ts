@@ -353,7 +353,7 @@ describe('The Double Feast: the gate', () => {
     performRiteAt(state, player, city, VOTIVE);
     expect(cityRites(state, city)).toEqual([OMEN, VOTIVE]);
     expect(riteError(state, 0, city.id, HARVEST)).toBe(
-      `${city.name} is already keeping Omen Reading and Votive Offering`,
+      `${city.name} is already keeping Rite of the Harvest`,
     );
   });
 

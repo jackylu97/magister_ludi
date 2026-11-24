@@ -211,7 +211,7 @@ describe('the Doctrine data model', () => {
     ];
     expect(DECK_FILE_DOCTRINES.dominion).toEqual(dominion);
     expect(fromDecks).toEqual(expect.arrayContaining(dominion));
-    const retired: readonly DoctrineId[] = [SERVIAN, MOBILISATION, WEIGHT, 'theWildwoodCompact', 'theGardenPeoples', 'arcadia', 'theNassauReforms'];
+    const retired: readonly DoctrineId[] = [SERVIAN, MOBILISATION, WEIGHT, 'theWildwoodCompact', 'theGardenPeoples', 'arcadia', 'theNassauReforms', 'theTheoricFund', 'theMonteDiPieta'];
     for (const id of fromDecks) {
       expect(STATECRAFT.doctrines[id], id).toBeDefined();
       expect(DOCTRINE_IDS, id).toContain(id);

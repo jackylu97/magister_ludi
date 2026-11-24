@@ -5574,8 +5574,8 @@
   ],
   "theRaisingOfTheLand": [
    {
-    "raw": "one of your great people using their action gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game",
-    "text": "one of your great people using their action gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game"
+    "raw": "one of your great engineers using their action gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game",
+    "text": "one of your great engineers using their action gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game"
    }
   ],
   "theAgeOfImprovement": [
@@ -5666,8 +5666,8 @@
   ],
   "theMasterOfWorks": [
    {
-    "raw": "one of your great people using their action in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a [[improvement:manufactory|Manufactory]]",
-    "text": "one of your great people using their action in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a Manufactory"
+    "raw": "one of your great engineers using their action in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a [[improvement:manufactory|Manufactory]]",
+    "text": "one of your great engineers using their action in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a Manufactory"
    }
   ],
   "thePhilosophersPeaks": [
