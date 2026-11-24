@@ -64,6 +64,13 @@ Nineteen more comments on section 1.3, and one answer in chat. Nothing is built 
 | Congregation | "+2 faith for every town in the world that follows your religion." | "The first time a foreign town turns to your religion, your capital gains a citizen." | "great" | Settled as proposed. |
 | The Long Prayer | "+1 culture for every 4 citizens in the world who follow you." | "+1 culture for every 3 citizens in the world who follow you." | "great" | Settled as proposed. |
 
+**The user's answers in chat, 2026-11-24:** "in theory, the founders share is something that's visible to the player in a belief. lets defer this, note it in the beta checklist. yes, +3 authority. yup, accepted. Please take all our determinations and send them to astra."
+
+- **The founder's share is deferred.** It stays as it is today (+1 faith for each foreign town that follows, and +1 gold for each two such towns). The user's point: the share should be something a belief shows the player, not a hidden base rule. It is noted in `docs/plans/beta-checklist-2026-11-21.md`.
+- **Ancestor Worship is confirmed:** "+3 authority. The bonus for spare authority also raises faith."
+- **The smaller belief list is accepted.**
+- **Decisions 3 and 4 have no direct answer.** They are taken by the recommended reading, as the user's standing rule allows, and marked so in the handoff: The Holy Inquisition and Commission: The State Church stop giving authority, and the four conversion rows are retired. The user can still overrule them.
+
 **Decisions after this round.** Decisions 5 and 6 are answered. Decisions 1 to 4 have no direct comment yet: the smaller belief list as a whole, the founder's share by citizens, whether The Holy Inquisition and Commission: The State Church stop giving authority, and the retirement of the four conversion rows. Every cut the user commented on in section 1.3 was approved.
 
 

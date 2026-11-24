@@ -32,6 +32,8 @@ Owners: **A** is Astra (bots, rendering, models, rules and card builds).
 | 14 | A resource picker for composing a strategic resource offer on the diplomacy screen | C | Built. Each tray has a strategic group after the luxuries: the free copies on each chip, a struck chip with the sim's reason when none is free, and a hover note when the receiver cannot use it yet. The paper, the drawer and the peace terms name the loan (`docs/README.md`, "Strategic resources in an offer"). |
 | 15 | Wonders on the board: one model for a city that holds any wonder | A | **Done** by Astra: one landmark a city, which changes with the owner's age. |
 
+- **The founder's share of a religion, and the reason to spread it (deferred 2026-11-24).** Today a founder gains +1 faith for each foreign town that follows, and +1 gold for each two such towns. That is too little to make a missionary worth its faith (`docs/plans/devotion-beliefs-pass-2026-11-23.md`, section 3). The pass proposed +1 gold for every two citizens of each foreign town that follows. The user deferred it: "in theory, the founders share is something that's visible to the player in a belief. lets defer this, note it in the beta checklist." To decide: whether the share becomes a founder belief the player picks and can read, and its size.
+
 ## B2. Carried from the first checklist (`docs/beta-checklist.md`, 2026-11-16 to 2026-11-19)
 
 The Claude session found on 2026-11-22 that an older checklist held items
