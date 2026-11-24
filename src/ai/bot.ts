@@ -1,3 +1,6 @@
+import { appraiseMilestoneWagers } from './wager';
+import { milestoneOffer, milestonePickNeeded } from '../sim/wagerMilestones';
+import { wagerMetricText } from '../sim/wagerMilestoneData';
 /**
  * The first bot: one seat's next intention, as a `Command`.
  *
@@ -286,10 +289,10 @@ import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData'
 import { cityKeepsRelics, cityQueueFloor } from '../sim/buildingEffects';
 // Expansionist batch E13: what a town holds for a building's effects, a card's
 // grant included. Straight from its layer, as `value.ts` imports it.
-import { townBuildings, townShelf } from '../sim/statecraft/evaluator';
+import { buildingRelicOffer, townBuildings, townShelf } from '../sim/statecraft/evaluator';
 // The bot levy batch: which seated cards grant a levy or pay for a soldier
 // retired, read the way the simulation reads them.
-import { effectsOfKind, readingAtRest, unitMatches } from '../sim/statecraft/evaluator';
+import { cardActionRule, effectsOfKind, readingAtRest, unitMatches } from '../sim/statecraft/evaluator';
 // The levy menu, with each line's refusal, exactly as the city panel lists it.
 import { levyOptions } from '../sim/levies';
 import {
@@ -300,6 +303,7 @@ import {
 import { improvementDef } from '../sim/improvementData';
 import {
   type QueueItem,
+  bankedTowardItem,
   capitalCityOf,
   unitById,
   citiesOf,
@@ -402,9 +406,7 @@ import {
   riteError,
 } from '../sim/religion';
 import { riteDef } from '../sim/religionData';
-import { totalSpecialists } from '../sim/specialists';
 import {
-  cardGarrisonSeats,
   cityScopeAdmits,
   cardBehaviorRule,
   // Commerce batch T9: a unit whose upkeep a card has waived for a while
@@ -2104,7 +2106,7 @@ function askPhase(
       return ask('reaimBeeline', () => reaimBeeline(state, player, sitting));
     }
     case 'diplomacy':
-      return ask('diplomacy', () => diplomacyDecision(state, player, seatContext(state, player, sitting), true));
+      return ask('diplomacy', () => diplomacyDecision(state, player, seatContext(state, player, sitting)));
     case 'council': {
       if (blocker !== null && (isOfferBlocker(blocker) || blocker.kind === 'wager' || blocker.kind === 'census')) {
         const answer = ask(`offer:${blocker.kind}`, () => answerBlocker(state, player, blocker, sitting));
@@ -2267,7 +2269,7 @@ function theOldPass(state: GameState, player: Player, sitting?: BotSitting): Bot
   //
   // Asked every time here: a sitting closes it in its own phase
   // (`phasedDecision`), and a copy for the end check opens it again.
-  const abroad = diplomacyDecision(state, player, seatContext(state, player, sitting), true);
+  const abroad = diplomacyDecision(state, player, seatContext(state, player, sitting));
   if (abroad !== null) return abroad;
 
   const ranged = fortifiedRangedAttack(state, player);
@@ -2398,6 +2400,18 @@ function answerBlocker(
  * absent hot-seat player.
  */
 function wagerDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  if (milestonePickNeeded(state, player.id)) {
+    const offer = milestoneOffer(state, player.id)!;
+    const choices = appraiseMilestoneWagers(state, player.id, seatContext(state, player, sitting).ai.wager, offer);
+    const best = choices[0]!;
+    return { kind: 'draft', command: { type: 'chooseWager', playerId: player.id, index: best.index, mark: best.mark, age: offer.age },
+      subject: seatName(state, player.id), summary: `Choose ${wagerMetricText(best.metric).name} at ${round1(best.goal)}. The forecast is ${round1(best.projected)}.`,
+      candidates: choices.map((choice) => ({
+        label: `${wagerMetricText(choice.metric).name} at ${round1(choice.goal)}`, score: choice.score, chosen: choice === best,
+        terms: [{ label: `Forecast ${round1(choice.projected)} from ${round1(choice.now)} now. Mark pays ${choice.mark + 1}.`, value: choice.score }],
+      })),
+    };
+  }
   const deal = wagerBlocker(state, player.id);
   if (deal === null) return null;
   const stake = appraiseWagers(state, player, seatContext(state, player, sitting));
@@ -2633,40 +2647,11 @@ function reaimBeeline(
  * engine standing goes back to the balanced ordering, because the premium is then
  * nothing and the food it gave up is not.
  *
- * Three things keep it honest and one keeps it finite:
+ * The bot asks the simulation to place the citizens in a copy of this town.
+ * This accounts for locked tiles, food upkeep and avoid-growth swaps. The
+ * food estimate uses the same city percentages as an actual focus command.
  *
- *   · **the sheets are the simulation's own** (`citizenWeightsFor`, the default
- *     sheet at the owner's age, and `citizenFocusWeights.production`), read
- *     through the simulation's own scorer (`yieldScore` over `foldTile` in the
- *     owning town's context), so
- *     what the bot predicts a focus would do is what `assignCitizens` will
- *     actually do;
- *   · **the starvation guard is anticipated, not discovered.** A focused sheet
- *     that would leave the town short of what its citizens eat is silently put
- *     back by `assignCitizens`, so a bot that ignored it would send a command
- *     that changed nothing. It is printed as a refusal instead;
- *   · **pinned tiles are not modelled** and are written down as the one
- *     crudeness: nothing in this bot ever sends `setLockedTiles`, so a bot seat's
- *     towns have no pins to honour. A human's town this arm never touches.
- *
- * **Finite by construction**, which the driver's loop needs: the comparison is a
- * function of the board and of `ValueContext.medianProduction` — frozen for the
- * seat's whole turn by the sitting (`BotSitting`) — and never of the town's
- * current focus, so the answer cannot change because the answer was acted on.
- * The command is sent only when the focus it names differs from the one the town
- * carries, so it fires at most once per town per turn and then falls silent.
- * That is the research plan's lesson (`researchCommand`) said one verb over.
- *
- * The two readings that *must* be live — the starvation guard and the growth
- * clock, both of which price the town through `foldCity` — hold that property
- * by asking `foodUnder`, which shifts the town's quote to the sheet in question
- * and lets the simulation stage it. They used to patch the staged total by a raw
- * tile difference instead, which is a different number under any food percentage
- * and a different number again depending on which sheet the town was standing on
- * — and that, measurably, was an arm ordering one town back and forth until its
- * seat's command budget ran out. See `foodUnder`.
- *
- * What those two clauses cannot cover is the board **genuinely** moving under
+ * The board can also change under
  * the arm — a card slotted, a government adopted, a hex bought — which is the
  * seat's other arms doing their work and is exactly the mid-turn mutation batch 6
  * says to re-read from the state. Re-reading it is right; ordering a second time
@@ -2908,112 +2893,11 @@ function focusTable(
   city: City,
   ctx: ValueContext,
 ): { best: CitizenFocus; edge: number; gated: boolean; candidates: BotCandidate[] } {
-  const balanced = citizenWeightsFor(state, city.ownerId);
-  const leaning = RULES.cities.citizenFocusWeights.production;
-  const tiles = assignableTiles(state, city);
-  // **The ring's context, hoisted for the table** (batch 9): the two sheets are
-  // ranked and bagged four times over the same hexes, and every hex of one town
-  // prices through that town's own reading. `tileContextField` is
-  // `tileContextAt`'s answer computed once per town; its lifetime is this table.
-  const ground = tileContextField(state, city.ownerId);
-  // **The town's books, taken once** for the two live readings below (the
-  // starvation guard and the growth clock): the quote is the ingredients and
-  // `foldCity` is still the fold, so the figure is the same one and the empire
-  // meter sweep behind it is paid for once rather than three times (batch 9).
-  // **`readCity` since batch E2** — the town's own published list, remembered on
-  // the economy clock, so the bot reads the very object the panel and the top bar
-  // are holding rather than a reading of its own.
-  const books = readCity(state, city);
-  // **The seats to fill: `chooseCitizens`' own `cap`, bounded by the ground it
-  // walks** — the citizens this town would place if it were placed right now,
-  // and *not* `city.workedTiles.length`.
-  //
-  // The two agree in every town whose assignment is fresh, and the length is
-  // what this read before. Where they part is a town that has **grown since it
-  // was last assigned**: `settleGrowth` adds the citizen and `collectYields` is
-  // what seats it, and `collectYields` prices the town *before* the growth
-  // phase, so a town that grows at the end of turn N stands all of turn N + 1
-  // with one fewer hex worked than it has people. Any command that reaches
-  // `refreshCityDerived` — this arm's own, first of all — seats them.
-  //
-  // Read off the length, that made the arm's own command change its answer: seat
-  // 0's town on seed 20260831 read four seats, was told the balanced ordering,
-  // seated its fifth citizen on the way, and read five seats and the opposite
-  // word a moment later. The cap is a fact about the town's people rather than
-  // about when it was last swept, so it survives the sweep.
-  //
-  // **The soldiers' seats too** (Dominion batch D16): under The Limitanei
-  // (`garrisonWorks`) `chooseCitizens` adds one seat for each soldier in the
-  // town, up to the card's cap, and `cardGarrisonSeats` is the one function
-  // both read. Without them this copy of the cap was short, and the table
-  // priced two placements one or two hexes smaller than the town works.
-  const seats = Math.min(
-    Math.max(0, city.population - totalSpecialists(city)) + cardGarrisonSeats(state, city),
-    tiles.length,
-  );
-  // **What the hexes the town stands on today pay**, read through the same
-  // evaluator and the same context as the two sheets below — which is what makes
-  // it exactly the tile half of `books.flats` (`explainCity` folds a worked hex's
-  // `foldTile` into the flats one for one, under this town's own context, and
-  // `assignableTiles` is the ground this town owns, so `tileContextField` answers
-  // that same context for every hex of it).
-  //
-  // It is the anchor `foodUnder` subtracts, and the reason it is read off the
-  // town's **actual** placement rather than off whichever sheet the town is
-  // pointed at: the sim may be standing the citizens somewhere neither sheet
-  // predicts (the starvation guard put a focused sheet back, `capFoodSurplus`
-  // trimmed a swap, a hex is pinned), and an anchor that guessed would leave the
-  // arithmetic below reading differently before and after its own command.
-  const standingBag = bagOfTiles(workedTilesOf(state, city), ground);
-  const ranked = (weights: typeof balanced): Tile[] => rankTiles(state, tiles, weights, ground);
-  const plainRank = ranked(balanced);
-  const under = (order: readonly Tile[]): YieldBag =>
-    bagOfTiles(order.slice(0, Math.max(0, seats)), ground);
-  // **Both sheets from scratch, and never the town's current one.** The
-  // comparison has to be a fact about the ground rather than about what the town
-  // is doing today, or acting on it would change it: a table that read the
-  // *current* placement as its baseline answers "production" while the town is
-  // balanced and "default" the moment it is not, and the arm flips a town back
-  // and forth for the whole of a turn. Measured, and the reason this is written
-  // down: the oscillating version spent twenty-five times the wall clock of the
-  // rest of the bot put together.
-  const plainBag = under(plainRank);
-  const leanBag = under(ranked(leaning));
+  const forecast = focusForecasts(state, city);
+  const plainPlacement = forecast('default');
+  const leanPlacement = forecast('production');
   const delta: YieldBag = {};
-  for (const voice of VOICES) delta[voice] = (leanBag[voice] ?? 0) - (plainBag[voice] ?? 0);
-  /**
-   * **What this town would eat and bank with its people on `bag`'s hexes** — the
-   * simulation's own reading, asked of a *shifted quote* rather than patched
-   * afterwards, and the whole of what keeps this arm from arguing with itself.
-   *
-   * The reading has to be the town's live one — the raw hexes say nothing about
-   * the centre, the buildings, the routes or the percentages — and the two
-   * placements differ by bushels that are **flats**, so the honest way to move
-   * between them is to move the flats and let `foldCity` stage them:
-   * `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored once.
-   *
-   * Patching the *staged* total by a raw tile difference is what this replaces,
-   * and it was wrong in the way a percentage is always wrong twice: a town under
-   * a quarter's worth of food modifiers loses ten bushels of banked food for
-   * eight bushels of ground, so the correction under-read by two — and by
-   * different amounts depending on which sheet the town happened to be standing
-   * on. Measured (seed 20260904, t51, six citizens): the same town read a
-   * surplus of 11 while balanced and 1 while leaning, so the growth charge came
-   * out −3.1 one way and −11.3 the other, the lean scored +7.6 and then −0.6, and
-   * the arm spent a seat's whole command budget pointing one town back and forth.
-   *
-   * Written this way the answer is a function of the ground, of the town's
-   * non-tile facts and of `bag` alone: `books.flats.food − standingBag.food` is
-   * everything the town eats that is not a worked hex, and a command that moves
-   * the citizens moves both halves of that difference by the same bushels.
-   */
-  const foodUnder = (bag: YieldBag): number => {
-    const shift = (bag.food ?? 0) - (standingBag.food ?? 0);
-    const quote =
-      shift === 0 ? books : { ...books, flats: { ...books.flats, food: books.flats.food + shift } };
-    return foldCity(state, city, [], null, quote).food;
-  };
-
+  for (const voice of VOICES) delta[voice] = (leanPlacement.bag[voice] ?? 0) - (plainPlacement.bag[voice] ?? 0);
   const terms: ValueTerm[] = [
     nest('what the people would make on the other hexes', explainYields(delta, ctx)),
   ];
@@ -3025,7 +2909,7 @@ function focusTable(
   // decides whether they are worth asking at all, and a lean the ground has
   // already lost cannot be saved by a charge against it. `foldTerms` of a prefix is
   // the same fold — the terms below only ever subtract.
-  if (foldTerms(terms) <= 0) {
+  if (foldTerms(terms) <= 0 && !leanPlacement.rejectedForFood) {
     return {
       best: 'default',
       edge: foldTerms(terms),
@@ -3059,7 +2943,7 @@ function focusTable(
   // bot already prices (`explainCitizen`), so it is charged the way every other
   // delay in the system is — the discount at the turns the lean would take to
   // grow, less the discount at the turns the balanced sheet would.
-  const growth = growthTerm(state, city, ctx, plainRank[seats], plainBag, leanBag, foodUnder);
+  const growth = growthTerm(state, city, ctx, plainPlacement, leanPlacement);
   if (growth !== null) terms.push(growth);
   const lean: BotCandidate = {
     label: 'work the hammers',
@@ -3095,15 +2979,7 @@ function focusTable(
     });
     lean.score = foldTerms(lean.terms);
   }
-  // The guard `assignCitizens` would apply: a focused sheet that starves the
-  // town is put back, so a focus that would starve it buys nothing at all.
-  //
-  // This one *does* have to read the town's live books — the raw hexes say
-  // nothing about the centre, the buildings or the percentages — and it asks
-  // them through `foodUnder`, which is the town's own evaluator over a quote
-  // shifted to the sheet in question. That is what makes it a fact about the
-  // ground rather than about the sheet the town happens to stand on today.
-  if (lean.score > 0 && foodUnder(leanBag) < foodUpkeep(city)) {
+  if (leanPlacement.rejectedForFood || (lean.score > 0 && leanPlacement.food() < foodUpkeep(city))) {
     gated = true;
     lean.terms.push({
       label: `× 0 — ${city.name} would not feed itself on the hammers`,
@@ -3165,76 +3041,30 @@ const SHEET_LABELS: Record<CitizenLean, string> = {
  * yields have already lost is not priced further.
  */
 function sheetTable(state: GameState, city: City, ctx: ValueContext): FocusTable {
-  const balanced = citizenWeightsFor(state, city.ownerId);
-  const tiles = assignableTiles(state, city);
-  // The setup is `focusTable`'s, line for line, and its docblock says why each
-  // reading is the one it is: the ring's context hoisted, the town's books taken
-  // once, the seats to fill counted off the town's people, and the anchor read
-  // off the town's actual placement.
-  const ground = tileContextField(state, city.ownerId);
-  const books = readCity(state, city);
-  const seats = Math.min(
-    Math.max(0, city.population - totalSpecialists(city)) + cardGarrisonSeats(state, city),
-    tiles.length,
-  );
-  const standingBag = bagOfTiles(workedTilesOf(state, city), ground);
-  // **Each hex folded once for the four sheets.** `rankTiles` and `bagOfTiles`
-  // each fold every hex again, and four sheets would fold the ring eight times.
-  // The ranking and the bags read the same `foldTile` answer here, in the same
-  // order and with the same tie-break, so the figures are the same ones.
-  const read = tiles.map((tile) => {
-    const folded = foldTile(tile, ground(tile));
-    return { tile, at: tileIndex(state.map, tile.col, tile.row), folded, bag: bagOfTileYield(folded) };
-  });
-  const rankBy = (weights: typeof balanced): typeof read =>
-    read
-      .map((row) => ({ row, score: yieldScore(row.folded, weights) }))
-      .sort((a, b) => b.score - a.score || a.row.at - b.row.at)
-      .map((scored) => scored.row);
-  const under = (order: typeof read): YieldBag => {
-    const bag: YieldBag = {};
-    for (const row of order.slice(0, Math.max(0, seats))) {
-      for (const voice of VOICES) bag[voice] = (bag[voice] ?? 0) + (row.bag[voice] ?? 0);
-    }
-    return bag;
-  };
-  const plainRank = rankBy(balanced);
-  const plainBag = under(plainRank);
-  // The town's food under a sheet is a function of the food the sheet's hexes
-  // make, so it is read once for each figure the sheets reach.
-  const fed = new Map<number, number>();
-  const foodUnder = (bag: YieldBag): number => {
-    const shift = (bag.food ?? 0) - (standingBag.food ?? 0);
-    const held = fed.get(shift);
-    if (held !== undefined) return held;
-    const quote =
-      shift === 0 ? books : { ...books, flats: { ...books.flats, food: books.flats.food + shift } };
-    const food = foldCity(state, city, [], null, quote).food;
-    fed.set(shift, food);
-    return food;
-  };
-
+  const forecast = focusForecasts(state, city);
+  const plainPlacement = forecast('default');
   const rows: { focus: CitizenLean; candidate: BotCandidate; gated: boolean }[] = [];
   for (const focus of LEAN_SHEETS) {
-    const bag = under(rankBy(RULES.cities.citizenFocusWeights[focus]));
+    const placement = forecast(focus);
+    const bag = placement.bag;
     const delta: YieldBag = {};
-    for (const voice of VOICES) delta[voice] = (bag[voice] ?? 0) - (plainBag[voice] ?? 0);
+    for (const voice of VOICES) delta[voice] = (bag[voice] ?? 0) - (plainPlacement.bag[voice] ?? 0);
     const terms: ValueTerm[] = [nest('what the people would make on the other hexes', explainYields(delta, ctx))];
     const production = delta.production ?? 0;
     const hammers = production > 0 ? hammerTerm(production, ctx) : lostHammerTerm(production, ctx);
     if (hammers !== null) terms.push(hammers);
     let gated = false;
-    if (foldTerms(terms) > 0 || (bag.food ?? 0) > (plainBag.food ?? 0)) {
-      const growth = growthTerm(state, city, ctx, plainRank[seats]?.tile, plainBag, bag, foodUnder);
+    if (foldTerms(terms) > 0 || (bag.food ?? 0) > (plainPlacement.bag.food ?? 0)) {
+      const growth = growthTerm(state, city, ctx, plainPlacement, placement);
       if (growth !== null) terms.push(growth);
       if (focus === 'production' && (hammers === null || hammers.value <= 0)) {
         gated = true;
         terms.push({ label: '× 0: nothing this empire is raising is waiting on hammers', value: 0, op: 'mul' });
       }
-      if (foldTerms(terms) > 0 && foodUnder(bag) < foodUpkeep(city)) {
-        gated = true;
-        terms.push({ label: `× 0: ${city.name} would not feed itself on the ${focus} sheet`, value: 0, op: 'mul' });
-      }
+    }
+    if (placement.rejectedForFood || (foldTerms(terms) > 0 && placement.food() < foodUpkeep(city))) {
+      gated = true;
+      terms.push({ label: `× 0: ${city.name} would not feed itself on the ${focus} sheet`, value: 0, op: 'mul' });
     }
     rows.push({ focus, gated, candidate: { label: SHEET_LABELS[focus], score: foldTerms(terms), chosen: false, terms } });
   }
@@ -3326,13 +3156,8 @@ function lostHammerTerm(production: number, ctx: ValueContext): ValueTerm | null
  * **What leaning on the hammers costs this town in growth**, or `null` when it
  * costs none — `focusTable`'s second half.
  *
- * Both surpluses are the town's *live* books read under one sheet and then the
- * other, through `focusTable`'s `foodUnder` — the simulation's own evaluator
- * over a quote whose flats have been shifted to the sheet in question. The raw
- * hexes say nothing about the centre, the buildings or the percentages, and a
- * staged total patched by a raw difference is not the same number as the total
- * staged from the shifted flats: see `foodUnder`'s own docblock for the two
- * readings of one town that this arm used to answer.
+ * Each focus uses the city's food after the simulation assigns its citizens.
+ * The next tile comes from the tiles left idle under default focus.
  *
  * A town that cannot grow at all under a sheet waits the whole horizon, which is
  * `delayDiscount`'s nothing — so a focus that would stall a town's growth
@@ -3361,20 +3186,10 @@ function growthTerm(
   state: GameState,
   city: City,
   ctx: ValueContext,
-  nextHex: Tile | undefined,
-  plainBag: YieldBag,
-  leanBag: YieldBag,
-  /** `focusTable`'s reading of the town's food under a given sheet's hexes. */
-  foodUnder: (bag: YieldBag) => number,
+  plain: FocusPlacement,
+  lean: FocusPlacement,
 ): ValueTerm | null {
-  // **What the next citizen is worth, read off the balanced ordering** rather
-  // than off `explainCitizen`. The two agree about the clause that matters — the
-  // ground a new citizen would work — but `explainCitizen` asks it of the town's
-  // *live* placement (`nextWorkableTile` skips the hexes already worked), so its
-  // answer moves the moment this arm's own command moves the citizens, and an
-  // appraisal that changes because it was acted on is an arm that flips a town
-  // back and forth all turn. Measured before it was written down: three thousand
-  // six hundred focus commands in a seventy-five-turn duel.
+  const nextHex = plain.nextTile();
   if (nextHex === undefined) return null;
   const ground = valueOfYields(
     bagOfTileYield(foldTile(nextHex, tileContextAt(state, city.ownerId, nextHex))),
@@ -3396,14 +3211,16 @@ function growthTerm(
   const remaining = Math.max(0, growthThreshold(city.population) - city.foodBasket);
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
   const upkeep = foodUpkeep(city);
-  const turnsAt = (bag: YieldBag): number => {
-    const rate = foodUnder(bag) - upkeep;
+  const turnsAt = (food: number): number => {
+    const rate = food - upkeep;
     return rate <= 0 ? horizon : Math.ceil(remaining / rate);
   };
-  const sooner = delayDiscount(turnsAt(leanBag), ctx) - delayDiscount(turnsAt(plainBag), ctx);
+  const leanTurns = turnsAt(lean.food());
+  const plainTurns = turnsAt(plain.food());
+  const sooner = delayDiscount(leanTurns, ctx) - delayDiscount(plainTurns, ctx);
   if (sooner === 0) return null;
   return nest(
-    `the next citizen arrives in ${turnsAt(leanBag)} turns instead of ${turnsAt(plainBag)}, ` +
+    `the next citizen arrives in ${leanTurns} turns instead of ${plainTurns}, ` +
       `against a ${horizon}-turn horizon`,
     appraise([
       nest('what the next citizen is worth to this town', worth),
@@ -3416,14 +3233,47 @@ function growthTerm(
   );
 }
 
-/**
- * The town's assignable hexes **ranked** by one sheet — `chooseCitizens`' walk,
- * minus the pins (see `focusCommand`'s third bullet). The first `seats` of them
- * are the placement; the one after that is the hex the next citizen would take.
- *
- * Scored by the simulation's own `yieldScore` over the owning town's own tile
- * context, and tie-broken by tile index, which is the sim's tie-break exactly.
- */
+interface FocusPlacement {
+  bag: YieldBag;
+  food: () => number;
+  nextTile: () => Tile | undefined;
+  rejectedForFood: boolean;
+}
+
+/** Compare focuses from the same starting city. Only the copied city's worked tiles can change. */
+function focusForecasts(state: GameState, city: City): (focus: CitizenFocus) => FocusPlacement {
+  const assignments = new Map<string, Omit<FocusPlacement, 'rejectedForFood'>>();
+  return (focus) => {
+    const copy = { ...city, focus };
+    const view = { ...state, cities: state.cities.map(other => other.id === city.id ? copy : other) };
+    const rejectedForFood = refreshCityDerived(view, copy, 'citizenFocus');
+    // Different focuses often work exactly the same tiles. Share their yield and growth readings.
+    const key = copy.workedTiles.map(cell => tileIndex(view.map, cell.col, cell.row)).join(',');
+    let result = assignments.get(key);
+    if (!result) {
+      const ground = tileContextField(view, copy.ownerId);
+      const worked = workedTilesOf(view, copy);
+      const occupied = new Set(worked);
+      let food: number | undefined;
+      let next: Tile | null | undefined;
+      result = {
+        bag: bagOfTiles(worked, ground),
+        food: () => (food ??= foldCity(view, copy, [], null, readCity(view, copy)).food),
+        nextTile: () => {
+          if (next === undefined) {
+            const idle = assignableTiles(view, copy).filter(tile => !occupied.has(tile));
+            next = rankTiles(view, idle, citizenWeightsFor(view, copy.ownerId), ground)[0] ?? null;
+          }
+          return next ?? undefined;
+        },
+      };
+      assignments.set(key, result);
+    }
+    return { ...result, rejectedForFood };
+  };
+}
+
+/** Rank the idle tiles for the next citizen. The map index breaks ties as it does in the simulation. */
 function rankTiles(
   state: GameState,
   tiles: readonly Tile[],
@@ -3439,13 +3289,6 @@ function rankTiles(
   return scored.map((row) => row.tile);
 }
 
-/**
- * The hexes this town's citizens are standing on **today**, as tiles.
- *
- * `City.workedTiles` is cells, and the whole of what this adds is the lookup —
- * kept here so `focusTable`'s anchor and its two sheets are bagged by the one
- * function over the one context.
- */
 function workedTilesOf(state: GameState, city: City): Tile[] {
   const tiles: Tile[] = [];
   for (const cell of city.workedTiles) {
@@ -5783,17 +5626,7 @@ function frontRowEndsTheGame(city: City): boolean {
 
 // --- cities -----------------------------------------------------------------
 
-/**
- * What an empty-queued town starts on.
- *
- * Priority, in the order a young empire actually needs things: a settler while
- * there is room to expand, a worker while the land is unimproved, then the
- * building order from `data/ai.json`, then a caravan, then the best soldier the
- * roster will sell it, then any conversion project. First legal wins — every
- * candidate goes through `buildError` *and* the two extra gates the reducer
- * applies on top of it (`validateQueue`: a building the town already has, and a
- * unit's `minCityPop`), so a queue this returns is a queue the reducer takes.
- */
+/** Start an empty queue, or fill the minimum queue required by the city's cards. */
 function cityCommand(
   state: GameState,
   player: Player,
@@ -5805,32 +5638,7 @@ function cityCommand(
   const table = productionTable(state, player, city, sitting);
   const item = table.best;
   if (item === null) return null;
-  // **A works list where the town keeps one** (batch S2). The Vizier's Hall pays
-  // a town that has two things lined up and its office refuses to be left with
-  // fewer, so the blocker's answer here is a queue as long as the floor the town
-  // keeps — the winner, then the runner-up behind it. Everywhere else this is
-  // one row, exactly as it has always been, because the floor is nought.
-  //
-  // Truncated to what the table actually offered: a town with one legal
-  // candidate sends one row and the reducer takes it, because the rule refuses a
-  // queue *shortened* below the floor and never a town that has run out of
-  // things it may build. See `applySetCityProduction`.
-  // **And only as much of it as the reducer will take** (batch R5). Each
-  // candidate was gated alone, but a queue is validated as a whole: two rows
-  // wanting the empire's last free strategic copy both pass on their own and the
-  // second is refused in the command, which throws the whole queue out and leaves
-  // the town building nothing. `acceptableQueue` walks the proposal the way
-  // `validateQueue` does. The winner survives it by construction — it passed the
-  // same gate with an empty queue ahead of it — so the town is never left with
-  // nothing to start.
-  const queue = acceptableQueue(
-    state,
-    player,
-    city,
-    // The floor is what the town holds (`townShelf`, Expansionist batch E13),
-    // which is what the reducer reads.
-    table.ranked.slice(0, Math.max(1, cityQueueFloor(townShelf(state, city)))).map((row) => row.item),
-  );
+  const queue = productionQueueFor(state, player, city, table.ranked);
   if (queue.length === 0) return null;
   const behind = queue.slice(1);
   return {
@@ -5842,10 +5650,57 @@ function cityCommand(
       `${table.candidates.filter((c) => c.rejected === undefined).length} legal candidates.` +
       (behind.length === 0
         ? ''
-        : ` ${behind.map((row) => itemName(row)).join(', ')} goes behind it: the town keeps a works list.`),
+        : ` ${behind.map((row) => itemName(row)).join(', ')} follows in the production queue.`),
     candidates: table.candidates,
     focus: { col: city.col, row: city.row },
   };
+}
+
+/**
+ * Use production that can finish several items in one settlement. Reuse the
+ * current ranking and queue only enough work for the configured short horizon.
+ * Further units need a fresh demand estimate, so extra rows beyond the required
+ * queue floor are buildings or projects. The reducer's gates still validate
+ * every row together, including strategic resource reservations.
+ */
+export function productionQueueFor(
+  state: GameState,
+  player: Player,
+  city: City,
+  ranked: readonly RankedBuild[],
+): QueueItem[] {
+  const floor = Math.max(1, cityQueueFloor(townShelf(state, city)));
+  const lookahead = Math.max(0, aiFor(player).score.queueLookaheadTurns);
+  if (lookahead === 0) {
+    return acceptableQueue(state, player, city, ranked.slice(0, floor).map(row => row.item));
+  }
+  const eligible = ranked.filter((row, index) => index < floor || (row.score > 0 && row.item.kind !== 'unit'));
+  const legal = acceptableQueue(state, player, city, eligible.map(row => row.item));
+  const first = legal[0];
+  if (first === undefined) return [];
+  let hammers = (city.queue.length === 0 ? city.hammerBasket : 0) + bankedTowardItem(city, first) +
+    lookahead * foldCity(state, city, [], first, readCity(state, city)).production;
+  const result: QueueItem[] = [];
+  let firstCompletion = true;
+  let held = false;
+  for (const item of legal) {
+    if (result.length >= floor && (held || (hammers <= 0 && bankedTowardItem(city, item) <= 0))) break;
+    if (!held && result.length > 0) hammers += bankedTowardItem(city, item);
+    result.push(item);
+    if (held) continue;
+    const cost = queueItemCost(state, player.id, item);
+    if (item.kind === 'project' || cost === null) {
+      held = true;
+      continue;
+    }
+    hammers -= cost;
+    if (hammers < 0) held = true;
+    if (firstCompletion && hammers >= 0) {
+      if (cardActionRule(state, player.id, 'doubleOverflow')) hammers *= 2;
+      firstCompletion = false;
+    }
+  }
+  return result;
 }
 
 /**
@@ -12281,7 +12136,7 @@ function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     tried.push(chosenAt(`walk to ${city.name}`, tried.length));
     return {
       command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: { col: city.col, row: city.row } },
-      summary: `Walks to ${city.name}, whose cathedral would keep the relic it carries.`,
+      summary: `Walks to ${city.name}, to leave a relic.`,
       candidates: tried,
       focus: { col: city.col, row: city.row },
     };
@@ -12319,7 +12174,7 @@ function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoic
  * batch E13), which is what the reducer asks.
  */
 function cityWouldKeepRelic(state: GameState, city: City): boolean {
-  return cityKeepsRelics(townShelf(state, city));
+  return Boolean(buildingRelicOffer(state, city)) || cityKeepsRelics(townShelf(state, city));
 }
 
 /**

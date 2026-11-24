@@ -67,7 +67,7 @@
  * in the state, which is a schema decision nobody has taken.
  *
  * Peace also considers recent losses to this opponent. `warLedger.ts` reads
- * the saved weariness records for the current war, within their retained
+ * the saved loss records for the current war, within their retained
  * window. `explainStanding` applies the existing unit and town weights.
  * Barbarian losses and other wars do not enter this exchange.
  *
@@ -92,6 +92,7 @@ import {
 import { type ValueContext, explainCountStep } from './value';
 import type { CountKind } from '../sim/statecraftData';
 import { voiceWeight } from './prices';
+import { dealIncomeValue, tradeCityValue, tradeResourcePrices } from './tradeValue';
 
 import { buildingCityStat, foldBuildingCityStat } from '../sim/buildingEffects';
 import { availableCopies, controlledResources, lendableCopies, lentCopyPercent, resourceCopies } from '../sim/cities';
@@ -148,12 +149,6 @@ export function diplomacyDecision(
   state: GameState,
   player: Player,
   ctx: ValueContext,
-  /**
-   * True when the swap arm asks a bot receiver's own reading of a paper before
-   * writing it (bot batch BP13; `receiverReader`). The sitting passes true.
-   * False, the arm writes as it did before BP13, which some tests ask for.
-   */
-  askReceivers = false,
 ): BotDecision | null {
   const answered = answerProposals(state, player, ctx);
   if (answered !== null) return answered;
@@ -165,7 +160,7 @@ export function diplomacyDecision(
   if (razed !== null) return razed;
   const war = declareDecision(state, player, ctx);
   if (war !== null) return war;
-  return swapDecision(state, player, ctx, askReceivers);
+  return swapDecision(state, player, ctx);
 }
 
 // --- who counts -------------------------------------------------------------
@@ -514,6 +509,7 @@ interface PaperReader {
   ai: AiConfig;
   countStep(count: CountKind, step: number): Appraisal;
   goldWeight(): number;
+  resourcePrice: ReturnType<typeof tradeResourcePrices>;
 }
 
 /** A seat's own context, as a paper reader: the reading the seat itself takes. */
@@ -524,42 +520,22 @@ function contextReader(ctx: ValueContext): PaperReader {
     ai: ctx.ai,
     countStep: (count, step) => explainCountStep(count, step, ctx),
     goldWeight: () => voiceWeight(ctx, 'gold'),
+    resourcePrice: tradeResourcePrices(ctx.state, ctx.playerId, ctx.ai),
   };
 }
 
 /**
- * **Another seat's own reading of a swap, asked by the seat that would write
- * it** (bot batch BP13): the same `dealVerdict` the receiver answers with, on
- * the receiver's sheet, with no prices.
- *
- * **Why no prices** (bot batch BP16, the audit's finding 23). Before BP16 this
- * reader built the receiver's whole context (`valueContext`) when one of its
- * cards counts deal partners or lent copies, for the two terms that read its
- * prices: a new deal partner (`newPartnerTerm`) and what the copies lent pay
- * its cards (`lendingTerms`). On the paper a bot writes in `swapDecision`
- * neither term can decide the verdict:
- *
- *   · what arrives is a kind the receiver lacks, at `war.luxuryGoldBaseline`,
- *     and a sweetened paper only adds coin to it (`counterTerms`);
- *   · what leaves is one kind at the same baseline, less the share The
- *     Commenda keeps (read from the state, not from prices);
- *   · so with the two price terms at nought the total is the added coin plus
- *     the kept share, which is never below nought, and what arrives is at
- *     least the baseline (its bounds are 40 to 300);
- *   · the partner term only adds to what arrives, and the lent term only takes
- *     away from what leaves, so with prices the total is at least as high.
- *
- * So the verdict is the last-copy clause alone, with or without the prices,
- * and no context of another seat is built. `test/sim/aiDiplomacy.test.ts` pins
- * it: a receiver holding both kinds of card signs, on its own full context,
- * every swap a bot writes to it. A paper term that ever costs the receiver by
- * its prices must bring the context back here.
+ * Use the receiver's resource prices and last-copy rule for every recipient.
+ * Ignoring positive card rewards makes this preview conservative. It avoids
+ * building another full planning context just to check a trade.
  */
 function receiverReader(state: GameState, receiver: Player): PaperReader {
+  const ai = aiConfigFor(receiver.persona, receiver.id);
   return {
     state,
     playerId: receiver.id,
-    ai: aiConfigFor(receiver.persona, receiver.id),
+    ai,
+    resourcePrice: tradeResourcePrices(state, receiver.id, ai),
     countStep: () => appraise([]),
     // Read only beside a counted step that pays something (`dealCoinTerm`), and
     // `countStep` above pays nothing, so this is never asked.
@@ -567,48 +543,13 @@ function receiverReader(state: GameState, receiver: Player): PaperReader {
   };
 }
 
-/**
- * What one half of a bargain is worth **to the empire receiving it**, in coin.
- *
- * Coin rather than the value vector's currency, and deliberately: every term a
- * deal can carry is already a payment (`DealTerms` — coin, tribute, seams,
- * passage, towns), so pricing them against each other in coin is the one
- * conversion that needs no weight table at all. The two figures that are not
- * coin are read off the two baselines the ruling asked for, and they are the
- * *same statement in two currencies* by construction: `luxuryGptBaseline` a turn
- * is worth exactly `luxuryGoldBaseline`, so an offer that clears either bar
- * clears the other.
- *
- * **A seam is priced at the baseline whichever way it moves**, and what a
- * *duplicate* buys is not a discount but permission: a luxury this empire holds
- * only one copy of is simply not for sale (`asksOurLastCopy`), and one it holds
- * twice may be sold at the baseline like any other. Written that way round
- * because the two ruled rules then fall out exactly — a duplicate swapped for a
- * kind we lack is 120 against 120 and signs, a duplicate sold for the gold
- * baseline is 120 against 120 and signs, and the same duplicate sold for a coin
- * is 1 against 120 and does not.
- *
- * `lacking` is the *receiving* side's clause: a luxury is a signature and a
- * second copy of one pays nothing new (`resourceEffects.ts`), so a kind already
- * in hand arrives worth nothing however many tiles of it change hands.
- *
- * **What lending pays this seat** (Commerce batch T9), on the giving side only
- * (`lacking === null`). Each copy that leaves costs the baseline, less two
- * things a card may pay back:
- *
- *   · the share of each copy the seat still counts while it is lent (The
- *     Commenda, `lentCopyPercent`), at the same baseline;
- *   · what the copies lent pay the seat's counted lines a turn (Export Guilds'
- *     capital, `explainCountStep` on `copiesLent`), in coin at the gold price,
- *     over a deal's life at this seat's price for a turn's tribute.
- *
- * Both are terms of their own, so a paper the cards make worth signing says why.
- */
+/** Price each side in gold, using the effects on the empire reading it. */
 function explainSide(
   terms: DealTerms,
   ctx: PaperReader,
-  lacking: ((id: ResourceId) => boolean) | null,
+  outgoing: boolean,
   what: string,
+  given: DealTerms = {},
 ): Appraisal {
   const ai = ctx.ai;
   const lines: ValueTerm[] = [];
@@ -616,30 +557,25 @@ function explainSide(
   if (gold !== 0) lines.push({ label: `${gold} coin ${what}`, value: gold });
   const perTurn = terms.goldPerTurn ?? 0;
   if (perTurn !== 0) {
-    const rate = ai.war.luxuryGoldBaseline / Math.max(1, ai.war.luxuryGptBaseline);
+    const rate = dealIncomeValue(ai);
     lines.push({
       label: `${perTurn} coin a turn ${what} × ${rate} (this seat's price for a turn's tribute)`,
       value: perTurn * rate,
     });
   }
+  let priced: DealTerms = {};
   for (const { id, copies } of loanedCopies(terms)) {
-    // `null` is the giving side: what leaves is priced at the baseline whatever
-    // this empire already holds, because that is what a seam costs.
-    const wanted = lacking === null || lacking(id);
-    // **Each copy is priced as one copy is** (the ruling of 2026-11-23: a
-    // strategic row carries a count). A placeholder until the repricing in
-    // `docs/plans/astra-handoff-2026-11-18.md`, section 0.1m. One copy keeps
-    // its old label, so the bots' own one-copy papers read as before.
-    const name = copies === 1 ? resourceDef(id).name : `${copies} copies of ${resourceDef(id).name}`;
-    lines.push({
-      label: wanted
-        ? `${name} ${what} — at this seat's price for a seam${copies === 1 ? '' : ', for each copy'}`
-        : `${name} ${what} — this seat already has a spare copy`,
-      value: wanted ? ai.war.luxuryGoldBaseline * copies : 0,
-    });
+    lines.push(nest(`${resourceDef(id).name} ${what}`, ctx.resourcePrice(
+      id, copies, outgoing, outgoing ? priced : given, outgoing ? {} : priced,
+    )));
+    const row = resourceTerms(id, copies);
+    priced = {
+      luxuries: [...(priced.luxuries ?? []), ...(row.luxuries ?? [])],
+      strategics: [...(priced.strategics ?? []), ...(row.strategics ?? [])],
+    };
   }
   const lent = terms.luxuries ?? [];
-  if (lacking === null && lent.length > 0) {
+  if (outgoing && lent.length > 0) {
     for (const line of lendingTerms(lent.length, ctx)) lines.push(line);
   }
   if (terms.openBorders === true) {
@@ -653,7 +589,9 @@ function explainSide(
     });
   }
   for (const cityId of terms.cities ?? []) {
-    lines.push({ label: `a town ${what} (${cityId}) × the city weight`, value: ctx.ai.weights.city });
+    const city = ctx.state.cities.find((row) => row.id === cityId);
+    if (city !== undefined) lines.push({ label: `${city.name} ${what}: population, buildings and age`,
+      value: tradeCityValue(city, ctx.state, ctx.ai) });
   }
   return appraise(lines);
 }
@@ -662,12 +600,12 @@ function explainSide(
  * **A per-turn figure in points, as coin over a deal's life**, one printed
  * term whose parts fold to its value: the points ÷ this seat's price of a coin
  * (`voiceWeight`), times its price for a turn's tribute
- * (`war.luxuryGoldBaseline ÷ war.luxuryGptBaseline`), the rate `explainSide`
+ * (`dealIncomeValue`), the rate `explainSide`
  * already turns a tribute into coin by. `sign` is −1 for a term that takes
  * away from what leaves.
  */
 function dealCoinTerm(label: string, perTurn: Appraisal, sign: 1 | -1, ctx: PaperReader): ValueTerm {
-  const rate = ctx.ai.war.luxuryGoldBaseline / Math.max(1, ctx.ai.war.luxuryGptBaseline);
+  const rate = dealIncomeValue(ctx.ai);
   const coin = Math.max(Number.EPSILON, ctx.goldWeight());
   const parts: ValueTerm[] = [
     nest('what it pays this seat’s cards a turn, in points', perTurn),
@@ -688,7 +626,7 @@ function lendingTerms(copies: number, ctx: PaperReader): ValueTerm[] {
   if (kept > 0) {
     terms.push({
       label: `less ${round1(kept * 100)}% of each copy, which this seat still counts while it is lent`,
-      value: -kept * copies * ctx.ai.war.luxuryGoldBaseline,
+      value: -kept * copies * ctx.ai.war.luxuryGoldBaseline * ctx.ai.war.luxuryDuplicateShare,
     });
   }
   const step = ctx.countStep('copiesLent', copies);
@@ -733,26 +671,23 @@ function resourcesForTrade(state: GameState, playerId: number): ResourceId[] {
   return [...luxuries, ...controlledResources(state, playerId, 'strategic')];
 }
 
-/**
- * One copy of one resource as a half of a paper. The bots' own papers lend one
- * copy of a strategic resource, as before the ruling of 2026-11-23 let a row
- * carry more.
- */
-function oneCopyTerms(id: ResourceId): DealTerms {
-  return resourceDef(id).kind === 'strategic' ? { strategics: [{ id, copies: 1 }] } : { luxuries: [id] };
+/** Keep luxury and strategic quantities in their simulation term shapes. */
+function resourceTerms(id: ResourceId, copies: number): DealTerms {
+  return resourceDef(id).kind === 'strategic' ? { strategics: [{ id, copies }] } : { luxuries: [id] };
+}
+
+/** Keep one free copy and offer at most the configured strategic reserve. */
+function proposedCopies(state: GameState, playerId: number, id: ResourceId, ai: AiConfig, promised = 0): number {
+  const spare = Math.min(tradeSupply(state, playerId, id) - promised - 1,
+    lendableCopies(state, playerId, id) - promised);
+  const bundle = resourceDef(id).kind === 'strategic' ? Math.max(1, Math.floor(ai.war.strategicReserveCopies)) : 1;
+  return Math.max(0, Math.min(bundle, spare));
 }
 
 /**
- * A whole paper from one seat's side: what arrives, less what leaves.
- *
- * The two sides ask different questions of the board and that asymmetry is the
- * design: what **arrives** is worth something only if this empire lacks the
- * kind, and what **leaves** costs the baseline whatever it is. Whether a seam
- * may leave at all is a separate, harder clause — see `asksOurLastCopy`.
- *
- * `partner` is the other seat, where the caller knows it. A paper with a new
- * deal partner on it arrives with one more term (`newPartnerTerm`, Commerce
- * batch T9).
+ * Read what arrives and what leaves from this empire's perspective. Counted
+ * card rewards are added separately. Resource premiums use the actual supply
+ * and economy; last-copy protection remains a separate hard refusal.
  */
 function explainPaper(
   state: GameState,
@@ -762,10 +697,10 @@ function explainPaper(
   ctx: PaperReader,
   partner?: number,
 ): { appraisal: Appraisal; taken: number; given: number } {
-  const side = explainSide(take, ctx, (id) => resourceIsVisibleTo(id, player.techsResearched) && tradeSupply(state, player.id, id) === 0, 'to us');
+  const side = explainSide(take, ctx, false, 'to us', give);
   const partnerTerm = newPartnerTerm(state, player, partner, take, give, ctx);
   const gained = partnerTerm === null ? side : appraise([...side.terms, partnerTerm]);
-  const lost = explainSide(give, ctx, null, 'from us');
+  const lost = explainSide(give, ctx, true, 'from us');
   return {
     appraisal: appraise([
       { label: 'what we take', value: gained.total, parts: gained.terms },
@@ -804,6 +739,16 @@ function asksOurLastCopy(
   return null;
 }
 
+/** Ordinary exchanges of spare luxuries are accepted even if their premiums differ. */
+function spareLuxurySwap(state: GameState, a: number, b: number, give: DealTerms, take: DealTerms): boolean {
+  const single = (terms: DealTerms) => terms.luxuries?.length === 1 &&
+    (terms.gold ?? 0) === 0 && (terms.goldPerTurn ?? 0) === 0 &&
+    (terms.strategics?.length ?? 0) === 0 && (terms.cities?.length ?? 0) === 0 && !terms.openBorders;
+  return single(give) && single(take) && give.luxuries![0] !== take.luxuries![0] &&
+    tradeSupply(state, a, give.luxuries![0]!) >= 2 &&
+    tradeSupply(state, b, take.luxuries![0]!) >= 2;
+}
+
 // --- answering a paper somebody put to us -----------------------------------
 
 /** A seat's reading of a bargain put to it: its three clauses and the figures behind them. */
@@ -839,7 +784,8 @@ function dealVerdict(
 ): DealVerdict {
   const read = explainPaper(state, player, paper.give, paper.take, reader, paper.by);
   const lastCopy = asksOurLastCopy(state, player, paper.take);
-  const accepting = read.appraisal.total >= 0 && read.taken > 0 && lastCopy === null;
+  const duplicateSwap = spareLuxurySwap(state, player.id, paper.by, paper.take, paper.give);
+  const accepting = (read.appraisal.total >= 0 || duplicateSwap) && read.taken > 0 && lastCopy === null;
   return { accepting, appraisal: read.appraisal, arriving: read.taken, given: read.given, lastCopy };
 }
 
@@ -858,6 +804,7 @@ function standingRefusal(
   wanted: ResourceId,
   offered: ResourceId,
   others: readonly DealProposal[],
+  wantedCopies: number,
 ): string | null {
   const them = seatPeople(state, receiver.id);
   let asked = 0;
@@ -868,7 +815,7 @@ function standingRefusal(
       return `another empire's paper already offers the ${them} ${resourceDef(offered).name.toLowerCase()}`;
     }
   }
-  if (asked > 0 && tradeSupply(state, receiver.id, wanted) - asked <= 1) {
+  if (asked > 0 && tradeSupply(state, receiver.id, wanted) - asked - wantedCopies < 1) {
     return `another empire's paper already asks the ${them} for ${resourceDef(wanted).name.toLowerCase()}, and they would be left one copy`;
   }
   return null;
@@ -1459,14 +1406,15 @@ export function counterTerms(
   const bot = playerById(state, botSeat);
   const asker = playerById(state, askerSeat);
   if (!bot || !asker) return null;
-  const ai = ctx.ai;
+  const reader = ctx.playerId === botSeat ? contextReader(ctx) : receiverReader(state, bot);
+  const ai = reader.ai;
   const peace = warBetween(state, botSeat, askerSeat) !== undefined;
   const score = peace ? explainPeaceScore(state, bot, asker, ai) : null;
   // The one seat that has no counter to give: a war it is winning.
   if (score !== null && score.total > ai.war.acceptCeiling) return null;
   const bar = score === null ? 0 : -owedForPeace(score, ai);
   const markup = 1 + Math.max(0, ai.war.counterMarkup);
-  const rate = ai.war.luxuryGoldBaseline / Math.max(1, ai.war.luxuryGptBaseline);
+  const rate = dealIncomeValue(ai);
 
   const counter: CounterOffer = {
     give: copyTerms(give),
@@ -1474,7 +1422,7 @@ export function counterTerms(
     appraisal: appraise([]),
   };
   const askingForNothing = termsAreEmpty(counter.take) && !termsAreEmpty(counter.give);
-  const read = explainPaper(state, bot, counter.give, counter.take, contextReader(ctx), askerSeat);
+  const read = explainPaper(state, bot, counter.give, counter.take, reader, askerSeat);
 
   if (askingForNothing) {
     // **What would you give for this?** — the bot's own side, down to even.
@@ -1491,18 +1439,18 @@ export function counterTerms(
       budget -= tribute * rate;
     }
     for (const id of resourcesForTrade(state, botSeat)) {
-      if (ai.war.luxuryGoldBaseline > budget) break;
       // Never a last copy — `asksOurLastCopy` from the other side of the table.
       if (tradeSupply(state, botSeat, id) < 2) continue;
       // And only a copy of its own: a borrowed copy cannot be lent on (the
       // ruling of 2026-11-17), and the gate below would refuse the counter.
       if (lendableCopies(state, botSeat, id) < 1) continue;
       if (!resourceIsVisibleTo(id, asker.techsResearched) || tradeSupply(state, askerSeat, id) > 0) continue;
-      // One copy, as the bot's own papers lend.
-      const one = oneCopyTerms(id);
+      const one = resourceTerms(id, proposedCopies(state, botSeat, id, ai));
+      const price = explainSide(one, reader, true, 'from us').total;
+      if (price > budget) continue;
       if (one.strategics) counter.take.strategics = [...(counter.take.strategics ?? []), ...one.strategics];
       else counter.take.luxuries = [...(counter.take.luxuries ?? []), id];
-      budget -= ai.war.luxuryGoldBaseline;
+      budget -= price;
     }
     if (termsAreEmpty(counter.take)) return null;
     if (dealSideError(state, botSeat, askerSeat, counter.take, peace) !== null) return null;
@@ -1531,7 +1479,7 @@ export function counterTerms(
         const probe: DealTerms = { ...counter.give, cities: towns };
         if (dealSideError(state, askerSeat, botSeat, probe, true) === null) {
           counter.give.cities = towns;
-          need -= ai.weights.city;
+          need -= tradeCityValue(town, state, ai);
         }
       }
     }
@@ -1539,7 +1487,9 @@ export function counterTerms(
     if (dealSideError(state, askerSeat, botSeat, counter.give, peace) !== null) return null;
   }
 
-  const settled = explainPaper(state, bot, counter.give, counter.take, contextReader(ctx), askerSeat);
+  if (asksOurLastCopy(state, bot, counter.take) !== null) return null;
+  const settled = explainPaper(state, bot, counter.give, counter.take, reader, askerSeat);
+  if (settled.appraisal.total < bar) return null;
   counter.appraisal = appraise([
     nest('the counter, from our side', settled.appraisal),
     { label: `the bar this seat signs at is ${round1(bar)}`, value: 0 },
@@ -1841,11 +1791,8 @@ export function explainDeclaration(
         op: 'mul',
       });
     }
-    // **What the target's unrest would cost** (batch WC1, `war.unrestDrag`): a
-    // town taken by force makes no production, science or culture until it is
-    // pacified, so the longer the target would sit in unrest once taken, the
-    // less the war is worth. Read at the rate a garrisoned town settles at,
-    // because this seat keeps a soldier in every town it takes.
+    // Capture pauses production, science and culture for the fixed unrest
+    // period. Discount the target by that delay, regardless of its garrison.
     if (reach !== null && ai.war.unrestDrag > 0) {
       const settle = unrestSettleTurns(reach.city.population);
       const drag = settle === null ? 0 : Math.max(0, 1 - ai.war.unrestDrag * settle);
@@ -1990,37 +1937,17 @@ function explainExpedition(
   };
 }
 
-/**
- * How many turns a town of this many citizens would sit in unrest once taken,
- * settling at the rate a garrisoned town does — the base rate and one soldier
- * inside (`rules.war.unrest`) — or `null` when that rate is nothing and it would
- * never settle. Read before the town is taken, so it asks the rules rather than
- * `explainPacification`, which reads the town's current owner's pieces.
- */
+/** Read the fixed capture delay before the city has an unrest record. */
 function unrestSettleTurns(population: number): number | null {
   return turnsToFill(unrestTarget(population), 1);
 }
 
 /**
- * **A town of ours in unrest that cannot be held, pulled down**, or `null`
- * (batch WC1, `docs/flags.md` (rrrrrr) part 1: bots *"count unrest when
- * deciding whether to take or raze a town"*).
- *
- * The light touch the ruling allows. A town is razed only when every clause
- * holds, and each refused town prints the clause that kept it:
- *
- *   · the rules allow it (`razeCityError` — never a seat of government);
- *   · no soldier of ours stands in it (`garrisonAt`): a held town settles and
- *     raises no rebels, so it is kept;
- *   · no soldier of ours stands within `war.razeReach` hexes, so nobody can come
- *     and hold it soon;
- *   · it would sit in unrest at least `war.razeUnrestTurns` more turns at the
- *     rate it settles at now (`pacificationTurnsLeft`), raising a rebel every
- *     third of them.
- *
- * Towns are asked in `state.cities` order and the first that clears every
- * clause is razed. It is monotone — the town is gone — which is what keeps the
- * driver's loop finite.
+ * Keep the optional razing policy for tuned bots. The default threshold is
+ * longer than the current fixed unrest period, so default bots keep captured
+ * cities. A tuned bot may raze a legal target only if no friendly soldier is
+ * inside it or close enough to defend it, and its remaining unrest meets the
+ * configured threshold. Soldiers do not change the unrest duration.
  */
 function razeDecision(state: GameState, player: Player, ctx: ValueContext): BotDecision | null {
   const ai = ctx.ai;
@@ -2146,59 +2073,14 @@ function nearestTownInReach(
 // --- a bargain this seat could offer ----------------------------------------
 
 /**
- * One 1:1 luxury swap put to a peer — a kind this empire holds **twice** for a
- * kind it holds **none** of (the ruled rule, section 7) — and, where that swap
- * has already been sent back, the same swap **with coin on it** (batch X4).
- *
- * Small on purpose: this is still the whole of what the bot proposes, and the
- * shape of the paper is unchanged. What changed is that the arm is no longer
- * *only* a reading of the board. The reducer's throttle (`bargainSeatError`
- * refuses a second standing proposal to the same seat) bounds a paper to one at
- * a time and bounds nothing across turns, so a swap the rival declined on turn
- * 41 was written again on turn 42 and every turn after it — the audit measured
- * one paper sent 37 times for no deal (`docs/audit/bot-pass-2.md`, finding 2).
- *
- * So the arm asks the harness's memory (`dealMemory.ts`) before it writes, and
- * there are exactly three answers:
- *
- *   · **nothing remembered** — write the swap, as it always did;
- *   · **this swap was sent back** — write it once more with coin on this seat's
- *     side, filled by `counterTerms` to the rival's own bar. The seat is
- *     answering its own refusal with the function the sheet already uses to
- *     answer a player's ("what would make this work?"), which is the audit's
- *     change 4: *a bot that can sweeten a refused swap with coin has a
- *     diplomacy; a bot that re-sends the same paper 37 times has a loop*;
- *   · **the sweetened one was sent back too** — say nothing to that seat about
- *     that swap until the board that priced it moves or the memory lapses. Both
- *     papers this seat knows how to write have been answered.
- *
- * One clause keeps the second answer from being ink for its own sake: a paper
- * that asks for a seam the rival holds **one** copy of is refused by a hard
- * clause and not by a price (`asksOurLastCopy`, read here from the other side of
- * the table exactly as `counterTerms` reads it), and no amount of coin moves a
- * hard clause. That reading assumes the rival keeps this seat's own policy,
- * which is the same assumption `counterTerms` makes when it prices a rival's bar
- * off `ctx.ai` — the bot has no other sheet to read, and a person on the other
- * side of the table is under no such rule and is asked the plain swap anyway.
- *
- * Seats in roster order and resources in the table's own order, so which of two
- * equally good swaps is offered is a fact the replay reproduces.
- *
- * **Since bot batch BP13 a bot receiver's own reading decides** (`dealVerdict`
- * on `receiverReader`, when `askReceivers`). The end check of bot pass 3 found
- * about three papers a turn and one in seven signed; on seed 999 at turns 50 to
- * 136, 130 of 133 refusals were the receiver's last copy, which this arm did
- * not ask about before the first paper (`docs/plans/performance-pass-2026-11-06.md`,
- * the section "BP13"). A person is still asked the plain swap. The papers this
- * seat and others already have standing count too: a copy offered once is
- * promised, a kind asked for once is not asked again, and a receiver another
- * paper already asks for the same kind is left alone (`standingRefusal`).
+ * Propose a resource swap only if both seats can spare the quantities and
+ * accept its value. Human and bot recipients use the same checks. Standing
+ * proposals reserve their offered copies until they are answered.
  */
 function swapDecision(
   state: GameState,
   player: Player,
   ctx: ValueContext,
-  askReceivers: boolean,
 ): BotDecision | null {
   // **The papers already standing** (bot batch BP13). A copy this seat has
   // offered in a paper still on the table is promised: two papers signed in
@@ -2220,15 +2102,15 @@ function swapDecision(
   if (spare.length === 0) return null;
   const asked = new Set(standing.flatMap((row) => loanedResources(row.take)));
   const rows: BotCandidate[] = [];
+  const writer = contextReader(ctx);
   for (const enemy of rivalsOf(state, player)) {
     const seats = bargainSeatError(state, player.id, enemy.id);
     if (seats !== null) {
       rows.push({ label: `the ${seatPeople(state, enemy.id)}`, score: 0, chosen: false, terms: [], rejected: seats });
       continue;
     }
-    // A bot receiver's own reading decides (`dealVerdict`); a person is asked
-    // the plain swap, as before BP13.
-    const reader = askReceivers && !enemy.isHuman ? receiverReader(state, enemy) : null;
+    // Use the same receiver valuation for a human or a bot.
+    const reader = receiverReader(state, enemy);
     // The papers other seats have standing with this receiver: what they ask of
     // it leaves it, and what they offer it may arrive first.
     const others = state.dealProposals.filter((row) => row.to === enemy.id && row.by !== player.id);
@@ -2237,17 +2119,25 @@ function swapDecision(
       if (asked.has(wanted)) continue;
       for (const offered of spare) {
         if (!resourceIsVisibleTo(offered, enemy.techsResearched) || tradeSupply(state, enemy.id, offered) > 0) continue;
-        const give = oneCopyTerms(offered);
-        const take = oneCopyTerms(wanted);
-        const label = `${resourceDef(offered).name} for the ${seatPeople(state, enemy.id)}' ${resourceDef(wanted).name.toLowerCase()}`;
-        if (reader !== null) {
-          const crowded = standingRefusal(state, enemy, wanted, offered, others);
-          if (crowded !== null) {
-            rows.push({ label, score: 0, chosen: false, terms: [], rejected: crowded });
-            continue;
-          }
+        const giveCopies = proposedCopies(state, player.id, offered, ctx.ai, promised(offered));
+        const takeCopies = proposedCopies(state, enemy.id, wanted, reader.ai);
+        if (giveCopies === 0 || takeCopies === 0) {
+          rows.push({ label: `${resourceDef(offered).name} for ${resourceDef(wanted).name}`,
+            score: 0, chosen: false, terms: [], rejected: 'The trade would leave a seat without a spare copy.' });
+          continue;
         }
-        const written = writeSwap(state, player, enemy, give, take, ctx, reader);
+        // A single strategic copy is not an adequate luxury-swap proposal.
+        if (resourceDef(offered).kind === 'strategic' && giveCopies === 1 && resourceDef(wanted).kind === 'luxury') continue;
+        if (resourceDef(wanted).kind === 'strategic' && takeCopies === 1 && resourceDef(offered).kind === 'luxury') continue;
+        const give = resourceTerms(offered, giveCopies);
+        const take = resourceTerms(wanted, takeCopies);
+        const label = `${resourceDef(offered).name} for the ${seatPeople(state, enemy.id)}' ${resourceDef(wanted).name.toLowerCase()}`;
+        const crowded = standingRefusal(state, enemy, wanted, offered, others, takeCopies);
+        if (crowded !== null) {
+          rows.push({ label, score: 0, chosen: false, terms: [], rejected: crowded });
+          continue;
+        }
+        const written = writeSwap(state, player, enemy, give, take, ctx, reader, writer);
         if (written.rejected !== undefined) {
           rows.push({ label, score: 0, chosen: false, terms: [], rejected: written.rejected });
           continue;
@@ -2265,9 +2155,9 @@ function swapDecision(
           },
           subject: seatName(state, enemy.id),
           summary:
-            `Offers the ${seatPeople(state, enemy.id)} a swap: ${resourceDef(offered).name.toLowerCase()} it holds twice for ` +
-            `${resourceDef(wanted).name.toLowerCase()} it holds none of` +
-            (written.sweetener === null ? '.' : ` — ${written.sweetener}.`),
+            `Offers ${giveCopies} ${resourceDef(offered).name.toLowerCase()} to ${seatName(state, enemy.id)} for ` +
+            `${takeCopies} ${resourceDef(wanted).name.toLowerCase()}` +
+            (written.sweetener === null ? '.' : `. ${written.sweetener}.`),
           candidates: rows,
         };
       }
@@ -2307,8 +2197,8 @@ function writeSwap(
   give: DealTerms,
   take: DealTerms,
   ctx: ValueContext,
-  /** A bot receiver's own reading (bot batch BP13), or `null` for a person or a caller with none. */
-  reader: PaperReader | null = null,
+  reader: PaperReader,
+  writer: PaperReader,
 ): WrittenSwap {
   const memory = readDealRefusal(
     state,
@@ -2339,6 +2229,13 @@ function writeSwap(
       };
     }
     const counter = counterTerms(state, enemy.id, player.id, give, take, ctx);
+    if (counter !== null && (counter.give.gold ?? 0) === (give.gold ?? 0) &&
+      (counter.give.goldPerTurn ?? 0) === (give.goldPerTurn ?? 0)) {
+      const extra = Math.ceil(explainSide(take, reader, true, 'from them').total * reader.ai.war.counterMarkup);
+      if (extra > 0 && player.gold >= (counter.give.gold ?? 0) + extra) {
+        counter.give.gold = (counter.give.gold ?? 0) + extra;
+      }
+    }
     const coin = (counter?.give.gold ?? 0) - (give.gold ?? 0);
     const tribute = (counter?.give.goldPerTurn ?? 0) - (give.goldPerTurn ?? 0);
     if (counter === null || coin + tribute <= 0) {
@@ -2356,13 +2253,13 @@ function writeSwap(
   if (refusal !== null) return { ...written, rejected: refusal };
   // **The receiver's own reading** (bot batch BP13): the paper goes only when
   // the code the receiver will answer with says it signs.
-  if (reader !== null) {
-    const verdict = dealVerdict(state, enemy, { by: player.id, give: written.give, take: written.take }, reader);
-    if (!verdict.accepting) {
-      return { ...written, rejected: `the ${seatPeople(state, enemy.id)} would send it back: ${verdictReason(verdict)}` };
-    }
+  const verdict = dealVerdict(state, enemy, { by: player.id, give: written.give, take: written.take }, reader);
+  if (!verdict.accepting) {
+    return { ...written, rejected: `${seatName(state, enemy.id)} would refuse: ${verdictReason(verdict)}` };
   }
-  const read = explainPaper(state, player, written.take, written.give, contextReader(ctx), enemy.id).appraisal;
+  const own = dealVerdict(state, player, { by: enemy.id, give: written.take, take: written.give }, writer);
+  if (!own.accepting) return { ...written, rejected: 'The proposed trade costs this empire more than it receives.' };
+  const read = own.appraisal;
   const lines =
     written.sweetener === null
       ? read.terms

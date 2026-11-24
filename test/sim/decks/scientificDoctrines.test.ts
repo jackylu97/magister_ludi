@@ -131,6 +131,7 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theJixianAcademy', 2],
   ['theAcademyOfGondishapur', 2],
   ['thePandidakterion', 2],
+  ['theHippodamianPlan', 2],
   ['theDirectorateOfArms', 3],
   ['theUniversitas', 3],
   ['theVolleyFire', 3],

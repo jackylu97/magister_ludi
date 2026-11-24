@@ -491,6 +491,21 @@ describe('Crop Rotation', () => {
     expect(explainCentreYield(state, city).length).toBe(1);
   });
 
+  it('credits inherited production when a later payment removes the extra food', () => {
+    const state = bareState();
+    const city = town(state, 5, 5, 4);
+    const line = { on: { test: 'unimproved' } as const, gold: 0, science: 0, culture: 0, faith: 0 };
+    const entries = explainCentreYield(state, city, [], { techs: [], lines: [
+      { ...line, card: 'thePhysiocrats', source: 'First payment', food: 2, production: 8 },
+      { ...line, card: 'theGiftOfTheRiver', source: 'Second payment', food: 0, production: 0, wholePercent: -50 },
+    ] });
+    const sources = entries.filter((entry) => entry.card !== undefined);
+    expect(sources.map(({ card, food, production }) => ({ card, food, production }))).toEqual([
+      { card: 'thePhysiocrats', food: 0, production: 6 },
+      { card: 'theGiftOfTheRiver', food: 0, production: -4 },
+    ]);
+  });
+
   it('moves a town’s citizens off wild ground and onto its works', () => {
     const state = bareState();
     const city = town(state, 5, 5, 1);

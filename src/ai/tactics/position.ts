@@ -1,5 +1,5 @@
 /** Local projections keep the live state and its caches unchanged. */
-import { attackRange, capturedCityHealth, combatContinuation, fortifyError, previewCombatSample, strikesAfterAttack, type CombatSample } from '../../sim/combat';
+import { attackRange, capturedCityHealth, combatContinuation, recoverAfterCounterKill, fortifyError, previewCombatSample, strikesAfterAttack, type CombatSample } from '../../sim/combat';
 import type { Command } from '../../sim/commands';
 import { getTileAt, tileHex, wrappedDistance } from '../../sim/map';
 import { reachableTiles, snapMovement, type Cell } from '../../sim/pathfind';
@@ -144,6 +144,7 @@ export function projectAction(
       } else if (killed || result.capturesUnit) removed.push(defender.id);
       else {
         const survivor = { ...defender, hp: result.defenderHp - result.damageToDefender, experience: result.defenderExperience };
+        if (actor.hp <= 0) recoverAfterCounterKill(state, survivor);
         if (!state.players[survivor.ownerId]?.barbarian) wakeInTrench(survivor);
         changed.set(defender.id, survivor);
       }

@@ -1,3 +1,4 @@
+import { addWagerCount } from '../wagerMilestoneData';
 /**
  * **The empire** — the seat's own list (`docs/yields.md` steps 15–19), the
  * stage over its fold, and the phase that banks it (step 20).
@@ -46,7 +47,7 @@ import {
 import type { TurnReport } from '../turn';
 import { empireResourceYields } from '../resourceEffects';
 import { cityRouteYields, senderRouteYields } from '../routeYields';
-import { explainEmpireGold } from '../empireGold';
+import { explainEmpireGold, type TradeGoldLine } from '../empireGold';
 import { disbandCandidate } from '../upkeep';
 import {
   type CityYields,
@@ -166,6 +167,8 @@ export function collectYields(state: GameState, report?: TurnReport): void {
 
     const player = playerById(state, city.ownerId);
     if (!player) continue;
+    addWagerCount(state, player.id, 'scienceCulture', Math.max(0, yields.science) + Math.max(0, yields.culture));
+    addWagerCount(state, player.id, 'faithGold', Math.max(0, yields.gold) + Math.max(0, yields.faith));
     player.gold += yields.gold;
     player.sciencePool += yields.science;
     player.culturePool += yields.culture;
@@ -212,6 +215,12 @@ export function collectYields(state: GameState, report?: TurnReport): void {
   for (const player of state.players) {
     const lines = explainEmpireLines(state, player.id);
     const empire = foldEmpireLines(lines);
+    if (state.wagerBook) {
+      const income = lines.filter((line) => !line.bill);
+      const gross = foldEmpireLines(income);
+      addWagerCount(state, player.id, 'scienceCulture', Math.max(0, gross.science) + Math.max(0, gross.culture));
+      addWagerCount(state, player.id, 'faithGold', Math.max(0, gross.faith) + Math.max(0, gross.gold));
+    }
     player.gold += empire.gold;
     player.sciencePool += empire.science;
     player.culturePool += empire.culture;
@@ -479,6 +488,7 @@ export interface EmpireYieldLine extends CityYields {
   /** The evaluator's own label — "Silk · empire", "City connections · 4 cities". */
   source: string;
   origin: EmpireLineOrigin;
+  cardPayments?: TradeGoldLine['cardPayments'];
   /**
    * A **bill**: a cost the empire stage does not reach (`TradeGoldKind`). Absent
    * on every income line, which is what the stage multiplies.
@@ -523,7 +533,7 @@ function empireStandingLines(state: GameState, playerId: number): EmpireYieldLin
     });
   }
   for (const line of senderRouteYields(state, playerId)) {
-    lines.push({ ...emptyCityYields(), ...voicesOf(line), source: line.source, origin: 'route' });
+    lines.push({ ...emptyCityYields(), ...voicesOf(line), source: line.source, origin: 'route', ...(line.card && { card: line.card }), ...(line.resource && { resource: line.resource }) });
   }
   for (const line of explainEmpireGold(state, playerId)) {
     lines.push({
@@ -531,6 +541,8 @@ function empireStandingLines(state: GameState, playerId: number): EmpireYieldLin
       gold: line.gold,
       source: line.source,
       origin: 'gold',
+      ...(line.cardPayments && { cardPayments: line.cardPayments }),
+      ...(line.resource === undefined ? {} : { resource: line.resource }),
       ...(line.card !== undefined ? { card: line.card } : {}),
       // The one classification that is not "everything here is a yield": a
       // maintenance line, a levy's surcharge, a charter's rebate and a treaty

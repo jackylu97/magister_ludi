@@ -25,7 +25,7 @@ import { valueContext } from '../../../src/ai/bot';
 import { scoreEffects } from '../../../src/ai/value';
 import { settleCampBounty } from '../../../src/sim/camps';
 import { foundCityAt, queueItemCost } from '../../../src/sim/cities';
-import { applyCombat } from '../../../src/sim/combat';
+import { applyCombat, handOverCity } from '../../../src/sim/combat';
 import { type Tile, createMap, getTileAt } from '../../../src/sim/map';
 import { explainAuthority } from '../../../src/sim/meters';
 import { bumpEconomy } from '../../../src/sim/slate';
@@ -329,6 +329,28 @@ describe('Dominion D4: pacification', () => {
     expect(plain.science).toBe(0);
   });
 
+  it('Pax Romana keeps doubled capture income in a transferred town and pays again on recapture', () => {
+    const { state, city } = captured({ orders: ['paxRomana', 'vaeVictis'] });
+    const income = () => foldCardYields(explainCardCityYields(state, city).filter(line => line.card === 'paxRomana'));
+    expect(income()).toMatchObject({ food: 10, production: 10 });
+    const council = playerById(state, 0)!.statecraft;
+    council.slots = council.slots.map(() => null);
+    touch(state);
+    expect(income()).toMatchObject({ food: 10, production: 10 });
+    handOverCity(state, city, 1);
+    touch(state);
+    expect(income()).toMatchObject({ food: 10, production: 10 });
+    const occupier = state.units.find(unit => unit.col === city.col && unit.row === city.row && unit.ownerId === 0);
+    if (occupier) state.units = state.units.filter(unit => unit !== occupier);
+    slot(state, 0, 'paxRomana');
+    city.hp = 1;
+    const attacker = createUnit(state, 0, 'warrior', city.col - 1, city.row);
+    touch(state);
+    expect(applyCombat(state, attacker.id, city).ok).toBe(true);
+    expect(city.ownerId).toBe(0);
+    expect(income()).toMatchObject({ food: 15, production: 15 });
+  });
+
   it('Pax Romana leaves what a captured town costs alone', () => {
     // A town taken here is a puppet, so it costs the captured price less the
     // puppet's relief. Pax Romana took one more off the captured price until
@@ -416,7 +438,8 @@ describe('Dominion D4: the words', () => {
     expect(said('theBakufu')).toEqual([
       '+25% production, +25% science and +25% culture in every city with a Citadel',
     ]);
-    expect(said('paxRomana')).toEqual(['a city you capture is pacified at once']);
+    expect(said('paxRomana').join(' ')).toContain('a city you capture is pacified at once');
+    expect(said('paxRomana').join(' ')).toMatch(/permanently.*food.*production/);
     expect(said('dominionTheProconsuls')).toEqual([
       '+25% production and +25% gold in every captured city',
     ]);

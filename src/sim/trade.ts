@@ -1,3 +1,4 @@
+import { wagerIncome } from './wagerMilestoneData';
 /**
  * Trade: caravans, and the lifecycle of the route one carries (`docs/trade.md`).
  *
@@ -1697,7 +1698,7 @@ export function settleTraderPlunder(
   const bounty = TRADE.pillageBounty;
   const payout = windfallPayout(state, playerId, 'pillageTrader', bounty.gold);
   plunder.gold = payout.amount;
-  player.gold += plunder.gold;
+  player.gold += wagerIncome(state, player.id, 'faithGold', plunder.gold);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
 

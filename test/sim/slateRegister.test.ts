@@ -418,6 +418,7 @@ const ANNOUNCING = new Set([
  * state whose callers announce instead (named, so the pair can be checked).
  */
 const EXCUSED = new Map<string, string>([
+  ['ledgerFold.ts#nonDeckSources', 'The Ledger adds signed gold payments to a fresh set of source rows.'],
   ['cardImpact.ts#ghostPair', 'The card preview copies the council slots before changing its own board.'],
   // Batch P3: these two folds name the six voices rather than walk a key list.
   ['hex.ts#foldTileLines', 'writes the fold’s own local total, a new object on each ask, and never a bank'],
@@ -862,7 +863,9 @@ describe('the register of announced writes', () => {
     // is folded by no tenant, which is exactly the excuse its row in `EXCUSED`
     // gives. A yield read here can never be stale, because nothing here moves a
     // yield.
-    expect(importers).toEqual(['cardImpact.ts', 'ledgerFold.ts', 'wagers.ts']);
+    // Milestone checks run after a command publishes its revision, at the end of
+    // map setup, or at the wager phase. Each bead grant publishes its own economy change.
+    expect(importers).toEqual(['cardImpact.ts', 'ledgerFold.ts', 'wagerMilestones.ts', 'wagers.ts']);
 
     // And it is a leaf of the simulation: no module in `src/sim` reaches it, so
     // no handler and no phase can ask a `read…` verb through it.

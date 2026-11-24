@@ -83,7 +83,7 @@ const PLACEMENT: readonly [TechId, number, TechId, number][] = [
   ['medicine', 3, 'theHighTemple', 6],
   // Devotion batch DV2: the shared The Schoolmen's Charter's technology, on
   // the lane under Medicine (the triage's reading 24).
-  ['scholasticism', 3, 'theHighTemple', 6],
+  ['scholasticism', 2, 'epicPoetry', 5],
   ['papermaking', 3, 'philosophy', 7],
   ['printing', 3, 'philosophy', 7],
   ['mechanics', 3, 'mathematics', 8],
@@ -141,8 +141,8 @@ beforeAll(() => {
 describe('the register', () => {
   it('marks exactly the technologies the charter cards name', () => {
     expect(CHARTER_TECH_IDS).toHaveLength(19);
-    expect(new Set(CHARTER_TECH_IDS.filter(id => id !== 'navalGunnery'))).toEqual(new Set(charteredTechIds()));
-    expect(charteredTechIds()).toHaveLength(CHARTER_TECH_IDS.length - 1);
+    expect(new Set(CHARTER_TECH_IDS.filter(id => !['navalGunnery', 'medicine', 'militaryArchitecture'].includes(id)))).toEqual(new Set(charteredTechIds()));
+    expect(charteredTechIds()).toHaveLength(CHARTER_TECH_IDS.length - 3);
     expect(new Set(CHARTER_TECH_IDS)).toEqual(new Set(PLACEMENT.map(([id]) => id)));
   });
 
@@ -172,10 +172,8 @@ describe('the register', () => {
       'theGlassmakersCharter',
       'theLibrariansCharter',
       'thePaperMakersCharter',
-      'thePhysiciansCharter',
       'thePrintersCharter',
       'theGunfoundersCharter',
-      'theMilitaryEngineersCharter',
       'theSchoolmensCharter',
     ]);
     for (const tech of CHARTER_TECH_IDS) {
@@ -185,7 +183,7 @@ describe('the register', () => {
       expect(def.decks, card).toContain(tech === 'liturgy' ? 'devotion' : 'scientific');
       expect(isCharter(card), card).toBe(true);
       expect(def.charter!.unlocks.tech, card).toBe(tech);
-      if (tech === 'navalGunnery') {
+      if (['navalGunnery', 'medicine', 'militaryArchitecture'].includes(tech)) {
         expect(def.retired, card).toBe(true);
         expect(orderIsDealt(card)).toBe(false);
         continue;
@@ -308,17 +306,16 @@ describe('the price (readings 13 and 14)', () => {
     }
   });
 
-  it('costs a charter technology its column price alone, as an ordinary one there (batch DS9)', () => {
-    // Batch DS9 (`docs/flags.md` items (hhhhhhh) and (jjjjjjj)): a charter
-    // technology costs the ordinary price. The premium and its rule field are
-    // gone.
+  it('charges half the column price for every charter technology, including Liturgy', () => {
     const g = researchingGame();
-    expect(RULES.research).not.toHaveProperty('charterPremiumPercent');
+    expect(RULES.research.charterCostPercent).toBe(50);
     for (const [id, , , column] of PLACEMENT) {
       const lines = explainTechCost(g.state, playerById(g.state, 0)!, id);
-      expect(lines, id).toEqual([{ source: `Column ${column}`, amount: COLUMN_COSTS[column] }]);
-      expect(foldTechCost(lines), id).toBe(COLUMN_COSTS[column]);
-      expect(price(g.state, id), id).toBe(techDef(id).cost);
+      expect(lines, id).toEqual([
+        { source: `Column ${column}`, amount: COLUMN_COSTS[column] },
+        { source: 'Charter technology 50% of column price', amount: Math.floor(COLUMN_COSTS[column]! / 2) - COLUMN_COSTS[column]! },
+      ]);
+      expect(foldTechCost(lines), id).toBe(Math.floor(COLUMN_COSTS[column]! / 2));
     }
   });
 
@@ -326,21 +323,21 @@ describe('the price (readings 13 and 14)', () => {
     const g = researchingGame();
     seat(g.state, 0, 'theCommonplaceBook');
     const lines = explainTechCost(g.state, playerById(g.state, 0)!, 'mechanics');
-    // 1150 × 0.85 = 977.5, floored once.
-    expect(lines.map((line) => line.amount)).toEqual([1150, 977 - 1150]);
-    expect(lines[1]!.source).toContain('The Commonplace Book');
-    expect(lines[1]!.source).toContain('-15%');
-    expect(foldTechCost(lines)).toBe(977);
+    // The card discounts the half-price charter baseline.
+    expect(lines.map((line) => line.amount)).toEqual([1150, 575 - 1150, 488 - 575]);
+    expect(lines[2]!.source).toContain('The Commonplace Book');
+    expect(lines[2]!.source).toContain('-15%');
+    expect(foldTechCost(lines)).toBe(488);
     for (const [id, , , column] of PLACEMENT) {
-      expect(price(g.state, id), id).toBe(Math.floor((COLUMN_COSTS[column]! * 85) / 100));
+      expect(price(g.state, id), id).toBe(Math.floor((COLUMN_COSTS[column]! * 50 * 85) / 10000));
     }
     // An ordinary technology is not a charter technology.
     expect(price(g.state, 'mathematics')).toBe(techDef('mathematics').cost);
     // And the other seat holds no card.
-    expect(foldTechCost(explainTechCost(g.state, playerById(g.state, 1)!, 'mechanics'))).toBe(1150);
+    expect(foldTechCost(explainTechCost(g.state, playerById(g.state, 1)!, 'mechanics'))).toBe(575);
   });
 
-  it('changes nothing under The Patent Office since batch DS9, and costs 85% of the column under both', () => {
+  it('keeps the retired premium waiver inactive and applies card discounts after the new baseline', () => {
     // The Patent Office's `charterPremium` rule took the premium away. With no
     // premium left, nothing reads the rule, so the price is the column's.
     const g = researchingGame();
@@ -348,13 +345,14 @@ describe('the price (readings 13 and 14)', () => {
     for (const [id, , , column] of PLACEMENT) {
       expect(explainTechCost(g.state, playerById(g.state, 0)!, id), id).toEqual([
         { source: `Column ${column}`, amount: COLUMN_COSTS[column] },
+        { source: 'Charter technology 50% of column price', amount: Math.floor(COLUMN_COSTS[column]! / 2) - COLUMN_COSTS[column]! },
       ]);
     }
     seat(g.state, 0, 'theCommonplaceBook');
     for (const [id, , , column] of PLACEMENT) {
       const lines = explainTechCost(g.state, playerById(g.state, 0)!, id);
-      expect(lines, id).toHaveLength(2);
-      expect(foldTechCost(lines), id).toBe(Math.floor((COLUMN_COSTS[column]! * 85) / 100));
+      expect(lines, id).toHaveLength(3);
+      expect(foldTechCost(lines), id).toBe(Math.floor((COLUMN_COSTS[column]! * 50 * 85) / 10000));
     }
   });
 
@@ -363,9 +361,9 @@ describe('the price (readings 13 and 14)', () => {
     const player = playerById(g.state, 0)!;
     player.techsResearched.push('earthenware');
     player.charteredTechs.push('herbals');
-    expect(turnsToTech(g.state, 0, 'herbals', 6)).toBe(Math.ceil(24 / 6));
+    expect(turnsToTech(g.state, 0, 'herbals', 6)).toBe(Math.ceil(12 / 6));
     expect(dispatch(g, choose(0, 'herbals')).ok).toBe(true);
-    expect(queueTurns(g.state, 0, 6)).toEqual([{ techId: 'herbals', turns: Math.ceil(24 / 6) }]);
+    expect(queueTurns(g.state, 0, 6)).toEqual([{ techId: 'herbals', turns: Math.ceil(12 / 6) }]);
   });
 });
 

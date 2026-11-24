@@ -1,0 +1,70 @@
+{
+  "higherMarksTier": 13,
+  "higherMarksPercent": 40,
+  "metrics": {
+    "score": {
+      "name": "Empire score",
+      "description": "Your current score from your empire, military and lifetime yields from sources in play."
+    },
+    "sixYields": {
+      "name": "Total yields",
+      "description": "The food, production, gold, science, culture and faith your empire produces per turn, added together."
+    },
+    "scienceCulture": {
+      "name": "Science and culture gained",
+      "description": "All science and culture your empire has gained during this age."
+    },
+    "faithGold": {
+      "name": "Faith and gold gained",
+      "description": "All faith and gold your empire has gained during this age, before spending."
+    },
+    "purchases": {
+      "name": "Gold and faith spent on purchases",
+      "description": "The gold and faith you have spent on purchases this age, less refunds and sale proceeds."
+    },
+    "population": {
+      "name": "Total population",
+      "description": "The number of citizens living in all your towns."
+    },
+    "cityProduction": {
+      "name": "Highest town production",
+      "description": "The production per turn of your most productive town."
+    },
+    "buildings": {
+      "name": "Buildings finished",
+      "description": "Buildings and wonders your towns have completed or purchased during this age."
+    },
+    "improvements": {
+      "name": "Improved hexes",
+      "description": "The number of hexes you own that currently have a functioning improvement."
+    },
+    "luxuries": {
+      "name": "Different luxuries held",
+      "description": "The number of different luxuries your empire currently has access to."
+    },
+    "routeYields": {
+      "name": "Trade route yields",
+      "description": "The yields your trade routes currently pay your empire each turn."
+    },
+    "peopleYields": {
+      "name": "Great person yields",
+      "description": "The yields your great people’s works and legacies currently pay your empire each turn."
+    },
+    "armyStrength": {
+      "name": "Total army strength",
+      "description": "The strength of all your military units, including ships, rank bonuses and bonuses that always apply."
+    }
+  },
+  "families": {
+    "score": "culture", "sixYields": "culture", "scienceCulture": "science",
+    "faithGold": "economic", "purchases": "economic", "population": "culture",
+    "cityProduction": "culture", "buildings": "culture", "improvements": "culture",
+    "luxuries": "economic", "routeYields": "economic", "peopleYields": "culture", "armyStrength": "domination"
+  },
+  "groups": {
+    "engine": ["sixYields", "scienceCulture", "faithGold", "purchases"],
+    "cities": ["population", "cityProduction", "buildings"],
+    "land": ["improvements", "luxuries", "routeYields"],
+    "peopleAndArms": ["peopleYields", "armyStrength"]
+  }
+}

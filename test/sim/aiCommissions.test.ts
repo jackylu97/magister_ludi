@@ -13,7 +13,7 @@
  *   · **a stand-in for each new shape**, each with its own knob in
  *     `data/ai.json` (`score.commission`, `score.dominion`, and
  *     `score.tallyForecast.militaryGained`);
- *   · **the soldiers' seats** in the bot's copy of a town's citizen count.
+ *   · **the soldiers' seats** in the bot's citizen focus forecast.
  *
  * Every figure is computed here off the sheet or off the context the arm
  * read, and compared with `toBe`, the discipline of `aiAppraisal.test.ts`.
@@ -486,11 +486,7 @@ describe('a stand-in price for each shape of D11 to D15, off its own knob (D16)'
 // --- the citizen count ------------------------------------------------------------
 
 describe('the bot counts the soldiers’ seats (D16)', () => {
-  it('reads The Limitanei’s seats where it copies the citizen count', () => {
-    // `focusTable` copies `chooseCitizens`' cap to price two placements. A
-    // source pin, because the table is a private reading of the focus arm:
-    // the copy must add the soldiers' seats through the one function the
-    // assigner reads.
+  it('uses the simulation to count all citizens and soldiers in both focus forecasts', () => {
     const source = (
       import.meta.glob('../../src/ai/bot.ts', {
         query: '?raw',
@@ -498,9 +494,9 @@ describe('the bot counts the soldiers’ seats (D16)', () => {
         eager: true,
       }) as Record<string, string>
     )['../../src/ai/bot.ts']!;
-    const body = source.slice(source.indexOf('function focusTable('));
-    const seats = body.slice(body.indexOf('const seats ='), body.indexOf(';', body.indexOf('const seats =')));
-    expect(seats).toMatch(/totalSpecialists\(city\)/);
-    expect(seats).toMatch(/cardGarrisonSeats\(state, city\)/);
+    const body = (name: string) => source.split(`function ${name}(`)[1]!.split('\n}')[0]!;
+    expect(body('focusTable')).toContain('focusForecasts(state, city)');
+    expect(body('sheetTable')).toContain('focusForecasts(state, city)');
+    expect(body('focusForecasts')).toContain("refreshCityDerived(view, copy, 'citizenFocus')");
   });
 });

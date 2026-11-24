@@ -1,5 +1,48 @@
 {
   "orders": {
+    "theHuscarls": {
+      "name": "The Huscarls",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "text": "Elite units in a garrison give twice the per-unit garrison bonuses of your other cards.",
+      "flavor": "The household soldiers ate at the same table as the king.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "doubleGarrisonBonus",
+          "rank": "elite"
+        }
+      ]
+    },
+    "theSacredBand": {
+      "name": "The Sacred Band",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "text": "When one of your Elite units dies, gain a melee unit in your capital. It starts as a Veteran.",
+      "flavor": "The city kept the names of the fallen and raised the company again.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "rank": "elite",
+          "grant": {
+            "unit": "bestMelee",
+            "unitRank": "veteran",
+            "toCapital": true
+          }
+        }
+      ]
+    },
     "dominionBloodedSpears": {
       "name": "Blooded Spears",
       "decks": [
@@ -3562,7 +3605,7 @@
       "decks": [
         "dominion"
       ],
-      "band": 3,
+      "band": 2,
       "line": "none",
       "rarity": "common",
       "type": "military",
@@ -3706,7 +3749,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The army that holds the centre can reach any part of the front first.",
       "text": "Roads cost your units 40% less movement.",
       "effects": [
@@ -3715,7 +3757,8 @@
           "rule": "roadStepCost",
           "percent": -40
         }
-      ]
+      ],
+      "retired": true
     },
     "thePlunderTrains": {
       "name": "The Plunder Trains",
@@ -3848,11 +3891,21 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "They make a desert and call it peace, but the roads are safe.",
-      "text": "Towns you capture are pacified at once.",
+      "text": "Towns you capture are pacified at once, and each gains +5 food and +5 production for good.",
       "effects": [
         {
           "kind": "rule",
           "rule": "pacifyOnCapture"
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": { "yield": "food", "amount": 5, "permanentTownYield": true }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": { "yield": "production", "amount": 5, "permanentTownYield": true }
         }
       ]
     },
@@ -4519,7 +4572,7 @@
       "decks": [
         "dominion"
       ],
-      "band": 4,
+      "band": 3,
       "line": "none",
       "rarity": "rare",
       "type": "military",
@@ -5070,23 +5123,29 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "The client kings keep their crowns and send their taxes.",
-      "text": "Your capital gains +2 production and +2 gold for each citizen in your puppet towns.",
+      "text": "Your capital gains +1 production and +1 gold for each citizen in towns you captured.",
       "effects": [
         {
           "kind": "pays",
           "where": "capital",
           "basis": "count",
-          "count": "puppetPopulation",
+          "count": "population",
           "to": "production",
-          "amount": 2
+          "amount": 1,
+          "admits": {
+            "test": "captured"
+          }
         },
         {
           "kind": "pays",
           "where": "capital",
           "basis": "count",
-          "count": "puppetPopulation",
+          "count": "population",
           "to": "gold",
-          "amount": 2
+          "amount": 1,
+          "admits": {
+            "test": "captured"
+          }
         }
       ]
     },
@@ -5616,10 +5675,10 @@
       "effects": [
         {
           "kind": "rule",
-          "rule": "moveAfterKill"
+          "rule": "actAfterKill"
         }
       ],
-      "text": "A unit of yours that kills a unit regains its movement.",
+      "text": "A unit of yours that kills a unit regains its movement and may attack again.",
       "rarity": "rare",
       "type": "military",
       "flavor": "The riders changed horses after the charge."

@@ -1,3 +1,4 @@
+import { milestoneOffer } from '../sim/wagerMilestones';
 /**
  * **The bot's wager** — which of the three bars a seat stakes, and what having
  * staked one does to everything else it decides (batch **W2**, `docs/wager.md`
@@ -665,4 +666,37 @@ export function wagerWantOf(lean: WagerLean | null): WagerWant | null {
 /** One decimal, the voice every printed figure in this bot speaks. */
 function round(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+/** Rank the nine public choices with the same age estimate the bot uses for legacy wagers. */
+export function appraiseMilestoneWagers(
+  state: GameState,
+  playerId: number,
+  ai: { ageTurns: number; driftWeight: number },
+  offer: NonNullable<ReturnType<typeof milestoneOffer>>,
+) {
+  const book = state.wagerBook!;
+  const previous = book.ages[book.ages.length - 2];
+  const previousSeat = previous?.seats.find((seat) => seat.playerId === playerId);
+  const horizon = worldAgeCountdown(state)?.turnsLeft ?? ai.ageTurns;
+  const elapsed = Math.max(1, (previous?.closed ?? state.turn) - (previous?.opened ?? state.turn));
+  const choices = offer.options.flatMap((option, index) => {
+    const m = option.metric;
+    const flow = m === 'scienceCulture' || m === 'faithGold' || m === 'buildings' || m === 'purchases';
+    const lastAge = previousSeat?.closing?.readings[m] ?? 0;
+    const growth = flow ? lastAge : Math.max(0, lastAge - (previousSeat?.opening?.[m] ?? lastAge));
+    const projected = option.now + growth * horizon / elapsed * ai.driftWeight;
+    return ([0, 1, 2] as const).map((mark) => {
+      const goal = option.marks[mark];
+      const share = Math.max(0, projected) / goal;
+      const score = share >= 1 ? mark + 1 : share;
+      return { index, mark, score, share, now: option.now, goal, metric: m, projected };
+    });
+  });
+  choices.sort((a, b) =>
+    b.score - a.score ||
+    Number(b.now >= b.goal) - Number(a.now >= a.goal) ||
+    b.share - a.share || a.index - b.index || a.mark - b.mark);
+
+  return choices;
 }

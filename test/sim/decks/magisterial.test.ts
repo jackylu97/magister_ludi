@@ -238,16 +238,16 @@ describe('the Magisterial deck', () => {
     // Batch DS1 (`docs/plans/deck-simplification-2026-11-10.md`) retired seven
     // live rows and moved Civic Granaries and Commission: The Eighth Wonder
     // from Tier 0 to Tier I.
-    expect(MAGISTERIAL).toHaveLength(143);
-    expect(MAGISTERIAL.filter(live)).toHaveLength(67);
+    expect(MAGISTERIAL).toHaveLength(147);
+    expect(MAGISTERIAL.filter(live)).toHaveLength(69);
     expect(MAGISTERIAL.filter(deferred)).toHaveLength(0);
-    expect(MAGISTERIAL.filter(isRetired)).toHaveLength(76);
+    expect(MAGISTERIAL.filter(isRetired)).toHaveLength(78);
     for (const id of MAGISTERIAL.filter(isRetired)) {
       expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
     }
     // The rows the sheet lists, by band: Tiers 0 to IV.
     const kept = MAGISTERIAL.filter((id) => !isRetired(id)).map((id) => orderDef(id).band);
-    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([8, 15, 19, 15, 10]);
+    expect(BANDS.map((band) => kept.filter((b) => b === band).length)).toEqual([8, 17, 21, 13, 10]);
   });
 
   it('gives every row an id nothing else in the eight files uses', () => {
@@ -764,7 +764,7 @@ describe('the Magisterial deck: the sheet of record', () => {
     ];
     // 62 of this file, and the shared The Imperial Examinations and Triumphal Arches.
     // Batch DS1 retired seven more of this file and four more shared rows.
-    expect(retired).toHaveLength(82);
+    expect(retired).toHaveLength(84);
     for (const id of retired) {
       expect(listed.has(orderDef(id).name), `${id} is retired and still on the sheet`).toBe(false);
       expect(orderDef(id).type, `${id} is retired and carries a type`).toBeUndefined();
@@ -799,8 +799,8 @@ describe('the Magisterial deck: the sheet of record', () => {
     // Chapels, The Festival Calendar and The Penitents' Roll to the shared
     // file, and the merge of the two batches added them here. Batch DS1
     // retired seven rows of the tier tables and four shared rows.
-    expect(sheet).toHaveLength(67);
-    expect(shared).toHaveLength(19);
+    expect(sheet).toHaveLength(69);
+    expect(shared).toHaveLength(20);
   });
 
   it('assigns a card type to every listed Order and shared Order', () => {
@@ -810,7 +810,7 @@ describe('the Magisterial deck: the sheet of record', () => {
     // four of batch MG9, the three of batch MG10, the one each of batches
     // MG11, MG12 and MG13, the two each of batches MG14 and MG15, and the
     // one of batch MG16: 71. Batch DS1 retired seven.
-    expect(LISTED).toHaveLength(67);
+    expect(LISTED).toHaveLength(69);
     for (const id of MAGISTERIAL) {
       const def = orderDef(id);
       if (isRetired(id)) expect(def.type, id).toBeUndefined();
@@ -823,7 +823,7 @@ describe('the Magisterial deck: the sheet of record', () => {
     // The 19 rows of the shared table. The Rising Nave, the last of them, has
     // had a data row since Devotion batch DV3. Batch DS1 retired four of them,
     // The Rising Nave among them.
-    expect(sharedRows).toHaveLength(19);
+    expect(sharedRows).toHaveLength(20);
     for (const id of sharedRows) expect(isCardType(orderDef(id).type ?? ''), id).toBe(true);
   });
 

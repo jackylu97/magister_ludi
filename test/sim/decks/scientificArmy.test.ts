@@ -59,7 +59,6 @@ import {
   commissionFulfilledTurn,
   describeCard,
   eligibleFor,
-  ownerAgeOf,
   stripRefs,
   unitMatches,
 } from '../../../src/sim/statecraft';
@@ -84,6 +83,7 @@ import { resetVisibility } from '../../../src/sim/visibility';
 import { openWar } from '../../../src/sim/wars';
 import { explainCity } from '../../../src/sim/yields/town';
 import { newGame } from '../newGameHelpers';
+import { windfallPayout } from '../../../src/sim/statecraft/evaluator';
 
 // --- the bench -----------------------------------------------------------------
 
@@ -215,7 +215,7 @@ const OPUS: BuildingId = 'theMagnumOpus';
 const S9: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardType; decks: string[] }[] = [
   { id: 'theFieldRefits', band: 1, rarity: 'uncommon', type: 'military', decks: ['scientific'] },
   { id: 'theStrategikon', band: 2, rarity: 'common', type: 'military', decks: ['scientific'] },
-  { id: 'theArmouryPatterns', band: 2, rarity: 'common', type: 'military', decks: ['scientific'] },
+  { id: 'theArmouryPatterns', band: 2, rarity: 'common', type: 'civic', decks: ['scientific'] },
   { id: 'theModelArmy', band: 3, rarity: 'uncommon', type: 'military', decks: ['scientific'] },
   { id: 'theGreatInstrument', band: 4, rarity: 'rare', type: 'wildcard', decks: ['scientific'] },
   { id: 'theFoundationStone', band: 4, rarity: 'rare', type: 'economic', decks: ['scientific'] },
@@ -260,11 +260,9 @@ describe('the rows', () => {
     expect(said('theFieldRefits')).toEqual(['each time research upgrades one of your units, it heals fully']);
     // Batch DS6 left The Strategikon with the Academy alone.
     expect(said('theStrategikon')).toEqual(['+4 combat strength while within 2 hexes of your Academy']);
-    expect(said('theArmouryPatterns')).toMatchInlineSnapshot(`
-      [
-        "+3 combat strength for units of the newest age you know",
-      ]
-    `);
+    expect(said('theArmouryPatterns')).toEqual([
+      'killing a unit (against an empire that knows fewer technologies than you) grants science equal to 2 times its strength',
+    ]);
     expect(said('theModelArmy')).toMatchInlineSnapshot(`
       [
         "research upgrades your units even when you lack the strategic resource the new unit needs",
@@ -343,27 +341,30 @@ describe('The Model Army (reading 42)', () => {
 });
 
 describe('The Armoury Patterns (reading 43)', () => {
-  it('adds strength to units of the current age and changes when the empire enters an age', () => {
+  it('grants science only for a kill against a less advanced empire', () => {
     const state = bench();
     town(state, 0, 4, 4);
-    const warrior = createUnit(state, 0, 'warrior', 5, 5);
-    const bow = createUnit(state, 0, 'bowman', 5, 6);
-    createUnit(state, 1, 'warrior', 6, 5);
     slot(state, 0, 'theArmouryPatterns');
-    const pays = (type: 'warrior' | 'bowman') =>
-      lines(state, type === 'warrior' ? warrior : bow, 6, 5, 'attacker', 'The Armoury Patterns');
-    expect(ownerAgeOf(state, 0)).toBe(1);
-    expect(pays('warrior')).toBe(3);
-    expect(pays('bowman')).toBe(0);
-    // A charter technology of a later age moves nothing.
-    learn(state, 0, 'surveying');
-    expect(ownerAgeOf(state, 0)).toBe(1);
-    expect(pays('warrior')).toBe(3);
-    // A second-age technology moves the seat into the second age.
-    learn(state, 0, 'siegecraft');
-    expect(ownerAgeOf(state, 0)).toBe(2);
-    expect(pays('warrior')).toBe(0);
-    expect(pays('bowman')).toBe(3);
+    const player = playerById(state, 0)!;
+    const rival = playerById(state, 1)!;
+    player.techsResearched = ['agriculture', 'mining'];
+    rival.techsResearched = ['agriculture'];
+    bumpRevision(state);
+    const grants = (rivalId?: number, vsBarbarians = false) =>
+      windfallPayout(state, 0, 'kill', 0, 0, { rivalId, vsBarbarians, strength: 20 }).grants
+        .filter(({ card }) => card === 'theArmouryPatterns');
+    expect(grants(1)).toEqual([expect.objectContaining({ yield: 'science', amount: 40 })]);
+    expect(grants()).toEqual([]);
+    rival.techsResearched.push('mining');
+    bumpRevision(state);
+    expect(grants(1)).toEqual([]);
+    rival.techsResearched.push('fletching');
+    bumpRevision(state);
+    expect(grants(1)).toEqual([]);
+    rival.techsResearched = [];
+    rival.barbarian = true;
+    bumpRevision(state);
+    expect(grants(1, true)).toEqual([]);
   });
 
   it('admits nothing when no owner’s age is handed in', () => {

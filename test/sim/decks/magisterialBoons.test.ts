@@ -242,7 +242,7 @@ describe('The Cabinet of Curiosities (reading 37)', () => {
     const { state, player } = board(['magisterial', 'commerce'], 1);
     const bag = foreignCardBag(state, player);
     // Devotion and Scientific: neither is held.
-    expect(bag).toContain('theSchoolmensCharter');
+    expect(bag).toContain('theObserversCharter');
     // Dominion and Magisterial: one is held.
     expect(bag).not.toContain('theSwordOfState');
     // A card that belongs to no deck is never in the bag.

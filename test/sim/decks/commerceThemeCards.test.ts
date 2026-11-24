@@ -250,17 +250,18 @@ describe('Commerce batch T1: the cards that pay something new', () => {
     player.gold = 10000;
     const card = 'boughtAndPaidFor' as OrderId;
     purchaseItemAt(state, player, city, { kind: 'building', id: 'granary' }, 'gold');
-    addBuilding(state, city, 'shrine', 'faith');
+    player.faithPool = 10000;
+    purchaseItemAt(state, player, city, { kind: 'building', id: 'shrine' }, 'faith');
     addBuilding(state, city, 'library');
     slot(state, 0, card);
     for (const owned of [city, other]) {
-      expect(townPercent(state, owned, card, 'production')).toBe(2);
-      expect(townPercent(state, owned, card, 'culture')).toBe(2);
+      expect(townPercent(state, owned, card, 'production')).toBe(4);
+      expect(townPercent(state, owned, card, 'culture')).toBe(4);
     }
     city.ownerId = 1;
     bumpRevision(state);
-    expect(scalerFace(state, 0, card)?.figure).toBe('+2%');
-    expect(townPercent(state, other, card, 'production')).toBe(2);
+    expect(scalerFace(state, 0, card)?.figure).toBe('+4%');
+    expect(townPercent(state, other, card, 'production')).toBe(4);
     player.buildingsBoughtWithGold = 18;
     bumpRevision(state);
     expect(scalerFace(state, 0, card)?.figure).toBe('+30%');

@@ -157,7 +157,7 @@ describe('Magisterial batch MG1: the four cards changed in place', () => {
     expect(townPays(state, city, 'civicGranaries', 'production')).toBe(2);
   });
 
-  it('The Honoured Dead pays the capital +8 science and +8 production for each person gained while seated, with no cap', () => {
+  it('The Honoured Dead pays the capital +5 science and +5 production for each person gained while seated, with no cap', () => {
     const state = bareState();
     const capital = town(state, 3, 5, 3);
     const other = town(state, 8, 5, 3);
@@ -167,16 +167,16 @@ describe('Magisterial batch MG1: the four cards changed in place', () => {
     expect(townPays(state, capital, 'theHonouredDead', 'science')).toBe(0);
     recordScalingOccasion(state, 0, 'greatPersonGained');
     bumpRevision(state);
-    expect(townPays(state, capital, 'theHonouredDead', 'science')).toBe(8);
-    expect(townPays(state, capital, 'theHonouredDead', 'production')).toBe(8);
+    expect(townPays(state, capital, 'theHonouredDead', 'science')).toBe(5);
+    expect(townPays(state, capital, 'theHonouredDead', 'production')).toBe(5);
     // Only the capital is paid.
     expect(townPays(state, other, 'theHonouredDead', 'science')).toBe(0);
     // Twenty in all. Batch DS7 removed the cap of fifteen, so all twenty pay:
-    // +40 science and +80 production.
+    // +40 science and +50 production.
     for (let spent = 1; spent < 20; spent += 1) recordScalingOccasion(state, 0, 'greatPersonGained');
     bumpRevision(state);
-    expect(townPays(state, capital, 'theHonouredDead', 'science')).toBe(160);
-    expect(townPays(state, capital, 'theHonouredDead', 'production')).toBe(160);
+    expect(townPays(state, capital, 'theHonouredDead', 'science')).toBe(100);
+    expect(townPays(state, capital, 'theHonouredDead', 'production')).toBe(100);
     for (const effect of orderDef('theHonouredDead' as OrderId).effects) {
       expect(effect.kind === 'pays' && effect.max, 'no cap').toBeUndefined();
     }
@@ -254,7 +254,7 @@ describe('Magisterial batch MG1: the rows', () => {
 
   it('gives the three deferred rows their new text', () => {
     expect(orderDef('theGoldenAge' as OrderId).text).toBe(
-      'Completing a wonder or gaining a great person gives your cities +25% production and culture for ten turns. A later one restarts the ten turns.',
+      'Completing a wonder gives your cities +25% production and culture for ten turns. A later one restarts the ten turns.',
     );
     expect(orderDef('magisterialTheMagistersCourt' as OrderId).text).toBe(
       'Cities containing a wonder gain +25% production toward the Magnum Opus.',
@@ -903,23 +903,24 @@ describe('Magisterial batch MG3: the council cards', () => {
 });
 
 describe('Magisterial batch MG3: the patrons', () => {
-  it('The Symposium deals a free Order hand when a great person is gained, and only when no hand waits', () => {
+  it('The Symposium deals a free Order hand when a great person acts, and only when no hand waits', () => {
     const state = bareState();
     town(state, 5, 5, 3);
     const player = playerById(state, 0)!;
     slot(state, 0, 'theSymposium');
-    expect(windfallPayout(state, 0, 'greatPersonGained').freeDraft).toBe(true);
+    expect(windfallPayout(state, 0, 'greatPersonGained').freeDraft).toBeUndefined();
+    expect(windfallPayout(state, 0, 'greatPersonAct').freeDraft).toBe(true);
     const drafts = player.statecraft.drafts;
     player.greatPersonOffer = { options: ['lamassi' as GreatPersonId] };
     expect(settleGreatPersonChoice(state, player, 0)).not.toBeNull();
+    expect(player.statecraft.pendingOrder).toBeUndefined();
+    const merchant = state.units.find(unit => unit.person === 'lamassi')!;
+    greatPersonActAt(state, player, merchant);
     const hand = player.statecraft.pendingOrder;
     expect(hand).toBeDefined();
-    expect(hand!.options.length).toBeGreaterThan(0);
-    // The free hand does not move the draft count, so the next price holds.
     expect(player.statecraft.drafts).toBe(drafts);
-    // While that hand waits, a second person deals nothing (reading 14).
-    player.greatPersonOffer = { options: ['ahmes' as GreatPersonId] };
-    expect(settleGreatPersonChoice(state, player, 0)).not.toBeNull();
+    const second = createUnit(state, 0, 'greatPerson', merchant.col, merchant.row, 'lamassi' as GreatPersonId);
+    greatPersonActAt(state, player, second);
     expect(player.statecraft.pendingOrder).toBe(hand);
   });
 
@@ -1108,6 +1109,8 @@ describe('Magisterial batch MG3: the monuments', () => {
     // second +25%.
     state.turn += 5;
     payWindfallGrants(state, player, windfallPayout(state, 0, 'greatPersonGained'));
+    expect(hung().every(entry => entry.expiresTurn === firstEnd)).toBe(true);
+    realiseItem(state, capital, { kind: 'building', id: 'stonehenge' });
     bumpRevision(state);
     expect(hung()).toHaveLength(2);
     for (const entry of hung()) expect(entry.expiresTurn).toBe(firstEnd + 5);

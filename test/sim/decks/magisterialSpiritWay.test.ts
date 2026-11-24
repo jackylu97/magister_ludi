@@ -115,7 +115,7 @@ describe('The Spirit Way and The Paradise Garden', () => {
     for (const id of [...plain.slice(0, 2), MAUSOLEUM]) {
       const rows = lines.filter(line => line.source.endsWith(' · ' + buildingDef(id).name));
       for (const [voice, base] of [['food', 6], ['production', 6], ['science', 2]] as const) {
-        expect(rows.reduce((sum, line) => sum + line[voice], 0)).toBe(base * 2 * 3.5);
+        expect(rows.reduce((sum, line) => sum + line[voice], 0)).toBe(base * 2);
       }
       expect(rows.every(line => !line.gold && !line.faith && !line.culture)).toBe(true);
     }
@@ -138,8 +138,8 @@ describe('The Spirit Way and The Paradise Garden', () => {
     expect(doubled.culture - before.culture).toBe(4);
     addBuilding(state, city, MAUSOLEUM);
     bumpRevision(state);
-    // Both wonders receive the doubled legacy, then the Mausoleum doubles each package.
-    expect(total()).toBe(24);
+    // Both wonders receive the doubled legacy. A virtual work has no improvement base for the Mausoleum.
+    expect(total()).toBe(12);
   });
 
   it('pays the lasting reward on real works and restores it after a repair command', () => {

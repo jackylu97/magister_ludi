@@ -816,6 +816,7 @@ describe('bargains', () => {
     giveLuxury(state, mine, 4, 6, 'silk');
     giveLuxury(state, mine, 5, 6, 'silk');
     giveLuxury(state, theirs, 14, 6, 'wine');
+    giveLuxury(state, theirs, 15, 6, 'wine');
     return state;
   }
 
@@ -834,10 +835,8 @@ describe('bargains', () => {
     });
     const chosen = decision!.candidates.find((row) => row.chosen)!;
     expect(foldTerms(chosen.terms)).toBe(chosen.score);
-    // A seam for a seam is priced at exactly nothing on this seat's books —
-    // both sides are the baseline — which is what makes it a *swap*. What it
-    // gains is the signature, and that is the ruled rule rather than a margin.
-    expect(chosen.score).toBe(0);
+    // The first copy adds happiness, while the spare copy keeps a resale value.
+    expect(chosen.score).toBeGreaterThan(0);
     expect(applyCommand(state, decision!.command).ok).toBe(true);
   });
 

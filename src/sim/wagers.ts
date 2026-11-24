@@ -1,3 +1,5 @@
+import { currentWagerAge, MILESTONE_RULES } from './wagerMilestoneData';
+import { closeMilestoneAge, openMilestoneAge, payMilestones } from './wagerMilestones';
 /**
  * **The Wager** — the deal, the secret stake, the claim and the judgement
  * (`docs/wager.md` §2/§3/§3b, batch G2).
@@ -79,7 +81,7 @@ import {
   wondersHeldBy,
 } from './state';
 import { BUILDING_UNLOCK_TECH, isTechId, techDef } from './techData';
-import { isCombatant, unitDef } from './unitData';
+import { standingArmyStrength } from './score';
 import { seatName } from './leaderData';
 import {
   type WagerCount,
@@ -133,16 +135,8 @@ export function wagerCount(state: GameState, playerId: number, count: WagerCount
     }
     case 'cities':
       return citiesOf(state, playerId).length;
-    case 'armyStrength': {
-      let worth = 0;
-      for (const unit of state.units) {
-        if (unit.ownerId !== playerId) continue;
-        const def = unitDef(unit.type);
-        if (!isCombatant(def)) continue;
-        worth += def.combatStrength;
-      }
-      return worth;
-    }
+    case 'armyStrength':
+      return standingArmyStrength(state, playerId);
     case 'treasury':
       return Math.floor(player.gold);
     case 'foodSurplus':
@@ -601,6 +595,25 @@ interface WagerReport {
  */
 export function runWagers(state: GameState, report?: WagerReport): void {
   const awards: BeadAward[] = [];
+  const book = state.wagerBook;
+  if (book) {
+    const age = currentWagerAge(state)!;
+    const worldAge = currentWorldAge(state);
+    if (book.setup.mode === 'calibrated') collectMilestoneAwards(state, awards);
+    // The world clock can replace a closing stamp with the next countdown in
+    // the same phase. The book still holds the age that earned these yields.
+    if (state.winnerId !== null || worldAge > age.age || (ageClosesThisTurn(state) && state.ageClose?.age === age.age)) {
+      closeMilestoneAge(state);
+      if (state.winnerId === null && worldAge > age.age && worldAge <= 4) {
+        openMilestoneAge(state, worldAge);
+        if (report && book.setup.mode === 'calibrated') report.wagerDealt = worldAge;
+      }
+    }
+    if (book.setup.mode === 'calibrated') {
+      if (report) report.beads.push(...awards);
+      return;
+    }
+  }
   const claims: WagerReport['wagerClaims'] = [];
 
   // **The table this turn is being played on.** On an ordinary turn it is the
@@ -900,4 +913,12 @@ export function dealtWagers(deal: WagerDeal | null): WagerId[] {
   const ids: WagerId[] = [];
   for (const id of deal.dealt) if (isWagerId(id)) ids.push(id);
   return ids;
+}
+
+export function collectMilestoneAwards(state: GameState, awards: BeadAward[]): void {
+  payMilestones(state, (playerId, metric, _mark, beads) => {
+    const family = MILESTONE_RULES.families[metric] as BeadFamily;
+    payWagerBeads(state, playerId, family, beads, awards);
+    awards.push(...awardBeadOccasion(state, playerId, 'wagerClaimed'));
+  });
 }

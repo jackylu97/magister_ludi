@@ -288,20 +288,17 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Buy the field before anyone knows what it is for.",
-      "text": "Buying a hex grants culture equal to half the gold paid.",
+      "text": "Buying a hex grants 6 culture.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "tilePurchase",
           "grant": {
             "yield": "culture",
-            "amount": 0.5,
-            "fromOccasion": "gold",
-            "whole": true
+            "amount": 6
           }
         }
-      ],
-      "note": "The culture is rounded down."
+      ]
     },
     "foundingCapital": {
       "name": "Founding Capital",
@@ -618,7 +615,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Two seals on one page, and the harbour opens.",
-      "text": "+8% production for each empire you hold a deal with, at most +40%.",
+      "text": "+8% production for each empire you trade with, at most +40%.",
       "effects": [
         {
           "kind": "pays",
@@ -1180,7 +1177,6 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "Somebody, somewhere, will sell you horses.",
       "text": "You may buy units without their strategic resource.",
       "effects": [
@@ -1189,7 +1185,8 @@
           "rule": "buysWithoutResources"
         }
       ],
-      "note": "The waiver is for the counter alone — a town still cannot put a knight in its queue without horses. A piece bought this way is an ordinary piece afterwards and still takes a copy, so an empire that buys past its iron finds the iron spoken for."
+      "note": "The waiver is for the counter alone — a town still cannot put a knight in its queue without horses. A piece bought this way is an ordinary piece afterwards and still takes a copy, so an empire that buys past its iron finds the iron spoken for.",
+      "retired": true
     },
     "theHarbourChain": {
       "name": "The Harbour Chain",
@@ -1299,13 +1296,13 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Two ledgers open on one table is the oldest university there is.",
-      "text": "+5% science and culture for each foreign empire your routes reach.",
+      "text": "+5% science and culture for each empire you trade with.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
-          "count": "tradePartnerEmpires",
+          "count": "dealPartners",
           "to": "science",
           "percent": 5,
           "stage": "city"
@@ -1314,13 +1311,13 @@
           "kind": "pays",
           "where": "city",
           "basis": "count",
-          "count": "tradePartnerEmpires",
+          "count": "dealPartners",
           "to": "culture",
           "percent": 5,
           "stage": "city"
         }
       ],
-      "note": "Each empire counts once, however many of your trade routes reach it."
+      "note": "An empire counts once if a trade route of yours reaches it or you hold a deal with it."
     },
     "theScholarsRoads": {
       "name": "The Scholars' Roads",
@@ -1632,16 +1629,17 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "The last work of the age is paid for by every market in it.",
-      "text": "+20% production toward the Opus for each foreign empire your trade routes reach.",
+      "text": "+20% production toward the Opus for each empire you trade with.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "building": "theMagnumOpus",
           "percent": 20,
-          "count": "tradePartnerEmpires"
+          "count": "dealPartners"
         }
-      ]
+      ],
+      "note": "An empire counts once if a trade route of yours reaches it or you hold a deal with it."
     },
     "theCharteredMetropolis": {
       "name": "The Chartered Metropolis",
@@ -1815,16 +1813,11 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "Every marvel has a price. Most of them are simply not quoted.",
-      "text": "You may purchase world wonders. All your cities lose 15% production.",
+      "text": "You may buy world wonders with gold.",
       "effects": [
         {
           "kind": "rule",
           "rule": "goldBuysWonders"
-        },
-        {
-          "kind": "percentYields",
-          "yield": "production",
-          "percent": -15
         }
       ],
       "note": "The treasury pays the wonder's full cost in hammers at the ordinary rate, and every other refusal at the counter still stands: a wonder another empire has already claimed, one whose technology is not in, and one whose site the ground does not hold are all refused as before. A wonder is still never bought by the faith bank, except in the one town whose own shelf opens it."
@@ -2110,17 +2103,8 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "A ledger well kept is a quiet street.",
-      "text": "Gold buildings provide +1 happiness and +2 renown.",
+      "text": "Gold buildings provide +2 renown.",
       "effects": [
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "happiness",
-          "amount": 1,
-          "count": "buildingsOfCategory",
-          "category": "gold"
-        },
         {
           "kind": "renown",
           "amount": 2,
@@ -2364,7 +2348,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "What was bought stays bought.",
-      "text": "+2% production and culture for each building you have bought with gold, at most +30%.",
+      "text": "+2% production and culture for each building you have bought with gold or faith, at most +30%.",
       "effects": [
         {
           "kind": "pays",
@@ -2373,7 +2357,7 @@
           "to": "production",
           "percent": 2,
           "stage": "city",
-          "count": "buildingsBoughtWithGold",
+          "count": "buildingsBought",
           "showCountPercent": true,
           "max": 15
         },
@@ -2384,7 +2368,7 @@
           "to": "culture",
           "percent": 2,
           "stage": "city",
-          "count": "buildingsBoughtWithGold",
+          "count": "buildingsBought",
           "max": 15
         }
       ]
@@ -2466,13 +2450,13 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Bring everything you make, and see everything everyone else makes.",
-      "text": "Goal: have trade routes to four empires. Reward: your trade routes to other empires pay twice as much.",
+      "text": "Goal: trade with four empires. Reward: your trade routes to other empires pay twice as much.",
       "effects": [],
       "commission": {
         "goals": [
           {
             "kind": "reached",
-            "figure": "tradePartnerEmpires",
+            "figure": "dealPartners",
             "count": 4
           }
         ],
@@ -2999,16 +2983,21 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "Every crate on the quay is weighed, taxed and sold.",
-      "text": "Every copy of a luxury you hold pays its yields, not only the first.",
+      "text": "Your cards count every copy of a luxury you hold. Extra copies pay the luxury's yields but give no extra innate happiness.",
       "effects": [
         {
           "kind": "effectAmplifier",
           "target": "luxuryDuplicates",
           "percent": 100,
           "yieldsOnly": true
+        },
+        {
+          "kind": "effectAmplifier",
+          "target": "luxuryCounts",
+          "percent": 100
         }
       ],
-      "note": "Only the luxury's own food, production, gold, science, culture and faith are paid for each copy. Its happiness and every other effect still count once for each kind. Silver and gold already pay some lines for each copy, and those lines are not paid twice."
+      "note": "Cards can gain more from extra copies. The luxury's own happiness still counts each kind once."
     },
     "lettersOfCredit": {
       "name": "Letters of Credit",
@@ -3392,7 +3381,6 @@
       "flavor": "The innkeeper kept a spare wheel behind the stable.",
       "band": 2,
       "rarity": "common",
-      "type": "economic",
       "effects": [
         {
           "kind": "pays",
@@ -3404,7 +3392,8 @@
           "production": 1
         }
       ],
-      "text": "Hexes with a road gain +1 food and +1 production."
+      "text": "Hexes with a road gain +1 food and +1 production.",
+      "retired": true
     },
     "theTiraz": {
       "name": "The Tiraz",
@@ -3492,7 +3481,6 @@
       "flavor": "The marines stepped ashore ahead of the rowers.",
       "band": 2,
       "rarity": "uncommon",
-      "type": "military",
       "effects": [
         {
           "kind": "landfall",
@@ -3509,7 +3497,8 @@
           ]
         }
       ],
-      "text": "Your units gain +5 strength for three turns after they land from the sea."
+      "text": "Your units gain +5 strength for three turns after they land from the sea.",
+      "retired": true
     },
     "theClothHalls": {
       "name": "The Cloth Halls",
@@ -3811,7 +3800,7 @@
           }
         ]
       },
-      "text": "Goal: hold deals with two empires at once. Reward: a great merchant."
+      "text": "Goal: trade with two empires at once. Reward: a great merchant."
     },
     "theWeighHouse": {
       "name": "The Weigh House",
@@ -3893,7 +3882,7 @@
           "to": "science",
           "amount": 1,
           "count": "allPostCitizens",
-          "perTown": 4
+          "perTown": 2
         },
         {
           "kind": "pays",
@@ -3902,10 +3891,10 @@
           "to": "culture",
           "amount": 1,
           "count": "allPostCitizens",
-          "perTown": 4
+          "perTown": 2
         }
       ],
-      "text": "Each town holding your trading post gives you +1 science and +1 culture for every four of its citizens."
+      "text": "Each town holding your trading post gives you +1 science and +1 culture for every two of its citizens."
     },
     "theSeaLords": {
       "name": "The Sea Lords",
@@ -4023,12 +4012,20 @@
     },
     "theGrandCanal": {
       "name": "The Grand Canal",
-      "decks": ["commerce"],
+      "decks": [
+        "commerce"
+      ],
       "band": 2,
       "line": "none",
       "flavor": "The south grows the rice, the north eats it, and the barges do the rest.",
       "text": "Each of your domestic routes carries half of its origin's surplus food to its destination.",
-      "effects": [{"kind": "rule", "rule": "routesCarrySurplus", "percent": 50}],
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "routesCarrySurplus",
+          "percent": 50
+        }
+      ],
       "note": "The town that sends the food loses it. A town never sends more than its surplus, so when its routes would carry more than that, they share it evenly. A town with no surplus sends nothing, and neither does a town building a settler or one whose surplus a card moves into production. A blockade at either end stops the food, as it stops what the route pays. The food arrives after the destination's own changes to growth, and it arrives whatever the destination is building."
     },
     "theSogdianColonies": {
@@ -4270,14 +4267,26 @@
     },
     "theOperaDelDuomo": {
       "name": "The Opera del Duomo",
-      "decks": ["commerce"],
+      "decks": [
+        "commerce"
+      ],
       "band": 4,
       "line": "none",
       "flavor": "The wool guild pays for the dome, and the wool guild checks the bill.",
       "text": "Gold you pour into the Magnum Opus buys twice as many hammers. Your towns build the Magnum Opus 25% more slowly.",
       "effects": [
-        {"kind": "rulePercent", "rule": "goldContribution", "percent": 100, "building": "theMagnumOpus"},
-        {"kind": "productionBonus", "category": "building", "building": "theMagnumOpus", "percent": -25}
+        {
+          "kind": "rulePercent",
+          "rule": "goldContribution",
+          "percent": 100,
+          "building": "theMagnumOpus"
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": -25
+        }
       ]
     },
     "theMonteDiPieta": {
@@ -4305,7 +4314,8 @@
           "yield": "gold",
           "percent": -10
         }
-      ]
+      ],
+      "retired": true
     },
     "theColleganza": {
       "name": "The Colleganza",

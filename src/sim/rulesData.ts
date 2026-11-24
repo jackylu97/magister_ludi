@@ -1534,10 +1534,8 @@ interface ResearchRules {
    * A unit whose owner cannot afford it simply does not upgrade this turn.
    */
   retoolCost: number;
-  // There was a `charterPremiumPercent` here: what a charter technology cost
-  // above its column's price (50%, Scientific batch S0). Batch DS9 removed it,
-  // so a charter technology costs the ordinary price (`docs/flags.md` item
-  // (hhhhhhh)).
+  /** Charter research uses this percentage of the ordinary column price. */
+  charterCostPercent: number;
 }
 
 /**
@@ -2232,8 +2230,6 @@ interface ScoreRules {
   perTechnology: number;
   /** Each wonder whose stones the empire holds. */
   perWonder: number;
-  /** Each bead still on the rod. */
-  perBead: number;
   /** Each great person ever recruited. */
   perGreatPerson: number;
   /** Each town taken from somebody else by force. */

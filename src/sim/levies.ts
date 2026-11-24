@@ -1,3 +1,4 @@
+import { wagerIncome } from './wagerMilestoneData';
 /**
  * **Levies** (batch L, `docs/plans/deck-implementation.md`): a town gives up one
  * of its citizens and gets something for it.
@@ -70,6 +71,8 @@ import { buildingDef, isBuildingId, isWonder } from './buildingData';
 import { availableRites, realmRiteError, sayRiteOverRealm } from './religion';
 import { type RiteId, riteDef } from './religionData';
 import { RULES } from './rulesData';
+import { settleRenownWindfall } from './renown';
+import { settleResearchWindfall } from './tech';
 import { totalSpecialists } from './specialists';
 import { bumpEconomy } from './slate';
 import { type City, type GameState, citiesOf, playerById } from './state';
@@ -91,6 +94,8 @@ const LEVY = RULES.cities.levy;
 /** One line of the levy menu. See `levyOptions`. */
 export interface LevyOption {
   faith?: number;
+  science?: number;
+  renown?: number;
   use: LevyUse;
   /** The card that grants this use, and its name for the line under it. */
   card: CardId;
@@ -125,6 +130,8 @@ interface LevyRiteChoice {
 /** What a levy did, for the caller that reports it. */
 interface LevyReport {
   faith?: number;
+  science?: number;
+  renown?: number;
   use: LevyUse;
   cityId: number;
   /** The town's population after the levy. */
@@ -298,9 +305,23 @@ function levyUnitFor(state: GameState, playerId: number, use: LevyUse): UnitType
   return null;
 }
 
+/** Price these banks from the pre-levy population for the command, UI and bot. */
+export function levyBankGains(
+  population: number,
+  grant?: Pick<LevyGrant, 'faithPerCitizen' | 'sciencePerCitizen' | 'renownPerCitizen'>,
+): { faith: number; science: number; renown: number } {
+  return {
+    faith: population * (grant?.faithPerCitizen ?? 0),
+    science: population * (grant?.sciencePerCitizen ?? 0),
+    renown: population * (grant?.renownPerCitizen ?? 0),
+  };
+}
+
 /** What one use pays from this town, and where — before the citizen leaves. */
 interface LevyPlan {
   faith?: number;
+  science?: number;
+  renown?: number;
   hammers: number | null;
   unit: UnitTypeId | null;
   tile: Tile | null;
@@ -329,7 +350,7 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
     case 'rite':
       return none;
     case 'faith':
-      return { ...none, faith: city.population * (levyGrantFor(state, city.ownerId, city, use)?.faithPerCitizen ?? 0) };
+      return { ...none, ...levyBankGains(city.population, levyGrantFor(state, city.ownerId, city, use)) };
     case 'muster':
     case 'conscript':
     case 'worker':
@@ -348,7 +369,10 @@ function planLevy(state: GameState, city: City, use: LevyUse): LevyPlan {
 
 /** The menu line's words for a use. */
 function labelFor(use: LevyUse, plan: LevyPlan, city: City): string {
-  if (use === 'faith') return 'Gain faith';
+  if (use === 'faith') {
+    const banks = (['faith', 'science', 'renown'] as const).filter((bank) => (plan[bank] ?? 0) > 0);
+    return `Gain ${banks.join(', ')}`;
+  }
   if (use === 'production') return 'Production here';
   if (use === 'opus') return 'Send to the Magnum Opus';
   if (use === 'rite') return 'Perform a rite across your empire';
@@ -485,6 +509,8 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
       cardName: anyCardDef(grant.card).name,
       label: labelFor(use, plan, city),
       ...(plan.faith !== undefined ? { faith: plan.faith } : {}),
+      ...(plan.science !== undefined ? { science: plan.science } : {}),
+      ...(plan.renown !== undefined ? { renown: plan.renown } : {}),
       hammers: plan.hammers,
       unit: plan.unit,
       targetCityId: use === 'opus' || use === 'wonder' ? (plan.target?.id ?? null) : null,
@@ -544,9 +570,18 @@ export function levyAt(state: GameState, city: City, use: LevyUse, rite?: RiteId
   }
   const player = playerById(state, city.ownerId);
   if (plan.faith !== undefined && player) {
-    player.faithPool += plan.faith;
+    player.faithPool += wagerIncome(state, player.id, 'faithGold', plan.faith);
     bumpEconomy(state);
     report.faith = plan.faith;
+  }
+  if (plan.science !== undefined && plan.science > 0 && player) {
+    player.sciencePool += wagerIncome(state, player.id, 'scienceCulture', plan.science);
+    report.science = plan.science;
+    settleResearchWindfall(state, player);
+  }
+  if (plan.renown !== undefined && plan.renown > 0 && player) {
+    settleRenownWindfall(state, player, [{ family: null, amount: plan.renown }]);
+    report.renown = plan.renown;
   }
   if (plan.unit !== null && plan.tile !== null) {
     // Only The Muster of the Fields' unit counts as trained: its text says so.

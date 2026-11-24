@@ -41,6 +41,7 @@ import { tributeLines } from './deals';
 // the one evaluator like every other signature; this module already imports
 // `statecraft.ts`, which reads `cities.ts`, so the import adds no shape of cycle
 // the file did not already have and nothing here is called at load.
+import type { ResourceId } from './resourceData';
 import { foldRulePercent, resourceConnectionPercent } from './resourceEffects';
 import { cardAmplifier, cardAmplifierFlat, cardBehaviorRule, cardBuildingUpkeepRebateLines } from './statecraft/evaluator';
 import type { CardId } from './statecraftData';
@@ -160,6 +161,9 @@ type TradeGoldKind = 'income' | 'bill';
 
 /** One labelled line of empire-scale gold. See `explainEmpireGold`. */
 export interface TradeGoldLine {
+  /** The named payments inside a road or payroll line keep its Ledger class. */
+  cardPayments?: { card: CardId; gold: number }[];
+  resource?: ResourceId;
   /** "City connections · 4 cities", "Unit maintenance · 7 units". */
   source: string;
   card?: CardId;
@@ -231,17 +235,24 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
   // rule 5 for a caravan. The flat step is *per connected city* (that is what a
   // connection's gold is quoted in) and the share is taken of the total the flat
   // has already reached, which is `CardEffectAmplifierEffect`'s stated order.
-  const perCity = cardAmplifierFlat(state, playerId, 'connectionYields');
-  const share = cardAmplifier(state, playerId, 'connectionYields');
+  const flatSources: { card: CardId; amount: number }[] = [];
+  const percentSources: { source: string; card?: CardId; percent: number }[] = [];
+  const perCity = cardAmplifierFlat(state, playerId, 'connectionYields', flatSources);
+  const share = cardAmplifier(state, playerId, 'connectionYields', undefined, undefined, percentSources);
   let connectionGold = 0;
   for (const entry of connected) connectionGold += entry.gold + perCity;
   // Exact since batch X — the share of a road's coin is a yield like any other.
+  const payments = flatSources.map((line) => ({ card: line.card, gold: connected.length * line.amount }));
+  for (const line of percentSources) {
+    if (line.card !== undefined) payments.push({ card: line.card, gold: connectionGold * line.percent / 100 });
+  }
   if (share !== 0) connectionGold = (connectionGold * (100 + share)) / 100;
   if (connectionGold !== 0) {
     const count = connected.length;
     lines.push({
       source: `City connections · ${count} ${count === 1 ? 'city' : 'cities'}`,
       gold: connectionGold,
+      ...(payments.length > 0 ? { cardPayments: payments } : {}),
       // What the roads *make*, so the empire stage reaches it (ruling oo).
       kind: 'income',
     });
@@ -272,7 +283,7 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
         if (share === 0) continue;
         // A share of an income is an income, and it rides the same stage the
         // charge it sits under does.
-        lines.push({ source: shares[i]!.source, gold: share, kind: 'income' });
+        lines.push({ source: shares[i]!.source, resource: shares[i]!.resource, gold: share, kind: 'income' });
       }
     }
   }
@@ -308,7 +319,10 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
   // (`upkeep.ts`) — the ledger says what the army costs and then what the law
   // did to it.
   for (const surcharge of explainUnitUpkeepSurcharge(state, playerId)) {
-    lines.push({ source: surcharge.source, gold: -surcharge.gold, kind: 'bill' });
+    lines.push({
+      source: surcharge.source, gold: -surcharge.gold, kind: 'bill',
+      ...(surcharge.card && { cardPayments: [{ card: surcharge.card, gold: -surcharge.gold }] }),
+    });
   }
 
   // What the law gives back on that payroll — Tyranny's, The Standing Army's.
@@ -321,7 +335,11 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
   // belongs to the payroll it reduces and not to what the empire earned. A
   // contented realm is not owed a dividend on soldiers it did not pay.
   for (const rebate of explainUnitUpkeepRebate(state, playerId)) {
-    lines.push({ source: rebate.source, gold: rebate.gold, kind: 'bill' });
+    lines.push({
+      source: rebate.source, gold: rebate.gold, kind: 'bill',
+      ...(rebate.resource && { resource: rebate.resource }),
+      ...(rebate.card && { cardPayments: [{ card: rebate.card, gold: rebate.gold }] }),
+    });
   }
 
   const buildings = explainBuildingUpkeep(state, playerId);

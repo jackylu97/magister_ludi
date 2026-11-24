@@ -201,9 +201,9 @@ const INHERITED_PREFIX = 'Inherited';
  * effective terrain line (the last `base`/`override`, which is what the tile
  * actually is) only when the terrain **by itself** beats the base somewhere —
  * an oasis does, plain grassland under a wheat field does not, and listing the
- * grass there would name the half of the sum the town was getting anyway. No
- * arithmetic is attributed to any one name: the line carries the whole excess
- * and the label says what is responsible for it.
+ * grass there would name the half of the sum the town was getting anyway.
+ * Cards and resources have separate payment lines for the lifetime tally.
+ * A yield that finishes at or below the floor adds no inherited payment.
  *
  * Evaluated through the **city owner's** context, like everything else a city
  * banks (see `yieldContextFor`): the centre of a town on iron is worth the iron
@@ -225,21 +225,37 @@ export function explainCentreYield(
     { source: CENTRE_SOURCE, kind: 'base', ...base },
   ];
 
+  // The centre inherits only the yield above its base. Apply each named
+  // source to the remaining ground so only the part the city receives is paid.
+  const named = ground.filter((entry) =>
+    entry.kind === 'add' && (entry.card !== undefined || entry.resource !== undefined));
+  const ordinary = named.length === 0 ? ground : ground.filter((entry) => !named.includes(entry));
+  const running = named.length === 0 ? under : foldTileLines(ordinary);
   const inherited = emptyTileYield();
-  let inheritsAnything = false;
+  // A later effect can remove all the food while leaving production. Credit
+  // a source only in the yields the centre still inherits after every effect.
   for (const key of TILE_YIELD_KEYS) {
-    const excess = under[key] - base[key];
-    if (excess <= 0) continue;
-    inherited[key] = excess;
-    inheritsAnything = true;
+    if (under[key] > base[key]) inherited[key] = Math.max(0, running[key] - base[key]);
   }
-  if (!inheritsAnything) return list;
-
-  list.push({
-    source: `${INHERITED_PREFIX} · ${inheritedSources(ground, inherited, base).join(' · ')}`,
-    kind: 'add',
-    ...inherited,
-  });
+  if (TILE_YIELD_KEYS.some((key) => inherited[key] !== 0)) {
+    list.push({
+      source: `${INHERITED_PREFIX} · ${inheritedSources(ordinary, inherited, base).join(' · ')}`,
+      kind: 'add',
+      ...inherited,
+    });
+  }
+  for (const entry of named) {
+    const paid = emptyTileYield();
+    for (const key of TILE_YIELD_KEYS) {
+      if (under[key] <= base[key]) continue;
+      const before = Math.max(base[key], running[key]);
+      running[key] += entry[key];
+      paid[key] = Math.max(base[key], running[key]) - before;
+    }
+    if (TILE_YIELD_KEYS.some((key) => paid[key] !== 0)) {
+      list.push({ ...entry, ...paid });
+    }
+  }
   return list;
 }
 
@@ -287,8 +303,9 @@ export function foldCentre(
   city: City,
   hypothetical: readonly BuildingId[] = [],
   ctx?: TileYieldContext,
+  lines = explainCentreYield(state, city, hypothetical, ctx),
 ): TileYield {
-  return foldTileLines(explainCentreYield(state, city, hypothetical, ctx));
+  return foldTileLines(lines);
 }
 
 // --- what a building pays ---------------------------------------------------
@@ -1606,7 +1623,13 @@ export function explainCity(
     // yield by (an excess — `explainCentreYield`), and that is the ground's; what
     // a settlement makes *by being one* belongs to no tile, no building and no
     // card, which is exactly what `other` means.
-    const centre = foldCentre(state, city, hypothetical, ctx);
+    const centreLines = explainCentreYield(state, city, hypothetical, ctx);
+    const centre = foldCentre(state, city, hypothetical, ctx, centreLines);
+    for (const entry of centreLines) {
+      if (entry.card === undefined && entry.resource === undefined) continue;
+      say(1, entry.source, 'tiles', entry, { card: entry.card, resource: entry.resource });
+      for (const key of TILE_YIELD_KEYS) centre[key] -= entry[key];
+    }
     say(1, CENTRE_SOURCE, 'tiles', centre);
     // Keep fractional science so even one citizen adds to the research pool.
     say(1, TOWN_ITSELF_SOURCE, 'other', {
@@ -1640,15 +1663,9 @@ export function explainCity(
       let label = HEX_SOURCE;
       for (const entry of hexLines) {
         if (entry.kind !== 'add') label = entry.source;
-        if (entry.card === undefined || entry.kind !== 'add') continue;
-        const into = classifyCard(entry.card);
-        // A card's line stays in the fold when it belongs where the fold is going
-        // — the land's, or the great person's on a hex that is already theirs.
-        // The comparison is against the *hex's* class rather than the constant,
-        // because lifting a rider out of a work's hex only to file it back under
-        // the same class would be a second line saying the same thing.
-        if (into === hexClass) continue;
-        say(2, entry.source, into, entry, { card: entry.card });
+        if (entry.kind !== 'add' || (entry.card === undefined && entry.resource === undefined)) continue;
+        const into = entry.card === undefined ? 'tiles' : classifyCard(entry.card);
+        say(2, entry.source, into, entry, { card: entry.card, resource: entry.resource });
         for (const key of TILE_YIELD_KEYS) ground[key] -= entry[key];
       }
       say(2, label, hexClass, ground);
@@ -1701,7 +1718,9 @@ export function explainCity(
     // than named voices, which is why faith joining the shape in batch C8 (Pilgrim
     // Markets) needed no edit here — `say` spreads all six and a line that says
     // nothing about faith carries nought.
-    for (const line of cityRouteYields(state, city)) say(6, line.source, 'trade', line);
+    for (const line of cityRouteYields(state, city)) {
+      say(6, line.source, 'trade', line, { card: line.card, resource: line.resource });
+    }
     // **And the routes leaving, copied home** (Commerce batch T3, The Return
     // Leg): under the `homeRoutesPayOrigin` rule, each domestic route that sets
     // out from this town pays it a copy of what it pays its destination. Read

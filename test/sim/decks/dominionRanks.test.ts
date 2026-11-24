@@ -38,6 +38,7 @@ import {
   realPlayers,
 } from '../../../src/sim/state';
 import {
+  cardHappiness,
   describeCard,
   explainCardEmpireYields,
   explainCardCityYields,
@@ -105,6 +106,28 @@ function strengthOf(unit: Unit): number {
 function drill(state: GameState, unit: Unit, amount: number): void {
   settleRanksEarned(state, unit, grantExperience(state, unit, amount));
 }
+
+it('Huscarls doubles the per-unit bonus of an Elite, while a garrison presence still counts once', () => {
+  const state = flat();
+  const city = foundCityAt(state, 0, at(state, 4, 4));
+  for (const id of ['martialLaw', 'dominionSwordAndPlough', 'theHuscarls']) slot(state, 0, id);
+  const guard = createUnit(state, 0, 'warrior', city.col, city.row);
+  for (const [rank, count] of [['veteran', 1], ['elite', 2]] as const) {
+    guard.experience = rankThreshold(rank);
+    bumpRevision(state);
+    const lines = explainCardCityYields(state, city);
+    expect(foldCardYields(lines.filter(row => row.card === 'martialLaw')).food).toBe(4 * count);
+    expect(cardHappiness(state, 0).filter(row => row.card === 'martialLaw').reduce((sum, row) => sum + row.amount, 0)).toBe(2 * count);
+    expect(foldCardYields(lines.filter(row => row.card === 'dominionSwordAndPlough')).production).toBe(2);
+  }
+  at(state, city.col + 1, city.row).terrain = 'coast';
+  const ship = createUnit(state, 0, 'trireme', city.col, city.row);
+  ship.experience = ELITE;
+  bumpRevision(state);
+  const lines = explainCardCityYields(state, city);
+  expect(foldCardYields(lines.filter(row => row.card === 'martialLaw')).food).toBe(16);
+  expect(foldCardYields(lines.filter(row => row.card === 'dominionSwordAndPlough')).production).toBe(2);
+});
 
 describe('Dominion D1 — earning a rank is a moment', () => {
   it('keeps the record and the tally, and pays the riders once for each rank', () => {

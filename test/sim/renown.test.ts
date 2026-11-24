@@ -494,6 +494,8 @@ describe('the register', () => {
       'cities.ts',
       // Index tile positions once per change. The renown fold reads the amount.
       'improvementFields.ts',
+      // A levy settles its printed renown through the same bank function.
+      'levies.ts',
       'renown.ts',
       'statecraft/describers.ts',
       'statecraft/evaluator.ts',

@@ -11,9 +11,15 @@ The Great Library offers a great scholar and the Alhambra offers a great general
 
 Wonders use the standard production cost for their technology column. A city must meet the wonder’s site requirement before it can queue it. A player cannot buy a wonder.
 
-The Great Sphinx grants free rerolls on completion. Each one pays for a draft reroll without increasing the next paid price. The Pyramid of the Sun pays faith for the city’s population before it spends the citizen. Its levy shares the waiting period with the other levies.
+The Great Sphinx grants free rerolls on completion. Each one pays for a draft reroll without increasing the next paid price. The Pyramid of the Sun pays faith, science and renown for the city’s population before it spends the citizen. Its levy shares the waiting period with the other levies.
 
-The Mausoleum doubles the final yield on a great person’s improvement before the city and empire yield percentages apply. If another effect doubles the same final yield, both use the same base.
+The Mausoleum doubles a great person’s improvement yields, including its technology renewals. It does not double terrain, resources or card bonuses.
+
+The Pyramids pay production in their own city for each wonder their empire holds. The Library of Ashurbanipal pays science in cities with a Library and completes the current research when its owner captures a city. The Walls of Uruk complete a Palisade in their city and pay production and culture in every city with a Palisade. The Great Wall pays production and culture in garrisoned cities.
+
+The Terracotta Army creates a second unit of the same type whenever its city gains a new unit. This includes production, purchases, levies, building gifts and recruited great people. The copy has no maintenance cost. Both units pay ordinary unit-gained rewards, but a copy cannot create another copy. Moving or capturing an existing unit does not count.
+
+Solomon’s Temple increases renown earned each turn and keeps its extra great-person choice. Chichen Itza doubles rite duration. Machu Picchu pays gold for each adjacent mountain and keeps its trade route capacity.
 
 The Forbidden City adds a Wildcard chair. The Alhambra adds a Military chair. Capture transfers the chair to the new owner. Losing a chair moves its Order to an available chair that accepts it, or returns it to the collection.
 
@@ -40,11 +46,11 @@ The Forbidden City adds a Wildcard chair. The Alhambra adds a Military chair. Ca
 | `hagiaSophia` | Hagia Sophia | 3 | Theology |
 | `angkorWat` | Angkor Wat | 3 | State Workforce |
 | `greatMosqueOfDjenne` | The Great Mosque of Djenné | 3 | Guildhalls |
-| `notreDame` | Notre-Dame | 4 | The Holy Office |
+| `notreDame` | Notre-Dame | 4 | Castellany |
 | `houseOfWisdom` | The House of Wisdom | 4 | Scholarship |
 | `forbiddenCity` | The Forbidden City | 3 | Satrapies |
 | `alhambra` | The Alhambra | 4 | Militant Orders |
-| `machuPicchu` | Machu Picchu | 4 | Natural Philosophy |
+| `machuPicchu` | Machu Picchu | 3 | Daughter Cities |
 | `greatSphinx` | The Great Sphinx | 1 | Mining |
 | `templeOfThoth` | The Temple of Thoth | 1 | Divination |
 | `pyramidOfTheSun` | The Pyramid of the Sun | 2 | Chronology |

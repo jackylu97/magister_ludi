@@ -38,10 +38,12 @@ import { describe, expect, it } from 'vitest';
 import { explainDeckLedger, foldDeckLedger } from '../../src/sim/ledgerFold';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { RULES } from '../../src/sim/rulesData';
-import { explainScore, foldScore, opusBuildingId } from '../../src/sim/score';
+import { explainScore, foldScore, opusBuildingId, standingArmyStrength, rivalUnitsAndCampsDefeated } from '../../src/sim/score';
 import { buildingDef } from '../../src/sim/buildingData';
 import { highestAge } from '../../src/sim/techData';
-import { bumpRevision, citiesOf, playerById } from '../../src/sim/state';
+import { bumpRevision, citiesOf, playerById, createUnit } from '../../src/sim/state';
+import { unitDef } from '../../src/sim/unitData';
+import { rankStrengthLines } from '../../src/sim/ranks';
 import { found, game } from './statecraftHelpers';
 
 /** A board with a town on it and a seat that has done a few things. */
@@ -56,6 +58,41 @@ function bench() {
 }
 
 describe('the score', () => {
+  it('counts rival defeats and cleared camps once each', () => {
+    const { state, player } = bench();
+    player.unitsKilled = 4;
+    player.enemiesKilled = 12;
+    player.campsCleared = 2;
+    expect(rivalUnitsAndCampsDefeated(state, player.id)).toBe(6);
+  });
+
+  it('counts military base strength, ranks and applicable standing cards', () => {
+    const { state, player } = bench();
+    state.units = [];
+    const bow = createUnit(state, 0, 'archer', 0, 0);
+    const ship = createUnit(state, 0, 'trireme', 1, 0);
+    createUnit(state, 0, 'worker', 0, 0);
+    createUnit(state, 1, 'warrior', 2, 0);
+    bow.experience = 100;
+    bow.stamp = { strength: 9 };
+    bow.timed = [{
+      card: 'bloodedSpears',
+      expiresTurn: state.turn + 1,
+      effect: {
+        kind: 'conditionRule', when: { test: 'cityCountAtMost', value: 5 },
+        then: [{ kind: 'combatLine', amount: 8, side: 'both', when: { test: 'always' } }],
+      },
+    }];
+    player.statecraft.slots.push({ card: 'bloodedSpears', sealedUntil: state.turn });
+    citiesOf(state, 0)[0]!.buildings.push('greatLighthouse');
+    bumpRevision(state);
+    const ranks = rankStrengthLines(bow).reduce((sum, line) => sum + line.amount, 0);
+    expect(ranks).toBeGreaterThan(0);
+    expect(standingArmyStrength(state, 0)).toBe(
+      unitDef(bow.type).combatStrength + unitDef(ship.type).combatStrength + ranks + 2 * 2 + 3,
+    );
+  });
+
   it('folds its own list, and prints every line it folded', () => {
     const { state } = bench();
     const lines = explainScore(state, 0);
@@ -79,7 +116,7 @@ describe('the score', () => {
     expect(line('Towns held').count).toBe(citiesOf(state, 0).length);
     expect(line('Citizens').count).toBe(citizens);
     expect(line('Technologies').count).toBe(player.techsResearched.length);
-    expect(line('Beads kept').count).toBe(player.beads.length);
+    expect(line('Beads kept')).toBeUndefined();
     expect(line('Great people called').count).toBe(2);
     expect(line('Towns taken by force').count).toBe(3);
     expect(line('The age reached').count).toBe(highestAge(player.techsResearched));
@@ -93,7 +130,6 @@ describe('the score', () => {
     expect(weights.get('Citizens')).toBe(rules.perCitizen);
     expect(weights.get('Technologies')).toBe(rules.perTechnology);
     expect(weights.get('Wonders raised or held')).toBe(rules.perWonder);
-    expect(weights.get('Beads kept')).toBe(rules.perBead);
     expect(weights.get('Great people called')).toBe(rules.perGreatPerson);
     expect(weights.get('Towns taken by force')).toBe(rules.perTownTaken);
     expect(weights.get('The age reached')).toBe(rules.perAge);
@@ -103,7 +139,6 @@ describe('the score', () => {
       rules.perCitizen,
       rules.perTechnology,
       rules.perWonder,
-      rules.perBead,
       rules.perGreatPerson,
       rules.perTownTaken,
       rules.perAge,
@@ -122,7 +157,7 @@ describe('the score', () => {
     const mine = explainScore(state, 0).map((line) => line.label);
     const theirs = explainScore(state, 1).map((line) => line.label);
     expect(theirs).toEqual(mine);
-    expect(mine.length).toBe(9 + CITY_YIELD_KEYS.length);
+    expect(mine.length).toBe(8 + CITY_YIELD_KEYS.length);
   });
 
   it('pays the Opus to the empire holding its stones, and to nobody else', () => {
@@ -170,6 +205,16 @@ describe('the score', () => {
     // And the six are marked rather than found by their words: the labels are
     // the one thing on this list that may be rewritten.
     expect(lines.filter((line) => line.voice !== undefined)).toHaveLength(CITY_YIELD_KEYS.length);
+  });
+
+  it('adds other In play sources to the lifetime score', () => {
+    const { state, player } = bench();
+    const paid = { food: 0, production: 0, gold: 30, science: 15, culture: 0, faith: 0 };
+    player.statecraft.yieldTallies = [{ card: 'theLampKeptLit', paid }];
+    player.statecraft.inPlayYieldTallies = [{ card: 'resource:spices', paid }];
+    const lines = explainScore(state, 0);
+    expect(lines.find((line) => line.voice === 'gold')?.count).toBe(60);
+    expect(lines.find((line) => line.voice === 'science')?.count).toBe(30);
   });
 
   it('scores a deck that paid last turn and pays nothing now', () => {

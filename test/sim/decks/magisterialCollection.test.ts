@@ -395,7 +395,7 @@ describe('Magisterial batch MG4: Commission: The Eighth Wonder', () => {
     expect(commissionGoalTown(state, 0, EIGHTH_WONDER)?.id).toBe(own.id);
   });
 
-  it('pays +3 culture and +5 renown a turn for every wonder held once the goal is met, captured ones included', () => {
+  it('opens a great-person draft once and gives culture for all wonders held', () => {
     const state = bareState(20, 10);
     const own = town(state, 0, 3, 5);
     const rival = town(state, 1, 14, 5);
@@ -419,13 +419,14 @@ describe('Magisterial batch MG4: Commission: The Eighth Wonder', () => {
     expect(commissionFulfilledTurn(sc, EIGHTH_WONDER)).toBe(state.turn);
     bumpRevision(state);
     expect(culture()).toBe(3);
-    expect(renown()).toBe(5);
+    expect(renown()).toBe(0);
+    expect(playerById(state, 0)!.greatPersonOffer?.options.length).toBeGreaterThan(0);
     // A wonder captured after the goal pays too (reading 3).
     rival.ownerId = 0;
     rival.captured = true;
     bumpRevision(state);
     expect(culture()).toBe(6);
-    expect(renown()).toBe(10);
+    expect(renown()).toBe(0);
   });
 });
 

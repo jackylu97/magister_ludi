@@ -118,7 +118,11 @@ function sourceWords(state: GameState, playerId: number, option: LevyOption): st
 
 /** The figure on the right of a line. */
 function figureWords(state: GameState, playerId: number, option: LevyOption): string {
-  if (option.faith !== undefined) return `+${figure(option.faith)}${YIELD_GLYPH.faith}`;
+  if (option.use === 'faith') return [
+    ...((option.faith ?? 0) > 0 ? [`+${figure(option.faith!)}${YIELD_GLYPH.faith}`] : []),
+    ...((option.science ?? 0) > 0 ? [`+${figure(option.science!)}${YIELD_GLYPH.science}`] : []),
+    ...((option.renown ?? 0) > 0 ? [`+${figure(option.renown!)} renown`] : []),
+  ].join(' · ');
   if (option.hammers !== null) return `+${figure(option.hammers)}${YIELD_GLYPH.production}`;
   if (option.unit !== null) return unitDef(option.unit).name;
   if (option.use === 'rite') {

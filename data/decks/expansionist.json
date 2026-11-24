@@ -37,7 +37,7 @@
           "publicWork": true
         }
       ],
-      "band": 4,
+      "band": 3,
       "text": "Your public works yield twice as much.",
       "rarity": "uncommon",
       "type": "economic"
@@ -636,7 +636,9 @@
     },
     "theRoadHome": {
       "name": "The Road Home",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 0,
       "line": "none",
       "rarity": "common",
@@ -644,8 +646,12 @@
       "flavor": "Every new town is one road away from the old ones.",
       "text": "Each town you found is joined to your nearest town by road.",
       "effects": [
-        { "kind": "foundingRider", "roads": true }
-      ]
+        {
+          "kind": "foundingRider",
+          "roads": true
+        }
+      ],
+      "lastBand": 1
     },
     "theWorkGangs": {
       "name": "The Work Gangs",
@@ -737,11 +743,12 @@
     },
     "expansionistTinkersGuild": {
       "name": "Tinkers' Guild",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "common",
-      "type": "economic",
       "flavor": "Nothing is worn out while a tinker is awake.",
       "text": "Workers gain +1 charge.",
       "effects": [
@@ -749,9 +756,12 @@
           "kind": "unitStat",
           "stat": "charges",
           "amount": 1,
-          "class": { "type": "worker" }
+          "class": {
+            "type": "worker"
+          }
         }
-      ]
+      ],
+      "retired": true
     },
     "theOldSongs": {
       "name": "The Old Songs",
@@ -2355,33 +2365,35 @@
     },
     "theMegalopolis": {
       "name": "The Megalopolis",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "rare",
       "type": "civic",
       "flavor": "A city so large that a person can live a whole life and never see its end.",
-      "text": "Towns of ten or more citizens gain +1 science and +1 production for each citizen.",
+      "text": "Each town gains +2 science and +2 production for each citizen above ten.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "count": "population",
-          "within": "city",
           "to": "science",
-          "amount": 1,
-          "scope": { "test": "populationAtLeast", "value": 10 }
+          "amount": 2,
+          "within": "city",
+          "countAbove": 10
         },
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "count": "population",
-          "within": "city",
           "to": "production",
-          "amount": 1,
-          "scope": { "test": "populationAtLeast", "value": 10 }
+          "amount": 2,
+          "within": "city",
+          "countAbove": 10
         }
       ]
     },
@@ -3108,33 +3120,37 @@
     },
     "theMotherCity": {
       "name": "The Mother City",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "rare",
       "type": "civic",
       "flavor": "All roads lead home.",
-      "text": "Your capital gains +5% production and +5% culture for each town you have founded this game.",
+      "text": "Your capital gains +1 production and +1 culture for each citizen in the towns joined to it by road.",
       "effects": [
         {
           "kind": "pays",
-          "where": "city",
+          "where": "capital",
           "basis": "count",
-          "scope": { "test": "capital" },
-          "count": "citiesFounded",
+          "count": "population",
           "to": "production",
-          "percent": 5,
-          "stage": "city"
+          "amount": 1,
+          "admits": {
+            "test": "connected"
+          }
         },
         {
           "kind": "pays",
-          "where": "city",
+          "where": "capital",
           "basis": "count",
-          "scope": { "test": "capital" },
-          "count": "citiesFounded",
+          "count": "population",
           "to": "culture",
-          "percent": 5,
-          "stage": "city"
+          "amount": 1,
+          "admits": {
+            "test": "connected"
+          }
         }
       ]
     },
@@ -3159,16 +3175,23 @@
     },
     "theGreatMigration": {
       "name": "The Great Migration",
-      "decks": ["expansionist"],
+      "decks": [
+        "expansionist"
+      ],
       "band": 4,
       "line": "none",
       "rarity": "rare",
-      "type": "economic",
       "flavor": "Nobody stays hungry next to a full granary for long.",
       "text": "Every ten turns, each foreign town near your border loses a citizen to your nearest happier town.",
       "effects": [
-        { "kind": "migration", "every": 10, "source": "foreign", "reach": 3 }
-      ]
+        {
+          "kind": "migration",
+          "every": 10,
+          "source": "foreign",
+          "reach": 3
+        }
+      ],
+      "retired": true
     },
     "theEncroachingFields": {
       "name": "The Encroaching Fields",
@@ -3253,7 +3276,6 @@
       "band": 4,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "The more people inside, the more hands on the walls.",
       "text": "Your towns gain +1 defence for every two citizens.",
       "effects": [
@@ -3264,7 +3286,8 @@
           "count": "population",
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theGreatAqueducts": {
       "name": "The Great Aqueducts",

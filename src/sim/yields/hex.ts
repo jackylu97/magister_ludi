@@ -27,7 +27,7 @@ import { improvementFields } from '../improvementFields';
 import { type BuildingId } from '../buildingData';
 import { type Tile, neighborTiles, tileHex, tileIndex } from '../map';
 import { type ImprovementId, improvementDef, improvementYield } from '../improvementData';
-import { resourceDef, resourceIsVisibleTo, resourceYield } from '../resourceData';
+import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../resourceData';
 import { type CardId } from '../statecraftData';
 import {
   type TileLine,
@@ -157,6 +157,7 @@ export interface TileYieldContribution extends TileYield {
    * answer `CityYieldPercent.card` gives one fold up.
    */
   card?: CardId;
+  resource?: ResourceId;
 }
 
 /**
@@ -803,6 +804,12 @@ export function explainTileYield(
       culture: clampTakeBack('culture', line.culture * helpings),
       faith: clampTakeBack('faith', line.faith * helpings),
     };
+    if (line.ownYieldOnly) {
+      const native = improvement === undefined ? emptyTileYield() : improvementYield(improvement);
+      for (const voice of TILE_YIELD_KEYS) {
+        if (native[voice] <= 0) clamped[voice] = 0;
+      }
+    }
     // A taking-back line whose whole bag was already empty says nothing.
     if (!TILE_YIELD_KEYS.some((voice) => clamped[voice] !== 0)) return;
     const existingAt = sourceIndex.get(line.source);
@@ -823,6 +830,7 @@ export function explainTileYield(
       // merge above keeps the first appearance's card, which is the same card:
       // lines merge on `source`, and a source is a card's own name.
       card: line.card,
+      ...(line.resource === undefined ? {} : { resource: line.resource }),
       kind: 'add',
       food: clamped.food,
       production: clamped.production,

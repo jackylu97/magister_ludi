@@ -980,23 +980,12 @@ export interface AiConfig {
      * gain.
      */
     targetValueWeight: number;
-    /**
-     * **What a target's unrest costs the declaration** (batch WC1). A town taken
-     * by force makes no production, science or culture until it is pacified, so
-     * a declaration reads the turns its target would sit in unrest — its
-     * pacification target over the rate a garrisoned town settles at — and
-     * multiplies the candidate's score by `1 − this × those turns`, floored at
-     * nothing. Nought ignores unrest altogether.
-     */
+    /** Reduce a declaration's value per turn of the target city's fixed unrest period. */
     unrestDrag: number;
     /**
-     * **When a town in unrest is not worth keeping** (batch WC1). A seat razes a
-     * town of its own in unrest when no soldier of its stands in it, none
-     * stands within `razeReach` hexes to come and hold it, and the town would
-     * sit in unrest at least this many more turns at the bare rate — the case in
-     * which keeping it means rebels rising beside it for as long as it lasts.
-     * A town the rules will not let it raze is never asked. Nought or less
-     * turns the arm off.
+     * Raze an undefended captured city only when its remaining unrest reaches
+     * this threshold. The default exceeds the fixed unrest period and keeps
+     * captured cities. Zero disables this policy.
      */
     razeUnrestTurns: number;
     /** How far, in hexes, a soldier may stand and still be "coming to hold it". */
@@ -1004,7 +993,7 @@ export interface AiConfig {
     /**
      * Offer white peace after this many captures from this opponent while the
      * exchange is favorable. Only captures inside the current war and retained
-     * weariness window count. Zero disables this stopping rule.
+     * loss-history window count. Zero disables this stopping rule.
      */
     goalTowns: number;
     /**
@@ -1077,7 +1066,7 @@ export interface AiConfig {
      * and town weights. The bot proposes peace above this ratio if its army
      * advantage is also insufficient. It may accept an offered peace on either
      * condition. `warLedger.ts` limits records to this war and the retained
-     * weariness window, so other wars and barbarian losses cannot change it.
+     * loss-history window, so other wars and barbarian losses cannot change it.
      */
     peaceExchange: number;
     /** Coin a point of warscore is worth, both as tribute offered and as tribute accepted. */
@@ -1088,15 +1077,32 @@ export interface AiConfig {
     cityWeight: number;
     /** What one point of standing army strength is worth in the warscore. */
     strengthWeight: number;
-    /**
-     * The coin a **lent luxury** is priced at — the baseline a gold-for-luxury
-     * offer has to clear, and the figure a peace paper's seams are valued with.
-     * Authored 2026-09-03 and flagged for tuning: nothing has played against a
-     * human yet.
-     */
+    /** Reference price used by luxuryDuplicateShare to price a spare copy. */
     luxuryGoldBaseline: number;
-    /** The same for a tribute: coin **a turn** a luxury is worth lending for. */
+    /** Expected income from a spare luxury when valuing resource-lending Orders. */
     luxuryGptBaseline: number;
+    /** Share of the full deal income valued as gold now. */
+    dealIncomeShare: number;
+    /** Minimum price of a spare luxury, relative to its baseline. */
+    luxuryDuplicateShare: number;
+    /** Gold value of one point of happiness from a resource. */
+    happinessGoldValue: number;
+    /** Happiness balance at which the resource premium halves. */
+    luxuryComfort: number;
+    /** Minimum gold value of one spare strategic copy. */
+    strategicReserveGold: number;
+    /** Spare copies at which recruit value halves; also the proposed bundle size. */
+    strategicReserveCopies: number;
+    /** Share of a usable recruit cost attributed to its resource copy. */
+    strategicUnitShare: number;
+    /** Base gold price of a permanent city. */
+    cityBaseGold: number;
+    /** Gold value per existing citizen in a traded city. */
+    cityCitizenGold: number;
+    /** Extra city value for each age after the first. */
+    cityAgePremium: number;
+    /** Share of existing building investment included in a city price. */
+    cityBuildingShare: number;
     /**
      * What a **right of way** is worth, in coin, whichever way it runs
      * (§12's ruling, 2026-09-07).
@@ -1407,6 +1413,8 @@ export interface AiConfig {
      * things there is only one of. Ordinary rows are untouched.
      */
     patienceTurns: number;
+    /** Queue useful buildings against this many turns of income plus saved production. Zero keeps the queue floor only. */
+    queueLookaheadTurns: number;
     /**
      * What a **one-time lump** is worth against a per-turn point of the same
      * voice. A great person's act pays once; a farm pays forever. Dividing the

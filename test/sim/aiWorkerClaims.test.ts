@@ -32,6 +32,7 @@ import type { BotDecision } from '../../src/ai/decision';
 import { type ImprovementPlan, buildImprovementPlan, explainWorkerCraving, rankPlanFor } from '../../src/ai/plan';
 import { foundCityAt, refreshCityDerived, tileContextAt } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
+import { foldCity } from '../../src/sim/yields/town';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex, tileNeighbors, tileHex, wrappedDistance } from '../../src/sim/map';
 import { HIDDEN, VISIBLE } from '../../src/sim/visibility';
 import { improvementErrorAt, improvementYieldDelta } from '../../src/sim/improvements';
@@ -436,6 +437,44 @@ describe('the focus arm compares all four citizen sheets (bot batch BP13b)', () 
     for (const reading of readings) {
       expect(reading.best).toBe(readings[0]!.best);
       reading.scores.forEach((score, index) => expect(score).toBeCloseTo(readings[0]!.scores[index]!, 9));
+    }
+  });
+
+  it('prices the actual food swaps in a three-citizen town with three desert Academies', () => {
+    const state = bench('desert');
+    // Advance the age without adding technologies that upgrade the farm or Academy.
+    seat(state).techsResearched.push('movableType');
+    bumpRevision(state);
+    const city = townOn(state, {
+      '5,4': { terrain: 'grassland', improvement: 'farm' },
+      '6,4': { terrain: 'grassland', improvement: 'farm' },
+      '4,5': { terrain: 'grassland' },
+      '6,5': { improvement: 'academy' },
+      '5,6': { improvement: 'academy' },
+      '6,6': { improvement: 'academy' },
+    }, 3, []);
+    const before = JSON.stringify(state);
+    const four = focusReading(state, city, valueContext(state, seat(state)));
+    const two = withAiTuning({ growth: { allFocusSheets: 0 } } as never, () =>
+      focusReading(state, city, valueContext(state, seat(state))),
+    );
+    expect(JSON.stringify(state)).toBe(before);
+    const balanced = foldCity(state, city);
+    for (const [table, label, focus] of [
+      [four, 'work the harvest', 'food'],
+      [two, 'work the hammers', 'production'],
+    ] as const) {
+      const board = structuredClone(state);
+      const town = board.cities.find(other => other.id === city.id)!;
+      expect(applyCommand(board, { type: 'setCitizenFocus', playerId: 0, cityId: city.id, focus }).ok).toBe(true);
+      const actual = foldCity(board, town);
+      const food = actual.food - balanced.food;
+      const science = actual.science - balanced.science;
+      expect([food, science]).toEqual([2, -4]);
+      const row = table.candidates.find(candidate => candidate.label === label)!;
+      const lines = row.terms[0]!.parts!.map(term => term.label);
+      expect(lines.some(line => line.startsWith(`food +${food} ×`))).toBe(true);
+      expect(lines.some(line => line.startsWith(`science ${science} ×`))).toBe(true);
     }
   });
 

@@ -692,15 +692,14 @@ describe('Devotion batch DV2: the shared cards', () => {
     // `test/sim/decks/devotionReview.test.ts` checks what the school pays.
     const charter = orderDef('theSchoolmensCharter' as OrderId);
     expect(charter.decks).toEqual(['devotion', 'scientific']);
-    expect([charter.band, charter.rarity, charter.type]).toEqual([1, 'uncommon', 'civic']);
+    expect([charter.band, charter.rarity, charter.type]).toEqual([2, 'uncommon', 'civic']);
     expect(charter.charter?.unlocks.tech).toBe('scholasticism');
     expect(charter.effects).toEqual([]);
     expect(orderIsDealt('theSchoolmensCharter' as OrderId)).toBe(true);
-    // The placeholder place (reading 24): Æra III, after The High Temple, on
-    // the lane under Medicine, at the column's price.
+    // Epic Poetry leaves room for the charter's next column within age II.
     const tech = techDef('scholasticism');
-    expect([tech.age, tech.row, tech.charter, tech.prereqs]).toEqual([3, 1, true, ['theHighTemple']]);
-    expect(tech.cost).toBe(techDef('medicine').cost);
+    expect([tech.age, tech.row, tech.charter, tech.prereqs]).toEqual([2, 1, true, ['epicPoetry']]);
+    expect(tech.cost).toBe(techDef('theHighTemple').cost);
     expect(tech.unlocks.buildings).toEqual(['cathedralSchool']);
     expect(tech.effects ?? []).toEqual([]);
     // No row is marked as waiting for a card any more.

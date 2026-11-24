@@ -73,6 +73,7 @@ import { decisionMemoShadow, decisionMemoTally, keepingEpoch, keepingScope, with
 // import is erased at build, so the leaf stays a leaf — `statecraft.ts`'
 // documented exception one system over.
 import type { WantBook } from './wants';
+import { tilePurchaseForecast } from './tilePurchaseForecast';
 // Type-only for the same reason: `chain.ts` reads this module's folds at
 // runtime, and this module only needs to *name* the chains its context carries.
 import type { BeadChain, ExpansionChain, TechChain } from './chain';
@@ -175,7 +176,7 @@ import {
   wrappedDistance,
 } from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf, meterEffects, tierPercent } from '../sim/meters';
-import { ladderSteps, renownPerTurn, renownShareReaches, renownThreshold } from '../sim/renown';
+import { explainRenown, ladderSteps, renownPerTurn, renownShareReaches, renownThreshold } from '../sim/renown';
 // Dominion batch D16: a commission is priced off the simulation's own reading
 // of how far its goal has come and of the figures a reward reads, so the card
 // face, the HUD chip and the bot cannot disagree about either.
@@ -229,7 +230,7 @@ import {
   unitHealthBonus,
   resourceTierBoost,
 } from '../sim/resourceEffects';
-import { dealPartnerSeats, lentCopiesAwayBy, lentCopyCount, seatsMayBargain } from '../sim/deals';
+import { lentCopiesAwayBy, lentCopyCount, seatsMayBargain } from '../sim/deals';
 import { atWar } from '../sim/wars';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 // Devotion batch DV9: the rites a town keeps, the price of a rite and of a
@@ -252,7 +253,7 @@ import {
   keptRiteSchedule,
   cityRiteCoversRealm,
   riteCostFor,
-  nextRerollCost,
+  explainRerollCost,
   ritesDisplacedBy,
 } from '../sim/religion';
 import {
@@ -343,6 +344,9 @@ import {
   helpings,
   oneOfAKind,
   tradePartnerSeats,
+  tradingPartnerSeats,
+  cardEmpireRenownShares,
+  greatPersonFamiliesGained,
   surplusRowReaches,
   // Bot batch BP3: a growth rule's surplus that a card moves into production is
   // on the books, so the stamp holds it.
@@ -378,7 +382,7 @@ import {
 } from '../sim/statecraft/evaluator';
 // The citizen levy's own figures, read where the levy verb reads them, so the
 // bot and the city panel price one levy alike (the bot levy batch).
-import { levyHammers, levyGrantFor, levyRiteChoices, levyStandingWait, opusWorkshop, wonderWorkshop } from '../sim/levies';
+import { levyBankGains, levyHammers, levyGrantFor, levyRiteChoices, levyStandingWait, opusWorkshop, wonderWorkshop } from '../sim/levies';
 // Bot batch BP8: a camp is priced by the raiders it sends, at the wild's own
 // muster cadence.
 import { campCadence } from '../sim/barbarians';
@@ -420,6 +424,7 @@ import {
   governmentsAtTier,
   isCharter,
   isDoctrineId,
+  isGovernmentId,
   isOrderId,
   countedTypeOf,
   orderDef,
@@ -435,6 +440,7 @@ import {
   type GameState,
   type Player,
   bankedTowardItem,
+  bankedTowardTech,
   citiesOf,
   cityById,
   cityReligion,
@@ -456,7 +462,7 @@ import {
   researchExpansion,
 } from '../sim/tech';
 import { ALL_TECH_IDS, LAST_TECH_AGE, type TechAge, type TechId, highestAge, isTechId, techDef } from '../sim/techData';
-import { improvementCountsAs, isUniqueImprovement, IMPROVEMENT_IDS, type ImprovementId, improvementDef, isTendedWork, workForFamily } from '../sim/improvementData';
+import { improvementCountsAs, isUniqueImprovement, IMPROVEMENT_IDS, type ImprovementId, improvementDef, improvementYield, isTendedWork, workForFamily } from '../sim/improvementData';
 import { readTileYield } from '../sim/terrainData';
 import {
   UNIT_TYPE_IDS,
@@ -1151,7 +1157,7 @@ export function explainBuildingRow(
       // file (`unitStatPoints` reads the same "a piece" figure).
       terms.push({ label: 'a free piece on completion', value: ctx.ai.weights.military * ctx.ai.score.combatScale });
     } else if (grant.grant === 'freeRerolls') {
-      terms.push(nest('free draft rerolls', explainLump({ faith: grant.amount * nextRerollCost(ctx.state, ctx.playerId) }, ctx)));
+      terms.push(nest('free draft rerolls', explainLump({ faith: grant.amount * explainRerollCost(ctx.state, ctx.playerId, 'order', 'faith', true).total }, ctx)));
     } else if (grant.grant === 'greatPerson') {
       terms.push(nest('a great person on completion', lumpOfPoints(magisterialDraftGrantWorth(grant, ctx), ctx)));
     } else if (grant.grant === 'tech') {
@@ -2233,7 +2239,8 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       return (
         unitStatPoints(effect.stat, effect.amount, ctx) *
         (1 + ctx.threat) *
-        (effect.where === 'connectedTown' ? connectedTownShare(ctx) : 1)
+        (effect.where === 'connectedTown' ? connectedTownShare(ctx) :
+          effect.where === 'ownTownKeepingRite' ? townsAdmitting(ctx, { test: 'keepingRite' }) / Math.max(1, ctx.cities) : 1)
       );
     case 'renown': {
       // **A counted trickle is worth what it counts today** — Patronage's
@@ -2377,6 +2384,14 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       return gain;
     }
     case 'cityRenownPercent': {
+      if (effect.where === 'empire') {
+        const shares = cardEmpireRenownShares(ctx.state, ctx.playerId);
+        const base = explainRenown(ctx.state, ctx.playerId)
+          .filter(line => line.perTurn && !shares.some(share => share.source === line.source) &&
+            (effect.family === undefined || line.family === effect.family))
+          .reduce((sum, line) => sum + line.amount, 0);
+        return base * effect.percent / 100 * ctx.ai.weights.renown;
+      }
       // A share of what a **middling** town of this empire earns — the single-
       // town reading, kept. Batch X2 changes which towns are middled: the mean
       // is taken over the towns the scope admits, so a clause no town admits
@@ -2588,6 +2603,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext, town?: City): number
       // this file can read a belief's effects, so it needs no stand-in.
       if (effect.pool !== undefined) return beliefSlotWorth(effect.amount, effect.pool, ctx);
       return effect.amount * ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
+    case 'buildingRelic':
+      return scoreEffects([{ kind: 'pays', where: 'city', scope: { test: 'hasBuilding', building: effect.building },
+        science: effect.science, culture: effect.culture }], ctx);
     case 'pressure':
     case 'pressureRule':
       // **The tide has no reading in this currency.** What a point of pressure
@@ -2851,6 +2869,20 @@ function ruleWorth(effect: Extract<CardEffect, { kind: 'rule' }>, ctx: ValueCont
     // army. So it asks `unitEdge`, for the reason on that knob (batch U9). Before
     // U9, this read `military`, and the strength ladder would have halved what a
     // screened town is worth without anybody deciding to.
+    case 'actAfterKill':
+      return occasionRate('kill', ctx) * ctx.ai.weights.unitEdge * (1 + ctx.threat);
+    case 'doubleGarrisonBonus': {
+      const ids = garrisonedUnitIds(ctx.state, ctx.playerId);
+      const qualified = ctx.state.units.filter(unit =>
+        ids.has(unit.id) && (effect.rank === undefined || holdsRank(unit, effect.rank)));
+      let worth = 0;
+      for (const { effect: pay, card } of effectsOfKind(ctx.state, ctx.playerId, 'pays')) {
+        if (pay.count !== 'garrison' || !(isOrderId(card) || isDoctrineId(card) || isGovernmentId(card))) continue;
+        const count = qualified.filter(unit => !pay.class || unitMatches(unit.type, pay.class)).length;
+        worth += count * scorePayout(pay, ctx);
+      }
+      return worth;
+    }
     case 'borders':
       return ctx.ai.weights.unitEdge * (1 + ctx.threat) * ctx.cities;
     // A picket walked past for nothing (Riders of the Steppe, O2). Its worth is the
@@ -3676,9 +3708,11 @@ function scoreWindfallRider(
   if (effect.family !== undefined) rate /= Math.max(1, FAMILIES.length);
   // **A rite in a town of a kind** (Devotion batch DV9, The Psalter's devout
   // towns): the seasons are the realm's, and the rider pays on the share of
-  // them started in a town its `inTown` admits. Read for the `rite` moment
-  // only, so no other rider's price moves. See `riteTownShare`.
-  if (effect.occasion === 'rite') rate *= riteTownShare(ctx, effect.inTown);
+  // them started in a town its `inTown` admits. Unit completions use the
+  // same city share, so a city-only copy is not priced as an empire-wide one.
+  if (effect.occasion === 'rite' || effect.occasion === 'unitCompletion') {
+    rate *= riteTownShare(ctx, effect.inTown);
+  }
   // **A work laid by a great person** (Magisterial batch MG9, The Landmark
   // Bounds; priced in batch MG17): a rider whose tile test is a great-person
   // work fires at the pace this seat lays works, not at a worker's pace. See
@@ -3722,6 +3756,17 @@ function riderOccasionRate(
   ctx: ValueContext,
 ): number {
   const occasion = effect.occasion;
+  if (occasion === 'death' && effect.rank !== undefined) {
+    const rank = effect.rank;
+    const army = ctx.state.units.filter(unit => unit.ownerId === ctx.playerId && isCombatant(unitDef(unit.type)));
+    const eligible = army.filter(unit => holdsRank(unit, rank) && (!effect.class || unitMatches(unit.type, effect.class)));
+    return occasionRate(occasion, ctx) * eligible.length / Math.max(1, army.length);
+  }
+  if (effect.vsFewerTechs === true) {
+    if (occasion !== 'kill' || effect.vsBarbarians === true) return 0;
+    return occasionRate(occasion, ctx) * vsFewerTechsShare(ctx) *
+      (effect.class === undefined ? 1 : classShare(effect.class, ctx));
+  }
   if (occasion === 'kill' && effect.vsBarbarians === true) {
     const wild = wildKillRate(ctx);
     return effect.class === undefined ? wild : wild * classShare(effect.class, ctx);
@@ -4133,7 +4178,7 @@ function windfallGrantWorth(
     // A grant scaled by each town's own citizens (Scientific batch S6, The
     // Journeymen; priced in batch S13) is read at this seat's mean town.
     const people = grant.fromTownPopulation === true ? meanPopulation(ctx) : 1;
-    once += explainYields(bag, ctx).total * towns * counted * people;
+    once += explainYields(bag, ctx).total * towns * counted * people * (grant.permanentTownYield ? lumpTurns : 1);
   }
   // **Scientific batch S13**: a great person handed over (S8, The Invitations)
   // and renown scaled by the technology's folded price (S6, The Scholars'
@@ -4185,7 +4230,29 @@ function windfallGrantWorth(
     // and a card's spear are worth the same thing. Since Dominion batch D5 a unit
     // can be raised in every town a scope admits, one unit for each.
     const units = grant.toEveryTown !== undefined ? everyTownCount(ctx, grant.toEveryTown) : 1;
-    if (grant.unit === 'bestRanged' || grant.unit === 'bestMelee' || grant.unit === 'bestSiege') {
+    if (grant.unitRank) flat += units * rankStrength(grant.unitRank) * ctx.ai.weights.military;
+    if (grant.unit === 'same') {
+      const gained = ctx.state.players[ctx.playerId]?.unitsGained ?? {};
+      let count = 0;
+      let totalOnce = 0;
+      let totalRate = 0;
+      for (const type of UNIT_TYPE_IDS) {
+        const number = gained[type] ?? 0;
+        if (number <= 0) continue;
+        const piece = draftedUnitWorth(type, units, ctx);
+        count += number;
+        totalOnce += piece.once * number;
+        totalRate += piece.rate * number;
+      }
+      if (count > 0) {
+        once += totalOnce / count;
+        flat += totalRate / count;
+      } else {
+        const piece = draftedUnitWorth('bestMelee', units, ctx);
+        once += piece.once;
+        flat += piece.rate;
+      }
+    } else if (grant.unit === 'bestRanged' || grant.unit === 'bestMelee' || grant.unit === 'bestSiege') {
       const piece = draftedUnitWorth(grant.unit, units, ctx);
       once += piece.once;
       flat += piece.rate;
@@ -4202,6 +4269,7 @@ function windfallGrantWorth(
   // batch MG17): what a hand is worth to this seat, the culture it would
   // otherwise pay for one, which `handWorth` reads as a lump. See `handWorth`.
   if (grant.freeDraft || grant.orderDraft) once += handWorth(ctx) * lumpTurns;
+  if (grant.freeRerolls) once += grant.freeRerolls * explainRerollCost(ctx.state, ctx.playerId, 'order', 'faith', true).total * voiceWeight(ctx, 'faith');
   if (grant.timed !== undefined) {
     const turns = Math.max(0, grant.timed.turns);
     once += scoreEffects(grant.timed.effects, ctx) * turns;
@@ -4437,11 +4505,11 @@ function ruleRewriteValue(
     case 'tilePurchase': {
       const rate = occasionRate('tilePurchase', ctx);
       if (rate <= 0) return 0;
-      const ring = RULES.cities.tilePurchase.ringBase[0] ?? 0;
-      // A price that names hexes (The Laurion Leases, batch DT6) reaches only the
-      // share of the hexes this seat would buy that pass its test.
-      const reach = effect.tile === undefined ? 1 : hexesToBuyShare(effect.tile, ctx);
-      return explainLump({ gold: -share * ring * reach }, ctx).total * rate;
+      const tiles = tilePurchaseForecast(ctx);
+      const price = tiles.length === 0 ? 0 : tiles.reduce((sum, row) =>
+        sum + (effect.tile === undefined || hexPasses(row.tile, effect.tile, ctx) ? row.price : 0), 0,
+      ) / tiles.length;
+      return explainLump({ gold: -share * price }, ctx).total * rate;
     }
     case 'borderCulture':
     case 'borderCost':
@@ -4625,6 +4693,8 @@ function scoreAmplifier(
       }
       return ((share * roads + flat * joined) * kept * voiceWeight(ctx, 'gold')) / 100;
     }
+    case 'luxuryCounts':
+      return 0; // The card stamp prices the changed card counts from the simulation.
     case 'luxuryHappiness':
     case 'luxuryDuplicates': {
       // **A share narrowed to a luxury's yields** (Commerce batch T5, The Casa
@@ -4909,14 +4979,11 @@ function scoreMeterRule(
       // army this empire fields would otherwise spend, which is nothing today
       // because no rule charges one.
       return ctx.ai.score.unknownEffect;
+    case 'surplusAuthorityFaith':
+    case 'happinessUncapped':
     case 'writUncapped':
-      // The Sovereign Writ (Expansionist batch E5): the writ's bonus past its
-      // top rung. What that is worth is the authority this empire would hold
-      // past ten points, which is the plan's arithmetic and not a card's. The
-      // stand-in, named. It is a promise while the writ is under its top rung, so
-      // a context that reads the board as it is today leaves it out (bot batch
-      // BP3, `ValueContext.today`); the card's stamp holds the bonus past the
-      // rung when there is one.
+      // The current extra bonus is included in the card's yield snapshot.
+      // Use the existing fallback only for its future value below the top tier.
       return ctx.today === true ? 0 : ctx.ai.score.unknownEffect;
     default:
       return unreadMeterRule(rule, ctx);
@@ -5509,6 +5576,7 @@ function foldReadsAmplifier(target: string): boolean {
     target === 'routeYields' ||
     target === 'luxuryHappiness' ||
     target === 'luxuryDuplicates' ||
+    target === 'luxuryCounts' ||
     target === 'connectionYields' ||
     // The Commenda (Commerce batch T5; read here since batch T9): a copy lent
     // away still counts as a share of a copy, so the counts, the happiness
@@ -5833,6 +5901,7 @@ export function stampSight(effect: CardEffect): StampSight {
     case 'pantheonSlots':
     case 'purchaseRider':
     case 'projectRider':
+    case 'buildingRelic':
     case 'pressureRule':
     case 'pressure':
     case 'periodic':
@@ -6099,6 +6168,8 @@ function meterRuleInBooks(rule: Extract<CardEffect, { kind: 'meterRule' }>['rule
     case 'capturedCityCost':
     case 'hillCityCost':
     case 'cityCost':
+    case 'surplusAuthorityFaith':
+    case 'happinessUncapped':
     case 'writUncapped':
       return true;
     case 'borderFreezeExempt':
@@ -6116,6 +6187,7 @@ function amplifierSight(target: Extract<CardEffect, { kind: 'effectAmplifier' }>
     case 'connectionYields':
     case 'luxuryHappiness':
     case 'luxuryDuplicates':
+    case 'luxuryCounts':
     case 'lentLuxuryCopies':
       return 'books';
     case 'strategicCopies':
@@ -6151,6 +6223,7 @@ function unreadBooksRule(_rule: never): boolean {
 function flagRuleSight(effect: Extract<CardEffect, { kind: 'rule' }>): StampSight {
   const rule = effect.rule;
   switch (rule) {
+    case 'doubleGarrisonBonus':
     case 'fieldsTended':
     case 'holdsBuilding':
     case 'tendedCountsImproved':
@@ -6236,6 +6309,7 @@ function flagRuleSight(effect: Extract<CardEffect, { kind: 'rule' }>): StampSigh
     case 'barbariansPassive':
     case 'noCampClearing':
     case 'noHealAbroad':
+    case 'actAfterKill':
     case 'moveAfterKill':
     case 'noFortify':
     case 'cityRestoresMovement':
@@ -6623,6 +6697,10 @@ function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] 
         },
       ];
     }
+    if (occasion === 'sizeRecord' && effect.minPopulation !== undefined) {
+      const more = qualifyingGrowthRecords(effect.minPopulation, ctx);
+      return [{ label: `+ ${round(more)} new population records at ${effect.minPopulation} citizens or more over the horizon`, value: more }];
+    }
     if (occasion === 'sizeRecord') {
       // **A town passing its largest size** (The Grain Census; bot batch BP7,
       // B10). The rider's own pace (`occasionRate`: the seat's growths over the
@@ -6801,9 +6879,21 @@ function explainHexCounted(effect: CardPaysEffect, ctx: ValueContext, card?: Car
   const ground = groundOfHexLine(ctx, effect, town);
   const asked = card ?? ('' as CardId);
   let paid = 0;
-  for (const { city } of ground.hexes) {
-    paid += helpings(countOf(ctx.state, ctx.playerId, asked, effect, city), effect.per, effect.max);
+  let selectedYieldValue = 0;
+  for (const { city, tile } of ground.hexes) {
+    const count = helpings(countOf(ctx.state, ctx.playerId, asked, effect, city), effect.per, effect.max);
+    paid += count;
+    if (effect.ownYieldOnly && tile.improvement) {
+      const native = improvementYield(tile.improvement);
+      const bag = bagOf(effect);
+      for (const voice of VOICES) if (native[voice] <= 0) bag[voice] = 0;
+      selectedYieldValue += count * valueOfYields(bag, ctx);
+    }
   }
+  if (effect.ownYieldOnly) return appraise([{
+    label: 'Own improvement yields, counted from the other works in each town',
+    value: selectedYieldValue / ground.over,
+  }]);
   const today = paid / ground.over;
   const payout = valueOfYields(bagOf(effect), ctx);
   return appraise([
@@ -7263,40 +7353,13 @@ export function researchPullTerm(ctx: ValueContext, road: readonly TechId[]): Va
 const CAMP_MEMO = new WeakMap<ValueContext, Map<number, Appraisal>>();
 
 /**
- * **What clearing one camp is worth to this seat, a turn** (bot pass 3, batch
- * BP8; `docs/flags.md` (ooooooo) P5: *"camps ranked by what they cost the seat
- * and what clearing pays"*). The camp hunt (`campMarch`, `bot.ts`) ranks the
- * camps near the seat's towns by this figure, discounted by the walk. Before
- * this batch it ranked them by distance alone.
+ * Price a camp from its bounty, card rewards, commission progress, expected
+ * raids and the settlement site it blocks. Raid value applies only when our
+ * town is the nearest target and is inside the camp's attack radius. Expected
+ * losses use the simulation's muster cadence and chance of training a unit.
  *
- * Five lines, each a reading the bot already makes elsewhere:
- *
- *   · **the bounty**: the camp's gold and food (`campClearGold`,
- *     `campClearFood`), scaled by the seat's live riders that scale a camp's
- *     payout, as `settleCampBounty` scales them. It is paid once, so it takes
- *     the lump exchange (`explainLump`);
- *   · **what the seat's cards pay on a camp cleared**: each live rider on the
- *     `camp` moment, one firing (`windfallGrantWorth`), through the lump
- *     exchange (`firingPerTurn`), as a single firing beside a rate is read
- *     since batch BP4;
- *   · **a step toward an open commission** that counts camps cleared
- *     (`commissionPullTerm`). BP6 left this pull for this batch;
- *   · **the raiders it sends at this seat**: a camp with its guards musters a
- *     raider once a cadence (`campCadence`, `barbarians.ts`), and a raider
- *     marches on the nearest town of a real empire. So a camp whose nearest
- *     such town is this seat's costs it one raid a cadence. A raid is priced at
- *     `camps.raidLoss` of the hammers of the best melee piece the seat could
- *     raise (`bestMeleeFor`): the piece it loses, or the piece it trains to meet
- *     the raider. A camp nearer another empire's town raids that empire, and
- *     reads nought here;
- *   · **the ground it closes to a settler**: when the site the expansion chain
- *     names lies inside the camp's guard ring (`campUnitRadius`),
- *     `camps.siteShare` of the town's worth, spread over the horizon. A settler
- *     does not walk to a site with a raider near it and nothing of ours beside
- *     it.
- *
- * Remembered on the context, one entry a camp, because the hunt asks it for
- * every camp for every soldier it weighs.
+ * Cache each camp for this planning context because several soldiers can ask
+ * for the same target. Clearing a remote camp can still pay its bounty.
  */
 export function explainCamp(ctx: ValueContext, camp: { col: number; row: number }): Appraisal {
   const memo = onContext(CAMP_MEMO, ctx, () => new Map<number, Appraisal>());
@@ -7354,7 +7417,9 @@ function readCamp(ctx: ValueContext, camp: { col: number; row: number }): Apprai
       else theirs = Math.min(theirs, distance);
     }
     const melee = bestMeleeFor(state, ctx.playerId);
-    if (ours <= theirs && melee !== null) {
+    const reach = Math.max(0, rules.campAttackRadius);
+    const musterChance = Math.max(0, Math.min(100, rules.musterChancePercent)) / 100;
+    if (ours <= theirs && ours <= reach && melee !== null && musterChance > 0) {
       const cadence = campCadence(state, camp);
       const hammers = unitProductionCost(state, ctx.playerId, melee) * Math.max(0, ctx.ai.camps.raidLoss);
       terms.push(
@@ -7365,7 +7430,8 @@ function readCamp(ctx: ValueContext, camp: { col: number; row: number }): Apprai
               `one raid costs ${round(hammers)} hammers of ${unitDef(melee).name}`,
               explainYields({ production: hammers }, ctx),
             ),
-            { label: `÷ ${cadence} turns between raiders`, value: cadence, op: 'div' },
+            { label: `× ${round(musterChance * 100)}% chance of a unit at each muster`, value: musterChance, op: 'mul' },
+            { label: `÷ ${cadence} turns between musters`, value: cadence, op: 'div' },
           ]),
         ),
       );
@@ -7374,6 +7440,10 @@ function readCamp(ctx: ValueContext, camp: { col: number; row: number }): Apprai
         label: `its raiders go to another empire's town first (${theirs} hexes off, ours ${ours})`,
         value: 0,
       });
+    } else if (ours > reach) {
+      terms.push({ label: `our nearest town is beyond this camp's ${reach}-hex attack radius`, value: 0 });
+    } else if (musterChance === 0) {
+      terms.push({ label: 'this camp cannot train new raiders under the current rules', value: 0 });
     }
     // The ground a settler would found on, inside the guard's ring.
     const chain = ctx.expansion;
@@ -7461,6 +7531,31 @@ function commissionForecast(id: OrderId, ctx: ValueContext): { turns: number; wh
         : `${round(remaining)} more ${what} still to come, and no pace to forecast them from`;
   }
   return { turns, why };
+}
+
+/** Count only growth that crosses the card's floor and the town's existing size record. */
+function qualifyingGrowthRecords(minPopulation: number, ctx: ValueContext): number {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const state = ctx.state;
+  const read = (town: City): CityYields => foldCity(state, town, [], null, readCity(state, town));
+  let records = 0;
+  for (const town of citiesOf(state, ctx.playerId)) {
+    const surplus = growthSurplus(state, town, read(town), explainFoodCarried(state, town, read));
+    if (surplus <= 0) continue;
+    let food = town.foodBasket;
+    let population = town.population;
+    const previousRecord = town.largestSize ?? population;
+    // Use today's surplus and each new size's cost. Growth settles once per turn.
+    for (let turn = 0; turn < horizon; turn++) {
+      food += surplus;
+      const needed = citizenGrowthThreshold(population);
+      if (food < needed) continue;
+      food -= needed;
+      population++;
+      if (population > previousRecord && population >= minPopulation) records++;
+    }
+  }
+  return records;
 }
 
 /** Use each town's own growth because a surplus in one town cannot make another qualify. */
@@ -7637,6 +7732,8 @@ function occasionRecord(occasion: TallyOccasion, ctx: ValueContext): number | nu
       // Batch R1, The Strongbox. The board keeps no count of purchases with
       // gold, so there is no record and the forecast reads the default.
       return null;
+    case 'orderSeated': return null;
+    case 'draftRerolled': return null;
     case 'orderGained': return countProbe(ctx, 'ordersHeld');
     case 'greatPersonGained': return player.greatPeopleRecruited;
     case 'wonderCompleted':
@@ -8180,13 +8277,33 @@ function currentResearchWorth(ctx: ValueContext): number {
   return explainYields({ science: Math.max(0, techCostFor(ctx, player.researching) - player.sciencePool) }, ctx).total;
 }
 
-/** Beakers to research a technology and every node it still needs, at the folded price. */
-function researchBeakersTo(ctx: ValueContext, tech: TechId): number {
+/**
+ * Forecast an ordered research path at the current science rate. Progress
+ * belongs to its technology. Only an unassigned pool can fund any first node.
+ * Overflow can pay later nodes in the same turn, but progress parked on a later
+ * node cannot make an earlier node arrive sooner.
+ */
+export function researchPathForecast(ctx: ValueContext, road: readonly TechId[]): {
+  beakers: number;
+  delay: number;
+  landings: ReadonlyMap<TechId, number>;
+} {
+  const player = playerById(ctx.state, ctx.playerId);
+  let balance = player?.researching == null ? -(player?.sciencePool ?? 0) : 0;
   let beakers = 0;
-  for (const step of researchExpansion(ctx.state, ctx.playerId, tech)) {
-    beakers += techCostFor(ctx, step);
+  const rate = Math.max(1, ctx.scienceRate);
+  const landings = new Map<TechId, number>();
+  for (const tech of road) {
+    balance += techCostFor(ctx, tech) - (player === undefined ? 0 : bankedTowardTech(player, tech));
+    beakers = Math.max(beakers, balance);
+    landings.set(tech, beakers / rate);
   }
-  return beakers;
+  return { beakers, delay: beakers / rate, landings };
+}
+
+/** Additional science needed for a technology and its unfinished prerequisites. */
+function researchBeakersTo(ctx: ValueContext, tech: TechId): number {
+  return researchPathForecast(ctx, researchExpansion(ctx.state, ctx.playerId, tech)).beakers;
 }
 
 /**
@@ -8819,9 +8936,13 @@ function scientificLinePoints(
     case 'goldIncome':
       helpings = Math.floor(Math.max(0, ratesOf(ctx).goldPerTurn ?? 0) / per);
       break;
+    case 'greatPersonFamilies':
+      helpings = greatPersonFamiliesGained(ctx.state, ctx.playerId) / per;
+      break;
     case 'greatPeopleGained':
       helpings = countProbe(ctx, 'greatPeopleGained') / per;
       break;
+    case 'chartersDrafted':
     case 'charterTechsKnown':
     case 'techLead': {
       const ahead = scientificCountAhead(scale.count, ctx);
@@ -9961,13 +10082,9 @@ function hexRiderWorth(
 }
 
 /**
- * **What one firing of a hex-bought rider is worth on the hexes this seat
- * would buy** (Commerce batch T9, Land Speculation): the mean of
- * `hexRiderWorth` over the hexes in the gold book (`Want.ground`), each at its
- * own price. With no hex in the book, the seat's own ground stands in for the
- * ground it would buy, at the ladder's first price
- * (`rules.cities.tilePurchase.ringBase`, as the `tilePurchase` rule arm reads
- * it). Remembered for the sitting, because the second reading walks the map.
+ * Average the reward over planned purchases at their current prices. If the
+ * purchase list is empty, use the available frontier from tilePurchaseForecast.
+ * Keep the result for this context so card comparisons share the same sample.
  */
 const HEX_RIDER_MEMO = new WeakMap<ValueContext, Map<CardEffect, number>>();
 function tilePurchaseFiringWorth(
@@ -9977,58 +10094,12 @@ function tilePurchaseFiringWorth(
   const held = onContext(HEX_RIDER_MEMO, ctx, () => new Map<CardEffect, number>());
   const found = held.get(effect);
   if (found !== undefined) return found;
-  let worth = 0;
-  let hexes = 0;
-  for (const want of ctx.wants.gold) {
-    const ground = want.ground;
-    if (ground === undefined) continue;
-    const tile = getTileAt(ctx.state.map, ground.col, ground.row);
-    if (tile === undefined) continue;
-    hexes += 1;
-    worth += hexRiderWorth(effect, tile, want.price, ctx);
-  }
-  if (hexes === 0) {
-    const price = RULES.cities.tilePurchase.ringBase[0] ?? 0;
-    const owner = tileOwnerField(ctx.state);
-    const tiles = ctx.state.map.tiles;
-    for (let index = 0; index < tiles.length; index++) {
-      if (owner.at(index) !== ctx.playerId) continue;
-      hexes += 1;
-      worth += hexRiderWorth(effect, tiles[index]!, price, ctx);
-    }
-  }
-  const mean = hexes === 0 ? 0 : worth / hexes;
+  const tiles = tilePurchaseForecast(ctx);
+  const mean = tiles.length === 0 ? 0 : tiles.reduce((sum, row) =>
+    sum + hexRiderWorth(effect, row.tile, row.price, ctx), 0,
+  ) / tiles.length;
   held.set(effect, mean);
   return mean;
-}
-
-/**
- * **The share of the hexes this seat would buy that pass a tile test** (batch DT6,
- * The Laurion Leases). The hexes are those of `tilePurchaseFiringWorth`: the ones
- * in the gold book, or the seat's own ground when the book holds none. The test is
- * the simulation's (`hexPasses`), so the sight gate on `hasResource` holds.
- */
-function hexesToBuyShare(on: TileCondition, ctx: ValueContext): number {
-  let hexes = 0;
-  let passing = 0;
-  for (const want of ctx.wants.gold) {
-    const ground = want.ground;
-    if (ground === undefined) continue;
-    const tile = getTileAt(ctx.state.map, ground.col, ground.row);
-    if (tile === undefined) continue;
-    hexes += 1;
-    if (hexPasses(tile, on, ctx)) passing += 1;
-  }
-  if (hexes === 0) {
-    const owner = tileOwnerField(ctx.state);
-    const tiles = ctx.state.map.tiles;
-    for (let index = 0; index < tiles.length; index++) {
-      if (owner.at(index) !== ctx.playerId) continue;
-      hexes += 1;
-      if (hexPasses(tiles[index]!, on, ctx)) passing += 1;
-    }
-  }
-  return hexes === 0 ? 0 : passing / hexes;
 }
 
 /**
@@ -10449,7 +10520,7 @@ function commerceCountAhead(
       };
     }
     case 'dealPartners': {
-      const partners = dealPartnerSeats(state, playerId);
+      const partners = tradingPartnerSeats(state, playerId);
       let open = 0;
       for (const rival of metRivals(state, playerId)) {
         if (partners.includes(rival.id)) continue;
@@ -10458,7 +10529,7 @@ function commerceCountAhead(
       }
       return {
         more: Math.min(open, Math.max(0, table.dealPartners)),
-        why: `${open} met empires at peace with no deal yet, at most ${table.dealPartners}`,
+        why: `${open} met empires at peace with no trade yet, at most ${table.dealPartners}`,
       };
     }
     case 'allPostCitizens':
@@ -10836,7 +10907,7 @@ function levyCardWorth(effect: CardLevyEffect, ctx: ValueContext): number {
         const cost = buildingProductionCost(front.id, ctx.state, ctx.playerId);
         sum += explainYields({ production: Math.floor(cost * effect.percentOfCost / 100) }, ctx).total;
       } else {
-        sum += Math.max(0, explainCitizenLevy(city, effect.use, ctx, undefined, effect.faithPerCitizen).total);
+        sum += Math.max(0, explainCitizenLevy(city, effect.use, ctx, undefined, effect.faithPerCitizen, effect).total);
       }
     }
     let pace = perTown;
@@ -11037,12 +11108,13 @@ export function explainCitizenLevy(
   ctx: ValueContext,
   piece?: UnitTypeId | null,
   faithPerCitizen?: number,
+  bankRates?: Pick<CardLevyEffect, 'sciencePerCitizen' | 'renownPerCitizen'>,
 ): Appraisal {
   const hammers = levyHammers(city);
   const unit = !raisesPiece(use) ? null : piece !== undefined ? piece : levyPieceFor(use, ctx);
   const want = unit === null ? null : levyPieceWant(city, use, ctx);
   const terms: ValueTerm[] = [
-    nest('what the citizen buys', explainLevyGain(city, use, hammers, unit, want, ctx, faithPerCitizen)),
+    nest('what the citizen buys', explainLevyGain(city, use, hammers, unit, want, ctx, faithPerCitizen, bankRates)),
     nest('the citizen it spends', explainLevyCitizen(city, hammers, ctx), 'sub'),
   ];
   const cards = explainLevyCards(city, use, hammers, unit !== null && want?.wanted === true ? unit : null, ctx);
@@ -11059,6 +11131,7 @@ function explainLevyGain(
   want: { wanted: boolean; why: string } | null,
   ctx: ValueContext,
   faithPerCitizen?: number,
+  bankRates?: Pick<CardLevyEffect, 'sciencePerCitizen' | 'renownPerCitizen'>,
 ): Appraisal {
   switch (use) {
     case 'production':
@@ -11076,9 +11149,16 @@ function explainLevyGain(
       ]);
     }
     case 'faith': {
-      const rate = faithPerCitizen ?? levyGrantFor(ctx.state, city.ownerId, city, use)?.faithPerCitizen ?? 0;
-      const faith = city.population * rate;
-      return explainLump({ faith }, ctx);
+      const current = levyGrantFor(ctx.state, city.ownerId, city, use);
+      const gain = levyBankGains(city.population, {
+        faithPerCitizen: faithPerCitizen ?? current?.faithPerCitizen,
+        sciencePerCitizen: bankRates?.sciencePerCitizen ?? current?.sciencePerCitizen,
+        renownPerCitizen: bankRates?.renownPerCitizen ?? current?.renownPerCitizen,
+      });
+      return appraise([
+        nest('faith and science', explainLump({ faith: gain.faith, science: gain.science }, ctx)),
+        nest(`${gain.renown} renown`, lumpOfPoints(gain.renown * ctx.ai.weights.renown, ctx)),
+      ]);
     }
     case 'rite': {
       const plan = bestLevyRite(ctx);
@@ -12941,7 +13021,7 @@ function handWorth(ctx: ValueContext): number {
 export function explainPersonSpendGrant(grant: PersonSpendGrant, ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [{ label: 'free Order drafts', value: grant.orderDrafts * handWorth(ctx) }];
   if (grant.freeRerolls) {
-    const faith = grant.freeRerolls * nextRerollCost(ctx.state, ctx.playerId);
+    const faith = grant.freeRerolls * explainRerollCost(ctx.state, ctx.playerId, 'order', 'faith', true).total;
     terms.push(nest('free rerolls', explainLump({ faith }, ctx)));
   }
   return appraise(terms);

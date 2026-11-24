@@ -189,6 +189,7 @@ describe('the three verbs', () => {
       // The settler lens's marked hexes (item (ttttt)): every charted, foundable
       // hex in reach of a town or a settler of this seat's, ranked and cut.
       'readSites',
+      'readWagerMetric',
     ]);
   });
 

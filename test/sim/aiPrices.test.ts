@@ -8,6 +8,7 @@
  * choices can move these.
  */
 
+import { tilePurchaseForecast } from '../../src/ai/tilePurchaseForecast';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { footprintOf } from './aiCardStampHelpers';
@@ -486,8 +487,8 @@ describe('a bonus on named buildings reaches the hammers those rows cost', () =>
 describe('The Laurion Leases', () => {
   it('reads a little for a seat that has yet to buy a hex', () => {
     const { state, player, towns } = board([6]);
-    const owned = ownedTiles(state, towns[0]!);
-    const seam = owned.find((tile) => tile.col !== towns[0]!.col || tile.row !== towns[0]!.row)!;
+    const seam = getTileAt(state.map, towns[0]!.col + 2, towns[0]!.row)!;
+    state.tileOwner[tileIndex(state.map, seam.col, seam.row)] = null;
     seam.resource = 'wheat' as never;
     bumpRevision(state);
     // With no hex in the book, the seat's own ground stands in for the hexes it would buy.
@@ -499,7 +500,8 @@ describe('The Laurion Leases', () => {
     const rate =
       (((aiJson.score.tallyForecast.hexClaimed * PRIOR_SHARE) / HORIZON) * PRIOR_TURNS) / (40 + PRIOR_TURNS);
     const ring = RULES.cities.tilePurchase.ringBase[0]!;
-    const passing = owned.filter((tile) => tile.resource !== undefined).length / owned.length;
+    const frontier = tilePurchaseForecast(ctx);
+    const passing = frontier.filter(({ tile }) => tile.resource !== undefined).length / frontier.length;
     expect(passing).toBeGreaterThan(0);
     expect(scoreEffects([row], ctx)).toBeCloseTo(explainLump({ gold: 0.75 * ring * passing }, ctx).total * rate, 10);
   });

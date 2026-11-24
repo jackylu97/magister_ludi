@@ -89,8 +89,7 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
   `Player.ritesStarted` (absent until the first rite, read as nought). Its one
   writer is `countRiteStarted`, which also pays the `riteStarted` tally: once
   for a town's rite with no `atOnce`, and once for each town a prophet's rite
-  reaches. The rite is charged the price before the count rises. The Votive
-  Offering and the Restoring of the Host do not raise it. `riteCostFor` is the
+  reaches. The rite is charged the price before the count rises. `riteCostFor` is the
   one reading (the rite button, the refusal, the charge and the bots);
   `riteCostAhead` and `ritesAffordable` read the rising price for the faith
   sheet's "enough for N" lines. A `riteCost` card (The Capitulary of Herstal)
@@ -105,11 +104,9 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
   `unlocks.abilities` (`ABILITY_TECH`): Rite of the Harvest and Omen Reading
   (Divination), Consecration of the Bounds (Stonecraft), Blessing of Arms
   (Bronzeworking), Rite of Plenty (Currency).
-- **Taught by a Devotion Order (four rows, `RiteDef.byCard`).** Rite of Fasting
+- **Taught by a Devotion Order (`RiteDef.byCard`).** Rite of Fasting
   by The Fast's charter and Rite of the Sabbath by The Sabbath Laws' charter,
-  each written to `Player.charteredRites` when the card is drafted. Votive
-  Offering by The Votive Gifts, and Restoring of the Host by The Host Restored,
-  while the card is seated (a `grantsAbility` effect). These rows' `tech` only
+  each written to `Player.charteredRites` when the card is drafted. These rows' `tech` only
   dates them for the Compendium.
 - **Naming the teacher.** `riteTeachingCard(rite)` (`religion.ts`) finds the
   Order in the data tables, asking the evaluator whether a row's clauses hand
@@ -146,10 +143,7 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
   citizen. Rite of the Sabbath moves all of the town's production into culture
   (`productionToCulture`, the second line of step 14 of `docs/yields.md`), so
   the town builds nothing while it runs; a purchase or a production windfall
-  still lands in the basket. Votive Offering and Restoring of the Host act at
-  once (`RiteDef.atOnce`): the offering turns the faith it cost into
-  production, and the restoring heals every unit of yours standing in land
-  that follows your religion.
+  still lands in the basket. The Votive Gifts and The Host Restored now apply during any rite in the town.
 - **A rite started is a season** (Devotion batch DV4). `performRiteAt` raises
   the `riteStarted` tally and pays the `rite` occasion (`payRiteRiders`) only
   for a rite with no `atOnce`, so the offering and the restoring raise
@@ -261,12 +255,10 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
 - **Follower beliefs** → city-local, to whoever OWNS each following city
   (a rival's faith in your town is a gift). A follower row that pays an
   empire fails `religionDataProblems`.
-  - The Alms Box gives the town’s owner 25% more buying power on faith purchases in that town. `cardPurchaseRiders` reads the town’s follower beliefs through `cityLocalEffects`.
+  - The Alms Box lets a following town buy food and production buildings with faith.
 - **Enhancers** → the tide itself: `{ kind: 'pressureRule', rule, delta }`
   over `rules.religion`, read only in `explainPressure`. Some also pay the
-  founder: Ecclesia (+1🕯 on each holy site for each town in the world that
-  follows, a hex line counted by the town working the hex) and Congregation
-  (+2🕯 for each such town), both since batch B1.
+  founder: Ecclesia adds pressure when a rite starts. Congregation adds a citizen to the capital when a town first converts.
 
 ## What the religion pays, by source (batch UX8b)
 

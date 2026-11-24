@@ -645,11 +645,11 @@ is `docs/audit/bot-pass-3-competitiveness.md` §3.4, §3.5, §3.7 and Part 4 row
     (`windfallGrantWorth`, through `firingPerTurn`);
   - a step toward an open commission that counts camps cleared
     (`commissionPullTerm`, the pull BP6 left for this batch);
-  - the raiders it sends at this seat: when the seat holds the real town nearest
-    the camp, one raid every muster cadence (`campCadence`, `barbarians.ts`, now
-    exported), each at `camps.raidLoss` (1) of the hammers of the best melee piece
-    the seat could raise (`bestMeleeFor`). A camp nearer another empire's town
-    reads nought here;
+  - the raiders it sends at this seat: the nearest real town must belong to
+    this seat and fall within `campAttackRadius`. The expected raid rate is
+    `musterChancePercent / 100 / campCadence`. Each raid costs `camps.raidLoss`
+    of the best buildable melee unit's production price. Other camps add no
+    raid cost, but can still pay a bounty or block a settlement site;
   - the site it closes to a settler: when the expansion chain's site is inside the
     camp's guard ring (`campUnitRadius`), `camps.siteShare` (0.25) of the next
     town's worth over the horizon.
@@ -950,22 +950,18 @@ bullet "BP12"; the trace and the measurements are the section "BP12" of
 (bot batch BP13; `docs/flags.md` (ooooooo), the bullet "BP13"; the
 measurements are the section "BP13" of `docs/plans/performance-pass-2026-11-06.md`):
 
-- **A bot puts a paper to a bot only when the receiver's own reading signs
-  it.** The swap arm (`swapDecision`, `writeSwap`) asks the receiver's verdict
-  (`dealVerdict`, the three clauses `answerProposal` answers with: the paper
-  pays, something arrives, no last copy is asked) on the receiver's own sheet
-  (`receiverReader`). Since BP16 it reads none of the receiver's prices: on a
-  bot's swap they can only make the paper better for the receiver, so the
-  verdict is the last-copy clause (see BP16 below). Before BP13 more than four
-  papers in five were sent back, almost all for the receiver's last copy,
-  which the writer did not ask about.
+- **Both seats must accept a proposed swap.** The writer checks resource value
+  and last-copy protection for itself and the receiver. Human recipients use
+  the same checks. Spare luxuries can exchange one for one. Strategic bundles
+  keep one free copy and use the configurable reserve size. See
+  `docs/audit/bot-trade-and-tiles-2026-11-23.md` for the current prices.
 - **The papers already standing count.** A copy offered in a paper still on
   the table is promised, so the seat does not offer its second copy of a kind
   in another paper; it does not ask for a kind it has already asked for; and
   it leaves a receiver alone when another seat's paper already asks it for the
   same kind or offers it the same kind (`standingRefusal`).
-- **A person is asked the plain swap, as before.** The refusal memory
-  (`dealMemory.ts`) still governs what a person is asked again.
+- The refusal memory (`dealMemory.ts`) governs repeat offers to either type
+  of player. A refused plain offer needs an added payment before one retry.
 - **The escort plan's cost** (`routeMemo.ts`). The plan is read at each
   revision of the board while the seat holds a settler. Its route searches are
   kept for the sitting and given back only while every input of the search is
@@ -1180,14 +1176,10 @@ are the section "BP16" of `docs/plans/performance-pass-2026-11-06.md`).
   change in the same sitting: a declaration after it buys soldiers, a peace
   suit after a battle, a raze of a town it took this sitting, a swap for a copy
   it gained this sitting. The audience (`answerAudience`) is unchanged.
-- **The writer reads a bot receiver's verdict with no prices**
-  (`receiverReader`). On a bot's swap what arrives is a kind the receiver
-  lacks, at the luxury baseline, plus any coin a sweetened paper adds; what
-  leaves is one kind at the same baseline, less the share the receiver keeps
-  while it is lent. The two terms that read the receiver's prices (a new deal
-  partner, what lent copies pay its cards) only add to its side. So the
-  verdict is the last-copy clause alone, and no context of another seat is
-  built. A test pins it with a receiver that holds both kinds of card.
+- **Receiver checks avoid another full planning context.** They use the same
+  resource prices as the receiver. They omit positive rewards from counted
+  cards, which makes the check conservative. The receiver includes those
+  rewards when it answers the proposal.
 - **The spend arm keeps "nothing to buy" for the sitting**
   (`BotSitting.spendQuiet`, `bankSpend`). A bank that answers nothing before
   any live gate is asked keeps that answer while the purse in that bank, the

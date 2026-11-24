@@ -1,3 +1,6 @@
+import { addWagerCount, wagerSetupCopy, type WagerSetup, type WagerBook } from './wagerMilestoneData';
+import { collectMilestoneAwards } from './wagers';
+import { openMilestoneAge } from './wagerMilestones';
 /**
  * The whole game in one plain, serializable object.
  *
@@ -107,6 +110,7 @@ import { payOccasionRiders } from "./cities";
 // (the JSON and its vocabulary) and imports this module not at all.
 import {
   type CardEffect,
+  type CardYieldBag,
   type CardId,
   type DeckId,
   type FirstKind,
@@ -671,7 +675,8 @@ import {
 // each, to a list of `{ id, copies }` rows (`CopyLoan`, `deals.ts`). A v265 log
 // names strategic loans in the old shape, which the deal gate now refuses.
 // Nothing is migrated.
-export const SCHEMA_VERSION = 266;
+// Version 267 records lifetime In play yields and optional wager milestones.
+export const SCHEMA_VERSION = 267;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2405,22 +2410,12 @@ export interface Unit {
    * `false`, or a game with no gifts in it would not compare equal to itself
    * before this field existed.
    *
-   * **The register of who writes it**, and it is deliberately short — every
-   * entry is "the game issued this, nobody bought it":
+   * The writers are:
    *
-   *   1. `captureUnit` — a piece taken in war, and a barbarian talked round by
-   *      the Wolf-Mother's Pact (which goes through the same function). You did
-   *      not raise it, so you do not keep it on your payroll;
-   *   2. `realiseItem(…, { free: true })` — the windfall path, which is every
-   *      Statecraft grant that hands over a piece (Levies, Camp Followers'
-   *      stray) and reaches the roster through `payWindfallGrants`;
-   *   3. `payCompletionGrants` — a **building's** gift: the Statue of Zeus'
-   *      swordsman, Hagia Sophia's, and every `onComplete` unit after them;
-   *   4. `settleGreatPersonChoice` — a great person, which is exempt by type
-   *      anyway (no unlock tech) and is marked so the rule does not depend on
-   *      that staying true;
-   *   5. `claimDiscoveryAt` — a ruin's escort.
-   *   6. A levy with free upkeep passes `free: true` to `realiseItem`.
+   *   1. `captureUnit`, for captured units.
+   *   2. `realiseItem` with `free: true`, for windfall grants, building gifts,
+   *      recruited great people, copied units and levies that grant free upkeep.
+   *   3. `claimDiscoveryAt`, for a ruin's escort.
    *
    * A **completion** of a queued unit and a **purchase** deliberately do not
    * write it: those are pieces an empire paid for, and they go on the payroll
@@ -2452,7 +2447,7 @@ export interface Unit {
    *
    * `freeUpkeep`'s **partial** cousin and deliberately a number rather than a
    * second flag: that one says the empire never paid for the piece at all and is
-   * written at five named seams, and this says the empire paid for it in a town
+   * written at the named seams above, and this says the empire paid for it in a town
    * that keeps its own soldiers cheaply. A flag would have made the Throne a way
    * to field a free army; a number is a discount a ledger can print.
    *
@@ -2798,6 +2793,7 @@ export interface City {
    * razed takes its whole record with it.
    */
   buildingTurns?: Partial<Record<BuildingId, number>>;
+  buildingRelics?: { card: CardId; source: string; building: BuildingId; count: number; science: number; culture: number }[];
   /**
    * **Which bank paid for each of those buildings**, for the ones somebody
    * bought — or the key is absent on a town that has bought none (batch C8).
@@ -3265,6 +3261,8 @@ export interface City {
    * first mark.
    */
   markedBy?: { card: OrderId; owner: number }[];
+  /** A town keeps the yield it earned on each capture, including after a transfer. */
+  captureGrants?: { card: CardId; yields: CardYieldBag }[];
 }
 
 /** See `City.levy`. */
@@ -3752,6 +3750,7 @@ export function emptyRenownFeed(): Record<Family, number> {
 // --- state ------------------------------------------------------------------
 
 export interface GameConfig {
+  wagerSetup?: WagerSetup;
   /** A missing tier and tier zero both use the standard rules. */
   tier?: number;
   /** Numeric seed; use `hashSeed` to turn a word into one. */
@@ -3796,6 +3795,7 @@ export interface GameConfig {
 }
 
 export interface GameState {
+  wagerBook?: WagerBook;
   /** Fixed when the game is created. The selected rules apply to the configured seats. */
   tier?: number;
   schemaVersion: number;
@@ -4207,6 +4207,7 @@ export function normalizeConfig(config: GameConfig): GameConfig {
     if (!isDifficultyTier(config.tier)) throw new Error(`Unknown difficulty tier ${String(config.tier)}`);
     if (config.tier > 0) normalized.tier = config.tier;
   }
+  if (config.wagerSetup !== undefined) normalized.wagerSetup = wagerSetupCopy(config.wagerSetup);
   return normalized;
 }
 
@@ -4329,6 +4330,7 @@ export function newGame(config: GameConfig): GameState {
   const rng = deriveGameplayRng(normalized.seed);
   const state: GameState = {
     schemaVersion: SCHEMA_VERSION,
+    ...(normalized.wagerSetup && { wagerBook: { setup: normalized.wagerSetup, ages: [] } }),
     ...(normalized.tier === undefined ? {} : { tier: normalized.tier }),
     turn: RULES.game.startingTurn,
     // Nought, and the first accepted command makes it one. See `GameState.revision`.
@@ -4490,6 +4492,10 @@ export function newGame(config: GameConfig): GameState {
   // that is only correct when somebody owns something is a state waiting to be
   // wrong.
   recomputeAllVisibility(state);
+  if (state.wagerBook) {
+    openMilestoneAge(state, 1);
+    collectMilestoneAwards(state, []);
+  }
   return state;
 }
 
@@ -4988,12 +4994,15 @@ export function spendGold(
  */
 export function buyWithGold(state: GameState, player: Player, amount: number): void {
   spendGold(state, player, amount);
+  addWagerCount(state, player.id, 'purchases', amount);
   recordScalingOccasion(state, player.id, 'goldPurchase');
 }
 
 /** Faith purchases count once. Rerolls and contributions only spend faith. */
 export function buyWithFaith(state: GameState, player: Player, amount: number, clampAtZero = false): void {
+  const before = player.faithPool;
   spendFaith(state, player, amount, clampAtZero);
+  addWagerCount(state, player.id, 'purchases', before - player.faithPool);
   recordScalingOccasion(state, player.id, 'faithPurchase');
 }
 
@@ -5499,6 +5508,7 @@ export function bankTowardTech(
   amount: number,
 ): void {
   if (amount <= 0 || player.techsResearched.includes(techId)) return;
+  addWagerCount(state, player.id, 'scienceCulture', amount);
   if (player.researching === techId) {
     player.sciencePool += amount;
   } else {

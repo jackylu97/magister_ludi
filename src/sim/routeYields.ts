@@ -57,6 +57,7 @@ import { cardAmplifier, cardRouteShareLines, cardRouteYieldLines } from './state
 // Expansionist batch E12: what a town holds, a card's grants included.
 // Commerce batch T3: the card that makes a home route pay its origin a copy.
 import { cardReturnLeg, townBuildings } from './statecraft/evaluator';
+import { CITY_YIELD_KEYS, type ResourceId } from './resourceData';
 import type { CardId } from './statecraftData';
 import { trades, unitDef } from './unitData';
 
@@ -121,6 +122,8 @@ export {
  * no shrine reads exactly as it always did.
  */
 export interface RouteYieldLine {
+  card?: CardId;
+  resource?: ResourceId;
   /** What the interface prints: "Caravan from Uruk · 3 buildings". */
   source: string;
   food: number;
@@ -343,13 +346,7 @@ function routeLinesBetween(
   // nothing riding on it — the riders the ruling *did* name were flagged and not
   // built, and quietly adding one that was not named would be worse.
   for (const bag of resourceRouteYields(state, from.ownerId)) {
-    lines.push(
-      line(label(bag.source), {
-        food: bag.food,
-        production: bag.production,
-        gold: bag.gold,
-      }),
-    );
+    lines.push({ ...line(label(bag.source), bag), resource: bag.resource });
   }
 
   // **What a card puts on the caravan itself** — Silk Roads' coin, the
@@ -462,8 +459,8 @@ function cardLines(
       // nothing for it: the honest zero rather than an absent line.
       if (helpings === 0) continue;
     }
-    lines.push(
-      line(label(note), {
+    lines.push({
+      ...line(label(note), {
         food: paid.food * helpings,
         production: paid.production * helpings,
         gold: paid.gold * helpings,
@@ -471,7 +468,8 @@ function cardLines(
         culture: paid.culture * helpings,
         faith: paid.faith * helpings,
       }),
-    );
+      card: paid.card,
+    });
   }
 }
 
@@ -546,7 +544,7 @@ function shares(
     ) {
       continue;
     }
-    lines.push(line(label(`${row.source} ${row.percent > 0 ? '+' : ''}${row.percent}%`), extra));
+    lines.push({ card: row.card, ...line(label(`${row.source} ${row.percent > 0 ? '+' : ''}${row.percent}%`), extra) });
   }
 }
 
@@ -574,7 +572,8 @@ function amplify(
   label: (note: string) => string,
   mode: RouteMode,
 ): void {
-  const percent = cardAmplifier(state, from.ownerId, 'routeYields', undefined, mode);
+  const sources: { source: string; card?: CardId; percent: number }[] = [];
+  const percent = cardAmplifier(state, from.ownerId, 'routeYields', undefined, mode, sources);
   if (percent === 0) return;
   const total = foldRouteYield(lines);
   // Exact since batch X: half again on a two-gold caravan is one gold, and half
@@ -590,7 +589,19 @@ function amplify(
   if (extra.food === 0 && extra.production === 0 && extra.gold === 0) {
     if (extra.science === 0 && extra.culture === 0 && extra.faith === 0) return;
   }
-  lines.push(line(label(`cards ${percent > 0 ? '+' : ''}${percent}%`), extra));
+  // The last card takes the remainder so the route still pays the combined percentage.
+  const remaining = { ...extra };
+  sources.forEach((source, index) => {
+    const paid = { ...remaining };
+    if (index < sources.length - 1) {
+      for (const key of CITY_YIELD_KEYS) {
+        paid[key] = total[key] * source.percent / 100;
+        remaining[key] -= paid[key];
+      }
+    }
+    const note = sources.length === 1 ? 'cards' : source.source;
+    lines.push({ ...line(label(`${note} ${source.percent > 0 ? '+' : ''}${source.percent}%`), paid), card: source.card });
+  });
 }
 
 /**
@@ -624,6 +635,11 @@ function blockaded(
 ): RouteYieldLine[] {
   const cut = cityBlockaded(state, from) ? from : cityBlockaded(state, to) ? to : null;
   if (cut === null) return lines;
+  // A blocked route pays nothing. Keep the gross breakdown for the route panel.
+  for (const entry of lines) {
+    delete entry.card;
+    delete entry.resource;
+  }
   const total = foldRouteYield(lines);
   const empty =
     total.food === 0 &&

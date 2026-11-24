@@ -496,7 +496,7 @@ describe('the Dominion deck — its Doctrines', () => {
     for (const deck of SORTED_DECKS) expectSheetDoctrinesMatchData(deck);
   });
 
-  it('lists exactly the live rows on all six sheets, 99 in all', () => {
+  it('lists exactly the live rows on all six sheets, 98 in all', () => {
     let all = 0;
     for (const deck of SORTED_DECKS) {
       const live = DECK_FILE_DOCTRINES[deck].filter((id) => doctrineDef(id).retired !== true);
@@ -504,7 +504,7 @@ describe('the Dominion deck — its Doctrines', () => {
       expect(names, deck).toEqual(live.map((id) => doctrineDef(id).name).sort());
       all += names.length;
     }
-    expect(all).toBe(99);
+    expect(all).toBe(98);
   });
 
   it('builds the whole table: every sheet row has a data row, and the counts match', () => {

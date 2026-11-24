@@ -131,6 +131,40 @@ function twoTowns(state: GameState): { home: City; rival: City } {
 }
 
 describe('what a camp is worth to the seat', () => {
+  it('counts raids at the attack-radius boundary but not beyond it', () => {
+    const state = bench(60, 16);
+    foundCityAt(state, 0, at(state, 5, 8));
+    foundCityAt(state, 1, at(state, 40, 8));
+    const radius = RULES.barbarians.campAttackRadius;
+    const ctx = valueContext(state, seat(state, 0));
+    const edge = explainCamp(ctx, { col: 5 + radius, row: 8 });
+    const beyond = explainCamp(ctx, { col: 6 + radius, row: 8 });
+    const raid = (reading: ReturnType<typeof explainCamp>) =>
+      reading.terms.find((term) => /raiders it sends at this seat/.test(term.label))?.value ?? 0;
+    expect(raid(edge)).toBeGreaterThan(0);
+    expect(raid(beyond)).toBe(0);
+    expect(beyond.terms.find((term) => /^the bounty/.test(term.label))!.value).toBeGreaterThan(0);
+  });
+
+  it('scales expected raid losses by the chance that a muster produces a unit', () => {
+    const state = bench();
+    twoTowns(state);
+    const saved = RULES.barbarians.musterChancePercent;
+    const raidAt = (chance: number) => {
+      RULES.barbarians.musterChancePercent = chance;
+      const reading = explainCamp(valueContext(state, seat(state, 0)), { col: 9, row: 8 });
+      return reading.terms.find((term) => /raiders it sends at this seat/.test(term.label))?.value ?? 0;
+    };
+    try {
+      const certain = raidAt(100);
+      expect(certain).toBeGreaterThan(0);
+      expect(raidAt(50)).toBeCloseTo(certain / 2, 10);
+      expect(raidAt(0)).toBe(0);
+    } finally {
+      RULES.barbarians.musterChancePercent = saved;
+    }
+  });
+
   it('reads the bounty, and the raiders only of a camp whose nearest town is ours', () => {
     const state = bench();
     twoTowns(state);

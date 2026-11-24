@@ -26,6 +26,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BUILDING_IDS, isWonder } from '../../src/sim/buildingData';
 import {
+  additionalInPlayLinesOfTown,
   deckLinesOfCity,
   explainDeckLedger,
   explainLedger,
@@ -33,9 +34,15 @@ import {
   ledgerBagOfCity,
   recordDeckTally,
 } from '../../src/sim/ledgerFold';
+import { emptyCityYields } from '../../src/sim/cities';
+import { BELIEF_IDS } from '../../src/sim/religionData';
+import { explainScore, foldScore } from '../../src/sim/score';
+import { readEmpire, readWagerMetric } from '../../src/sim/readings';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
-import type { ORDER_IDS } from '../../src/sim/statecraftData';
-import { type GameState, bumpRevision, citiesOf, playerById } from '../../src/sim/state';
+import { classifyCard } from '../../src/sim/ledgerClass';
+import type { CityYieldLine } from '../../src/sim/yields/town';
+import type { CardId, ORDER_IDS } from '../../src/sim/statecraftData';
+import { type GameState, bumpRevision, citiesOf, createUnit, playerById } from '../../src/sim/state';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { found, game } from './statecraftHelpers';
 
@@ -147,6 +154,102 @@ describe('the lifetime tally', () => {
     runEndOfTurn(state);
     expect(sc.yieldTallies.map((row) => row.card)).toEqual(order);
     expect(sc.yieldTallies[0]!.paid).toEqual(kept);
+  });
+
+  it('counts each named In play source while leaving ordinary income in its class', () => {
+    const { state } = bench();
+    const town = readEmpire(state, 0).towns[0]!;
+    const zero = emptyCityYields();
+    const cards: CardId[] = [
+      'goddessOfTheHarvest', 'vigilOfArms', 'scholarsCrypt', 'imhotep',
+      'alexanderTheGreat', 'unbrokenCharge', 'liturgy',
+    ];
+    const lines: CityYieldLine[] = cards.map((card) => ({
+      ...zero, source: card, step: 3, card, class: classifyCard(card), gold: 2,
+    }));
+    lines.push(
+      { ...zero, source: 'Wonder', step: 8, building: 'theOracle', class: 'wonders', gold: 2 },
+      { ...zero, source: 'Luxury signature', step: 4, resource: 'spices', class: 'tiles', gold: 2 },
+      { ...zero, source: 'Ground', step: 2, class: 'tiles', gold: 9 },
+      { ...zero, source: 'Town', step: 1, class: 'other', gold: 7 },
+    );
+    const total = { ...zero, gold: (cards.length + 2) * 2 + 16 };
+    const rows = additionalInPlayLinesOfTown(state, {
+      ...town, total,
+      reading: { ...town.reading, flats: total, lines, percents: [] },
+    });
+    expect(rows.map((row) => row.card).sort()).toEqual([...cards, 'theOracle', 'resource:spices'].sort());
+    expect(rows.every((row) => row.paid.gold === 2)).toBe(true);
+  });
+
+  it('credits the paying belief on an ordinary library and shares only the net stage gain', () => {
+    const { state } = bench();
+    const town = readEmpire(state, 0).towns[0]!;
+    const payer = BELIEF_IDS[0]!;
+    const other = BELIEF_IDS[1]!;
+    const zero = emptyCityYields();
+    const rows = additionalInPlayLinesOfTown(state, {
+      ...town,
+      total: { ...zero, science: 16 },
+      reading: {
+        ...town.reading,
+        flats: { ...zero, science: 10 },
+        lines: [
+          { ...zero, step: 9, class: 'religion', source: 'Belief on a library', card: payer, building: 'library', science: 3 },
+          { ...zero, step: 8, class: 'buildings', source: 'Library', building: 'library', science: 7 },
+        ],
+        percents: [
+          { yield: 'science', source: 'Belief bonus', card: payer, percent: 100, stage: 'city' },
+          { yield: 'science', source: 'Belief penalty', card: other, percent: -40, stage: 'city' },
+        ],
+      },
+    });
+    expect(rows.map((row) => [row.card, row.paid.science])).toEqual([[payer, 9]]);
+  });
+
+  it('records the part of the army payroll that a card adds', () => {
+    const { state } = game();
+    const city = found(state, 0);
+    createUnit(state, 0, 'warrior', city.col, city.row);
+    const sc = playerById(state, 0)!.statecraft;
+    sc.slots.push({ card: 'theRecklessLevy', sealedUntil: state.turn });
+    bumpRevision(state);
+    recordDeckTally(state);
+    const row = sc.inPlayYieldTallies?.find((entry) => entry.card === 'theRecklessLevy');
+    expect(row?.paid.gold).toBeLessThan(0);
+  });
+
+  it('reads the new score as soon as the lifetime tally records a payment', () => {
+    const { state } = game();
+    const city = found(state, 0);
+    city.buildings.push('theOracle');
+    const faithWeight = explainScore(state, 0).find((entry) => entry.voice === 'faith')!.weight;
+    playerById(state, 0)!.statecraft.inPlayYieldTallies = [{
+      card: 'theOracle', paid: { ...emptyCityYields(), faith: Math.ceil(1 / faithWeight) - 1 },
+    }];
+    bumpRevision(state);
+    const before = readWagerMetric(state, 0, 'score');
+    recordDeckTally(state);
+    const expected = foldScore(explainScore(state, 0));
+    expect(expected).toBeGreaterThan(before);
+    expect(readWagerMetric(state, 0, 'score')).toBe(expected);
+  });
+
+  it('keeps a wonder’s payments after it leaves the city and excludes ordinary buildings', () => {
+    const { state } = game();
+    const city = found(state, 0);
+    city.buildings.push('theOracle', 'library');
+    bumpRevision(state);
+    recordDeckTally(state);
+    const sc = playerById(state, 0)!.statecraft;
+    const oracle = sc.inPlayYieldTallies?.find((row) => row.card === 'theOracle');
+    expect(oracle?.paid.faith).toBeGreaterThan(0);
+    expect(sc.inPlayYieldTallies?.some((row) => row.card === 'library')).toBe(false);
+    const paid = { ...oracle!.paid };
+    city.buildings.splice(city.buildings.indexOf('theOracle'), 1);
+    bumpRevision(state);
+    recordDeckTally(state);
+    expect(oracle!.paid).toEqual(paid);
   });
 
   it('is written from the head of the collectYields phase, and from nowhere else', () => {

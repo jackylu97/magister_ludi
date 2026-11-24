@@ -1,3 +1,6 @@
+import { closeMilestoneAge, milestonePickNeeded, pickMilestone, pickMilestoneError } from './wagerMilestones';
+import type { WagerMark } from './wagerMilestoneData';
+import { collectMilestoneAwards } from './wagers';
 /**
  * The one entry point that changes the game: `applyCommand(state, command)`.
  *
@@ -74,6 +77,7 @@ import {
   payOccasionRiders,
   purchaseTileAt,
   refreshCityDerived,
+  realiseItem,
   settleCardTaken,
   settleProductionWindfall,
   doubledWork,
@@ -193,7 +197,7 @@ import {
   wakeUnit,
 } from './state';
 import { seatPeople } from './leaderData';
-import { bumpEconomy } from './slate';
+import { bumpEconomy, standingYieldRevision } from './slate';
 import { lawReadsTrenches } from './statecraft/evaluator';
 // The Vizier's Hall's law, read where every other non-yield building fact is
 // (`buildingEffects.ts`) so the reducer names no building.
@@ -951,6 +955,8 @@ interface ChooseOrderCommand extends PlayerCommand {
  */
 interface ChooseWagerCommand extends PlayerCommand {
   type: 'chooseWager';
+  mark?: WagerMark;
+  age?: number;
   /** Which of the three, by position in `WagerDeal.dealt`. */
   index: number;
 }
@@ -1328,6 +1334,7 @@ interface HealAdjacentCommand extends PlayerCommand {
 interface PlaceRelicCommand extends PlayerCommand {
   type: 'placeRelic';
   unitId: number;
+  host?: 'cathedral' | 'belief';
 }
 
 /**
@@ -2228,6 +2235,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
     return fail(`Player ${actor.id} has already ended turn ${state.turn}`);
   }
 
+  if (milestonePickNeeded(state, actor.id)) return fail('Choose a wager and a mark before ending the turn.');
   state.turnEnded[actor.id] = true;
   if (!allTurnsEnded(state)) return ok();
 
@@ -3536,6 +3544,12 @@ function applyChooseWager(state: GameState, command: ChooseWagerCommand): Comman
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot stake a wager`);
   }
 
+  if (state.wagerBook?.setup.mode === 'calibrated') {
+    const error = pickMilestoneError(state, actor.id, command.index, command.mark, command.age);
+    if (error) return fail(error);
+    pickMilestone(state, actor.id, command.index, command.mark!);
+    return ok();
+  }
   const problem = chooseWagerError(state, actor.id, command.index);
   if (problem) return fail(problem);
 
@@ -3645,6 +3659,8 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
     effect => effect.kind === 'rule' && effect.rule === 'buildsEverywhere' && effect.empireBuilding,
   )) pruneExtraBuildingQueues(state, actor.id);
   if (orderOpensChairs(previous) || orderOpensChairs(command.cardId)) refitSlots(state, actor, 'reseat');
+  recordScalingOccasion(state, actor.id, 'orderSeated');
+  bumpEconomy(state);
   payMomentGrants(state, actor, outcome.granted);
   return ok();
 }
@@ -4117,10 +4133,10 @@ function applyPlaceRelic(state: GameState, command: PlaceRelicCommand): CommandR
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot place a relic`);
   }
 
-  const problem = placeRelicError(state, actor.id, command.unitId);
+  const problem = placeRelicError(state, actor.id, command.unitId, command.host);
   if (problem) return fail(problem);
 
-  placeRelicAt(state, actor, unitById(state, command.unitId)!);
+  placeRelicAt(state, actor, unitById(state, command.unitId)!, command.host);
   return ok();
 }
 
@@ -4435,7 +4451,8 @@ function applyBuyRoute(state: GameState, command: BuyRouteCommand): CommandResul
   recordScalingOccasion(state, actor.id, 'goldSpent', price);
 
   const gates = getTileAt(state.map, from.col, from.row)!;
-  const unit = createUnit(state, actor.id, type, gates.col, gates.row);
+  const born = realiseItem(state, from, { kind: 'unit', id: type, tile: gates }, { bought: 'gold' });
+  const unit = unitById(state, born.unitId!)!;
   const arrival = arriveOnTile(state, unit, gates);
   // The piece is new, so what its owner can see changed with it — one recompute
   // per order, exactly as `applyStartRoute` does it.
@@ -5135,6 +5152,7 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
   // passes through, and a handler that forgot would be a bead nobody was told
   // about. `endTurn` sets the field itself first, with the boon lines the phase
   // produced; the merge below leaves those alone.
+  const milestoneRevision = state.wagerBook?.setup.mode === 'calibrated' ? standingYieldRevision(state) : undefined;
   const marks = beadMarks(state);
   // **Was the finish line open before this command?** The same before-and-after
   // the bead marks take, one scalar over, and taken here for that field's reason
@@ -5190,6 +5208,14 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
     // If it gains another write, use the default revision until that write is classified.
     bumpRevision(state, command.type === 'setCitizenFocus' ? 'citizenFocus' : undefined);
   } else bumpPiecesOnly(state);
+  // Ordinary movement cannot change a wager reading. Movement that changes
+  // income or claims a reward already expires the standing yield readings.
+  if (milestoneRevision !== undefined && milestoneRevision !== standingYieldRevision(state)) {
+    const awards: BeadAward[] = [];
+    collectMilestoneAwards(state, awards);
+    if (awards.length) (result.beads ??= []).push(...awards);
+  }
+  if (state.wagerBook && state.winnerId !== null) closeMilestoneAge(state);
   return result;
 }
 

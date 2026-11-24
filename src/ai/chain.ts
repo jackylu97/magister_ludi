@@ -215,7 +215,7 @@ import {
   explainCharterKnowledge,
   explainTechTraits,
   expectedGreatPersonWorth,
-  techCostFor,
+  researchPathForecast,
 } from './value';
 import {
   ageBand,
@@ -519,13 +519,12 @@ export function techChain(
   knownRoad?: TechId[],
 ): TechChain {
   const ai = ctx.ai;
-  const { road, beakers: remainingBeakers, delay: researchDelay } = researchRoad(state, player, ctx, goal, knownRoad);
+  const { road, beakers: remainingBeakers, delay: researchDelay, landings } = researchRoad(state, player, ctx, goal, knownRoad);
   const held = road.length === 0;
   // **The whole road, node by node** (batch X1d(b)). A held goal is a road of
   // one that is already walked; anything else is every node `researchExpansion`
   // laid down, in its own depth order, and each of them hands something over.
   const nodes = held ? [goal] : road;
-  const rate = Math.max(1, ctx.scienceRate);
 
   const steps: ChainStep[] = [];
   const giftTerms: ValueTerm[] = [];
@@ -548,21 +547,13 @@ export function techChain(
   // wants. See `unitStepCost` for what it buys.
   const levy = levyReading(ctx);
 
-  let owedSoFar = 0;
   // **The age the road has reached so far** (E1a): the first node that lifts
   // it is the one that hands the empire its luxuries' next tier, and the term
   // is printed on that node and no other — a road that crosses into Æra III at
   // its third node carries one crossing, however many Æra III nodes follow.
   let ageSoFar = ctx.age;
   for (const node of nodes) {
-    // The folded price (Scientific batch S13): a charter technology's premium
-    // and every card that changes a price, as `researchRoad` reads them.
-    if (!held) owedSoFar += techCostFor(ctx, node);
-    // **Where this node lands**: the beakers owed for the road *through* it over
-    // the empire's own science rate. The last node's landing is `researchDelay`
-    // exactly, which is the identity that keeps the whole-road reading a
-    // refinement of the old one rather than a different clock.
-    const landing = held ? 0 : owedSoFar / rate;
+    const landing = held ? 0 : landings.get(node)!;
     const gifts = nodeGifts(ctx, node, levy, folds);
     const why = held
       ? 'the towns have still to raise it'
@@ -849,13 +840,8 @@ export function researchRoad(
   ctx: ValueContext,
   goal: TechId,
   road = researchExpansion(state, player.id, goal),
-): { road: TechId[]; beakers: number; delay: number } {
-  // Each node at the price this empire pays for it (`techCostFor`, the fold of
-  // `explainTechCost`; Scientific batch S13), so a drafted charter
-  // technology's road carries its premium and a card's cut is counted.
-  let beakers = 0;
-  for (const step of road) beakers += techCostFor(ctx, step);
-  return { road, beakers, delay: beakers / Math.max(1, ctx.scienceRate) };
+): { road: TechId[]; beakers: number; delay: number; landings: ReadonlyMap<TechId, number> } {
+  return { road, ...researchPathForecast(ctx, road) };
 }
 
 // --- a node's gifts, once for the sitting -------------------------------------

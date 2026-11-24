@@ -1,3 +1,4 @@
+import { openMilestoneAge, wagerMetricNow } from '../../src/sim/wagerMilestones';
 /**
  * Wonders: one per world, claimed by the first city to finish one, and paid for
  * in gold by everybody who was beaten to it.
@@ -287,10 +288,14 @@ describe('being beaten to a wonder', () => {
     const loser = found(g.state, 1);
     racing(g.state, winner);
     racing(g.state, loser, 140);
+    g.state.wagerBook = { setup: { mode: 'measure' }, ages: [] };
+    openMilestoneAge(g.state, 1);
     const before = playerById(g.state, 1)!.gold;
 
     const done = settleProduction(g.state, winner);
 
+    expect(wagerMetricNow(g.state, 1, 'purchases')).toBe(-Math.floor(140 * REFUND_RATE));
+    expect(wagerMetricNow(g.state, 1, 'faithGold')).toBe(0);
     expect(loser.queue).toEqual([]);
     expect(loser.hammerBasket).toBe(0);
     expect(playerById(g.state, 1)!.gold).toBe(before + Math.floor(140 * REFUND_RATE));
@@ -773,13 +778,13 @@ describe('the Great Wall', () => {
     expect(fullMovement(walker, state)).toBe(base);
   });
 
-  it('raises maximum hit points throughout the owner’s empire', () => {
+  it('does not add the old maximum-hit-point bonus', () => {
     const state = flatState();
     const home = createCity(state, 1, 'Wallstead', 9, 8);
     const other = createCity(state, 1, 'Outpost', 3, 3);
     const base = cityMaxHp(other, other, state);
     raise(state, home, 'greatWall');
-    expect(cityMaxHp(other, other, state)).toBe(base + 25);
+    expect(cityMaxHp(other, other, state)).toBe(base);
   });
 
   it('costs nothing at all in a world where nobody holds it', () => {
@@ -917,7 +922,7 @@ describe('the new combat clauses', () => {
     expect(player.pantheon.pending?.rerolls).toBe(1);
   });
 
-  it('holds the capital’s own borders, and only those', () => {
+  it('does not retain the old Walls of Uruk combat bonus', () => {
     const state = flatState();
     const home = at(state.map, 6, 4);
     const capital = createCity(state, 0, 'Uruk', home.col, home.row);
@@ -935,7 +940,7 @@ describe('the new combat clauses', () => {
       1,
     );
     const held = forecastOf(state, raider.id, inside);
-    expect(held.bonuses.some((line) => line.source.includes('Uruk'))).toBe(true);
+    expect(held.bonuses.some((line) => line.source.includes('Uruk'))).toBe(false);
 
     // …and one standing on ground nobody claimed does not.
     const outside = at(state.map, 1, 1);
@@ -946,7 +951,7 @@ describe('the new combat clauses', () => {
     expect(away.bonuses.some((line) => line.source.includes('Uruk'))).toBe(false);
   });
 
-  it('pays a garrison for standing in the town it defends', () => {
+  it('does not retain the old Terracotta garrison-strength bonus', () => {
     const state = flatState();
     const home = at(state.map, 6, 4);
     const mine = createCity(state, 0, 'Xianyang', home.col, home.row);
@@ -966,7 +971,7 @@ describe('the new combat clauses', () => {
     const siege = forecastOf(state, raider.id, home);
     expect(siege.cityPhase).toBe('garrison');
     expect(siege.defenderUnitId).toBe(garrison.id);
-    expect(siege.bonuses.some((line) => line.source.includes('Terracotta'))).toBe(true);
+    expect(siege.bonuses.some((line) => line.source.includes('Terracotta'))).toBe(false);
     // It is a *defender's* line: the same army attacking out of the town gets
     // nothing from it.
     const sally = forecastOf(state, garrison.id, ring(state.map, home)[0]!);
@@ -975,7 +980,7 @@ describe('the new combat clauses', () => {
 });
 
 describe('great works and wonders', () => {
-  it('pays for past scholars on Academies and doubles their final yield once', () => {
+  it('adds the academy’s own science without multiplying its terrain or Great Library bonus', () => {
     const state = flatState();
     const home = createCity(state, 0, 'Library', 3, 3);
     const tile = at(state.map, 4, 3);
@@ -989,7 +994,7 @@ describe('great works and wonders', () => {
     raise(state, home, 'mausoleum');
     const doubled = yields();
     for (const voice of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
-      expect(doubled[voice]).toBe(withLibrary[voice] * 2);
+      expect(doubled[voice]).toBe(withLibrary[voice] + (voice === 'science' ? before.science : 0));
     }
   });
 });
@@ -1044,15 +1049,17 @@ describe('the new counts', () => {
     expect(home.population).toBe(3);
   });
 
-  it('pays the larger scholar rate for a captured city with a wonder', () => {
+  it('pays Library cities and removes the old captured-city renown bonuses', () => {
     const g = game();
     const home = found(g.state, 0), captured = found(g.state, 0);
     raise(g.state, home, 'libraryOfAshurbanipal');
     captured.captured = true;
     const rate = () => cardRenownLines(g.state, 0).filter((line) => line.card === 'libraryOfAshurbanipal').reduce((sum, line) => sum + line.amount, 0);
-    expect(rate()).toBe(5);
+    expect(rate()).toBe(0);
     raise(g.state, captured, 'pyramids');
-    expect(rate()).toBe(20);
+    expect(rate()).toBe(0);
+    raise(g.state, captured, 'library');
+    expect(explainCardCityYields(g.state, captured).find(line => line.card === 'libraryOfAshurbanipal')?.science).toBe(3);
   });
 });
 
@@ -1203,7 +1210,7 @@ describe('a rite lasts longer under the observatory', () => {
 
     raise(g.state, city, 'chichenItza');
     const second = performRiteAt(g.state, player, city, 'omenReading');
-    expect(second.expiresTurn - g.state.turn).toBe(Math.floor((bare * 150) / 100));
+    expect(second.expiresTurn - g.state.turn).toBe(bare * 2);
     // Still an absolute turn nobody ticks: losing the wonder cannot shorten a
     // blessing already stamped.
     const stamped = second.expiresTurn;
@@ -1459,31 +1466,20 @@ describe('the lighthouse’s embarked movement', () => {
  * words the row uses — the shapes themselves are pinned where they live.
  */
 describe('the building rows of batch E4a', () => {
-  it('the Terracotta Army stamps the soldiers raised under it, and nobody else’s', () => {
-    const g = game(4111);
-    const home = found(g.state, 0);
-    const other = createCity(g.state, 0, 'Elsewhere', home.col + 3, home.row);
-    home.buildings.push('terracottaArmy');
-    claimWonder(g.state, 'terracottaArmy', home);
-    bumpRevision(g.state);
-
-    // Raised where the stones stand: a veteran, for the rest of its life.
-    const veteran = realiseItem(g.state, home, {
-      kind: 'unit',
-      id: 'warrior',
-      tile: at(g.state.map, home.col, home.row),
-    });
-    const born = g.state.units.find((u) => u.id === veteran.unitId)!;
-    expect(born.stamp?.strength).toBe(2);
-
-    // Raised anywhere else: an ordinary soldier. The scope is the wonder naming
-    // itself, which is the same sentence its yield clauses say.
-    const plain = realiseItem(g.state, other, {
-      kind: 'unit',
-      id: 'warrior',
-      tile: at(g.state.map, other.col, other.row),
-    });
-    expect(g.state.units.find((u) => u.id === plain.unitId)!.stamp).toBeUndefined();
+  it('the Terracotta Army copies units created in its city without copying the copy', () => {
+    const state = flatState();
+    const home = createCity(state, 0, 'Army', 3, 3);
+    const other = createCity(state, 0, 'Elsewhere', 8, 3);
+    raise(state, home, 'terracottaArmy');
+    const before = state.units.length;
+    const result = realiseItem(state, home, { kind: 'unit', id: 'warrior', tile: at(state.map, 3, 3) });
+    const born = state.units.filter(unit => unit.id >= result.unitId!);
+    expect(state.units.length - before).toBe(2);
+    expect(born.every(unit => unit.type === 'warrior')).toBe(true);
+    expect(born.filter(unit => unit.freeUpkeep)).toHaveLength(1);
+    expect(born.every(unit => unit.stamp === undefined)).toBe(true);
+    realiseItem(state, other, { kind: 'unit', id: 'warrior', tile: at(state.map, 8, 3) });
+    expect(state.units.length - before).toBe(3);
   });
 
   it('Notre-Dame counts a Cathedral as a faith building', () => {

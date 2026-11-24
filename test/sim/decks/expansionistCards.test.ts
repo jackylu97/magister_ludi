@@ -224,18 +224,17 @@ describe('the Expansionist batch E0: towns', () => {
     expect(food()).toBe(0);
   });
 
-  it('The Megalopolis pays a town of ten or more a science and a production for each citizen', () => {
+  it('The Megalopolis pays two science and production per citizen above ten', () => {
     const state = bareState();
     const city = foundCityAt(state, 0, at(state, 5, 5));
     slot(state, 0, 'theMegalopolis');
     const paid = () => foldCardYields(explainCardCityYields(state, city).filter((line) => line.card === 'theMegalopolis'));
-    city.population = 9;
-    bumpRevision(state);
-    expect(paid().science).toBe(0);
-    city.population = 12;
-    bumpRevision(state);
-    expect(paid().science).toBe(12);
-    expect(paid().production).toBe(12);
+    for (const [population, amount] of [[9, 0], [10, 0], [11, 2], [12, 4]] as const) {
+      city.population = population;
+      bumpRevision(state);
+      expect(paid().science).toBe(amount);
+      expect(paid().production).toBe(amount);
+    }
   });
 
   it('The Pyramid Builders speeds wonders in the capital, and nowhere else', () => {

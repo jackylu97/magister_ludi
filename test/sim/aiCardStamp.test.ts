@@ -50,7 +50,7 @@ import {
   isCharter,
   orderDef,
 } from '../../src/sim/statecraftData';
-import { cardsToPrice, effectsOf, footprintOf, meterAuditPosition, shapeOf, stampOfTheSim } from './aiCardStampHelpers';
+import { amplifierAuditPosition, cardsToPrice, effectsOf, footprintOf, meterAuditPosition, shapeOf, stampOfTheSim } from './aiCardStampHelpers';
 import { createGame } from './newGameHelpers';
 
 /** Six seats on the duel board, to the turn the decks have dealt a few hands. */
@@ -82,6 +82,22 @@ function seats(state: GameState): Player[] {
 }
 
 describe('the bot prices a card by its stamp', () => {
+  it('measures the Personal Union with a seated shared Order that pays yields', () => {
+    const state = amplifierAuditPosition();
+    const player = state.players[0]!;
+    const ctx = valueContext(state, player);
+    const id = 'thePersonalUnion';
+    expect(cardsToPrice(state, player)).toContain(id);
+    const effect = effectsOf(id).find((entry) => entry.kind === 'cardTypeAmplifier')!;
+    expect(stampSight(effect)).toBe('books');
+    expect(footprintOf(ctx, id, effect)).toBeGreaterThan(0);
+    const stamp = explainCardStamp(ctx, id);
+    const sim = stampOfTheSim(state, player.id, id, ctx);
+    expect(stamp).not.toBeNull();
+    expect(sim).not.toBeNull();
+    expect(stamp!.total).toBeCloseTo(sim!.worth, 9);
+  });
+
   it.each([
     ['theGoodYears', 'happinessTierBoost'],
   ] as const)('measures %s in the controlled meter position', (id, shape) => {

@@ -21,7 +21,8 @@
           "count": "buildingsSupplying",
           "voice": "faith"
         }
-      ]
+      ],
+      "retired": true
     },
     "greatArchive": {
       "name": "Great Archive",
@@ -40,7 +41,7 @@
           "kind": "pays",
           "where": "city",
           "basis": "count",
-          "count": "charterTechsKnown",
+          "count": "chartersDrafted",
           "amount": 5,
           "to": "science",
           "scope": {
@@ -758,12 +759,16 @@
       "sciencePerPop": 0,
       "effects": [
         {
-          "kind": "unitStat",
-          "stat": "charges",
-          "amount": 1,
-          "class": {
-            "type": "worker"
-          }
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "pyramids"
+          },
+          "count": "wonders"
         },
         {
           "kind": "productionBonus",
@@ -833,32 +838,38 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "cityHp": 50,
       "authorityCapacity": 2,
       "effects": [
         {
-          "kind": "cityStat",
-          "stat": "defense",
-          "amount": 10,
+          "kind": "pays",
+          "where": "city",
           "scope": {
             "test": "hasBuilding",
-            "building": "wallsOfUruk"
-          }
+            "building": "palisade"
+          },
+          "production": 2
         },
         {
-          "kind": "combatLine",
-          "amount": 2,
-          "when": {
-            "test": "ownTerritory"
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "palisade"
           },
-          "side": "both"
+          "culture": 2
         }
       ],
       "renown": {
         "family": "general",
         "onComplete": 10,
         "perTurn": 2
-      }
+      },
+      "onComplete": [
+        {
+          "grant": "building",
+          "building": "palisade"
+        }
+      ]
     },
     "greatZiggurat": {
       "name": "The Great Ziggurat",
@@ -1143,27 +1154,21 @@
       "wonder": true,
       "size": "wonder",
       "food": 0,
-      "production": 2,
+      "production": 0,
       "gold": 0,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "authorityCapacity": 2,
       "effects": [
         {
-          "kind": "combatLine",
-          "amount": 6,
-          "when": {
-            "test": "inCity"
-          },
-          "side": "defend"
-        },
-        {
-          "kind": "unitStamp",
-          "strength": 2,
-          "scope": {
+          "kind": "windfallRider",
+          "occasion": "unitCompletion",
+          "inTown": {
             "test": "hasBuilding",
             "building": "terracottaArmy"
+          },
+          "grant": {
+            "unit": "same"
           }
         }
       ],
@@ -1179,29 +1184,27 @@
       "wonder": true,
       "size": "wonder",
       "food": 0,
-      "production": 2,
+      "production": 0,
       "gold": 0,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
       "effects": [
         {
-          "kind": "cityStat",
-          "stat": "defense",
-          "amount": 5,
+          "kind": "pays",
+          "where": "city",
           "scope": {
-            "test": "all",
-            "of": []
-          }
+            "test": "garrisoned"
+          },
+          "production": 3
         },
         {
-          "kind": "cityStat",
-          "stat": "hp",
-          "amount": 25,
+          "kind": "pays",
+          "where": "city",
           "scope": {
-            "test": "all",
-            "of": []
-          }
+            "test": "garrisoned"
+          },
+          "culture": 3
         },
         {
           "kind": "unitStat",
@@ -1271,8 +1274,7 @@
           "on": {
             "test": "greatWork"
           },
-          "wholePercent": 100,
-          "appliedLast": true
+          "percent": 100
         }
       ],
       "renown": {
@@ -1338,7 +1340,7 @@
         {
           "kind": "effectAmplifier",
           "target": "riteDuration",
-          "percent": 50
+          "percent": 100
         },
         {
           "kind": "happiness",
@@ -1620,7 +1622,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "gold": 1,
+          "gold": 2,
           "perAdjacentMountain": true,
           "on": {
             "test": "adjacentMountain"
@@ -3939,7 +3941,9 @@
           "scope": {
             "test": "hasBuilding",
             "building": "pyramidOfTheSun"
-          }
+          },
+          "sciencePerCitizen": 5,
+          "renownPerCitizen": 3
         },
         {
           "kind": "pays",
@@ -3976,9 +3980,9 @@
           "extra": 1
         },
         {
-          "kind": "rulePercent",
-          "rule": "greatPersonCost",
-          "percent": -10
+          "kind": "cityRenownPercent",
+          "where": "empire",
+          "percent": 15
         }
       ],
       "renown": {
@@ -4029,34 +4033,24 @@
       "food": 0,
       "production": 0,
       "gold": 0,
-      "science": 2,
+      "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
       "effects": [
         {
-          "kind": "renown",
-          "amount": 5,
-          "per": "city",
-          "family": "scholar",
+          "kind": "pays",
+          "where": "city",
           "scope": {
-            "test": "captured"
-          }
+            "test": "hasBuilding",
+            "building": "library"
+          },
+          "science": 3
         },
         {
-          "kind": "renown",
-          "amount": 15,
-          "per": "city",
-          "family": "scholar",
-          "scope": {
-            "test": "all",
-            "of": [
-              {
-                "test": "captured"
-              },
-              {
-                "test": "hasWonder"
-              }
-            ]
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "completeResearch": true
           }
         }
       ],

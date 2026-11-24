@@ -156,7 +156,7 @@ describe('the counter', () => {
     expect(counter!.take).toEqual({ luxuries: ['silk'] });
     expect(counter!.give.gold ?? 0).toBeGreaterThan(0);
     // **Over even, not merely level**: the baseline plus the markup.
-    expect(counter!.give.gold).toBe(Math.ceil(120 * 1.1));
+    expect(counter!.give.gold).toBe(Math.ceil(AI.war.luxuryGoldBaseline * AI.war.luxuryDuplicateShare * 1.1));
     // And the counter is a paper the rules would take from the asker.
     expect(dealSideError(state, 0, 1, counter!.give, false)).toBeNull();
     // Its appraisal is the countered paper read from the bot's own side, and it
@@ -445,24 +445,15 @@ function sendItBack(game: Game): void {
 }
 
 describe('the paper remembers', () => {
-  it('does not write the same swap again the turn after it was sent back', () => {
-    // The rival holds one silk and two spices: the silk swap is the one the
-    // table's order puts first, and the spices swap is the one still open.
+  it('does not repeat a refused offer without an added payment', () => {
     const game = swapBench({ silk: 1, spices: 2 });
     const first = swapPaper(game)!;
-    expect(first.command.type).toBe('proposeDeal');
-    expect(halves(first)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['silk'] } });
+    expect(halves(first)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['spices'] } });
     expect(dispatch(game, first.command).ok).toBe(true);
     sendItBack(game);
-
     const second = swapPaper(game)!;
-    // Not the same paper — and not a paper about that seam at all, because coin
-    // does not buy a hard clause: the rival's only silk is refused by a rule
-    // rather than by a price (`asksOurLastCopy`, read from the other side).
-    expect(halves(second)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['spices'] } });
-    const refused = second.candidates.find((row) => row.rejected !== undefined)!;
-    expect(refused.rejected).toContain('sent back on turn');
-    expect(refused.rejected).toContain('which coin does not buy');
+    expect(halves(second).take).toEqual(halves(first).take);
+    expect(halves(second).give.gold).toBeGreaterThan(0);
   });
 
   it('answers its own refusal once, with coin, and says so in the paper’s own terms', () => {
@@ -480,17 +471,17 @@ describe('the paper remembers', () => {
     // filled on this seat's side and capped by `dealSideError`.
     expect(halves(second).take).toEqual({ luxuries: ['silk'] });
     expect(halves(second).give.luxuries).toEqual(['wine']);
-    expect(halves(second).give.gold).toBe(Math.ceil(120 * 1.1) - 120);
+    expect(halves(second).give.gold).toBe(Math.ceil(AI.war.luxuryGoldBaseline * AI.war.luxuryDuplicateShare * AI.war.counterMarkup));
     const chosen = second.candidates.find((row) => row.chosen)!;
     expect(
       chosen.terms.some((term) =>
-        term.label.includes(`the straight swap was refused on turn ${turn}; sweetened by 12 gold`),
+        term.label.includes(`the straight swap was refused on turn ${turn}; sweetened by 6 gold`),
       ),
     ).toBe(true);
     // And the score is still the fold of its terms — the memory's line is worth
     // nothing, because the coin it names is priced two lines above it.
     expect(foldTerms(chosen.terms)).toBe(chosen.score);
-    expect(second.summary).toContain('sweetened by 12 gold');
+    expect(second.summary).toContain('sweetened by 6 gold');
 
     // The sweetened paper sent back closes the pair: both papers this seat knows
     // how to write have been answered.
@@ -581,9 +572,9 @@ describe('the paper remembers', () => {
 
 describe('a seat under The Forbidden Silks (batch DT7)', () => {
   it('writes no swap, because a swap lends a luxury', () => {
-    const game = swapBench({ silk: 1 });
+    const game = swapBench({ silk: 2 });
     expect(swapPaper(game)?.command.type).toBe('proposeDeal');
-    const fresh = swapBench({ silk: 1 });
+    const fresh = swapBench({ silk: 2 });
     playerById(fresh.state, 0)!.statecraft.doctrines.push('theForbiddenSilks' as never);
     bumpRevision(fresh.state);
     const paper = swapPaper(fresh);
@@ -624,7 +615,7 @@ describe('a seat under The Forbidden Silks (batch DT7)', () => {
  */
 function signedPaper(game: Game): BotDecision | null {
   const state = game.state;
-  return diplomacyDecision(state, playerById(state, 0)!, ctxFor(state, 0), true);
+  return diplomacyDecision(state, playerById(state, 0)!, ctxFor(state, 0));
 }
 
 /**
@@ -673,7 +664,7 @@ describe('a bot puts a paper to a bot only when the receiver\'s own reading sign
     const paper = signedPaper(game)!;
     expect(halves(paper)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['spices'] } });
     const refused = paper.candidates.find((row) => row.rejected !== undefined)!;
-    expect(refused.rejected).toContain('would send it back: it asks for the only silk they hold');
+    expect(refused.rejected).toContain('without a spare copy');
   });
 
   it('and the receiver signs what was written', () => {
@@ -691,10 +682,10 @@ describe('a bot puts a paper to a bot only when the receiver\'s own reading sign
     expect(paper === null || paper.command.type !== 'proposeDeal').toBe(true);
   });
 
-  it('still asks a person the plain swap', () => {
+  it('protects a human recipient’s last copy too', () => {
     const game = swapBench({ silk: 1, spices: 2 }, true);
     const paper = signedPaper(game)!;
-    expect(halves(paper)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['silk'] } });
+    expect(halves(paper)).toEqual({ give: { luxuries: ['wine'] }, take: { luxuries: ['spices'] } });
   });
 
   /**

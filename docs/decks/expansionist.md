@@ -2,39 +2,39 @@
 
 Expansionist develops land, founds towns and builds public works. A charter opens its improvements as soon as you draft it. Each remains available throughout the game. A boon pays when drafted. A commission pays when you meet its goal while the card holds a chair.
 
-The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons appear in Tiers I and II. Each appears once in the tables below, under its first tier.
+The Gathering Grounds and The Road Home appear in Tiers 0 and I. Levy of the Land and The Beacons appear in Tiers I and II. Each appears once in the tables below, under its first tier.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 11 | 0 | 0 | 11 | none |
-| Tier I | 18 | 0 | 0 | 18 | 4 built |
+| Tier I | 17 | 0 | 0 | 17 | 4 built |
 | Tier II | 22 | 0 | 0 | 22 | 5 built |
-| Tier III | 20 | 0 | 0 | 20 | 6 built |
-| Tier IV | 11 | 0 | 0 | 11 | 6 built |
-| All | 82 | 0 | 0 | 82 | 21 built |
-| Shared | 22 | 0 | 0 | 22 |  |
+| Tier III | 21 | 0 | 0 | 21 | 6 built |
+| Tier IV | 8 | 0 | 0 | 8 | 6 built |
+| All | 79 | 0 | 0 | 79 | 21 built |
+| Shared | 23 | 0 | 0 | 23 |  |
 
 | Tier | Military | Economic | Civic | Wildcard |
 |---|---|---|---|---|
 | Tier 0 | 1 | 7 | 3 | 0 |
-| Tier I | 1 | 13 | 3 | 1 |
+| Tier I | 1 | 12 | 3 | 1 |
 | Tier II | 1 | 10 | 9 | 2 |
-| Tier III | 1 | 11 | 7 | 1 |
-| Tier IV | 1 | 5 | 4 | 1 |
-| All | 5 | 46 | 26 | 5 |
-| Shared | 3 | 8 | 11 | 0 |
+| Tier III | 1 | 12 | 7 | 1 |
+| Tier IV | 0 | 3 | 4 | 1 |
+| All | 4 | 44 | 26 | 5 |
+| Shared | 3 | 8 | 12 | 0 |
 
 ## Tier 0
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
+| **The Road Home** | common | implemented | Each town you found is joined to your nearest town by road. | Economic |
 | **Smallholdings** | common | implemented | Worked farms and pastures gain +1 food and +1 gold. | Economic |
 | **Granary Levies** | common | implemented | When a city grows in population, gain 15 production | Economic |
 | **The Patient Harvest** | rare | implemented | Towns keep 30% of their food when they grow. | Economic |
 | **Sweet Water** | common | implemented | Tiles beside a river or lake gain +1 food. | Economic |
 | **The Seed Grain** | uncommon | implemented | Towns you found start with one extra citizen. | Economic |
 | **The Rope Stretchers** | common | implemented | Each town gains +1 science for every three improved tiles in its borders. | Civic |
-| **The Road Home** | common | implemented | Each town you found is joined to your nearest town by road. | Economic |
 | **The Woodland Bands** | common | implemented | Your units ignore the movement cost of forest, jungle and hills. | Military |
 | **The Founding Furrow** | common | implemented | Founding a town grants culture equal to five times the number of towns you hold. | Civic |
 | **The Horrea** | uncommon | implemented | Each Granary you hold gives +1 authority. | Civic |
@@ -56,7 +56,6 @@ The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **Levy of the Land** | common | implemented | A town may spend a citizen for production equal to the food it took to grow. Once every five turns. | Economic |
-| **Tinkers' Guild** | common | implemented | Workers gain +1 charge. | Economic |
 | **The Local Census** | common | implemented | A town working four improved tiles costs 1 less authority. | Civic |
 | **Dark Earth** | uncommon | implemented | Farms that have stood 20 turns gain +2 food. | Economic |
 | **The Three Sisters** | common | implemented | Farms beside a plantation or pasture gain +2 food and +2 production. | Economic |
@@ -130,12 +129,13 @@ The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
+| **The Megalopolis** | rare | implemented | Each town gains +2 science and +2 production for each citizen above ten. | Civic |
+| **The Water Boards** | uncommon | implemented | Your public works yield twice as much. | Economic |
 | **Seasonal Levies** | common | implemented | After a town levies a citizen, it gains +60% food for ten turns. | Economic |
 | **The Polders** | uncommon | implemented | Workers may build a polder on a coast tile beside three of your land tiles. A polder is a farm. | Economic |
 | **A Court of Engineers** | uncommon | implemented | Gain +50% renown, but great-person offers contain only great engineers. | Civic |
 | **The Age of Improvement** | rare | implemented | The bonuses your Orders give to improved tiles are doubled. | Wildcard |
 | **Old Workings** | common | implemented | Mines, quarries and lumber mills gain +3 production. | Economic |
-| **The Megalopolis** | rare | implemented | Towns of ten or more citizens gain +1 science and +1 production for each citizen. | Civic |
 | **The Freedom of the City** | common | implemented | The first time a town reaches 15 citizens, it gains production equal to forty times its population. | Economic |
 | **Plenty** | common | implemented | When a town grows, it gains production equal to five times its new population. | Economic |
 | **The Mill Wheels** | common | implemented | Towns with a Watermill gain +15% production. | Economic |
@@ -168,16 +168,13 @@ The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
+| **The Mother City** | rare | implemented | Your capital gains +1 production and +1 culture for each citizen in the towns joined to it by road. | Civic |
 | **The Keeps** | rare | implemented | Workers may build one Keep in each town. A Keep gains the yields of every tile around it. | Economic |
 | **The Corvée** | uncommon | implemented | Your towns may levy a citizen toward the Magnum Opus. | Economic |
 | **The Philosophers' Peaks** | common | implemented | Each town gains +4 science for every mountain in its borders, at most +12. | Civic |
 | **The Measure of the Land** | uncommon | implemented | Every town gains +1 science for every 25 hexes your empire owns, at most +10. | Civic |
-| **The Mother City** | rare | implemented | Your capital gains +5% production and +5% culture for each town you have founded this game. | Civic |
-| **The Great Migration** | rare | implemented | Every ten turns, each foreign town near your border loses a citizen to your nearest happier town. | Economic |
 | **The Domesday Survey** | uncommon | implemented | Goal: own 120 hexes and work 40 improved tiles. Reward: each town gains +1 science for each improved tile it works. | Wildcard |
 | **The Imperial Highways** | uncommon | implemented | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. | Economic |
-| **The Theodosian Walls** | common | implemented | Your towns gain +1 defence for every two citizens. | Military |
-| **The Water Boards** | uncommon | implemented | Your public works yield twice as much. | Economic |
 | **The Thousand Villages** | common | implemented | +1 culture for every two citizens in your empire. | Civic |
 
 ## Shared with another deck
@@ -197,6 +194,7 @@ The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons
 | **Market Gardens** | common | Commerce | II | implemented | Hexes with a road gain +1 gold. | Economic |
 | **The Provincial Fair** | uncommon | Commerce | II | implemented | Towns with a Market gain +2 gold on plantations, camps and pastures. | Economic |
 | **Garden Provinces** | common | Magisterial | II | implemented | Connected cities with a Monument gain +3 food and +3 culture. | Civic |
+| **The Missi Dominici** | uncommon | Dominion | II | implemented | Each of your towns gains +1 science and +1 culture for each point of spare authority. | Civic |
 | **The Hillforts** | uncommon | Dominion | II | implemented | Workers may build one hillfort in each town, on a hill: +2 production, and +1 production more for each farm, pasture or camp beside it. A unit on it gains +5 strength when it defends. | Military |
 | **The Sculpted Landscape** | uncommon | Magisterial | III | implemented | Farms beside a great-person work gain +2 food and +2 culture. | Civic |
 | **The Grain Merchants** | uncommon | Commerce | II | implemented | Towns gain gold equal to 20% of their food. | Economic |
@@ -208,6 +206,8 @@ The Gathering Grounds appears in Tiers 0 and I. Levy of the Land and The Beacons
 | **The Hearth Fire** | uncommon | Devotion | I | implemented | Towns you found start with a Shrine. | Economic |
 
 ## Retired rows
+
+The November 24 review retired The Tinkers' Guild, The Great Migration and The Theodosian Walls.
 
 The November pass retired The Wild Orchards, The Burhs, The Gleaners, The Wide Country, The Old Songs, The Wild Marches, The Tended Country, The Long Tending and The Garden of the World. It also retired Arcadia, The Wildwood Compact and The Garden Peoples.
 

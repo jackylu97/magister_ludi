@@ -3938,7 +3938,7 @@ describe('the mid-turn refresh register', () => {
       }
     }
     expect(callers).toEqual([
-      'cities.ts: assignCitizens(state, city, cause);',
+      'cities.ts: return assignCitizens(state, city, cause);',
       'yields/empire.ts: assignCitizens(state, city);',
     ]);
     // And by name, so that two calls in the wrong two places cannot pass:

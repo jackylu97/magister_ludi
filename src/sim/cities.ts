@@ -1,3 +1,4 @@
+import { wagerIncome, addWagerCount } from './wagerMilestoneData';
 /**
  * Everything a city *is*: territory, citizens, growth, production and borders.
  *
@@ -88,7 +89,7 @@ import { type LentCopies, lentCopiesAwayBy, lentCopiesToPlayer } from './deals';
 import { discoveryKindTech } from './discoveryData';
 // A data leaf: the table of great people and nothing else. Rally to the
 // Standard (Dominion batch D12) asks it which pieces are great generals.
-import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
+import { type GreatPersonId, greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import type { Hex } from './hex';
 import {
   type GameMap,
@@ -475,7 +476,7 @@ export interface ResourceHolding {
  * the third: a city still cannot be founded on water, so a sea seam is always
  * held by clause **2**, the improvement standing on it.
  */
-function openedResource(
+export function openedResource(
   state: GameState,
   tile: Tile,
   playerId: number,
@@ -2580,7 +2581,7 @@ export function workableSeats(state: GameState, city: City): number {
  * one rung finer: the cap stops at the swap that would put the town into
  * deficit rather than abandoning the whole arrangement.
  */
-export function assignCitizens(state: GameState, city: City, cause?: 'citizenFocus'): void {
+export function assignCitizens(state: GameState, city: City, cause?: 'citizenFocus'): boolean {
   // **Announced only when the citizens actually moved** (batch M3, `slate.ts`).
   //
   // A worked hex is a field an empire-wide reading can fold — a card paying per
@@ -2601,6 +2602,7 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
   const plainCells = city.workedTiles;
   const lean = citizenLean(city);
   let weights = balanced;
+  let rejectedForFood = false;
   if (lean) {
     // The focused sheet, tried and kept only if it feeds the town. The balanced
     // assignment is already written, so `foldCity` below reads the *focused*
@@ -2615,6 +2617,7 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
     if (needsFoodCheck && foldCity(state, city).food < foodUpkeep(city)) {
       city.workedTiles = fallback;
       weights = balanced;
+      rejectedForFood = true;
     }
   }
   // **A town short of food swaps toward food** (2026-11-22). Asked only of the
@@ -2639,6 +2642,7 @@ export function assignCitizens(state: GameState, city: City, cause?: 'citizenFoc
     if (cause === 'citizenFocus') bumpCitizenFocus(state);
     else bumpEconomy(state);
   }
+  return rejectedForFood;
 }
 
 /** writeAssignment stores a new sorted list, so equal coordinates mean the same citizens stayed in place. */
@@ -3241,10 +3245,10 @@ function chooseCitizens(
  * told. What is left here is the one thing a counter cannot do — a citizen who
  * should be standing somewhere else, standing somewhere else.
  *
- * One call, one city, no allocation.
+ * Returns true if the city rejected its focused assignment for lack of food.
  */
-export function refreshCityDerived(state: GameState, city: City, cause?: 'citizenFocus'): void {
-  assignCitizens(state, city, cause);
+export function refreshCityDerived(state: GameState, city: City, cause?: 'citizenFocus'): boolean {
+  return assignCitizens(state, city, cause);
 }
 
 /**
@@ -4793,7 +4797,7 @@ function settleSizeRecord(state: GameState, city: City, before: number): void {
   const player = playerById(state, city.ownerId);
   if (!player || player.barbarian === true) return;
   for (let size = record + 1; size <= city.population; size++) {
-    recordScalingOccasion(state, player.id, 'sizeRecord');
+    recordScalingOccasion(state, player.id, 'sizeRecord', 1, { cityId: city.id, population: size });
     const payout = windfallPayout(state, player.id, 'sizeRecord', 0, 0, { population: size });
     if (windfallPayoutIsEmpty(payout)) continue;
     payWindfallGrants(state, player, payout, { col: city.col, row: city.row });
@@ -5577,12 +5581,12 @@ function payProject(state: GameState, playerId: number, id: ProjectId): void {
   const extra = cardProjectPays(state, playerId, id);
   const gold = (pays.gold ?? 0) + (extra.gold ?? 0);
   const science = (pays.science ?? 0) + (extra.science ?? 0);
-  player.gold += gold;
-  player.sciencePool += science;
-  player.faithPool += (pays.faith ?? 0) + (extra.faith ?? 0);
+  player.gold += wagerIncome(state, player.id, 'faithGold', gold);
+  player.sciencePool += wagerIncome(state, player.id, 'scienceCulture', science);
+  player.faithPool += wagerIncome(state, player.id, 'faithGold', (pays.faith ?? 0) + (extra.faith ?? 0));
   const culture = (pays.culture ?? 0) + (extra.culture ?? 0);
   if (culture !== 0) {
-    player.culturePool += culture;
+    player.culturePool += wagerIncome(state, player.id, 'scienceCulture', culture);
     // The banks are a line of the meters too — see `collectYields` (batch M3).
     bumpEconomy(state);
     // The basket, settled the instant it fills — see the docblock. A draft dealt
@@ -5813,6 +5817,10 @@ export type CompletedItem =
  * discipline, read from the other end).
  */
 interface RealiseOptions {
+  /** Preserve the identity of a recruited or copied great person. */
+  person?: GreatPersonId;
+  /** A copied unit may pay other rewards, but cannot copy itself again. */
+  unitCopy?: true;
   /** A queue completion counts toward Orders that watch finished buildings. */
   fromProduction?: true;
   /**
@@ -5973,6 +5981,7 @@ export function realiseItem(
     // stones arrive, which is what a completion, a grant and a relic all are.
     const buildingCost = buildingProductionCost(item.id, state, city.ownerId);
     const added = addBuilding(state, city, item.id, options.bought);
+    if (added && (options.fromProduction || options.bought !== undefined)) addWagerCount(state, city.ownerId, 'buildings', 1);
     // A purchase finishes the building as well. Free grants enter through this
     // routine too, so use the source to distinguish them from work in the queue.
     if (
@@ -6082,15 +6091,14 @@ export function realiseItem(
   }
   // The caller's own stamp travels *into* the constructor rather than being
   // written on afterwards, because the health a piece is born at is read off the
-  // stamp — see `createUnit`, which writes `Unit.stamp` at the birth. `person` is
-  // undefined here: nothing calls a great person through production.
+  // stamp. A named person keeps that identity when recruited or copied.
   const unit = createUnit(
     state,
     city.ownerId,
     item.id,
     item.tile.col,
     item.tile.row,
-    undefined,
+    options.person,
     options.stamp,
     options.bought,
     options.levied,
@@ -6237,6 +6245,8 @@ export function realiseItem(
     // so Rites of Passage pays for a soldier and not for a settler. No live
     // completion rider carried a class before this, so nothing else moves.
     actor: item.id,
+    actorPerson: unit.person,
+    unitCopy: options.unitCopy,
   });
   settleRanksEarned(state, unit, ranksAtBirth, { insideCompletion: true });
   return { unitId: unit.id };
@@ -6469,9 +6479,8 @@ function consecrateBuilding(
  * Every arm goes through the seam that already owns its bucket, and none of them
  * grows a second one:
  *
- *   · a **unit** through `createUnit` + `spawnTileFor`, the same pair
- *     `realiseItem` uses for a built one, so the spawn convention has one
- *     implementation and the piece can act on the turn it arrived. A town with
+ *   · a unit through `spawnTileFor` and `realiseItem`, so city completion
+ *     riders also see gifts and the unit can act on the turn it arrives. A town with
  *     nowhere to put it gets nothing rather than a piece standing in the sea.
  *   · a **technology** through `settleResearchWindfall`, by covering whatever is
  *     left of the current research — so the register's refresh fires and every
@@ -6529,13 +6538,9 @@ export function payGrants(
         reports.push({ grant: 'unit', name: unitDef(type).name, done: false });
         continue;
       }
-      // Named as raised in this town, as `realiseItem` names it (batch DT14, S16):
-      // a granted piece is "created in" the town even when it stands beside it.
-      const born = createUnit(state, player.id, type, tile.col, tile.row, undefined, undefined, undefined, undefined, city);
-      // A wonder's gift, so nobody paid for it — the Statue of Zeus' swordsman
-      // and Hagia Sophia's are the two today. See `Unit.freeUpkeep`, entry 3.
-      born.freeUpkeep = true;
-      reports.push({ grant: 'unit', name: unitDef(type).name, done: true, unitId: born.id });
+      // Gifts use the same city-unit path as production, purchases and levies.
+      const born = realiseItem(state, city, { kind: 'unit', id: type, tile }, { free: true });
+      reports.push({ grant: 'unit', name: unitDef(type).name, done: true, unitId: born.unitId });
       continue;
     }
     if (grant.grant === 'tech') {
@@ -6840,6 +6845,7 @@ function refundBeatenWonders(
     const player = playerById(state, city.ownerId);
     if (player) {
       player.gold += gold;
+      addWagerCount(state, player.id, 'purchases', -gold);
       // The banks are a line of the meters too — see `collectYields` (batch M3).
       bumpEconomy(state);
     }
@@ -7113,7 +7119,7 @@ function payCompletionRiders(
   // **The town's size travels with the occasion** (Expansionist batch E2, The
   // Topping Out): this routine holds the town, and a rider scaled by its
   // population reads it here. A caller that names a population keeps it.
-  const told: WindfallOccasionFacts = { population: city.population, hex: at, ...facts };
+  const told: WindfallOccasionFacts = { population: city.population, townId: city.id, hex: at, ...facts };
   for (const occasion of ['completion', kind === 'unit' ? 'unitCompletion' : 'buildingCompletion'] as const) {
     const payout = windfallPayout(state, player.id, occasion, 0, 0, told);
     // **Anything at all on the payout is paid**, not the yields alone: a rider

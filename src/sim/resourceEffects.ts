@@ -903,6 +903,7 @@ export function resourceTileLines(state: GameState, playerId: number): TileLine[
     // yield bag in this module and this is not a second one.
     const paid = lineOf(id, effect, improvementDef(effect.improvement).name.toLowerCase(), copies, 1, loan);
     const resolved: TileLine = {
+      resource: id,
       source: paid.source,
       on: { test: 'improvement', improvement: effect.improvement },
       food: paid.food,

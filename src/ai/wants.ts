@@ -205,6 +205,7 @@ import {
   expectedHandBags,
   nextDraftCost,
   spendableGold,
+  buildingRelicOffer,
 } from '../sim/statecraft';
 import { type OrderId } from '../sim/statecraftData';
 import { techDef } from '../sim/techData';
@@ -218,7 +219,6 @@ import {
 } from '../sim/unitData';
 import { buildingUpkeepFor } from '../sim/upkeep';
 import { round } from './decision';
-import { citizenKeepTerm } from './citizen';
 // **The trade standing, and what a route is worth** (batch 8, re-aimed by R1).
 // A runtime import and not a cycle: `value.ts` reads `RouteOutlook` type-only,
 // so nothing here is evaluated before the module that answers it.
@@ -686,23 +686,8 @@ export function routeWant(state: GameState, player: Player, ctx: ValueContext): 
  *     a very different hex from a three-copy one. The whole shape is argued at
  *     `newResourceTerms`.
  *
- * **The citizen who would stand there** (batch X5b, the ruling on the flags
- * board, item (ggg)). A hex bought is a hex meant to be *worked*, and the
- * ground it pays was the whole of what this arm charged for it: the citizen
- * standing on it asks the empire for its keep, and in an empire whose happiness
- * price is at the band's ceiling that keep is the most expensive thing about a
- * fourth-ring hill. So where a citizen of this town would work the hex, the
- * marginal demand goes on the same list, negative, through the one helper the
- * focus arm and `explainCitizen` fold too (`citizenKeepTerm`, `citizen.ts`) — read at
- * the town's **current** population, which is what makes the three arms agree
- * about the figure and what keeps the charge out of reach of any command. A hex
- * no citizen would move to is charged nothing, because nobody stands on it: what
- * that offer is worth is its seam alone, and a seam is owned rather than worked.
- *
- * It sits *inside* the hex's own appraisal rather than beside the claim, so the
- * `soonShare` multiple below scales the keep exactly as it scales the ground —
- * a hex the borders would have claimed anyway is a coin spent on *sooner*, and
- * the citizen arrives sooner with it.
+ * Buying a tile changes where existing citizens work. It does not add a
+ * citizen, so this delta carries no additional happiness demand.
  *
  * The stated crudeness: the delta is not re-asked of the whole town
  * (`assignCitizens` may shuffle three citizens rather than one), and the seam's
@@ -738,10 +723,6 @@ function tileWants(state: GameState, ctx: ValueContext, city: City, standing: Ci
     const score = yieldScore(yields, sheet);
     if (poorest === null || score < poorest.score) poorest = { score, yields };
   }
-  // The keep of the citizen who would stand on bought ground, hoisted for the
-  // same reason: it is a fact about the town's size and the seat's price, so it
-  // is one figure for every offer this loop prices (batch X5b).
-  const keep = citizenKeepTerm(ctx, city.population);
   // **The one hex a coin buys nothing but time on** — the hex this town's own
   // culture is about to claim for nothing (`bestExpansionTile`, the simulation's
   // own chooser). Buying *that* one gains its yield for the turns until the
@@ -784,8 +765,6 @@ function tileWants(state: GameState, ctx: ValueContext, city: City, standing: Ci
           explainYields(bag, ctx),
         ),
       );
-      // …and what that citizen asks the empire for its keep.
-      if (keep !== null) terms.push(keep);
     } else {
       terms.push({
         label: `no citizen of ${city.name} would move to (${tile.col},${tile.row}) today`,
@@ -1883,6 +1862,8 @@ function explainRelic(
   if (RELIC === null) return null;
   const empire = readEmpirePercents(state, player.id);
   for (const city of ownedCities(state, player.id)) {
+    const offer = buildingRelicOffer(state, city);
+    if (offer) return { town: city.name, worth: explainYields({ science: offer.effect.science, culture: offer.effect.culture }, ctx) };
     if (city.buildings.includes(RELIC)) continue;
     if (!cityKeepsRelics(city)) continue;
     const standing = readCity(state, city);

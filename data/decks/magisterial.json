@@ -85,26 +85,28 @@
     },
     "magisterialTheHallofHeroes": {
       "name": "The Hall of Heroes",
-      "decks": ["magisterial"],
+      "decks": [
+        "magisterial"
+      ],
       "band": 2,
       "line": "none",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "always"
           },
           "scaled": {
-            "count": "greatPeopleGained",
+            "count": "greatPersonFamilies",
             "per": 1
           }
         }
       ],
       "rarity": "common",
       "type": "military",
-      "text": "Your units gain +1 strength for each great person you have gained.",
+      "text": "Your units gain +2 strength for each family of great person you have gained.",
       "flavor": "The recruits knew the names above the door before they could lift a shield."
     },
     "magisterialTheLawgiver": {
@@ -122,31 +124,6 @@
         }
       ],
       "flavor": "A potter asked who should pay for a broken jar. The scribe turned to a fresh tablet."
-    },
-    "magisterialTheHanlinAcademy": {
-      "name": "The Hanlin Academy",
-      "decks": ["magisterial"],
-      "band": 2,
-      "line": "none",
-      "effects": [
-        {
-          "kind": "rulePercent",
-          "rule": "greatPersonCost",
-          "percent": -20
-        },
-        {
-          "kind": "pays",
-          "where": "hex",
-          "on": {
-            "test": "greatWork"
-          },
-          "science": 2
-        }
-      ],
-      "rarity": "uncommon",
-      "type": "civic",
-      "text": "Great people cost 20% less renown. Great-person works give +2 science.",
-      "flavor": "The examiner covered the poet’s name and read the last verse again."
     },
     "magisterialTheSpiritWay": {
       "name": "The Spirit Way",
@@ -663,7 +640,6 @@
       ],
       "retired": true
     },
-
     "theChancery": {
       "name": "The Chancery",
       "decks": ["magisterial"],
@@ -1285,7 +1261,6 @@
       ],
       "retired": true
     },
-
     "theCourtArchives": {
       "name": "The Court Archives",
       "decks": ["magisterial"],
@@ -1844,13 +1819,15 @@
     },
     "theGoldenAge": {
       "name": "The Golden Age",
-      "decks": ["magisterial"],
+      "decks": [
+        "magisterial"
+      ],
       "band": 2,
       "rarity": "rare",
       "type": "civic",
       "line": "none",
       "flavor": "Afterwards everyone agreed it had been one.",
-      "text": "Completing a wonder or gaining a great person gives your cities +25% production and culture for ten turns. A later one restarts the ten turns.",
+      "text": "Completing a wonder gives your cities +25% production and culture for ten turns. A later one restarts the ten turns.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1874,33 +1851,10 @@
               "renews": true
             }
           }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "greatPersonGained",
-          "grant": {
-            "timed": {
-              "turns": 10,
-              "effects": [
-                {
-                  "kind": "percentYields",
-                  "yield": "production",
-                  "percent": 25
-                },
-                {
-                  "kind": "percentYields",
-                  "yield": "culture",
-                  "percent": 25
-                }
-              ],
-              "renews": true
-            }
-          }
         }
       ],
-      "note": "Gaining another great person or completing another wonder restarts the bonus."
+      "note": "Completing another wonder restarts the bonus."
     },
-
     "theLaureateCities": {
       "name": "The Laureate Cities",
       "decks": ["magisterial"],
@@ -2153,20 +2107,22 @@
     },
     "theHonouredDead": {
       "name": "The Honoured Dead",
-      "decks": ["magisterial"],
+      "decks": [
+        "magisterial"
+      ],
       "band": 2,
       "rarity": "uncommon",
       "type": "civic",
       "line": "none",
       "flavor": "The tombs are in the capital because the capital insisted.",
-      "text": "Gains +8 science and +8 production in your capital each time you gain a great person.",
+      "text": "Gains +5 science and +5 production in your capital each time you gain a great person.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 8,
+          "amount": 5,
           "count": "tally",
           "tally": "greatPersonGained",
           "scope": {
@@ -2178,7 +2134,7 @@
           "where": "city",
           "basis": "count",
           "to": "production",
-          "amount": 8,
+          "amount": 5,
           "count": "tally",
           "tally": "greatPersonGained",
           "scope": {
@@ -2723,17 +2679,19 @@
     },
     "theSymposium": {
       "name": "The Symposium",
-      "decks": ["magisterial"],
+      "decks": [
+        "magisterial"
+      ],
       "band": 2,
       "rarity": "uncommon",
       "type": "civic",
       "line": "none",
       "flavor": "The wine went round, and so did the ideas, and somebody always wrote them down.",
-      "text": "Each time you gain a great person, you are dealt a free Order hand.",
+      "text": "Each time one of your great people acts, you are dealt a free Order hand.",
       "effects": [
         {
           "kind": "windfallRider",
-          "occasion": "greatPersonGained",
+          "occasion": "greatPersonAct",
           "grant": {
             "freeDraft": true
           }
@@ -2892,10 +2850,11 @@
     },
     "theRollOfMasters": {
       "name": "The Roll of Masters",
-      "decks": ["magisterial"],
+      "decks": [
+        "magisterial"
+      ],
       "band": 3,
       "rarity": "uncommon",
-      "type": "civic",
       "line": "none",
       "flavor": "Each name on the roll makes the next one easier to find.",
       "text": "+3% science and culture for each great person you have gained this game, at most +30%.",
@@ -2921,14 +2880,16 @@
           "max": 10
         }
       ],
-      "note": "A great person counts from the moment you gain it, spent or not. Great people gained before this card was seated count too."
+      "note": "A great person counts from the moment you gain it, spent or not. Great people gained before this card was seated count too.",
+      "retired": true
     },
     "theGardenCourts": {
       "name": "The Garden Courts",
-      "decks": ["magisterial"],
+      "decks": [
+        "magisterial"
+      ],
       "band": 3,
       "rarity": "uncommon",
-      "type": "civic",
       "line": "none",
       "flavor": "Between the studios, a garden, and in the garden, an argument.",
       "text": "Towns working a great-person work gain +20% culture and science.",
@@ -2949,7 +2910,8 @@
             "test": "workingGreatWork"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePrivyCouncil": {
       "name": "The Privy Council",
@@ -2992,22 +2954,39 @@
     },
     "magisterialTheEighthWonder": {
       "name": "Commission: The Eighth Wonder",
-      "decks": ["magisterial"],
+      "decks": [
+        "magisterial"
+      ],
       "band": 1,
       "rarity": "uncommon",
       "type": "civic",
       "line": "none",
       "flavor": "Every age adds one more marvel to the old list of seven.",
-      "text": "Goal: complete a wonder. Reward: each wonder you hold gives +3 culture and +5 renown.",
+      "text": "Goal: complete a wonder. Reward: a free great-person draft, and each wonder you hold gives +3 culture.",
       "effects": [],
       "commission": {
-        "goals": [{ "kind": "counted", "occasion": "wonderCompleted", "count": 1 }],
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "wonderCompleted",
+            "count": 1
+          }
+        ],
         "reward": [
           {
             "lasting": [
-              { "kind": "pays", "where": "empire", "basis": "count", "count": "wonders", "to": "culture", "amount": 3 },
-              { "kind": "renown", "amount": 5, "per": "wonder" }
+              {
+                "kind": "pays",
+                "where": "empire",
+                "basis": "count",
+                "count": "wonders",
+                "to": "culture",
+                "amount": 3
+              }
             ]
+          },
+          {
+            "greatPerson": "any"
           }
         ]
       },
@@ -3242,8 +3221,10 @@
     },
     "thePandects": {
       "name": "The Pandects",
-      "decks": ["magisterial"],
-      "band": 3,
+      "decks": [
+        "magisterial"
+      ],
+      "band": 2,
       "rarity": "uncommon",
       "type": "civic",
       "line": "none",
@@ -3273,20 +3254,22 @@
     },
     "magisterialTheGoldenBull": {
       "name": "Commission: The Golden Bull",
-      "decks": ["magisterial"],
-      "band": 3,
+      "decks": [
+        "magisterial"
+      ],
+      "band": 2,
       "rarity": "uncommon",
       "type": "wildcard",
       "line": "none",
       "flavor": "The electors took their fixed seats, and everyone knew who would choose the next emperor.",
-      "text": "Goal: hold 20 Orders. Reward: a Doctrine offer.",
+      "text": "Goal: hold 12 Orders. Reward: a Doctrine offer.",
       "effects": [],
       "commission": {
         "goals": [
           {
             "kind": "reached",
             "figure": "ordersHeld",
-            "count": 20
+            "count": 12
           }
         ],
         "reward": [
@@ -3605,27 +3588,53 @@
     },
     "magisterialTheParadiseGarden": {
       "name": "Commission: The Paradise Garden",
-      "decks": ["magisterial"],
+      "decks": [
+        "magisterial"
+      ],
       "band": 3,
       "rarity": "rare",
       "type": "wildcard",
       "line": "none",
       "flavor": "The Persian kings walled their gardens and filled them with water and shade, and the old word for such a garden became the word paradise.",
-      "text": "Goal: have one town work three great-person works. Reward: your great-person works yield double.",
+      "text": "Goal: have one town work three great-person works. Reward: each great-person work gives +2 of its own yield for each other work in its town.",
       "effects": [],
       "commission": {
-        "goals": [{ "kind": "reached", "figure": "oneTownWorksWorked", "count": 3 }],
-        "reward": [{
-          "lasting": [{
-            "kind": "pays",
-            "where": "hex",
-            "on": { "test": "greatWork" },
-            "wholePercent": 100,
-            "appliedLast": true
-          }]
-        }]
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "oneTownWorksWorked",
+            "count": 3
+          }
+        ],
+        "reward": [
+          {
+            "lasting": [
+              {
+                "kind": "pays",
+                "where": "hex",
+                "basis": "count",
+                "count": "tilesInBorders",
+                "within": "city",
+                "countAbove": 1,
+                "on": {
+                  "test": "greatWork"
+                },
+                "ownYieldOnly": true,
+                "food": 2,
+                "production": 2,
+                "gold": 2,
+                "science": 2,
+                "culture": 2,
+                "faith": 2,
+                "tile": {
+                  "test": "greatWork"
+                }
+              }
+            ]
+          }
+        ]
       },
-      "note": "The reward lasts for the rest of the game. The Mausoleum and this reward each add the full yield of the work after its other bonuses."
+      "note": "The reward lasts for the rest of the game. It counts intact great-person works in the same town. It adds only yields the improvement itself supplies."
     },
     "theProcessionalWay": {
       "name": "The Processional Way",
@@ -3663,6 +3672,151 @@
       "text": "Each turn, each great-person work takes one unworked hex beside it from a rival town.",
       "effects": [{ "kind": "rule", "rule": "worksPullRivalHexes" }],
       "note": "This happens at the end of each turn, after borders grow, and peace or war does not matter. Every great-person work in your borders pulls, whoever laid it, and a prophet's Holy Site counts. Each work tries the hexes beside it in turn and takes the first one it may. A hex that a citizen of its town is working stays, and so does a hex with a great-person work on it; anything else on the hex, such as a farm or a road, comes with it. The hex joins your nearest town, but only if it is close enough for that town's own borders to reach; otherwise the work tries its next hex. A hex taken this turn cannot be taken again in the same turn, so when works of two empires reach for the same hex, the empire listed first among the players takes it."
+    },
+    "theSecondSummons": {
+      "name": "The Second Summons",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 3,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "text": "Your great people may act twice.",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "greatPersonUses",
+          "percent": 100
+        }
+      ],
+      "flavor": "The invitation arrived before the guest had left."
+    },
+    "thePanegyric": {
+      "name": "The Panegyric",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "text": "When one of your great people acts, you gain one free reroll.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "grant": {
+            "freeRerolls": 1
+          },
+          "occasion": "greatPersonAct"
+        }
+      ],
+      "flavor": "The account of one achievement made room for another."
+    },
+    "theAnteroom": {
+      "name": "The Anteroom",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 1,
+      "rarity": "uncommon",
+      "type": "civic",
+      "line": "none",
+      "text": "Your capital gains +3 culture for each Order you hold but have not seated.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "unslottedOrders",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ],
+      "flavor": "The people waiting outside were already shaping the meeting."
+    },
+    "theRevisedEdition": {
+      "name": "The Revised Edition",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 2,
+      "rarity": "uncommon",
+      "type": "wildcard",
+      "line": "none",
+      "text": "Each draft you reroll while this is seated adds +2 culture and +2 gold. Rerolls cost 50% less faith.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 2,
+          "count": "tally",
+          "tally": "draftRerolled"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 2,
+          "count": "tally",
+          "tally": "draftRerolled"
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "rerollCost",
+          "percent": -50
+        }
+      ],
+      "flavor": "The printer kept the discarded pages for comparison."
+    },
+    "theChangingCouncil": {
+      "name": "The Changing Council",
+      "decks": [
+        "magisterial"
+      ],
+      "band": 3,
+      "rarity": "rare",
+      "type": "wildcard",
+      "line": "none",
+      "text": "Each Order you seat while this is active adds +2 culture and +2 production in your capital. Orders are locked for two turns.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 2,
+          "count": "tally",
+          "tally": "orderSeated",
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 2,
+          "count": "tally",
+          "tally": "orderSeated",
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "metaRule",
+          "rule": "sealTurns",
+          "value": 2
+        }
+      ],
+      "flavor": "The chairs stayed in place. Their occupants did not."
     }
   },
   "doctrines": {
@@ -3779,24 +3933,28 @@
     },
     "thePeregrini": {
       "name": "The Peregrini",
-      "decks": ["magisterial"],
+      "decks": [
+        "magisterial"
+      ],
       "band": 2,
       "line": "none",
       "flavor": "The monk walks out past the last farm, and the farms follow him.",
-      "text": "Great-person works give +1 food and +1 production to every hex beside them. Laying a great-person work makes your next great person cost 20% less.",
+      "text": "Great-person works give +1 food and +1 production to every hex beside them.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
           "food": 1,
           "production": 1,
-          "on": { "test": "beside", "of": { "test": "greatWork" } },
-          "perNeighbour": { "test": "greatWork" }
-        },
-        {
-          "kind": "rule",
-          "rule": "workCheapensPerson",
-          "percent": 20
+          "on": {
+            "test": "beside",
+            "of": {
+              "test": "greatWork"
+            }
+          },
+          "perNeighbour": {
+            "test": "greatWork"
+          }
         }
       ],
       "note": "A hex beside two works gains twice. A rival's work counts too, and only your own hexes gain. Two works laid before the next person still give one discount, and the next person spends it, however that person is called. A Holy Site counts as a work for the hexes beside it, but raising one gives no discount."

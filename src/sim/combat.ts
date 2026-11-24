@@ -427,7 +427,7 @@ import { endUnrest, startUnrest } from './unrest';
 import { recordWarLoss } from './warLosses';
 // A leaf over the rule book and `state.ts`, like `warLosses.ts`, so this edge
 // cannot make a cycle either.
-import { awardExperience, experienceAfterCombat, rankStrengthLines } from './ranks';
+import { awardExperience, experienceAfterCombat, rankOf, rankStrengthLines } from './ranks';
 
 const COMBAT = RULES.combat;
 
@@ -2573,6 +2573,7 @@ export function previewCombatSample(
     ? windfallPayout(state, attacker.ownerId, 'kill', 0, 0, {
       actor: attacker.type, fallen: target.unit.type, strength: fallenStrength(target.unit),
       vsBarbarians: isBarbarian(state, target.unit.ownerId),
+      rivalId: target.unit.ownerId,
     }).heal : 0;
   // Kill healing is paid before the counter, including its maximum-health cap.
   const standing = Math.min(forecast.attackerMaxHp, forecast.attackerHp + heal);
@@ -2604,8 +2605,20 @@ export function capturedCityHealth(state: GameState, city: City): number {
   return Math.min(maximum, Math.max(1, Math.round(maximum * COMBAT.cityCaptureHpFraction)));
 }
 
+/** Only a kill recovery rule changes a defender's action budget after a counterattack. */
+export function recoverAfterCounterKill(state: GameState, defender: Unit): void {
+  const actsAgain = cardBehaviorRuleFor(state, defender, 'actAfterKill');
+  if (actsAgain || cardBehaviorRule(state, defender.ownerId, 'moveAfterKill', defender.type)) {
+    defender.movesLeft = fullMovement(defender, state);
+  }
+  if (actsAgain) defender.hasAttacked = false;
+}
+
 /** The action budget after an attack is shared by resolution and planning. */
 export function combatContinuation(state: GameState, attacker: Unit, killed: boolean): Pick<Unit, 'movesLeft' | 'hasAttacked' | 'firstAttackTurn'> {
+  if (killed && cardBehaviorRuleFor(state, attacker, 'actAfterKill')) {
+    return { movesLeft: fullMovement(attacker, state), hasAttacked: false, firstAttackTurn: attacker.firstAttackTurn };
+  }
   const firstOfTwo = attacker.firstAttackTurn !== state.turn && cardBehaviorRuleFor(state, attacker, 'secondAttack');
   const keepsMoving = unitDef(attacker.type).hitAndRun === true ||
     cardBehaviorRule(state, attacker.ownerId, 'moveAfterAttack', attacker.type) || firstOfTwo;
@@ -2787,6 +2800,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       tile,
       {
         vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true,
+        rivalId: fromOwnerId,
         actor: attacker.type,
         strength: fallenStrength(caravan),
         // The unit killed (Dominion batch D5, Copying the Enemy).
@@ -2796,6 +2810,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     );
     payBattleRiders(state, fromOwnerId, 'death', tile, {
       actor: caravan.type,
+      rank: rankOf(caravan) ?? undefined,
       unitCost: caravan.freeUpkeep ? 0 : unitProductionCost(state, fromOwnerId, caravan.type),
       strength: fallenStrength(caravan),
     });
@@ -2954,6 +2969,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
             // moment asked from the opposite end.
             {
               vsBarbarians: fromWild,
+              rivalId: fallenOwner,
               actor: attacker.type,
               strength: fallenStrength(defender),
               // The unit killed (Dominion batch D5, Copying the Enemy).
@@ -2963,6 +2979,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           );
           payBattleRiders(state, fallenOwner, 'death', tile, {
             actor: defender.type,
+            rank: rankOf(defender) ?? undefined,
             unitCost: defender.freeUpkeep ? 0 : unitProductionCost(state, fallenOwner, defender.type),
             strength: fallenStrength(defender),
             // The piece that was attacked: Songs of the Fallen's losing half.
@@ -3013,6 +3030,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     if (defenderOwner !== undefined) recordWarLoss(state, fallenOwner, defenderOwner, 'unit');
     payBattleRiders(state, fallenOwner, 'death', tile, {
       actor: attacker.type,
+      rank: rankOf(attacker) ?? undefined,
       unitCost: attacker.freeUpkeep ? 0 : unitProductionCost(state, fallenOwner, attacker.type),
       strength: fallenStrength(attacker),
     });
@@ -3020,9 +3038,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // which is the only reading under which The Iron Price is a card about
     // *combat* rather than a card about attacking.
     if (defenderOwner !== undefined) {
-      if (target.unit && cardBehaviorRule(state, defenderOwner, 'moveAfterKill', target.unit.type)) {
-        target.unit.movesLeft = fullMovement(target.unit, state);
-      }
+      if (target.unit) recoverAfterCounterKill(state, target.unit);
       // The **counter-attacker** is who to heal, where one is a piece at all:
       // a city that broke a charge is not a soldier and has no bar this rider
       // can fill.
@@ -3033,6 +3049,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         tile,
         {
           vsBarbarians: playerById(state, fallenOwner)?.barbarian === true,
+          rivalId: fallenOwner,
           strength: fallenStrength(attacker),
           // The unit killed by the counter-blow (Dominion batch D5).
           fallen: attacker.type,

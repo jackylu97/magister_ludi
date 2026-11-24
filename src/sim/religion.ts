@@ -1,3 +1,4 @@
+import { wagerIncome } from './wagerMilestoneData';
 /**
  * Religion v1: the augur and the pantheon (design ledger, Entry XXVIII;
  * `docs/deprecated/religion.md` is the ratified design).
@@ -133,6 +134,7 @@ import {
   type WindfallOccasionFacts,
   cardActionRule,
   cardPantheonSlots,
+  buildingRelicOffer,
   cardPressureRule,
   cardPressureSources,
   cardRulePercent,
@@ -797,11 +799,23 @@ function goldMayRedraw(state: GameState, playerId: number): boolean {
   return cardActionRule(state, playerId, 'goldBuysRedraw');
 }
 
+/** Both offer ladders use the same faith discount and leave gold prices unchanged. */
+function applyRerollDiscount(state: GameState, playerId: number, currency: RerollCurrency, lines: UnitCostLine[]): void {
+  if (currency !== 'faith') return;
+  const percent = cardRulePercent(state, playerId, 'rerollCost').reduce((sum, line) => sum + line.percent, 0);
+  if (percent === 0) return;
+  const before = foldUnitCost(lines);
+  const after = Math.max(0, Math.floor(before * (100 + percent) / 100));
+  if (after !== before) lines.push({ source: 'Order cards', amount: after - before });
+}
+
 export function explainRerollCost(
   state: GameState,
   playerId: number,
   kind: RerollKind = 'order',
   currency: RerollCurrency = 'faith',
+  /** Forecast the paid price when valuing a reroll added to the stock. */
+  ignoreFreeOffers = false,
 ): RerollPrice {
   const player = playerById(state, playerId);
   // **The free redraw, first and alone on the list** (batch L6a): a waived
@@ -809,10 +823,10 @@ export function explainRerollCost(
   // rather than the three that would have said how much. Rule 5 holds — the
   // total is still the fold of the list. The line names the row that holds the
   // rule (`freeRedrawSource`), The Rihla or The Second Reading.
-  if (player && rihlaPaysFor(state, player, kind)) {
+  if (!ignoreFreeOffers && player && rihlaPaysFor(state, player, kind)) {
     return { lines: [{ source: freeRedrawSource(state, player.id), amount: 0 }], total: 0 };
   }
-  if ((player?.statecraft.freeRerolls ?? 0) > 0) return { lines: [{ source: 'Free draft reroll', amount: 0 }], total: 0 };
+  if (!ignoreFreeOffers && (player?.statecraft.freeRerolls ?? 0) > 0) return { lines: [{ source: 'Free draft reroll', amount: 0 }], total: 0 };
   const spec = RELIGION.reroll;
   const taken = Math.max(0, Math.floor(player?.statecraft.rerollsTaken ?? 0));
   const age = player ? highestAge(player.techsResearched) : 1;
@@ -837,18 +851,7 @@ export function explainRerollCost(
     const heavy = Math.floor(full * Math.max(0, spec.heavyMultiple));
     if (heavy !== full) lines.push({ source: HEAVY_WORD[kind], amount: heavy - full });
   }
-  // **A card's discount on the faith price** (`rerollCost`, The Penitents'
-  // Roll), a line of its own carrying the difference, floored once. Faith only:
-  // the card's words are "cost less faith", and the coin's premium is its own.
-  if (currency === 'faith' && player) {
-    let percent = 0;
-    for (const line of cardRulePercent(state, player.id, 'rerollCost')) percent += line.percent;
-    if (percent !== 0) {
-      const before = foldUnitCost(lines);
-      const after = Math.max(0, Math.floor((before * (100 + percent)) / 100));
-      if (after !== before) lines.push({ source: 'Order cards', amount: after - before });
-    }
-  }
+  applyRerollDiscount(state, playerId, currency, lines);
   // **The gold premium, last and printed** (The Brokers' Redraw, batch C3). The
   // ladder above is unchanged — gold climbs the same rungs the faith bank does —
   // and this is the one line that says the coin costs more, so a player reading
@@ -914,6 +917,7 @@ export function explainBeliefRerollCost(
       amount: full - aged,
     });
   }
+  applyRerollDiscount(state, playerId, currency, lines);
   // The gold premium, `explainRerollCost`'s line one ladder over — the hand's
   // own ladder is untouched and the coin is what costs more.
   if (currency === 'gold') {
@@ -1204,6 +1208,8 @@ export function settleReroll(
     if (useStock) player.statecraft.freeRerolls! -= 1;
     offer.rerolls = (old.rerolls ?? 0) + (useStock ? 0 : 1);
     player.pantheon.pending = offer;
+    recordScalingOccasion(state, player.id, 'draftRerolled');
+    bumpEconomy(state);
     return { kind, paid, currency, taken: player.statecraft.rerollsTaken };
   }
 
@@ -1225,6 +1231,8 @@ export function settleReroll(
   if (kind === 'doctrine') {
     sc.pendingDoctrine = drawDoctrineOffer(state, player, governmentDef(sc.government).tier);
     if (free) stampRedrawn(player, kind);
+    recordScalingOccasion(state, player.id, 'draftRerolled');
+    bumpEconomy(state);
     return { kind, paid, currency, taken: sc.rerollsTaken };
   }
   if (kind === 'greatPerson') {
@@ -1236,6 +1244,8 @@ export function settleReroll(
         ? drawGreatPersonOffer(state, player)
         : drawGreatPersonOffer(state, player, old.family);
     if (free) stampRedrawn(player, kind);
+    recordScalingOccasion(state, player.id, 'draftRerolled');
+    bumpEconomy(state);
     return { kind, paid, currency, taken: sc.rerollsTaken };
   }
 
@@ -1252,6 +1262,8 @@ export function settleReroll(
   sc.pendingOrder = drawOrderOffer(state, player);
   if (price !== undefined) sc.pendingOrder.price = price;
   if (free) stampRedrawn(player, kind);
+  recordScalingOccasion(state, player.id, 'draftRerolled');
+  bumpEconomy(state);
   return { kind, paid, currency, taken: sc.rerollsTaken };
 }
 
@@ -2046,7 +2058,7 @@ function payRiteBuildings(state: GameState, player: Player, city: City): number 
   // What the town holds (`townShelf`, Expansionist batch E12).
   const paid = buildingRitePay(townShelf(state, city));
   if (paid <= 0) return 0;
-  player.culturePool += paid;
+  player.culturePool += wagerIncome(state, player.id, 'scienceCulture', paid);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
   settleCultureWindfall(state, player);
@@ -2255,15 +2267,18 @@ function clearCityRite(state: GameState, city: City, rites: readonly RiteId[]): 
  * percentage arm is left unread on this occasion and said so here. The heal
  * arm is unread too, because a rite is not said over a piece.
  */
-function payRiteRiders(state: GameState, player: Player, city: City): WonderCompletion[] {
+function payRiteRiders(state: GameState, player: Player, city: City, starts = true): WonderCompletion[] {
   const wonders: WonderCompletion[] = [];
   const payout = windfallPayout(state, player.id, 'rite', 0, 0, {
     townId: city.id,
     population: city.population,
   });
-  if (payout.grants.length === 0) return wonders;
+  if (!payout.grants.length && !payout.pressure.length) return wonders;
   const at = { col: city.col, row: city.row };
-  for (const touched of payWindfallGrants(state, player, payout, at)) {
+  const press = (amount: number, range: number, origin: { col: number; row: number }) => {
+    for (const faith of heldReligions(state, player.id)) pressLump(state, faith, origin, range, amount);
+  };
+  for (const touched of payWindfallGrants(state, player, payout, at, undefined, starts ? press : undefined)) {
     // A rider's hammers may finish a wonder, and the news goes out the same way
     // every other completion does. See `RitePerformance.wonders`.
     // The hammers can finish several rows (the ruling of 2026-11-23), and
@@ -2531,7 +2546,7 @@ export function settleKeptRites(state: GameState): void {
       if (age <= 0 || age % RELIGION.rite.keptInterval !== 0) continue;
       credited.add(entry.card);
       recordScalingOccasion(state, city.ownerId, 'riteStarted');
-      payRiteRiders(state, state.players[city.ownerId]!, city);
+      payRiteRiders(state, state.players[city.ownerId]!, city, false);
     }
   }
 }
@@ -3508,7 +3523,10 @@ export function proclaimAt(state: GameState, player: Player, unit: Unit): Procla
   // **The Final Proclamation's bead** — announced at the act rather than at the
   // command, the ten Triumph seams' rule: this is the one place a proclamation
   // happens, and a prophet is a prophet whoever is driving it.
-  payOccasionRiders(state, player, 'proclamationMade', unit);
+  const eye = tileHex(getTileAt(state.map, unit.col, unit.row)!);
+  const townsInReach = state.cities.filter((town) => town.ownerId === player.id &&
+    wrappedDistance(state.map, eye, tileHex(getTileAt(state.map, town.col, town.row)!)) <= range).map((town) => town.id);
+  payOccasionRiders(state, player, 'proclamationMade', unit, { townsInReach });
   awardOrderBeads(state, player.id, 'proclamationMade');
   return report;
 }
@@ -3718,6 +3736,7 @@ export function placeRelicError(
   state: GameState,
   playerId: number,
   unitId: number,
+  host?: 'cathedral' | 'belief',
 ): string | null {
   const problem = apostleProblem(state, playerId, unitId, 'placeRelic');
   if (problem !== null) return problem;
@@ -3730,6 +3749,9 @@ export function placeRelicError(
   // The shelf is what the town holds (`townShelf`, Expansionist batch E12).
   // Whether a relic already stands here is what an act placed, so it reads the
   // town's own list.
+  if (host !== undefined && host !== 'cathedral' && host !== 'belief') return 'Choose a relic building';
+  if (host !== 'cathedral' && buildingRelicOffer(state, city)) return null;
+  if (host === 'belief') return 'This town needs the building and belief to keep this relic';
   if (!cityKeepsRelics(townShelf(state, city))) {
     return `${city.name} has no cathedral to keep a relic in`;
   }
@@ -3763,12 +3785,20 @@ interface RelicPlacement {
  * on the helper is `cities.ts`'s to keep; the debt is written in
  * `docs/fewer-things-plan.md`).
  */
-export function placeRelicAt(state: GameState, _player: Player, unit: Unit): RelicPlacement {
+export function placeRelicAt(state: GameState, _player: Player, unit: Unit, host?: 'cathedral' | 'belief'): RelicPlacement {
   const city = cityAt(state, unit.col, unit.row)!;
-  const building = RELIC!;
+  const offer = host === 'cathedral' ? undefined : buildingRelicOffer(state, city);
+  const building = offer?.effect.building ?? RELIC!;
   // Through the one seam (`addBuilding`, `state.ts`): a relic is a thing the
   // town now holds, and it is stamped with the turn the apostle laid it down.
-  addBuilding(state, city, building);
+  if (offer) {
+    const rows = city.buildingRelics ??= [];
+    const existing = rows.find((row) => row.card === offer.card && row.building === building);
+    if (existing) existing.count++;
+    else rows.push({ card: offer.card, source: offer.source, building, count: 1,
+      science: offer.effect.science, culture: offer.effect.culture });
+    bumpEconomy(state);
+  } else addBuilding(state, city, building);
   // A roof on a town is a line of `buildingHappiness` — `realiseItem`'s
   // announcement, made by an apostle instead of a basket (batch M3, `slate.ts`).
   bumpEconomy(state);
@@ -3777,7 +3807,7 @@ export function placeRelicAt(state: GameState, _player: Player, unit: Unit): Rel
   return {
     city,
     building,
-    faith: Math.max(0, Math.floor(RELIGION.relicFaith)),
+    faith: offer ? 0 : Math.max(0, Math.floor(RELIGION.relicFaith)),
     apostleSpent,
   };
 }

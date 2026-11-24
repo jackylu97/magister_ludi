@@ -40,6 +40,7 @@ import {
   scoreEffects,
   workPlacementTerms,
   techCostFor,
+  researchPathForecast,
 } from '../../src/ai/value';
 import {
   bagOfTileYield,
@@ -399,6 +400,47 @@ describe('a technology charter is priced as what knowing its technology gives (S
 // --- research at the folded price ---------------------------------------------
 
 describe('research reads the folded price (S13)', () => {
+  it('credits research progress only to its own technology and carries overflow forward', () => {
+    const { state, player } = board(1);
+    const road: TechId[] = ['earthenware', 'letters'];
+    player.researching = road[0]!;
+    const initial = valueContext(state, player);
+    const first = techCostFor(initial, road[0]!);
+    const second = techCostFor(initial, road[1]!);
+    player.sciencePool = first + second / 2;
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const forecast = researchPathForecast(ctx, road);
+    expect(forecast.landings.get(road[0]!)).toBe(0);
+    expect(forecast.beakers).toBe(second / 2);
+    expect(forecast.delay).toBe(second / 2 / Math.max(1, ctx.scienceRate));
+    expect(researchPathForecast(ctx, [road[1]!]).beakers).toBe(second);
+  });
+
+  it('keeps later saved progress from moving a prerequisite earlier', () => {
+    const { state, player } = board(1);
+    player.researching = 'earthenware';
+    player.sciencePool = 0;
+    const initial = valueContext(state, player);
+    const first = techCostFor(initial, 'earthenware');
+    player.techProgress = { letters: techCostFor(initial, 'letters') + first };
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const forecast = researchPathForecast(ctx, ['earthenware', 'letters']);
+    expect(forecast.beakers).toBe(first);
+    expect(forecast.landings.get('letters')).toBe(forecast.landings.get('earthenware'));
+  });
+
+  it('can fund several technologies from a pool with no current research target', () => {
+    const { state, player } = board(1);
+    player.researching = null;
+    player.sciencePool = 10000;
+    bumpRevision(state);
+    const forecast = researchPathForecast(valueContext(state, player), ['earthenware', 'letters']);
+    expect(forecast.beakers).toBe(0);
+    expect([...forecast.landings.values()]).toEqual([0, 0]);
+  });
+
   it('prices a drafted charter technology’s road at its folded cost', () => {
     const { state, player } = board(1);
     player.charteredTechs.push('casting' as TechId);
@@ -949,7 +991,7 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
     expect(scoreEffects(hoplite, big)).toBe(strength(big, 2) * 1 * 1);
   });
 
-  it('prices The Great Catalogue per charter technology, and The Great Designs at its share', () => {
+  it('prices The Great Catalogue per held charter, and The Great Designs at its share', () => {
     const { state, player } = board(2, 20);
     const catalogue = orderDef('theGreatCatalogue' as OrderId).effects[0]!;
     const designs = orderDef('theGreatDesigns' as OrderId).effects[0]!;
@@ -960,13 +1002,13 @@ describe('a price for each Scientific shape of S0 to S9 (S13)', () => {
       delete open.aheadOfMet;
       return open as unknown as CardEffect;
     };
-    player.charteredTechs.push('casting' as TechId, 'herbals' as TechId);
+    player.statecraft.orders.push('theBronzeFoundersCharter', 'theHerbalistsCharter');
     bumpRevision(state);
     const ctx = valueContext(state, player);
     // The arm's own term, before the hammer premium beside it.
     const arm = (effect: CardEffect): number => explainEffects([effect], ctx).terms[0]!.value;
-    // Two charters opened and not known; the pace expects fewer than that.
-    expect(arm(catalogue)).toBe(arm(flat(catalogue)) * 2);
+    // Both held charters count before their technologies are researched.
+    expect(arm(catalogue)).toBeGreaterThan(arm(flat(catalogue)) * 2);
     expect(arm(designs)).toBe(arm(flat(designs)) * SCIENTIFIC.aheadOfMet);
     expect(voiceWeight(ctx, 'production')).toBeGreaterThan(0);
   });

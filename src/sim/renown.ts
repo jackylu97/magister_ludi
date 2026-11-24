@@ -216,16 +216,16 @@ export function explainRenownByTown(state: GameState, playerId: number): RenownT
   //
   // A Triumph's lump is deliberately outside it: that renown was banked the
   // instant it was earned, and the lines below are on this list so the hover can
-  // show them, not so a percentage can be taken of them. The line names **no
-  // family**, `resourceRenown`'s construction — the pool grows and the feed
-  // record that weights the draw does not.
+  // show them, not so a percentage can be taken of them. A named family
+  // share reads that family's recurring lines and adds to its draw weight.
   const shares = cardEmpireRenownShares(state, playerId);
   if (shares.length > 0) {
-    const base = foldRenown(lines);
+    const recurring = lines.slice();
     for (const share of shares) {
+      const base = foldRenown(share.family ? recurring.filter(line => line.family === share.family) : recurring);
       const amount = (base * share.percent) / 100;
       if (amount === 0) continue;
-      push(null, { source: share.source, family: null, amount, perTurn: true });
+      push(null, { source: share.source, family: share.family ?? null, amount, perTurn: true });
     }
   }
   const player = state.players[playerId];

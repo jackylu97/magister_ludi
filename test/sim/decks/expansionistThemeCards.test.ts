@@ -42,7 +42,7 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt, ownedTiles, refreshCityDerived } from '../../../src/sim/cities';
 import { runCommissions } from '../../../src/sim/commissions';
 import { type Tile, mapRange, raiseImprovement, tileHex, tileIndex } from '../../../src/sim/map';
-import { explainAuthority } from '../../../src/sim/meters';
+import { authorityOf, explainAuthority } from '../../../src/sim/meters';
 import { layRoad } from '../../../src/sim/roads';
 import {
   type City,
@@ -222,24 +222,46 @@ describe('the Expansionist batch E7: the counts that changed their pay', () => {
     expect(townPays(state, towns[7]!, 'theMeasureOfTheLand', 'science')).toBe(10);
   });
 
-  it('The Mother City gives the capital alone +5% production and culture for each town founded, with no cap', () => {
+  it('The Mother City pays the capital for citizens in other towns joined by road', () => {
     const state = bareState(20, 10);
     const capital = town(state, 2, 5, 3);
     const second = town(state, 8, 5, 3);
-    town(state, 14, 5, 3);
+    const third = town(state, 14, 5, 7);
     slot(state, 0, 'theMotherCity');
-    expect(playerById(state, 0)!.citiesFounded).toBe(3);
-    expect(townPercent(state, capital, 'theMotherCity', 'production')).toBe(15);
-    expect(townPercent(state, capital, 'theMotherCity', 'culture')).toBe(15);
-    expect(townPercent(state, second, 'theMotherCity', 'production')).toBe(0);
-    // A city-stage percentage (reading 21).
-    for (const line of explainCardPercentYields(state, capital).filter((l) => l.card === 'theMotherCity')) {
-      expect(line.stage).toBe('city');
-    }
-    // A town lost still counts, and there is no cap (reading 4).
-    playerById(state, 0)!.citiesFounded = 14;
+    expect(townPays(state, capital, 'theMotherCity', 'production')).toBe(0);
+    for (let col = 3; col < 8; col++) layRoad(at(state, col, 5), 0);
     bumpRevision(state);
-    expect(townPercent(state, capital, 'theMotherCity', 'culture')).toBe(70);
+    for (const voice of ['culture', 'production'] as const) {
+      expect(townPays(state, capital, 'theMotherCity', voice)).toBe(3);
+      expect(townPays(state, second, 'theMotherCity', voice)).toBe(0);
+      expect(townPays(state, third, 'theMotherCity', voice)).toBe(0);
+    }
+    second.population = 6;
+    bumpRevision(state);
+    expect(townPays(state, capital, 'theMotherCity', 'production')).toBe(6);
+  });
+
+  it('The Missi Dominici pays science and culture in each town while there is spare authority', () => {
+    const state = bareState(30, 10);
+    const capital = town(state, 2, 5, 3);
+    slot(state, 0, 'theMissiDominici');
+    const check = () => {
+      const spare = Math.max(0, authorityOf(state, 0));
+      for (const city of state.cities) {
+        for (const voice of ['science', 'culture'] as const) {
+          expect(townPays(state, city, 'theMissiDominici', voice)).toBe(spare);
+        }
+      }
+      return spare;
+    };
+    const initial = check();
+    expect(initial).toBeGreaterThan(0);
+    for (const col of [8, 14, 20, 26]) {
+      town(state, col, capital.row, 3);
+      bumpRevision(state);
+      check();
+    }
+    expect(check()).toBeLessThan(initial);
   });
 
   it('Plenty pays five times the new population when a town grows', () => {

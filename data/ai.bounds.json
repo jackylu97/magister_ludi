@@ -93,6 +93,50 @@
   "war.strengthWeight": { "min": 0, "max": 1.5 },
   "war.luxuryGoldBaseline": { "min": 40, "max": 300 },
   "war.luxuryGptBaseline": { "min": 1, "max": 15 },
+  "war.dealIncomeShare": {
+    "min": 0.1,
+    "max": 1
+  },
+  "war.luxuryDuplicateShare": {
+    "min": 0.05,
+    "max": 1
+  },
+  "war.happinessGoldValue": {
+    "min": 0,
+    "max": 50
+  },
+  "war.luxuryComfort": {
+    "min": 1,
+    "max": 30
+  },
+  "war.strategicReserveGold": {
+    "min": 1,
+    "max": 50
+  },
+  "war.strategicReserveCopies": {
+    "min": 1,
+    "max": 12
+  },
+  "war.strategicUnitShare": {
+    "min": 0,
+    "max": 1
+  },
+  "war.cityBaseGold": {
+    "min": 100,
+    "max": 2000
+  },
+  "war.cityCitizenGold": {
+    "min": 20,
+    "max": 500
+  },
+  "war.cityAgePremium": {
+    "min": 0,
+    "max": 1
+  },
+  "war.cityBuildingShare": {
+    "min": 0,
+    "max": 3
+  },
   "war.openBordersPrice": { "min": 10, "max": 200 },
   "war.counterMarkup": { "min": 0, "max": 0.5 },
   "war.refusalMemoryTurns": { "min": 5, "max": 60, "integer": true },
@@ -122,6 +166,11 @@
   "score.gameTurns": { "min": 100, "max": 400, "integer": true },
   "score.combatScale": { "min": 2, "max": 20 },
   "score.patienceTurns": { "min": 3, "max": 30, "integer": true },
+  "score.queueLookaheadTurns": {
+    "min": 0,
+    "max": 3,
+    "integer": true
+  },
   "score.lumpTurns": { "min": 5, "max": 60, "integer": true },
   "score.recentTurns": { "min": 5, "max": 40, "integer": true },
   "score.warPace.killsPerSoldier": { "min": 0, "max": 0.1 },
@@ -216,5 +265,13 @@
   "tactics.roles.mounted.damage": {"min": 0, "max": 4},
   "tactics.roles.mounted.loss": {"min": 0, "max": 4},
   "tactics.roles.mounted.exposure": {"min": 0, "max": 4},
-  "tactics.roles.mounted.progress": {"min": 0, "max": 4}
+  "tactics.roles.mounted.progress": {"min": 0, "max": 4},
+  "score.tallyForecast.orderSeated": {
+    "min": 0,
+    "max": 40
+  },
+  "score.tallyForecast.draftRerolled": {
+    "min": 0,
+    "max": 20
+  }
 }

@@ -133,28 +133,31 @@ describe('the War Hall', () => {
     const g = game(4203);
     const home = found(g.state, 0);
     raise(g.state, home, 'warHall');
-    raise(g.state, home, 'terracottaArmy');
     const beside = g.state.map.tiles.find(
       (tile) => Math.abs(tile.col - home.col) === 1 && tile.row === home.row,
     )!;
     const done = realiseItem(g.state, home, { kind: 'unit', id: 'warrior', tile: beside });
     const piece = g.state.units.find((u) => u.id === done.unitId)!;
     expect({ col: piece.col, row: piece.row }).toEqual({ col: beside.col, row: beside.row });
-    expect(piece.stamp).toEqual({ hp: 10, strength: 2 });
+    expect(piece.stamp).toEqual({ hp: 10 });
     // A caller with no town in hand still reads the hex, which has no town.
     expect(cardUnitStamp(g.state, 0, { col: beside.col, row: beside.row }, 'warrior')).toEqual({});
   });
 
-  it('reads the town’s walk without reading a wonder twice', () => {
-    // The seam this batch opened: a town holding both the Hall and the Terracotta
-    // Army stamps one piece with the Hall's hit points and the Army's strength,
-    // each exactly once — the two walks divide the rows between them.
-    const g = game(4202);
-    const home = found(g.state, 0);
-    raise(g.state, home, 'warHall');
-    raise(g.state, home, 'terracottaArmy');
-    const veteran = muster(g.state, home, 'warrior');
-    expect(veteran.stamp).toEqual({ hp: 10, strength: 2 });
+  it('reads an ordinary building and a wonder stamp once each', () => {
+    // Keep the shape covered after Terracotta stopped supplying a strength stamp.
+    const row = buildingDef('terracottaArmy');
+    const original = row.effects;
+    row.effects = [{ kind: 'unitStamp', strength: 2, scope: { test: 'hasBuilding', building: 'terracottaArmy' } }];
+    try {
+      const g = game(4202);
+      const home = found(g.state, 0);
+      raise(g.state, home, 'warHall');
+      raise(g.state, home, 'terracottaArmy');
+      expect(muster(g.state, home, 'warrior').stamp).toEqual({ hp: 10, strength: 2 });
+    } finally {
+      row.effects = original;
+    }
   });
 });
 

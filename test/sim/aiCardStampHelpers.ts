@@ -35,6 +35,7 @@ import {
   isDoctrineId,
   isOrderId,
   orderDef,
+  slotLayout,
 } from '../../src/sim/statecraftData';
 import { recordWarLoss } from '../../src/sim/warLosses';
 import { at, bareState } from './improvementHelpers';
@@ -219,6 +220,22 @@ export function meterAuditPosition(): GameState {
     expiresTurn: state.turn + 1,
   }];
   player.statecraft.orders.push('theGoodYears', 'theGloriousDead');
+  bumpRevision(state);
+  return state;
+}
+
+/** Keep amplifier coverage independent of the shared Orders a recorded game draws. */
+export function amplifierAuditPosition(): GameState {
+  const state = bareState();
+  const city = foundCityAt(state, 0, at(state, 3, 5));
+  addBuilding(state, city, 'library');
+  addBuilding(state, city, 'monument');
+  const sc = state.players[0]!.statecraft;
+  sc.government = 'councilOfElders';
+  const layout = slotLayout(sc.government);
+  sc.slots = layout.map(() => null);
+  sc.orders = ['illuminatedTreatises', 'thePersonalUnion'];
+  sc.slots[layout.indexOf('civic')] = { card: 'illuminatedTreatises', sealedUntil: 0 };
   bumpRevision(state);
   return state;
 }

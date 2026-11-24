@@ -71,8 +71,8 @@ const BULL = 'magisterialTheGoldenBull' as OrderId;
 /** The three rows batch MG7 dealt, with the tier, rarity and type the sheet gives each. */
 const MG7_ROWS: readonly [OrderId, number, string, string][] = [
   [SED, 2, 'uncommon', 'civic'],
-  [PANDECTS, 3, 'uncommon', 'civic'],
-  [BULL, 3, 'uncommon', 'wildcard'],
+  [PANDECTS, 2, 'uncommon', 'civic'],
+  [BULL, 2, 'uncommon', 'wildcard'],
 ];
 
 /** The technology that lets a seat call great people. */
@@ -188,11 +188,11 @@ describe('Magisterial batch MG7: the rows', () => {
     );
     // Batch DS7 gave it a shorter text with the same effect.
     expect(orderDef(BULL).text).toBe(
-      'Goal: hold 20 Orders. Reward: a Doctrine offer.',
+      'Goal: hold 12 Orders. Reward: a Doctrine offer.',
     );
     expect(orderDef(BULL).effects).toEqual([]);
     expect(orderDef(BULL).commission).toEqual({
-      goals: [{ kind: 'reached', figure: 'ordersHeld', count: 20 }],
+      goals: [{ kind: 'reached', figure: 'ordersHeld', count: 12 }],
       reward: [{ doctrineOffer: true }],
     });
   });
@@ -205,7 +205,7 @@ describe('Magisterial batch MG7: the rows', () => {
     ]);
     expect(words(BULL)).toEqual([
       'Commission',
-      "Goal: hold 20 Orders, seated or not. Reward: a Doctrine draft of your government's tier",
+      "Goal: hold 12 Orders, seated or not. Reward: a Doctrine draft of your government's tier",
     ]);
   });
 });
@@ -322,7 +322,7 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
     ]);
     council(state, 'imperium', [...military, ...economic, civic!, BULL, null]);
     const held = player.statecraft.orders;
-    held.push(...ORDER_IDS.filter((id) => !held.includes(id)).slice(0, 20 - held.length));
+    held.push(...ORDER_IDS.filter((id) => !held.includes(id)).slice(0, 12 - held.length));
     return { state, player };
   }
 
@@ -361,7 +361,7 @@ describe('Commission: The Golden Bull (readings 18 and 19)', () => {
     expect(runCommissions(state)).toEqual([]);
   });
 
-  it('waits while the seat holds fewer than twenty Orders', () => {
+  it('waits while the seat holds fewer than twelve Orders', () => {
     const { state, player } = inOrder();
     player.statecraft.orders.pop();
     bumpRevision(state);

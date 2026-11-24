@@ -3654,7 +3654,8 @@ describe('the two missing signs (batch X5)', () => {
       );
       expect(row.total).toBe(foldTerms(row.terms));
     }
-    const empireHp = buildingDef('greatWall').effects!.filter((effect) => effect.kind === 'cityStat' && effect.stat === 'hp');
+    // Keep the empire-wide shape covered after Great Wall stopped granting it.
+    const empireHp: CardEffect[] = [{ kind: 'cityStat', stat: 'hp', amount: 25 }];
     const hpGain = cities.reduce((sum, city) =>
       sum + 25 / cityMaxHp(city, city, state) * cityBaseStrength(state, city) * ctx.ai.weights.military * (1 + ctx.threat), 0);
     expect(scoreEffects(empireHp, ctx)).toBeCloseTo(hpGain, 10);
@@ -4214,30 +4215,18 @@ describe('the growth channel charged (batch X5b)', () => {
     });
   });
 
-  it('charges the hex purchase the same line, for the citizen that would work it', () => {
+  it('does not charge another citizen when buying a tile', () => {
     withAiTuning(SHEET, () => {
-      const { state, player, city } = keepBench();
+      const { state, player } = keepBench();
       const ctx = valueContext(state, player);
       const want = ctx.wants.gold.find((row) => row.label.startsWith('the hex at'));
-      expect(want).not.toBeUndefined();
-      const keep = findTerm(want!.terms, KEEP);
-      expect(keep).not.toBeNull();
-      const marginal = happinessDemand(city.population + 1) - happinessDemand(city.population);
-      expect(keep!.value).toBe(-marginal * meterWeight(ctx, 'happiness'));
-      // A want's worth is the fold of its printed terms, this line included.
+      expect(want).toBeDefined();
+      expect(findTerm(want!.terms, KEEP)).toBeNull();
       expect(foldTerms(want!.terms)).toBe(want!.worth);
-      // It is a **charge**: the one negative line on a hex whose others are all
-      // gains, so the hex folds to strictly less than what it pays.
-      expect(keep!.value).toBeLessThan(0);
-      const hex = want!.terms[0]!;
-      const inside = hex.parts!;
-      expect(inside).toContain(keep!);
-      expect(inside.filter((term) => term.value < 0)).toHaveLength(1);
-      expect(hex.value).toBeLessThan(foldTerms(inside.filter((term) => term !== keep)));
     });
   });
 
-  it('gives the three arms one figure for one town', () => {
+  it('uses the same citizen cost for growth and settlers', () => {
     // The whole reason the line is a helper rather than three copies: the
     // settler's arm, the focus arm and the hex purchase are three questions
     // about one town's next citizen, and they may not come to three answers.
@@ -4247,17 +4236,11 @@ describe('the growth channel charged (batch X5b)', () => {
       const ctx = valueContext(state, player);
       const growth = findTerm(leanTerms(decision), /the next citizen arrives in/)!;
       const inGrowth = findTerm(growth.parts ?? [], KEEP)!;
-      const inHex = findTerm(
-        ctx.wants.gold.find((row) => row.label.startsWith('the hex at'))!.terms,
-        KEEP,
-      )!;
       const inCitizen = findTerm(explainCitizen(state, city, ctx).terms, KEEP)!;
       const helper = citizenKeepTerm(ctx, city.population)!;
       expect(inGrowth.value).toBe(helper.value);
-      expect(inHex.value).toBe(helper.value);
       expect(inCitizen.value).toBe(helper.value);
       expect(inGrowth.label).toBe(helper.label);
-      expect(inHex.label).toBe(helper.label);
       expect(inCitizen.label).toBe(helper.label);
     });
   });

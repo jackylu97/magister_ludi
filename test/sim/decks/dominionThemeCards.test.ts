@@ -549,18 +549,20 @@ describe('Dominion D10: towns', () => {
     expect(meterPaid(cardHappiness(state, 0), NAADAM)).toBe(0);
   });
 
-  it('The Tributary Kings: the capital gains +2 production and +2 gold for each citizen in your puppets', () => {
+  it('The Tributary Kings: the capital gains production and gold for citizens in captured towns', () => {
     const state = flat(false);
     const capital = foundCityAt(state, 0, at(state, 2, 2))!;
     const puppet = foundCityAt(state, 0, at(state, 9, 5))!;
     const annexed = foundCityAt(state, 0, at(state, 15, 9))!;
     puppet.puppet = true;
+    puppet.captured = true;
+    annexed.captured = true;
     puppet.population = 6;
     annexed.population = 4;
     slot(state, TRIBUTARY);
     bumpRevision(state);
-    expect(cityPaid(state, capital, TRIBUTARY, 'production')).toBe(12);
-    expect(cityPaid(state, capital, TRIBUTARY, 'gold')).toBe(12);
+    expect(cityPaid(state, capital, TRIBUTARY, 'production')).toBe(10);
+    expect(cityPaid(state, capital, TRIBUTARY, 'gold')).toBe(10);
     // The tribute is the capital's: the puppet and the other town gain nothing.
     expect(cityPaid(state, puppet, TRIBUTARY, 'production')).toBe(0);
     expect(cityPaid(state, annexed, TRIBUTARY, 'gold')).toBe(0);

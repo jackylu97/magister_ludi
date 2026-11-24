@@ -267,7 +267,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 | Shipwrights | 650 | The Silk Road | Galley, Tower Ship, Fire Ship | Shipyard | — |
 | The Civil Service | 650 | Code of Laws | — | Courthouse, **The Great Wall** | — |
 | The Saddle | 650 | Iron Working | Horseman *(needs improved Horses or Camels)*, Horse Archer *(needs improved Horses or Camels)*, War Elephant *(needs improved Ivory)* | — | renewals: Pasture +1⚙ |
-| Daughter Cities | 1150 | The Civil Service | — | Town Charter ◇ | — |
+| Daughter Cities | 1150 | The Civil Service | — | Town Charter ◇, **Machu Picchu** | — |
 | Engineering | 1150 | The Saddle | — | Aqueduct, Watermill, **The Circus Maximus** | — |
 | Guildhalls | 1150 | Satrapies | — | Workshop, **The Great Mosque of Djenné** | — |
 | Horology | 1150 | Mathematics | — | **Chichen Itza** | — |
@@ -286,19 +286,19 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Castellany | 1960 | Guildhalls | Pikeman | Castle | — |
+| Castellany | 1960 | Guildhalls | Pikeman | Castle, **Notre-Dame** | — |
 | Geomancy | 1960 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
 | Machinery | 1960 | Horology, Engineering | Crossbowman | — | — |
 | Paper Money | 1960 | Shipwrights, Guildhalls | — | Bazaar, Bourse ‡ | — |
 | Scholarship | 1960 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | renewals: Academy +2🔬, Landmark +2🎭, Manufactory +2⚙, Customs House +2💰, Citadel +2⚙ |
-| Natural Philosophy | 3250 | Scholarship | Trebuchet | **Machu Picchu** | reveals **Niter** |
+| Natural Philosophy | 3250 | Scholarship | Trebuchet | — | reveals **Niter** |
 | Steel | 3250 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
 | The Golden Roads | 3250 | Paper Money | — | — | — |
 | Militant Orders | 5150 | Steel | Knight *(needs improved Horses or Camels)* | **The Alhambra** | — |
 | Movable Type | 5150 | Steel, The Golden Roads | — | Printing House | — |
 | The Astrolabe | 5150 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
 | The Counting Houses | 5150 | The Golden Roads, Castellany | — | Bank | — |
-| The Holy Office | 5150 | Scholarship | Inquisitor | **Notre-Dame** | — |
+| The Holy Office | 5150 | Scholarship | Inquisitor | — | — |
 | Alchemy | 8000 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance *(needs improved Niter)* | The Alchemical Society, The Alchemical Codex ‡ | pays a **bead** to every completer |
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
@@ -309,7 +309,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 ### The charter technologies
 
-Only a seat that drafted the charter may research these. Each sits one column right of its one parent, inside its own age, and costs its column's price, as an ordinary technology there does. None moves an empire's age or counts as a world first.
+Only a seat that drafted the charter may research these. Each sits one column right of its one parent, inside its own age, and costs half its column's price. The table below lists the base column price before this discount. None moves an empire's age or counts as a world first. Scholasticism follows Epic Poetry so its extra column remains inside age II; its lane is unchanged.
 
 | node | æra | column | 🔬 | prereq | opened by | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|---|---|---|
@@ -324,7 +324,7 @@ Only a seat that drafted the charter may research these. Each sits one column ri
 | Cataloguing | II | 4 | 100 | Writing | The Librarians' Charter | — | Mouseion ‡ | — |
 | Glassmaking | II | 5 | 190 | Chronology | The Glassmakers' Charter | — | Glasshouse | — |
 | Medicine | III | 6 | 360 | The High Temple | The Physicians' Charter | — | Bimaristan ‡ | — |
-| Scholasticism | III | 6 | 360 | The High Temple | The Schoolmen's Charter | — | Cathedral School | — |
+| Scholasticism | II | 5 | 190 | Epic Poetry | The Schoolmen's Charter | — | Cathedral School | — |
 | Papermaking | III | 7 | 650 | Rhetoric | The Paper-Makers' Charter | — | Scriptorium | — |
 | Printing | III | 7 | 650 | Rhetoric | The Printers' Charter | — | Aldine Press ‡ | — |
 | Mechanics | III | 8 | 1150 | Mathematics | The Mechanists' Charter | — | — | — |

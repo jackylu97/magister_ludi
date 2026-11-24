@@ -358,7 +358,7 @@ describe('the live rows', () => {
       ].sort(),
     );
     // Batch DV4 added The Sabbath Laws.
-    expect(LIVE.filter((id) => orderDef(id).charter !== undefined).sort()).toEqual(['theBellTowers', 'theCallToPrayer', 'theChantries', 'theCliffMonasteries', 'theFast', 'theHallowedGround', 'theMegaliths', 'theNamingFeasts', 'theSabbathLaws', 'theVigilOfArms']);
+    expect(LIVE.filter((id) => orderDef(id).charter !== undefined).sort()).toEqual(['theCallToPrayer', 'theChantries', 'theCliffMonasteries', 'theFast', 'theMegaliths', 'theSabbathLaws', 'theVigilOfArms']);
   });
 });
 
@@ -595,7 +595,7 @@ describe('the religion readings', () => {
     expect(calling()).toBe(3);
   });
 
-  it('The Holy Inquisition pays authority for devout towns and reduces foreign pressure', () => {
+  it('The Holy Inquisition reduces foreign pressure', () => {
     // Batch DS5 cut the card's first half, the 40% off rival pressure.
     const g = akhenaten();
     const { city } = town(g);
@@ -605,7 +605,7 @@ describe('the religion readings', () => {
     seat(g.state, ['theHolyInquisition' as OrderId]);
     const percents = explainCity(g.state, city).percents.filter((line) => line.card === 'theHolyInquisition');
     expect(percents).toEqual([]);
-    expect(cardAuthority(g.state, 0).some(line => line.card === 'theHolyInquisition' && line.amount === 1)).toBe(true);
+    expect(cardAuthority(g.state, 0).some(line => line.card === 'theHolyInquisition')).toBe(false);
     expect(templeShare(g.state, city, rival, 100)).toBe(20);
   });
 
@@ -731,7 +731,6 @@ describe('batch DS5: the simpler Devotion cards', () => {
     expect(kinds('theSpiritualHost')).toEqual(['combatLine']);
     expect(kinds('devotionTheSaintsFields')).toEqual(['pays']);
     expect(orderDef('theHolyInquisition' as OrderId).effects).toEqual([
-      { kind: 'authority', amount: 1, per: 'city', scope: { test: 'ownersFaith', keeps: true } },
       { kind: 'pressureRule', rule: 'rivalPressurePercent', delta: -80 },
     ]);
     // A holy site pays at once, however new.

@@ -42,7 +42,6 @@ The deck has 78 Orders of its own, 27 Orders shared with another deck, and 17 Do
 | Doctrine | Build | Text |
 | --- | --- | --- |
 | **The Temenos** | holy ground | The hexes beside your towns with a Shrine gain +1 food and +1 faith. |
-| **The Theoric Fund** | the purse | +1 culture for every 3 faith your empire makes. |
 | **The Rites of Zhou** | rites | Each town holding a rite gains +2 food and +2 happiness. |
 | **The Serapeum** | devout towns and beliefs | Each of your gods gives twice its effects. |
 | **The Paean** | the army | Your military units gain +1 strength for every god and belief you hold. |
@@ -56,14 +55,14 @@ The deck has 78 Orders of its own, 27 Orders shared with another deck, and 17 Do
 | **The Pilgrim Staff** | common | implemented | Spending faith grants culture equal to a fourth of it. | Civic |
 | **The Temple Storehouses** | common | implemented | Temples give +2 food and +2 happiness. | Economic |
 | **The Temple Workshops** | common | implemented | Faith buildings give +1 food and +1 production each. | Economic |
-| **The Votive Gifts** | common | implemented | Towns may keep the Votive Offering, a rite: for ten turns the town gains production equal to its faith. | Economic |
+| **The Votive Gifts** | common | implemented | Towns keeping a rite gain production equal to half their faith. | Economic |
 | **The Zealots** | common | implemented | Your units gain +1 strength for every 10 faith you make each turn, at most +5. | Military |
-| **The Chantries** | uncommon | implemented | Unlocks the Chapel: +2 faith and +2 culture, and rites in its city last 50% longer. | Civic |
+| **The Chantries** | uncommon | implemented | Unlocks the Chapel: +2 faith and +2 culture, and rites in its town last 50% longer. | Civic |
 | **The Creed** | uncommon | implemented | Your capital gains +3 faith and +3 culture for every god and belief you hold. | Civic |
 | **The Fast** | uncommon | implemented | Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population. | Civic |
 | **The Founding Vows** | uncommon | implemented | Goal: start three rites. Reward: 250 faith. | Wildcard |
 | **The Gifts of the Faithful** | uncommon | implemented | Towns with a Shrine may buy culture and faith buildings with faith. | Economic |
-| **The Hallowed Ground** | uncommon | implemented | Unlocks the Rite of Hallowing: for ten turns the town's improved hexes gain +1 faith. | Economic |
+| **The Hallowed Ground** | uncommon | implemented | Towns keeping a rite gain +1 faith on each improved hex. | Economic |
 | **The Martyrology** | uncommon | implemented | Gains +2 faith and +2 culture each time one of your units dies in battle. | Civic |
 | **The Octave** | uncommon | implemented | Your rites last twice as long. | Civic |
 | **The Rogations** | uncommon | implemented | Gains +1 faith and +1 culture each time a town starts a rite, and again for each ten turns it keeps one. | Civic |
@@ -84,20 +83,20 @@ The deck has 78 Orders of its own, 27 Orders shared with another deck, and 17 Do
 
 | Card | Rarity | Status | Ability | Type |
 | --- | --- | --- | --- | --- |
-| **Mission Houses** | common | implemented | Your proclamations reach 50% farther and are 50% more effective in foreign cities. | Civic |
+| **Mission Houses** | common | implemented | Your proclamations reach 50% farther and are 50% more effective in foreign towns. | Civic |
 | **Temple Estates** | common | implemented | A holy site gains +2 food and +2 production for each improved hex beside it. | Economic |
 | **The Anchorites** | common | implemented | Your prophets raise a further holy site for one charge instead of two. | Civic |
-| **The Bell Towers** | common | implemented | Unlocks the Bell Tower, a faith building: +1 faith, and its town presses your religion +1 harder for each faith building it holds. | Civic |
 | **The Deaconries** | common | implemented | Devout towns gain +1 happiness for every four citizens. | Civic |
 | **The Parishes** | common | implemented | Each town you found starts out devout. | Civic |
 | **The Spiritual Host** | common | implemented | Military units gain +4 strength in land that follows your religion. | Military |
-| **The Temple Herds** | common | implemented | Pastures, camps and plantations gain +1 food and +1 production for each faith building in their town, at most +3 of each. | Economic |
-| **Commission: The State Church** | uncommon | implemented | Goal: hold six towns, all devout. Reward: +1 authority and +1 happiness for every two devout towns. | Wildcard |
+| **The Temple Herds** | common | implemented | Pastures, camps and plantations gain +1 food and +1 production for each building that supplies faith in their town, at most +3 of each. | Economic |
+| **Commission: The State Church** | uncommon | implemented | Goal: hold six towns, all devout. Reward: +1 happiness for every two devout towns. | Wildcard |
 | **The Book of Life** | uncommon | implemented | +1% science and culture for every 150 faith you have spent this game, at most +30%. | Civic |
 | **The Cliff Monasteries** | uncommon | implemented | Workers may build one cliff monastery in each town, on a hex beside a mountain: +3 faith and +3 science, and +1 of each more for each mountain beside it. | Economic |
 | **The Fetials** | uncommon | implemented | Military units you gain in a town keeping a rite start as Veterans. | Military |
-| **The Living Hymnal** | uncommon | implemented | Your capital gains +3 science and +3 culture for every city following your religion, with no cap. | Civic |
-| **The Mission** | uncommon | implemented | Goal: convert two foreign cities. Reward: an Apostle and 300 culture. | Wildcard |
+| **The Patriarchate** | uncommon | implemented | Your holy city gains +2 production and +2 science for each point of spare authority. | Civic |
+| **The Living Hymnal** | uncommon | implemented | Your capital gains +3 science and +3 culture for every town in the world that follows your religion, with no cap. | Civic |
+| **The Mission** | uncommon | implemented | Goal: convert two foreign towns. Reward: an Apostle and 300 culture. | Wildcard |
 | **The Old Holy Places** | uncommon | implemented | Holy sites gain +1 faith and +1 culture for every ten turns they have stood. | Economic |
 | **The Sabbath Laws** | uncommon | implemented | Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production. | Civic |
 | **The Second Prophet** | uncommon | implemented | Prophets and apostles you buy start with one extra charge. | Civic |
@@ -124,19 +123,17 @@ The deck has 78 Orders of its own, 27 Orders shared with another deck, and 17 Do
 | Card | Rarity | Status | Ability | Type |
 | --- | --- | --- | --- | --- |
 | **The Cathedral Works** | common | implemented | Cathedrals give +8 science and +2 happiness. | Civic |
-| **The Defenders of the Faith** | common | implemented | Your units gain +1 strength for every three towns that follow your religion. | Military |
+| **The Defenders of the Faith** | common | implemented | Your units gain +1 strength for every three towns in the world that follow your religion. | Military |
 | **The Fabric Fund** | common | implemented | Buying a building with faith grants its town production equal to a quarter of the faith paid. | Economic |
-| **The Sacred Bequests** | common | implemented | Spending faith grants science equal to a fourth of it. | Civic |
 | **The Two Swords** | common | implemented | +1 happiness for every two points of spare authority. | Civic |
-| **Commission: The Anointing** | uncommon | implemented | Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture. | Wildcard |
+| **Commission: The Anointing** | uncommon | implemented | Goal: hold 10 spare authority. Reward: every town you hold keeps a rite that your capital starts. | Wildcard |
 | **The Call to Prayer** | uncommon | implemented | Opens Liturgy: your holy sites press your religion twice as far. | Civic |
 | **The Consecration Feast** | uncommon | implemented | Finishing or buying a faith building grants its town food and culture equal to ten times its population. | Economic |
-| **The Holy Inquisition** | uncommon | implemented | Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included. | Civic |
-| **The Learned Clergy** | uncommon | implemented | +2 science and +2 culture for every 10 faith your empire makes each turn. | Civic |
+| **The Holy Inquisition** | uncommon | implemented | Rival religions press your towns 80% less. | Civic |
 | **The Mass Baptisms** | uncommon | implemented | The first time a foreign town turns to your religion, gain science and culture equal to twenty times its population. | Civic |
-| **The Naming Feasts** | uncommon | implemented | Unlocks the Rite of Naming: for ten turns the town gains +2 food for each citizen. | Economic |
+| **The Naming Feasts** | uncommon | implemented | Towns keeping a rite gain +1 food for each citizen. | Economic |
 | **The Offered Stones** | uncommon | implemented | +4 culture for each building you have bought with faith. | Economic |
-| **The Pilgrim Towns** | uncommon | implemented | Holy sites gain +1 production and +1 culture for each town that follows your religion. | Economic |
+| **The Pilgrim Towns** | uncommon | implemented | Holy sites gain +1 production and +1 culture for each town in the world that follows your religion. | Economic |
 | **The Prince-Bishops** | uncommon | implemented | Your faith buildings yield twice as much. | Economic |
 | **The Psalter** | uncommon | implemented | Each rite a town starts grants science and culture equal to five times the town's population, and again for each ten turns it keeps the rite. | Civic |
 | **The Caliphate** | rare | implemented | Devout towns cost 1 authority. | Civic |
@@ -159,15 +156,14 @@ The deck has 78 Orders of its own, 27 Orders shared with another deck, and 17 Do
 
 | Card | Rarity | Status | Ability | Type |
 | --- | --- | --- | --- | --- |
-| **The Chapter Houses** | common | implemented | Every city with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each. | Civic |
+| **The Chapter Houses** | common | implemented | Every town with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each. | Civic |
 | **The Poor Tables** | common | implemented | +1 happiness for every 20 faith you make each turn. | Civic |
 | **The Soldiers of God** | common | implemented | Military units you buy with faith gain +6 strength. | Military |
 | **The Commander of the Faithful** | uncommon | implemented | +3 faith and +3 culture for each point of spare authority. | Civic |
-| **The Host Restored** | uncommon | implemented | Towns may keep the Restoring of the Host, a rite: for ten turns your units within three hexes of the town heal 25 health each turn. | Military |
+| **The Host Restored** | uncommon | implemented | Your units heal an additional 20 in your towns keeping a rite. | Military |
 | **The Last Offering** | uncommon | implemented | In your holy city, faith you pour into the Magnum Opus buys 50% more production. | Economic |
-| **The Tithe of Nations** | uncommon | implemented | Gain 1 faith each turn for every two citizens in the world who follow your religion. | Civic |
 | **The Year of Release** | uncommon | implemented | On draft: gain faith equal to ten turns of your faith. | Civic |
-| **The Great Commission** | rare | implemented | Goal: more than half the world's cities follow your religion. Reward: each town that follows your religion, at home or abroad, gives you +3 science and +3 culture. | Wildcard |
+| **The Great Commission** | rare | implemented | Goal: more than half the world's towns follow your religion. Reward: each town that follows your religion, at home or abroad, gives you +3 science and +3 culture. | Wildcard |
 | **The Interdict** | rare | implemented | A rival's town that follows your religion adds no production toward a Magnum Opus. | Civic |
 
 ## Shared with another deck
@@ -188,7 +184,7 @@ The deck has 78 Orders of its own, 27 Orders shared with another deck, and 17 Do
 | **The Painted Chapels** | uncommon | Magisterial | I | implemented | Religious buildings give +3 culture each. | Civic |
 | **The Priest-Astronomers** | common | Scientific | I | implemented | Your capital gains +2 science and +2 faith for each town keeping a rite. | Civic |
 | **The Sacred Host** | uncommon | Dominion | I | implemented | Kills grant faith equal to the strength of the unit you killed. | Military |
-| **The Schoolmen's Charter** | uncommon | Scientific | I | implemented | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Civic |
+| **The Schoolmen's Charter** | uncommon | Scientific | II | implemented | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town, doubled while the town keeps a rite. | Civic |
 | **The Shrine Guards** | common | Dominion | I | implemented | Towns with a Shrine may buy melee units with faith. | Military |
 | **The Votive Accounts** | uncommon | Commerce | I | implemented | Starts at +2 culture and +2 faith for your empire. Gains +1 of each every time you buy something with gold or faith, or start a rite, at most +20. | Civic |
 | **Pilgrim Markets** | uncommon | Commerce | II | implemented | Trade routes to or from a town with a Holy Site gain +3 gold and +3 faith. | Civic |

@@ -215,6 +215,8 @@ type WagerReads =
   | { shape: 'clauses'; clauses: readonly WagerClause[] };
 
 interface WagerDef {
+  /** Older games use this pool until milestone calibration is installed. */
+  retired?: boolean;
   name: string;
   /**
    * Which rod the beads it mints land on.

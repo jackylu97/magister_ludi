@@ -1,3 +1,4 @@
+import { wagerIncome } from './wagerMilestoneData';
 /**
  * The Bead Race — the game's one victory condition (design ledger Entry VI,
  * `docs/beads.md`).
@@ -783,23 +784,23 @@ function payWindfall(state: GameState, player: Player, windfall: BeadWindfall): 
 
   switch (windfall.yield) {
     case 'gold':
-      player.gold += amount;
+      player.gold += wagerIncome(state, player.id, 'faithGold', amount);
       // **The banks are a line of the meters too** (batch M3, `slate.ts`): a
       // card may pay contentment for each 50 banked faith or each 100 gold, so
       // a treasury that moved is an empire whose happiness may have moved.
       bumpEconomy(state);
       return true;
     case 'faith':
-      player.faithPool += amount;
+      player.faithPool += wagerIncome(state, player.id, 'faithGold', amount);
       bumpEconomy(state);
       return true;
     case 'science':
-      player.sciencePool += amount;
+      player.sciencePool += wagerIncome(state, player.id, 'scienceCulture', amount);
       bumpEconomy(state);
       settleResearchWindfall(state, player);
       return true;
     case 'culture':
-      player.culturePool += amount;
+      player.culturePool += wagerIncome(state, player.id, 'scienceCulture', amount);
       bumpEconomy(state);
       settleCultureWindfall(state, player);
       return true;

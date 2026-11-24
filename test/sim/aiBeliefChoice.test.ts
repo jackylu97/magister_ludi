@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 
 import { valueContext } from '../../src/ai/bot';
 import { explainCard } from '../../src/ai/council';
-import { meterWeight, voiceWeight } from '../../src/ai/prices';
+import { voiceWeight } from '../../src/ai/prices';
 import {
   explainBeliefChoice,
   explainCardStamp,
@@ -41,7 +41,7 @@ import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibilit
 import { stampOfTheSim } from './aiCardStampHelpers';
 import { newGame } from './newGameHelpers';
 
-const FEAST_DAYS = 'feastDays' as BeliefId;
+const CATHEDRALS = 'cathedralsOfTheSky' as BeliefId;
 const PILGRIMAGE = 'pilgrimage' as BeliefId;
 const TITHE_HOUSES = 'titheHouses' as BeliefId;
 const CONGREGATION = 'congregation' as BeliefId;
@@ -119,10 +119,9 @@ function religionAt(state: GameState, site: City, followers: readonly City[], be
 }
 
 /** A follower row's lines with the faith part of each scope taken off, written out by hand. */
-function feastDaysInAFollowingTown(): CardEffect[] {
+function cathedralsInAFollowingTown(): CardEffect[] {
   return [
-    { kind: 'happiness', amount: 1, per: 'city' },
-    { kind: 'happiness', amount: 1, per: 'city', scope: { test: 'hasBuilding', building: 'temple' }, building: 'temple' },
+    { kind: 'pays', where: 'city', scope: { test: 'hasBuilding', building: 'temple' }, science: 2, culture: 2 },
   ] as CardEffect[];
 }
 
@@ -151,16 +150,16 @@ describe('a follower belief priced as a choice (fault B7)', () => {
     const { state, player, towns } = board([6, 4, 3]);
     religionAt(state, towns[0]!, []);
     const ctx = valueContext(state, player);
-    const effects = beliefDef(FEAST_DAYS).effects;
+    const effects = beliefDef(CATHEDRALS).effects;
     // No town follows the faith yet, so the plain walk reads nothing for the line
     // asked of following towns: the fault. (The temple line reads one town under
     // the walk's floor for a scope that names a building.)
-    expect(explainEffects([effects[0]!], ctx, FEAST_DAYS).total).toBe(0);
+    expect(explainEffects([effects[0]!], ctx, CATHEDRALS).total).toBe(0);
     // As a choice, every town is taken to follow.
-    const choice = explainBeliefChoice(FEAST_DAYS, ctx).total;
-    expect(choice).toBeGreaterThan(explainEffects(effects, ctx, FEAST_DAYS).total);
-    expect(choice).toBeCloseTo(explainEffects(feastDaysInAFollowingTown(), ctx).total, 9);
-    expect(choice).toBeGreaterThanOrEqual(3 * meterWeight(ctx, 'happiness') - 1e-9);
+    const choice = explainBeliefChoice(CATHEDRALS, ctx).total;
+    expect(choice).toBeGreaterThan(explainEffects(effects, ctx, CATHEDRALS).total);
+    expect(choice).toBeCloseTo(explainEffects(cathedralsInAFollowingTown(), ctx).total, 9);
+    expect(choice).toBeGreaterThan(0);
   });
 
   it('prices a later pick at the share of the towns the faith can expect to hold', () => {
@@ -168,9 +167,9 @@ describe('a follower belief priced as a choice (fault B7)', () => {
     const mine = religionAt(state, towns[0]!, [towns[0]!], ['choirs']);
     religionAt(state, rival, [towns[2]!]);
     const ctx = valueContext(state, player);
-    const every = explainEffects(feastDaysInAFollowingTown(), ctx).total;
+    const every = explainEffects(cathedralsInAFollowingTown(), ctx).total;
     expect(state.religions[mine]!.follower.length).toBe(1);
-    expect(explainBeliefChoice(FEAST_DAYS, ctx).total).toBeCloseTo((every * 2) / 3, 9);
+    expect(explainBeliefChoice(CATHEDRALS, ctx).total).toBeCloseTo((every * 2) / 3, 9);
   });
 
   it('reads a count of the town’s followers as its citizens', () => {

@@ -34,6 +34,7 @@ import { applyCommand } from '../../../src/sim/commands';
 import { razeCityAt } from '../../../src/sim/diplomacy';
 import { settleGreatPersonChoice } from '../../../src/sim/greatPeople';
 import { type Tile, createMap, getTileAt } from '../../../src/sim/map';
+import { rankOf, rankThreshold } from '../../../src/sim/ranks';
 import { makeRng } from '../../../src/sim/rng';
 import { bumpEconomy } from '../../../src/sim/slate';
 import {
@@ -448,6 +449,34 @@ describe('Dominion D5 — new moments', () => {
       expect(state.units.some((unit) => unit.id === defender.id)).toBe(false);
       expect(capital.hammerBasket - before).toBe(free ? 0 : cost / 2);
       expect(attacker.movesLeft).toBe(fullMovement(attacker, state));
+      expect(attacker.hasAttacked).toBe(false);
+      const second = createUnit(state, 1, 'warrior', 7, row);
+      touch(state);
+      expect(applyCombat(state, attacker.id, second).ok).toBe(true);
+      expect(second.hp).toBeGreaterThan(0);
+      expect(attacker.hasAttacked).toBe(true);
+    }
+  });
+
+  it('The Sacred Band replaces an Elite lost in combat with a free Veteran at the capital', () => {
+    for (const rank of ['veteran', 'elite'] as const) {
+      const state = flat();
+      const capital = foundCityAt(state, 0, at(state, 1, 1));
+      slot(state, 0, 'theSacredBand');
+      const fallen = createUnit(state, 0, 'warrior', 6, 4);
+      fallen.experience = rankThreshold(rank);
+      fallen.hp = 1;
+      const attacker = createUnit(state, 1, 'warrior', 5, 4);
+      touch(state);
+      expect(applyCombat(state, attacker.id, fallen).ok).toBe(true);
+      const survivors = state.units.filter(unit => unit.ownerId === 0);
+      if (rank === 'veteran') expect(survivors).toHaveLength(0);
+      else {
+        expect(survivors).toHaveLength(1);
+        const [replacement] = survivors;
+        expect(replacement).toMatchObject({ col: capital.col, row: capital.row, freeUpkeep: true });
+        expect(rankOf(replacement!)).toBe('veteran');
+      }
     }
   });
 

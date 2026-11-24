@@ -1,7 +1,27 @@
 {
-  "strength": { "tier": 1, "points": 2 },
-  "rivalGrowthAndProduction": { "tier": 2, "percent": 20 },
-  "campWave": { "tier": 3, "unitsPerCamp": 2 },
-  "humanBuildCost": { "tier": 4, "percent": 25 },
-  "humanOrderRarity": { "tier": 5, "weights": { "common": 75, "uncommon": 20, "rare": 5 } }
+  "strength": {
+    "tier": 1, "points": 2,
+    "text": "Rivals and barbarians gain +{points} combat strength.",
+    "short": "Rivals, barbarians +{points} strength"
+  },
+  "rivalGrowthAndProduction": {
+    "tier": 2, "percent": 20,
+    "text": "Rivals gain +{percent}% growth and production.",
+    "short": "Rivals +{percent}% growth, production"
+  },
+  "campWave": {
+    "tier": 3, "unitsPerCamp": 2,
+    "text": "When an age closes, new barbarian camps appear with {unitsPerCamp} units each.",
+    "short": "Age close: new camps of {unitsPerCamp}"
+  },
+  "humanBuildCost": {
+    "tier": 4, "percent": 25,
+    "text": "Your buildings and units cost {percent}% more.",
+    "short": "Your builds cost {percent}% more"
+  },
+  "humanOrderRarity": {
+    "tier": 5, "weights": { "common": 75, "uncommon": 20, "rare": 5 },
+    "text": "Your Order offers hold fewer uncommon and rare cards: the odds are {weights.common} / {weights.uncommon} / {weights.rare}, not {normalRarity.common} / {normalRarity.uncommon} / {normalRarity.rare}.",
+    "short": "Order odds {weights.common} / {weights.uncommon} / {weights.rare}"
+  }
 }

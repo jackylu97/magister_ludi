@@ -76,7 +76,7 @@ import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './dec
 import { type TileContextField, tileContextField } from './ground';
 import {
   type ValueContext,
-  techCostFor,
+  researchPathForecast,
   claimedHexWorth,
   workPlacementTerms,
 } from './value';
@@ -734,31 +734,6 @@ function techYieldDelta(
   return delta;
 }
 
-/**
- * **How many turns until a node the seat has declared for actually lands** — the
- * beakers still owed for it over the beakers this empire banks a turn.
- *
- * Owed is the plan's own arithmetic and not a walk of the tree: `researchPlan`
- * is `researching` plus the queue behind it, in the order they will be paid, so
- * everything ahead of the node is owed before the node is. The pool already
- * banked (`sciencePool`) comes off the front of that, floored at nothing — a
- * pool that already covers the whole plan is a plan that lands next turn.
- *
- * A seat banking no beakers at all is treated as banking one, `savingRows`'
- * bargain over in the want book: an empire whose books read flat should price a
- * node as very far off, not as never arriving at all.
- */
-function turnsUntilPlanned(player: Player, ctx: ValueContext, goal: TechId): number {
-  // Each node at the folded price this empire pays (`techCostFor`; Scientific
-  // batch S13), so a charter technology on the plan carries its premium.
-  let owed = 0;
-  for (const step of researchPlan(player)) {
-    owed += techCostFor(ctx, step);
-    if (step === goal) break;
-  }
-  const remaining = Math.max(0, owed - player.sciencePool);
-  return remaining / Math.max(1, ctx.scienceRate);
-}
 
 /**
  * **Every technology this seat could be holding before the horizon runs out, and
@@ -775,10 +750,10 @@ function turnsUntilPlanned(player: Player, ctx: ValueContext, goal: TechId): num
  *     ask one question about a farm it could lay today and a fishing boat it
  *     could lay in nine turns, and get one answer with the delay in it;
  *   · a node **on the declared plan** lands when the plan will have paid for it
- *     (`turnsUntilPlanned` — everything ahead of it is owed first), because that
+ *     (everything ahead of it is paid first), because that
  *     is when this empire will actually hold it;
  *   · every **other** node lands at what its own road costs: the beakers of
- *     `researchExpansion` less the pool already banked, over the science rate.
+ *     `researchExpansion` less progress saved on those nodes, over the science rate.
  *     That is the earliest it could arrive, which is the honest reading of a
  *     suspicion — the seat would have to re-aim, and re-aiming is free;
  *   · a node landing past `priorities.horizonTurns` is **absent**, not zero. The
@@ -798,8 +773,7 @@ export function reachableTechs(ctx: ValueContext): ReadonlyMap<TechId, number> {
   const player = playerById(ctx.state, ctx.playerId);
   if (player === undefined) return new Map<TechId, number>();
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
-  const rate = Math.max(1, ctx.scienceRate);
-  const plan = researchPlan(player);
+  const planned = researchPathForecast(ctx, researchPlan(player)).landings;
   const landings = new Map<TechId, number>();
   // A charter technology this seat has not drafted never lands: the reducer
   // refuses it (Scientific batch S0), so it is absent, as a node past the
@@ -812,12 +786,10 @@ export function reachableTechs(ctx: ValueContext): ReadonlyMap<TechId, number> {
     }
     if (shut.includes(tech)) continue;
     let landing: number;
-    if (plan.includes(tech)) {
-      landing = turnsUntilPlanned(player, ctx, tech);
+    if (planned.has(tech)) {
+      landing = planned.get(tech)!;
     } else {
-      let owed = 0;
-      for (const step of researchExpansion(ctx.state, player.id, tech)) owed += techCostFor(ctx, step);
-      landing = Math.max(0, owed - player.sciencePool) / rate;
+      landing = researchPathForecast(ctx, researchExpansion(ctx.state, player.id, tech)).delay;
     }
     if (landing > horizon) continue;
     landings.set(tech, landing);

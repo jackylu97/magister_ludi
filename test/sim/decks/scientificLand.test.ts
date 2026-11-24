@@ -613,7 +613,7 @@ describe('the words', () => {
     const alchemists = said('theAlchemistsCharter');
     expect(alchemists.some((text) => text.includes('Niter'))).toBe(false);
     expect(alchemists).toContain(
-      'Chemistry gives the Grenadier trait: Warrior to Longswordsman +1 combat strength per charter technology you know',
+      'Chemistry gives the Grenadier trait: Warrior to Longswordsman +1 combat strength per charter you hold',
     );
   });
 

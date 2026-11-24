@@ -378,7 +378,8 @@
     "startingTechs": [
       "agriculture"
     ],
-    "retoolCost": 0
+    "retoolCost": 0,
+    "charterCostPercent": 50
   },
   "religion": {
     "pressurePerConvert": 10,
@@ -510,7 +511,6 @@
     "perCitizen": 4,
     "perTechnology": 6,
     "perWonder": 20,
-    "perBead": 15,
     "perGreatPerson": 10,
     "perTownTaken": 10,
     "perAge": 25,

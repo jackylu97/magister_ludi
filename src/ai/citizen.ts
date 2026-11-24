@@ -1,26 +1,6 @@
 /**
- * **What a citizen costs, as one line four arms share** — batch X5b of
- * `docs/bot-priorities.md`, and the leaf the ruling on the flags board (item
- * (ggg), 2026-09-08) needs to exist: *"both charge the marginal keep of the
- * citizen they would add — `happinessDemand(pop + 1) − happinessDemand(pop)` at
- * the live price, the same line — read at the town's current population so a
- * focus order does not move its own appraisal."*
- *
- * Four arms of the appraisal weigh a citizen and they may not come to four
- * answers about one town:
- *
- *   · the **settler** gives one away (`explainCitizen`, `bot.ts`);
- *   · the **focus arm** delays one (`growthTerm`, `bot.ts`);
- *   · the **hex purchase** seats one (`tileWants`, `wants.ts`);
- *   · the **expansion chain** creates one, in a town that does not exist yet
- *     (`expansionChain`, `chain.ts`).
- *
- * The last of those is why this is a module rather than a helper beside one of
- * them: `wants.ts` stands on `chain.ts`, so a line both files fold cannot live in
- * either — the same bargain `ground.ts`, `routes.ts` and `dealMemory.ts` make,
- * and CLAUDE.md's own sentence about a helper two modules need. It imports the
- * appraisal for the meter's price and the simulation for the meter's curve, and
- * nothing imports it back.
+ * Growth, founding and settlers share the cost of adding or removing a citizen.
+ * Tile purchases do not use this cost because they leave population unchanged.
  */
 
 import { type ValueTerm } from './decision';
@@ -44,10 +24,10 @@ import { happinessDemand } from '../sim/meters';
  * building's `happiness` line is paid at — so a seat riding the band's ceiling
  * charges a citizen three times what a seat at the table's own figure does.
  *
- * **Why `population` is a parameter and never a town.** The four arms disagree
+ * **Why `population` is a parameter and never a town.** The callers disagree
  * about *which* citizen they are talking about and must agree about the figure.
  * What they share is the town's **current** population — `0` for the town the
- * expansion chain is about, which has none yet — and the ruling is that all four
+ * expansion chain is about, which has none yet — and the ruling is that all callers
  * read it there: a citizen arrives by growth and never by a command, so no order
  * a seat can give moves the number this charges, and an appraisal that cannot be
  * moved by acting on it cannot flip a town back and forth (`growthTerm`'s

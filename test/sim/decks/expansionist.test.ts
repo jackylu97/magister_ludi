@@ -327,7 +327,7 @@ describe('the Expansionist deck, as entered', () => {
     // and since batch E7 the fifteen rows the themes pass cut (fourteen live
     // rows and the deferred Public Works). Batch DS1
     // (`docs/plans/deck-simplification-2026-11-10.md`) retired 39 live rows.
-    expect(RETIRED.length).toBe(96);
+    expect(RETIRED.length).toBe(99);
     for (const id of RETIRED) {
       expect(orderIsDealt(id), id).toBe(false);
       expect(ordersForDecks(['expansionist']), id).not.toContain(id);

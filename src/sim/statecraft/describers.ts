@@ -1473,7 +1473,7 @@ function scalerWords(parts: readonly ScalerPart[]): string {
 
 /** Do two counted lines watch the same moment, by the same step? */
 function sameScalerMoment(a: CardPaysEffect, b: CardPaysEffect): boolean {
-  return a.tally === b.tally && a.per === b.per;
+  return a.tally === b.tally && a.per === b.per && a.minPopulation === b.minPopulation;
 }
 
 function scalerGroupWords(parts: readonly ScalerPart[]): string {
@@ -1520,7 +1520,9 @@ function scalerMomentWords(line: CardPaysEffect): string {
     return `each time ${moments.join(' or ')}`;
   }
   const per = line.per ?? 1;
-  const moment = SCALER_MOMENT_WORDS[tally];
+  const moment = tally === 'sizeRecord' && line.minPopulation !== undefined
+    ? `one of your towns grows past ${line.minPopulation - 1} citizens`
+    : SCALER_MOMENT_WORDS[tally];
   if (moment === null || per > 1) return `for every ${countWords(per, TALLY_WORDS[tally])}`;
   return `each time ${moment}`;
 }
@@ -1562,6 +1564,8 @@ const SCALER_MOMENT_WORDS: Readonly<Record<TallyOccasion, string | null>> = {
   // Batch R1, The Strongbox: a purchase of any kind with gold.
   goldPurchase: 'you buy something with gold',
   faithPurchase: 'you buy something with faith',
+  orderSeated: 'you seat an Order',
+  draftRerolled: 'you reroll a draft',
   orderGained: 'you gain an Order',
   greatPersonGained: 'you gain a great person',
   wonderCompleted: 'you complete a wonder',
@@ -2524,7 +2528,7 @@ function describePays(
   if (effect.where === 'hex') {
     if (effect.on === undefined) return;
     const on = effect.on;
-    const words = bagWords(effect);
+    const words = effect.ownYieldOnly ? `${signed(effect.science ?? effect.food ?? 0)} of the improvement's own yields` : bagWords(effect);
     // The scope trails the hex as a clause of its own, because a scoped tile
     // line is about *whose* ground: Petra's desert is the desert of one town,
     // and the sentence has to say so without turning the hex into a
@@ -3107,6 +3111,10 @@ function describeEffect(
       // **A town that counts as holding a building** (Expansionist batch E12,
       // The Cura Aquarum). The towns come first, as the card says them, and the
       // building is named as a keyword.
+      if (effect.rule === 'doubleGarrisonBonus' && effect.rank) {
+        out.push({ text: `${rankName(effect.rank)} units in a garrison give twice the per-unit garrison bonuses of your other cards` });
+        return;
+      }
       if (effect.rule === 'holdsBuilding' && effect.building !== undefined) {
         out.push({
           text: `${scopeWordsFor(subject, effect.scope)} counts as having ${buildingWords(effect.building)}`,
@@ -3239,6 +3247,7 @@ function describeEffect(
       // Workshops carries two) and a suffix on each would say the narrowing
       // twice.
       const narrowings: string[] = [];
+      if (effect.vsFewerTechs === true) narrowings.push('against an empire that knows fewer technologies than you');
       if (effect.buildingCategory !== undefined) {
         narrowings.push(`a ${effect.buildingCategory} building`);
       }
@@ -3310,6 +3319,7 @@ function describeEffect(
       const said =
         effect.rank === undefined
           ? occasionSaid
+          : effect.occasion === 'death' ? `losing one of your ${rankName(effect.rank)} units`
           : occasionSaid.replace(
               'earning a rank',
               `becoming ${indefinite(rankName(effect.rank))} ${rankName(effect.rank)}`,
@@ -3435,6 +3445,10 @@ function describeEffect(
       // so its Opus town is named alone.
       const opusOnly = effect.whileRaisingOpus === true;
       if (grant?.yield !== undefined && grant.amount !== undefined) {
+        if (grant.permanentTownYield) {
+          out.push({ text: `${occasion} permanently adds ${signed(grant.amount)} ${grant.yield} per turn to that city` });
+          return;
+        }
         // A figure quoted in **turns** reads as turns, because that is the whole
         // sentence the card is making: "an extra turn of culture" is a promise
         // about the empire's own books, and printing the number the rate happens
@@ -3644,7 +3658,7 @@ function describeEffect(
         const howLong = timedLengthWords(turns, grant.timed.renews === true);
         out.push({
           text:
-            `${occasion} ${pays ? 'grants' : 'costs your empire'} ` +
+            `${occasion} ${grant.timed.townsInReach ? 'gives your towns within its reach' : pays ? 'grants' : 'costs your empire'} ` +
             `${inner.map((clause) => clause.text).join('; ')} ${howLong}${per}`,
         });
       }
@@ -3692,13 +3706,16 @@ function describeEffect(
             `${howLong}${per}`,
         });
       }
+      if (grant?.unit === 'same') {
+        out.push({ text: `${occasion} grants a second unit of the same kind; the copy does not create another copy` });
+      }
       if (grant?.unit === 'randomMilitary') {
         out.push({ text: `${occasion} grants a random military unit${unitDeliveryWords(grant)}${per}` });
       }
       // Dominion batch D5's two unit kinds.
       if (grant?.unit === 'bestMelee') {
         out.push({
-          text: `${occasion} grants ${grantedClassWords('melee')}${unitDeliveryWords(grant)}${per}`,
+          text: `${occasion} grants ${grantedClassWords('melee')}${unitDeliveryWords(grant)}${grant.unitRank ? ` starting as ${indefinite(rankName(grant.unitRank))} ${rankName(grant.unitRank)}` : ''}${per}`,
         });
       }
       if (grant?.unit === 'bestSiege') {
@@ -3721,6 +3738,7 @@ function describeEffect(
       }
       if (grant?.completeResearch) out.push({ text: `${occasion} completes your current technology` });
       if (grant?.orderDraft) out.push({ text: `${occasion} grants a free Order hand` });
+      if (grant?.freeRerolls) out.push({ text: `${occasion} grants ${grant.freeRerolls} free reroll${grant.freeRerolls === 1 ? '' : 's'}` });
       if (grant?.freeDraft === true) {
         out.push({ text: `${occasion} deals you a free Order hand at once` });
       }
@@ -4441,6 +4459,9 @@ function describeEffect(
       });
       return;
     }
+    case 'buildingRelic':
+      out.push({ text: `an apostle can spend a charge in one of your towns to add +${effect.science} science and +${effect.culture} culture to its ${buildingDef(effect.building).name}. Each relic adds its own yields` });
+      return;
     case 'pressureRule': {
       const delta = effect.delta;
       // A scoped shift names the towns it shields in place of "your cities"
@@ -4625,7 +4646,7 @@ function describeEffect(
         // in the shape every other percentage clause on a card is said in.
         text:
           effect.where === 'empire'
-            ? `${signed(effect.percent)}% renown`
+            ? `${signed(effect.percent)}% renown${effect.family ? ` toward ${effect.family}s` : ''}`
             : effect.of !== undefined
               ? // The Peripatetic School (batch DT6): the share names its rows, so
                 // the sentence does too. A town appears only if the row names one.
@@ -4844,7 +4865,11 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
           : `production equal to ${effect.percentOfCost}% of the cost of the world wonder this town is building`;
         break;
       case 'faith':
-        what = `${effect.faithPerCitizen} faith per citizen before the levy`;
+        what = `${listWords([
+          ...(effect.faithPerCitizen ? [`${effect.faithPerCitizen} faith`] : []),
+          ...(effect.sciencePerCitizen ? [`${effect.sciencePerCitizen} science`] : []),
+          ...(effect.renownPerCitizen ? [`${effect.renownPerCitizen} renown`] : []),
+        ])} per citizen before the levy`;
         break;
       case 'rite':
         what = riteWords;
@@ -5279,6 +5304,13 @@ function slotFlavourWords(flavour: ChairType): PluralWords {
  * Barracks" and "per Temple" are one shape, one table entry and two data rows.
  */
 function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
+  const words = baseCountNoun(effect, place);
+  if (effect.countAbove === undefined) return words;
+  const after = effect.countAbove === 1 ? 'after the first' : `after the first ${effect.countAbove}`;
+  return { one: `${words.one} ${after}`, many: `${words.many} ${after}` };
+}
+
+function baseCountNoun(effect: CardPaysEffect, place: string): PluralWords {
   if (effect.count === 'slottedOrdersOfSlot' && effect.byChair) {
     return { one: `Order in a ${effect.slot} chair`, many: `Orders in ${effect.slot} chairs` };
   }
@@ -7271,6 +7303,7 @@ export function combatSideWords(side: CardCombatLineEffect['side'], when: Combat
 }
 
 const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
+  greatPersonFamilies: { one: 'family of great person you have gained', many: 'families of great person you have gained' },
   cities: { one: 'city you hold', many: 'cities you hold' },
   // `adjacentFriendlies` counts **combatants** and nothing else, so the words
   // say so: a settler standing beside a spearman is not a shield wall.
@@ -7315,6 +7348,7 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
     one: 'charter technology you know',
     many: 'charter technologies you know',
   },
+  chartersDrafted: { one: 'charter you hold', many: 'charters you hold' },
   // Scientific batch S3, The Proving Ground: the lead.
   techLead: {
     one: 'technology you know that no empire you have met knows',
@@ -7327,14 +7361,7 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
 const WHERE_WORDS: Record<
-  | 'anywhere'
-  | 'ownTerritory'
-  | 'foreignTerritory'
-  | 'embarked'
-  | 'fortified'
-  | 'grassOrPlains'
-  | 'connectedTown'
-  | 'garrison',
+  'anywhere' | 'garrison' | NonNullable<Extract<CardEffect, { kind: 'unitStat' }>['where']>,
   string
 > = {
   anywhere: '',
@@ -7349,6 +7376,7 @@ const WHERE_WORDS: Record<
   // The Relay Stations (Dominion batch D14). "Start their turn" because the
   // allowance is refilled where the unit stands when the turn begins, and
   // "joined to your capital" is the `connected` scope's own phrase.
+  ownTownKeepingRite: ' in one of your towns keeping a rite',
   connectedTown: ' when they start their turn in one of your cities joined to your capital',
   // "Standing in", the words `inCity`'s condition already uses, so the two
   // readings of the same hex read as one sentence to a player.
@@ -7719,7 +7747,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // Scientific batch S6: The Sum of Knowledge and The Charter Rolls. "Know"
   // for a technology and "drafted" for a charter, the two verbs the cards use.
   techsKnown: { one: 'technology you know', many: 'technologies you know' },
-  chartersDrafted: { one: 'charter you have drafted', many: 'charters you have drafted' },
+  chartersDrafted: { one: 'charter you hold', many: 'charters you hold' },
   // The filter is not in these words: `countNoun` prints it, so that "per melee
   // unit" and "per ranged unit" are one entry — `buildingsOfKind`'s bargain.
   unitsInField: { one: 'unit in the field', many: 'units in the field' },
@@ -7730,6 +7758,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // purchased building" and not "per building".
   buildingsBoughtWithFaith: { one: 'building you bought with faith', many: 'buildings you bought with faith' },
   buildingsBoughtWithGold: { one: 'building you bought with gold', many: 'buildings you bought with gold' },
+  buildingsBought: { one: 'building you bought with gold or faith', many: 'buildings you bought with gold or faith' },
   purchasedBuildings: { one: 'purchased building', many: 'purchased buildings' },
   // The list is not in these words either, for `buildingsOfCategory`'s reason —
   // `countNoun` prints it, so any pair of categories is one entry.
@@ -7853,8 +7882,8 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     many: 'luxuries you lend to other empires in deals',
   },
   dealPartners: {
-    one: 'empire you hold a deal with',
-    many: 'empires you hold a deal with',
+    one: 'empire you trade with',
+    many: 'empires you trade with',
   },
   foreignTradeRoutes: {
     one: 'trade route to another empire',
@@ -8095,6 +8124,8 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   goldPurchase: { one: 'purchase you have made with gold', many: 'purchases you have made with gold' },
   // Magisterial batch MG4. No growing card counts these; the two commissions
   // do, and the table is total.
+  orderSeated: { one: 'Order you have seated', many: 'Orders you have seated' },
+  draftRerolled: { one: 'draft you have rerolled', many: 'drafts you have rerolled' },
   orderGained: { one: 'Order you have gained', many: 'Orders you have gained' },
   greatPersonGained: { one: 'great person you have gained', many: 'great people you have gained' },
   wonderCompleted: { one: 'wonder you have completed', many: 'wonders you have completed' },
@@ -8237,6 +8268,9 @@ function classNarrowed(text: string, filter?: UnitFilter): string {
 
 const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   luxuryHappiness: (percent) => `happiness from unique luxuries ${signed(percent)}%`,
+  luxuryCounts: (percent) => percent === 100
+    ? "your cards count every luxury copy separately. Extra copies add none of the luxury's own happiness"
+    : `your cards count extra luxury copies at ${percent}% each. Extra copies add none of the luxury's own happiness`,
   luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
   // Commerce batch T5, The Commenda. Half is said as half, the card's own
   // word, as a doubling is said as twice below.
@@ -8305,6 +8339,7 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
     amount < 0
       ? `every luxury you hold counts ${-amount} fewer toward happiness`
       : `every luxury you hold counts ${amount} more toward happiness`,
+  luxuryCounts: (amount) => `your cards count ${signed(amount)} luxuries`,
   luxuryDuplicates: (amount) => `duplicate luxury copies count ${signed(amount)}`,
   // A share of one copy, so a flat step on it is a row nobody should write.
   lentLuxuryCopies: (amount) => `each luxury you lend in a deal counts ${signed(amount)} copies for you`,
@@ -8368,7 +8403,9 @@ const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   authorityUnitProductionExempt: 'negative authority no longer slows production toward units',
   // Expansionist batch E5, The Sovereign Writ: the ladder's own first rung,
   // read off the rule book, so a retuned ladder re-words the card.
+  surplusAuthorityFaith: 'the bonus for spare authority also raises faith',
   writUncapped: WRIT_UNCAPPED_WORDS,
+  happinessUncapped: "the bonus from spare happiness has no upper limit",
   // The noun is the **scope's**, so this entry is only the half the table can
   // write — the `meterRule` arm builds the rest off `eachWords`, exactly as the
   // `authority` arm builds "per city holding an empire building". A row with no
@@ -8390,6 +8427,8 @@ const METER_RULE_SWITCHES: readonly MeterRuleId[] = [
   'borderFreezeExempt',
   'authorityUnitProductionExempt',
   'writUncapped',
+  'surplusAuthorityFaith',
+  'happinessUncapped',
 ];
 
 /**
@@ -8529,6 +8568,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Blitz's two halves. The first says *movement* and not "acts again", because
   // one blow a turn is untouched: what comes back is the walking.
   moveAfterKill: 'a unit that kills gets its movement back for the rest of the turn',
+  actAfterKill: 'a unit that kills regains its movement and may attack again',
+  doubleGarrisonBonus: 'gives twice the per-unit garrison bonuses of your other cards',
   // Tyranny's, 2026-09-08. It says *costs* rather than "is free", because the
   // raid still needs a unit with movement left to make it — what the law
   // withholds is the point, not the price of admission.
@@ -9084,6 +9125,8 @@ const COMMISSION_COUNTED_WORDS: Record<
   goldPurchase: { verb: 'make', one: 'purchase with gold', many: 'purchases with gold', counter: 'purchases with gold' },
   // Magisterial batch MG4: Commission: The Eighth Wonder and Commission: The
   // Wonder of the Age.
+  orderSeated: { verb: 'seat', one: 'Order', many: 'Orders', counter: 'Orders seated' },
+  draftRerolled: { verb: 'reroll', one: 'draft', many: 'drafts', counter: 'drafts rerolled' },
   orderGained: { verb: 'gain', one: 'Order', many: 'Orders', counter: 'Orders gained' },
   greatPersonGained: { verb: 'gain', one: 'great person', many: 'great people', counter: 'great people gained' },
   wonderCompleted: { verb: 'complete', one: 'wonder', many: 'wonders', counter: 'wonders completed' },
@@ -9217,9 +9260,9 @@ const COMMISSION_FIGURE_WORDS: Record<
     noun: 'your cities of that kind',
   },
   dealPartners: {
-    goal: (count) => `hold active deals with ${count} empires at once`,
-    counter: 'empires with active deals',
-    noun: 'the empires you hold deals with',
+    goal: (count) => `trade with ${count} empires at once`,
+    counter: 'empires you trade with',
+    noun: 'the empires you trade with',
   },
   // Commerce batch T4, The World's Fair.
   tradePartnerEmpires: {

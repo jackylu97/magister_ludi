@@ -1,3 +1,4 @@
+import { wagerIncome } from './wagerMilestoneData';
 /**
  * Great people: the offer a filled renown bucket opens, the piece it puts on the
  * board, and its two verbs, the act and the work (`docs/great-people.md`).
@@ -59,6 +60,7 @@ import {
   refreshTileDerived,
   seizeTile,
   settleProductionWindfall,
+  realiseItem,
   spawnTileFor,
   takeTile,
 } from './cities';
@@ -98,7 +100,6 @@ import {
   type Player,
   type TimedEffect,
   type Unit,
-  createUnit,
   playerById,
   removeUnit,
   buyWithFaith,
@@ -960,13 +961,10 @@ export function settleGreatPersonChoice(
   recruit.cityId = seat.id;
   const tile = spawnTileFor(state, seat, GREAT_PERSON_UNIT);
   if (!tile) return recruit;
-  const born = createUnit(state, player.id, GREAT_PERSON_UNIT, tile.col, tile.row, id);
-  // Exempt by type already — a great person is unlocked by no technology, so
-  // `unitUpkeep` has no age to charge — and marked anyway, so the rule does not
-  // quietly depend on that staying true the day somebody gives the roster row a
-  // node. See `Unit.freeUpkeep`, entry 4.
-  born.freeUpkeep = true;
-  recruit.unitId = born.id;
+  const born = realiseItem(state, seat, { kind: 'unit', id: GREAT_PERSON_UNIT, tile }, {
+    free: true, person: id,
+  });
+  recruit.unitId = born.unitId ?? null;
   return recruit;
 }
 
@@ -1165,7 +1163,7 @@ export function greatPersonActAt(
       // deliberately blind to *which* technology is aimed at: the gate already
       // refuses a scholar with nothing under study, and what the beakers finish
       // is `settleResearchWindfall`'s business exactly as it is at end of turn.
-      player.sciencePool += gained(actGainOf(state, player.id, 'science'));
+      player.sciencePool += wagerIncome(state, player.id, 'scienceCulture', gained(actGainOf(state, player.id, 'science')));
       // The banks are a line of the meters too (batch M3, `slate.ts`).
       bumpEconomy(state);
       // Every technology the beakers finished is named (the ruling of
@@ -1185,7 +1183,7 @@ export function greatPersonActAt(
       break;
     }
     case 'merchant': {
-      player.gold += gained(actGainOf(state, player.id, 'gold'));
+      player.gold += wagerIncome(state, player.id, 'faithGold', gained(actGainOf(state, player.id, 'gold')));
       bumpEconomy(state);
       break;
     }
@@ -1203,7 +1201,7 @@ export function greatPersonActAt(
           { kind: 'happiness', amount: PEOPLE.artistHappiness, per: 'city' },
         ]);
       }
-      player.culturePool += culture;
+      player.culturePool += wagerIncome(state, player.id, 'scienceCulture', culture);
       bumpEconomy(state);
       settleCultureWindfall(state, player);
       if (city) refreshCityDerived(state, city);

@@ -1,3 +1,4 @@
+import { addWagerCount } from './wagerMilestoneData';
 /**
  * The verbs of war and peace: declaring, suing, annexing, razing — and the two
  * consequences that are nobody's command (the routes a declaration drops, and
@@ -79,6 +80,7 @@ import {
   dealsBetween,
   lendsLuxuryToAnother,
   loanedCopies,
+  loanedResources,
   openDeal,
   proposalById,
   seatsMayBargain,
@@ -602,6 +604,17 @@ function settleDealAt(
   const execution: DealExecution = { payments: [], cededCities: [], dealId: null };
   payLump(state, byId, toId, give.gold ?? 0, execution);
   payLump(state, toId, byId, take.gold ?? 0, execution);
+  if (state.wagerBook) {
+    // A lump exchanged for goods, a city or passage is a purchase for one seat
+    // and sale proceeds for the other. A gift of coin has no purchase price.
+    const purchase = (buyer: number, seller: number, gold: number, goods: DealTerms): void => {
+      if (gold <= 0 || !(loanedResources(goods).length || goods.cities?.length || goods.openBorders)) return;
+      addWagerCount(state, buyer, 'purchases', gold);
+      addWagerCount(state, seller, 'purchases', -gold);
+    };
+    purchase(byId, toId, give.gold ?? 0, take);
+    purchase(toId, byId, take.gold ?? 0, give);
+  }
   cedeTowns(state, byId, toId, give.cities ?? [], execution);
   cedeTowns(state, toId, byId, take.cities ?? [], execution);
   if (dealIsOngoing(give, take)) {

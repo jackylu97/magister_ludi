@@ -178,6 +178,7 @@ import {
   workRadiusTiles,
 } from '../sim/cities';
 import { roundYield, signedYield } from '../sim/yieldFormat';
+import { buildingRelicOffer } from '../sim/statecraft';
 import { buildingDef } from '../sim/buildingData';
 import { buildingRitePay } from '../sim/buildingEffects';
 import type { CampBounty } from '../sim/camps';
@@ -742,6 +743,7 @@ export type ProphetVerb =
   // greyable, blocker-carrying row is a `ProphetRow` whoever is standing on it.
   | 'healAdjacent'
   | 'placeRelic'
+  | 'placeBuildingRelic'
   | 'purge';
 
 /**
@@ -6279,12 +6281,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         },
         {
           verb: 'placeRelic',
-          name: 'Leave a relic',
-          blocked: ended ?? placeRelicError(state, localPlayerId, unit.id),
+          name: 'Leave a cathedral relic',
+          blocked: ended ?? placeRelicError(state, localPlayerId, unit.id, 'cathedral'),
           says: `${chargeCostWords(state, localPlayerId, 'placeRelic')}: leave a relic in this city, which pays it faith for ever`,
           cost: chargeCostWords(state, localPlayerId, 'placeRelic'),
         },
       ];
+      const city = cityAt(state, unit.col, unit.row);
+      const offer = city?.ownerId === localPlayerId ? buildingRelicOffer(state, city) : undefined;
+      if (offer) {
+        const host = buildingDef(offer.effect.building).name;
+        rows.push({
+          verb: 'placeBuildingRelic',
+          name: 'Leave a relic in the ' + host,
+          blocked: ended ?? placeRelicError(state, localPlayerId, unit.id, 'belief'),
+          says: 'Each relic gives this ' + host + ' +' + offer.effect.science + ' science and +' + offer.effect.culture + ' culture.',
+          cost: chargeCostWords(state, localPlayerId, 'placeRelic'),
+        });
+      }
       // **A fourth row under The Abbeys** (Devotion batch DV7, the triage's
       // reading 28): while the seat holds the rule, an apostle raises a
       // further holy site as a prophet does, at the planting price. The row is
@@ -6423,7 +6437,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const command: Command =
       verb === 'empireRite'
         ? { type: 'empireRite', playerId: localPlayerId, unitId: unit.id, rite: rite! }
-        : { type: verb, playerId: localPlayerId, unitId: unit.id };
+        : verb === 'placeRelic' || verb === 'placeBuildingRelic'
+          ? { type: 'placeRelic', playerId: localPlayerId, unitId: unit.id, host: verb === 'placeRelic' ? 'cathedral' : 'belief' }
+          : { type: verb, playerId: localPlayerId, unitId: unit.id };
     const result = commit(command);
     if (!result.ok) {
       reject(result.error);

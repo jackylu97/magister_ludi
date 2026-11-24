@@ -1,3 +1,4 @@
+import { wagerIncome } from './wagerMilestoneData';
 /**
  * Tile improvements: what a worker may build, what it costs them, what a worker
  * may clear away, and what a raider may tear out again.
@@ -1945,7 +1946,7 @@ export function prospectAt(state: GameState, unit: Unit, tile: Tile): ProspectRe
     if (city) {
       report.gold = payout.amount;
       report.cityName = city.name;
-      player.gold += report.gold;
+      player.gold += wagerIncome(state, player.id, 'faithGold', report.gold);
     // The banks are a line of the meters too — see `collectYields` (batch M3).
     bumpEconomy(state);
     } else {
@@ -2404,7 +2405,7 @@ function payPillage(
   report: PillageReport,
   touched: City[],
 ): number {
-  player.gold += payout.amount;
+  player.gold += wagerIncome(state, player.id, 'faithGold', payout.amount);
   // The lifetime record and the tally, one each for every hex burnt.
   player.hexesPillaged = (player.hexesPillaged ?? 0) + 1;
   // The bank and the record are both lines of the meters (`collectYields`,

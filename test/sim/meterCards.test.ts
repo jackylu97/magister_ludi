@@ -17,7 +17,6 @@ import { buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
 import { getTileAt } from '../../src/sim/map';
 import { explainAuthority, explainHappiness, meterCardShares } from '../../src/sim/meters';
-import { foundReligion } from '../../src/sim/religion';
 import { type City, type GameState, bumpRevision, playerById } from '../../src/sim/state';
 import type { OrderId } from '../../src/sim/statecraftData';
 import { createGame } from './newGameHelpers';
@@ -41,17 +40,15 @@ function world(): { state: GameState; capital: City } {
 
 describe('a meter line names the card that paid it', () => {
   it("names a card's own happiness line, and no card on a line nobody paid", () => {
-    // Keeper of the Hearth's happiness stands on a Granary since batch B1, so
-    // the card that pays the town's own line here is Feast Days' town half.
-    const { state, capital } = world();
-    const religion = foundReligion(state, playerById(state, 0)!);
-    religion.follower = ['feastDays'];
-    capital.followers = { [religion.id]: capital.population };
+    const { state } = world();
+    const player = playerById(state, 0)!;
+    player.statecraft.orders = ['theSettledRealm'];
+    player.statecraft.slots = [{ card: 'theSettledRealm', sealedUntil: 0 }];
     bumpRevision(state);
     const lines = explainHappiness(state, 0);
-    const feast = lines.find((line) => line.card === 'feastDays');
-    expect(feast?.value).toBe(1);
-    expect(meterCardShares(feast!)).toEqual([{ card: 'feastDays', value: 1 }]);
+    const line = lines.find((entry) => entry.card === 'theSettledRealm');
+    expect(line?.value).toBe(2);
+    expect(meterCardShares(line!)).toEqual([{ card: 'theSettledRealm', value: 2 }]);
     const palace = lines.find((line) => line.source === 'Palace')!;
     expect(palace.card).toBeUndefined();
     expect(palace.cards).toBeUndefined();
@@ -59,12 +56,12 @@ describe('a meter line names the card that paid it', () => {
   });
 
   it("names the cards standing on a building, and leaves the building's line as it was", () => {
-    // Feast Days puts a point of happiness on every temple in a town that
-    // follows; the line is still the temple's, with the card's part named.
     const { state, capital } = world();
-    const religion = foundReligion(state, playerById(state, 0)!);
-    religion.follower = ['feastDays'];
-    capital.followers = { [religion.id]: capital.population };
+    capital.timed = [
+      { card: 'feastDays', expiresTurn: state.turn + 1, effect:
+      { kind: 'happiness', amount: 1, per: 'city', scope: { test: 'hasBuilding', building: 'temple' }, building: 'temple' } },
+      { card: 'feastDays', expiresTurn: state.turn + 1, effect: { kind: 'happiness', amount: 1, per: 'city' } },
+    ];
     capital.buildings.push('temple');
     bumpRevision(state);
     const temple = explainHappiness(state, 0).find(

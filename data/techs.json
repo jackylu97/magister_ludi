@@ -717,7 +717,8 @@
       ],
       "unlocks": {
         "buildings": [
-          "townCharter"
+          "townCharter",
+          "machuPicchu"
         ]
       },
       "effects": [
@@ -967,7 +968,8 @@
           "pikeman"
         ],
         "buildings": [
-          "castle"
+          "castle",
+          "notreDame"
         ]
       },
       "flavor": "Everyone kneels to someone and calls it order."
@@ -986,8 +988,7 @@
           "inquisitor"
         ],
         "buildings": [
-          "reliquary",
-          "notreDame"
+          "reliquary"
         ]
       },
       "flavor": "The question is asked, and it is not really a question.",
@@ -1068,9 +1069,7 @@
         "units": [
           "trebuchet"
         ],
-        "buildings": [
-          "machuPicchu"
-        ]
+        "buildings": []
       },
       "flavor": "Weight, argued into flight."
     },
@@ -1242,11 +1241,11 @@
     "scholasticism": {
       "name": "Scholasticism",
       "glyph": "📖",
-      "age": 3,
+      "age": 2,
       "row": 1,
-      "cost": 360,
+      "cost": 190,
       "prereqs": [
-        "theHighTemple"
+        "epicPoetry"
       ],
       "unlocks": {
         "buildings": [
@@ -1382,7 +1381,7 @@
                 "line": "warrior"
               },
               "scaled": {
-                "count": "charterTechsKnown",
+                "count": "chartersDrafted",
                 "per": 1
               }
             }

@@ -128,7 +128,7 @@ governments, so Tier IV opened at 29.
 | 4 | Council of Elders | 1 | 2 | 1 | 1 | 5 | Every town gains +2 food and +1 renown. |
 |  | Priest-King | 1 | 1 | 2 | 1 | 5 | Every town gains +1 science and +1 faith. |
 |  | War Chief | 2 | 1 | 1 | 1 | 5 | Units gain +4 strength. Kills grant 10 science and 10 culture. |
-| 10 | Aristocracy | 1 | 1 | 3 | 1 | 6 | Every town gains +2 science. Great people cost 15% less renown. |
+| 10 | Aristocracy | 1 | 1 | 3 | 1 | 6 | Every town gains +2 science. Gain 15% more renown each turn. |
 |  | Republic | 1 | 3 | 1 | 1 | 6 | +1 trade route. Towns gain +1 culture for every 5 citizens. |
 |  | Tyranny | 3 | 1 | 1 | 1 | 6 | +5 authority. Units cost 30% less upkeep. |
 | 18 | Divine Mandate | 2 | 1 | 3 | 2 | 8 | Every town with a wonder gains +20% culture and +20% faith. |
@@ -162,8 +162,7 @@ governments, so Tier IV opened at 29.
 - **The Personal Union** raises the same kinds of amounts by 50% on seated Orders
   that belong to two decks. If a government also raises the same amount, add both
   percentages before rounding.
-- **Great people cost 15% less renown** under the Aristocracy (`greatPersonCost`, a card
-  rule). The cut comes off the price once, beside The Peregrini's discount.
+- **Aristocracy** adds 15% to the empire's recurring renown each turn.
 - **Theocracy is retired** (batch G1): the Aristocracy takes its place at tier 10, and its row
   is kept as it was, with its five chairs.
 - **The tier-38 governments are retired** (The Commonwealth, The Empire and The
@@ -255,7 +254,6 @@ governments, so Tier IV opened at 29.
 | The Sea Ban | Commerce | IV | tier 26 | Your domestic routes pay twice as much. You cannot send trade routes to other empires. |
 | The Peace of Lodi | Commerce | IV | tier 26 | While you are at peace, your trade routes pay 50% more. While you are at war, they pay 25% less. |
 | The Opera del Duomo | Commerce | IV | tier 26 | Gold you pour into the Magnum Opus buys twice as many hammers. Your towns build the Magnum Opus 25% more slowly. |
-| The Monte di Pietà | Commerce | IV | tier 26 | Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold. |
 | The Pythagorean Brotherhood | Scientific | I | tier 4 | +2 science in every city, doubled in cities with a Shrine. |
 | The Removal to Xianyang | Scientific | I | tier 4 | Your towns grow 30% faster. Settlers cost twice as much. |
 | The Workshops of Syracuse | Scientific | I | tier 4 | Your military units gain +5 combat strength. They cost 50% more to build and to buy. |
@@ -276,7 +274,7 @@ governments, so Tier IV opened at 29.
 | The Magnaura | Magisterial | II | tier 10 | Each town gains +2 science for each Civic card you have seated. |
 | The Stele of Deeds | Magisterial | II | tier 10 | You have one more Wildcard chair for every three wonders you hold, at most two more. |
 | The Jinshi | Magisterial | II | tier 10 | You have two more Civic chairs. |
-| The Peregrini | Magisterial | II | tier 10 | Great-person works give +1 food and +1 production to every hex beside them. Laying a great-person work makes your next great person cost 20% less. |
+| The Peregrini | Magisterial | II | tier 10 | Great-person works give +1 food and +1 production to every hex beside them. |
 | The Barmakids | Magisterial | II | tier 10 | Each great person you have gained gives every town +1 food and +1 production. |
 | The Council of Ten | Magisterial | III | tier 18 | You have two more Wildcard chairs. |
 | Scutage | Magisterial | III | tier 18 | Orders you hold but have not seated pay half their yields. You have one fewer Wildcard chair. |
@@ -286,7 +284,6 @@ governments, so Tier IV opened at 29.
 | The Kitabkhana | Magisterial | IV | tier 26 | Spending a great person grants 200 renown for each age you have reached. |
 | The Gobelins | Magisterial | IV | tier 26 | Each great-person work in your borders gives +10% production toward the Magnum Opus, at most +50%. |
 | The Escorial | Magisterial | IV | tier 26 | Completing a wonder gives you a free great-person draft. |
-| The Theoric Fund | Devotion | I | tier 4 | +1 culture for every 3 faith your empire makes. |
 | The Rites of Zhou | Devotion | I | tier 4 | Each town holding a rite gains +2 food and +2 happiness. |
 | The Serapeum | Devotion | I | tier 4 | Each of your gods gives twice its effects. |
 | The Paean | Devotion | I | tier 4 | Your military units gain +1 strength for every god and belief you hold. |
@@ -366,13 +363,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Total War | 3 | ○ | S | While you are at war: your military units gain +4 strength and +1 movement, and every city demands +2 more happiness. |
 | Commission: A Victor's Peace | 3 | ○ | S | Goal: take two cities from an empire, then make peace with it or destroy it. Reward: one more Wildcard chair. |
 | The Victory Mint | 3 | ◆ | S | Capturing a city grants gold equal to sixty times its population. |
-| The Drill Masters | 3 | ● | S | Garrisoned units gain 1 experience each turn. |
+| The Drill Masters | 2 | ● | S | Garrisoned units gain 1 experience each turn. |
 | Up Through the Ranks | 3 | ◆ | S | Each time one of your units becomes an Elite, gain 250 renown, favouring great generals. |
 | The Regimental Schools | 3 | ● | P | Each garrisoned unit gives its town +6 science and +6 production. |
 | The Tagmata | 3 | ◆ | S | Veteran and Elite units gain +5 strength. |
-| Interior Lines | 3 | ◆ | S | Roads cost your units 40% less movement. |
 | The Bakufu | 3 | ◆ | P | A town with a citadel gains +25% production, science and culture. |
-| Pax Romana | 3 | ○ | S | Towns you capture are pacified at once. |
+| The Sacred Band | 3 | ○ | S | When one of your Elite units dies, gain a melee unit in your capital. It starts as a Veteran. |
+| The Huscarls | 3 | ○ | S | Elite units in a garrison give twice the per-unit garrison bonuses of your other cards. |
+| Pax Romana | 3 | ○ | S | Towns you capture are pacified at once, and each gains +5 food and +5 production for good. |
 | The Mural Crown | 3 | ◆ | S | Gaining a great person grants 200 science and culture for each great general you have gained. |
 | Valhalla | 3 | ○ | S | When one of your units dies, gain 25 culture for each Monument in your empire. |
 | Commission: Hold the Capital | 4 | ○ | S | Goal: hold a rival capital. Reward: a great general, and +25% production in every town for twenty turns. |
@@ -384,7 +382,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Commission: The Grand Campaign | 4 | ◆ | S | Goal: capture three cities. Reward: a great general, and science and culture equal to forty times their population. |
 | The Varangian Guard | 4 | ○ | S | Elite units may attack twice a turn. |
 | The Great Bombards | 4 | ○ | S | Your siege units break a town's walls in one blow. |
-| The Horde | 4 | ○ | S | Pillaging a hex also pillages every enemy improvement beside it. |
+| The Horde | 3 | ○ | S | Pillaging a hex also pillages every enemy improvement beside it. |
 | Vae Victis | 4 | ○ | P | Your capture rewards are paid twice. |
 | The Spear Makers | 0 | ● | S | +40% production toward military units. |
 | War Feeds Itself | 2 | ○ | S | At the end of your turn, each of your units in enemy territory yields you its hex's yields. |
@@ -393,7 +391,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Commission: The First Province | 1 | ◆ | S | Goal: capture a town. Reward: towns you captured gain +5 food and +5 gold. |
 | The Naadam | 1 | ● | S | Pastures and camps gain +2 culture. |
 | The Taker of Cities | 2 | ◆ | S | Your units beside one of your great generals gain +5 strength against towns. |
-| The Tributary Kings | 3 | ◆ | P | Your capital gains +2 production and +2 gold for each citizen in your puppet towns. |
+| The Tributary Kings | 3 | ◆ | P | Your capital gains +1 production and +1 gold for each citizen in towns you captured. |
 | Commission: The Border Fortress | 2 | ◆ | S | Goal: plant a citadel. Reward: choose a great general. |
 | Commission: The Chosen Men | 3 | ◆ | S | Goal: have three units become Elite. Reward: your Elite units gain +1 movement and ignore enemy zone of control. |
 | The Limitanei | 3 | ○ | S | A garrisoned town works one more hex. |
@@ -408,7 +406,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Commission: The Decisive Battle | 2 | ◆ | S | Goal: kill 10 units. Reward: your military units gain +3 strength. |
 | The Mesta | 3 | ◆ | S | Worked pastures and camps give +4 food, +4 production and +4 gold. |
 | The Master of Soldiers | 3 | ◆ | S | On draft: choose a great general. |
-| The Companion Cavalry | 3 | ○ | S | A unit of yours that kills a unit regains its movement. |
+| The Companion Cavalry | 3 | ○ | S | A unit of yours that kills a unit regains its movement and may attack again. |
 | The Castellans | 4 | ◆ | P | Towns gain +6 production for each military and defensive building. |
 
 ### Expansionist
@@ -432,7 +430,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Makers of Land | 1 | ◆ | P | Gains +1 science and +1 culture for every 3 improvements you build. |
 | The Desert and the Snow | 1 | ◆ | S | Workers may draw Nazca lines on flat desert (+2 faith, +2 culture, and +2 faith more for each Nazca line beside it) and raise inuksuit on tundra and snow (+1 food, +2 culture, and +1 culture more for each inuksuk beside it). |
 | Levy of the Land | 1 | ● | S | A town may spend a citizen for production equal to the food it took to grow. Once every five turns. |
-| Tinkers' Guild | 1 | ● | S | Workers gain +1 charge. |
 | The Local Census | 1 | ● | S | A town working four improved tiles costs 1 less authority. |
 | Dark Earth | 1 | ◆ | S | Farms that have stood 20 turns gain +2 food. |
 | The Three Sisters | 1 | ● | S | Farms beside a plantation or pasture gain +2 food and +2 production. |
@@ -474,7 +471,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Polders | 3 | ◆ | S | Workers may build a polder on a coast tile beside three of your land tiles. A polder is a farm. |
 | A Court of Engineers | 3 | ◆ | S | Gain +50% renown, but great-person offers contain only great engineers. |
 | Old Workings | 3 | ● | S | Mines, quarries and lumber mills gain +3 production. |
-| The Megalopolis | 3 | ○ | P | Towns of ten or more citizens gain +1 science and +1 production for each citizen. |
+| The Megalopolis | 3 | ○ | P | Each town gains +2 science and +2 production for each citizen above ten. |
 | Plenty | 3 | ● | S | When a town grows, it gains production equal to five times its new population. |
 | The Mill Wheels | 3 | ● | P | Towns with a Watermill gain +15% production. |
 | The Quitrents | 3 | ● | P | +1 gold for every two hexes you own. |
@@ -487,14 +484,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Capitolia | 3 | ● | P | Each empire building you hold gives each of your towns +1 culture. |
 | The General Levy | 3 | ◆ | S | Your towns may spend a citizen to raise a melee unit. At war, they may do it every 2 turns. |
 | The Thousand Villages | 4 | ● | P | +1 culture for every two citizens in your empire. |
-| The Water Boards | 4 | ◆ | E | Your public works yield twice as much. |
+| The Water Boards | 3 | ◆ | E | Your public works yield twice as much. |
 | The Corvée | 4 | ◆ | S | Your towns may levy a citizen toward the Magnum Opus. |
 | The Philosophers' Peaks | 4 | ● | P | Each town gains +4 science for every mountain in its borders, at most +12. |
 | The Measure of the Land | 4 | ◆ | P | Every town gains +1 science for every 25 hexes your empire owns, at most +10. |
-| The Mother City | 4 | ○ | P | Your capital gains +5% production and +5% culture for each town you have founded this game. |
-| The Great Migration | 4 | ○ | S | Every ten turns, each foreign town near your border loses a citizen to your nearest happier town. |
+| The Mother City | 4 | ○ | P | Your capital gains +1 production and +1 culture for each citizen in the towns joined to it by road. |
 | The Domesday Survey | 4 | ◆ | S | Goal: own 120 hexes and work 40 improved tiles. Reward: each town gains +1 science for each improved tile it works. |
-| The Theodosian Walls | 4 | ● | S | Your towns gain +1 defence for every two citizens. |
 | The Imperial Highways | 4 | ◆ | S | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. |
 | The Keeps | 4 | ○ | S | Workers may build one Keep in each town. A Keep gains the yields of every tile around it. |
 
@@ -507,7 +502,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Travellers' Letters | 0 | ● | P | Your capital gains +2 science and +2 culture for each empire you have met. |
 | The Pathfinders' Company | 0 | ◆ | S | Scouts gain +1 sight and +1 movement. |
 | The Mineral Trade | 0 | ● | S | Mines and quarries gain +2 gold. |
-| Land Speculation | 0 | ◆ | S | Buying a hex grants culture equal to half the gold paid. |
+| Land Speculation | 0 | ◆ | S | Buying a hex grants 6 culture. |
 | Private Patronage | 2 | ◆ | P | Towns gain +25% gold. |
 | Civic Receipts | 1 | ◆ | S | Buying a building grants culture equal to 25% of the gold paid. |
 | Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +3 food and +3 production. |
@@ -519,15 +514,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Financed Industry | 1 | ○ | P | Towns gain production equal to 20% of their gold. |
 | The Home Market | 2 | ● | P | Towns that receive two domestic routes gain +30% food and production. |
 | The Money Lenders | 3 | ○ | P | Earn interest equal to 4% of your treasury each turn, with no cap. |
-| Foreign Procurement | 2 | ● | S | You may buy units without their strategic resource. |
-| The Exchange | 2 | ◆ | P | +5% science and culture for each foreign empire your routes reach. |
+| The Exchange | 2 | ◆ | P | +5% science and culture for each empire you trade with. |
 | The Scholars' Roads | 3 | ● | P | Your routes pay twice their science and culture. |
 | The Customs Houses | 2 | ◆ | S | Customs houses gain +8 science and +8 culture. |
 | The Endowment | 3 | ● | S | Buying a building grants science equal to 25% of the gold paid. |
 | Merchant Princes | 3 | ○ | S | You may buy great-person drafts with gold. |
-| The World's Exchange | 4 | ◆ | S | +20% production toward the Opus for each foreign empire your trade routes reach. |
+| The World's Exchange | 4 | ◆ | S | +20% production toward the Opus for each empire you trade with. |
 | The Chartered Metropolis | 3 | ◆ | P | Towns that send three trade routes gain +50% food, production and culture. |
-| The Gilded Scaffold | 3 | ○ | P | You may purchase world wonders. All your cities lose 15% production. |
+| The Gilded Scaffold | 3 | ○ | S | You may buy world wonders with gold. |
 | A Court of Merchants | 3 | ○ | S | Gain +50% renown, but great-person offers contain only Great Merchants. |
 | Corner the Market | 2 | ◆ | S | Goal: hold three copies of one luxury. Reward: +2 happiness for each different luxury you hold. |
 | The Strongroom | 3 | ◆ | S | Goal: hold 1,500 gold. Reward: a great merchant, and culture equal to a fifth of your treasury. |
@@ -535,13 +529,13 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The First Caravan | 0 | ◆ | S | On draft: gain a caravan, and room for one more trade route. |
 | The Staple Right | 1 | ● | P | Gain +4 gold and +3 culture for each luxury you hold two or more copies of. |
 | Numidian Cavalry | 2 | ◆ | S | Unlocks Numidian Cavalry: a Horseman with +1 strength for each luxury you hold. |
-| Houses of Account | 2 | ● | P | Gold buildings provide +1 happiness and +2 renown. |
+| Houses of Account | 2 | ● | S | Gold buildings provide +2 renown. |
 | A Guild Commission | 3 | ◆ | S | Goal: buy five buildings with gold. Reward: a free great-person draft. |
 | The Monopoly | 3 | ○ | P | For each luxury that only you hold, every town gains +5 gold and +3 culture. |
 | The Spice Exchange | 2 | ○ | P | Every city gains +4% science and +4% culture for each different luxury you hold, at most +32%. |
 | Money at Work | 4 | ○ | P | Every town gains +1 science for every 20 gold you make each turn. |
-| Bought and Paid For | 4 | ○ | P | +2% production and culture for each building you have bought with gold, at most +30%. |
-| The World's Fair | 4 | ○ | S | Goal: have trade routes to four empires. Reward: your trade routes to other empires pay twice as much. |
+| Bought and Paid For | 4 | ○ | P | +2% production and culture for each building you have bought with gold or faith, at most +30%. |
+| The World's Fair | 4 | ○ | S | Goal: trade with four empires. Reward: your trade routes to other empires pay twice as much. |
 | The Great Loan | 4 | ○ | S | On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns. |
 | Market Day | 0 | ● | P | Your capital gains +1 gold for every citizen. |
 | The Emporia | 0 | ● | S | Improved luxury hexes gain +1 food and +1 production. |
@@ -551,9 +545,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Grain Barges | 4 | ◆ | P | Your domestic trade routes pay their destination +1 food and +1 production for every three citizens of their origin. |
 | The Return Leg | 3 | ○ | S | Your trade routes between your own towns also pay their origin everything they pay their destination. |
 | Export Guilds | 1 | ◆ | P | Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production. |
-| The Treaty Ports | 2 | ◆ | P | +8% production for each empire you hold a deal with, at most +40%. |
+| The Treaty Ports | 2 | ◆ | P | +8% production for each empire you trade with, at most +40%. |
 | The Capitulations | 3 | ◆ | S | Each foreign town with your trading post lends you a luxury you lack. |
-| The Casa da Índia | 4 | ○ | P | Every copy of a luxury you hold pays its yields, not only the first. |
+| The Casa da Índia | 4 | ○ | P | Your cards count every copy of a luxury you hold. Extra copies pay the luxury's yields but give no extra innate happiness. |
 | Letters of Credit | 1 | ○ | S | On draft: gain 400 gold. Your towns make 30% less gold for fifteen turns. |
 | The Strongbox | 1 | ◆ | P | Gains +1 science and +1 culture each time you buy something with gold, up to +15. |
 | The Fishing Fleets | 0 | ● | S | Fishing boats gain +1 production and +1 faith. |
@@ -566,11 +560,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Slipways | 1 | ● | S | +50% production toward ships, Lighthouses and Harbours. |
 | The Garum Works | 1 | ◆ | P | +1 happiness for each fishing boat in your borders. |
 | The Tea Horse Road | 2 | ● | P | Your trade routes give +1 gold and +1 culture for every six hexes they travel. |
-| The Wayside Inns | 2 | ● | S | Hexes with a road gain +1 food and +1 production. |
 | The Tiraz | 2 | ◆ | P | Every town gains +1 production for each different luxury you hold. |
 | The Bonded Warehouses | 2 | ◆ | S | Hexes on or beside a customs house gain +2 production and +2 gold. |
 | The Merchant Consuls | 2 | ◆ | S | On draft: choose a great merchant. |
-| The Epibatai | 2 | ◆ | S | Your units gain +5 strength for three turns after they land from the sea. |
 | The Cloth Halls | 3 | ● | P | Gold buildings provide +3 production. |
 | The Latifundia | 3 | ◆ | S | Improved luxury hexes pay twice their yields. |
 | The Stato da Mar | 3 | ◆ | S | Water hexes pay twice their yields. |
@@ -581,10 +573,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Wooden Walls | 4 | ◆ | S | Your ships gain +6 strength and +1 movement. |
 | The Potters' Quarter | 0 | ◆ | S | The hexes beside your capital gain +1 production and +1 science. |
 | The Ten Thousand | 1 | ◆ | S | Military units you buy with gold start as Veterans. |
-| Commission: The Trade Mission | 1 | ◆ | S | Goal: hold deals with two empires at once. Reward: a great merchant. |
+| Commission: The Trade Mission | 1 | ◆ | S | Goal: trade with two empires at once. Reward: a great merchant. |
 | The Weigh House | 2 | ◆ | S | A customs house gains +3 gold and +3 production for each improved resource beside it. |
 | The Stipendium | 3 | ● | S | Your units gain +1 strength for every 50 gold you make each turn, at most +8. |
-| The Feitorias | 4 | ◆ | P | Each town holding your trading post gives you +1 science and +1 culture for every four of its citizens. |
+| The Feitorias | 4 | ◆ | P | Each town holding your trading post gives you +1 science and +1 culture for every two of its citizens. |
 | The Sea Lords | 2 | ○ | S | Coastal towns work water hexes one ring further out. |
 | The Double Entry | 3 | ○ | E | Cards that pay when you buy something pay twice. |
 
@@ -599,34 +591,33 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Consecrated Labor | 1 | ● | S | Towns with a Shrine may buy settlers and workers with faith. |
 | The Octave | 1 | ◆ | P | Your rites last twice as long. |
 | The Fast | 1 | ◆ | S | Unlocks the Rite of Fasting: for ten turns a town does not grow, and gains science and culture equal to its population. |
-| The Living Hymnal | 2 | ◆ | P | Your capital gains +3 science and +3 culture for every city following your religion, with no cap. |
-| The Mission | 2 | ◆ | S | Goal: convert two foreign cities. Reward: an Apostle and 300 culture. |
+| The Patriarchate | 2 | ◆ | P | Your holy city gains +2 production and +2 science for each point of spare authority. |
+| The Living Hymnal | 2 | ◆ | P | Your capital gains +3 science and +3 culture for every town in the world that follows your religion, with no cap. |
+| The Mission | 2 | ◆ | S | Goal: convert two foreign towns. Reward: an Apostle and 300 culture. |
 | The Second Prophet | 2 | ◆ | S | Prophets and apostles you buy start with one extra charge. |
 | The Creed | 1 | ◆ | P | Your capital gains +3 faith and +3 culture for every god and belief you hold. |
 | The Rites Commonwealth | 1 | ○ | S | A rite your capital starts is kept by every town you hold. |
 | The Cathedral Works | 3 | ● | P | Cathedrals give +8 science and +2 happiness. |
 | The Old Holy Places | 2 | ◆ | S | Holy sites gain +1 faith and +1 culture for every ten turns they have stood. |
 | Temple Estates | 2 | ● | S | A holy site gains +2 food and +2 production for each improved hex beside it. |
-| The Votive Gifts | 1 | ● | S | Towns may keep the Votive Offering, a rite: for ten turns the town gains production equal to its faith. |
+| The Votive Gifts | 1 | ● | P | Towns keeping a rite gain production equal to half their faith. |
 | The Pilgrim Staff | 1 | ● | S | Spending faith grants culture equal to a fourth of it. |
 | The Spiritual Host | 2 | ● | S | Military units gain +4 strength in land that follows your religion. |
-| Mission Houses | 2 | ● | S | Your proclamations reach 50% farther and are 50% more effective in foreign cities. |
+| Mission Houses | 2 | ● | S | Your proclamations reach 50% farther and are 50% more effective in foreign towns. |
 | The Settled Faith | 2 | ◆ | P | Devout towns gain +15% science and culture. |
-| The Holy Inquisition | 3 | ◆ | S | Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included. |
-| The Learned Clergy | 3 | ◆ | P | +2 science and +2 culture for every 10 faith your empire makes each turn. |
+| The Holy Inquisition | 3 | ◆ | S | Rival religions press your towns 80% less. |
 | The Offered Stones | 3 | ◆ | P | +4 culture for each building you have bought with faith. |
 | The Doctors of the Church | 3 | ○ | E | Follower beliefs pay 150% more in your towns. |
 | The Last Offering | 4 | ◆ | S | In your holy city, faith you pour into the Magnum Opus buys 50% more production. |
-| The Great Commission | 4 | ○ | S | Goal: more than half the world's cities follow your religion. Reward: each town that follows your religion, at home or abroad, gives you +3 science and +3 culture. |
-| The Tithe of Nations | 4 | ◆ | P | Gain 1 faith each turn for every two citizens in the world who follow your religion. |
-| The Chapter Houses | 4 | ● | P | Every city with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each. |
+| The Great Commission | 4 | ○ | S | Goal: more than half the world's towns follow your religion. Reward: each town that follows your religion, at home or abroad, gives you +3 science and +3 culture. |
+| The Chapter Houses | 4 | ● | P | Every town with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each. |
 | The Conversion of Kings | 3 | ○ | S | Goal: convert a rival's capital. Reward: a Prophet and 1,000 culture. |
 | The Pious Masons | 3 | ○ | S | Towns with a Cathedral may buy a half-built wonder with faith. |
-| The Host Restored | 4 | ◆ | S | Towns may keep the Restoring of the Host, a rite: for ten turns your units within three hexes of the town heal 25 health each turn. |
+| The Host Restored | 4 | ◆ | S | Your units heal an additional 20 in your towns keeping a rite. |
 | The Deaconries | 2 | ● | P | Devout towns gain +1 happiness for every four citizens. |
 | The Martyrology | 1 | ◆ | P | Gains +2 faith and +2 culture each time one of your units dies in battle. |
 | The Consecration Feast | 3 | ◆ | S | Finishing or buying a faith building grants its town food and culture equal to ten times its population. |
-| The Pilgrim Towns | 3 | ◆ | P | Holy sites gain +1 production and +1 culture for each town that follows your religion. |
+| The Pilgrim Towns | 3 | ◆ | P | Holy sites gain +1 production and +1 culture for each town in the world that follows your religion. |
 | The Gifts of the Faithful | 1 | ◆ | S | Towns with a Shrine may buy culture and faith buildings with faith. |
 | The Book of Life | 2 | ◆ | P | +1% science and culture for every 150 faith you have spent this game, at most +30%. |
 | The Offering Chests | 2 | ○ | S | Your faith buys 25% more. |
@@ -634,7 +625,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Sabbath Laws | 2 | ◆ | S | Unlocks the Rite of the Sabbath: for ten turns a town builds nothing, and gains culture equal to its production. |
 | The Psalter | 3 | ◆ | S | Each rite a town starts grants science and culture equal to five times the town's population, and again for each ten turns it keeps the rite. |
 | The Parishes | 2 | ● | S | Each town you found starts out devout. |
-| Commission: The State Church | 2 | ◆ | S | Goal: hold six towns, all devout. Reward: +1 authority and +1 happiness for every two devout towns. |
+| Commission: The State Church | 2 | ◆ | S | Goal: hold six towns, all devout. Reward: +1 happiness for every two devout towns. |
 | Pentecost | 2 | ○ | S | When a foreign town turns to your religion, your religion presses every town within four hexes of it. |
 | The Mass Baptisms | 3 | ◆ | S | The first time a foreign town turns to your religion, gain science and culture equal to twenty times its population. |
 | The Anchorites | 2 | ● | S | Your prophets raise a further holy site for one charge instead of two. |
@@ -647,26 +638,24 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Temple Storehouses | 1 | ● | P | Temples give +2 food and +2 happiness. |
 | The Household Gods | 0 | ● | S | +2 faith in every town. |
 | The First Offering | 0 | ● | S | On draft: gain 60 faith. |
-| Commission: The Anointing | 3 | ◆ | S | Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture. |
+| Commission: The Anointing | 3 | ◆ | S | Goal: hold 10 spare authority. Reward: every town you hold keeps a rite that your capital starts. |
 | The Healer-Priests | 0 | ● | S | Your units gain +10 healing per turn in your own territory. |
-| The Defenders of the Faith | 3 | ● | S | Your units gain +1 strength for every three towns that follow your religion. |
+| The Defenders of the Faith | 3 | ● | S | Your units gain +1 strength for every three towns in the world that follow your religion. |
 | The Zealots | 1 | ● | S | Your units gain +1 strength for every 10 faith you make each turn, at most +5. |
 | The Prince-Bishops | 3 | ◆ | E | Your faith buildings yield twice as much. |
 | The Year of Release | 4 | ◆ | S | On draft: gain faith equal to ten turns of your faith. |
 | The Poor Tables | 4 | ● | P | +1 happiness for every 20 faith you make each turn. |
 | The Two Swords | 3 | ● | P | +1 happiness for every two points of spare authority. |
 | The Soldiers of God | 4 | ● | S | Military units you buy with faith gain +6 strength. |
-| The Temple Herds | 2 | ● | P | Pastures, camps and plantations gain +1 food and +1 production for each faith building in their town, at most +3 of each. |
+| The Temple Herds | 2 | ● | P | Pastures, camps and plantations gain +1 food and +1 production for each building that supplies faith in their town, at most +3 of each. |
 | The Commander of the Faithful | 4 | ◆ | P | +3 faith and +3 culture for each point of spare authority. |
 | The Fetials | 2 | ◆ | S | Military units you gain in a town keeping a rite start as Veterans. |
-| The Sacred Bequests | 3 | ● | S | Spending faith grants science equal to a fourth of it. |
 | The Call to Prayer | 3 | ◆ | S | Opens Liturgy: your holy sites press your religion twice as far. |
-| The Naming Feasts | 3 | ◆ | S | Unlocks the Rite of Naming: for ten turns the town gains +2 food for each citizen. |
+| The Naming Feasts | 3 | ◆ | P | Towns keeping a rite gain +1 food for each citizen. |
 | The Vigil of Arms | 2 | ◆ | S | Unlocks the Vigil of Arms, a rite: all your units within three hexes of the town gain +4 strength, and keep it while the rite lasts. |
 | The Cliff Monasteries | 2 | ◆ | S | Workers may build one cliff monastery in each town, on a hex beside a mountain: +3 faith and +3 science, and +1 of each more for each mountain beside it. |
-| The Bell Towers | 2 | ● | S | Unlocks the Bell Tower, a faith building: +1 faith, and its town presses your religion +1 harder for each faith building it holds. |
-| The Hallowed Ground | 1 | ◆ | S | Unlocks the Rite of Hallowing: for ten turns the town's improved hexes gain +1 faith. |
-| The Chantries | 1 | ◆ | S | Unlocks the Chapel: +2 faith and +2 culture, and rites in its city last 50% longer. |
+| The Hallowed Ground | 1 | ◆ | S | Towns keeping a rite gain +1 faith on each improved hex. |
+| The Chantries | 1 | ◆ | S | Unlocks the Chapel: +2 faith and +2 culture, and rites in its town last 50% longer. |
 | The Megaliths | 0 | ◆ | S | Workers may raise one stone circle in each town, on flat land: +2 faith and +1 culture, and +1 faith more for each pasture, camp or plantation beside it. |
 | The Temple Workshops | 1 | ● | P | Faith buildings give +1 food and +1 production each. |
 | The Fabric Fund | 3 | ● | S | Buying a building with faith grants its town production equal to a quarter of the faith paid. |
@@ -747,13 +736,18 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
+| The Changing Council | 3 | ○ | P | Each Order you seat while this is active adds +2 culture and +2 production in your capital. Orders are locked for two turns. |
+| The Revised Edition | 2 | ◆ | P | Each draft you reroll while this is seated adds +2 culture and +2 gold. Rerolls cost 50% less faith. |
+| The Anteroom | 1 | ◆ | E | Your capital gains +3 culture for each Order you hold but have not seated. |
+| The Panegyric | 1 | ◆ | S | When one of your great people acts, you gain one free reroll. |
+| The Second Summons | 3 | ○ | P | Your great people may act twice. |
 | Civic Granaries | 1 | ● | P | Culture buildings give +1 food and +2 production each. |
 | The Temple of the Muses | 0 | ● | P | Culture buildings give +2 faith each. |
 | The Prytaneion | 0 | ◆ | E | Each town gains +1 food for each card you have seated. |
 | The Polemarch | 0 | ● | E | Your units gain +2 strength for each Military card you have seated. |
 | The Cornerstone | 0 | ● | S | Towns build wonders and culture buildings 25% faster. |
 | The Second Reading | 0 | ◆ | S | The first reroll of each hand is free. |
-| Commission: The Eighth Wonder | 1 | ◆ | S | Goal: complete a wonder. Reward: each wonder you hold gives +3 culture and +5 renown. |
+| Commission: The Eighth Wonder | 1 | ◆ | S | Goal: complete a wonder. Reward: a free great-person draft, and each wonder you hold gives +3 culture. |
 | The Laureate | 1 | ◆ | P | Towns working a great-person work gain +5 culture and +3 science. |
 | The Working Court | 1 | ○ | P | Towns with a Monument gain production equal to 30% of their culture. |
 | The Nomarchs | 1 | ◆ | P | +2 authority. Your capital gains +1 culture for each point of authority you have to spare. |
@@ -768,13 +762,13 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Landmark Bounds | 1 | ◆ | S | Laying a great-person work claims every unowned hex beside it. |
 | The Learned Patron | 2 | ● | P | Towns with an Amphitheater gain science equal to 30% of their culture. |
 | The Senate Charter | 2 | ◆ | S | Unlocks the Assembly Hall in your capital: one more Wildcard chair and +3 happiness. |
-| The Honoured Dead | 2 | ◆ | P | Gains +8 science and +8 production in your capital each time you gain a great person. |
+| The Honoured Dead | 2 | ◆ | P | Gains +5 science and +5 production in your capital each time you gain a great person. |
 | The Prefects | 2 | ◆ | E | +5% production for each Economic card you have seated. |
-| The Symposium | 2 | ◆ | S | Each time you gain a great person, you are dealt a free Order hand. |
+| The Symposium | 2 | ◆ | S | Each time one of your great people acts, you are dealt a free Order hand. |
 | Letters Patent | 2 | ◆ | P | Your great people's acts pay double. |
 | The Quarter of Masters | 2 | ● | S | A great-person work beside another great-person work gives +4 culture and +4 production. |
 | The Seven Sights | 2 | ◆ | P | +5% culture and science for each wonder you hold, at most +30%. |
-| The Golden Age | 2 | ○ | S | Completing a wonder or gaining a great person gives your cities +25% production and culture for ten turns. A later one restarts the ten turns. |
+| The Golden Age | 2 | ○ | S | Completing a wonder gives your cities +25% production and culture for ten turns. A later one restarts the ten turns. |
 | The Accessions Register | 2 | ◆ | S | Each card you draft grants your capital production equal to half the culture its hand cost. |
 | The Sed Festival | 2 | ◆ | S | On draft: gain a free great-person draft. |
 | Commission: The Patron's Gallery | 2 | ◆ | S | Goal: hold three great-person works. Reward: a free great-person draft and 200 culture. |
@@ -783,18 +777,16 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Masters' Domain | 3 | ◆ | S | Worked great-person works give +6 food and +6 production. |
 | The Wonder Commonwealth | 3 | ○ | P | Towns holding a wonder gain +35% production and food. |
 | The Boule | 3 | ◆ | E | +2% science and culture for each card you have seated. |
-| The Roll of Masters | 3 | ◆ | P | +3% science and culture for each great person you have gained this game, at most +30%. |
-| The Garden Courts | 3 | ◆ | P | Towns working a great-person work gain +20% culture and science. |
 | Commission: The Wonder of the Age | 3 | ◆ | S | Goal: put 1,500 production into wonders. Reward: 250 culture and one more Wildcard chair. |
 | Officials by Merit | 3 | ○ | S | Order hands deal two extra cards. You cannot reroll Order hands. |
-| The Pandects | 3 | ◆ | P | +5% science and production for each Doctrine you hold. |
-| Commission: The Golden Bull | 3 | ◆ | S | Goal: hold 20 Orders. Reward: a Doctrine offer. |
+| The Pandects | 2 | ◆ | P | +5% science and production for each Doctrine you hold. |
+| Commission: The Golden Bull | 2 | ◆ | S | Goal: hold 12 Orders. Reward: a Doctrine offer. |
 | The Divine Proportion | 3 | ○ | E | The bonuses your cards give great-person works are doubled. |
 | Magnificence | 3 | ○ | S | You may buy a wonder you are building with culture, one culture for each hammer it still needs. |
 | The Mixed Constitution | 2 | ○ | S | Your cards fit any chair. |
 | The Universal Genius | 3 | ○ | S | Your great people may act, and then still lay their work. Each leaves one legacy. |
 | The Cabinet of Curiosities | 3 | ○ | S | On draft: gain a random card of your tier from a deck you do not hold. |
-| Commission: The Paradise Garden | 3 | ○ | S | Goal: have one town work three great-person works. Reward: your great-person works yield double. |
+| Commission: The Paradise Garden | 3 | ○ | S | Goal: have one town work three great-person works. Reward: each great-person work gives +2 of its own yield for each other work in its town. |
 | The Privy Council | 4 | ○ | E | The cards in your Wildcard chairs pay their yields twice. |
 | The Universal Library | 4 | ○ | S | The city building the Magnum Opus gains +2% production toward it for each Order you hold, seated or not, at most +40%. |
 | The Polymath's Study | 4 | ○ | E | Your towns gain +8% science and production for each different deck among the cards you hold, at most +40%. |
@@ -808,10 +800,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Quarry Gangs | 0 | ● | S | Quarries give +1 production and +1 culture. |
 | The Nine Jewels | 4 | ○ | S | On draft: gain two free great-person drafts. |
 | The Divan | 3 | ◆ | S | You have one more Economic chair and one more Military chair. |
-| The Hall of Heroes | 2 | ● | S | Your units gain +1 strength for each great person you have gained. |
+| The Hall of Heroes | 2 | ● | S | Your units gain +2 strength for each family of great person you have gained. |
 | The Lawgiver | 2 | ○ | S | On draft: gain a Doctrine offer. |
 | The Spirit Way | 2 | ◆ | S | Your wonders count as great-person works. |
-| The Hanlin Academy | 2 | ◆ | S | Great people cost 20% less renown. Great-person works give +2 science. |
 | The Friends of Khufu | 1 | ◆ | S | A town building a wonder may spend a citizen for production equal to 25% of the wonder's cost. Once every five turns. |
 | The Twelve Tables | 0 | ○ | E | Your capital gains +2 production and +2 culture for each Order you hold, seated or not. |
 
@@ -819,6 +810,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Decks | Band | Rarity | Role | Effect |
 |---|---|---|---|---|---|
+| The Hanlin Academy | Scientific · Magisterial | 2 | ◆ | S | +20% renown toward scholars. Great-person works give +2 science. |
 | The Frontier Militia | Dominion · Expansionist | 0 | ● | S | Each town you found starts with a melee unit. |
 | Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first kill each turn grants 25 science for each age you have reached. |
 | Examinations of State | Dominion · Magisterial | 2 | ○ | P | Garrisoned towns gain +1 science and +1 culture for every three citizens. |
@@ -853,6 +845,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: gain a melee unit. It costs no upkeep. |
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city deals you a free Order hand, at most once every ten turns. |
 | Looted Art | Dominion · Magisterial | 2 | ◆ | S | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. |
+| The Missi Dominici | Dominion · Expansionist | 2 | ◆ | P | Each of your towns gains +1 science and +1 culture for each point of spare authority. |
 | The Hillforts | Expansionist · Dominion | 2 | ◆ | S | Workers may build one hillfort in each town, on a hill: +2 production, and +1 production more for each farm, pasture or camp beside it. A unit on it gains +5 strength when it defends. |
 | The Farming Garrisons | Dominion · Expansionist | 1 | ● | S | Hexes with a fortified unit gain +1 food and +1 production. |
 | The Merchant Shrines | Commerce · Devotion | 0 | ● | P | Towns working an improved luxury gain +2 faith. |

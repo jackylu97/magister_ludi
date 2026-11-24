@@ -1,5 +1,36 @@
 {
   "orders": {
+    "theMissiDominici": {
+      "name": "The Missi Dominici",
+      "decks": [
+        "dominion",
+        "expansionist"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "text": "Each of your towns gains +1 science and +1 culture for each point of spare authority.",
+      "flavor": "The envoys carried the same questions from one county to the next.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "authoritySurplus",
+          "to": "science",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "authoritySurplus",
+          "to": "culture",
+          "amount": 1
+        }
+      ]
+    },
     "theFieldMass": {
       "decks": [
         "devotion",
@@ -1154,7 +1185,6 @@
         }
       ]
     },
-
     "thePalaceSchool": {
       "name": "The Palace School",
       "decks": [],
@@ -1694,7 +1724,6 @@
         }
       ]
     },
-
     "hearthStores": {
       "name": "Hearth Stores",
       "decks": [],
@@ -2894,13 +2923,16 @@
     },
     "theSchoolmensCharter": {
       "name": "The Schoolmen's Charter",
-      "decks": ["devotion", "scientific"],
-      "band": 1,
+      "decks": [
+        "devotion",
+        "scientific"
+      ],
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every question is argued both ways before the master gives an answer.",
-      "text": "Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town.",
+      "text": "Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town, doubled while the town keeps a rite.",
       "charter": {
         "unlocks": {
           "tech": "scholasticism"
@@ -3365,6 +3397,35 @@
         }
       ],
       "text": "Starts at +2 culture and +2 faith for your empire. Gains +1 of each every time you buy something with gold or faith, or start a rite, at most +20."
+    },
+    "magisterialTheHanlinAcademy": {
+      "name": "The Hanlin Academy",
+      "decks": [
+        "scientific",
+        "magisterial"
+      ],
+      "band": 2,
+      "line": "none",
+      "effects": [
+        {
+          "kind": "cityRenownPercent",
+          "where": "empire",
+          "percent": 20,
+          "family": "scholar"
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "greatWork"
+          },
+          "science": 2
+        }
+      ],
+      "rarity": "uncommon",
+      "type": "civic",
+      "text": "+20% renown toward scholars. Great-person works give +2 science.",
+      "flavor": "The examiner covered the poet’s name and read the last verse again."
     }
   }
 }

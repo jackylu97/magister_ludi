@@ -67,8 +67,8 @@
     "text": "+2 science in every city"
    },
    {
-    "raw": "great people cost 15% less renown",
-    "text": "great people cost 15% less renown"
+    "raw": "+15% renown",
+    "text": "+15% renown"
    }
   ],
   "merchantLeague": [
@@ -1282,6 +1282,16 @@
     "text": "the yields of every hex with a Holy Site are doubled, after every other change to the hex"
    }
   ],
+  "theHippodamianPlan": [
+   {
+    "raw": "-30% happiness demanded per citizen, in every city of 10 or more citizens",
+    "text": "-30% happiness demanded per citizen, in every city of 10 or more citizens"
+   },
+   {
+    "raw": "the authority a city you founded costs rises by 1",
+    "text": "the authority a city you founded costs rises by 1"
+   }
+  ],
   "theTraceItalienne": [
    {
     "raw": "every city: +10 city defence",
@@ -1480,10 +1490,6 @@
    {
     "raw": "+1 food, +1 production on every hex beside a [[improvement:setGreatPersonWorks|great person's work]], once for every adjacent hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
     "text": "+1 food, +1 production on every hex beside a great person's work, once for every adjacent hex carrying a great person's work"
-   },
-   {
-    "raw": "laying a [[improvement:setGreatPersonWorks|great person's work]] makes your next great person cost 20% less",
-    "text": "laying a great person's work makes your next great person cost 20% less"
    }
   ],
   "theBarmakids": [
@@ -3130,6 +3136,18 @@
     "text": "+1 gold per citizen of another empire who follows you"
    }
   ],
+  "theHuscarls": [
+   {
+    "raw": "Elite units in a garrison give twice the per-unit garrison bonuses of your other cards",
+    "text": "Elite units in a garrison give twice the per-unit garrison bonuses of your other cards"
+   }
+  ],
+  "theSacredBand": [
+   {
+    "raw": "losing one of your Elite units grants a [[concept:grantedUnit|melee unit]] in your capital starting as a Veteran",
+    "text": "losing one of your Elite units grants a melee unit in your capital starting as a Veteran"
+   }
+  ],
   "dominionBloodedSpears": [
    {
     "raw": "+2 combat strength for [[unit:setMilitaryUnits|military units]]",
@@ -4282,6 +4300,14 @@
    {
     "raw": "a city you capture is pacified at once",
     "text": "a city you capture is pacified at once"
+   },
+   {
+    "raw": "capturing a city permanently adds +5 food per turn to that city",
+    "text": "capturing a city permanently adds +5 food per turn to that city"
+   },
+   {
+    "raw": "capturing a city permanently adds +5 production per turn to that city",
+    "text": "capturing a city permanently adds +5 production per turn to that city"
    }
   ],
   "theMuralCrown": [
@@ -4579,8 +4605,8 @@
   ],
   "theTributaryKings": [
    {
-    "raw": "+2 production and +2 gold in your capital per citizen living in a puppet of yours",
-    "text": "+2 production and +2 gold in your capital per citizen living in a puppet of yours"
+    "raw": "+1 production and +1 gold in your capital per citizen in a captured city",
+    "text": "+1 production and +1 gold in your capital per citizen in a captured city"
    }
   ],
   "dominionManTheWalls": [
@@ -4739,8 +4765,8 @@
   ],
   "dominionTheCompanionCavalry": [
    {
-    "raw": "a unit that kills gets its movement back for the rest of the turn",
-    "text": "a unit that kills gets its movement back for the rest of the turn"
+    "raw": "a unit that kills regains its movement and may attack again",
+    "text": "a unit that kills regains its movement and may attack again"
    }
   ],
   "dominionTheCastellans": [
@@ -5452,8 +5478,8 @@
   ],
   "theMegalopolis": [
    {
-    "raw": "+1 science and +1 production in every city of 10 or more citizens per citizen there",
-    "text": "+1 science and +1 production in every city of 10 or more citizens per citizen there"
+    "raw": "+2 science and +2 production in every city per citizen after the first 10 there",
+    "text": "+2 science and +2 production in every city per citizen after the first 10 there"
    }
   ],
   "plenty": [
@@ -5668,8 +5694,8 @@
   ],
   "theMotherCity": [
    {
-    "raw": "+5% production and +5% culture in your capital per city you have founded this game",
-    "text": "+5% production and +5% culture in your capital per city you have founded this game"
+    "raw": "+1 production and +1 culture in your capital per citizen in a city joined to your capital by road",
+    "text": "+1 production and +1 culture in your capital per citizen in a city joined to your capital by road"
    }
   ],
   "theGeneralLevy": [
@@ -6177,8 +6203,8 @@
   ],
   "landSpeculation": [
    {
-    "raw": "buying a hex grants culture equal to 50% of the gold paid",
-    "text": "buying a hex grants culture equal to 50% of the gold paid"
+    "raw": "buying a hex grants +6 culture",
+    "text": "buying a hex grants +6 culture"
    }
   ],
   "foundingCapital": [
@@ -6290,8 +6316,8 @@
   ],
   "theTreatyPorts": [
    {
-    "raw": "+8% production in every city per empire you hold a deal with (at most +40% production)",
-    "text": "+8% production in every city per empire you hold a deal with (at most +40% production)"
+    "raw": "+8% production in every city per empire you trade with (at most +40% production)",
+    "text": "+8% production in every city per empire you trade with (at most +40% production)"
    }
   ],
   "thePostRiders": [
@@ -6486,8 +6512,8 @@
   ],
   "theExchange": [
    {
-    "raw": "+5% science and +5% culture in every city per other empire you trade with",
-    "text": "+5% science and +5% culture in every city per other empire you trade with"
+    "raw": "+5% science and +5% culture in every city per empire you trade with",
+    "text": "+5% science and +5% culture in every city per empire you trade with"
    }
   ],
   "theScholarsRoads": [
@@ -6585,8 +6611,8 @@
   ],
   "theWorldsExchange": [
    {
-    "raw": "+20% production toward [[building:theMagnumOpus|The Magnum Opus]] per other empire you trade with",
-    "text": "+20% production toward The Magnum Opus per other empire you trade with"
+    "raw": "+20% production toward [[building:theMagnumOpus|The Magnum Opus]] per empire you trade with",
+    "text": "+20% production toward The Magnum Opus per empire you trade with"
    }
   ],
   "theCharteredMetropolis": [
@@ -6627,10 +6653,6 @@
    {
     "raw": "you may buy world wonders with gold",
     "text": "you may buy world wonders with gold"
-   },
-   {
-    "raw": "-15% production in every city",
-    "text": "-15% production in every city"
    }
   ],
   "aCourtOfMerchants": [
@@ -6723,10 +6745,6 @@
   ],
   "housesOfAccount": [
    {
-    "raw": "+1 happiness per [[building:setGoldBuildings|gold building]]",
-    "text": "+1 happiness per gold building"
-   },
-   {
     "raw": "+2 renown per turn per [[building:setGoldBuildings|gold building]] you hold",
     "text": "+2 renown per turn per gold building you hold"
    }
@@ -6789,12 +6807,12 @@
   ],
   "boughtAndPaidFor": [
    {
-    "raw": "+2% production in every city per building you bought with gold (at most +30% production)",
-    "text": "+2% production in every city per building you bought with gold (at most +30% production)"
+    "raw": "+2% production in every city per building you bought with gold or faith (at most +30% production)",
+    "text": "+2% production in every city per building you bought with gold or faith (at most +30% production)"
    },
    {
-    "raw": "+2% culture in every city per building you bought with gold (at most +30% culture)",
-    "text": "+2% culture in every city per building you bought with gold (at most +30% culture)"
+    "raw": "+2% culture in every city per building you bought with gold or faith (at most +30% culture)",
+    "text": "+2% culture in every city per building you bought with gold or faith (at most +30% culture)"
    }
   ],
   "theEmbargo": [
@@ -6826,8 +6844,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have trade routes to 4 other empires at the same time. Reward: +100% everything on every trade route that ends in another empire’s city",
-    "text": "Goal: have trade routes to 4 other empires at the same time. Reward: +100% everything on every trade route that ends in another empire’s city"
+    "raw": "Goal: trade with 4 empires at once. Reward: +100% everything on every trade route that ends in another empire’s city",
+    "text": "Goal: trade with 4 empires at once. Reward: +100% everything on every trade route that ends in another empire’s city"
    }
   ],
   "theGreatLoan": [
@@ -6950,6 +6968,10 @@
    {
     "raw": "every copy of a luxury you hold pays its yields, not only the first",
     "text": "every copy of a luxury you hold pays its yields, not only the first"
+   },
+   {
+    "raw": "your cards count every luxury copy separately. Extra copies add none of the luxury's own happiness",
+    "text": "your cards count every luxury copy separately. Extra copies add none of the luxury's own happiness"
    }
   ],
   "lettersOfCredit": [
@@ -7158,8 +7180,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold active deals with 2 empires at once. Reward: a great merchant to call",
-    "text": "Goal: hold active deals with 2 empires at once. Reward: a great merchant to call"
+    "raw": "Goal: trade with 2 empires at once. Reward: a great merchant to call",
+    "text": "Goal: trade with 2 empires at once. Reward: a great merchant to call"
    }
   ],
   "theWeighHouse": [
@@ -7176,8 +7198,8 @@
   ],
   "theFeitorias": [
    {
-    "raw": "+1 science and +1 culture per 4 citizens of each city holding your trading post",
-    "text": "+1 science and +1 culture per 4 citizens of each city holding your trading post"
+    "raw": "+1 science and +1 culture per 2 citizens of each city holding your trading post",
+    "text": "+1 science and +1 culture per 2 citizens of each city holding your trading post"
    }
   ],
   "theSeaLords": [
@@ -7198,8 +7220,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold 10 spare authority. Reward: +3 faith and +3 culture in every devout city",
-    "text": "Goal: hold 10 spare authority. Reward: +3 faith and +3 culture in every devout city"
+    "raw": "Goal: hold 10 spare authority. Reward: a rite your capital starts is kept by every town you hold",
+    "text": "Goal: hold 10 spare authority. Reward: a rite your capital starts is kept by every town you hold"
    }
   ],
   "theHealerPriests": [
@@ -7294,12 +7316,8 @@
   ],
   "theNamingFeasts": [
    {
-    "raw": "[[concept:charter|Charter]]",
-    "text": "Charter"
-   },
-   {
-    "raw": "your cities may keep [[rite:riteOfNaming|Rite of Naming]]: this town gains +2 food for each citizen",
-    "text": "your cities may keep Rite of Naming: this town gains +2 food for each citizen"
+    "raw": "+1 food in every city while it is keeping a rite per citizen there",
+    "text": "+1 food in every city while it is keeping a rite per citizen there"
    }
   ],
   "theVigilOfArms": [
@@ -7328,18 +7346,14 @@
     "text": "Charter"
    },
    {
-    "raw": "you may build the [[building:bellTower|Bell Tower]]: +1 faith; spreads your religion +1 faith per building that [[concept:supplies|supplies]] a yield to every city within 3 hexes",
+    "raw": "you may build the Bell Tower: +1 faith; spreads your religion +1 faith per building that [[concept:supplies|supplies]] a yield to every city within 3 hexes",
     "text": "you may build the Bell Tower: +1 faith; spreads your religion +1 faith per building that supplies a yield to every city within 3 hexes"
    }
   ],
   "theHallowedGround": [
    {
-    "raw": "[[concept:charter|Charter]]",
-    "text": "Charter"
-   },
-   {
-    "raw": "your cities may keep [[rite:riteOfHallowing|Rite of Hallowing]]: this town’s improved hexes gain +1 faith",
-    "text": "your cities may keep Rite of Hallowing: this town’s improved hexes gain +1 faith"
+    "raw": "+1 faith on every improved hex, in every city while it is keeping a rite",
+    "text": "+1 faith on every improved hex, in every city while it is keeping a rite"
    }
   ],
   "theChantries": [
@@ -7531,8 +7545,8 @@
   ],
   "theVotiveGifts": [
    {
-    "raw": "a city may give faith to whatever it is building: the faith the rite costs becomes production",
-    "text": "a city may give faith to whatever it is building: the faith the rite costs becomes production"
+    "raw": "50% of the faith in every city while it is keeping a rite is gained again as production",
+    "text": "50% of the faith in every city while it is keeping a rite is gained again as production"
    }
   ],
   "thePilgrimStaff": [
@@ -7570,10 +7584,6 @@
    }
   ],
   "theHolyInquisition": [
-   {
-    "raw": "+1 authority capacity per devout city",
-    "text": "+1 authority capacity per devout city"
-   },
    {
     "raw": "rival religions press your cities 80% less",
     "text": "rival religions press your cities 80% less"
@@ -7699,8 +7709,8 @@
   ],
   "theHostRestored": [
    {
-    "raw": "a city may spend faith to heal every unit of yours standing in land that follows your religion",
-    "text": "a city may spend faith to heal every unit of yours standing in land that follows your religion"
+    "raw": "all units: +20 healing per turn in one of your towns keeping a rite",
+    "text": "all units: +20 healing per turn in one of your towns keeping a rite"
    }
   ],
   "theDeaconries": [
@@ -7823,8 +7833,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: +1 authority capacity and +1 happiness per 2 devout cities",
-    "text": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: +1 authority capacity and +1 happiness per 2 devout cities"
+    "raw": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: +1 happiness per 2 devout cities",
+    "text": "Goal: hold at least 6 cities, all of them devout, at the same time. Reward: +1 happiness per 2 devout cities"
    }
   ],
   "theConfessors": [
@@ -8115,6 +8125,24 @@
     "deferred": true
    }
   ],
+  "thePatriarchate": [
+   {
+    "raw": "+2 production and +2 science in your holy city per spare authority",
+    "text": "+2 production and +2 science in your holy city per spare authority"
+   }
+  ],
+  "theReadingRooms": [
+   {
+    "raw": "+1 happiness in every city with a [[building:library|Library]] per 5 citizens there",
+    "text": "+1 happiness in every city with a Library per 5 citizens there"
+   }
+  ],
+  "theGardenOfEpicurus": [
+   {
+    "raw": "the bonus from spare happiness has no upper limit",
+    "text": "the bonus from spare happiness has no upper limit"
+   }
+  ],
   "theOldLearning": [
    {
     "raw": "[[concept:commission|Commission]]",
@@ -8217,8 +8245,8 @@
     "text": "opens Record-Keeping for you to research"
    },
    {
-    "raw": "[[tech:recordKeeping|Record-Keeping]] lets you build the [[building:greatArchive|Great Archive]]: +5 science per charter technology you know",
-    "text": "Record-Keeping lets you build the Great Archive: +5 science per charter technology you know"
+    "raw": "[[tech:recordKeeping|Record-Keeping]] lets you build the [[building:greatArchive|Great Archive]]: +5 science per charter you hold",
+    "text": "Record-Keeping lets you build the Great Archive: +5 science per charter you hold"
    }
   ],
   "theSmeltersCharter": [
@@ -8511,8 +8539,8 @@
     "text": "opens Chemistry for you to research"
    },
    {
-    "raw": "[[tech:chemistry|Chemistry]] gives the Grenadier trait: Warrior to Longswordsman +1 combat strength per charter technology you know",
-    "text": "Chemistry gives the Grenadier trait: Warrior to Longswordsman +1 combat strength per charter technology you know"
+    "raw": "[[tech:chemistry|Chemistry]] gives the Grenadier trait: Warrior to Longswordsman +1 combat strength per charter you hold",
+    "text": "Chemistry gives the Grenadier trait: Warrior to Longswordsman +1 combat strength per charter you hold"
    }
   ],
   "theSecondSeat": [
@@ -8820,8 +8848,8 @@
     "text": "Scaler"
    },
    {
-    "raw": "Gains +1 culture and +1 production in your capital each time you complete a technology",
-    "text": "Gains +1 culture and +1 production in your capital each time you complete a technology"
+    "raw": "Gains +1 science and +1 culture in your capital each time one of your towns grows past 8 citizens",
+    "text": "Gains +1 science and +1 culture in your capital each time one of your towns grows past 8 citizens"
    }
   ],
   "theScholarsFame": [
@@ -8866,8 +8894,8 @@
   ],
   "theGreatCatalogue": [
    {
-    "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per charter technology you know (at most +40%)",
-    "text": "+10% production toward The Magnum Opus per charter technology you know (at most +40%)"
+    "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per charter you hold",
+    "text": "+10% production toward The Magnum Opus per charter you hold"
    }
   ],
   "theRoyalTutors": [
@@ -8918,8 +8946,8 @@
   ],
   "theRoundCity": [
    {
-    "raw": "+1% production and +1% culture per citizen in your capital (at most +30% each)",
-    "text": "+1% production and +1% culture per citizen in your capital (at most +30% each)"
+    "raw": "+1% production and +1% culture per citizen in your capital",
+    "text": "+1% production and +1% culture per citizen in your capital"
    }
   ],
   "theCityArchitects": [
@@ -8970,8 +8998,8 @@
   ],
   "theQueenOfCities": [
    {
-    "raw": "+100% food and +100% production in every city of 15 or more citizens",
-    "text": "+100% food and +100% production in every city of 15 or more citizens"
+    "raw": "+50% food and +50% production in every city of 15 or more citizens",
+    "text": "+50% food and +50% production in every city of 15 or more citizens"
    }
   ],
   "theHumanists": [
@@ -9010,8 +9038,8 @@
   ],
   "theArmouryPatterns": [
    {
-    "raw": "+3 combat strength for units of the newest age you know",
-    "text": "+3 combat strength for units of the newest age you know"
+    "raw": "killing a unit (against an empire that knows fewer technologies than you) grants science equal to 2 times its strength",
+    "text": "killing a unit (against an empire that knows fewer technologies than you) grants science equal to 2 times its strength"
    }
   ],
   "theModelArmy": [
@@ -9132,8 +9160,8 @@
   ],
   "magisterialTheHallofHeroes": [
    {
-    "raw": "+1 combat strength per great person you have gained",
-    "text": "+1 combat strength per great person you have gained"
+    "raw": "+2 combat strength per family of great person you have gained",
+    "text": "+2 combat strength per family of great person you have gained"
    }
   ],
   "magisterialTheLawgiver": [
@@ -9144,16 +9172,6 @@
    {
     "raw": "On draft: you gain a Doctrine offer",
     "text": "On draft: you gain a Doctrine offer"
-   }
-  ],
-  "magisterialTheHanlinAcademy": [
-   {
-    "raw": "great people cost 20% less renown",
-    "text": "great people cost 20% less renown"
-   },
-   {
-    "raw": "+2 science on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
-    "text": "+2 science on every hex carrying a great person's work"
    }
   ],
   "magisterialTheSpiritWay": [
@@ -9670,8 +9688,8 @@
   ],
   "theGoldenAge": [
    {
-    "raw": "completing a wonder or gaining a great person grants +25% production and +25% culture in every city for 10 turns, restarted each time",
-    "text": "completing a wonder or gaining a great person grants +25% production and +25% culture in every city for 10 turns, restarted each time"
+    "raw": "completing a wonder grants +25% production and +25% culture in every city for 10 turns, restarted each time",
+    "text": "completing a wonder grants +25% production and +25% culture in every city for 10 turns, restarted each time"
    }
   ],
   "theLaureateCities": [
@@ -9753,8 +9771,8 @@
     "text": "Scaler"
    },
    {
-    "raw": "Gains +8 science and +8 production in your capital each time you gain a great person",
-    "text": "Gains +8 science and +8 production in your capital each time you gain a great person"
+    "raw": "Gains +5 science and +5 production in your capital each time you gain a great person",
+    "text": "Gains +5 science and +5 production in your capital each time you gain a great person"
    }
   ],
   "thePageantsOfPeace": [
@@ -9903,8 +9921,8 @@
   ],
   "theSymposium": [
    {
-    "raw": "gaining a great person deals you a free Order hand at once",
-    "text": "gaining a great person deals you a free Order hand at once"
+    "raw": "a great person spending themselves on their boon deals you a free Order hand at once",
+    "text": "a great person spending themselves on their boon deals you a free Order hand at once"
    }
   ],
   "lettersPatent": [
@@ -9967,8 +9985,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: complete 1 wonder. Reward: +3 culture per wonder you hold and +5 renown per turn per wonder you hold",
-    "text": "Goal: complete 1 wonder. Reward: +3 culture per wonder you hold and +5 renown per turn per wonder you hold"
+    "raw": "Goal: complete 1 wonder. Reward: +3 culture per wonder you hold, and a great person to call",
+    "text": "Goal: complete 1 wonder. Reward: +3 culture per wonder you hold, and a great person to call"
    }
   ],
   "magisterialTheRollOfTheSenate": [
@@ -10069,8 +10087,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: hold 20 Orders, seated or not. Reward: a Doctrine draft of your government's tier",
-    "text": "Goal: hold 20 Orders, seated or not. Reward: a Doctrine draft of your government's tier"
+    "raw": "Goal: hold 12 Orders, seated or not. Reward: a Doctrine draft of your government's tier",
+    "text": "Goal: hold 12 Orders, seated or not. Reward: a Doctrine draft of your government's tier"
    }
   ],
   "theImmortals": [
@@ -10179,8 +10197,8 @@
     "text": "Commission"
    },
    {
-    "raw": "Goal: have one of your cities work 3 [[improvement:setGreatPersonWorks|great-person works]]. Reward: the yields of every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] are doubled, after every other change to the hex",
-    "text": "Goal: have one of your cities work 3 great-person works. Reward: the yields of every hex carrying a great person's work are doubled, after every other change to the hex"
+    "raw": "Goal: have one of your cities work 3 [[improvement:setGreatPersonWorks|great-person works]]. Reward: +2 of the improvement's own yields on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]], for each hex carrying a [[improvement:setGreatPersonWorks|great person's work]] in its town after the first",
+    "text": "Goal: have one of your cities work 3 great-person works. Reward: +2 of the improvement's own yields on every hex carrying a great person's work, for each hex carrying a great person's work in its town after the first"
    }
   ],
   "theProcessionalWay": [
@@ -10193,6 +10211,58 @@
    {
     "raw": "each turn, each of your [[improvement:setGreatPersonWorks|great-person works]] takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's [[improvement:setGreatPersonWorks|great-person work]] are never taken",
     "text": "each turn, each of your great-person works takes one hex beside it from a rival city, if no one works that hex; a city centre and a rival's great-person work are never taken"
+   }
+  ],
+  "theSecondSummons": [
+   {
+    "raw": "Your great people may take their action or build their work 2 times in any combination",
+    "text": "Your great people may take their action or build their work 2 times in any combination"
+   }
+  ],
+  "thePanegyric": [
+   {
+    "raw": "a great person spending themselves on their boon grants 1 free reroll",
+    "text": "a great person spending themselves on their boon grants 1 free reroll"
+   }
+  ],
+  "theAnteroom": [
+   {
+    "raw": "+3 culture in your capital per Order you hold but have not seated",
+    "text": "+3 culture in your capital per Order you hold but have not seated"
+   }
+  ],
+  "theRevisedEdition": [
+   {
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +2 culture and +2 gold each time you reroll a draft",
+    "text": "Gains +2 culture and +2 gold each time you reroll a draft"
+   },
+   {
+    "raw": "rerolling an Order hand costs 50% less faith",
+    "text": "rerolling an Order hand costs 50% less faith"
+   }
+  ],
+  "theChangingCouncil": [
+   {
+    "raw": "[[concept:scaler|Scaler]]",
+    "text": "Scaler"
+   },
+   {
+    "raw": "Gains +2 culture and +2 production in your capital each time you seat an Order",
+    "text": "Gains +2 culture and +2 production in your capital each time you seat an Order"
+   },
+   {
+    "raw": "a newly placed Order is locked for 2 turns instead of 5",
+    "text": "a newly placed Order is locked for 2 turns instead of 5"
+   }
+  ],
+  "theMissiDominici": [
+   {
+    "raw": "+1 science and +1 culture in every city per spare authority",
+    "text": "+1 science and +1 culture in every city per spare authority"
    }
   ],
   "theFieldMass": [
@@ -11281,6 +11351,16 @@
     "raw": "Gains +1 culture and +1 faith each time you buy something with gold or you buy something with faith or one of your cities starts a rite, up to +18 each",
     "text": "Gains +1 culture and +1 faith each time you buy something with gold or you buy something with faith or one of your cities starts a rite, up to +18 each"
    }
+  ],
+  "magisterialTheHanlinAcademy": [
+   {
+    "raw": "+20% renown toward scholars",
+    "text": "+20% renown toward scholars"
+   },
+   {
+    "raw": "+2 science on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]]",
+    "text": "+2 science on every hex carrying a great person's work"
+   }
   ]
  },
  "belief": {
@@ -11292,12 +11372,12 @@
   ],
   "keeperOfTheHearth": [
    {
-    "raw": "+2 faith in every city with a [[building:granary|Granary]]",
-    "text": "+2 faith in every city with a Granary"
+    "raw": "+1 faith in every city with a [[building:granary|Granary]]",
+    "text": "+1 faith in every city with a Granary"
    },
    {
-    "raw": "[[building:granary|Granaries]] supply +1 happiness",
-    "text": "Granaries supply +1 happiness"
+    "raw": "+1 faith in every city with a [[building:monument|Monument]]",
+    "text": "+1 faith in every city with a Monument"
    }
   ],
   "starReaders": [
@@ -11320,8 +11400,12 @@
   ],
   "ancestorWorship": [
    {
-    "raw": "+1 culture in every city per 4 citizens there",
-    "text": "+1 culture in every city per 4 citizens there"
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
+   },
+   {
+    "raw": "the bonus for spare authority also raises faith",
+    "text": "the bonus for spare authority also raises faith"
    }
   ],
   "ladyOfTheHunt": [
@@ -11356,8 +11440,8 @@
   ],
   "ritesOfBlood": [
    {
-    "raw": "killing a unit grants faith equal to its strength",
-    "text": "killing a unit grants faith equal to its strength"
+    "raw": "losing a unit grants faith equal to 2 times its strength",
+    "text": "losing a unit grants faith equal to 2 times its strength"
    }
   ],
   "oracleOfTheCrossroads": [
@@ -11388,6 +11472,10 @@
    {
     "raw": "+1 food, +1 faith on every desert hex",
     "text": "+1 food, +1 faith on every desert hex"
+   },
+   {
+    "raw": "+1 food, +1 faith on every tundra hex",
+    "text": "+1 food, +1 faith on every tundra hex"
    }
   ],
   "winterMother": [
@@ -11434,12 +11522,8 @@
   ],
   "patronOfMerchants": [
    {
-    "raw": "+1 faith per unique luxury",
-    "text": "+1 faith per unique luxury"
-   },
-   {
-    "raw": "+2 gold per unique luxury",
-    "text": "+2 gold per unique luxury"
+    "raw": "+1 gold per 50 faith you have spent",
+    "text": "+1 gold per 50 faith you have spent"
    }
   ],
   "theMuses": [
@@ -11462,12 +11546,8 @@
   ],
   "feastDays": [
    {
-    "raw": "+1 happiness in every city that follows the religion",
-    "text": "+1 happiness in every city that follows the religion"
-   },
-   {
-    "raw": "[[building:temple|Temples]] supply +1 happiness",
-    "text": "Temples supply +1 happiness"
+    "raw": "+1 faith in every city while it is keeping a rite per 2 citizens there",
+    "text": "+1 faith in every city while it is keeping a rite per 2 citizens there"
    }
   ],
   "holyWater": [
@@ -11484,8 +11564,8 @@
   ],
   "choirs": [
    {
-    "raw": "+1 culture in every city that follows your religion per 4 citizens there",
-    "text": "+1 culture in every city that follows your religion per 4 citizens there"
+    "raw": "+1 culture and +1 gold in every city that follows your religion per 3 citizens there",
+    "text": "+1 culture and +1 gold in every city that follows your religion per 3 citizens there"
    }
   ],
   "titheHouses": [
@@ -11570,14 +11650,18 @@
   ],
   "theAlmsBox": [
    {
-    "raw": "Your faith buys 25% more when buying all units and buildings, in every city that follows the religion",
-    "text": "Your faith buys 25% more when buying all units and buildings, in every city that follows the religion"
+    "raw": "[[building:setFoodBuildings|food buildings]] other than wonders may be bought with faith in every city that follows the religion",
+    "text": "food buildings other than wonders may be bought with faith in every city that follows the religion"
+   },
+   {
+    "raw": "[[building:setProductionBuildings|production buildings]] other than wonders may be bought with faith in every city that follows the religion",
+    "text": "production buildings other than wonders may be bought with faith in every city that follows the religion"
    }
   ],
   "reliquaries": [
    {
-    "raw": "+1 culture per 3 faith gained per turn",
-    "text": "+1 culture per 3 faith gained per turn"
+    "raw": "an apostle can spend a charge in one of your towns to add +4 science and +4 culture to its Temple. Each relic adds its own yields",
+    "text": "an apostle can spend a charge in one of your towns to add +4 science and +4 culture to its Temple. Each relic adds its own yields"
    }
   ],
   "inquisition": [
@@ -11594,6 +11678,10 @@
    {
     "raw": "your religion presses +2 harder along trade routes",
     "text": "your religion presses +2 harder along trade routes"
+   },
+   {
+    "raw": "your trade routes press your religion at both ends",
+    "text": "your trade routes press your religion at both ends"
    }
   ],
   "itinerantPreachers": [
@@ -11604,18 +11692,14 @@
   ],
   "thePulseOfBells": [
    {
-    "raw": "a proclamation reaches +4 hexes further",
-    "text": "a proclamation reaches +4 hexes further"
-   },
-   {
-    "raw": "a proclamation presses +20 faith harder",
-    "text": "a proclamation presses +20 faith harder"
+    "raw": "making a proclamation gives your towns within its reach +25% production in every city for 10 turns, restarted each time",
+    "text": "making a proclamation gives your towns within its reach +25% production in every city for 10 turns, restarted each time"
    }
   ],
   "ecclesia": [
    {
-    "raw": "+1 faith on every hex with a [[improvement:holySite|Holy Site]], for each city that follows you",
-    "text": "+1 faith on every hex with a Holy Site, for each city that follows you"
+    "raw": "starting a rite spreads your religion to every city within 6 hexes",
+    "text": "starting a rite spreads your religion to every city within 6 hexes"
    }
   ],
   "apostles": [
@@ -11649,8 +11733,8 @@
   ],
   "congregation": [
    {
-    "raw": "+2 faith per city that follows you",
-    "text": "+2 faith per city that follows you"
+    "raw": "a foreign city turning to your religion for the first time gives your capital one more citizen",
+    "text": "a foreign city turning to your religion for the first time gives your capital one more citizen"
    }
   ],
   "pilgrimsCoin": [
@@ -11667,8 +11751,8 @@
   ],
   "theLongPrayer": [
    {
-    "raw": "+1 culture per 4 citizens in the cities that follow you",
-    "text": "+1 culture per 4 citizens in the cities that follow you"
+    "raw": "+1 culture per 3 citizens in the cities that follow you",
+    "text": "+1 culture per 3 citizens in the cities that follow you"
    }
   ],
   "theCrusade": [
@@ -11833,8 +11917,8 @@
   ],
   "greatArchive": [
    {
-    "raw": "+5 science per charter technology you know",
-    "text": "+5 science per charter technology you know"
+    "raw": "+5 science per charter you hold",
+    "text": "+5 science per charter you hold"
    }
   ],
   "schoolOfMieza": [],
@@ -11967,8 +12051,8 @@
   ],
   "pyramids": [
    {
-    "raw": "newly created workers gain +1 charge",
-    "text": "newly created workers gain +1 charge"
+    "raw": "+3 production per wonder you hold",
+    "text": "+3 production per wonder you hold"
    },
    {
     "raw": "+20% production toward wonders",
@@ -11987,16 +12071,16 @@
   ],
   "wallsOfUruk": [
    {
-    "raw": "every city with [[wonder:wallsOfUruk|The Walls of Uruk]]: +10 city defence",
-    "text": "every city with The Walls of Uruk: +10 city defence"
-   },
-   {
-    "raw": "+2 combat strength inside your territory",
-    "text": "+2 combat strength inside your territory"
+    "raw": "+2 production and +2 culture in every city with a [[building:palisade|Palisade]]",
+    "text": "+2 production and +2 culture in every city with a Palisade"
    },
    {
     "raw": "+2 authority capacity",
     "text": "+2 authority capacity"
+   },
+   {
+    "raw": "on completion, a [[building:palisade|Palisade]] is raised here as well",
+    "text": "on completion, a Palisade is raised here as well"
    }
   ],
   "greatZiggurat": [
@@ -12075,26 +12159,14 @@
   ],
   "terracottaArmy": [
    {
-    "raw": "+6 combat strength when defending while standing in one of your cities",
-    "text": "+6 combat strength when defending while standing in one of your cities"
-   },
-   {
-    "raw": "newly created units in every city with [[wonder:terracottaArmy|The Terracotta Army]] gain +2 combat strength",
-    "text": "newly created units in every city with The Terracotta Army gain +2 combat strength"
-   },
-   {
-    "raw": "+2 authority capacity",
-    "text": "+2 authority capacity"
+    "raw": "gaining a unit in a city with [[wonder:terracottaArmy|The Terracotta Army]] grants a second unit of the same kind; the copy does not create another copy",
+    "text": "gaining a unit in a city with The Terracotta Army grants a second unit of the same kind; the copy does not create another copy"
    }
   ],
   "greatWall": [
    {
-    "raw": "every city: +5 city defence",
-    "text": "every city: +5 city defence"
-   },
-   {
-    "raw": "every city: +25 maximum city hit points",
-    "text": "every city: +25 maximum city hit points"
+    "raw": "+3 production and +3 culture in every city with a unit standing in it",
+    "text": "+3 production and +3 culture in every city with a unit standing in it"
    },
    {
     "raw": "enemy units in your territory have -1 movement, to a minimum of one",
@@ -12117,8 +12189,8 @@
   ],
   "mausoleum": [
    {
-    "raw": "the yields of every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] are doubled, after every other change to the hex",
-    "text": "the yields of every hex carrying a great person's work are doubled, after every other change to the hex"
+    "raw": "the works on every hex carrying a [[improvement:setGreatPersonWorks|great person's work]] pay +100%",
+    "text": "the works on every hex carrying a great person's work pay +100%"
    }
   ],
   "statueOfZeus": [
@@ -12133,8 +12205,8 @@
   ],
   "chichenItza": [
    {
-    "raw": "rites last +50% longer",
-    "text": "rites last +50% longer"
+    "raw": "rites last +100% longer",
+    "text": "rites last +100% longer"
    },
    {
     "raw": "+2 happiness and +20% culture in every city while it is keeping a rite",
@@ -12217,8 +12289,8 @@
   ],
   "machuPicchu": [
    {
-    "raw": "+1 gold on every hex beside a mountain, once for each mountain",
-    "text": "+1 gold on every hex beside a mountain, once for each mountain"
+    "raw": "+2 gold on every hex beside a mountain, once for each mountain",
+    "text": "+2 gold on every hex beside a mountain, once for each mountain"
    }
   ],
   "waterClockOfSuSong": [
@@ -12714,8 +12786,8 @@
   ],
   "pyramidOfTheSun": [
    {
-    "raw": "a city with [[wonder:pyramidOfTheSun|The Pyramid of the Sun]] may spend one citizen for 5 faith per citizen before the levy (once every 5 turns)",
-    "text": "a city with The Pyramid of the Sun may spend one citizen for 5 faith per citizen before the levy (once every 5 turns)"
+    "raw": "a city with [[wonder:pyramidOfTheSun|The Pyramid of the Sun]] may spend one citizen for 5 faith, 5 science and 3 renown per citizen before the levy (once every 5 turns)",
+    "text": "a city with The Pyramid of the Sun may spend one citizen for 5 faith, 5 science and 3 renown per citizen before the levy (once every 5 turns)"
    },
    {
     "raw": "+2 culture on every hex with a [[improvement:holySite|Holy Site]]",
@@ -12728,8 +12800,8 @@
     "text": "+1 card in every great-person offer"
    },
    {
-    "raw": "great people cost 10% less renown",
-    "text": "great people cost 10% less renown"
+    "raw": "+15% renown",
+    "text": "+15% renown"
    }
   ],
   "ironPillar": [
@@ -12744,12 +12816,12 @@
   ],
   "libraryOfAshurbanipal": [
    {
-    "raw": "+5 renown per turn in every captured city, favouring scholars",
-    "text": "+5 renown per turn in every captured city, favouring scholars"
+    "raw": "+3 science in every city with a [[building:library|Library]]",
+    "text": "+3 science in every city with a Library"
    },
    {
-    "raw": "+15 renown per turn in every captured city containing a wonder, favouring scholars",
-    "text": "+15 renown per turn in every captured city containing a wonder, favouring scholars"
+    "raw": "capturing a city completes your current technology",
+    "text": "capturing a city completes your current technology"
    }
   ],
   "weiyangPalace": [

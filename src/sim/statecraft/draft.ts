@@ -630,6 +630,8 @@ export interface PlayerStatecraft {
    * takes `?? []` for it: that seat's deck has paid nothing it remembers.
    */
   yieldTallies: CardYieldTally[];
+  /** Lifetime payments from the other sources on the score sheet. */
+  inPlayYieldTallies?: { card: string; paid: CityYields }[];
   /**
    * **The turn each once-a-turn rider last rode** — Field Academies' first kill
    * of the day (batch D2c, `CardWindfallRiderEffect.oncePerTurn`).
@@ -796,7 +798,7 @@ export function recordScalingOccasion(
   for (const slot of sc.slots) {
     const card = slot?.card;
     if (card === undefined || !isOrderId(card)) continue;
-    if (!orderWatches(card, occasion)) continue;
+    if (!orderWatches(card, occasion, facts)) continue;
     // A commission counts only a moment that meets its goal's floor.
     const goal = countedGoalFor(card, occasion);
     if (goal !== null && !goalFloorMet(goal, facts)) continue;
@@ -885,11 +887,12 @@ export function recordWorldScalingOccasion(
  * Is this card watching for this moment? Read off the row's own effects, so what
  * a card counts and what it pays for counting are one declaration.
  */
-function orderWatches(id: OrderId, occasion: TallyOccasion): boolean {
+function orderWatches(id: OrderId, occasion: TallyOccasion, facts?: TallyFacts): boolean {
   for (const effect of orderDef(id).effects) {
     if (effect.kind !== 'pays' || effect.basis !== 'count') continue;
     if (effect.count !== 'tally') continue;
     if (effect.tally !== occasion && !effect.alsoTallies?.includes(occasion)) continue;
+    if (effect.minPopulation !== undefined && (facts?.population ?? 0) < effect.minPopulation) continue;
     return true;
   }
   // A commission's counted goal uses the same per-card tally, so its progress

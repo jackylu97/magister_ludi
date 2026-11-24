@@ -11,7 +11,7 @@
  * Batch DT11 adds Scutage. Batch DT16 adds The Peregrini, the deck's last Doctrine.
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { typedChiefdomInThisBlock } from '../chiefdomHelpers';
 
 import { nextBotDecision, valueContext } from '../../../src/ai/bot';
@@ -2815,7 +2815,23 @@ describe('The Peregrini (batch DT16)', () => {
     });
   });
 
-  describe('the discount', () => {
+  it('keeps the great-person price when a scholar builds a work under The Peregrini', () => {
+    const { state, player, capital } = board();
+    hold(state, ID);
+    const before = renownThreshold(state, player);
+    const tile = ring(state, capital)[0]!;
+    greatPersonWorkAt(state, player, person(state, tile, 'scholar'), tile);
+    expect(player.personDiscount).toBeUndefined();
+    expect(renownThreshold(state, player)).toBe(before);
+  });
+
+  describe('the work discount rule in isolation', () => {
+    const original = doctrineDef(ID).effects;
+    beforeEach(() => {
+      doctrineDef(ID).effects = [...original, { kind: 'rule', rule: 'workCheapensPerson', percent: 20 }];
+    });
+    afterEach(() => { doctrineDef(ID).effects = original; });
+
     /** Lays a scholar's work on the first free hex of the capital's ring. */
     function layWork(state: GameState, player: Player, capital: City, hex = 0): void {
       const site = ring(state, capital).filter((tile) => tile.improvement === undefined)[hex]!;

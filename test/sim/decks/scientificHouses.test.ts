@@ -199,7 +199,7 @@ const S8: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
   {
     id: 'theRoyalAcademies',
     band: 3,
-    rarity: 'uncommon',
+    rarity: 'rare',
     type: 'civic',
     text: "+5% production and culture for each empire building you hold.",
   },
@@ -208,7 +208,7 @@ const S8: readonly { id: OrderId; band: number; rarity: OrderRarity; type: CardT
     band: 3,
     rarity: 'rare',
     type: 'economic',
-    text: "Towns of at least 15 citizens produce twice their food and production.",
+    text: "Towns of at least 15 citizens produce 50% more food and production.",
   },
   {
     id: 'theHumanists',
@@ -242,7 +242,7 @@ describe('the rows', () => {
     // the tests below still read it. It has no type and is not dealt.
     for (const { id, band, rarity, type, text } of S8) {
       const def = orderDef(id);
-      const retired = ['theRoyalReaders', 'theWallsOfLearning'].includes(id);
+      const retired = ['theRoyalReaders', 'theWallsOfLearning', 'theForwardPlans'].includes(id);
       expect(orderIsDealt(id), id).toBe(!retired);
       expect(def.deferred, id).toBeUndefined();
       expect(def.retired, id).toBe(retired ? true : undefined);
@@ -276,7 +276,7 @@ describe('the rows', () => {
       "+5% production and +5% culture per empire building you hold",
     ]);
     expect(said('theQueenOfCities')).toEqual([
-      "+100% food and +100% production in every city of 15 or more citizens",
+      "+50% food and +50% production in every city of 15 or more citizens",
     ]);
     expect(said('theHumanists')).toEqual([
       "25% of the science in every city with a Library is gained again as culture",
@@ -561,13 +561,13 @@ describe('the great houses', () => {
 // --- great cities -------------------------------------------------------------------
 
 describe('great cities', () => {
-  it('The Queen of Cities: a town of fifteen doubles its food and production, and a town of fourteen does not', () => {
+  it('The Queen of Cities adds half the food and production at fifteen citizens', () => {
     const state = bench();
     const city = town(state, 0, 4, 5, 15);
     const small = town(state, 0, 12, 5, 14);
     slot(state, 0, 'theQueenOfCities');
-    expect(percentOn(state, city, 'theQueenOfCities', 'food')).toBe(100);
-    expect(percentOn(state, city, 'theQueenOfCities', 'production')).toBe(100);
+    expect(percentOn(state, city, 'theQueenOfCities', 'food')).toBe(50);
+    expect(percentOn(state, city, 'theQueenOfCities', 'production')).toBe(50);
     expect(percentOn(state, small, 'theQueenOfCities', 'food')).toBe(0);
     expect(percentOn(state, small, 'theQueenOfCities', 'production')).toBe(0);
   });

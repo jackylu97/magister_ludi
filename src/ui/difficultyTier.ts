@@ -13,11 +13,9 @@
  *   the tutorial and the pamphlet use;
  * - the chooser (`createTierChooser`), the control on the setup screen.
  *
- * Why the sentences are here: the data rows hold the numbers and a key, but no
- * line for the player. `RULE_WORDS` writes one sentence for each key and takes
- * every number from the row. A row with no sentence shows its key in plain
- * words, so a new tier in the data appears in the chooser with no edit here.
- * `test/ui/difficultyTier.test.ts` fails until the new row has a sentence.
+ * Each data row owns its full and short descriptions. Placeholders read the
+ * row's numbers; `normalRarity` reads the standard Order odds. Adding a rule
+ * description needs no UI edit. The tests require words for every data row.
  */
 
 import { DIFFICULTY_RULES, MAX_DIFFICULTY_TIER, isDifficultyTier } from '../sim/difficulty';
@@ -30,9 +28,6 @@ export const TOP_TIER = MAX_DIFFICULTY_TIER;
 /** The tier a new game uses when the player has chosen nothing. */
 export const DEFAULT_TIER = 0;
 
-type RuleKey = keyof typeof DIFFICULTY_RULES;
-type RuleRow<K extends RuleKey> = (typeof DIFFICULTY_RULES)[K];
-
 /** One rule of the ladder, with its sentence. */
 export interface TierRule {
   /** The tier that adds this rule. */
@@ -44,41 +39,19 @@ export interface TierRule {
   short: string;
 }
 
-/** `75 / 20 / 5`: the three rarity weights in the order common, uncommon, rare. */
-function odds(weights: { common: number; uncommon: number; rare: number }): string {
-  return `${weights.common} / ${weights.uncommon} / ${weights.rare}`;
+/** Resolve numeric placeholders from the same data that drives the rules. */
+function ruleWords(template: string, row: object): string {
+  const values = { ...row, normalRarity: STATECRAFT.rarityOdds };
+  return template.replace(/\{([\w.]+)\}/g, (_match, path: string) => {
+    let value: unknown = values;
+    for (const key of path.split('.')) {
+      value = typeof value === 'object' && value !== null
+        ? (value as Record<string, unknown>)[key] : undefined;
+    }
+    if (typeof value !== 'number') throw new Error(`Unknown difficulty value: ${path}`);
+    return String(value);
+  });
 }
-
-/**
- * One sentence for each rule. Each sentence says who the rule applies to, as
- * the rule's reader in `src/sim/difficulty.ts` decides it: "rivals" are the
- * computer seats and "you" are the human seats.
- */
-const RULE_WORDS: { [K in RuleKey]: (row: RuleRow<K>) => string } = {
-  // `difficultyStrength` gives the points to every seat that is not human, so
-  // the barbarians get them too, for units and for towns.
-  strength: (row) => `Rivals and barbarians gain +${row.points} combat strength.`,
-  rivalGrowthAndProduction: (row) => `Rivals gain +${row.percent}% growth and production.`,
-  // `foundAgeCloseCamps` founds new camps. The camps that stand send nothing.
-  campWave: (row) =>
-    `When an age closes, new barbarian camps appear with ${row.unitsPerCamp} units each.`,
-  humanBuildCost: (row) => `Your buildings and units cost ${row.percent}% more.`,
-  humanOrderRarity: (row) =>
-    `Your Order offers hold fewer uncommon and rare cards: the odds are ${odds(row.weights)}, not ${odds(STATECRAFT.rarityOdds)}.`,
-};
-
-/**
- * The short form of each rule, for the game menu. The menu is narrow, and a
- * full sentence takes two or three lines there. A short form fits one line.
- * The menu shows the full sentence when the player opens the row.
- */
-const RULE_SHORT: { [K in RuleKey]: (row: RuleRow<K>) => string } = {
-  strength: (row) => `Rivals, barbarians +${row.points} strength`,
-  rivalGrowthAndProduction: (row) => `Rivals +${row.percent}% growth, production`,
-  campWave: (row) => `Age close: new camps of ${row.unitsPerCamp}`,
-  humanBuildCost: (row) => `Your builds cost ${row.percent}% more`,
-  humanOrderRarity: (row) => `Order odds ${odds(row.weights)}`,
-};
 
 /** `rivalGrowthAndProduction` to "Rival growth and production", for a row with no sentence. */
 function keyWords(key: string): string {
@@ -95,14 +68,12 @@ export function clampTier(value: unknown): number {
 
 /** Every rule of the ladder, lowest tier first. */
 function allRules(): TierRule[] {
-  const rows = DIFFICULTY_RULES as Record<string, { tier: number }>;
-  const words = RULE_WORDS as Record<string, ((row: never) => string) | undefined>;
-  const shorts = RULE_SHORT as Record<string, ((row: never) => string) | undefined>;
-  return Object.keys(rows)
-    .map((key) => {
-      const row = rows[key]!;
-      const text = words[key]?.(row as never) ?? keyWords(key);
-      return { tier: row.tier, key, text, short: shorts[key]?.(row as never) ?? text };
+  const rows = DIFFICULTY_RULES as Record<string, { tier: number; text?: string; short?: string }>;
+  return Object.entries(rows)
+    .map(([key, row]) => {
+      const text = row.text === undefined ? keyWords(key) : ruleWords(row.text, row);
+      const short = row.short === undefined ? text : ruleWords(row.short, row);
+      return { tier: row.tier, key, text, short };
     })
     .sort((a, b) => a.tier - b.tier);
 }
@@ -115,7 +86,8 @@ export function tierRules(tier: number): TierRule[] {
 
 /** Whether the data row has a sentence of its own. The test reads this. */
 export function ruleHasWords(key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(RULE_WORDS, key);
+  const row = (DIFFICULTY_RULES as Record<string, { text?: string; short?: string }>)[key];
+  return Boolean(row?.text && row.short);
 }
 
 /** "Normal" for tier 0, "Tier 3" for the others. */

@@ -111,7 +111,6 @@ const ROWS: readonly (readonly [string, number])[] = [
   ['theSeaBan', 4],
   ['thePeaceOfLodi', 4],
   ['theOperaDelDuomo', 4],
-  ['theMonteDiPieta', 4],
 ];
 
 const TERM = Math.floor(RULES.trade.postEstablishTurns);
@@ -209,7 +208,7 @@ describe('batch DT3: Commerce’s rows', () => {
       expect(def.retired, id).toBeUndefined();
       expect(poolDoctrines(def.tier), id).toContain(id);
     }
-    expect([...DECK_FILE_DOCTRINES.commerce].sort()).toEqual(ROWS.map(([id]) => id).sort());
+    expect(DECK_FILE_DOCTRINES.commerce.filter(id => !doctrineDef(id).retired).sort()).toEqual(ROWS.map(([id]) => id).sort());
   });
 
   it('offers a Commerce seat its rows when it adopts a tier-4 government', () => {

@@ -1751,6 +1751,7 @@ export type CombatCondition =
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
+  | 'greatPersonFamilies'
   | 'faithIncome'
   | 'followingCities'
   | 'goldIncome'
@@ -1838,6 +1839,8 @@ export type CombatScaleCount =
    * not yet researched do not count.
    */
   | 'charterTechsKnown'
+  /** All charter Orders held, whether their technologies are researched or not. */
+  | 'chartersDrafted'
   /**
    * **The lead** (Scientific batch S3, The Proving Ground): technologies this
    * empire knows that no empire it has met knows. The same reading as
@@ -2592,6 +2595,8 @@ export type CountKind =
    */
   | 'buildingsBoughtWithFaith'
   | 'buildingsBoughtWithGold'
+  /** Lifetime building purchases, paid with either gold or faith. */
+  | 'buildingsBought'
   | 'purchasedBuildings'
   /**
    * **Fortification** buildings standing in this city (city-scoped) — a
@@ -3547,6 +3552,10 @@ export const WORLD_FIRST_KINDS: readonly FirstKind[] = ['techWorld'];
  * nonsense to count. Two vocabularies, each closed, each read in one place.
  */
 export type TallyOccasion =
+  /** An explicit Order seating; automatic council rearrangements do not count. */
+  | 'orderSeated'
+  /** A draft was rerolled while the card was seated. */
+  | 'draftRerolled'
   | 'orderGained'
   | 'greatPersonGained'
   /** A barbarian unit killed in battle — The Ballad-Weavers. */
@@ -3814,6 +3823,8 @@ export type TallyOccasion =
 
 /** Every tally occasion, for the register test that pins the hooks. */
 export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
+  'orderSeated',
+  'draftRerolled',
   'orderGained',
   'greatPersonGained',
   'barbarianKill',
@@ -4150,7 +4161,10 @@ export type MeterRuleId =
    * A switch, so the row carries `value: 1`. Read in `meterEffectsOf`
    * (`meters.ts`). Deficits are not changed.
    */
+  | 'surplusAuthorityFaith'
   | 'writUncapped'
+  /** Apply the positive happiness rung at every step, without a ceiling. */
+  | 'happinessUncapped'
   /**
    * **What one town costs this empire's writ**, for the towns a scope admits —
    * Marcher Lords' border forts, The Learned Chancery's institutes, The
@@ -4793,6 +4807,8 @@ export type BehaviorRuleId =
    * say.
    */
   | 'moveAfterKill'
+  | 'actAfterKill'
+  | 'doubleGarrisonBonus'
   /**
    * A raid **costs this empire nothing to make** — Tyranny's, and the user's
    * Governments marks of 2026-09-08 ("Pillaging pays +50% and costs no
@@ -5376,6 +5392,8 @@ export type AmplifierTarget =
    * batch T5, The Casa da Índia). See that field.
    */
   | 'luxuryDuplicates'
+  /** Extra luxury copies added to the counts used by cards, without changing innate happiness. */
+  | 'luxuryCounts'
   /**
    * **What a luxury copy this empire lends in a deal is still worth to it**, as
    * a share of one copy (Commerce batch T5, The Commenda; the triage's reading
@@ -6099,6 +6117,8 @@ export type OccasionMeasure =
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
+  /** The captured town adds this amount to its income each turn. */
+  permanentTownYield?: true;
   orderDraft?: true;
   completeResearch?: true;
   capturedTechnology?: true;
@@ -6273,11 +6293,16 @@ export interface WindfallGrantSpec {
    *     occasion unlocks (`WindfallOccasionFacts.tech`), even without its
    *     resource (the triage's reading 10). The Armourers' Secret.
    *
+   * `same` repeats the actor's type and named-person identity. The copy still
+   * counts as gained, but cannot produce another same-unit copy.
+   *
    * A unit goes where `toCapital` or `toEveryTown` sends it, or by default to
    * the town nearest the occasion. Every unit a grant raises is free: it costs
    * no upkeep (the triage's reading 2).
    */
-  unit?: 'randomMilitary' | 'bestSiege' | 'bestRanged' | 'bestMelee' | 'unlockedByTech';
+  unit?: 'randomMilitary' | 'bestSiege' | 'bestRanged' | 'bestMelee' | 'unlockedByTech' | 'same';
+  /** The minimum starting rank of a unit this grant raises. */
+  unitRank?: RankId;
   /**
    * **Every one of this empire's pieces is healed whole** — The Empire's "taking
    * a city with a wonder in it heals all your units".
@@ -6322,7 +6347,7 @@ export interface WindfallGrantSpec {
    * times for a sentence that promises once. Absent is the bill, which is what
    * every row written before this meant.
    */
-  timed?: { turns: number; effects: CardEffect[]; renews?: true };
+  timed?: { turns: number; effects: CardEffect[]; renews?: true; townsInReach?: true };
   /**
    * **A lump of this empire's faith pressed on the towns around the occasion** —
    * The Crusade's, whose soldiers preach with what they have to hand.
@@ -6422,6 +6447,8 @@ export interface WindfallGrantSpec {
    * deal. Opened by `openFreeDraft` (`statecraft/draft.ts`).
    */
   freeDraft?: true;
+  /** Adds rerolls to the existing stock. A pending offer is not required. */
+  freeRerolls?: number;
   /**
    * **The piece that acted is healed to full** — The Yam's mounted raiders
    * (Dominion batch D3).
@@ -6685,6 +6712,8 @@ type PayTarget = CityYieldKey | 'happiness' | 'authority';
  * reader never has to ask what a blank meant.
  */
 export interface CardPaysEffect extends CardYieldBag {
+  /** Hex additions apply only to yields the improvement itself supplies. */
+  ownYieldOnly?: true;
   /** Each qualifying building receives its share before building yield modifiers. */
   onCountedBuilding?: true;
   /** Keep a counted payment on the named building when other cards multiply it. */
@@ -6910,6 +6939,8 @@ export interface CardPaysEffect extends CardYieldBag {
    * two are different questions, and a row could carry both.
    */
   admits?: CityScope;
+  /** Count only entries above this many in the selected scope. */
+  countAbove?: number;
   /**
    * **How many of one town's citizens make one counted thing**, rounded down
    * in each town before the towns are summed (Commerce batch T3, The Foreign
@@ -6933,6 +6964,8 @@ export interface CardPaysEffect extends CardYieldBag {
    */
   tally?: TallyOccasion;
   alsoTallies?: TallyOccasion[];
+  /** Count only moments whose town has at least this population. */
+  minPopulation?: number;
   // There was a `minTreasury` field here: the least treasury a moment had to
   // carry to be counted. The Strongbox's 300 gold was its only row, and batch
   // R1 made the card count purchases with gold instead, so the field went.
@@ -7634,6 +7667,7 @@ interface CardUnitStatEffect {
     | 'embarked'
     | 'fortified'
     | 'grassOrPlains'
+    | 'ownTownKeepingRite'
     | 'connectedTown';
   /**
    * Narrows the stat to *the town the piece was trained in*. Absent means every
@@ -7983,6 +8017,8 @@ export interface CardWindfallRiderEffect {
    * a rule here.
    */
   vsBarbarians?: boolean;
+  /** Restrict a kill reward to a real empire with fewer researched technologies. */
+  vsFewerTechs?: boolean;
   /**
    * The rider fires only when **this empire's own piece** was the one that did
    * it — Mithridates' Pontic peltast, which mends on a kill where the rest of
@@ -9275,6 +9311,8 @@ export interface CardLevyEffect {
   kind: 'levy';
   use?: LevyUse;
   faithPerCitizen?: number;
+  sciencePerCitizen?: number;
+  renownPerCitizen?: number;
   /** Smallest town that may levy for this use. Never below the rule's minimum. */
   minPopulation?: number;
   /** Turns between levies for this use while the empire is at war. */
@@ -10412,12 +10450,14 @@ interface CardPeriodShortenEffect {
  * and a percentage feeding the bar that made it would be a loop with no brake),
  * and a Triumph's lump is not a town's at all.
  *
- * The line **names no family**, `resourceRenown`'s construction exactly: the pool
- * grows and the feed record that weights the draw does not, so a percentage
- * cannot quietly bias which great person arrives.
+ * An unnamed empire share increases the pool without changing family weights.
+ * A family share increases that family's recurring income and draw weight.
+ * Both leave one-time grants unchanged.
  */
 interface CardCityRenownPercentEffect {
   kind: 'cityRenownPercent';
+  /** An empire share may read one family and feed the same family. */
+  family?: Family;
   /** The share, in whole percent. Floored once, per town. */
   percent: number;
   /** Which towns it lands in. Absent means every one. */
@@ -10634,6 +10674,7 @@ export type CardEffect =
   | CardPurchaseRiderEffect
   | CardProjectRiderEffect
   | CardRenownEffect
+  | { kind: 'buildingRelic'; building: BuildingId; science: number; culture: number }
   | CardPressureRuleEffect
   | CardPressureEffect
   | CardUpkeepRebateEffect

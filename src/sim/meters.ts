@@ -1131,7 +1131,12 @@ function meterEffectsOf(state: GameState, playerId: number): MeterEffect[] {
 
   const happiness = happinessOf(state, playerId);
   const boost = cardTierBoost(state, playerId);
-  const base = tierPercent(happiness, resourceTierBoost(state, playerId).points + boost.points);
+  const points = resourceTierBoost(state, playerId).points + boost.points;
+  const ladderBonus = tierPercent(happiness);
+  const uncapped = ladderBonus > 0 && cardMeterFlag(state, playerId, 'happinessUncapped');
+  const base = uncapped
+    ? Math.max(ladderBonus, uncappedTierPercent(happiness)) + points
+    : tierPercent(happiness, points);
   // Scale the full positive bonus after the tier clamp and fixed increases.
   const bonus = base > 0 ? (base * (100 + boost.percent)) / 100 : base;
   if (bonus > 0) {
@@ -1184,7 +1189,7 @@ function meterEffectsOf(state: GameState, playerId: number): MeterEffect[] {
       meter: 'authority',
       value: authority,
       percent: writ,
-      yields: ['production'],
+      yields: cardMeterFlag(state, playerId, 'surplusAuthorityFaith') ? ['production', 'faith'] : ['production'],
       growth: false,
       borders: true,
     });

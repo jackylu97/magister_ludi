@@ -1,3 +1,4 @@
+import { wagerIncome } from './wagerMilestoneData';
 /**
  * Ancient ruins and tribal villages: what walking into one does.
  *
@@ -467,13 +468,13 @@ function payDiscovery(
   }
 
   if (effect.pool === 'gold') {
-    player.gold += effect.amount;
+    player.gold += wagerIncome(state, player.id, 'faithGold', effect.amount);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
     return { cityName: null, unitName: null, completed: null, warning: null };
   }
   if (effect.pool === 'science') {
-    player.sciencePool += effect.amount;
+    player.sciencePool += wagerIncome(state, player.id, 'scienceCulture', effect.amount);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
     // Every technology the beakers finished is named (the ruling of 2026-11-23).
@@ -490,7 +491,7 @@ function payDiscovery(
   // are the culture bucket's first windfall and `settleCultureWindfall` is its
   // completion routine (Entry XVIII's fourth bucket, same three shapes).
   if (effect.pool === 'culture') {
-    player.culturePool += effect.amount;
+    player.culturePool += wagerIncome(state, player.id, 'scienceCulture', effect.amount);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
     const drafted = settleCultureWindfall(state, player);
@@ -502,7 +503,7 @@ function payDiscovery(
     };
   }
   // Straight into the bank an augur is priced against (see `Player.faithPool`).
-  player.faithPool += effect.amount;
+  player.faithPool += wagerIncome(state, player.id, 'faithGold', effect.amount);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
   return { cityName: null, unitName: null, completed: null, warning: null };

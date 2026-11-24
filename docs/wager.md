@@ -1,6 +1,15 @@
-# The Wager — the deck, and the rules it is dealt under
+# Wager rules and the legacy deck
 
-**The live reference.** The deck below *is* `data/wagers.json` and the malice
+## Which rules a game uses
+
+- An ordinary game still uses the legacy deals and malices described below. Its score already counts the lifetime payments of In play sources and excludes beads. Its army reading includes ranks and unconditional strength bonuses.
+- Measurement games use the ordinary deals and record every seat's readings at the end of each age. A turn limit leaves an unfinished age out of the fit.
+- A game with validated calibration data uses score milestones in Age I. Each mark pays one bead. In Ages II through IV, the seat chooses a wager and one of its three marks. Two wagers are dealt from different groups and the third choice is score. All seats see the same deal. Reaching the chosen mark pays its beads on that turn. A miss costs nothing. The regular Opus bead requirement still applies.
+- The calibrated mode uses the twelve wager readings in the [wager specification](plans/wager-spec-2026-11-22.md). That document gives the screen and command APIs and the commands for measuring score weights, fitting marks and checking the Opus door on fresh seeds. Production activation requires the measured data and the milestone screens.
+
+## Legacy deck reference
+
+The legacy deck below mirrors `data/wagers.json` and the malice
 table *is* `data/malices.json`; both are sync-tested
 (`test/sim/wagerDocSync.test.ts`), so a bar or a note edited in one place and not
 the other fails core. Edit a figure in this file and move the same figure in the

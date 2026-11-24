@@ -333,21 +333,21 @@ describe('the Maryannu (a plain +2 since batch DS6)', () => {
 });
 
 describe('the Grenadier (reading 27)', () => {
-  it('adds one for each charter technology the empire knows, with no flat point since batch DS6', () => {
+  it('adds one for each held charter, including unresearched shared charters', () => {
     const state = flat();
     const sword = createUnit(state, 0, 'swordsman', 4, 4);
     createUnit(state, 1, 'warrior', 5, 4);
     expect(lines(state, sword, 5, 4, 'attacker', 'Grenadier')).toBe(0);
     learn(state, 0, 'chemistry');
-    // Chemistry is itself a charter technology, so it counts.
-    expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(1);
-    // A charter drafted and not researched does not count.
-    playerById(state, 0)!.charteredTechs.push('herbals', 'optics');
+    const player = playerById(state, 0)!;
+    player.statecraft.orders.push('theAlchemistsCharter');
     bumpRevision(state);
     expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(1);
+    player.statecraft.orders.push('theHerbalistsCharter', 'theObserversCharter');
+    bumpRevision(state);
+    expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(3);
     learn(state, 0, 'herbals', 'optics');
     expect(lines(state, sword, 5, 4, 'attacker', 'Chemistry · Grenadier')).toBe(3);
-    // A spearman is not of the line.
     const spear = createUnit(state, 0, 'spearman', 4, 6);
     createUnit(state, 1, 'warrior', 5, 6);
     expect(lines(state, spear, 5, 6, 'attacker', 'Grenadier')).toBe(0);
@@ -356,6 +356,8 @@ describe('the Grenadier (reading 27)', () => {
   it('reads the same count a card’s clause would (one function for both)', () => {
     const state = flat();
     learn(state, 0, 'chemistry', 'casting', 'mechanics');
+    playerById(state, 0)!.statecraft.orders.push('theAlchemistsCharter', 'theBronzeFoundersCharter', 'theMechanistsCharter');
+    bumpRevision(state);
     const sword = createUnit(state, 0, 'longswordsman', 4, 4);
     // Batch DS6 left the scale as the trait's only effect.
     expect(techDef('chemistry').traits![0]!.effects).toHaveLength(1);

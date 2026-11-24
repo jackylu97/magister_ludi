@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { tradeResourcePrices } from '../../src/ai/tradeValue';
 import { valueContext } from '../../src/ai/bot';
 import { pendingDealRefusal, readDealRefusal, rememberDealRefusal } from '../../src/ai/dealMemory';
 import { answerProposal, counterTerms, diplomacyDecision } from '../../src/ai/diplomacy';
@@ -42,7 +43,7 @@ function partners(iron: number, horses: number) {
 /** Ask both sides of a proposed swap. This is the normal bot driver's policy. */
 function decision(state: GameState, seat = 0) {
   const player = state.players[seat]!;
-  return diplomacyDecision(state, player, valueContext(state, player), true)?.command;
+  return diplomacyDecision(state, player, valueContext(state, player))?.command;
 }
 
 describe('bot trades of strategic resources', () => {
@@ -78,10 +79,11 @@ describe('bot trades of strategic resources', () => {
 
   it('passes over a partner whose army uses its spare and asks another partner', () => {
     const state = partners(2, 2);
+    getTileAt(state.map, 21, 4)!.resource = 'horses';
     createUnit(state, 1, 'horseman', 12, 4);
     bumpRevision(state);
     expect(availableCopies(state, 1, 'horses')).toBe(1);
-    expect(decision(state)).toMatchObject({ type: 'proposeDeal', targetId: 2, take: { strategics: [{ id: 'obsidian', copies: 1 }] } });
+    expect(decision(state)).toMatchObject({ type: 'proposeDeal', targetId: 2, take: { strategics: [{ id: 'horses', copies: 1 }] } });
   });
 });
 
@@ -138,13 +140,23 @@ describe('strategic counteroffers and refusals', () => {
     }).ok).toBe(true);
   });
 
-  it('pays the existing resource price for a copy its army needs and declines a spare at that price', () => {
+  it('pays more for a usable copy when its free supply runs out', () => {
     const state = partners(4, 2);
     const buyer = state.players[1]!;
     buyer.gold = 1000;
     openDeal(state, 91, 0, 1, { strategics: [{ id: 'iron', copies: 1 }] }, {});
     bumpRevision(state);
-    const price = valueContext(state, buyer).ai.war.luxuryGoldBaseline;
+    buyer.techsResearched.push('steel');
+    bumpRevision(state);
+    const ai = valueContext(state, buyer).ai;
+    const sparePrice = tradeResourcePrices(state, buyer.id, ai)('iron', 1, false).total;
+    createUnit(state, 1, 'longswordsman', 12, 4);
+    bumpRevision(state);
+    const neededPrice = tradeResourcePrices(state, buyer.id, ai)('iron', 1, false).total;
+    expect(neededPrice).toBeGreaterThan(sparePrice);
+    state.units = state.units.filter((unit) => unit.ownerId !== buyer.id);
+    bumpRevision(state);
+    const price = Math.ceil((sparePrice + neededPrice) / 2);
     const proposal = applyCommand(state, { type: 'proposeDeal', playerId: 0, targetId: 1,
       give: { strategics: [{ id: 'iron', copies: 1 }] }, take: { gold: price } });
     expect(proposal.ok, JSON.stringify(proposal)).toBe(true);

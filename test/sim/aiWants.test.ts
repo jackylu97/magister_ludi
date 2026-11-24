@@ -2071,7 +2071,8 @@ describe('batch X6 — the hexes worth asking about', () => {
       text.split(`${call}(`).length - 1;
 
     const arm = body('tileWants');
-    for (const reading of ['cityContext', 'citizenKeepTerm', 'bestExpansionTile', 'borderGrowth']) {
+    expect(count(arm, 'citizenKeepTerm')).toBe(0);
+    for (const reading of ['cityContext', 'bestExpansionTile', 'borderGrowth']) {
       expect([reading, count(arm, reading)]).toEqual([reading, 1]);
     }
     // The walk itself names none of them: it asks the ladder and the rule, and

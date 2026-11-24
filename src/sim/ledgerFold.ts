@@ -75,11 +75,12 @@
 
 import { type CityYields, emptyCityYields } from './cities';
 import { type LedgerClass, LEDGER_CLASSES, classifyCard } from './ledgerClass';
-import { isWonder } from './buildingData';
+import { buildingOpensChairs } from './statecraft/council';
+import { oneOfAKind } from './statecraft/evaluator';
+import { isBuildingId, isWonder, type BuildingId } from './buildingData';
 import { type TownReading, readEmpire } from './readings';
-import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
+import { CITY_YIELD_KEYS, resourceDef, type ResourceId, type CityYieldKey } from './resourceData';
 import { type City, type GameState, type ReligionId, realPlayers } from './state';
-import type { CardYieldTally } from './statecraft/draft';
 import type { CardId } from './statecraftData';
 import type { EmpireYieldLine } from './yields/empire';
 import {
@@ -215,8 +216,9 @@ export function percentWeights(
   city: City,
   quote: CityReading,
   key: CityYieldKey,
+  percents = percentLines(state, city, quote, key),
 ): PercentWeight[] {
-  return percentLines(state, city, quote, key).map((line) => ({
+  return percents.map((line) => ({
     into: classifyPercent(line),
     percent: line.percent,
   }));
@@ -397,10 +399,11 @@ function shareVoice(
   town: TownReading,
   flats: LedgerBag,
   key: CityYieldKey,
+  percents = percentLines(state, city, town.reading, key),
 ): { gain: Record<LedgerClass, number>; shares: number[] } {
   let paid = 0;
   for (const cls of LEDGER_CLASSES) paid += flats[cls][key];
-  const gain = shareGain(town.total[key] - paid, percentWeights(state, city, town.reading, key));
+  const gain = shareGain(town.total[key] - paid, percentWeights(state, city, town.reading, key, percents));
   // `other` last, so that a basket with nothing in it hands its figure to the
   // class that means "nobody here earned this".
   const owed = LEDGER_CLASSES.map((cls) => flats[cls][key] + gain[cls]);
@@ -421,7 +424,7 @@ interface DeckLedgerLine {
 }
 
 /** The row for a card in a list of lines, opened in first-seen order if absent. */
-function lineFor(lines: DeckLedgerLine[], card: CardId): DeckLedgerLine {
+function lineFor<T extends string>(lines: PaidSource<T>[], card: T): PaidSource<T> {
   let held = lines.find((line) => line.card === card);
   if (held === undefined) {
     held = { card, paid: emptyCityYields() };
@@ -467,53 +470,65 @@ export function deckLinesOfCity(state: GameState, city: City): DeckLedgerLine[] 
  * tally have always used, in the same order, so those figures do not move.
  */
 function classLinesOfCity(state: GameState, city: City, cls: LedgerClass): DeckLedgerLine[] {
-  const lines: DeckLedgerLine[] = [];
   const town = townOf(state, city);
-  if (!town) return lines;
+  if (!town) return [];
+  return sourceLinesOfTown(state, town, [cls], (line) => line.card);
+}
+
+type SourceHandles = { card?: CardId; building?: BuildingId; resource?: ResourceId };
+type PaidSource<T extends string> = { card: T; paid: CityYields };
+
+function sourceLinesOfTown<T extends string>(
+  state: GameState,
+  town: TownReading,
+  classes: readonly LedgerClass[],
+  sourceOf: (line: SourceHandles) => T | undefined,
+): PaidSource<T>[] {
+  const result: PaidSource<T>[] = [];
   const flats = flatsByClass(town.reading.lines);
-  const classAt = LEDGER_CLASSES.indexOf(cls);
+  // Resolve each source once for the six voices. Empty classes can skip the
+  // inner split unless one of their percentages earned a share of this voice.
+  const groups = classes.map((cls) => {
+    const lines = town.reading.lines.filter((line) => line.class === cls)
+      .map((line) => ({ source: sourceOf(line), line }));
+    return { cls, lines, hasSource: lines.some((row) => row.source !== undefined) };
+  });
   for (const key of VOICES) {
-    const { gain, shares } = shareVoice(state, city, town, flats, key);
-    const total = shares[classAt]!;
-    // Who is owed what, in first-met order.
-    const cards: CardId[] = [];
-    const owed: number[] = [];
-    const owe = (card: CardId, amount: number): void => {
-      const at = cards.indexOf(card);
-      if (at < 0) {
-        cards.push(card);
-        owed.push(amount);
-      } else owed[at] = owed[at]! + amount;
-    };
-    for (const line of town.reading.lines) {
-      if (line.class !== cls || line.card === undefined || line[key] === 0) continue;
-      owe(line.card, line[key]);
-    }
-    // The class's gain, shared among the class's own percentages — same sign
-    // only, as the class share was; a card whose percentage pushed the town the
-    // other way is owed none of it.
-    const classGain = gain[cls];
-    if (classGain !== 0) {
-      const weights: { card: CardId; percent: number }[] = [];
-      for (const line of percentLines(state, city, town.reading, key)) {
-        if (line.card === undefined || classifyPercent(line) !== cls) continue;
-        if (classGain > 0 ? line.percent > 0 : line.percent < 0) {
-          weights.push({ card: line.card, percent: line.percent });
+    const percents = percentLines(state, town.city, town.reading, key);
+    const { gain, shares } = shareVoice(state, town.city, town, flats, key, percents);
+    for (const { cls, lines, hasSource } of groups) {
+      if (!hasSource && gain[cls] === 0) continue;
+      const sources: (T | undefined)[] = [];
+      const owed: number[] = [];
+      const owe = (source: T | undefined, amount: number): void => {
+        const at = sources.indexOf(source);
+        if (at >= 0) owed[at]! += amount;
+        else {
+          sources.push(source);
+          owed.push(amount);
         }
+      };
+      for (const { source, line } of lines) {
+        if (line[key] !== 0) owe(source, line[key]);
       }
-      let sum = 0;
-      for (const weight of weights) sum += Math.abs(weight.percent);
-      for (const weight of weights) {
-        owe(weight.card, (classGain * Math.abs(weight.percent)) / sum);
+      const change = gain[cls];
+      if (change !== 0) {
+        const weights = percents.filter((line) =>
+          classifyPercent(line) === cls && Math.sign(line.percent) === Math.sign(change));
+        const sum = weights.reduce((total, line) => total + Math.abs(line.percent), 0);
+        for (const line of weights) owe(sourceOf(line), change * Math.abs(line.percent) / sum);
+        if (sum === 0) owe(undefined, change);
       }
+      if (!sources.some((source) => source !== undefined)) continue;
+      // Include ordinary income in the split so a source shares its class with
+      // all other contributors, including the ground and the town's buildings.
+      const parts = shareOut(shares[LEDGER_CLASSES.indexOf(cls)]!, owed);
+      sources.forEach((source, at) => {
+        if (source !== undefined) lineFor(result, source).paid[key] += parts[at]!;
+      });
     }
-    if (cards.length === 0) continue;
-    const parts = shareOut(total, owed);
-    cards.forEach((card, at) => {
-      lineFor(lines, card).paid[key] += parts[at]!;
-    });
   }
-  return lines;
+  return result;
 }
 
 /**
@@ -541,8 +556,53 @@ export function explainDeckLedger(state: GameState, playerId: number): DeckLedge
   return lines;
 }
 
+/** Use the same building rules as the In play screen. Resource signatures and
+ * technology effects also count toward the score. A prefix keeps resource ids
+ * and holy sites separate from card ids. */
+function inPlaySource(line: SourceHandles): string | undefined {
+  if (line.card !== undefined) {
+    if (!isBuildingId(line.card) || classifyCard(line.card) !== 'buildings') return line.card;
+    return oneOfAKind(line.card) || buildingOpensChairs(line.card) ? line.card : undefined;
+  }
+  if (line.building !== undefined && (oneOfAKind(line.building) || buildingOpensChairs(line.building))) {
+    return line.building;
+  }
+  if (line.resource !== undefined && resourceDef(line.resource).kind === 'luxury') return `resource:${line.resource}`;
+  return undefined;
+}
+
+const OUTSIDE_DECK = LEDGER_CLASSES.filter((cls) => cls !== 'deck');
+
+/** Direct payments from In play sources in the town's other Ledger classes. */
+export function additionalInPlayLinesOfTown(state: GameState, town: TownReading): PaidSource<string>[] {
+  return sourceLinesOfTown(state, town, OUTSIDE_DECK, inPlaySource);
+}
+
+function nonDeckSources(state: GameState, playerId: number): PaidSource<string>[] {
+  const rows: PaidSource<string>[] = [];
+  const reading = readEmpire(state, playerId);
+  for (const town of reading.towns) {
+    for (const entry of additionalInPlayLinesOfTown(state, town)) {
+      const row = lineFor(rows, entry.card);
+      for (const key of VOICES) row.paid[key] += entry.paid[key];
+    }
+  }
+  for (const line of reading.lines) {
+    if (classifyEmpireLine(line) === 'deck') continue;
+    if (line.cardPayments) {
+      for (const payment of line.cardPayments) lineFor(rows, payment.card).paid.gold += payment.gold;
+      continue;
+    }
+    const source = line.founderShare === undefined ? inPlaySource(line) : `holyCity:${line.founderShare}`;
+    if (source === undefined) continue;
+    const row = lineFor(rows, source);
+    for (const key of VOICES) row.paid[key] += line[key];
+  }
+  return rows;
+}
+
 /** The six voices a list of deck lines adds up to — a turn's, or a lifetime's. */
-export function foldDeckLedger(lines: readonly DeckLedgerLine[]): CityYields {
+export function foldDeckLedger(lines: readonly { paid: CityYields }[]): CityYields {
   const total = emptyCityYields();
   for (const line of lines) {
     for (const key of VOICES) total[key] += line.paid[key];
@@ -573,14 +633,17 @@ export function recordDeckTally(state: GameState): void {
     const sc = player.statecraft;
     // A state restored from a print older than schema 117 has no rows at all.
     if (sc.yieldTallies === undefined) sc.yieldTallies = [];
-    const rows: CardYieldTally[] = sc.yieldTallies;
-    for (const line of explainDeckLedger(state, player.id)) {
-      let paidAny = false;
-      for (const key of VOICES) if (line.paid[key] !== 0) paidAny = true;
-      if (!paidAny) continue;
-      const held = lineFor(rows, line.card);
-      for (const key of VOICES) held.paid[key] += line.paid[key];
-    }
+    accumulatePaid(sc.yieldTallies, explainDeckLedger(state, player.id));
+    const other = nonDeckSources(state, player.id);
+    if (other.length > 0) accumulatePaid(sc.inPlayYieldTallies ??= [], other);
+  }
+}
+
+function accumulatePaid<T extends string>(rows: PaidSource<T>[], turn: PaidSource<T>[]): void {
+  for (const line of turn) {
+    if (!VOICES.some((key) => line.paid[key] !== 0)) continue;
+    const row = lineFor(rows, line.card);
+    for (const key of VOICES) row.paid[key] += line.paid[key];
   }
 }
 

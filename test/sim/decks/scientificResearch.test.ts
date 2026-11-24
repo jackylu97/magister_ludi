@@ -21,7 +21,7 @@
 import { describe, expect, it } from 'vitest';
 import { drawOrderOffer } from '../../../src/sim/statecraft/draft';
 
-import { explainUnitCost, foldUnitCost, foundCityAt } from '../../../src/sim/cities';
+import { explainUnitCost, foldUnitCost, foundCityAt, loseCitizen, settlePopulationWindfall } from '../../../src/sim/cities';
 import { runCommissions } from '../../../src/sim/commissions';
 import { type Tile, createMap, getTileAt } from '../../../src/sim/map';
 import { techsKnownCount } from '../../../src/sim/rivals';
@@ -208,11 +208,10 @@ describe('the register', () => {
         "+2 science, +1 faith in every city with a Shrine",
       ]
     `);
-    // Batch DS8: a Scaler. Its starting value (+2 production, +2 culture in
-    // the capital) is the figure on its face.
+    // The starting science and culture are printed on the card face.
     expect(said('theAstronomicalDiaries')).toEqual([
       'Scaler',
-      'Gains +1 culture and +1 production in your capital each time you complete a technology',
+      'Gains +1 science and +1 culture in your capital each time one of your towns grows past 8 citizens',
     ]);
     expect(said('theScholarsFame')).toEqual([
       'completing a technology grants renown equal to 5% of the science it cost you, favouring a great scholar',
@@ -236,7 +235,7 @@ describe('the register', () => {
       ]
     `);
     expect(said('theGreatCatalogue')).toEqual([
-      '+10% production toward The Magnum Opus per charter technology you know (at most +40%)',
+      '+10% production toward The Magnum Opus per charter you hold',
     ]);
   });
 });
@@ -244,23 +243,24 @@ describe('the register', () => {
 // --- the tallies ---------------------------------------------------------------
 
 describe('the research record: the two tallies', () => {
-  it('counts every technology completed while seated, and nothing on the bench', () => {
+  it('counts each new size above eight while seated, including a multi-citizen grant', () => {
     const state = bench();
-    town(state, 0, 4, 4);
+    const capital = town(state, 0, 4, 4, 7);
+    capital.largestSize = 7;
     const sc = playerById(state, 0)!.statecraft;
-    complete(state, 0, FIRST_AGE[0]!);
-    expect(tallyOf(sc, 'theAstronomicalDiaries'), 'not yet held').toBe(0);
     slot(state, 0, 'theAstronomicalDiaries');
-    complete(state, 0, FIRST_AGE[1]!);
-    complete(state, 0, FIRST_AGE[2]!);
+    settlePopulationWindfall(state, capital, 1);
+    expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(0);
+    settlePopulationWindfall(state, capital, 2);
     expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(2);
-    // A charter technology is a technology too.
-    complete(state, 0, 'herbals');
-    expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(3);
-    // Benched, it counts nothing and forgets nothing.
+    loseCitizen(state, capital);
+    settlePopulationWindfall(state, capital, 1);
+    expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(2);
+    complete(state, 0, FIRST_AGE[0]!);
+    expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(2);
     unseat(state, 0, 'theAstronomicalDiaries');
-    complete(state, 0, FIRST_AGE[3]!);
-    expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(3);
+    settlePopulationWindfall(state, capital, 1);
+    expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(2);
   });
 
   it('counts a charter technology for The Royal Charter Commission, and an ordinary one not at all', () => {
@@ -398,18 +398,18 @@ describe('the cards on a board', () => {
     expect(cityLines(state, city, 'The Sky Watchers', 'science')).toBe(2);
   });
 
-  it('The Astronomical Diaries: +2 of each in the capital, and +1 more for each technology completed while seated', () => {
+  it('The Astronomical Diaries pays its starting yields and qualifying growth only to the capital', () => {
     const state = bench();
     const capital = town(state, 0, 4, 4);
-    const other = town(state, 0, 12, 4);
+    const other = town(state, 0, 12, 4, 8);
+    other.largestSize = 8;
     slot(state, 0, 'theAstronomicalDiaries');
+    expect(cityLines(state, capital, 'The Astronomical Diaries', 'science')).toBe(2);
     expect(cityLines(state, capital, 'The Astronomical Diaries', 'culture')).toBe(2);
-    expect(cityLines(state, capital, 'The Astronomical Diaries', 'production')).toBe(2);
-    complete(state, 0, FIRST_AGE[0]!);
-    complete(state, 0, FIRST_AGE[1]!);
+    settlePopulationWindfall(state, other, 2);
+    expect(cityLines(state, capital, 'The Astronomical Diaries', 'science')).toBe(4);
     expect(cityLines(state, capital, 'The Astronomical Diaries', 'culture')).toBe(4);
-    expect(cityLines(state, capital, 'The Astronomical Diaries', 'production')).toBe(4);
-    // Only the capital is paid.
+    expect(cityLines(state, capital, 'The Astronomical Diaries', 'production')).toBe(0);
     expect(cityLines(state, other, 'The Astronomical Diaries', 'culture')).toBe(0);
   });
 
@@ -421,8 +421,7 @@ describe('the cards on a board', () => {
     const before = player.renownByFamily.scholar ?? 0;
     const paid = complete(state, 0, FIRST_AGE[0]!);
     expect((player.renownByFamily.scholar ?? 0) - before).toBeCloseTo(paid / 20, 6);
-    // A charter technology costs more than its column, and pays more: the
-    // measure is the folded price, premium included.
+    // Renown uses the discounted charter price that the seat actually paid.
     const charter = 'herbals';
     const price = foldTechCost(explainTechCost(state, player, charter));
     const middle = player.renownByFamily.scholar ?? 0;
@@ -486,7 +485,7 @@ describe('the cards on a board', () => {
     expect(cityLines(state, capital, 'The Sum of Knowledge', 'production')).toBe((known + 1) * 2);
   });
 
-  it('The Great Catalogue: +10% toward the Opus for each charter technology known, at most +40%', () => {
+  it('The Great Catalogue counts held charters across decks without a cap', () => {
     const state = bench();
     const capital = town(state, 0, 4, 4);
     const player = playerById(state, 0)!;
@@ -496,12 +495,12 @@ describe('the cards on a board', () => {
         .filter((line) => line.card === 'theGreatCatalogue')
         .reduce((sum, line) => sum + line.percent, 0);
     expect(toward()).toBe(0);
-    player.techsResearched.push(CHARTER_TECH_IDS[0]!, CHARTER_TECH_IDS[1]!);
+    player.statecraft.orders.push('theHerbalistsCharter', 'theObserversCharter');
     bumpRevision(state);
     expect(toward()).toBe(20);
-    player.techsResearched.push(...CHARTER_TECH_IDS.slice(2, 7));
+    player.statecraft.orders.push('theBronzeFoundersCharter', 'theSurveyorsCharter', 'theAlchemistsCharter', 'theLibrariansCharter', 'theSchoolmensCharter');
     bumpRevision(state);
-    expect(toward(), 'seven known, capped at four helpings').toBe(40);
+    expect(toward(), 'seven held, including shared charters and unresearched technologies').toBe(70);
     // Nothing toward an ordinary building.
     expect(
       cardProduction(state, capital, 'building', undefined, 'granary').filter(
@@ -537,17 +536,16 @@ describe('The Age of Reason', () => {
     expect(capital.hammerBasket - basket).toBe(30 + 12);
   });
 
-  it('writes the technology tallies twice', () => {
+  it('writes charter completion tallies twice without advancing the growth card', () => {
     const state = bench();
-    const capital = town(state, 0, 4, 4);
+    town(state, 0, 4, 4);
     const sc = playerById(state, 0)!.statecraft;
+    slot(state, 0, 'theRoyalCharterCommission');
     slot(state, 0, 'theAstronomicalDiaries');
     slot(state, 0, 'theAgeOfReason');
-    complete(state, 0, FIRST_AGE[0]!);
-    expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(2);
-    expect(cityLines(state, capital, 'The Astronomical Diaries', 'culture')).toBe(4);
     complete(state, 0, 'herbals');
-    expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(4);
+    expect(tallyOf(sc, 'theRoyalCharterCommission')).toBe(2);
+    expect(tallyOf(sc, 'theAstronomicalDiaries')).toBe(0);
   });
 
   it('pays nothing twice on any other occasion', () => {

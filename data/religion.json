@@ -142,26 +142,25 @@
       "name": "Keeper of the Hearth",
       "axis": "hearth",
       "flavor": "A fire that has never gone out is worth more than a wall.",
-      "text": "Granaries give +2 faith and +1 happiness.",
+      "text": "Granaries and Monuments each supply +1 faith.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "faith": 2,
+          "faith": 1,
           "scope": {
             "test": "hasBuilding",
             "building": "granary"
           }
         },
         {
-          "kind": "happiness",
-          "amount": 1,
-          "per": "city",
+          "kind": "pays",
+          "where": "city",
+          "faith": 1,
           "scope": {
             "test": "hasBuilding",
-            "building": "granary"
-          },
-          "building": "granary"
+            "building": "monument"
+          }
         }
       ]
     },
@@ -197,7 +196,8 @@
             "improvement": "plantation"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theStandingStones": {
       "name": "The Standing Stones",
@@ -215,23 +215,23 @@
             "building": "monument"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "ancestorWorship": {
       "name": "Ancestor Worship",
       "axis": "stone",
       "flavor": "The dead outnumber us, and they vote.",
-      "text": "+1 culture for every 4 citizens in a town.",
+      "text": "+3 authority. The bonus for spare authority also raises faith.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "culture",
-          "amount": 1,
-          "count": "population",
-          "per": 4,
-          "within": "city"
+          "kind": "authority",
+          "amount": 3
+        },
+        {
+          "kind": "meterRule",
+          "rule": "surplusAuthorityFaith",
+          "value": 1
         }
       ]
     },
@@ -338,14 +338,14 @@
       "name": "Rites of Blood",
       "axis": "war",
       "flavor": "The altar is old. The queue in front of it is older.",
-      "text": "Killing a unit grants faith equal to its strength.",
+      "text": "When one of your units dies in battle, gain faith equal to twice its strength.",
       "effects": [
         {
           "kind": "windfallRider",
-          "occasion": "kill",
+          "occasion": "death",
           "grant": {
             "yield": "faith",
-            "amount": 1,
+            "amount": 2,
             "fromOccasion": "strength"
           }
         }
@@ -405,10 +405,10 @@
       ]
     },
     "desertFathers": {
-      "name": "Desert Fathers",
+      "name": "The Hermits",
       "axis": "sun",
       "flavor": "They went out to find nothing, and were the first to succeed.",
-      "text": "Desert hexes gain +1 food and +1 faith.",
+      "text": "Desert and tundra hexes gain +1 food and +1 faith.",
       "effects": [
         {
           "kind": "pays",
@@ -418,6 +418,16 @@
           "on": {
             "test": "terrain",
             "terrain": "desert"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "faith": 1,
+          "on": {
+            "test": "terrain",
+            "terrain": "tundra"
           }
         }
       ]
@@ -438,7 +448,8 @@
             "terrain": "tundra"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "lordOfTheHoard": {
       "name": "The Stone Hoard",
@@ -573,23 +584,16 @@
       "name": "Patron of Merchants",
       "axis": "road",
       "flavor": "He keeps no temple, only a pair of scales at every crossroads.",
-      "text": "+1 faith and +2 gold for each different luxury you hold.",
+      "text": "Gain +1 gold each turn for every 50 faith you have spent this game.",
       "effects": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
-          "to": "faith",
-          "amount": 1,
-          "count": "uniqueLuxuries"
-        },
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
           "to": "gold",
-          "amount": 2,
-          "count": "uniqueLuxuries"
+          "count": "faithSpent",
+          "amount": 1,
+          "per": 50
         }
       ]
     },
@@ -608,7 +612,8 @@
           "fromRate": "culturePerTurn",
           "per": 3
         }
-      ]
+      ],
+      "retired": true
     }
   },
   "followerBeliefs": {
@@ -653,39 +658,27 @@
           "count": "followersHere",
           "per": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "feastDays": {
       "name": "Feast Days",
       "axis": "hearth",
       "flavor": "Nobody argues with a calendar that promises dinner.",
-      "text": "+1 happiness for every city that follows, and Temples supply +1 happiness.",
+      "text": "A town that follows gains +1 faith for every two citizens while it keeps a rite.",
       "effects": [
         {
-          "kind": "happiness",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "count": "population",
           "amount": 1,
-          "per": "city",
+          "per": 2,
+          "within": "city",
           "scope": {
-            "test": "follows"
+            "test": "keepingRite"
           }
-        },
-        {
-          "kind": "happiness",
-          "amount": 1,
-          "per": "city",
-          "scope": {
-            "test": "all",
-            "of": [
-              {
-                "test": "follows"
-              },
-              {
-                "test": "hasBuilding",
-                "building": "temple"
-              }
-            ]
-          },
-          "building": "temple"
         }
       ]
     },
@@ -711,7 +704,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "lampsOfTheShrine": {
       "name": "Lamps of the Shrine",
@@ -736,22 +730,33 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "choirs": {
       "name": "Choirs",
       "axis": "none",
       "flavor": "Forty people, one breath, and the roof holds it a moment longer.",
-      "text": "+1 culture for every 4 citizens of a city that follows.",
+      "text": "A town that follows gains +1 culture and +1 gold for every three citizens.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "culture",
-          "amount": 1,
           "count": "population",
-          "per": 4,
+          "amount": 1,
+          "per": 3,
+          "within": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "count": "population",
+          "amount": 1,
+          "per": 3,
           "within": "city"
         }
       ]
@@ -772,7 +777,8 @@
           "per": 3,
           "within": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "theQuietHours": {
       "name": "The Quiet Hours",
@@ -806,7 +812,7 @@
       "name": "Warrior Monks",
       "axis": "war",
       "flavor": "They keep the fast, and they keep the gate.",
-      "text": "+10 combat strength for units defending a city that follows.",
+      "text": "+10 combat strength for units defending a town that follows.",
       "effects": [
         {
           "kind": "combatLine",
@@ -822,7 +828,7 @@
       "name": "Harvest Blessing",
       "axis": "hearth",
       "flavor": "The field was going to do that anyway. Say the words.",
-      "text": "+1 food on every farm worked by a city that follows.",
+      "text": "+1 food on every farm worked by a town that follows.",
       "effects": [
         {
           "kind": "pays",
@@ -858,7 +864,7 @@
       "name": "Common Table",
       "axis": "hearth",
       "flavor": "Everyone eats, and what is left is put by for everyone.",
-      "text": "A city that follows keeps a quarter of its stored food when it grows.",
+      "text": "A town that follows keeps a quarter of its stored food when it grows.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -922,14 +928,20 @@
       "name": "The Alms Box",
       "axis": "none",
       "flavor": "The box by the door is never locked, and it is never empty for long.",
-      "text": "Your faith buys 25% more in towns that follow this religion.",
+      "text": "A town that follows may buy food and production buildings with faith.",
       "effects": [
         {
-          "kind": "purchaseRider",
-          "class": {},
-          "on": "all",
-          "percent": -20,
-          "currency": "faith",
+          "kind": "rule",
+          "rule": "faithBuysBuildings",
+          "buildingCategory": "food",
+          "scope": {
+            "test": "follows"
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "faithBuysBuildings",
+          "buildingCategory": "production",
           "scope": {
             "test": "follows"
           }
@@ -942,16 +954,13 @@
       "name": "Reliquaries",
       "axis": "stone",
       "flavor": "A bone in a box, and a queue around the block.",
-      "text": "+1 culture for every 3 faith you make each turn.",
+      "text": "An apostle can spend a charge to leave a relic in one of your towns with a Temple. Each relic adds +4 science and +4 culture to that Temple.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "rate",
-          "to": "culture",
-          "amount": 1,
-          "fromRate": "faithPerTurn",
-          "per": 3
+          "kind": "buildingRelic",
+          "building": "temple",
+          "science": 4,
+          "culture": 4
         }
       ]
     },
@@ -959,7 +968,7 @@
       "name": "Inquisition",
       "axis": "war",
       "flavor": "Doubt is welcome. Bring it here, where we can look at it.",
-      "text": "Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion.",
+      "text": "Rival religions press your towns at 70% strength. Gain +1 authority for every two devout towns.",
       "effects": [
         {
           "kind": "pressureRule",
@@ -986,12 +995,17 @@
       "name": "The Long Road",
       "axis": "road",
       "flavor": "Every cart that leaves carries two things, and only one is grain.",
-      "text": "Your religion presses 2 harder along trade routes.",
+      "text": "Your trade routes press your religion at both ends and press 2 harder.",
       "effects": [
         {
           "kind": "pressureRule",
           "rule": "routeStrength",
           "delta": 2
+        },
+        {
+          "kind": "pressureRule",
+          "rule": "routeBothWays",
+          "delta": 1
         }
       ]
     },
@@ -1012,17 +1026,25 @@
       "name": "The Pulse of Bells",
       "axis": "sky",
       "flavor": "They rang for an hour. People remember where they were standing.",
-      "text": "A proclamation reaches 4 hexes further and presses 20 faith harder.",
+      "text": "A proclamation raises production in your towns within its reach by 25% for ten turns. A later proclamation restarts the ten turns.",
       "effects": [
         {
-          "kind": "pressureRule",
-          "rule": "bombRange",
-          "delta": 4
-        },
-        {
-          "kind": "pressureRule",
-          "rule": "bombLump",
-          "delta": 20
+          "kind": "windfallRider",
+          "occasion": "proclamationMade",
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "renews": true,
+              "townsInReach": true,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 25
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -1030,17 +1052,16 @@
       "name": "Ecclesia",
       "axis": "stone",
       "flavor": "The stones were here first. We only agreed about them.",
-      "text": "Each holy site gives +1 faith for each town in the world that follows your religion.",
+      "text": "A town that starts a rite adds 20 pressure for your religion to every town within six hexes.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "hex",
-          "basis": "count",
-          "count": "followingCities",
-          "faith": 1,
-          "on": {
-            "test": "improvement",
-            "improvement": "holySite"
+          "kind": "windfallRider",
+          "occasion": "rite",
+          "grant": {
+            "pressure": {
+              "amount": 20,
+              "range": 6
+            }
           }
         }
       ]
@@ -1072,7 +1093,8 @@
           "rule": "routeBothWays",
           "delta": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "holyOrder": {
       "name": "Holy Order",
@@ -1113,15 +1135,16 @@
       "name": "Congregation",
       "axis": "hearth",
       "flavor": "A crowd that knows the words is a crowd that stays.",
-      "text": "+2 faith for every town in the world that follows your religion.",
+      "text": "The first time a foreign town turns to your religion, your capital gains a citizen.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "faith",
-          "amount": 2,
-          "count": "followingCities"
+          "kind": "windfallRider",
+          "occasion": "townConverted",
+          "grant": {
+            "citizens": 1,
+            "toCapital": true
+          },
+          "first": "conversion"
         }
       ]
     },
@@ -1139,7 +1162,8 @@
           "amount": 4,
           "count": "followingCities"
         }
-      ]
+      ],
+      "retired": true
     },
     "worldChurch": {
       "name": "World Church",
@@ -1162,7 +1186,7 @@
       "name": "The Long Prayer",
       "axis": "sun",
       "flavor": "It began at dawn. Nobody has been brave enough to end it.",
-      "text": "+1 culture for every 4 citizens in the world who follow you.",
+      "text": "+1 culture for every three citizens in the world who follow your religion.",
       "effects": [
         {
           "kind": "pays",
@@ -1171,7 +1195,7 @@
           "to": "culture",
           "amount": 1,
           "count": "followingPop",
-          "per": 4
+          "per": 3
         }
       ]
     },
@@ -1210,7 +1234,7 @@
       "name": "Marvels of the Faith",
       "axis": "none",
       "flavor": "Every one of them was raised by somebody who had heard of the last one.",
-      "text": "+5 science and +5 culture for every city in the world that follows you and holds a wonder.",
+      "text": "+5 science and +5 culture for every town in the world that follows you and holds a wonder.",
       "effects": [
         {
           "kind": "pays",
@@ -1234,7 +1258,7 @@
       "name": "The Scriptoria",
       "axis": "sky",
       "flavor": "A thousand hands copying, and only two of them ever asked what it said.",
-      "text": "+1 science for every faith building in a city that follows you.",
+      "text": "+1 science for every faith building in a town that follows you.",
       "effects": [
         {
           "kind": "pays",
@@ -1297,7 +1321,8 @@
       ],
       "duration": 10,
       "tech": "divination",
-      "byCard": true
+      "byCard": true,
+      "retired": true
     },
     "riteOfHallowing": {
       "name": "Rite of Hallowing",
@@ -1315,7 +1340,8 @@
       ],
       "duration": 10,
       "tech": "divination",
-      "byCard": true
+      "byCard": true,
+      "retired": true
     },
     "riteOfTheHarvest": {
       "name": "Rite of the Harvest",
@@ -1432,7 +1458,11 @@
       "note": "Opened by the Order The Fast. The town stores no food toward growth while it fasts; food already stored stays where it is.",
       "duration": 10,
       "effects": [
-        { "kind": "rulePercent", "rule": "growthSurplus", "percent": -100 },
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": -100
+        },
         {
           "kind": "pays",
           "where": "city",
@@ -1469,7 +1499,8 @@
           "from": "faith",
           "percent": 100
         }
-      ]
+      ],
+      "retired": true
     },
     "restoringOfTheHost": {
       "name": "Restoring of the Host",
@@ -1482,7 +1513,8 @@
       "healing": {
         "range": 3,
         "amount": 25
-      }
+      },
+      "retired": true
     },
     "riteOfTheSabbath": {
       "name": "Rite of the Sabbath",
@@ -1492,7 +1524,11 @@
       "text": "This town builds nothing, and gains its production as culture.",
       "note": "Opened by the Order The Sabbath Laws. Production the town buys, or is given at once, still goes into what it is building. A town in unrest makes no production, so it has none to give.",
       "duration": 10,
-      "effects": [{ "kind": "productionToCulture" }]
+      "effects": [
+        {
+          "kind": "productionToCulture"
+        }
+      ]
     }
   },
   "consecrations": {

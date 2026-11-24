@@ -6,6 +6,7 @@
   },
   "wagers": {
     "capitalOfTheWorld": {
+      "retired": true,
       "name": "The Capital of the World",
       "family": "culture",
       "line": "green",
@@ -42,6 +43,7 @@
       "note": "Citizens living in your seat of government, buildings standing in it, and wonders among those buildings — all on the same turn."
     },
     "workedLand": {
+      "retired": true,
       "name": "The Worked Land",
       "family": "economic",
       "line": "green",
@@ -58,6 +60,7 @@
       "note": "Everything the land worked by your seat of government pays you, added up over the age."
     },
     "theHarvest": {
+      "retired": true,
       "name": "The Harvest",
       "family": "economic",
       "line": "ploughshare",
@@ -77,6 +80,7 @@
       "note": "Food your farms pay across the realm, on one turn."
     },
     "breadAndIron": {
+      "retired": true,
       "name": "Bread and Iron",
       "family": "domination",
       "line": "ploughshare",
@@ -105,6 +109,7 @@
       "note": "Food to spare across the realm and the fighting strength of every piece you have in the field — both on the same turn."
     },
     "caravanserai": {
+      "retired": true,
       "name": "The Caravanserai",
       "family": "economic",
       "line": "caravan",
@@ -121,6 +126,7 @@
       "note": "Everything your trade routes pay you, added up over the age."
     },
     "kingsRoads": {
+      "retired": true,
       "name": "The King's Roads",
       "family": "economic",
       "line": "caravan",
@@ -137,6 +143,7 @@
       "note": "The gold your towns pay you for being joined by road to your seat of government, added up over the age."
     },
     "solventRealm": {
+      "retired": true,
       "name": "The Solvent Realm",
       "family": "economic",
       "line": "caravan",
@@ -153,6 +160,7 @@
       "note": "What your treasury takes in each turn once the realm's costs are paid, added up over the age."
     },
     "warChest": {
+      "retired": true,
       "name": "The War Chest",
       "family": "economic",
       "line": "caravan",
@@ -181,6 +189,7 @@
       "note": "Gold sitting in your treasury and the fighting strength of every piece you have in the field — both on the same turn."
     },
     "academies": {
+      "retired": true,
       "name": "The Academies",
       "family": "science",
       "line": "star",
@@ -197,6 +206,7 @@
       "note": "Learning made across the realm, added up over the age."
     },
     "observatory": {
+      "retired": true,
       "name": "The Observatory",
       "family": "science",
       "line": "star",
@@ -213,6 +223,7 @@
       "note": "Learning made in one turn, shared out over every citizen in the realm."
     },
     "theTithe": {
+      "retired": true,
       "name": "The Tithe",
       "family": "culture",
       "line": "cloister",
@@ -230,6 +241,7 @@
       "note": "Everything your religion pays the realm, added up over the age."
     },
     "wonderOfTheAge": {
+      "retired": true,
       "name": "The Wonder of the Age",
       "family": "culture",
       "line": "court",
@@ -246,6 +258,7 @@
       "note": "Wonders of the age the world is in now, standing in your towns — held at once."
     },
     "marvelsPay": {
+      "retired": true,
       "name": "The Marvels' Pay",
       "family": "culture",
       "line": "court",
@@ -262,6 +275,7 @@
       "note": "Everything your wonders pay you, added up over the age."
     },
     "patronage": {
+      "retired": true,
       "name": "The Patronage",
       "family": "culture",
       "line": "court",
@@ -278,6 +292,7 @@
       "note": "Everything your great people pay you — their works, their gifts and their legacies — added up since this age was dealt."
     },
     "theRenowned": {
+      "retired": true,
       "name": "The Renowned",
       "family": "culture",
       "line": "court",
@@ -294,6 +309,7 @@
       "note": "Renown your realm earns over the age, spent or not, added up."
     },
     "theChronicle": {
+      "retired": true,
       "name": "The Chronicle",
       "family": "culture",
       "line": "court",
@@ -310,6 +326,7 @@
       "note": "Culture made across the realm, added up over the age."
     },
     "theDeck": {
+      "retired": true,
       "name": "The Deck",
       "family": "science",
       "line": "charter",
@@ -326,6 +343,7 @@
       "note": "Everything the cards slotted in your government pay you, added up over the age."
     },
     "marcherLords": {
+      "retired": true,
       "name": "The Marcher Lords",
       "family": "economic",
       "line": "charter",
@@ -362,6 +380,7 @@
       "note": "Towns you hold, happiness at or above nothing, and authority not yet overspent — all on the same turn."
     },
     "theBuilders": {
+      "retired": true,
       "name": "The Builders",
       "family": "economic",
       "line": "charter",
@@ -378,6 +397,7 @@
       "note": "Everything the buildings across your realm pay you in one turn."
     },
     "sixVoices": {
+      "retired": true,
       "name": "The Six Voices",
       "family": "economic",
       "line": "charter",
@@ -394,6 +414,7 @@
       "note": "Food, work, gold, learning, culture and faith, summed every turn and added up over the age."
     },
     "contentedRealm": {
+      "retired": true,
       "name": "The Contented Realm",
       "family": "economic",
       "line": "charter",
@@ -410,6 +431,7 @@
       "note": "Happiness to spare, counted every turn of the age and added up."
     },
     "theArsenal": {
+      "retired": true,
       "name": "The Arsenal",
       "family": "domination",
       "line": "forge",
@@ -429,6 +451,7 @@
       "note": "Work your towns put into building soldiers, added up over the age."
     },
     "fieldOfGlory": {
+      "retired": true,
       "name": "The Field of Glory",
       "family": "domination",
       "line": "banner",
@@ -445,6 +468,7 @@
       "note": "Rivals' soldiers you kill over the age, less your own soldiers lost."
     },
     "takenTown": {
+      "retired": true,
       "name": "The Taken Town",
       "family": "domination",
       "line": "banner",

@@ -1367,9 +1367,12 @@ import { digestOfState, type Played } from './aiDigestHelpers';
 // Both six-seat games completed 120 turns without warnings
 // or stalls, and their saved logs replayed exactly. The release record is
 // docs/audit/bot-play-release-2026-11-23.md.
+// The trade and tile valuation batch changes bot choices, not simulation rules.
+// Both 120-turn games completed without warnings or stalls. Their saved logs
+// replayed exactly. See docs/audit/bot-trade-and-tiles-2026-11-23.md.
 const DIGESTS = {
-  duel: 'c86d21d1:430323',
-  standard: '3c17801f:1173951',
+  duel: '673a367f:421258',
+  standard: '9d59b709:1166432',
 };
 
 /** Check driver errors before comparing the state digest. */

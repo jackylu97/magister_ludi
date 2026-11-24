@@ -8,7 +8,7 @@
       "flavor": "The oil was kept for the day they chose a ruler.",
       "effects": [],
       "name": "Commission: The Anointing",
-      "text": "Goal: hold 10 spare authority. Reward: each devout town gains +3 faith and +3 culture.",
+      "text": "Goal: hold 10 spare authority. Reward: every town you hold keeps a rite that your capital starts.",
       "rarity": "uncommon",
       "type": "wildcard",
       "band": 3,
@@ -24,22 +24,8 @@
           {
             "lasting": [
               {
-                "kind": "pays",
-                "where": "city",
-                "scope": {
-                  "test": "ownersFaith",
-                  "keeps": true
-                },
-                "faith": 3
-              },
-              {
-                "kind": "pays",
-                "where": "city",
-                "scope": {
-                  "test": "ownersFaith",
-                  "keeps": true
-                },
-                "culture": 3
+                "kind": "rule",
+                "rule": "capitalRiteOverRealm"
               }
             ]
           }
@@ -87,7 +73,7 @@
         }
       ],
       "name": "The Defenders of the Faith",
-      "text": "Your units gain +1 strength for every three towns that follow your religion.",
+      "text": "Your units gain +1 strength for every three towns in the world that follow your religion.",
       "rarity": "common",
       "type": "military",
       "band": 3
@@ -258,7 +244,7 @@
         }
       ],
       "name": "The Temple Herds",
-      "text": "Pastures, camps and plantations gain +1 food and +1 production for each faith building in their town, at most +3 of each.",
+      "text": "Pastures, camps and plantations gain +1 food and +1 production for each building that supplies faith in their town, at most +3 of each.",
       "rarity": "common",
       "type": "economic",
       "band": 2
@@ -339,7 +325,8 @@
       "text": "Spending faith grants science equal to a fourth of it.",
       "rarity": "common",
       "type": "civic",
-      "band": 3
+      "band": 3,
+      "retired": true
     },
     "theCallToPrayer": {
       "decks": [
@@ -365,19 +352,25 @@
       ],
       "line": "none",
       "flavor": "They set another place each time a name was read.",
-      "effects": [],
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "food",
+          "count": "population",
+          "amount": 1,
+          "scope": {
+            "test": "keepingRite"
+          },
+          "within": "city"
+        }
+      ],
       "name": "The Naming Feasts",
-      "text": "Unlocks the Rite of Naming: for ten turns the town gains +2 food for each citizen.",
+      "text": "Towns keeping a rite gain +1 food for each citizen.",
       "rarity": "uncommon",
       "type": "economic",
-      "band": 3,
-      "charter": {
-        "unlocks": {
-          "rites": [
-            "riteOfNaming"
-          ]
-        }
-      }
+      "band": 3
     },
     "theVigilOfArms": {
       "decks": [
@@ -433,7 +426,8 @@
         "unlocks": {
           "building": "bellTower"
         }
-      }
+      },
+      "retired": true
     },
     "theHallowedGround": {
       "decks": [
@@ -441,19 +435,24 @@
       ],
       "line": "none",
       "flavor": "The first sheaf is left beside the field.",
-      "effects": [],
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improved"
+          },
+          "scope": {
+            "test": "keepingRite"
+          },
+          "faith": 1
+        }
+      ],
       "name": "The Hallowed Ground",
-      "text": "Unlocks the Rite of Hallowing: for ten turns the town's improved hexes gain +1 faith.",
+      "text": "Towns keeping a rite gain +1 faith on each improved hex.",
       "rarity": "uncommon",
       "type": "economic",
-      "band": 1,
-      "charter": {
-        "unlocks": {
-          "rites": [
-            "riteOfHallowing"
-          ]
-        }
-      }
+      "band": 1
     },
     "theChantries": {
       "decks": [
@@ -463,7 +462,7 @@
       "flavor": "The mason kept one key. The singers kept the other.",
       "effects": [],
       "name": "The Chantries",
-      "text": "Unlocks the Chapel: +2 faith and +2 culture, and rites in its city last 50% longer.",
+      "text": "Unlocks the Chapel: +2 faith and +2 culture, and rites in its town last 50% longer.",
       "rarity": "uncommon",
       "type": "civic",
       "band": 1,
@@ -790,7 +789,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every verse was somebody's first morning in the faith.",
-      "text": "Your capital gains +3 science and +3 culture for every city following your religion, with no cap.",
+      "text": "Your capital gains +3 science and +3 culture for every town in the world that follows your religion, with no cap.",
       "effects": [
         {
           "kind": "pays",
@@ -849,7 +848,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "Two towns, two letters home, and a road between them.",
-      "text": "Goal: convert two foreign cities. Reward: an Apostle and 300 culture.",
+      "text": "Goal: convert two foreign towns. Reward: an Apostle and 300 culture.",
       "effects": [],
       "commission": {
         "goals": [
@@ -1108,11 +1107,18 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "A candle, a coin and a name, left at the foot of the scaffold.",
-      "text": "Towns may keep the Votive Offering, a rite: for ten turns the town gains production equal to its faith.",
+      "text": "Towns keeping a rite gain production equal to half their faith.",
       "effects": [
         {
-          "kind": "grantsAbility",
-          "ability": "votiveOffering"
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "to": "production",
+          "from": "faith",
+          "percent": 50,
+          "scope": {
+            "test": "keepingRite"
+          }
         }
       ]
     },
@@ -1131,7 +1137,11 @@
         {
           "kind": "windfallRider",
           "occasion": "faithSpent",
-          "grant": { "yield": "culture", "amount": 0.25, "fromOccasion": "faith" }
+          "grant": {
+            "yield": "culture",
+            "amount": 0.25,
+            "fromOccasion": "faith"
+          }
         }
       ]
     },
@@ -1170,7 +1180,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "A bed, a map and a door that opens the right way.",
-      "text": "Your proclamations reach 50% farther and are 50% more effective in foreign cities.",
+      "text": "Your proclamations reach 50% farther and are 50% more effective in foreign towns.",
       "effects": [
         {
           "kind": "pressureRule",
@@ -1248,17 +1258,8 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "A quiet office, a long memory, and a very short list.",
-      "text": "Each devout town gives +1 authority. Foreign religions press your cities 80% less, proclamations included.",
+      "text": "Rival religions press your towns 80% less.",
       "effects": [
-        {
-          "kind": "authority",
-          "amount": 1,
-          "per": "city",
-          "scope": {
-            "test": "ownersFaith",
-            "keeps": true
-          }
-        },
         {
           "kind": "pressureRule",
           "rule": "rivalPressurePercent",
@@ -1296,7 +1297,8 @@
           "to": "culture",
           "amount": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "fabricFund": {
       "name": "The Fabric Fund",
@@ -1427,7 +1429,7 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "Go to every town, and leave a roof where you prayed.",
-      "text": "Goal: more than half the world's cities follow your religion. Reward: each town that follows your religion, at home or abroad, gives you +3 science and +3 culture.",
+      "text": "Goal: more than half the world's towns follow your religion. Reward: each town that follows your religion, at home or abroad, gives you +3 science and +3 culture.",
       "effects": [],
       "commission": {
         "goals": [
@@ -1482,7 +1484,8 @@
           "count": "followingPop",
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theTreasuryOfMerit": {
       "name": "The Treasury of Merit",
@@ -1566,7 +1569,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "The canons of every cathedral met in each one's chapter house in turn.",
-      "text": "Every city with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each.",
+      "text": "Every town with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each.",
       "effects": [
         {
           "kind": "pays",
@@ -1684,7 +1687,9 @@
           "kind": "pressureRule",
           "rule": "rivalPressurePercent",
           "delta": -100,
-          "scope": { "test": "raisingOpus" }
+          "scope": {
+            "test": "raisingOpus"
+          }
         },
         {
           "kind": "cityStat",
@@ -1692,7 +1697,9 @@
           "amount": 2,
           "count": "followingCities",
           "max": 15,
-          "scope": { "test": "raisingOpus" }
+          "scope": {
+            "test": "raisingOpus"
+          }
         }
       ],
       "retired": true
@@ -1793,11 +1800,13 @@
       "rarity": "uncommon",
       "type": "military",
       "flavor": "They came in carried and went out marching.",
-      "text": "Towns may keep the Restoring of the Host, a rite: for ten turns your units within three hexes of the town heal 25 health each turn.",
+      "text": "Your units heal an additional 20 in your towns keeping a rite.",
       "effects": [
         {
-          "kind": "grantsAbility",
-          "ability": "restoringOfTheHost"
+          "kind": "unitStat",
+          "stat": "heal",
+          "amount": 20,
+          "where": "ownTownKeepingRite"
         }
       ]
     },
@@ -1940,7 +1949,7 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "The road to the shrine is lined with inns, and every inn has a singer.",
-      "text": "Holy sites gain +1 production and +1 culture for each town that follows your religion.",
+      "text": "Holy sites gain +1 production and +1 culture for each town in the world that follows your religion.",
       "effects": [
         {
           "kind": "pays",
@@ -2246,7 +2255,7 @@
       "rarity": "uncommon",
       "type": "wildcard",
       "flavor": "One emperor, one creed, and a bishop in every town to say so.",
-      "text": "Goal: hold six towns, all devout. Reward: +1 authority and +1 happiness for every two devout towns.",
+      "text": "Goal: hold six towns, all devout. Reward: +1 happiness for every two devout towns.",
       "effects": [],
       "commission": {
         "goals": [
@@ -2264,20 +2273,6 @@
         "reward": [
           {
             "lasting": [
-              {
-                "kind": "pays",
-                "where": "empire",
-                "basis": "count",
-                "to": "authority",
-                "amount": 1,
-                "count": "citiesAdmitted",
-                "per": 2,
-                "within": "empire",
-                "admits": {
-                  "test": "ownersFaith",
-                  "keeps": true
-                }
-              },
               {
                 "kind": "pays",
                 "where": "empire",
@@ -3116,6 +3111,43 @@
       ],
       "effects": [],
       "retired": true
+    },
+    "thePatriarchate": {
+      "name": "The Patriarchate",
+      "flavor": "There is time for a second school.",
+      "decks": [
+        "devotion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "showCountValue": true,
+      "text": "Your holy city gains +2 production and +2 science for each point of spare authority.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "count": "authoritySurplus",
+          "amount": 2,
+          "scope": {
+            "test": "holyCity"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "count": "authoritySurplus",
+          "amount": 2,
+          "scope": {
+            "test": "holyCity"
+          }
+        }
+      ]
     }
   },
   "doctrines": {
@@ -3146,35 +3178,70 @@
     },
     "theTheoricFund": {
       "name": "The Theoric Fund",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 1,
       "line": "none",
       "flavor": "The state pays for your seat at the festival. It has found this cheaper than a riot.",
       "text": "+1 culture for every 3 faith your empire makes.",
       "effects": [
-        {"kind": "pays", "where": "empire", "basis": "rate", "fromRate": "faithPerTurn", "per": 3, "to": "culture", "amount": 1}
-      ]
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "fromRate": "faithPerTurn",
+          "per": 3,
+          "to": "culture",
+          "amount": 1
+        }
+      ],
+      "retired": true
     },
     "theRitesOfZhou": {
       "name": "The Rites of Zhou",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 1,
       "line": "none",
       "flavor": "Ritual holds a realm together better than punishment does.",
       "text": "Each town holding a rite gains +2 food and +2 happiness.",
       "effects": [
-        {"kind": "pays", "where": "city", "food": 2, "scope": {"test": "keepingRite"}},
-        {"kind": "happiness", "amount": 2, "per": "city", "scope": {"test": "keepingRite"}}
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "scope": {
+            "test": "keepingRite"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "keepingRite"
+          }
+        }
       ]
     },
     "theSerapeum": {
       "name": "The Serapeum",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 1,
       "line": "none",
       "flavor": "The same god, under two names, with two congregations.",
       "text": "Each of your gods gives twice its effects.",
-      "effects": [{ "kind": "metaRule", "rule": "godsCountTwice", "value": 2 }],
+      "effects": [
+        {
+          "kind": "metaRule",
+          "rule": "godsCountTwice",
+          "value": 2
+        }
+      ],
       "note": "A god's yields, percentages, combat lines and riders count twice. An offer a god gives you does not. A follower or enhancer belief is not a god."
     },
     "thePaean": {
@@ -3206,50 +3273,97 @@
     },
     "theCapitularyOfHerstal": {
       "name": "The Capitulary of Herstal",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 2,
       "line": "none",
       "flavor": "The tithe became a law, and the parish stopped passing the plate.",
       "text": "Rites cost half as much.",
       "effects": [
-        {"kind": "rulePercent", "rule": "riteCost", "percent": -50}
+        {
+          "kind": "rulePercent",
+          "rule": "riteCost",
+          "percent": -50
+        }
       ]
     },
     "thePatrimonyOfPeter": {
       "name": "The Patrimony of Peter",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 2,
       "line": "none",
       "needsReligion": true,
       "flavor": "The bishop's farms fed Rome when the emperor's could not.",
       "text": "Your holy city's citizens demand no happiness.",
       "effects": [
-        {"kind": "rulePercent", "rule": "happinessDemand", "percent": -100, "scope": {"test": "holyCity"}}
+        {
+          "kind": "rulePercent",
+          "rule": "happinessDemand",
+          "percent": -100,
+          "scope": {
+            "test": "holyCity"
+          }
+        }
       ]
     },
     "theRibats": {
       "name": "The Ribats",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 2,
       "line": "none",
       "needsReligion": true,
       "flavor": "Monks in the morning, sentries at night, and the same wall around both.",
       "text": "Military units created in a town following your religion gain +3 strength for good. Conquering a town converts it to your religion.",
       "effects": [
-        {"kind": "unitStamp", "strength": 3, "class": {"category": "military"}, "scope": {"test": "ownersFaith", "keeps": true}},
-        {"kind": "windfallRider", "occasion": "capture", "grant": {"pressure": {"amount": 1, "range": 0, "majority": true}}}
+        {
+          "kind": "unitStamp",
+          "strength": 3,
+          "class": {
+            "category": "military"
+          },
+          "scope": {
+            "test": "ownersFaith",
+            "keeps": true
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "pressure": {
+              "amount": 1,
+              "range": 0,
+              "majority": true
+            }
+          }
+        }
       ]
     },
     "theImarets": {
       "name": "The Imarets",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 3,
       "line": "none",
       "needsReligion": true,
       "flavor": "Students, travellers and the poor of the town eat from one kitchen.",
       "text": "Your devout towns grow 25% faster.",
       "effects": [
-        {"kind": "rulePercent", "rule": "growthSurplus", "percent": 25, "scope": {"test": "ownersFaith", "keeps": true}}
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 25,
+          "scope": {
+            "test": "ownersFaith",
+            "keeps": true
+          }
+        }
       ]
     },
     "canossa": {
@@ -3295,19 +3409,32 @@
     },
     "theMartyrsCrown": {
       "name": "The Martyr's Crown",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 3,
       "line": "none",
       "needsReligion": true,
       "flavor": "They killed him on the altar steps, and the pilgrims have not stopped coming.",
       "text": "Each of your units that dies in battle presses your religion on every town within three hexes.",
       "effects": [
-        {"kind": "windfallRider", "occasion": "death", "grant": {"pressure": {"amount": 30, "range": 3}}}
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "pressure": {
+              "amount": 30,
+              "range": 3
+            }
+          }
+        }
       ]
     },
     "theSaintPetersIndulgence": {
       "name": "The Saint Peter's Indulgence",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 4,
       "line": "none",
       "flavor": "A coin in the chest, a stone in the dome.",
@@ -3325,15 +3452,25 @@
     },
     "theSevenCouncils": {
       "name": "The Seven Councils",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 2,
       "line": "none",
       "needsReligion": true,
       "flavor": "Each council settled one question and left the next one open.",
       "text": "Your religion may hold one more follower belief and one more enhancer belief.",
       "effects": [
-        {"kind": "pantheonSlots", "amount": 1, "pool": "follower"},
-        {"kind": "pantheonSlots", "amount": 1, "pool": "enhancer"}
+        {
+          "kind": "pantheonSlots",
+          "amount": 1,
+          "pool": "follower"
+        },
+        {
+          "kind": "pantheonSlots",
+          "amount": 1,
+          "pool": "enhancer"
+        }
       ]
     },
     "theHouseOfWorship": {
@@ -3405,26 +3542,42 @@
     },
     "theApostolicCamera": {
       "name": "The Apostolic Camera",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 4,
       "line": "none",
       "needsReligion": true,
       "flavor": "The dues of every parish know the way to Rome.",
       "text": "Your follower beliefs also pay you in every foreign town that follows your religion.",
       "effects": [
-        {"kind": "rule", "rule": "followerBeliefsPayAbroad"}
+        {
+          "kind": "rule",
+          "rule": "followerBeliefsPayAbroad"
+        }
       ]
     },
     "theTwoSanctuaries": {
       "name": "The Two Sanctuaries",
-      "decks": ["devotion"],
+      "decks": [
+        "devotion"
+      ],
       "band": 4,
       "line": "none",
       "needsReligion": true,
       "flavor": "Two holy cities, one title, and every caravan guarded.",
       "text": "Hexes with a holy site have double yields, applied after every other change to the hex.",
       "effects": [
-        {"kind": "pays", "where": "hex", "on": {"test": "improvement", "improvement": "holySite"}, "wholePercent": 100, "appliedLast": true}
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "holySite"
+          },
+          "wholePercent": 100,
+          "appliedLast": true
+        }
       ]
     }
   }

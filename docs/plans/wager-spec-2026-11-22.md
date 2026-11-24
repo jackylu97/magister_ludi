@@ -151,3 +151,75 @@ numbers based on the bots."
   the way to 3. The user: "i like that as a solution for later."
 - One more bead for beating every rival on the wager that you picked.
 - A soft door: each missing bead adds to the price of the Opus.
+
+## Score readings for calibration
+
+- Read `standingArmyStrength(state, playerId)` for the army wager and the
+  army score line. It uses the roster's combat strength for land and naval
+  units, including ranged units. Each unit adds its rank bonus and applicable
+  card bonuses that apply in both attack and defence. A training stamp and
+  a separate ranged attack value add no points.
+- Read `rivalUnitsAndCampsDefeated(state, playerId)` for the other new line.
+  It sums `unitsKilled` and `campsCleared`. A barbarian unit kill adds no
+  points. Clearing its camp adds one to the count.
+- Pass candidate weights as the third argument to `explainScore` when
+  measuring the share each line contributes. The two fields are `perDefeat`
+  and `perArmyStrength`. The default score omits those two lines until the
+  weights are chosen.
+- The lifetime score uses the Ledger's yield payments at collection each turn.
+  The deck keeps its existing rows. Sources outside its Ledger class have
+  their own rows, so an ordinary building or tile can share a class with a
+  scored source without adding its income to the score. Technology effects
+  and luxury signatures count. The current In play screen has no entries for
+  those two sources.
+
+## Candidate integration
+
+The integrated engine uses schema 267. Ordinary configurations keep legacy wager dealing while calibration is pending. They already use the redesigned score and army reading. These can change final scores and the outcome of legacy army wagers. Measurement mode uses those same readings. Run policy comparisons on a fixed rules version. Measure marks with the selected bot policy on the integrated rules. The legacy rows carry `retired: true` for the new rules. The old game mode still uses their original eligibility.
+
+- Set `GameConfig.wagerSetup` to `{ mode: 'measure' }` to collect age opening and closing readings. This adds no milestone deal or RNG draw. Ordinary legacy deals still occur. Read `state.wagerBook.ages` after play. Each closing seat record includes all thirteen readings, the raw defeat and army values, and the score breakdown. The winning command also closes an unfinished age.
+- To try calibrated rules, pass `{ mode: 'calibrated', calibration: { weights, marks } }`. Supply both proposed score weights and three strictly increasing positive marks per reading. Age I requires score only. Each later age requires all thirteen readings. The game checks the whole payload before map generation and copies it into the normalized replay config. No production weight or mark ships with this candidate.
+- For difficulty tests only, the candidate setup accepts `humanMarksPercent`. Ordinary config validation still admits only implemented difficulty tiers. Once the difficulty table admits tier 13, human bars at and above that tier use the increase in the milestone data. Bot bars keep the calibrated marks.
+- In Claude's screens, use `milestoneOffer(state, playerId)`. It returns the age, opening and closing turn, each option's reading and marks, the seat's pick, and the turn it reached each mark. The command is `{ type: 'chooseWager', playerId, age, index, mark }`. Marks use indices zero, one and two. The age field protects against a click on an expired offer. The old wager sheet uses the old command payload.
+- The bot considers all nine choices. It uses the preceding age's growth, the time left and the existing Arena settings `wager.ageTurns` and `wager.driftWeight`. The highest projected achievable bead award wins. If the projection reaches no mark, it picks the closest. The decision report includes the forecast, the mark and its reward.
+- Wager bead families use the provisional mapping in `data/wagerMilestones.json`. It chooses the Abacus rod. The door and the bot use the bead count.
+
+### What the counters record
+
+- Gross income uses actual positive payments to the gold, faith, science and culture banks. The collection phase counts the staged city payments and empire income excluding bills. Other writers include project conversions, discoveries, camp bounties, pillage, plunder, religious payments, paid great-person acts, bead boons, card windfall grants, and beakers granted to a specific technology. Switching technologies and restoring saved research progress gives no income. A diplomatic transfer and a lost-wonder refund give no gross income.
+- Purchases use `buyWithGold` and `buyWithFaith`. Faith uses the amount actually charged. Rites paid through ordinary spending and contributions to a build have no purchase price for this reading. In a diplomatic exchange, a lump paid for resources, cities or passage adds to the buyer's purchases and subtracts from the seller's. The wonder refund subtracts from purchases.
+- The buildings counter uses `realiseItem` when the building actually joins the city. Production, including production windfalls, and purchases count. Wonders count. Free grants and captured buildings give no completion. This is the implementation reading of “buildings finished”.
+- Improvements count functioning owned works at the time of the reading. Pillage removes the work and repair restores that one hex. Once a wager pays, restoring a work cannot pay it again. A luxury uses the seat's counted luxury kinds. Domestic deliveries and international receipts use their actual route yield lines. Great-person yields use the Ledger's people class.
+
+### Screen integration and calibration
+
+- Read the current score with `foldScore(explainScore(state, playerId))`. Use the same list for the hover text.
+- Read `milestoneOffer(state, playerId)` to draw the bar and options. A null result means the milestone screen does not apply. In Age I show the score option and its three marks. Compare the previous and current `reached` lists for the first-mark notice. Use each entry's turn to identify the event.
+- In Ages II through IV, `milestonePickNeeded(state, playerId)` controls the choice sheet and turn blocker. Preserve the option index from the offer when sending the choice. After the pick, use its metric and mark to draw the bar. A closed age carries its final reading.
+- Finish the bot optimization loop before measuring marks. Run measurement games across seeds and seat counts. Keep the seat, age, and whether the game ended early with each sample. Report each score line's share and propose the two new weights. Recalculate the closing scores with the proposed weights before calculating score marks.
+- For each age and reading, report the sample size, mark and actual fraction of seats that reach it. Flag zero or repeated quantiles for a decision. Check the proposed marks in calibrated games with new seeds. Check the Opus door and low versus middle choices against section 5 before enabling the new rules in ordinary games.
+
+### Earlier replay check on the schema 261 candidate
+
+This check covered the isolated schema 261 candidate before integration with the later rules. The retained six-seat, 120-turn logs used seed 20260831. Both logs replayed to completion on the release and candidate rules.
+
+- The duel log had 6,966 commands. The release digest was `4172463b:393230`. The candidate digest was `94135bed:410687`.
+- The standard log had 7,293 commands. The release digest was `64733584:1087655`. The candidate digest was `f00f39a6:1106620`.
+
+For each comparison, the check set the candidate's `schemaVersion` to 260 and removed each player's `statecraft.inPlayYieldTallies`. The resulting JSON matched the release snapshot byte for byte. This comparison describes those two command logs. Other games can take a different course when the new army reading changes a legacy wager.
+
+### Running calibration after bot policy selection
+
+Use the worktree that contains both the candidate rules and the selected bot code. Start with `scripts/wagerCalibration.example.json`. Its seeds, leaders, board sizes and turn cap illustrate the input. The example starts with three training seeds and three different validation seeds. Both groups run three-seat and six-seat games on the same map size. This gives six training games and eighteen validation games across the three pick strategies. Each complete training age has 27 seat readings from six games. Seats share their map and opponents. Treat those six games as the independent runs when assessing uncertainty. Expand the seed lists if few games finish an age, a mark depends heavily on one seed, or the marks coincide. Record the observed wall time on the first complete game to estimate the remaining run time. The lists must be disjoint. Set `policy.name` to the selected policy. Optional `policy.settings` takes Arena settings applied after each seat's persona. Use a fresh output directory for a new policy or study.
+
+Run these commands from the repository root, one at a time. Replace `manifest.json` with the study file and `/tmp/wager-study` with the output directory.
+
+```sh
+npx vite-node scripts/wagerCalibration.ts measure manifest.json /tmp/wager-study
+npx vite-node scripts/wagerCalibration.ts fit manifest.json /tmp/wager-study
+npx vite-node scripts/wagerCalibration.ts validate manifest.json /tmp/wager-study
+```
+
+- **Measurement.** The runner plays one training game at a time. Each seed uses every requested board and seat count. It rotates the list of leaders by seed. Each game file records the raw readings by seat and age, along with each closing score line and the two military counts. Seats whose game ends in victory have a labelled final sample. A turn limit leaves the unfinished age open. The fit excludes that unfinished sample. A stalled game or a bot warning stops the run. Completed games can be reused after an interruption. `plan.json` records the manifest, source revision and a hash of the simulation, bot, data and calibration code.
+- **Proposal.** For a first comparison, the fit prices each new military line like a typical positive existing score line. Within each age it takes the median of the existing lines' mean positive contributions. It averages these four reference values with equal weight per age. Each proposed weight divides that reference by the corresponding mean count, also averaged equally across ages. This is an analysis choice for review. The score sheet's own rounding applies to each new line before the score marks are calculated. `proposal.json` reports every line's mean points and share by age. Each mark is the highest observed figure reached by at least the target fraction of seats. The report includes the count and fraction actually reaching it. Zero, negative or coincident marks and missing age data require review before a calibrated game can run.
+- **Held-out validation.** Each fresh seed runs three times with the same map and seats. One game uses normal bot picks. In the other two games each seat chooses its best wager at a fixed low or middle mark. Payoffs use the real command, rules and turns. Game files show all seats, scores, winners, picks, payout turns, immediate payouts, total beads and the turn each seat reached the Opus bead threshold. `held-out.json` reports actual age-end reach fractions with the fitted marks, the number of seats observed in Age IV, and how many reached the door during or before that age. It counts unfinished Age IV observations separately. Use the per-seat scores and winner flags to inspect the user’s “plays well” condition. A winner or a score rank is an observation, not a new rule of play.

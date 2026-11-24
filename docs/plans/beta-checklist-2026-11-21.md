@@ -34,6 +34,8 @@ Owners: **A** is Astra (bots, rendering, models, rules and card builds).
 
 - **The founder's share of a religion, and the reason to spread it (deferred 2026-11-24).** Today a founder gains +1 faith for each foreign town that follows, and +1 gold for each two such towns. That is too little to make a missionary worth its faith (`docs/plans/devotion-beliefs-pass-2026-11-23.md`, section 3). The pass proposed +1 gold for every two citizens of each foreign town that follows. The user deferred it: "in theory, the founders share is something that's visible to the player in a belief. lets defer this, note it in the beta checklist." To decide: whether the share becomes a founder belief the player picks and can read, and its size.
 
+- **The rest of the wonder review (deferred 2026-11-24).** Nine wonders were reworked for the playtest build. Deferred, in `docs/plans/wonder-review-2026-11-23.md`: the two smaller changes of its summary, The Great Mosque of Djenné, the cut candidates, and the question whether each of the other five decks gets one or two cards that read wonders held (today about 20 Magisterial cards count wonders and almost nothing else does). The user: "let's defer and add it to the beta checklist."
+
 ## B2. Carried from the first checklist (`docs/beta-checklist.md`, 2026-11-16 to 2026-11-19)
 
 The Claude session found on 2026-11-22 that an older checklist held items

@@ -1165,7 +1165,14 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts` ·
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.
-- **The wager** (**`docs/wager.md`**, the live deck, sync-tested): three cards on
+- **Wager redesign integration** (schema 267):
+  `docs/plans/wager-spec-2026-11-22.md` defines the new milestones and the
+  readings for the screens. The implementation includes counters, choices,
+  immediate rewards and calibration tools. Measured marks and the new screens
+  are still needed before this becomes the default. Ordinary configurations
+  retain legacy deals but use the revised score and army reading. Explicit
+  measurement and calibrated configurations are available for validation.
+- **The legacy wager** (**`docs/wager.md`**, the live deck, sync-tested): three cards on
   the turn an age opens, drawn from three different lines, the same three for
   every seat. Each seat stakes one privately; all three bars are public on the
   Abacus. A bar is claimed the turn a seat first meets it — a wager is a bar, not

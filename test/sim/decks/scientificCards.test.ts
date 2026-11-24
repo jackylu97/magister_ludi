@@ -302,7 +302,7 @@ describe('the register', () => {
       "newly created military units in every city holding an empire building gain +4 combat strength",
     ]);
     expect(said('theRoundCity')).toEqual([
-      "+1% production and +1% culture per citizen in your capital (at most +30% each)",
+      "+1% production and +1% culture per citizen in your capital",
     ]);
     expect(said('theCityArchitects')).toEqual([
       "+30% production toward buildings of your current age",
@@ -527,7 +527,7 @@ describe('Tier II', () => {
     expect(trainedStrength(state, other, 'warrior'), 'a town with no empire building').toBe(0);
   });
 
-  it('The Round City: +1% production and culture for each citizen in the capital, in every town, at most +30%', () => {
+  it('The Round City scales every town from the capital population without a cap', () => {
     const state = bench();
     const capital = town(state, 0, 4, 5, 6);
     const other = town(state, 0, 12, 5, 15);
@@ -538,8 +538,8 @@ describe('Tier II', () => {
     expect(percentOn(state, other, 'theRoundCity', 'production')).toBe(6);
     capital.population = 40;
     bumpRevision(state);
-    expect(percentOn(state, capital, 'theRoundCity', 'production')).toBe(30);
-    expect(percentOn(state, other, 'theRoundCity', 'culture')).toBe(30);
+    expect(percentOn(state, capital, 'theRoundCity', 'production')).toBe(40);
+    expect(percentOn(state, other, 'theRoundCity', 'culture')).toBe(40);
   });
 
   it('The City Architects pays for buildings and wonders of the current age', () => {

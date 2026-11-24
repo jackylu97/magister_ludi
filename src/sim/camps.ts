@@ -1,3 +1,4 @@
+import { wagerIncome } from './wagerMilestoneData';
 /**
  * Barbarian camps as *state*: what stands where, and what burning one out is
  * worth.
@@ -202,7 +203,7 @@ export function settleCampBounty(
   recordScalingOccasion(state, playerId, 'campCleared');
   bounty.gold = payout.amount;
   bounty.lines = payout.lines;
-  player.gold += bounty.gold;
+  player.gold += wagerIncome(state, player.id, 'faithGold', bounty.gold);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
   // The Barbarian Frontier's claim, before the provisions are paid, so a town

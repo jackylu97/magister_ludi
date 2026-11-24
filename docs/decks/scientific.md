@@ -1,16 +1,16 @@
 # The Scientific deck
 
-The deck connects research, charter works, scholars and army upgrades. The approved roster has 67 Scientific Orders, 20 shared Orders and 15 Doctrines. Fourteen Scientific Orders and three shared Orders open charter technologies.
+The deck connects research, charter works, scholars and army upgrades. The approved roster has 66 Scientific Orders, 21 shared Orders and 16 Doctrines. Twelve Scientific Orders and three shared Orders open charter technologies.
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
 | Tier 0 | 9 | 0 | 0 | 9 | 1 |
 | Tier I | 19 | 0 | 0 | 19 | 4 |
-| Tier II | 20 | 0 | 0 | 20 | 5 |
-| Tier III | 14 | 0 | 0 | 14 | 4 |
+| Tier II | 19 | 0 | 0 | 19 | 4 |
+| Tier III | 14 | 0 | 0 | 14 | 3 |
 | Tier IV | 5 | 0 | 0 | 5 | 0 |
-| **All** | **67** | **0** | **0** | **67** | **14** |
-| Shared | 20 | 0 | 0 | 20 | 3 |
+| **All** | **66** | **0** | **0** | **66** | **12** |
+| Shared | 21 | 0 | 0 | 21 | 3 |
 
 **By type**
 
@@ -18,11 +18,11 @@ The deck connects research, charter works, scholars and army upgrades. The appro
 |---|---|---|---|---|
 | Tier 0 | 2 | 4 | 3 | 0 |
 | Tier I | 2 | 5 | 11 | 1 |
-| Tier II | 6 | 3 | 10 | 1 |
-| Tier III | 4 | 2 | 7 | 1 |
+| Tier II | 5 | 2 | 11 | 1 |
+| Tier III | 3 | 2 | 8 | 1 |
 | Tier IV | 1 | 3 | 1 | 0 |
-| **All** | **15** | **17** | **32** | **3** |
-| Shared | 1 | 1 | 18 | 0 |
+| **All** | **13** | **16** | **34** | **3** |
+| Shared | 1 | 1 | 19 | 0 |
 
 ## Tier 0
 
@@ -56,19 +56,19 @@ The deck connects research, charter works, scholars and army upgrades. The appro
 | **The Bronze-Founders' Charter** | common | implemented | Opens Casting: your spear and chariot lines gain +2 strength for good. | Military |
 | **The Edge of the Sword** | common | implemented | Your units gain +3 strength against the units of an empire that knows fewer technologies than you. | Military |
 | **The Royal Estates** | common | implemented | Each empire building gives its town +3 food and +3 production. +50% production towards empire buildings. | Economic |
+| **The Reading Rooms** | common | implemented | Towns with a Library gain +1 happiness for every five citizens. | Civic |
 | **The Royal Tutors** | common | implemented | +2 scholar renown each turn for each science building. | Civic |
 | **The Scholars' Fame** | common | implemented | Completing a technology grants scholar renown equal to a twentieth of its cost. | Civic |
 | **The Scribes' Hall** | common | implemented | Libraries give +2 science. | Civic |
 | **The Sky Watchers** | common | implemented | Shrines give +1 faith and +2 science. | Civic |
 | **The Surveyors' Charter** | common | implemented | Opens Surveying: you may build the Aqueduct early, and workers may dig one qanat in each town, on flat land beside a hill or a mountain: +2 food and +1 production, and +1 food more for each hill or mountain beside it. The hexes within one hex of a qanat have fresh water. | Economic |
 | **Commission: The Old Learning** | uncommon | implemented | Goal: know every technology of the first age. Reward: choose a great scholar. | Wildcard |
-| **The Astronomical Diaries** | uncommon | implemented | Gains +1 culture and +1 production each time you complete a technology. | Civic |
+| **The Astronomical Diaries** | uncommon | implemented | Gains +1 science and +1 culture in your capital each time one of your towns grows past eight citizens. | Civic |
 | **The Charter Rolls** | uncommon | implemented | Your drafts contain an additional charter if one is available. | Civic |
 | **The Dedications** | uncommon | implemented | Finishing a science building or an empire building grants culture equal to its production cost. | Civic |
 | **The Free Cities** | uncommon | implemented | While you hold at most five towns, your towns build buildings and wonders 20% faster. | Economic |
 | **The Glassmakers' Charter** | uncommon | implemented | Opens Glassmaking, which unlocks the Glasshouse: +3 food, and +1 science for each farm its town works. | Civic |
 | **The Librarians' Charter** | uncommon | implemented | Opens Cataloguing, which unlocks the Mouseion: +4 scholar renown, and +2 culture for each empire building you hold. | Civic |
-| **The Forward Plans** | rare | implemented | You may build Universities before you know Scholarship. | Civic |
 | **The Reform of the Calendar** | rare | implemented | Entering a new age opens an Order draft at once. | Civic |
 | **The Secret Arts** | rare | implemented | Each town gains +1 production for each technology you know that no empire you have met knows, charter technologies included, at most +5. | Economic |
 
@@ -81,28 +81,28 @@ The deck connects research, charter works, scholars and army upgrades. The appro
 | **The Peripatetic School** | learned land | Academies gain +2 science and +2 production. Science buildings and wonders give +30% renown. |
 | **The Jixian Academy** | engine | Completing a technology grants culture equal to a fifth of its cost. |
 | **The Academy of Gondishapur** | institutions | Towns with an empire building gain +15% science. +20% production toward empire buildings, except the Magnum Opus and its works. |
+| **The Hippodamian Plan** | great cities | Your towns of ten or more citizens ask 30% less happiness. Towns you found cost 1 more authority. |
 | **The Pandidakterion** | learned land | Hexes with an Academy have double yields, applied after every other change to the hex. |
 
 **Orders:**
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Armoury Patterns** | common | implemented | Units of your current age gain +3 strength. | Military |
-| **The Barber-Surgeons** | common | implemented | Your units gain +10 health after killing a unit. | Military |
+| **The Armoury Patterns** | common | implemented | Killing a unit of an empire that knows fewer technologies than you grants science equal to twice its strength. | Civic |
+| **The Barber-Surgeons** | uncommon | implemented | Your units gain +10 health after killing a unit. | Military |
 | **The City Architects** | common | implemented | +30% production towards buildings and wonders of your current age. | Economic |
 | **The Old Academy** | common | implemented | Academies gain +3 food and +3 production. | Economic |
 | **The Palace Schools** | common | implemented | Units gained in a town with an empire building start with +4 strength. | Military |
 | **The Paper-Makers' Charter** | common | implemented | Opens Papermaking, which unlocks the Scriptorium: +2 science, and +10% science beside an Academy. | Civic |
-| **The Physicians' Charter** | common | implemented | Opens Medicine, which unlocks the Bimaristan: +25% food in its town. | Economic |
 | **The Roll of Scholars** | common | implemented | +4% production and culture for each great scholar you have gained this game, at most +28%. | Civic |
 | **The Strategikon** | common | implemented | Your units gain +4 strength within two hexes of an Academy. | Military |
-| **The Archivists' Charter** | uncommon | implemented | Opens Record-Keeping, which unlocks the Great Archive, one in your empire: +5 science for each charter technology you know. | Civic |
+| **The Archivists' Charter** | uncommon | implemented | Opens Record-Keeping, which unlocks the Great Archive, one in your empire: +5 science for each charter you hold. | Civic |
 | **The Latin Quarter** | uncommon | implemented | Hexes on or beside an Academy gain +2 science and +1 culture. | Civic |
 | **The Lecture Halls** | uncommon | implemented | An Academy gains +2 science for each science building in its town. | Civic |
 | **The Mechanists' Charter** | uncommon | implemented | Opens Mechanics: catapults gain +1 range, and your archer line may move after it shoots. | Military |
 | **The Ordinance Companies** | uncommon | implemented | Entering a new age grants a melee unit, a ranged unit and a siege unit in your capital. They cost no upkeep. | Military |
 | **The Printers' Charter** | uncommon | implemented | Opens Printing: +1 trade route, and you may build the Aldine Press, one in your empire: +1 culture for each technology you know. | Civic |
-| **The Round City** | uncommon | implemented | +1% production and culture for each citizen in your capital, at most +30%. | Civic |
+| **The Round City** | uncommon | implemented | +1% production and culture for each citizen in your capital. | Civic |
 | **The Royal Charter Commission** | uncommon | implemented | Goal: complete a charter technology. Reward: a great scholar and 100 culture. | Wildcard |
 | **The Translation Movement** | uncommon | implemented | Technologies of an age before your newest cost you a third less research. | Civic |
 | **The Alfonsine Tables** | rare | implemented | On draft: complete the technology you are researching. −30% gold for fifteen turns. | Civic |
@@ -127,16 +127,16 @@ The deck connects research, charter works, scholars and army upgrades. The appro
 | **The Doctorate** | common | implemented | Gaining a great scholar grants culture equal to eight turns of your culture. | Civic |
 | **The Humanists** | common | implemented | Towns with a Library gain culture equal to a quarter of their science. | Civic |
 | **The Journeymen** | common | implemented | Completing a technology grants each town production equal to three times its population. | Economic |
-| **The Military Engineers' Charter** | common | implemented | Opens Military Architecture, which unlocks the Bastion: +5 defence and +30 hit points. | Military |
 | **The Nizamiyya** | common | implemented | Academies yield 50% more. | Civic |
-| **The Alchemists' Charter** | uncommon | implemented | Opens Chemistry: your warrior line gains +1 strength for each charter technology you know. | Military |
+| **The Alchemists' Charter** | uncommon | implemented | Opens Chemistry: your warrior line gains +1 strength for each charter you hold. | Military |
 | **The Gunfounders' Charter** | uncommon | implemented | Opens Gunfounding, which unlocks the Tophane: its town builds military units 50% faster, with +4 strength. | Military |
 | **The Lynx-Eyed Academy** | uncommon | implemented | Goal: hold three Academies. Reward: a great scholar, and Academies gain +5 science and +5 culture. | Wildcard |
 | **The Model Army** | uncommon | implemented | Research upgrades your units even when you lack the strategic resource the new unit needs, and an upgrade heals the unit. | Military |
-| **The Royal Academies** | uncommon | implemented | +5% production and culture for each empire building you hold. | Civic |
+| **The Royal Academies** | rare | implemented | +5% production and culture for each empire building you hold. | Civic |
 | **The Closed Book** | rare | implemented | Opens Ciphers: if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns. | Civic |
 | **The Collected Works** | rare | implemented | Your great scholars may act twice. | Civic |
-| **The Queen of Cities** | rare | implemented | Towns of at least 15 citizens produce twice their food and production. | Economic |
+| **The Garden of Epicurus** | rare | implemented | The bonus from spare happiness has no upper limit. | Civic |
+| **The Queen of Cities** | rare | implemented | Towns of at least 15 citizens produce 50% more food and production. | Economic |
 | **The Second Seat** | rare | implemented | You may build a second copy of all empire buildings, while this is active. | Civic |
 
 ## Tier IV
@@ -153,7 +153,7 @@ The deck connects research, charter works, scholars and army upgrades. The appro
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Great Catalogue** | common | implemented | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. | Economic |
+| **The Great Catalogue** | common | implemented | +10% production toward the Magnum Opus for each charter you hold. | Economic |
 | **The Laboratories** | common | implemented | Science buildings give +10% production. | Economic |
 | **The Breaching Batteries** | uncommon | implemented | Each hit your siege units land on a city removes 5% of its Magnum Opus progress. | Military |
 | **The Sum of Knowledge** | uncommon | implemented | The town raising your Magnum Opus gains +2 production for each technology you know. | Economic |
@@ -174,10 +174,11 @@ The deck connects research, charter works, scholars and army upgrades. The appro
 | **The Exchange of Discoveries** | uncommon | Commerce | I | implemented | Mines and quarries on a resource gain +2 science. | Civic |
 | **The Founders' Schools** | uncommon | Expansionist | I | implemented | Towns you found start with a Library. | Civic |
 | **The Observers' Charter** | uncommon | Devotion | I | implemented | Opens Astronomy: your towns may keep the Night Watch, a rite: for ten turns the city gains +1 science for each citizen. | Civic |
-| **The Schoolmen's Charter** | uncommon | Devotion | I | implemented | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town. | Civic |
+| **The Schoolmen's Charter** | uncommon | Devotion | II | implemented | Opens Scholasticism, which unlocks the Cathedral School: +2 science for each faith building in its town, doubled while the town keeps a rite. | Civic |
 | **The Merchant Navigators** | common | Commerce | II | implemented | A town's fishing boats gain +2 science for its Lighthouse and +2 science for its Harbour. | Civic |
 | **The Soldier-Scholars** | uncommon | Dominion | II | implemented | Each military unit in your towns gives +2 science. | Military |
 | **The Cloister** | rare | Devotion | II | implemented | Towns with a Temple gain science equal to 30% of their faith. | Civic |
+| **The Hanlin Academy** | uncommon | Magisterial | II | implemented | +20% renown toward scholars. Great-person works give +2 science. | Civic |
 | **The Lodge Books** | rare | Magisterial | II | implemented | Completing a wonder completes the technology you are researching. | Civic |
 | **Carried-Off Scholars** | uncommon | Dominion | III | implemented | Capturing a city grants a technology that its owner knows and you do not. If there is none, it grants science equal to thirty times its population. | Civic |
 | **The House of Wisdom** | uncommon | Magisterial | III | implemented | Towns working an Academy build wonders 30% faster. | Civic |
@@ -186,11 +187,13 @@ The deck connects research, charter works, scholars and army upgrades. The appro
 
 ## Retired rows
 
+- The Military Engineers' Charter, The Physicians' Charter and The Forward Plans left the draft pools in the November review. Their rows remain for saves.
+
 These rows stay in the data so that old saves load. They are dealt to nobody, they carry no type, and no table above lists them. The list doc's cut table and the themes doc's section 8 give the reason for each cut.
 
 - **Retired in batch DS1** (2026-11-10, `docs/plans/deck-simplification-2026-11-10.md`). The reason after each card is the Note column of that file's table. Each data row keeps its text and effects:
   - The Kept Secret (Tier 0): it reads what rivals know, which the player cannot see easily.
-  - The Commonplace Book (Tier I): charter technologies cost the ordinary price (see the system changes).
+  - The Commonplace Book (Tier I): the base rule now supplies the charter research discount.
   - The Field Refits (Tier I): too narrow to matter in most games.
   - The Long Study (Tier I): it reads how long a thing has stood, which the player must track. The Scribes' Hall is the Library card.
   - The Great Designs (Tier II): it reads what rivals know, which the player cannot see easily. The City Architects is the wonder card.

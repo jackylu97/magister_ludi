@@ -8,20 +8,20 @@ The deck has 85 private Orders, 25 shared Orders and 15 Doctrines. Inland empire
 | --- | --- | --- | --- | --- | --- |
 | Tier 0 | 15 | 0 | 0 | 15 | 0 |
 | Tier I | 19 | 0 | 0 | 19 | 1 |
-| Tier II | 21 | 0 | 0 | 21 | 1 |
+| Tier II | 18 | 0 | 0 | 18 | 1 |
 | Tier III | 20 | 0 | 0 | 20 | 0 |
 | Tier IV | 10 | 0 | 0 | 10 | 0 |
-| **All** | 85 | 0 | 0 | 85 | 2 |
+| **All** | 82 | 0 | 0 | 82 | 2 |
 | Shared | 24 | 1 | 0 | 25 | 1 |
 
 | Tier | Military | Economic | Civic | Wildcard |
 | --- | --- | --- | --- | --- |
 | Tier 0 | 1 | 7 | 7 | 0 |
 | Tier I | 2 | 9 | 7 | 1 |
-| Tier II | 3 | 8 | 9 | 1 |
+| Tier II | 1 | 7 | 9 | 1 |
 | Tier III | 1 | 10 | 5 | 4 |
 | Tier IV | 1 | 4 | 4 | 1 |
-| **All** | 8 | 38 | 32 | 7 |
+| **All** | 6 | 37 | 32 | 7 |
 | Shared | 5 | 10 | 8 | 2 |
 
 ## Tier 0
@@ -36,7 +36,7 @@ The deck has 85 private Orders, 25 shared Orders and 15 Doctrines. Inland empire
 | **The Nest Egg** | common | implemented | Your capital gains +1 culture for every 4 gold you make each turn. | Civic |
 | **The Fishing Fleets** | common | implemented | Fishing boats gain +1 production and +1 faith. | Civic |
 | **The Provision Trade** | common | implemented | Improved bonus resources gain +1 food and +1 production. | Economic |
-| **Land Speculation** | uncommon | implemented | Buying a hex grants culture equal to half the gold paid. | Civic |
+| **Land Speculation** | uncommon | implemented | Buying a hex grants 6 culture. | Civic |
 | **The Pathfinders' Company** | uncommon | implemented | Scouts gain +1 sight and +1 movement. | Military |
 | **The First Caravan** | uncommon | implemented | On draft: gain a caravan, and room for one more trade route. | Economic |
 | **The Potters' Quarter** | uncommon | implemented | The hexes beside your capital gain +1 production and +1 science. | Civic |
@@ -73,7 +73,7 @@ The deck has 85 private Orders, 25 shared Orders and 15 Doctrines. Inland empire
 | **The Market Writ** | uncommon | implemented | +1 authority and +1 happiness for every two Markets in your empire. | Civic |
 | **The Strongbox** | uncommon | implemented | Gains +1 science and +1 culture each time you buy something with gold, up to +15. | Civic |
 | **The Ten Thousand** | uncommon | implemented | Military units you buy with gold start as Veterans. | Military |
-| **Commission: The Trade Mission** | uncommon | implemented | Goal: hold deals with two empires at once. Reward: a great merchant. | Wildcard |
+| **Commission: The Trade Mission** | uncommon | implemented | Goal: trade with two empires at once. Reward: a great merchant. | Wildcard |
 | **The Garum Works** | uncommon | implemented | +1 happiness for each fishing boat in your borders. | Civic |
 | **Financed Industry** | rare | implemented | Towns gain production equal to 20% of their gold. | Economic |
 | **Letters of Credit** | rare | implemented | On draft: gain 400 gold. Your towns make 30% less gold for fifteen turns. | Economic |
@@ -96,21 +96,18 @@ The deck has 85 private Orders, 25 shared Orders and 15 Doctrines. Inland empire
 | **The Factors' Houses** | common | implemented | Each town holding your trading post, at home or abroad, gives you +2 gold and +4 culture. | Civic |
 | **The Home Market** | common | implemented | Towns that receive two domestic routes gain +30% food and production. | Economic |
 | **The Common Road** | common | implemented | Your foreign routes give +3 gold, +3 science and +3 culture. | Civic |
-| **Houses of Account** | common | implemented | Gold buildings provide +1 happiness and +2 renown. | Civic |
+| **Houses of Account** | common | implemented | Gold buildings provide +2 renown. | Civic |
 | **The Tea Horse Road** | common | implemented | Your trade routes give +1 gold and +1 culture for every six hexes they travel. | Civic |
-| **Foreign Procurement** | common | implemented | You may buy units without their strategic resource. | Military |
-| **The Wayside Inns** | common | implemented | Hexes with a road gain +1 food and +1 production. | Economic |
 | **Numidian Cavalry** | uncommon | implemented | Unlocks Numidian Cavalry: a Horseman with +1 strength for each luxury you hold. | Military |
-| **The Exchange** | uncommon | implemented | +5% science and culture for each foreign empire your routes reach. | Civic |
+| **The Exchange** | uncommon | implemented | +5% science and culture for each empire you trade with. | Civic |
 | **Corner the Market** | uncommon | implemented | Goal: hold three copies of one luxury. Reward: +2 happiness for each different luxury you hold. | Wildcard |
-| **The Treaty Ports** | uncommon | implemented | +8% production for each empire you hold a deal with, at most +40%. | Economic |
+| **The Treaty Ports** | uncommon | implemented | +8% production for each empire you trade with, at most +40%. | Economic |
 | **The Customs Houses** | uncommon | implemented | Customs houses gain +8 science and +8 culture. | Civic |
 | **The Tiraz** | uncommon | implemented | Every town gains +1 production for each different luxury you hold. | Economic |
 | **Private Patronage** | uncommon | implemented | Towns gain +25% gold. | Economic |
 | **The Bonded Warehouses** | uncommon | implemented | Hexes on or beside a customs house gain +2 production and +2 gold. | Economic |
 | **The Merchant Consuls** | uncommon | implemented | On draft: choose a great merchant. | Civic |
 | **The Weigh House** | uncommon | implemented | A customs house gains +3 gold and +3 production for each improved resource beside it. | Economic |
-| **The Epibatai** | uncommon | implemented | Your units gain +5 strength for three turns after they land from the sea. | Military |
 | **The Spice Exchange** | rare | implemented | Every city gains +4% science and +4% culture for each different luxury you hold, at most +32%. | Civic |
 | **Names in Stone** | rare | implemented | +1% science and culture for every 200 gold you have spent buying this game, at most +30%. | Civic |
 | **The Sea Lords** | rare | implemented | Coastal towns work water hexes one ring further out. | Economic |
@@ -142,7 +139,7 @@ The deck has 85 private Orders, 25 shared Orders and 15 Doctrines. Inland empire
 | **The Stato da Mar** | uncommon | implemented | Water hexes pay twice their yields. | Economic |
 | **Commission: The Harbour League** | uncommon | implemented | Goal: hold five towns with a Harbour. Reward: water hexes gain +1 science and +1 culture. | Wildcard |
 | **The Free Ports** | common | implemented | Towns with a Harbour gain +20% production and culture. | Economic |
-| **The Gilded Scaffold** | rare | implemented | You may purchase world wonders. All your cities lose 15% production. | Economic |
+| **The Gilded Scaffold** | rare | implemented | You may buy world wonders with gold. | Economic |
 | **The Return Leg** | rare | implemented | Your trade routes between your own towns also pay their origin everything they pay their destination. | Economic |
 | **The Monopoly** | rare | implemented | For each luxury that only you hold, every town gains +5 gold and +3 culture. | Economic |
 | **The Money Lenders** | rare | implemented | Earn interest equal to 4% of your treasury each turn, with no cap. | Economic |
@@ -160,21 +157,20 @@ The deck has 85 private Orders, 25 shared Orders and 15 Doctrines. Inland empire
 | **The Sea Ban** | home market | Your domestic routes pay twice as much. You cannot send trade routes to other empires. |
 | **The Peace of Lodi** | far trade | While you are at peace, your trade routes pay 50% more. While you are at war, they pay 25% less. |
 | **The Opera del Duomo** | engine | Gold you pour into the Magnum Opus buys twice as many hammers. Your towns build the Magnum Opus 25% more slowly. |
-| **The Monte di Pietà** | bankers | Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold. |
 
 **Orders:**
 
 | Card | Rarity | Status | Ability | Type |
 | --- | --- | --- | --- | --- |
 | **The Grain Barges** | uncommon | implemented | Your domestic trade routes pay their destination +1 food and +1 production for every three citizens of their origin. | Economic |
-| **The World's Exchange** | uncommon | implemented | +20% production toward the Opus for each foreign empire your trade routes reach. | Economic |
-| **The Feitorias** | uncommon | implemented | Each town holding your trading post gives you +1 science and +1 culture for every four of its citizens. | Civic |
+| **The World's Exchange** | uncommon | implemented | +20% production toward the Opus for each empire you trade with. | Economic |
+| **The Feitorias** | uncommon | implemented | Each town holding your trading post gives you +1 science and +1 culture for every two of its citizens. | Civic |
 | **The Herring Fleets** | uncommon | implemented | Coast hexes gain +2 culture and +1 production. | Civic |
 | **The Wooden Walls** | uncommon | implemented | Your ships gain +6 strength and +1 movement. | Military |
-| **Bought and Paid For** | rare | implemented | +2% production and culture for each building you have bought with gold, at most +30%. | Civic |
+| **Bought and Paid For** | rare | implemented | +2% production and culture for each building you have bought with gold or faith, at most +30%. | Civic |
 | **The Great Loan** | rare | implemented | On draft: gain twenty turns of gold income. Your towns make 25% less gold for forty turns. | Economic |
-| **The World's Fair** | rare | implemented | Goal: have trade routes to four empires. Reward: your trade routes to other empires pay twice as much. | Wildcard |
-| **The Casa da Índia** | rare | implemented | Every copy of a luxury you hold pays its yields, not only the first. | Economic |
+| **The World's Fair** | rare | implemented | Goal: trade with four empires. Reward: your trade routes to other empires pay twice as much. | Wildcard |
+| **The Casa da Índia** | rare | implemented | Your cards count every copy of a luxury you hold. Extra copies pay the luxury's yields but give no extra innate happiness. | Economic |
 | **Money at Work** | rare | implemented | Every town gains +1 science for every 20 gold you make each turn. | Civic |
 
 ## Shared with another deck
@@ -230,6 +226,8 @@ Gold and faith purchases use the same calculation. Add the applicable buying pow
 | Assay House | 5.26% | Gold purchases in that town |
 
 ## Retired rows
+
+The November 24 review retired Foreign Procurement, The Wayside Inns, The Epibatai and The Monte di Pietà.
 
 The private and shared rows retired in the November pass stay in the data for replay. Section 4 of the design pass lists each cut.
 

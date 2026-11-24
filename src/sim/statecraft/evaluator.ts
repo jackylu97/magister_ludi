@@ -1,3 +1,4 @@
+import { wagerIncome } from '../wagerMilestoneData';
 /**
  * **The evaluator** — the one switch on `CardEffect.kind`, and every reader
  * that filters its walk.
@@ -36,6 +37,7 @@ import {
   loseCitizen,
   nearestOwnedCity,
   ownedTiles,
+  openedResource,
   tileContextAt,
   queueItemCost,
   realiseItem,
@@ -72,6 +74,7 @@ import {
 } from '../buildingData';
 import {
   type Family,
+  FAMILIES,
   type GreatPersonId,
   greatPersonDef,
   isGreatPersonId,
@@ -336,6 +339,8 @@ const RESOURCE_KINDS: readonly ResourceKind[] = ['bonus', 'strategic', 'luxury']
 
 /** One effect, and the card it came from. The unit of the whole evaluator. */
 export interface LiveCardEffect {
+  /** A condition on the empire controls this clause. */
+  conditional?: true;
   /** Display label — "Order · Silk Roads", "Doctrine · River Kings". */
   source: string;
   card: CardId;
@@ -1494,7 +1499,9 @@ function pushEffects(
       // a meter that counts cards cannot count a card that asks about it.
       if (conditionDepth > 0) continue;
       if (!askCondition(state, playerId, effect.when)) continue;
+      const first = list.length;
       recur(card, word, effect.then);
+      for (let at = first; at < list.length; at++) list[at]!.conditional = true;
       continue;
     }
     source ??= `${word} · ${anyCardDef(card).name}`;
@@ -1812,6 +1819,11 @@ function cityLocalEffects(state: GameState, city: City): LiveCardEffect[] {
     ...timedLive(state, city.ownerId, city),
     ...followerBeliefEffects(state, city),
     ...consecrationEffects(state, city),
+    ...(city.buildingRelics ?? []).map((relic): LiveCardEffect => ({
+      card: relic.card, source: relic.source,
+      effect: { kind: 'pays', where: 'city', scope: { test: 'hasBuilding', building: relic.building },
+        science: relic.science * relic.count, culture: relic.culture * relic.count },
+    })),
   ];
 }
 
@@ -1925,6 +1937,7 @@ export function liveUnitEffects(state: GameState, unit: Unit): LiveCardEffect[] 
  * narrowed list can still tell the founder's share from a belief's clause.
  */
 type LiveOfKind<K extends CardEffect['kind']> = {
+  conditional?: true;
   source: string;
   card: CardId;
   effect: Extract<CardEffect, { kind: K }>;
@@ -1944,6 +1957,7 @@ function pickKind<K extends CardEffect['kind']>(
       card: entry.card,
       effect: entry.effect as Extract<CardEffect, { kind: K }>,
     };
+    if (entry.conditional) picked.conditional = true;
     if (entry.founderShare !== undefined) picked.founderShare = entry.founderShare;
     list.push(picked);
   }
@@ -3429,6 +3443,7 @@ export function countCitiesAdmitted(state: GameState, playerId: number, scope: C
  * Fair's reward (Commerce batch T4), which reads the partners again to write
  * a post in each one's capital.
  */
+// Route-only counts remain distinct from cards that accept either kind of trade.
 export function tradePartnerSeats(state: GameState, playerId: number): number[] {
   const seats: number[] = [];
   for (const unit of state.units) {
@@ -3438,6 +3453,15 @@ export function tradePartnerSeats(state: GameState, playerId: number): number[] 
     const partner = state.cities.find((entry) => entry.id === route.to);
     if (partner === undefined || partner.ownerId === playerId) continue;
     if (!seats.includes(partner.ownerId)) seats.push(partner.ownerId);
+  }
+  return seats;
+}
+
+/** Count each other empire once, whether reached by a route, a deal or both. */
+export function tradingPartnerSeats(state: GameState, playerId: number): number[] {
+  const seats = dealPartnerSeats(state, playerId);
+  for (const id of tradePartnerSeats(state, playerId)) {
+    if (!seats.includes(id)) seats.push(id);
   }
   return seats;
 }
@@ -3490,6 +3514,21 @@ export function decksHeldCount(state: GameState, playerId: number, seatedOnly: b
   return decks.length + (deckless ? 1 : 0);
 }
 
+/** Keep physical holdings distinct from the luxury count a card can amplify. */
+export function cardLuxuryCount(state: GameState, playerId: number, city?: City): number {
+  const kinds = city ? cityResources(state, city, 'luxury') : countedLuxuries(state, playerId);
+  const percent = cardAmplifier(state, playerId, 'luxuryCounts');
+  const flat = cardAmplifierFlat(state, playerId, 'luxuryCounts');
+  if (percent === 0 && flat === 0) return kinds.length;
+  const copies = city
+    ? ownedTiles(state, city).reduce((sum, tile) => {
+      const id = openedResource(state, tile, playerId)?.id;
+      return sum + Number(id !== undefined && kinds.includes(id));
+    }, 0)
+    : kinds.reduce((sum, id) => sum + countedLuxuryCopies(state, playerId, id), 0);
+  return Math.max(0, kinds.length + Math.max(0, copies - kinds.length) * percent / 100 + flat);
+}
+
 /**
  * What a `pays` count counts, in one place.
  *
@@ -3518,6 +3557,18 @@ export function countOf(
   effect: CardPaysEffect,
   city?: City,
 ): number {
+  const count = rawCountOf(state, playerId, card, effect, city);
+  return effect.countAbove === undefined ? count : Math.max(0, count - effect.countAbove);
+}
+
+/** Keep the count threshold common to local, regional and empire counts. */
+function rawCountOf(
+  state: GameState,
+  playerId: number,
+  card: CardId,
+  effect: CardPaysEffect,
+  city?: City,
+): number {
   const count = effect.count;
   // **A row that names no count counts nothing.** `count` is one field of the
   // one `pays` shape (batch E5) and only `basis: 'count'` fills it, so a caller
@@ -3526,17 +3577,9 @@ export function countOf(
   if (count === undefined) return 0;
   switch (count) {
     case 'uniqueLuxuries':
-      // **"In this city" is the same question of narrower ground**, the modifier
-      // `population` and `improvedBonusResources` already carry: Pilgrimage pays
-      // a following town for the luxuries *it* holds, and an empire-wide count
-      // would have paid every following town for the whole realm's silks.
-      // `cityResources` is the uniqueness reading every city-scale resource
-      // question takes (`resourceEffects.ts`).
-      if (effect.within === 'city') return city ? cityResources(state, city, 'luxury').length : 0;
-      // **The counted kinds** (Commerce batch T5, The Commenda): the kinds the
-      // empire controls, and the kinds it lends whose share comes to a copy.
-      // With no such card this is `controlledResources` exactly.
-      return countedLuxuries(state, playerId).length;
+      return effect.within === 'city'
+        ? (city ? cardLuxuryCount(state, playerId, city) : 0)
+        : cardLuxuryCount(state, playerId);
     case 'luxuryCopies': {
       // `countedLuxuryCopies` is `resourceCopies` plus The Commenda's share of
       // each lent copy, rounded down (Commerce batch T5, reading 2).
@@ -3636,10 +3679,12 @@ export function countOf(
       // every combatant, which is what The Long Watch meant before it was cut.
       if (!city) return 0;
       const watch = garrisonOf(state, city);
-      if (effect.class === undefined) return watch.length;
       let total = 0;
       for (const unit of watch) {
-        if (unitMatches(unit.type, effect.class)) total += 1;
+        if (effect.class !== undefined && !unitMatches(unit.type, effect.class)) continue;
+        total += 1;
+        if ((isOrderId(card) || isDoctrineId(card) || isGovernmentId(card)) &&
+            cardBehaviorRuleFor(state, unit, 'doubleGarrisonBonus')) total += 1;
       }
       return total;
     }
@@ -3847,15 +3892,8 @@ export function countOf(
       const player = playerById(state, playerId);
       return player ? techsKnownCount(player) : 0;
     }
-    case 'chartersDrafted': {
-      // Scientific batch S6, The Charter Rolls: the charter rows held, from
-      // the pick, researched or not.
-      let total = 0;
-      for (const id of playerById(state, playerId)?.statecraft.orders ?? []) {
-        if (isCharter(id)) total += 1;
-      }
-      return total;
-    }
+    case 'chartersDrafted':
+      return heldCharterCount(state, playerId);
     case 'unitsInField': {
       let total = 0;
       for (const unit of state.units) {
@@ -3888,6 +3926,10 @@ export function countOf(
       return playerById(state, playerId)?.buildingsBoughtWithFaith ?? 0;
     case 'buildingsBoughtWithGold':
       return playerById(state, playerId)?.buildingsBoughtWithGold ?? 0;
+    case 'buildingsBought': {
+      const player = playerById(state, playerId);
+      return (player?.buildingsBoughtWithGold ?? 0) + (player?.buildingsBoughtWithFaith ?? 0);
+    }
     case 'purchasedBuildings': {
       // **Provenance, not purpose** (batch C8). `City.buildingBanks` holds an
       // entry for every roof a till rang up and nothing for any other, so the
@@ -4083,9 +4125,7 @@ export function countOf(
     case 'activeDealAges':
       return activeDealCount(state, playerId) * ownerAgeOf(state, playerId);
     case 'dealPartners':
-      // Commerce batch T5, feature D (The Treaty Ports): the empires holding
-      // a live deal row with this one, each once (the triage's reading 20).
-      return dealPartnerSeats(state, playerId).length;
+      return tradingPartnerSeats(state, playerId).length;
     case 'authoritySurplus': {
       // **The meter's own fold**, so the sheet and the helpings agree by
       // construction — and the cut, because a row paying `to: 'authority'` off
@@ -4921,9 +4961,10 @@ export function wonderWorkYieldLines(state: GameState, city: City): CardYieldLin
       for (const voice of VOICES) line[voice] = row[voice];
       result.push(line);
     }
-    // Each multiplier reads the same sum, including the Divine Proportion's flat line.
+    // A wonder has no improvement yield for `percent` to multiply.
+    // Only whole-hex shares reach its card bonuses, including amplifier lines.
     for (const row of lines) {
-      const percent = (row.percent ?? 0) + (row.wholePercent ?? 0);
+      const percent = row.wholePercent ?? 0;
       if (percent === 0 || row.card === undefined) continue;
       const line = emptyLine(row.card, `${row.source} · ${name}`);
       for (const voice of VOICES) line[voice] = base[voice] * percent / 100;
@@ -4943,6 +4984,9 @@ export function wonderWorkYieldLines(state: GameState, city: City): CardYieldLin
 export function explainCardCityYields(state: GameState, city: City): CardYieldLine[] {
   const owner = city.ownerId;
   const list: CardYieldLine[] = [];
+  for (const { card, yields } of city.captureGrants ?? []) {
+    list.push({ ...emptyLine(card, anyCardDef(card).name), ...yields });
+  }
   const targeted = targetedYieldRises<CardYieldLine>(state, owner, scaleYieldLine);
 
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
@@ -5387,7 +5431,7 @@ export function cardTypeAmplifierMatches(
  * Find the combined rise for each seated Order. Sum matching percentages
  * before rounding, so a type bonus and a shared Order bonus apply together.
  */
-export function cardTypeRaises(state: GameState, playerId: number): ReadonlyMap<CardId, CardTypeRaise> {
+export function cardTypeRaises(state: GameState, playerId: number, standingOnly = false): ReadonlyMap<CardId, CardTypeRaise> {
   const rows = effectsOfKind(state, playerId, 'cardTypeAmplifier');
   if (rows.length === 0) return NO_RAISES;
   const sc = statecraftOf(state, playerId);
@@ -5396,7 +5440,8 @@ export function cardTypeRaises(state: GameState, playerId: number): ReadonlyMap<
   const out = new Map<CardId, CardTypeRaise>();
   sc.slots.forEach((slot, index) => {
     if (slot === null || !isOrderId(slot.card)) return;
-    for (const { source, card, effect } of rows) {
+    for (const { source, card, effect, conditional } of rows) {
+      if (standingOnly && conditional) continue;
       if (!(effect.percent > 0) || card === slot.card) continue;
       if (!cardTypeAmplifierMatches(effect, slot.card, layout[index] ?? 'wildcard')) continue;
       const held = out.get(slot.card);
@@ -6188,6 +6233,8 @@ export function foldCardYields(list: readonly CardYieldLine[]): Record<CityYield
  * which is exactly what makes a fourth producer a data row.
  */
 export interface TileLine {
+  ownYieldOnly?: true;
+  resource?: ResourceId;
   source: string;
   on: TileCondition;
   /**
@@ -7425,6 +7472,7 @@ function hexRows<T extends { effect: CardPaysEffect }>(
  * per neighbour is paid per neighbour too. Returns the line it was given.
  */
 function hexMultipliers(line: CardTileLine, effect: CardPaysEffect): CardTileLine {
+  if (effect.ownYieldOnly) line.ownYieldOnly = true;
   // Carried, never resolved — see `TileLine.perAdjacentMountain`. Written only
   // when the row says so, so every line the game has ever held serialises and
   // compares exactly as it did before Pachacuti sat down.
@@ -9270,10 +9318,36 @@ export function cardCombatLines(state: GameState, situation: CombatSituation): C
     if (amount === null) continue;
     list.push({ card, source, amount });
   }
+  return raisedCombatLines(state, situation.unit.ownerId, list);
+}
+
+/** Count strength that applies to this unit in every fight, on either side. */
+export function standingCardCombatLines(state: GameState, unit: Unit): CardCombatLine[] {
+  const list: CardCombatLine[] = [];
+  const empire = effectsOfKind(state, unit.ownerId, 'combatLine');
+  const rows = unit.timed?.length
+    ? [...empire, ...pickKind(timedLive(state, unit.ownerId, unit), 'combatLine')]
+    : empire;
+  for (const { source, card, conditional, effect } of rows) {
+    if (conditional) continue;
+    if (effect.side !== 'both' || effect.when.test !== 'always' || effect.scaled || effect.vsClass) continue;
+    if (!combatLineFitsUnit(state, unit, effect) || effect.amount === 0) continue;
+    list.push({ source, card, amount: effect.amount });
+  }
+  return raisedCombatLines(state, unit.ownerId, list, true);
+}
+
+function combatLineFitsUnit(state: GameState, unit: Unit, effect: CardCombatLineEffect): boolean {
+  const age = effect.class?.newestAge ? ownerAgeOf(state, unit.ownerId) : undefined;
+  return unitMatches(unit.type, effect.class, age) &&
+    (effect.levied === undefined || leviedMatches(effect.levied, unit.levied));
+}
+
+function raisedCombatLines(state: GameState, ownerId: number, list: CardCombatLine[], standingOnly = false): CardCombatLine[] {
   // **The rises of a tier-26 government** (batch G1): one more strength line
   // beside each line a seated card of the type gives this fight. The rise is
   // taken of what the line gives here, after its own scaling.
-  const raises = cardTypeRaises(state, situation.unit.ownerId);
+  const raises = cardTypeRaises(state, ownerId, standingOnly);
   if (raises.size > 0) {
     const walked = list.length;
     for (let at = 0; at < walked; at++) {
@@ -9308,15 +9382,7 @@ export function combatLineAmount(
   effect: CardCombatLineEffect,
 ): number | null {
   if (effect.side !== 'both' && effect.side !== situation.side) return null;
-  // Which units the line reaches, asked of the same predicate `unitStat` asks
-  // — the Alhambra's mounted +2. Of *this* piece, whichever side it is on, so
-  // a line that pays both postures pays a knight in either.
-  const ownerAge = effect.class?.newestAge ? ownerAgeOf(state, situation.unit.ownerId) : undefined;
-  if (!unitMatches(situation.unit.type, effect.class, ownerAge)) return null;
-  // Only a piece a levy raised, where the row says so (Expansionist batch E10,
-  // Watch and Ward). The mark is on the piece, and the situation carries the
-  // piece, so a comparison's imagined copy keeps it too.
-  if (effect.levied !== undefined && !leviedMatches(effect.levied, situation.unit.levied)) return null;
+  if (!combatLineFitsUnit(state, situation.unit, effect)) return null;
   // And who it pays *against* — Lautaro's mounted. A line with `vsClass` never
   // fires at a city, which has no type at all: see `CardCombatLineEffect`.
   if (effect.vsClass !== undefined) {
@@ -9373,6 +9439,8 @@ function combatScaleCount(
       return strikesOn(state, playerId, situation.targetId);
     case 'greatPeopleGained':
       return playerById(state, playerId)?.greatPeopleRecruited ?? 0;
+    case 'greatPersonFamilies':
+      return greatPersonFamiliesGained(state, playerId);
     case 'greatPeopleOfFamily':
       return greatPeopleEarned(state, playerId, scale.family);
     case 'slottedOrdersOfSlot':
@@ -9385,7 +9453,7 @@ function combatScaleCount(
     case 'uniqueLuxuries':
       // The ledger count's own reading, asked of a fight (Numidian Cavalry),
       // The Commenda's lent kinds included (Commerce batch T5).
-      return countedLuxuries(state, playerId).length;
+      return cardLuxuryCount(state, playerId);
     case 'faithIncome':
       return Math.max(0, Math.floor(foldEmpireRates(state, playerId).faithPerTurn ?? 0));
     case 'followingCities':
@@ -9401,6 +9469,8 @@ function combatScaleCount(
     case 'bankedGold':
       // War Bonds. The ledger count's own reading, asked of a fight.
       return Math.max(0, Math.floor(playerById(state, playerId)?.gold ?? 0));
+    case 'chartersDrafted':
+      return heldCharterCount(state, playerId);
     case 'charterTechsKnown':
       // The Grenadier (Scientific batch S1). The ledger count's own reading,
       // asked of a fight.
@@ -9438,6 +9508,12 @@ function combatScaleCount(
  * consumed roster and records no owner (see its docblock), so a count read off
  * it would pay The Empire for a rival's generals.
  */
+/** Read recruitment history so spending, losing or revoking a person keeps the family. */
+export function greatPersonFamiliesGained(state: GameState, playerId: number): number {
+  const counts = playerById(state, playerId)?.greatPeopleByFamily;
+  return FAMILIES.filter(family => (counts?.[family] ?? 0) > 0).length;
+}
+
 function greatPeopleEarned(state: GameState, playerId: number, family?: Family): number {
   const player = playerById(state, playerId);
   if (!player) return 0;
@@ -9475,13 +9551,13 @@ function guildsmenIn(city: City, family?: Family): number {
   return Math.max(0, held[family] ?? 0);
 }
 
-/**
- * **The charter technologies this empire knows** (Scientific batch S1): the
- * count both `CountKind` and `CombatScaleCount` name `charterTechsKnown`. One
- * function, so the Grenadier's strength and a card that pays for the same
- * count cannot disagree. A charter drafted and not yet researched does not
- * count (the triage's reading 27).
- */
+/** A charter counts from its draft, including another deck's charter. */
+function heldCharterCount(state: GameState, playerId: number): number {
+  return (playerById(state, playerId)?.statecraft.orders ?? []).reduce(
+    (total, id) => total + Number(isCharter(id)), 0);
+}
+
+/** Keep the old researched-charter reading for saved effects that still name it. */
 function charterTechsKnown(state: GameState, playerId: number): number {
   let total = 0;
   for (const id of playerById(state, playerId)?.techsResearched ?? []) {
@@ -9700,6 +9776,10 @@ export function cardUnitStat(
       // where a horse *runs* rather than how flat the running is.
       const here = getTileAt(state.map, unit.col, unit.row);
       if (!here || (here.terrain !== 'grassland' && here.terrain !== 'plains')) continue;
+    }
+    if (effect.where === 'ownTownKeepingRite') {
+      const town = cityAt(state, unit.col, unit.row);
+      if (!town || town.ownerId !== unit.ownerId || !cityScopeAdmits(state, town, { test: 'keepingRite' })) continue;
     }
     if (effect.where === 'connectedTown') {
       // The Relay Stations (Dominion batch D14, the triage's reading 36): a
@@ -10114,6 +10194,7 @@ export interface WindfallPayout {
     source: string;
     yield: CityYieldKey;
     amount: number;
+    permanentTownYield?: true;
     toOpus?: true;
     toCapital?: true;
     toEveryTown?: true | CityScope;
@@ -10140,6 +10221,10 @@ export interface WindfallPayout {
     card: CardId;
     source: string;
     type: UnitTypeId;
+    rank?: RankId;
+    /** Copy metadata is delivery-only and is never saved on the unit. */
+    person?: GreatPersonId;
+    unitCopy?: true;
     /**
      * Where the unit goes (Dominion batch D5): the capital, or one for every
      * town a scope admits. Absent is the town nearest the occasion, or the
@@ -10161,6 +10246,7 @@ export interface WindfallPayout {
    * Code). Optional for `healFull`'s reason above.
    */
   freeDraft?: boolean;
+  freeRerolls?: number;
   orderDrafts?: number;
   completeResearch?: boolean;
   capturedTechnology?: TechId;
@@ -10176,6 +10262,7 @@ export interface WindfallPayout {
    * `payWindfallGrants`, which is the only writer of `Player.timed`.
    */
   timed: {
+    townId?: number;
     card: CardId;
     source: string;
     turns: number;
@@ -10317,8 +10404,15 @@ export interface WindfallPayout {
  * caller is the only thing that still knows.
  */
 export interface WindfallOccasionFacts {
+  /** Own towns within the reach of this proclamation. */
+  townsInReach?: number[];
+  /** Named identity and recursion guard for a newly gained unit. */
+  actorPerson?: GreatPersonId;
+  unitCopy?: true;
   warDefender?: true;
   vsBarbarians?: boolean;
+  /** The other unit's owner, captured before the unit leaves the board. */
+  rivalId?: number;
   /**
    * **Whose piece did it** — the type of the unit whose act opened the occasion,
    * where one did.
@@ -10583,6 +10677,7 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     (payout.techGrants ?? []).length === 0 &&
     !payout.orderDrafts && !payout.completeResearch && payout.capturedTechnology === undefined &&
     payout.freeDraft !== true &&
+    !payout.freeRerolls &&
     !payout.nearbyHealing?.length &&
     (payout.healWithin ?? 0) <= 0 &&
     (payout.rankWithin ?? 0) <= 0 &&
@@ -10693,6 +10788,12 @@ export function windfallPayout(
     // asks for the wild and did not get it is simply not on this payout — the
     // same reading `combatLine`'s conditions take, one system over.
     if (effect.vsBarbarians === true && facts.vsBarbarians !== true) return false;
+    if (effect.grant?.unit === 'same' && facts.unitCopy === true) return false;
+    if (effect.vsFewerTechs === true) {
+      const owner = playerById(state, playerId);
+      const rival = facts.rivalId === undefined ? undefined : playerById(state, facts.rivalId);
+      if (!owner || !rival || rival.barbarian || techsKnownCount(rival) >= techsKnownCount(owner)) return false;
+    }
     // The same narrowing from the other side: the Pontic peltast mends on the
     // kills **it** made. An occasion with no actor at all never satisfies it,
     // which is what keeps a row written onto a growth silent rather than
@@ -10802,8 +10903,7 @@ export function windfallPayout(
     if (effect.grant?.freeDraft === true && !freeDraftCanOpen(state, playerId)) return false;
     // Songs of the Fallen: a loss counts only when the piece was defending.
     if (effect.defending === true && facts.defending !== true) return false;
-    // Up Through the Ranks pays for an Elite and not for a Veteran. Only the
-    // `rankEarned` occasion carries a rank, so the filter is silent elsewhere.
+    // Rank filters read the rank earned or the rank of the unit that died.
     if (effect.rank !== undefined && facts.rank !== effect.rank) return false;
     // The Coming of the Water pays for an Aqueduct and not for a granary
     // (Expansionist batch E3). Only a completion carries the row it finished.
@@ -11099,7 +11199,9 @@ export function windfallPayout(
       // `timedLive` reads them the way it reads a rite's, because a bill is a
       // bill.
       const turns = Math.max(1, grant.timed.turns);
-      payout.timed.push({
+      const targets = grant.timed.townsInReach ? facts.townsInReach ?? [] : [undefined];
+      for (const townId of targets) payout.timed.push({
+        ...(townId === undefined ? {} : { townId }),
         card,
         source,
         turns,
@@ -11215,7 +11317,10 @@ export function windfallPayout(
       const roster = buildableMilitary(state, playerId);
       if (roster.length > 0) {
         const type = roster[Math.min(roster.length - 1, Math.floor(nextFloat(rng) * roster.length))]!;
-        payout.units.push({ card, source, type, ...deliveryOf(grant) });
+        payout.units.push({ card, source, type, ...deliveryOf(grant),
+          ...(grant.unitRank ? { rank: grant.unitRank } : {}),
+          ...(facts.unitCopy === true ? { unitCopy: true as const } : {}),
+        });
         payout.lines.push({ card, source, note: `a ${unitDef(type).name} joins you` });
       }
     } else if (grant.unit !== undefined) {
@@ -11224,7 +11329,11 @@ export function windfallPayout(
       // empire can build now, or each military unit the technology on the
       // occasion unlocks. No randomness.
       for (const type of grantedUnitTypes(state, playerId, grant.unit, facts)) {
-        payout.units.push({ card, source, type, ...deliveryOf(grant) });
+        payout.units.push({ card, source, type, ...deliveryOf(grant),
+          ...(grant.unitRank ? { rank: grant.unitRank } : {}),
+          ...(grant.unit === 'same' ? { unitCopy: true as const, person: facts.actorPerson } : {}),
+          ...(facts.unitCopy === true ? { unitCopy: true as const } : {}),
+        });
         payout.lines.push({ card, source, note: `a ${unitDef(type).name} joins you` });
       }
     }
@@ -11246,6 +11355,10 @@ export function windfallPayout(
       }
     }
     // The New Code (Dominion batch D5): an Order draft opens at once.
+    if (grant.freeRerolls) {
+      payout.freeRerolls = (payout.freeRerolls ?? 0) + grant.freeRerolls;
+      payout.lines.push({ card, source, note: `+${grant.freeRerolls} free rerolls` });
+    }
     if (grant.freeDraft === true) {
       payout.freeDraft = true;
       payout.lines.push({ card, source, note: 'an Order draft opens' });
@@ -11366,7 +11479,8 @@ export function windfallPayout(
       }
       if (amount !== 0) {
         payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
-        payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+        const duration = grant.permanentTownYield ? ' per turn in the captured city' : '';
+        payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}${duration}` });
         pushGrantRise(card, grant, grant.yield, amount);
       }
     }
@@ -11991,6 +12105,8 @@ export function unitIdsNearGenerals(state: GameState, playerId: number): Set<num
 /** One row of this empire's law that lets a levy buy something. See `cardLevyGrants`. */
 export interface LevyGrant {
   faithPerCitizen?: number;
+  sciencePerCitizen?: number;
+  renownPerCitizen?: number;
   freeUpkeep?: true;
   percentOfCost?: number;
   use: LevyUse;
@@ -12025,6 +12141,8 @@ export function cardLevyGrants(state: GameState, playerId: number, city: City): 
     }
     const grant: LevyGrant = { use, card, source };
     if (effect.faithPerCitizen !== undefined) grant.faithPerCitizen = effect.faithPerCitizen;
+    if (effect.sciencePerCitizen !== undefined) grant.sciencePerCitizen = effect.sciencePerCitizen;
+    if (effect.renownPerCitizen !== undefined) grant.renownPerCitizen = effect.renownPerCitizen;
     if (effect.freeUpkeep) grant.freeUpkeep = true;
     if (effect.percentOfCost !== undefined) grant.percentOfCost = effect.percentOfCost;
     if (effect.minPopulation !== undefined) grant.minPopulation = effect.minPopulation;
@@ -12297,9 +12415,10 @@ function unbuiltTechFor(state: GameState, playerId: number, type: UnitTypeId): T
 function grantedUnitTypes(
   state: GameState,
   playerId: number,
-  kind: 'bestMelee' | 'bestRanged' | 'bestSiege' | 'unlockedByTech',
+  kind: 'bestMelee' | 'bestRanged' | 'bestSiege' | 'unlockedByTech' | 'same',
   facts: WindfallOccasionFacts,
 ): UnitTypeId[] {
+  if (kind === 'same') return facts.actor === undefined ? [] : [facts.actor];
   if (kind !== 'unlockedByTech') {
     const best = bestOfClassFor(state, playerId, kind === 'bestMelee' ? 'melee' : kind === 'bestSiege' ? 'siege' : 'ranged');
     return best === null ? [] : [best];
@@ -12426,7 +12545,8 @@ function grantHasTown(state: GameState, playerId: number, grant: WindfallGrantSp
 /** The delivery marks a grant spec carries onto its payout line. */
 function deliveryOf(
   grant: WindfallGrantSpec,
-): { toOpus?: true; toCapital?: true; toEveryTown?: true | CityScope; toNearest?: CityScope } {
+): { permanentTownYield?: true; toOpus?: true; toCapital?: true; toEveryTown?: true | CityScope; toNearest?: CityScope } {
+  if (grant.permanentTownYield) return { permanentTownYield: true };
   if (grant.toOpus === true) return { toOpus: true };
   if (grant.toCapital === true) return { toCapital: true };
   if (grant.toEveryTown !== undefined) return { toEveryTown: grant.toEveryTown };
@@ -12589,7 +12709,9 @@ export function payWindfallGrants(
       // `free`, because a windfall is by definition a thing nobody paid for:
       // the Levies' spearman and Camp Followers' stray go on no payroll. See
       // `Unit.freeUpkeep`, entry 2.
-      realiseItem(state, city, { kind: 'unit', id: gift.type, tile }, { free: true });
+      realiseItem(state, city, { kind: 'unit', id: gift.type, tile }, {
+        free: true, rank: gift.rank, person: gift.person, unitCopy: gift.unitCopy,
+      });
       realized?.push({ type: gift.type, cityName: city.name });
     }
   }
@@ -12606,12 +12728,23 @@ export function payWindfallGrants(
   if (payout.capturedTechnology) grantCapturedTechnology(state, player, payout.capturedTechnology);
   if (payout.completeResearch) completeCurrentResearch(state, player);
   if (payout.freeDraft === true) openFreeDraft(state, player);
+  if (payout.freeRerolls) player.statecraft.freeRerolls = (player.statecraft.freeRerolls ?? 0) + payout.freeRerolls;
+  const capturedTown = at && payout.grants.some(grant => grant.permanentTownYield) ? cityAt(state, at.col, at.row) : undefined;
   for (const grant of payout.grants) {
-    if (grant.yield === 'gold') player.gold += grant.amount;
-    else if (grant.yield === 'science') player.sciencePool += grant.amount;
-    else if (grant.yield === 'culture') player.culturePool += grant.amount;
+    if (grant.permanentTownYield) {
+      if (!capturedTown || capturedTown.ownerId !== player.id) continue;
+      const totals = (capturedTown.captureGrants ??= []);
+      let entry = totals.find(row => row.card === grant.card);
+      if (!entry) {
+        entry = { card: grant.card, yields: {} };
+        totals.push(entry);
+      }
+      entry.yields[grant.yield] = (entry.yields[grant.yield] ?? 0) + grant.amount;
+    } else if (grant.yield === 'gold') player.gold += wagerIncome(state, player.id, 'faithGold', grant.amount);
+    else if (grant.yield === 'science') player.sciencePool += wagerIncome(state, player.id, 'scienceCulture', grant.amount);
+    else if (grant.yield === 'culture') player.culturePool += wagerIncome(state, player.id, 'scienceCulture', grant.amount);
     // The banks are a line of the meters too — see `collectYields` (batch M3).
-    else if (grant.yield === 'faith') player.faithPool += grant.amount;
+    else if (grant.yield === 'faith') player.faithPool += wagerIncome(state, player.id, 'faithGold', grant.amount);
     else {
       // Where the food and the hammers land (Dominion batch D3 added three
       // places): every town, the capital, the nearest town a scope admits,
@@ -12634,6 +12767,7 @@ export function payWindfallGrants(
     }
     bumpEconomy(state);
   }
+  if (capturedTown?.ownerId === player.id) refreshCityDerived(state, capturedTown);
   // **The lasting marks** (Expansionist batch E3): The Raising of the Land and
   // The Coming of the Water mark the land of the town where the occasion
   // happened, the town nearest its hex. `markTownLand` is the one routine that
@@ -12691,7 +12825,11 @@ export function payWindfallGrants(
   // list and a nested one would be a second shape to unwrap.
   for (const hung of payout.timed) {
     const expiresTurn = state.turn + hung.turns;
-    const list = player.timed ?? [];
+    const town = hung.townId === undefined ? undefined : cityById(state, hung.townId);
+    const target = hung.townId === undefined ? player : town;
+    if (!target) continue;
+    if (town && !touched.includes(town)) touched.push(town);
+    const list = target.timed ?? [];
     // **A window renews, a bill stacks** (`WindfallGrantSpec.timed.renews`).
     // Renewing rewrites the expiry on the entries this same card already hung
     // and pushes nothing, so a card whose text is "in the last five turns" pays
@@ -12702,12 +12840,12 @@ export function payWindfallGrants(
       for (const held of list) {
         if (held.card === hung.card) held.expiresTurn = expiresTurn;
       }
-      player.timed = list;
+      target.timed = list;
       bumpEconomy(state);
       continue;
     }
     for (const effect of hung.effects) list.push({ card: hung.card, effect, expiresTurn });
-    player.timed = list;
+    target.timed = list;
     // **What the realm is carrying is `liveEffects`' eighth source** (batch M3,
     // `slate.ts`) — Crassus' bill is an ordinary card effect in every ledger it
     // reaches, the meters' among them. Announced where it is hung.
@@ -12854,7 +12992,7 @@ export function cardActionRuleAt(
   type?: UnitTypeId,
   building?: BuildingId,
 ): boolean {
-  for (const { effect } of effectsOfKind(state, city.ownerId, 'rule')) {
+  for (const { effect } of cityEffectsOfKind(state, city, 'rule')) {
     if (effect.rule !== rule) continue;
     if (effect.class !== undefined) {
       if (type === undefined || !unitMatches(type, effect.class)) continue;
@@ -14144,6 +14282,10 @@ export function cardPantheonSlots(state: GameState, playerId: number, pool?: Rel
  * above zero"; the shape has no boolean, and inventing one for a single row
  * would be a second way to say the same thing.
  */
+export function buildingRelicOffer(state: GameState, city: City) {
+  return effectsOfKind(state, city.ownerId, 'buildingRelic').find(({ effect }) => city.buildings.includes(effect.building));
+}
+
 export function cardPressureRule(
   state: GameState,
   playerId: number,
@@ -14505,6 +14647,7 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
  * One share a card puts on **one town's** renown. See `CardCityRenownPercentEffect`.
  */
 export interface CardCityRenownShare {
+  family?: Family;
   card: CardId;
   source: string;
   percent: number;
@@ -14563,7 +14706,7 @@ export function cardEmpireRenownShares(
   const list: CardCityRenownShare[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'cityRenownPercent')) {
     if (effect.percent === 0 || effect.where !== 'empire') continue;
-    list.push({ card, source, percent: effect.percent });
+    list.push({ card, source, percent: effect.percent, ...(effect.family ? { family: effect.family } : {}) });
   }
   list.push(...renownShareRises(state, playerId, list));
   return list;
@@ -14589,6 +14732,7 @@ function renownShareRises(
       source: raiseLabel(raise, share.card),
       percent: extra,
       ...(share.of !== undefined ? { of: share.of } : {}),
+      ...(share.family !== undefined ? { family: share.family } : {}),
     }),
   );
 }
@@ -14965,10 +15109,10 @@ export function cardAmplifier(
    */
   family?: Family,
   mode?: RouteMode,
-  sources?: { source: string; percent: number }[],
+  sources?: { source: string; percent: number; card?: CardId }[],
 ): number {
   let percent = 0;
-  for (const { source, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
     if (effect.target !== target) continue;
     if (effect.mode !== undefined && effect.mode !== mode) continue;
     if (effect.family !== undefined && effect.family !== family) continue;
@@ -14980,7 +15124,7 @@ export function cardAmplifier(
     if (effect.yieldsOnly === true) continue;
     if (effect.percent === undefined) continue;
     percent += effect.percent;
-    if (sources) sources.push({ source, percent: effect.percent });
+    if (sources) sources.push({ source, card, percent: effect.percent });
   }
   return percent;
 }
@@ -15115,6 +15259,7 @@ export function cardAmplifierFlat(
   state: GameState,
   playerId: number,
   target: AmplifierTarget,
+  sources?: { card: CardId; amount: number }[],
 ): number {
   let amount = 0;
   for (const { card, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
@@ -15133,6 +15278,7 @@ export function cardAmplifierFlat(
       step = Math.max(-ceiling, Math.min(ceiling, step));
     }
     amount += step;
+    if (sources && step !== 0) sources.push({ card, amount: step });
   }
   return amount;
 }

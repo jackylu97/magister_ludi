@@ -738,18 +738,19 @@ describe('the deal appraisal', () => {
   }
 
   const markup = 1 + aiJson.war.counterMarkup;
-  const rate = aiJson.war.luxuryGoldBaseline / aiJson.war.luxuryGptBaseline;
+  const rate = RULES.war.dealTurns * aiJson.war.dealIncomeShare;
+  const spare = aiJson.war.luxuryGoldBaseline * aiJson.war.luxuryDuplicateShare;
 
   it('asks the baseline over the markup for a lent copy from a seat with no lending card', () => {
     const state = table();
     expect(resourceCopies(state, 1, 'silk')).toBe(2);
-    expect(askedFor(state)).toBe(Math.ceil(aiJson.war.luxuryGoldBaseline * markup));
+    expect(askedFor(state)).toBe(Math.ceil(spare * markup));
   });
 
   it('asks less of a seat holding The Commenda, which still counts half of the copy', () => {
     const state = table();
     hold(state, 1, COMMENDA);
-    expect(askedFor(state)).toBe(Math.ceil(aiJson.war.luxuryGoldBaseline * 0.5 * markup));
+    expect(askedFor(state)).toBe(Math.ceil(spare * 0.5 * markup));
   });
 
   it('asks less of a seat holding Export Guilds, by what the copy lent pays its capital', () => {
@@ -759,9 +760,9 @@ describe('the deal appraisal', () => {
     const step = explainCountStep('copiesLent', 1, ctx);
     expect(step.total).toBeGreaterThan(0);
     const coin = (step.total / voiceWeight(ctx, 'gold')) * rate;
-    const asked = Math.max(0, Math.ceil((aiJson.war.luxuryGoldBaseline - coin) * markup));
+    const asked = Math.max(0, Math.ceil((spare - coin) * markup));
     expect(askedFor(state)).toBe(asked);
-    expect(asked).toBeLessThan(Math.ceil(aiJson.war.luxuryGoldBaseline * markup));
+    expect(asked).toBeLessThan(Math.ceil(spare * markup));
   });
 
   it('counts a new deal partner for a seat holding The Treaty Ports, and only a new one', () => {

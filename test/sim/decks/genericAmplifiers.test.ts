@@ -126,13 +126,16 @@ describe('The Summer Palace', () => {
     expect(cardCityRenownShares(state, capital).find((line) => line.card === PALACE)?.percent).toBe(15);
     expect(explainCardPercentYields(state, capital).filter((line) => line.card === PALACE).map(
       (line) => [line.yield, line.percent, line.stage],
-    )).toEqual([['production', 7.5, 'city'], ['culture', 7.5, 'city']]);
+    )).toEqual([]);
 
     for (let col = 4; col < 9; col++) layRoad(at(state, col, capital.row), 0);
     state.players[0]!.statecraft.doctrines.push('theTwoCapitals', 'allRoadsLeadToRome');
     bumpRevision(state);
-    expect(rises(capital)).toHaveLength(2);
-    expect(rises(town)).toHaveLength(2);
+    for (const city of [capital, town]) {
+      const motherCity = rises(city).filter(line => line.source.endsWith('The Mother City'));
+      expect(motherCity.map(line => [line.production, line.culture])).toEqual([[3, 0], [0, 3]]);
+      expect(rises(city)).toHaveLength(4);
+    }
     expect(rises(village)).toEqual([]);
     expect(cardHappiness(state, 0).find((line) => line.card === PALACE)?.amount).toBe(2);
     for (const city of [capital, town]) {

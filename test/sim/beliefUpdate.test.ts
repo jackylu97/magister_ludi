@@ -318,11 +318,11 @@ describe('the withdrawn rows', () => {
 // --- 4. the held row -----------------------------------------------------------------
 
 describe('the row held back', () => {
-  it('leaves Feast Days as it was, since a flat rite length scoped to a town has no shape', () => {
-    expect(beliefDef('feastDays').text).toBe(
-      '+1 happiness for every city that follows, and Temples supply +1 happiness.',
-    );
-    expect(beliefDef('feastDays').effects.map((effect) => effect.kind)).toEqual(['happiness', 'happiness']);
+  it('pays Feast Days by population while the following town keeps a rite', () => {
+    expect(beliefDef('feastDays').effects).toEqual([{
+      kind: 'pays', where: 'city', basis: 'count', to: 'faith', count: 'population',
+      amount: 1, per: 2, within: 'city', scope: { test: 'keepingRite' }
+    }]);
   });
 });
 

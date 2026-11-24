@@ -200,7 +200,6 @@ import {
   payWindfallGrants,
   cardPurchaseRiders,
   religionFounder,
-  scopedCardTileLines,
   windfallPayout,
 } from "../../src/sim/statecraft";
 import { RULES } from "../../src/sim/rulesData";
@@ -713,22 +712,22 @@ describe("a belief is an effect source, not a second evaluator", () => {
     expect(foldCity(g.state, city).science).toBe(bare);
   });
 
-  it("grants faith equal to the strength of the unit killed, in every age (Rites of Blood)", () => {
+  it("grants faith equal to twice the strength of a unit the player loses, in every age (Rites of Blood)", () => {
     // Batch B1: the grant is read off the fallen piece, so it grows with the
     // age of the units fought and needs no age clause of its own.
     const g = game();
     keep(g.state, 0, "ritesOfBlood");
     const player = playerById(g.state, 0)!;
-    const kill = (strength: number): number => {
+    const lose = (strength: number): number => {
       const before = player.faithPool;
-      payWindfallGrants(g.state, player, windfallPayout(g.state, 0, "kill", 0, 0, { strength }));
+      payWindfallGrants(g.state, player, windfallPayout(g.state, 0, "death", 0, 0, { strength }));
       return player.faithPool - before;
     };
-    expect(kill(8)).toBe(8);
-    expect(kill(20)).toBe(20);
+    expect(lose(8)).toBe(16);
+    expect(lose(20)).toBe(40);
     // A later age does not multiply it.
     learn(g.state, 0, "currency");
-    expect(kill(20)).toBe(20);
+    expect(lose(20)).toBe(40);
   });
 
   it("pays +1 science on every plantation, and deals no hand of its own (Keeper of the Calendar)", () => {
@@ -1485,8 +1484,8 @@ describe("a rite's turns and its teacher", () => {
     city.buildings.push("chichenItza");
     bumpRevision(g.state);
     const turns = riteTurnsFor(g.state, 0, "omenReading")!;
-    // The Octave and Chichen Itza add 150% to the base duration.
-    expect(turns).toBe(riteDef("omenReading").duration! * 2.5);
+    // The Octave and Chichen Itza each add the base duration.
+    expect(turns).toBe(riteDef("omenReading").duration! * 3);
     const prophet = createUnit(g.state, 0, "prophet", city.col, city.row);
     const done = empireRiteAt(g.state, player, prophet, "omenReading");
     expect(done.turns).toBe(turns);
@@ -1752,6 +1751,24 @@ describe("the apostle", () => {
     const whole = createUnit(g.state, 0, "warrior", apostle.col, apostle.row);
     healAdjacentAt(g.state, player, apostle);
     expect(whole.hp).toBe(unitMaxHp(whole));
+  });
+
+  it("lets two apostle charges add two relics to the same Temple", () => {
+    const { g, city, player, apostle } = ready();
+    const religion = faith(g.state, player.id);
+    religion.enhancer = ["reliquaries"];
+    city.buildings.push("temple", "cathedral");
+    bumpRevision(g.state);
+    const before = foldCity(g.state, city);
+    for (let count = 1; count <= 2; count++) {
+      expect(placeRelicError(g.state, player.id, apostle.id, "belief")).toBeNull();
+      placeRelicAt(g.state, player, apostle, "belief");
+      expect(city.buildingRelics?.[0]?.count).toBe(count);
+      const income = foldCity(g.state, city);
+      expect(income.science).toBe(before.science + 4 * count);
+      expect(income.culture).toBe(before.culture + 4 * count);
+    }
+    expect(city.buildings).not.toContain("relic");
   });
 
   it("leaves a relic in a cathedral town, one per cathedral, paying faith a turn", () => {
@@ -3041,7 +3058,8 @@ describe("the pressure ledger", () => {
     // lump (Devotion batch DV6). A fifth way to press a lump joins this pin
     // or it is a second implementation of what a lump does. In this file the
     // count is the declaration and its two callers.
-    expect(source.match(/\bpressLump\(/g)?.length).toBe(3);
+    expect(source.match(/\bpressLump\(/g)?.length).toBe(4);
+    expect(body("payRiteRiders")).toContain("pressLump(");
     expect(body("proclaimAt")).toContain("pressLump(");
     expect(body("drainConversions")).toContain("pressLump(");
     const fight = simSource("combat.ts");
@@ -3418,15 +3436,14 @@ describe("what a religion pays whom", () => {
     // count from being declared and never read. All four rows live in the
     // **enhancer** pool since the 2026-08-28 ruling: a world-scale count is a
     // question about a founder, and a follower belief is a fact about a town.
-    // **Congregation** — two faith for every following town in the world
-    // (batch B1; it paid happiness up to five until then). Five follow.
+    // Congregation pays at the first conversion instead of paying recurring faith.
     religion.enhancer = ["congregation"];
     bumpRevision(g.state);
     expect(
       explainCardEmpireYields(g.state, 0).find((line) =>
         line.source.includes("Congregation"),
       )?.faith,
-    ).toBe(10);
+    ).toBeUndefined();
     expect(
       cardHappiness(g.state, 0).some((line) => line.source.includes("Congregation")),
     ).toBe(false);
@@ -3462,7 +3479,7 @@ describe("what a religion pays whom", () => {
 
     religion.enhancer = ["theLongPrayer"];
     bumpRevision(g.state);
-    // Eight citizens, one culture per four.
+    // Eight citizens, one culture per three.
     expect(
       explainCardEmpireYields(g.state, 0).find((line) =>
         line.source.includes("The Long Prayer"),
@@ -4766,7 +4783,7 @@ describe("the beliefs balance pass", () => {
         ? (effect.per ?? 1)
         : 1;
     };
-    expect(step("choirs")).toBe(4);
+    expect(step("choirs")).toBe(3);
     expect(step("titheHouses")).toBe(3);
     const paid = (card: string, voice: "culture" | "gold"): number =>
       explainCardCityYields(g.state, city)
@@ -4789,24 +4806,10 @@ describe("the beliefs balance pass", () => {
     bumpRevision(g.state);
     expect(cardPressureRule(g.state, 0, "cityRange") - plain).toBe(5);
 
-    // Ecclesia (batch B1): a hex line on the stones, +1 faith for each town in
-    // the world that follows, counted when the town working the hex is in hand.
     religion.enhancer = ["ecclesia"];
     bumpRevision(g.state);
-    expect(cardPressureRule(g.state, 0, "siteStrength")).toBe(0);
-    const ecclesia = (): number | undefined =>
-      scopedCardTileLines(g.state, seat).find((line) => line.source.includes("Ecclesia"))?.faith;
-    expect(ecclesia()).toBeUndefined();
-    seat.followers = { [religion.id]: seat.population };
-    const theirs = town(g.state, 1, 10, 6);
-    theirs.followers = { [religion.id]: theirs.population };
-    bumpRevision(g.state);
-    expect(ecclesia()).toBe(2);
-    // The empire-wide context has no town to count with, so it pays nothing.
-    const stones = getTileAt(g.state.map, 6, 6)!;
-    expect(
-      explainTileYield(stones, yieldContextFor(g.state, 0)).some((line) => line.source.includes("Ecclesia")),
-    ).toBe(false);
+    const pressure = windfallPayout(g.state, 0, "rite", 0, 0, { townId: seat.id }).pressure;
+    expect(pressure).toEqual([expect.objectContaining({ card: "ecclesia", range: 6, amount: 20 })]);
   });
 });
 

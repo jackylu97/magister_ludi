@@ -77,6 +77,8 @@
  * is `cities.ts`' line in `cityYieldPercents`.
  */
 
+import type { CardId } from './statecraftData';
+import type { ResourceId } from './resourceData';
 import { buildingTechAge, UNIT_UNLOCK_TECH, techDef } from './techData';
 import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
 import { type UnitTypeId, isCivilian, isExplorer, trades, unitDef } from './unitData';
@@ -109,6 +111,8 @@ import type { GameState, Unit } from './state';
  * treasury's signed figure, in exactly one place each.
  */
 export interface UpkeepLine {
+  card?: CardId;
+  resource?: ResourceId;
   /** Display label: "Warrior", "Library · Aldermarch". */
   source: string;
   /** Gold per turn this line costs. Always ≥ 1 — a free line is never emitted. */
@@ -296,7 +300,7 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
     const share = Math.min(waiver.gold, gross - given);
     if (share <= 0) break;
     given += share;
-    out.push({ source: waiver.source, gold: share });
+    out.push({ source: waiver.source, card: waiver.card, gold: share });
   }
   const owed = owedUpkeepOf(state);
   // **The birthplace's bargain, before the empire's law** — the Imperial
@@ -318,7 +322,7 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   if (birth > 0) {
     const share = Math.min(birth, gross - given);
     given += share;
-    out.push({ source: upkeepRebateRowWords(), gold: share });
+    out.push({ ...upkeepRebateSource(), gold: share });
   }
   // **The flat half first** — a figure per soldier, counted off the pieces
   // themselves (`cardUpkeepRebateLines`, which owns the card reading and takes
@@ -330,7 +334,7 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
     const share = Math.min(flat.gold, gross - given);
     if (share <= 0) break;
     given += share;
-    out.push({ source: flat.source, gold: share });
+    out.push({ source: flat.source, card: flat.card, gold: share });
   }
   // **And the salt**, in the same list and under the same clamp. A luxury's
   // rebate is the cards' rebate in every respect that matters here — a figure
@@ -342,7 +346,7 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
     const share = Math.min(flat.gold, gross - given);
     if (share <= 0) break;
     given += share;
-    out.push({ source: flat.source, gold: share });
+    out.push({ source: flat.source, resource: flat.resource, gold: share });
   }
   const lines = cardRulePercent(state, playerId, 'unitUpkeep');
   const percent = foldCardRulePercent(lines);
@@ -370,7 +374,7 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
       i === lines.length - 1 ? rebate - paid : (rebate * line.percent) / percent;
     paid += share;
     if (share === 0) continue;
-    out.push({ source: line.source, gold: share });
+    out.push({ source: line.source, card: line.card, gold: share });
   }
   return out;
 }
@@ -433,7 +437,7 @@ export function explainUnitUpkeepSurcharge(state: GameState, playerId: number): 
   // one-way, and so a unit under a waiver (Commerce batch T6, Mercenary
   // Contracts) pays no surcharge, as a unit the law makes free pays none.
   for (const flat of cardUpkeepSurchargeLines(state, playerId, owedUpkeepOf(state))) {
-    out.push({ source: flat.source, gold: flat.gold });
+    out.push({ source: flat.source, card: flat.card, gold: flat.gold });
   }
   const lines = cardRulePercent(state, playerId, 'unitUpkeep');
   const percent = foldCardRulePercent(lines);
@@ -451,7 +455,7 @@ export function explainUnitUpkeepSurcharge(state: GameState, playerId: number): 
     const share = i === lines.length - 1 ? charge - paid : (charge * line.percent) / percent;
     paid += share;
     if (share === 0) continue;
-    out.push({ source: line.source, gold: share });
+    out.push({ source: line.source, card: line.card, gold: share });
   }
   return out;
 }
@@ -483,11 +487,12 @@ function foldUpkeepLines(lines: readonly { gold: number }[]): number {
  * razed since would leave the ledger with a give-back nothing on the board
  * explained. The table always can.
  */
-function upkeepRebateRowWords(): string {
-  const names = BUILDING_IDS.filter((id) => (buildingDef(id).unitUpkeepRebate ?? 0) > 0).map(
-    (id) => buildingDef(id).name,
-  );
-  return names.length === 0 ? 'Where they were raised' : names.join(' · ');
+function upkeepRebateSource(): Pick<UpkeepLine, 'source' | 'card'> {
+  const buildings = BUILDING_IDS.filter((id) => (buildingDef(id).unitUpkeepRebate ?? 0) > 0);
+  if (buildings.length === 1) return { source: buildingDef(buildings[0]!).name, card: buildings[0] };
+  const names = buildings.map((id) => buildingDef(id).name);
+  return { source: names.length === 0 ? 'Where they were raised' : names.join(' · ') };
+
 }
 
 // --- the debt spiral --------------------------------------------------------

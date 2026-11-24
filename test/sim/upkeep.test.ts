@@ -192,8 +192,8 @@ describe('the free-upkeep marker', () => {
     // A source-reading register, for the property no behavioural test would
     // catch losing: a *sixth* way to hand a unit over would silently start
     // charging rent on it. `state.ts` is `captureUnit`, `cities.ts` is
-    // `realiseItem` and the wonder grants, `discoveries.ts` is the ruin's
-    // escort, `greatPeople.ts` is the called person.
+    // `realiseItem`, including wonder gifts and recruited great people.
+    // `discoveries.ts` is the ruin's escort.
     const modules = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
       query: '?raw',
       import: 'default',
@@ -204,7 +204,7 @@ describe('the free-upkeep marker', () => {
       .map(([path]) => path.slice(path.indexOf('/sim/') + '/sim/'.length))
       .sort();
     // The evaluator sets the grant option. The unit still receives it in cities.ts.
-    expect(writers).toEqual(['cities.ts', 'discoveries.ts', 'greatPeople.ts', 'state.ts', 'statecraft/evaluator.ts']);
+    expect(writers).toEqual(['cities.ts', 'discoveries.ts', 'state.ts', 'statecraft/evaluator.ts']);
   });
 
   it('is set by a wonder’s completion grant', () => {

@@ -18,11 +18,11 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 |---|---|---|---|---|---|
 | Tier 0 | 10 | 0 | 0 | 10 | none |
 | Tier I | 18 | 0 | 0 | 18 | 4 |
-| Tier II | 22 | 0 | 0 | 22 | 4 |
-| Tier III | 19 | 0 | 0 | 19 | 3 |
-| Tier IV | 13 | 0 | 0 | 13 | 3 |
-| **All** | **82** | **0** | **0** | **82** | **14** |
-| Shared | 25 | 0 | 0 | 25 |  |
+| Tier II | 23 | 0 | 0 | 23 | 4 |
+| Tier III | 20 | 0 | 0 | 20 | 3 |
+| Tier IV | 12 | 0 | 0 | 12 | 3 |
+| **All** | **83** | **0** | **0** | **83** | **14** |
+| Shared | 26 | 0 | 0 | 26 |  |
 
 **By type** (the chair a card fits):
 
@@ -30,11 +30,11 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 |---|---|---|---|---|
 | Tier 0 | 4 | 4 | 2 | 0 |
 | Tier I | 4 | 5 | 7 | 2 |
-| Tier II | 9 | 5 | 5 | 3 |
-| Tier III | 5 | 4 | 8 | 2 |
-| Tier IV | 5 | 2 | 3 | 3 |
-| **All** | **27** | **20** | **25** | **10** |
-| Shared | 15 | 4 | 5 | 1 |
+| Tier II | 10 | 5 | 5 | 3 |
+| Tier III | 5 | 4 | 8 | 3 |
+| Tier IV | 4 | 2 | 3 | 3 |
+| **All** | **27** | **20** | **25** | **11** |
+| Shared | 15 | 4 | 6 | 1 |
 
 ## Tier 0
 
@@ -100,6 +100,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
+| **The Drill Masters** | common | implemented | Garrisoned units gain 1 experience each turn. | Military |
 | **Stockpiles** | common | implemented | Cities gain +8 food per defensive building. | Economic |
 | **Spoils of War** | uncommon | implemented | Pillaging a hex grants 50 gold and 15 culture. | Economic |
 | **Hegemony** | rare | implemented | Towns you captured cost 1 less authority. | Economic |
@@ -137,25 +138,26 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
+| **The Huscarls** | rare | implemented | Elite units in a garrison give twice the per-unit garrison bonuses of your other cards. | Wildcard |
+| **The Sacred Band** | rare | implemented | When one of your Elite units dies, gain a melee unit in your capital. It starts as a Veteran. | Military |
+| **The Companion Cavalry** | rare | implemented | A unit of yours that kills a unit regains its movement and may attack again. | Military |
+| **The Tributary Kings** | uncommon | implemented | Your capital gains +1 production and +1 gold for each citizen in towns you captured. | Economic |
+| **Pax Romana** | rare | implemented | Towns you capture are pacified at once, and each gains +5 food and +5 production for good. | Civic |
+| **The Horde** | rare | implemented | Pillaging a hex also pillages every enemy improvement beside it. | Military |
 | **Standing Garrisons** | common | implemented | Per garrisoned unit, the city gains +12% production and +12% culture. | Civic |
 | **Commission: A Victor's Peace** | rare | implemented | Goal: take two cities from an empire, then make peace with it or destroy it. Reward: one more Wildcard chair. | Wildcard |
 | **The Tagmata** | uncommon | implemented | Veteran and Elite units gain +5 strength. | Military |
 | **Up Through the Ranks** | uncommon | implemented | Each time one of your units becomes an Elite, gain 250 renown, favouring great generals. | Civic |
 | **The Mural Crown** | uncommon | implemented | Gaining a great person grants 200 science and culture for each great general you have gained. | Civic |
-| **Interior Lines** | uncommon | implemented | Roads cost your units 40% less movement. | Military |
 | **Valhalla** | rare | implemented | When one of your units dies, gain 25 culture for each Monument in your empire. | Civic |
-| **Pax Romana** | rare | implemented | Towns you capture are pacified at once. | Civic |
 | **The Limitanei** | rare | implemented | A garrisoned town works one more hex. | Economic |
 | **Total War** | rare | implemented | While you are at war: your military units gain +4 strength and +1 movement, and every city demands +2 more happiness. | Military |
 | **The Victory Mint** | uncommon | implemented | Capturing a city grants gold equal to sixty times its population. | Economic |
-| **The Drill Masters** | common | implemented | Garrisoned units gain 1 experience each turn. | Military |
 | **The Regimental Schools** | common | implemented | Each garrisoned unit gives its town +6 science and +6 production. | Civic |
 | **The Bakufu** | uncommon | implemented | A town with a citadel gains +25% production, science and culture. | Civic |
-| **The Tributary Kings** | uncommon | implemented | Your capital gains +2 production and +2 gold for each citizen in your puppet towns. | Economic |
 | **Commission: The Chosen Men** | uncommon | implemented | Goal: have three units become Elite. Reward: your Elite units gain +1 movement and ignore enemy zone of control. | Wildcard |
 | **The Mesta** | uncommon | implemented | Worked pastures and camps give +4 food, +4 production and +4 gold. | Economic |
 | **The Master of Soldiers** | uncommon | implemented | On draft: choose a great general. | Civic |
-| **The Companion Cavalry** | rare | implemented | A unit of yours that kills a unit regains its movement. | Military |
 
 ## Tier IV
 
@@ -173,7 +175,6 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 |---|---|---|---|---|
 | **The Annexed Provinces** | rare | implemented | Each captured city you hold gives +5% science and +5% culture in every city, at most +25%. | Civic |
 | **The Marshalate** | rare | implemented | Your great generals' aura gives +1 more strength for each great general you have gained this game, at most +5. | Military |
-| **The Horde** | rare | implemented | Pillaging a hex also pillages every enemy improvement beside it. | Military |
 | **Vae Victis** | rare | implemented | Your capture rewards are paid twice. | Wildcard |
 | **The Varangian Guard** | rare | implemented | Elite units may attack twice a turn. | Military |
 | **The Great Bombards** | rare | implemented | Your siege units break a town's walls in one blow. | Military |
@@ -210,6 +211,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Sword of State** | common | Magisterial | I | implemented | On draft: gain a melee unit. It costs no upkeep. | Military |
 | **The Muster of the Fields** | uncommon | Expansionist | I | implemented | Towns of 5 or more citizens may spend a citizen to raise a melee unit. | Military |
 | **The Frontier Militia** | common | Expansionist | 0 | implemented | Each town you found starts with a melee unit. | Military |
+| **The Missi Dominici** | uncommon | Expansionist | II | implemented | Each of your towns gains +1 science and +1 culture for each point of spare authority. | Civic |
 | **The Hillforts** | uncommon | Expansionist | II | implemented | Workers may build one hillfort in each town, on a hill: +2 production, and +1 production more for each farm, pasture or camp beside it. A unit on it gains +5 strength when it defends. | Military |
 | **The Farming Garrisons** | common | Expansionist | I | implemented | Hexes with a fortified unit gain +1 food and +1 production. | Economic |
 | **Examinations of State** | rare | Magisterial | II | implemented | Garrisoned towns gain +1 science and +1 culture for every three citizens. | Civic |
@@ -228,6 +230,10 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Field Mass** | uncommon | Devotion | III | implemented | Your proclamations heal your units within three hexes by 25 health. | Military |
 
 ## Retired rows
+
+The November 24 review retired Interior Lines.
+
+Pax Romana pays its permanent food and production on every capture while seated. Vae Victis doubles the grant. A town keeps the amount after a change of owner or council. If you recapture it with Pax Romana seated, it gains the new amount too.
 
 The November 19 pass retired Riders of the Steppe, Living off the Land and The Siege Train.
 

@@ -53,7 +53,6 @@ import {
   settleProductionWindfall,
 } from './cities';
 import { authorityOf } from './meters';
-import { dealPartnerSeats } from './deals';
 import type { Family } from './greatPeopleData';
 import { grantGreatPersonOffer, grantOrQueueGreatPersonOffer } from './greatPeople';
 import { type WorkFamily, improvementDef, isGreatPersonWork, isTendedWork } from './improvementData';
@@ -101,6 +100,7 @@ import {
   ghostWorksInTown,
   ordersHeldCount,
   tradePartnerSeats,
+  tradingPartnerSeats,
 } from './statecraft/evaluator';
 import {
   type CitizensTarget,
@@ -312,7 +312,7 @@ export function commissionFigure(
       return admitted;
     }
     case 'dealPartners':
-      return dealPartnerSeats(state, playerId).length;
+      return tradingPartnerSeats(state, playerId).length;
     case 'tradePartnerEmpires':
       // The World's Fair (Commerce batch T4, the triage's reading 11): the
       // `tradePartnerEmpires` count's walk, which the reward reads again.

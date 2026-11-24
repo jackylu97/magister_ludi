@@ -142,7 +142,7 @@ describe('the register', () => {
     for (const { charter, tech } of GIFTS) {
       const def = orderDef(charter);
       expect(isCharter(charter), charter).toBe(true);
-      expect(orderIsDealt(charter), charter).toBe(true);
+      expect(orderIsDealt(charter), charter).toBe(def.retired !== true);
       expect(def.deferred, charter).toBeUndefined();
       // A charter takes no chair, so it carries no effects: the gift is the
       // technology's.

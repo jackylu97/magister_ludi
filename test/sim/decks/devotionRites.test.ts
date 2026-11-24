@@ -1,3 +1,4 @@
+import { cardUnitStat } from '../../../src/sim/statecraft/evaluator';
 /**
  * **Rites are seasons** (batch DV4 of `docs/plans/devotion-themes-triage.md`).
  * `devotion.test.ts` checks the rows against the sheet. This file checks what
@@ -33,7 +34,6 @@ import {
   proclamationHealingTargets,
   riteTeachingCard,
 } from '../../../src/sim/religion';
-import { explainUnitHeal } from '../../../src/sim/healing';
 import { cardPressureSources, liveUnitEffects } from '../../../src/sim/statecraft/evaluator';
 import { type RiteId, riteDef } from '../../../src/sim/religionData';
 import {
@@ -171,7 +171,7 @@ describe('the three rows', () => {
 // --- the season rule ------------------------------------------------------------
 
 describe('a rite started is a season', () => {
-  it('counts both the Votive Offering and the next rite', () => {
+  it('counts two successive rites', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5);
     const player = faithful(state);
@@ -179,8 +179,8 @@ describe('a rite started is a season', () => {
     slot(state, 0, 'theVotiveGifts' as OrderId);
     city.queue = [{ kind: 'building', id: 'granary' as never }];
     bumpRevision(state);
-    expect(riteError(state, 0, city.id, 'votiveOffering')).toBeNull();
-    performRiteAt(state, player, city, 'votiveOffering');
+    expect(riteError(state, 0, city.id, FASTING)).toBeNull();
+    performRiteAt(state, player, city, FASTING);
     expect(tallyOf(player.statecraft, ROGATIONS)).toBe(1);
     city.timed = [];
     bumpRevision(state);
@@ -188,16 +188,16 @@ describe('a rite started is a season', () => {
     expect(tallyOf(player.statecraft, ROGATIONS)).toBe(2);
   });
 
-  it('counts Restoring of the Host when it starts', () => {
+  it('keeps the Host Order separate from the rite that starts', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5);
     const player = faithful(state);
     slot(state, 0, ROGATIONS);
     slot(state, 0, 'theHostRestored' as OrderId);
     expect(riteDef('restoringOfTheHost').atOnce).toBeUndefined();
-    expect(riteError(state, 0, city.id, 'restoringOfTheHost')).toBeNull();
-    performRiteAt(state, player, city, 'restoringOfTheHost');
-    expect(cityRite(state, city)).toBe('restoringOfTheHost');
+    expect(riteError(state, 0, city.id, 'restoringOfTheHost')).not.toBeNull();
+    performRiteAt(state, player, city, FASTING);
+    expect(cityRite(state, city)).toBe(FASTING);
     expect(tallyOf(player.statecraft, ROGATIONS)).toBe(1);
   });
 
@@ -249,7 +249,7 @@ describe('the rite moment carries its town', () => {
     expect(player.sciencePool - science).toBe(30);
   });
 
-  it('pays The Psalter in a town with no religion and for a Votive Offering', () => {
+  it('pays The Psalter both before and after the town follows a religion', () => {
     const state = bareState();
     const city = town(state, 0, 5, 5, 6);
     const player = faithful(state);
@@ -265,7 +265,7 @@ describe('the rite moment carries its town', () => {
     city.queue = [{ kind: 'building', id: 'granary' as never }];
     bumpRevision(state);
     science = player.sciencePool;
-    performRiteAt(state, player, city, 'votiveOffering');
+    performRiteAt(state, player, city, FASTING);
     expect(player.sciencePool - science).toBe(30);
   });
 
@@ -552,12 +552,12 @@ describe('the current rite rules', () => {
     bumpRevision(state);
     expect(gains(first)).toHaveLength(1);
     expect(gains(late)).toHaveLength(0);
-    const prophet = createUnit(state, 0, 'prophet', c.col, c.row);
-    empireRiteAt(state, player, prophet, 'restoringOfTheHost');
-    expect(gains(first)).toHaveLength(0);
-    expect(explainUnitHeal(state, late)).toEqual([{ label: riteDef('restoringOfTheHost').name, amount: 25 }]);
-    expect(explainUnitHeal(state, first)).toEqual([]);
-    expect(explainUnitHeal(state, enemy)).toEqual([]);
+    late.col = c.col;
+    late.row = c.row;
+    bumpRevision(state);
+    expect(cardUnitStat(state, late, 'heal')).toBe(20);
+    expect(cardUnitStat(state, first, 'heal')).toBe(0);
+    expect(cardUnitStat(state, enemy, 'heal')).toBe(0);
   });
 
   it('keeps the border bonus when the Bounds applies to all resource types', () => {

@@ -206,6 +206,8 @@ import {
 } from './yields/empire';
 import { type EmpireRates, readingAtRest } from './statecraft/evaluator';
 import { CITY_YIELD_KEYS } from './resourceData';
+import type { WagerMetric } from './wagerMilestoneData';
+import { wagerMetricNow } from './wagerMilestones';
 import { memoTableRow, slateMemo } from './slate';
 
 /** The guide and the top bar use the same meter after a command. A change to
@@ -773,4 +775,14 @@ function empireReading(state: GameState, playerId: number): EmpireReading {
     empire,
     totals,
   };
+}
+
+/** The wager screen redraws when a piece moves. Reuse standing totals until
+ * the economy changes. The score uses the latest lifetime tally, which can
+ * change within a phase. Age counters belong to the open age. */
+export function readWagerMetric(state: GameState, playerId: number, metric: WagerMetric): number {
+  if (metric === 'score' || metric === 'scienceCulture' || metric === 'faithGold' || metric === 'purchases' || metric === 'buildings') {
+    return wagerMetricNow(state, playerId, metric);
+  }
+  return slateMemo(state, 'economy', 'wagerMetrics', `${playerId}:${metric}`, () => wagerMetricNow(state, playerId, metric));
 }

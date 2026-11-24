@@ -45,28 +45,24 @@ already hold. Two empires may hold the same god (batch R2a, 2026-10-28).
 | Belief | Axis | Effect |
 |---|---|---|
 | Goddess of the Harvest | hearth | Bonus resources that give food gain +1 food. |
-| Keeper of the Hearth | hearth | Granaries give +2 faith and +1 happiness. |
+| Keeper of the Hearth | hearth | Granaries and Monuments each supply +1 faith. |
 | Star Readers | sky | +4 science in every town with a mountain in its borders. |
-| Keeper of the Calendar | sky | Plantations gain +1 science. |
-| The Standing Stones | stone | Monuments give +2 culture and +1 faith. |
-| Ancestor Worship | stone | +1 culture for every 4 citizens in a town. |
+| Ancestor Worship | stone | +3 authority. The bonus for spare authority also raises faith. |
 | Lady of the Hunt | wild | Camps gain +1 food and +1 gold. |
 | Spirits of the Wood | wild | Unimproved forest and jungle hexes gain +1 faith and +1 culture. |
 | River Mother | water | Towns on fresh water gain +2 food. |
 | Lord of the Sea | water | +1 production and +1 gold on every hex with a Fishing Boat. |
 | God of the Forge | war | Each military building gives +2 production. |
-| Rites of Blood | war | Killing a unit grants faith equal to its strength. |
+| Rites of Blood | war | When one of your units dies in battle, gain faith equal to twice its strength. |
 | Oracle of the Crossroads | road | Scouts and settlers gain +1 movement and +1 sight. |
 | Sacred Fire | none | +2 production in every town. |
-| Desert Fathers | sun | Desert hexes gain +1 food and +1 faith. |
-| Winter Mother | frost | +1 food and +1 faith on every tundra hex. |
+| The Hermits | sun | Desert and tundra hexes gain +1 food and +1 faith. |
 | The Stone Hoard | stone | Mines and quarries on a resource gain +1 culture and +1 faith. |
 | The Vigil | none | A town keeping a rite gains +15% science and culture. |
 | Vineyard Rites | hearth | +1 food and +1 culture on every hex with a Plantation. |
 | Cult of Heroes | none | +15% renown. |
 | Herd Gods | wild | +1 production and +1 faith on every hex with a Pasture. |
-| Patron of Merchants | road | +1 faith and +2 gold for each different luxury you hold. |
-| The Muses | none | +1 faith for every 3 culture you make each turn. |
+| Patron of Merchants | road | Gain +1 gold each turn for every 50 faith you have spent this game. |
 
 ## Follower beliefs
 
@@ -97,22 +93,18 @@ opens the row for whoever owns a following town; the town is where the rule is a
 | Belief | Axis | Effect |
 |---|---|---|
 | Cathedrals of the Sky | sky | Temples supply +2 science and +2 culture. |
-| Pilgrimage | road | A town that follows gains +1 faith for every 3 followers. |
-| Feast Days | hearth | +1 happiness for every city that follows, and Temples supply +1 happiness. |
-| Holy Water | water | Towns that follow and stand on fresh water gain +10% food. |
-| Lamps of the Shrine | sun | Shrines in towns that follow give +2 science. |
-| Choirs | none | +1 culture for every 4 citizens of a city that follows. |
-| Tithe Houses | none | +1 gold for every 3 citizens of a city that follows. |
+| Feast Days | hearth | A town that follows gains +1 faith for every two citizens while it keeps a rite. |
+| Choirs | none | A town that follows gains +1 culture and +1 gold for every three citizens. |
 | The Quiet Hours | frost | In towns that follow, each building that supplies faith gives +2 culture and +1 happiness. |
-| Warrior Monks | war | +10 combat strength for units defending a city that follows. |
-| Harvest Blessing | hearth | +1 food on every farm worked by a city that follows. |
+| Warrior Monks | war | +10 combat strength for units defending a town that follows. |
+| Harvest Blessing | hearth | +1 food on every farm worked by a town that follows. |
 | Guild of the Faithful | stone | +15% production toward buildings in every town that follows. |
-| Common Table | hearth | A city that follows keeps a quarter of its stored food when it grows. |
+| Common Table | hearth | A town that follows keeps a quarter of its stored food when it grows. |
 | Minarets | sky | Unlocks the Mosque: +3 faith, +2 production and +1 authority. |
 | Temple Spires | hearth | Unlocks the Wat: +3 happiness, and +1 faith for every 2 citizens. |
 | The Open Kitchen | hearth | Unlocks the Gurdwara: +3 food, +3 faith, and +1 science for every 3 citizens. |
 | The Eternal Flame | sun | Unlocks the Dar-e Mehr: +25% faith in its town. |
-| The Alms Box | none | Your faith buys 25% more in towns that follow this religion. |
+| The Alms Box | none | A town that follows may buy food and production buildings with faith. |
 
 ## Enhancer beliefs
 
@@ -122,22 +114,20 @@ world-scale counts live here.
 
 | Belief | Axis | Effect |
 |---|---|---|
-| Reliquaries | stone | +1 culture for every 3 faith you make each turn. |
-| Inquisition | war | Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion. |
-| The Long Road | road | Your religion presses 2 harder along trade routes. |
+| Reliquaries | stone | An apostle can spend a charge to leave a relic in one of your towns with a Temple. Each relic adds +4 science and +4 culture to that Temple. |
+| Inquisition | war | Rival religions press your towns at 70% strength. Gain +1 authority for every two devout towns. |
+| The Long Road | road | Your trade routes press your religion at both ends and press 2 harder. |
 | Itinerant Preachers | road | Towns that follow press your religion 5 hexes further. |
-| The Pulse of Bells | sky | A proclamation reaches 4 hexes further and presses 20 faith harder. |
-| Ecclesia | stone | Each holy site gives +1 faith for each town in the world that follows your religion. |
+| The Pulse of Bells | sky | A proclamation raises production in your towns within its reach by 25% for ten turns. A later proclamation restarts the ten turns. |
+| Ecclesia | stone | A town that starts a rite adds 20 pressure for your religion to every town within six hexes. |
 | Apostles | none | Your faith buys 40% more when you buy an apostle. |
-| Sacred Cartography | water | Your trade routes press your religion at both ends. |
 | Holy Order | war | Unlocks Knights Templar, bought with faith. They gain +6 strength in land that follows your religion. |
-| Congregation | hearth | +2 faith for every town in the world that follows your religion. |
-| Pilgrims' Coin | road | +4 gold for every city in the world that follows. |
+| Congregation | hearth | The first time a foreign town turns to your religion, your capital gains a citizen. |
 | World Church | none | +15% culture for every empire in the world that follows you. |
-| The Long Prayer | sun | +1 culture for every 4 citizens in the world who follow you. |
+| The Long Prayer | sun | +1 culture for every three citizens in the world who follow your religion. |
 | The Crusade | war | Your units gain +6 strength in foreign land that follows your religion. |
-| Marvels of the Faith | none | +5 science and +5 culture for every city in the world that follows you and holds a wonder. |
-| The Scriptoria | sky | +1 science for every faith building in a city that follows you. |
+| Marvels of the Faith | none | +5 science and +5 culture for every town in the world that follows you and holds a wonder. |
+| The Scriptoria | sky | +1 science for every faith building in a town that follows you. |
 
 ## Rites
 
@@ -149,16 +139,12 @@ Each rite lasts ten base turns. Add 100% for The Octave, 50% for a Chapel in the
 | --- | ---: | --- |
 | Vigil of Arms | 10 | Your units within three hexes of this town at the start gain +4 strength until the rite ends. |
 | The Night Watch | 10 | This city gains +1 science for each citizen. |
-| Rite of Naming | 10 | This town gains +2 food for each citizen. |
-| Rite of Hallowing | 10 | This town’s improved hexes gain +1 faith. |
 | Rite of the Harvest | 10 | Hexes that give food give +1 more. |
 | Omen Reading | 10 | +1 science for each building in this town. |
 | Consecration of the Bounds | 10 | Resource hexes gain +1 culture, and this town's borders grow 30% faster. |
 | Blessing of Arms | 10 | +10 defence. |
 | Rite of Plenty | 10 | This town gains +1 gold for each citizen. |
 | Rite of Fasting | 10 | This town does not grow, and gains +1 science and +1 culture for each citizen. |
-| Votive Offering | 10 | This town gains production equal to its faith. |
-| Restoring of the Host | 10 | Your units within three hexes of this town heal 25 health each turn. |
 | Rite of the Sabbath | 10 | This town builds nothing, and gains its production as culture. |
 
 ## Consecrations
@@ -183,8 +169,3 @@ chosen, and then a fact about that town for as long as it stands.
 - **Withdrawn** (`retired: true`, kept in the data so a game that names them still
   reads): the enhancer Theocratic Mandate, which never had an effect, and the
   consecration The Green Cathedral, which the cathedral no longer rolls.
-- **Held back: Feast Days.** The spec's text is "Rites in a town that follows last 5
-  turns longer". The game can lengthen a rite only by a percentage over the whole
-  empire (`effectAmplifier riteDuration`, The Octave), read when the rite starts
-  (`riteTurnsFor`), which asks no town. A flat step of turns for the towns that follow
-  is a shape the game does not have, so the row keeps its effect and text of today.

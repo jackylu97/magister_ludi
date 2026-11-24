@@ -1,3 +1,4 @@
+import { addWagerCount } from './wagerMilestoneData';
 /**
  * Research: what a player knows, what that lets them build, and what happens the
  * moment a technology lands.
@@ -2175,12 +2176,13 @@ export interface TechCostLine {
  * **What a technology costs this empire**, as the ordered list the price is the
  * fold of (hard rule 5, said about a price; Scientific batch S0).
  *
- * Two kinds of line, in this order (readings 13 and 14):
+ * Cost lines apply in this order:
  *
  *   1. **the column price**, which is the row's own `cost`. Every row, a
  *      charter row too, stores its column's price, so "a column is a price"
  *      holds across the whole table (`test/sim/tech.test.ts` pins it);
- *   2. **one line for each card percentage** that reaches this technology:
+ *   2. The base discount for a charter technology.
+ *   3. **one line for each card percentage** that reaches this technology:
  *      the retired The Commonplace Book's `charterTechCost` for a charter row,
  *      and The Translation Movement's `gapTechCost` for an ordinary row in the
  *      gap, one an empire this seat has met already knows (`techGap`,
@@ -2188,14 +2190,12 @@ export interface TechCostLine {
  *      so the two rules never reach the same row (the triage's readings 2 and
  *      15). An ordinary row also takes The Court of Rudolf II's `techPrice`
  *      lines (`cardTechPriceLines`, batch DT8), which a charter row never does.
- *      The percentages are added together and applied once, to the column
+ *      The percentages are added together and applied once, to the base
  *      price. They never compound.
  *
- * **There is no charter premium** since batch DS9 (`docs/flags.md` item
- * (hhhhhhh): "a charter technology costs the ordinary price"). A charter row
- * used to pay `rules.research.charterPremiumPercent` (50%) above its column,
- * and the retired The Patent Office's `charterPremium` rule took that away. The
- * field and its line are gone, so that rule now changes nothing.
+ * Charter research starts at the configured share of its column price. The
+ * price list shows that reduction separately. Card changes still add together
+ * and apply to this base once, so the interface and every payer use one price.
  *
  * **Floored once.** The total is one floor of the exact product, computed in
  * whole numbers. Each line carries the difference it makes to the running
@@ -2214,6 +2214,11 @@ export function explainTechCost(state: GameState, player: Player, tech: TechId):
   const lines: TechCostLine[] = [{ source: `Column ${techColumn(tech)}`, amount: column }];
   const charter = def.charter === true;
   let running = column;
+  const basePrice = charter ? column * RULES.research.charterCostPercent / 100 : column;
+  if (charter) {
+    running = Math.max(1, Math.floor(basePrice));
+    lines.push({ source: `Charter technology ${RULES.research.charterCostPercent}% of column price`, amount: running - column });
+  }
 
   // The cards that reach this row: the charter rule for a charter row. For an
   // ordinary row, the gap rule if an empire this seat has met already knows it,
@@ -2232,7 +2237,7 @@ export function explainTechCost(state: GameState, player: Player, tech: TechId):
   for (const card of cards) {
     percent += card.percent;
     const factor = Math.max(0, 100 + percent);
-    const scaled = (column * factor) / 100;
+    const scaled = (basePrice * factor) / 100;
     const total = Math.max(1, Math.floor(scaled + Number.EPSILON * scaled));
     const sign = card.percent > 0 ? '+' : '';
     const label = card.percent === -100 / 3 ? '−33⅓' : sign + String(card.percent);
@@ -2487,6 +2492,7 @@ export function completeCurrentResearch(state: GameState, player: Player): Resea
   if (!id || !isTechId(id)) return [];
   const cost = foldTechCost(explainTechCost(state, player, id));
   if (player.sciencePool < cost) {
+    addWagerCount(state, player.id, 'scienceCulture', cost - player.sciencePool);
     player.sciencePool = cost;
     bumpEconomy(state);
   }

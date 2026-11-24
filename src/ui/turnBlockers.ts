@@ -1,3 +1,4 @@
+import { milestonePickNeeded } from '../sim/wagerMilestones';
 /**
  * Unfinished business: what the local seat still owes the turn before it may
  * end it.
@@ -318,7 +319,7 @@ function* blockersInOrder(
   // was dealt does not go stale while a discovery, a draft, a god and a name are
   // answered. The rule itself is `wagerBlocker` in the simulation, where the bot
   // reads it.
-  if (wagerBlocker(state, playerId) !== null) yield { kind: 'wager' };
+  if (milestonePickNeeded(state, playerId) || wagerBlocker(state, playerId) !== null) yield { kind: 'wager' };
 
   // **The sixth, and the only one that is not a decision at all** (batch C1,
   // `docs/wager.md` §10). The census is *news*: the world has been measured, the

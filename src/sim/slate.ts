@@ -311,7 +311,7 @@ export function standingYieldRevision(state: GameState): object {
 }
 
 /** Keep only the published yield readings whose position dependencies movement checks. */
-const STANDING_READINGS = ['towns', 'townsAtCurrentProduction', 'empires', 'rates', 'percents', 'happiness', 'authority', STANDING_YIELD_KEY];
+const STANDING_READINGS = ['towns', 'townsAtCurrentProduction', 'empires', 'rates', 'percents', 'happiness', 'authority', 'wagerMetrics', STANDING_YIELD_KEY];
 
 export interface CityGateReadings {
   cityId: number;

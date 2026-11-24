@@ -228,12 +228,12 @@
           "science": 2
         },
         {
-          "kind": "rulePercent",
-          "rule": "greatPersonCost",
-          "percent": -15
+          "kind": "cityRenownPercent",
+          "where": "empire",
+          "percent": 15
         }
       ],
-      "text": "Every town gains +2 science. Great people cost 15% less renown."
+      "text": "Every town gains +2 science. Gain 15% more renown each turn."
     },
     "merchantLeague": {
       "name": "Merchant League",

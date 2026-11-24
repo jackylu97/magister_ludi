@@ -1,0 +1,11 @@
+{
+  "policy": { "name": "candidate-policy-for-measurement" },
+  "trainingSeeds": [5, 42, 777],
+  "heldOutSeeds": [314, 2026, 13],
+  "boards": [
+    { "sizeName": "standard", "seatCount": 3 },
+    { "sizeName": "standard", "seatCount": 6 }
+  ],
+  "leaders": ["alexanderTheGreat", "mansaMusa", "sejongTheGreat", "mehmedTheConqueror", "lorenzoDeMedici", "jayavarmanVII"],
+  "turnLimit": 400
+}

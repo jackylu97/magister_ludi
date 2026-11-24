@@ -199,7 +199,7 @@ describe('the Commerce deck is one deck', () => {
     // rows, The Pack Trail and The First Caravan, so 111 rows become 113.
     // The Open Market adds one live Tier 0 row.
     expect(COMMERCE.length).toBe(144);
-    expect(retired().length).toBe(59);
+    expect(retired().length).toBe(62);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -290,7 +290,7 @@ describe('the Commerce deck is one deck', () => {
 });
 
 describe('a live Commerce row is a card', () => {
-  it('pays through 85 rows, and every one of them is dealt', () => {
+  it('pays through 82 rows, and every one of them is dealt', () => {
     // The World's Exchange joined them with D2b: hammers behind a thing may be
     // counted off a thing the realm holds now, and the courts its roads reach
     // are one such thing. **Civic Receipts joined with D2c**: a purchase now
@@ -389,7 +389,7 @@ describe('a live Commerce row is a card', () => {
     // Strongbox, The Merchant Guilds).
     // **Batch DS1**: sixty-eight. Nine live rows are retired.
     // **Batch DS4**: seventy. The Pack Trail and The First Caravan are new.
-    expect(live().length).toBe(85);
+    expect(live().length).toBe(82);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -929,10 +929,10 @@ function checkAgainstRow(card: SheetCard, id: OrderId): void {
 
 describe('the Commerce deck: the sheet of record', () => {
   it('holds the Doctrine rows to the sheet’s four tables', () => {
-    expect(sheetDoctrines('commerce').length).toBe(15);
+    expect(sheetDoctrines('commerce').length).toBe(14);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('commerce').filter((row) => row.band === band).length),
-    ).toEqual([3, 4, 4, 4]);
+    ).toEqual([3, 4, 4, 3]);
     expectSheetDoctrinesMatchData('commerce');
   });
 
@@ -1046,15 +1046,15 @@ describe('the Commerce deck: the sheet of record', () => {
     // Batch DS1 retires nine of the sheet's cards and six shared cards.
     // Batch DS4 adds The Pack Trail and The First Caravan. Batch R1 adds the
     // shared The Country Fair.
-    expect(sheet).toHaveLength(85);
+    expect(sheet).toHaveLength(82);
     expect(shared).toHaveLength(25);
   });
 
-  it('types every listed row, 85 private and 25 shared, and nothing else of this file', () => {
+  it('types every listed row, 82 private and 25 shared, and nothing else of this file', () => {
     // 59 after batch T1, the eight new rows of batch T2, the three of batch
     // T3, the one of batch T4, the three of batch T5 and the three of batch T6.
     // Batch DS1 retires nine. Batch DS4 adds two.
-    expect(LISTED).toHaveLength(85);
+    expect(LISTED).toHaveLength(82);
     for (const id of COMMERCE) {
       const def = orderDef(id);
       if (def.retired === true) expect(def.type, id).toBeUndefined();
@@ -1770,7 +1770,7 @@ describe('C3 — the five cards that lift a rule', () => {
       expect(purchaseError(g.state, 0, city.id, WONDER, 'gold')).toContain('costs');
     });
 
-    it('slows every town by the share its other half prints', () => {
+    it('keeps production unchanged when buying wonders is enabled', () => {
       const { g, city } = ready();
       const named = () =>
         readCity(g.state, city).percents.filter(
@@ -1779,8 +1779,7 @@ describe('C3 — the five cards that lift a rule', () => {
       expect(named()).toEqual([]);
       slot(g, 'theGildedScaffold');
       const lines = named();
-      expect(lines.length).toBe(1);
-      expect(lines[0]!.percent).toBe(-15);
+      expect(lines).toEqual([]);
     });
   });
 

@@ -36,7 +36,8 @@
  * Slow by kind: a hundred and twenty turns of six seats, then some thousands of
  * stamps.
  *
- * Additional controlled positions cover recent losses and spare happiness.
+ * Additional controlled positions cover recent losses, spare happiness and
+ * shared Orders with yields for an amplifier to raise.
  * These conditions must stay covered when bot changes alter the played game.
  */
 
@@ -56,6 +57,7 @@ import { beliefPoolOf, isBeliefId } from '../../src/sim/religionData';
 import { type GameState, realPlayers } from '../../src/sim/state';
 import { isOrderId, orderDef } from '../../src/sim/statecraftData';
 import {
+  amplifierAuditPosition,
   cardsToPrice,
   effectsOf,
   footprintOf,
@@ -114,6 +116,7 @@ function auditPositions(snapshots: readonly string[]): GameState[] {
   // Keep conditional meter coverage even when the played seats have no spare
   // happiness or no recent town losses. This private fixture is not a replay.
   positions.push(meterAuditPosition());
+  positions.push(amplifierAuditPosition());
   return positions;
 }
 

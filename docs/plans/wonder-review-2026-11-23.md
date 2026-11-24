@@ -17,6 +17,29 @@ Sources:
 
 ---
 
+## The user's comments, 2026-11-24
+
+The user commented on the review page (12 comments). **Where this section and the text below disagree, this section is right.** Each row's "Today" text is in the table "The ten reworks that matter most" below.
+
+The user in chat, 2026-11-24: "ok commented on the wonders doc. i want to have these changes in for the playtest, i changed my mind". So the settled changes of all the reviews are to be built for the playtest build. This reverses "let's queue these items" of 2026-11-23.
+
+| # | Wonder | Proposed in this review | The user's words | Result |
+|---|---|---|---|---|
+| 1 | The Library of Ashurbanipal | "+3 science in every city with a Library. Each time you capture a city, the technology you are researching is finished. +10 renown a turn toward scholars." | "great" | Settled as proposed. |
+| 2 | The Pyramids | "+3 production in this city for each wonder you hold. +20% production toward wonders." | "great" | Settled as proposed. |
+| 3 | The Terracotta Army | "Each time this city gains a unit, a second unit of the same kind joins you." | "wow, great" and "great" | Settled as proposed. It is a broken combo on purpose. |
+| 4 | Solomon's Temple | "+2 culture, +2 faith. +2 renown a turn in every city with a Temple. +1 name in every great-person offer." | "let's keep the percentage, +15% renown." and "instead of the temple clause, everything else stays" | "+2 culture, +2 faith. +15% renown. +1 name in every great-person offer." This replaces the +10% renown of the first review. |
+| 5 | The Walls of Uruk | "Every city with a Palisade gains +2 production and +2 culture. On completion, a Palisade is raised here." | "Add: +2 authority capacity" | "Every city with a Palisade gains +2 production and +2 culture. +2 authority capacity. On completion, a Palisade is raised here." |
+| 6 | The Great Wall | "Every garrisoned city gains +2 production and +2 culture. Enemy units in your territory have -1 movement." | "Great, lets change to +3 production and +3 culture." | "Every garrisoned city gains +3 production and +3 culture. Enemy units in your territory have -1 movement." |
+| 7 | Notre-Dame | The same text. It moves to an age 4 technology of column 9, so it costs 1,127 (today 1,934). | "great" | Settled as proposed. Technology: Castellany (`feudalism`, age 4, column 9, research cost 1,960). It holds no wonder today, it follows Guildhalls, and it is the technology of the feudal age that built the cathedrals. The user on 2026-11-24: "yeah just pick two that make sense." |
+| 8 | Machu Picchu | "+2 gold. +2 trade routes for your empire. +2 gold on every hex beside a mountain, once for each mountain." It moves to an age 3 technology of column 8, so it costs 860 (today 1,477). | "great" | Settled as proposed. Technology: Daughter Cities (`colonialCharters`, age 3, column 8, research cost 1,150). It holds no wonder today, and it is the technology of founded settlements, which fits a royal estate on a mountain. The user on 2026-11-24: "yeah just pick two that make sense." |
+| 9 | The Pyramid of the Sun | The same text, with 10 faith for each citizen in place of 5. | "let's rework this. How about the levy gives a burst of science, faith and renown?" | The number change is dropped. New direction: when its city spends a citizen, the levy pays science, faith and renown. The numbers are settled: 5 faith, 5 science and 3 renown for each citizen the city had before the levy. The user on 2026-11-24, to that suggestion: "great". |
+| 10 | Chichen Itza | "+2 culture, +2 faith. Rites last twice as long. +2 happiness and +20% culture in every city while it is keeping a rite." | "sure" | Settled as proposed. |
+
+The user on 2026-11-24: "let's defer and add it to the beta checklist." These are deferred and are not built (see `docs/plans/beta-checklist-2026-11-21.md`): the two smaller changes of the summary, The Great Mosque of Djenné, the cut candidates, and the question whether the other five decks get cards that read wonders held.
+
+---
+
 ## Summary
 
 ### Findings

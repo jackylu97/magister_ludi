@@ -187,8 +187,8 @@ describe('the rows', () => {
     // R3 added two (The Kept Secret and The Curators of Works) and retired
     // The Prize Essay, which stays in the file for saves. DS6 added The
     // Scribes and The Apprentices.
-    expect(DECK).toHaveLength(118);
-    expect(new Set(DECK).size).toBe(118);
+    expect(DECK).toHaveLength(120);
+    expect(new Set(DECK).size).toBe(120);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -226,7 +226,7 @@ describe('the rows', () => {
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([9, 19, 20, 14, 5]);
+    expect(perBand).toEqual([9, 19, 19, 14, 5]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
@@ -241,7 +241,7 @@ describe('the rows', () => {
     // a commission: 68 became 77. R3 retired The Prize Essay and added two
     // live rows: 77 became 78. DS1 retired twelve: 78 became 66. DS6 added
     // two: 66 became 68.
-    expect(LIVE).toHaveLength(67);
+    expect(LIVE).toHaveLength(66);
     expect(DEFERRED).toEqual([]);
     for (const id of LIVE) {
       const def = orderDef(id);
@@ -311,6 +311,8 @@ describe('the retired rows', () => {
       'theSocietyOfArtificers',
       'theLearnedRealm',
       'theCommonplaceBook',
+      'thePhysiciansCharter',
+      'theMilitaryEngineersCharter',
       'theNavalGunnersCharter',
       'thePatentOffice',
       'theScholarsGuild',
@@ -322,6 +324,7 @@ describe('the retired rows', () => {
       'thePrizeEssay',
       'theAgeOfReason',
       'theCommonTables',
+      'theForwardPlans',
       'theRoyalReaders',
       'theWallsOfLearning',
       'theFieldRefits',
@@ -563,10 +566,10 @@ const TAKEN = new Set(ORDER_IDS.map((id) => orderDef(id).name));
 describe('the Scientific deck: the sheet', () => {
   it('holds the Doctrine rows to the sheet’s four tables', () => {
     // What each row does is checked in `scientificDoctrines.test.ts`.
-    expect(sheetDoctrines('scientific').length).toBe(15);
+    expect(sheetDoctrines('scientific').length).toBe(16);
     expect(
       [1, 2, 3, 4].map((band) => sheetDoctrines('scientific').filter((row) => row.band === band).length),
-    ).toEqual([3, 4, 5, 3]);
+    ).toEqual([3, 5, 5, 3]);
     expectSheetDoctrinesMatchData('scientific');
   });
 
@@ -701,7 +704,7 @@ describe('the Scientific deck: the sheet', () => {
     expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
     expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
     // The shared charters have their own table.
-    expect(sheet.filter(isCharterRow)).toHaveLength(14);
+    expect(sheet.filter(isCharterRow)).toHaveLength(12);
   });
 });
 
@@ -774,11 +777,11 @@ describe('the live rows’ effects', () => {
 
 describe('the research charters', () => {
   it('names the fourteen Scientific charter technologies, one row each, deferred until their gift is built', () => {
-    expect(CHARTERS).toHaveLength(14);
+    expect(CHARTERS).toHaveLength(12);
     const techs = CHARTERS.map((id) => orderDef(id).charter!.unlocks.tech);
     // The fourteenth charter technology, Scholasticism, belongs to the shared
     // The Schoolmen's Charter in the shared file (Devotion batch DV2).
-    const own = CHARTER_TECH_IDS.filter((tech) => !['scholasticism', 'herbals', 'astronomy', 'navalGunnery', 'liturgy'].includes(tech));
+    const own = CHARTER_TECH_IDS.filter((tech) => !['scholasticism', 'herbals', 'astronomy', 'navalGunnery', 'liturgy', 'medicine', 'militaryArchitecture'].includes(tech));
     expect(CHARTER_TECH_IDS).toHaveLength(19);
     expect(new Set(techs)).toEqual(new Set(own));
     expect(techs).toHaveLength(own.length);

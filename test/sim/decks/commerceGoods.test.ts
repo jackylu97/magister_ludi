@@ -45,8 +45,8 @@ import {
 } from '../../../src/sim/resourceEffects';
 import { postTermTurns } from '../../../src/sim/routes';
 import { RULES } from '../../../src/sim/rulesData';
-import { type City, type GameState, bumpRevision, playerById } from '../../../src/sim/state';
-import { cardAmplifier, cardYieldsOnlyAmplifier, countOf } from '../../../src/sim/statecraft/evaluator';
+import { type City, type GameState, bumpRevision, createUnit, playerById } from '../../../src/sim/state';
+import { cardAmplifier, cardYieldsOnlyAmplifier, countOf, cardLuxuryCount, tradingPartnerSeats } from '../../../src/sim/statecraft/evaluator';
 import { type CardPaysEffect, type OrderId, orderDef } from '../../../src/sim/statecraftData';
 import { openWar } from '../../../src/sim/wars';
 import { cityYieldPercents, explainCity } from '../../../src/sim/yields/town';
@@ -480,26 +480,25 @@ describe('Land Speculation', () => {
     return { price, culture: player.culturePool - culture };
   }
 
-  it('is one rider on the hex bought, with culture of half the price', () => {
-    // Batch DS4: "Buying a hex grants culture equal to half the gold paid." The
-    // test of a resource on the hex went with the old text.
+  it('pays a fixed culture reward for a tile purchase', () => {
     const effects = orderDef(LAND_SPECULATION).effects;
     expect(effects).toEqual([
       {
         kind: 'windfallRider',
         occasion: 'tilePurchase',
-        grant: { yield: 'culture', amount: 0.5, fromOccasion: 'gold', whole: true },
+        grant: { yield: 'culture', amount: 6 },
       },
     ]);
   });
 
-  it('pays half the price, rounded down, for a hex with a resource on it', () => {
+  it('pays the same culture for a resource tile regardless of its price', () => {
     const { state, home } = ready();
     seat(state, 0, LAND_SPECULATION);
     at(state, 7, 5).resource = 'wheat' as ResourceId;
     bumpRevision(state);
     const { price, culture } = buy(state, home, 7, 5);
-    expect(culture).toBe(Math.floor(price / 2));
+    expect(culture).toBe(6);
+    expect(price).toBeGreaterThan(culture);
     expect(culture).toBeGreaterThan(0);
   });
 
@@ -507,7 +506,7 @@ describe('Land Speculation', () => {
     const { state, home } = ready();
     seat(state, 0, LAND_SPECULATION);
     const bare = buy(state, home, 7, 5);
-    expect(bare.culture).toBe(Math.floor(bare.price / 2));
+    expect(bare.culture).toBe(6);
     expect(bare.culture).toBeGreaterThan(0);
     const hidden = RESOURCE_IDS.find((id) => resourceDef(id).requiresTech !== undefined)!;
     const gate = resourceDef(hidden).requiresTech!;
@@ -516,7 +515,7 @@ describe('Land Speculation', () => {
     at(state, 3, 5).resource = hidden;
     bumpRevision(state);
     const unseen = buy(state, home, 3, 5);
-    expect(unseen.culture).toBe(Math.floor(unseen.price / 2));
+    expect(unseen.culture).toBe(6);
   });
 
   it('pays nothing without the card', () => {
@@ -524,5 +523,51 @@ describe('Land Speculation', () => {
     at(state, 7, 5).resource = 'wheat' as ResourceId;
     bumpRevision(state);
     expect(buy(state, home, 7, 5).culture).toBe(0);
+  });
+});
+
+
+describe('Commerce review counts', () => {
+  it('counts a partner once through routes, deals or both, and drops it after both end', () => {
+    const { state, home, partner } = pair();
+    const trader = createUnit(state, 0, 'trader', home.col, home.row);
+    trader.trade = { from: home.id, to: partner.id, outbound: true };
+    bumpRevision(state);
+    expect(tradingPartnerSeats(state, 0)).toEqual([1]);
+    expect(countOf(state, 0, TREATY_PORTS, counted('dealPartners'))).toBe(1);
+    expect(commissionFigure(state, 0, 'dealPartners')).toBe(1);
+    lend(state, 0, 1, { goldPerTurn: 1 });
+    expect(tradingPartnerSeats(state, 0)).toEqual([1]);
+    delete trader.trade;
+    bumpRevision(state);
+    expect(tradingPartnerSeats(state, 0)).toEqual([1]);
+    cancelDealsBetween(state, 0, 1);
+    bumpRevision(state);
+    expect(tradingPartnerSeats(state, 0)).toEqual([]);
+  });
+
+  it('adds luxury copies to card counts without changing physical kinds or innate happiness', () => {
+    const { state, home } = pair();
+    seams(state, home, 'gems', [[2, 4], [4, 4]]);
+    const before = resourceHappiness(state, 0);
+    expect(cardLuxuryCount(state, 0)).toBe(1);
+    seat(state, 0, CASA);
+    expect(cardLuxuryCount(state, 0)).toBe(2);
+    expect(cardLuxuryCount(state, 0, home)).toBe(2);
+    expect(countOf(state, 0, CASA, counted('uniqueLuxuries'))).toBe(2);
+    expect(countedLuxuries(state, 0)).toHaveLength(1);
+    expect(resourceHappiness(state, 0)).toEqual(before);
+  });
+
+  it('combines lifetime gold and faith building purchases before applying the cap', () => {
+    const { state, home } = pair();
+    const player = state.players[0]!;
+    player.buildingsBoughtWithGold = 8;
+    player.buildingsBoughtWithFaith = 9;
+    const card = 'boughtAndPaidFor' as OrderId;
+    seat(state, 0, card);
+    const lines = cityYieldPercents(state, home).filter(line => line.card === card);
+    expect(lines.map(line => [line.yield, line.percent])).toEqual([['production', 30], ['culture', 30]]);
+    expect(countOf(state, 0, card, counted('buildingsBought'))).toBe(17);
   });
 });
