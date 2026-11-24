@@ -15,6 +15,70 @@ The user's questions for all four reviews: "is the utility in the deck useful? A
 
 ---
 
+## The user's comments, 2026-11-24
+
+The user commented on the review page (10 comments). **Where this section and the text below disagree, this section is right.** Nothing is built yet. These changes wait in the queue behind the playtest.
+
+| # | Card or point | Today (live) | The user's words | Result |
+|---|---|---|---|---|
+| 1 | Buying the whole Opus with gold in one turn | Gold poured into the Opus has no limit per turn. | "yup thats fine" | It stays as a broken combo. |
+| 2 | The full route stack | About 190 a route abroad with every route card seated (estimate). | "yup" | It stays as a broken combo. The build must still confirm how the doublings combine. |
+| 3 | Land Speculation (Tier 0, uncommon) | "Buying a hex grants culture equal to half the gold paid." | "yeah needs a nerf. Make this a flat amount, like 6 culture." | "Buying a hex grants 6 culture." (proposed number, the user's) |
+| 4 | Financed Industry (Tier I, rare) | "Towns gain production equal to 20% of their gold." | "i think this is strong, because commerce players will be stacking gold. lets keep it as is" | No change. The review's verdict (not competitive when dealt) is not accepted. |
+| 5 | The Casa da Índia (Tier IV, rare) | "Every copy of a luxury you hold pays its yields, not only the first." | "cool idea. could be phrased better." and "down to add this" | Adopted: each copy of a luxury counts as a luxury of its own, and extra copies give no happiness. A clearer wording (proposed): "Your cards count every copy of a luxury you hold, not only the first. Extra copies give no happiness." |
+| 6 | The Gilded Scaffold (Tier III, rare) | "You may purchase world wonders. All your cities lose 15% production." | "great" | "You may buy world wonders with gold." The penalty goes. |
+| 7 | Houses of Account (Tier II, common) | "Gold buildings provide +1 happiness and +2 renown." | "let's just do +2 renown." | "Gold buildings provide +2 renown." The happiness goes. The renown stays at +2, not the +1 the review proposed. |
+| 8 | One count: "an empire you trade with" | The Treaty Ports ("+8% production for each empire you hold a deal with, at most +40%.") and Commission: The Trade Mission ("Goal: hold deals with two empires at once. Reward: a great merchant.") count deals only. | "thats cool, and makes intuitive sense. That should be somewhere in the compendium" | Adopted: an empire counts if a trade route of yours reaches it or you hold a deal with it. The Compendium gets an entry that explains the count. |
+| 9 | Bought and Paid For (Tier IV, rare) | "+2% production and culture for each building you have bought with gold, at most +30%." | "cool, great" | It counts buildings bought with gold or with faith. |
+| 10 | Section D.4, threads to cut or merge | | "lay these out with all their effects for me to review" | Laid out below. No decision yet. |
+
+The user did not comment on The Feitorias (the review proposes that it pays for every two citizens). It stays open.
+
+### Section D.4 again, with each card's effect
+
+**The treasury.** The review: keep all three, and call them the "save" side of the gold theme. No card changes.
+
+| Card | Tier | Effect today |
+|---|---|---|
+| The Money Lenders | III, rare | "Earn interest equal to 4% of your treasury each turn, with no cap." |
+| The Strongroom (a commission) | III, uncommon | "Goal: hold 1,500 gold. Reward: a great merchant, and culture equal to a fifth of your treasury." |
+| The Monte di Pietà (Doctrine) | IV | "Every 200 gold in your treasury gives +1 happiness, at most +20. Your towns make 10% less gold." |
+
+**Deals.** The review: keep all five. Join them to the routes abroad through the "empire you trade with" count (point 8 above).
+
+| Card | Tier | Effect today |
+|---|---|---|
+| Travellers' Letters | 0, common | "Your capital gains +2 science and +2 culture for each empire you have met." |
+| Export Guilds | I, uncommon | "Each luxury you lend to another empire in a deal gives your capital +4 culture and +2 production." |
+| Commission: The Trade Mission | I, uncommon | "Goal: hold deals with two empires at once. Reward: a great merchant." |
+| The Treaty Ports | II, uncommon | "+8% production for each empire you hold a deal with, at most +40%." |
+| The Colleganza (Doctrine) | III | "Luxuries you lend in a deal still count for you. Your units lose 4 strength. A luxury you have traded away cannot be traded to a second empire." |
+
+**Roads.** The review: keep all three as the bridge to Expansionist.
+
+| Card | Tier | Effect today |
+|---|---|---|
+| The Wayside Inns | II, common | "Hexes with a road gain +1 food and +1 production." |
+| Market Gardens (shared with Expansionist) | II, common | "Hexes with a road gain +1 gold." |
+| The Turnpike Trusts (Doctrine) | III | "Your gold buys 100% more when hiring caravans. Hexes with a road gain +1 gold." |
+
+**Plain hex cards.** The review: keep all three as early glue.
+
+| Card | Tier | Effect today |
+|---|---|---|
+| The Mineral Trade | 0, common | "Mines and quarries gain +2 gold." |
+| The Provision Trade | 0, common | "Improved bonus resources gain +1 food and +1 production." |
+| The Potters' Quarter | 0, uncommon | "The hexes beside your capital gain +1 production and +1 science." |
+
+**Military singles.** The review: retire both. No theme reads them.
+
+| Card | Tier | Effect today |
+|---|---|---|
+| Foreign Procurement | II, common | "You may buy units without their strategic resource." |
+| The Epibatai | II, uncommon | "Your units gain +5 strength for three turns after they land from the sea." |
+
+---
+
 ## Summary
 
 ### Findings
