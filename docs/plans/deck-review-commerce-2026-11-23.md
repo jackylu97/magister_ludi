@@ -32,7 +32,7 @@ The user commented on the review page (10 comments). **Where this section and th
 | 9 | Bought and Paid For (Tier IV, rare) | "+2% production and culture for each building you have bought with gold, at most +30%." | "cool, great" | It counts buildings bought with gold or with faith. |
 | 10 | Section D.4, threads to cut or merge | | "lay these out with all their effects for me to review" | Laid out below. No decision yet. |
 
-The user did not comment on The Feitorias (the review proposes that it pays for every two citizens). It stays open.
+The Feitorias (Tier IV, uncommon; today: "Each town holding your trading post gives you +1 science and +1 culture for every four of its citizens.") pays for every two citizens. The user on 2026-11-24: "sure every two citizens is fine."
 
 ### Section D.4 again, with each card's effect
 
