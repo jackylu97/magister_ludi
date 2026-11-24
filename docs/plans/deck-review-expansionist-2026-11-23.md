@@ -29,11 +29,11 @@ The user commented on the review page (10 comments). **Where this section and th
 |---|---|---|---|
 | 1 | The five decisions | On decision 5: "yup keep", then "approved for all the above" | All five recommended readings are approved. The levy loop stays as a broken combo. The Imperial Roads with The Sovereign Writ stays. |
 | 2 | The Megalopolis | "sure" | "Each town gains +2 science and +2 production for each citizen above ten." |
-| 3 | The Missi Dominici (new, shared with Dominion) | "This should be stronger, lets make it +1 science and culture for every point of authority". On sharing it: "sure". | Build it, shared by Dominion and Expansionist: "Each of your towns gains +1 science and +1 culture for each point of spare authority." Reading: the user wrote "every point of authority", and the card reads spare authority, so the count is spare authority. To confirm. |
+| 3 | The Missi Dominici (new, shared with Dominion) | "This should be stronger, lets make it +1 science and culture for every point of authority". On sharing it: "sure". | Build it, shared by Dominion and Expansionist: "Each of your towns gains +1 science and +1 culture for each point of spare authority." The user confirmed on 2026-11-24 that the count is spare authority: "spare authority yes". |
 | 4 | The Missi Dominici, the engine | "it still seems pretty hard to get this engine going, lets leave it in for playtest with my revision, but might need another look. i don't think theres a lot of spare authority support by the time you get to age 2" | A note for after the playtest: look again at how a seat gains spare authority by age 2. |
 | 5 | The Mother City | "cool" | "Your capital gains +1 production and +1 culture for each citizen in the towns joined to it by road." |
 | 6 | Tinkers' Guild | "great cut" | Retired. |
-| 7 | The Local Census, Provincial Councils | "cut" | Both retired. The comment is on the one row that holds both cards. To confirm that both go. |
+| 7 | The Local Census (Tier I common: "A town working four improved tiles costs 1 less authority.") and Provincial Councils (Tier II common: "Towns joined to your capital by road cost 1 less authority.") | "cut", then in chat on 2026-11-24: "'cut' is agreeing with the recommendation, i forget exactly which to cut." | Both stay. The review did not recommend a cut for this row. Its verdict was that each is worth a chair while authority limits the seat, and that both do nothing once The Imperial Roads ("Towns joined to your capital by road cost no authority.") is seated. |
 | 8 | The Great Migration | "cut" | Retired. |
 | 9 | The Theodosian Walls | "cut" | Retired. |
 
