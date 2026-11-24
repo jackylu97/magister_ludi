@@ -15,6 +15,17 @@ This is a design proposal. It changes no data, no code and no test. No test, bot
 
 ---
 
+## The user's comments so far (read 2026-11-24)
+
+Two comments, both placed on the first version of the page. **Where this section and the text below disagree, this section is right.** The six decisions in the summary are still open.
+
+| Belief | Today (live) | Proposed in this pass | The user's words | Result |
+|---|---|---|---|---|
+| Keeper of the Hearth (a god) | See its row in section 1.3. | "Granaries and Monuments give +1 faith, and count as buildings that supply faith." It takes in The Standing Stones. | "Cool, I like it." | Settled as proposed. |
+| Ancestor Worship (a god) | "+1 culture for every 4 citizens in a town." | "The bonus for spare authority also raises faith and culture." | "Revise: +3 authority. Spare authority also raises faith." | Settled with the user's text: "+3 authority. The bonus for spare authority also raises faith." Culture is not raised. |
+
+---
+
 ## Summary
 
 ### The idea in four sentences
