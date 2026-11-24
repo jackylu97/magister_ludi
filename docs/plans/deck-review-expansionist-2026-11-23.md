@@ -21,6 +21,26 @@ The user's words that touch this deck:
 
 ---
 
+## The user's comments, 2026-11-24
+
+The user commented on the review page (10 comments). **Where this section and the text below disagree, this section is right.** Nothing is built yet. These changes wait in the queue behind the playtest.
+
+| # | Card or point | The user's words | Result |
+|---|---|---|---|
+| 1 | The five decisions | On decision 5: "yup keep", then "approved for all the above" | All five recommended readings are approved. The levy loop stays as a broken combo. The Imperial Roads with The Sovereign Writ stays. |
+| 2 | The Megalopolis | "sure" | "Each town gains +2 science and +2 production for each citizen above ten." |
+| 3 | The Missi Dominici (new, shared with Dominion) | "This should be stronger, lets make it +1 science and culture for every point of authority". On sharing it: "sure". | Build it, shared by Dominion and Expansionist: "Each of your towns gains +1 science and +1 culture for each point of spare authority." Reading: the user wrote "every point of authority", and the card reads spare authority, so the count is spare authority. To confirm. |
+| 4 | The Missi Dominici, the engine | "it still seems pretty hard to get this engine going, lets leave it in for playtest with my revision, but might need another look. i don't think theres a lot of spare authority support by the time you get to age 2" | A note for after the playtest: look again at how a seat gains spare authority by age 2. |
+| 5 | The Mother City | "cool" | "Your capital gains +1 production and +1 culture for each citizen in the towns joined to it by road." |
+| 6 | Tinkers' Guild | "great cut" | Retired. |
+| 7 | The Local Census, Provincial Councils | "cut" | Both retired. The comment is on the one row that holds both cards. To confirm that both go. |
+| 8 | The Great Migration | "cut" | Retired. |
+| 9 | The Theodosian Walls | "cut" | Retired. |
+
+Also approved through "approved for all the above", since they are in the recommended list: The Water Boards moves to Tier III (settled before), and The Road Home is dealt in Tier 0 and Tier I.
+
+---
+
 ## F. Summary
 
 ### Findings
