@@ -31,7 +31,7 @@ The user commented on the review page (13 comments). **Where this section and th
 | 9 | The Licence to Teach (new: "Gaining a great scholar completes the technology you are researching.") | New | "Hmmm i don't know if this is better than just raw science, wdyt?" and "not needed right now, lets see how magisterial plays after the nerf" | Not built now. Look again after the Magisterial nerf has been played. |
 | 10 | The "technologies completed" build | Five cards pay when a technology completes. | "thoughts here: i don't think 'technologies completed' should be a build. i think theres something more universal that scientific needs, technologies completed feels boring/something you'll do anyways. Maybe science gains synergy with population/happiness somehow, those mechanics are already intertwined. Maybe science can also interact with the map: instead of adding yields to tiles, it improves improvements (upgrades to a mine for example) but maybe thats just a semantic difference." | A second pass follows, in `docs/plans/scientific-second-pass-2026-11-24.md`. The user on 2026-11-24: "let's do a second scientific pass". |
 
-The user did not comment on The Royal Academies ("+5% production and culture for each empire building you hold."; the review proposes that it becomes a rare). It stays open.
+The Royal Academies (Tier III, uncommon: "+5% production and culture for each empire building you hold.") becomes a rare. The user on 2026-11-24: "royal academies can be a rare".
 
 ---
 

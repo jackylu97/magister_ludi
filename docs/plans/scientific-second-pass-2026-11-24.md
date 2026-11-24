@@ -10,6 +10,30 @@ The user's words for this pass (2026-11-24): "i don't think 'technologies comple
 
 ---
 
+## The user's comments, 2026-11-24
+
+The user commented on the page (19 comments). **Where this section and the text below disagree, this section is right.** Nothing is built yet. These changes wait in the queue behind the playtest.
+
+| # | Card or point | Today (live) | The user's words | Result |
+|---|---|---|---|---|
+| 1 | "The great city" replaces "technologies completed" as a build | Five cards pay when a technology completes. | "yes" | Adopted. The build reads a town's citizens above a line, and spare happiness. |
+| 2 | The Astronomical Diaries (Tier I, uncommon) | "Gains +1 culture and +1 production each time you complete a technology." | "great" and "yes" | "Gains +1 science and +1 culture in your capital each time one of your towns grows past eight citizens." |
+| 3 | The Reading Rooms (new, Tier I, common) | New | "great" | Build it: "Towns with a Library gain +1 happiness for every five citizens." |
+| 4 | The Learned Leisure (new, Tier II, uncommon: "Your capital gains +3 science for each point of spare happiness.") | New | "cut" | Not built. |
+| 5 | The Garden of Epicurus (new, Tier III, rare) | New. Today the bonus from spare happiness stops at +20%. | "great", "yes", and "sure, but didn't we rework the happiness tiers? double check with the main thread." | Build it: "The bonus from spare happiness has no upper limit." The check is below. |
+| 6 | The Hippodamian Plan (new Doctrine, Tier II) | New | "great" and "yes" | Build it: "Your towns of ten or more citizens ask 30% less happiness. Towns you found cost 1 more authority." |
+| 7 | The Round City (Tier II, uncommon) | "+1% production and culture for each citizen in your capital, at most +30%." | "great" | "+1% production and culture for each citizen in your capital." |
+| 8 | The Queen of Cities (Tier III, rare) | "Towns of at least 15 citizens produce twice their food and production." It is a live card, not a new one. | "is this new? Let's keep it" and "maybe too strong, lets do +50% instead of double" | It stays, at +50%: "Towns of at least 15 citizens produce 50% more food and production." |
+| 9 | The Forward Plans (Tier I, rare) | "You may build Universities before you know Scholarship." | "great" | Retired. |
+| 10 | The Barber-Surgeons (Tier II, common) | "Your units gain +10 health after killing a unit." | "lets keep this, make it uncommon" | It stays and becomes uncommon. |
+| 11 | The Royal Academies (Tier III, uncommon; from the first review) | "+5% production and culture for each empire building you hold." | In chat: "royal academies can be a rare" | It becomes a rare. |
+
+**The check the user asked for, on the happiness tiers.** The rework of 2026-11-23 changed the unhappy side only: growth is 75% slower below 0, and at -10 or less growth stops and gold, science, culture and faith fall by 20%. The happy side is as this document says: +10% science and culture at 5 spare happiness, and +20% at 10 (`data/rules.json` `meters.tiers`, and `src/sim/meters.ts`, read on 2026-11-24). So The Garden of Epicurus is written against the live rule.
+
+With The Learned Leisure cut and The Barber-Surgeons kept, Tier II gains one Doctrine and no Order, and loses none.
+
+---
+
 ## Summary
 
 ### What I found
