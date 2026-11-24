@@ -478,6 +478,22 @@ pins and the slow replays need a new record on this head.
 The lines in 0.1k and 0.1l that say the play clone stays at `12947dfb` are
 out of date. The user allowed the pull, and the clone follows `decks` again.
 
+## 0.1n The card, belief and wonder changes of the deck reviews (2026-11-24)
+
+**Read this file first: `docs/plans/card-changes-for-astra-2026-11-24.md`.** It is one index of every ruling the user made on 2026-11-23 and 2026-11-24 across eight design documents: 141 rows (72 changed, 13 new, 11 moved, 28 retired), each with the row id, today's text, the ruled text, the user's words, the size the review judged, and a status.
+
+- **The user wants these in the playtest build.** The user, 2026-11-24: "i want to have these changes in for the playtest, i changed my mind", and "i'm just having astra chug through all of it right now".
+- **The specification of record is the section "The user's comments" at the top of each source document.** It outranks the body below it. Several rulings changed after the review bodies were written, and the bodies still print the first versions. Three examples: Solomon's Temple is +15% renown (not +10%, and not the Temple clause); The Honoured Dead gains +5 and +5 for each great person (not families); Ancestor Worship is "+3 authority. The bonus for spare authority also raises faith."
+- **Each section of the index has a "Not to build" list.** It names the dropped, rejected and deferred proposals, so that nobody builds them from a review body. The founder's share of a religion is deferred, and so is the rest of the wonder review (`docs/plans/beta-checklist-2026-11-21.md`).
+- **The index lists the broken combos the user chose to keep.** Do not lower them: the drill loop (The Drill Masters with Up Through the Ranks), the levy loop, The Imperial Roads with The Sovereign Writ, the full stack of route cards, buying the Opus with gold in one turn, the cluster of works, The Terracotta Army's second unit, The Garden of Epicurus with The Good Years.
+- **Status words.** SETTLED: the user ruled in words. DEFAULT (13 rows): no direct answer, taken by the recommended reading; build them, and expect that the user may overrule one. NAME OR NUMBER OPEN (7 rows): build the effect and use the proposed name or number until the user chooses.
+- **"Checks before building" in the index** lists every point a review did not verify for an accepted change. About 25 changes need code and not only data. No power figure in any review was measured.
+- **"For the bots"** lists the rows that need a new value.
+- **Two retired rows already do most of what two new cards need:** The Penitents' Roll (`thePenitentsRoll`, pays for each reroll and makes rerolls cheaper) for the reroll card, and The Loose Rein (`theLooseRein`, "locked for 2 turns instead of 5") for the swap card.
+- **Player-facing words.** The Compendium needs an entry for the count "an empire you trade with" (a trade route of yours reaches it, or you hold a deal with it).
+
+The Claude session wrote the index and the reviews, and built none of these changes. It changed no data file for them.
+
 ## 1. Who owns what
 
 | Area | Owner | Main folders |
