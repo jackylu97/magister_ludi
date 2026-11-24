@@ -24,6 +24,49 @@ Two comments, both placed on the first version of the page. **Where this section
 | Keeper of the Hearth (a god) | See its row in section 1.3. | "Granaries and Monuments give +1 faith, and count as buildings that supply faith." It takes in The Standing Stones. | "Cool, I like it." | Settled as proposed. |
 | Ancestor Worship (a god) | "+1 culture for every 4 citizens in a town." | "The bonus for spare authority also raises faith and culture." | "Revise: +3 authority. Spare authority also raises faith." | Settled with the user's text: "+3 authority. The bonus for spare authority also raises faith." Culture is not raised. |
 
+### The second round of comments (read 2026-11-24)
+
+Nineteen more comments on section 1.3, and one answer in chat. Nothing is built yet.
+
+**Decision 6, in chat:** "the commission is great." Commission: The Anointing (today: hold 10 spare authority, and each devout town gains +3 faith and +3 culture) gives the realm rite as its reward: a rite your capital starts is kept by every town you hold.
+
+**Gods**
+
+| Belief | Today (live) | Proposed | The user's words | Result |
+|---|---|---|---|---|
+| Rites of Blood | "Killing a unit grants faith equal to its strength." | "A unit of yours that dies in battle grants faith equal to twice its strength." | "great" | Settled as proposed. |
+| Desert Fathers | "Desert hexes gain +1 food and +1 faith." | "Desert and tundra hexes gain +1 food and +1 faith." It takes in Winter Mother. It needs a name for both, for example The Hermits. | "great" | Settled as proposed. The name is still to choose. |
+| Winter Mother | "+1 food and +1 faith on every tundra hex." | Cut. Its line moves into the row above. | "great" | Cut. |
+| Patron of Merchants | "+1 faith and +2 gold for each different luxury you hold." | "+1 gold each turn for every 50 faith you have spent this game." | "great" | Settled as proposed. |
+| Ancestor Worship | "+1 culture for every 4 citizens in a town." | "The bonus for spare authority also raises faith and culture." | "great" (01:01, on the row that still showed the first proposal) | The user's earlier revision stands: "+3 authority. The bonus for spare authority also raises faith." To confirm, because the two comments differ. |
+
+**Follower beliefs**
+
+| Belief | Today (live) | Proposed | The user's words | Result |
+|---|---|---|---|---|
+| Pilgrimage | "A town that follows gains +1 faith for every 3 followers." | Cut. | "great" | Cut. |
+| Feast Days | "+1 happiness for every city that follows, and Temples supply +1 happiness." | "A town that follows gains +1 faith for every two citizens while it keeps a rite." | "great" | Settled (as in the first pass). |
+| Holy Water | "Towns that follow and stand on fresh water gain +10% food." | Cut. | "great" | Cut. |
+| Lamps of the Shrine | "Shrines in towns that follow give +2 science." | Cut. | "great" | Cut. |
+| Choirs | "+1 culture for every 4 citizens of a city that follows." | "A town that follows gains +1 culture and +1 gold for every three citizens." It takes in Tithe Houses. | "great" | Settled as proposed. |
+| The Alms Box | "Your faith buys 25% more in towns that follow this religion." | "A town that follows may buy food and production buildings with faith." | "great" | Settled as proposed. |
+
+**Enhancer beliefs**
+
+| Belief | Today (live) | Proposed | The user's words | Result |
+|---|---|---|---|---|
+| Reliquaries | "+1 culture for every 3 faith you make each turn." | "An apostle may leave a relic in a town of yours with a Temple. Each of your towns that holds a relic gives +4 science and +4 culture." | "i'm worried about the UX for this. But otherwise its great. This can just be a new action for the apostle. Instead of tracking them, lets just have no limit on the number of relics an apostle can leave, and it's appled as a modifier to the temple. Use 1 charge" | Settled with the user's design: leaving a relic is an apostle's act that costs one charge. A town has no limit on relics. Each relic adds to that town's Temple (+4 science and +4 culture for each relic, proposed). Nothing else is tracked. |
+| Inquisition | "Rival religions press your towns at 70% strength. +1 authority for every two of your cities that follow your religion." | The same, with the word "devout towns". | "great" | Settled. |
+| The Long Road | "Your religion presses 2 harder along trade routes." | "Your trade routes press your religion at both ends, and 2 harder." It takes in Sacred Cartography. | "great" | Settled as proposed. |
+| Sacred Cartography | "Your trade routes press your religion at both ends." | Cut. Its line moves into the row above. | "great" | Cut. |
+| The Pulse of Bells | "A proclamation reaches 4 hexes further and presses 20 faith harder." | "A proclamation gives each of your towns in its reach +25% production for ten turns. A later one restarts the ten turns." | "great" | Settled as proposed. This answers decision 5. |
+| Ecclesia | "Each holy site gives +1 faith for each town in the world that follows your religion." | "A town that starts a rite presses your religion on every town within four hexes." | "lets increase the range, 6 hexes" | Settled at six hexes. |
+| Congregation | "+2 faith for every town in the world that follows your religion." | "The first time a foreign town turns to your religion, your capital gains a citizen." | "great" | Settled as proposed. |
+| The Long Prayer | "+1 culture for every 4 citizens in the world who follow you." | "+1 culture for every 3 citizens in the world who follow you." | "great" | Settled as proposed. |
+
+**Decisions after this round.** Decisions 5 and 6 are answered. Decisions 1 to 4 have no direct comment yet: the smaller belief list as a whole, the founder's share by citizens, whether The Holy Inquisition and Commission: The State Church stop giving authority, and the retirement of the four conversion rows. Every cut the user commented on in section 1.3 was approved.
+
+
 ---
 
 ## Summary
